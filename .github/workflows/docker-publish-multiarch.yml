@@ -1,0 +1,32 @@
+name: Docker Publish multiarch
+
+on:
+  push:
+    branches: master
+
+  pull_request:
+
+env:
+  VERSION_NUMBER: 1.0
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v2
+      - name: install buildx
+        id: buildx
+        uses: crazy-max/ghaction-docker-buildx@v1
+        with:
+          version: latest
+      - name: login to docker hub
+        run: echo "${{ secrets.DOCKER_PW }}" | docker login -u "${{ secrets.DOCKER_USER }}" --password-stdin
+      - name: build the image
+        run: |
+          docker buildx build --tag f0rc3/gokapi:latest --platform linux/386,linux/amd64,linux/arm/v6,linux/arm/v7 .
+      - name: push the image
+        if: github.event_name == 'push'
+        run: |
+          docker buildx build --push --tag f0rc3/gokapi:latest --platform linux/386,linux/amd64,linux/arm/v6,linux/arm/v7 .
+          docker buildx build --push --tag f0rc3/gokapi:$VERSION_NUMBER --platform linux/386,linux/amd64,linux/arm/v6,linux/arm/v7 .
