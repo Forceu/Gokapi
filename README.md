@@ -34,7 +34,7 @@ On the first start you will be prompted for the initial configuration.
 * Password: This will be used to enter the admin page
 * Server URL: The external URL for the Gokapi server. Hosting it with a reverse proxy and SSL is strongly recommended! For testing purposes you can enter `http://127.0.0.1:53842/`
 * Index URL: The URL where the index page redirects to. Leave blank to have it redirect to the Gokapi GitHub page
-* Bind port to localhost: If you choose yes, you can only access Gokapi on the machine or by using a reverse proxy. Strongly recommended! Not displayed when deployed with Docker.s
+* Bind port to localhost: If you choose yes, you can only access Gokapi on the machine or by using a reverse proxy. Strongly recommended! Not displayed when deployed with Docker.
 
 Then you can navigate to `http://127.0.0.1:53842/admin` in your browser and login with the credentials.
 
