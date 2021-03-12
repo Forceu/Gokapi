@@ -1,0 +1,52 @@
+{{define "header_top"}}
+<!doctype html>
+<html lang="en" class="h-100">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+
+
+	<link href="./assets/dist/css/bootstrap.min.css" rel="stylesheet">
+{{end}}
+{{define "header_mid_admin"}}
+        <title>{{template "app_name"}} Admin</title>
+	<link href="./assets/dist/css/dropzone.min.css" rel="stylesheet">
+	<script src="./assets/dist/js/jquery.min.js"></script>
+	<script src="./assets/dist/js/bootstrap.bundle.min.js"></script>
+	<script src="./assets/dist/js/dropzone.min.js"></script>
+	<script src="./assets/dist/js/clipboard.min.js"></script>
+{{end}}
+{{define "header_mid_nonadmin"}}
+        <title>{{template "app_name"}}</title>
+	<style>
+	body {
+	  box-shadow: inset 0 0 5rem rgba(0, 0, 0, .5);
+	}
+	</style>
+{{end}}
+{{define "header_bottom"}}
+    <link href="css/cover.css" rel="stylesheet">
+  </head>
+  <body class="d-flex h-100 text-center text-white bg-dark">
+<div class="d-flex w-100 h-100 p-3 mx-auto flex-column">
+  <header class="mb-auto">
+    <div>
+      <h1><a href="/" style="text-decoration: none;display: block;">{{template "app_name"}}</a></h1>
+    </div>
+  </header>
+  <main>
+{{end}}
+
+{{define "header"}}
+{{template "header_top"}}
+{{template "header_mid_nonadmin"}}
+{{template "header_bottom"}}
+{{end}}
+
+
+{{define "header_admin"}}
+{{template "header_top"}}
+{{template "header_mid_admin"}}
+{{template "header_bottom"}}
+{{end}}

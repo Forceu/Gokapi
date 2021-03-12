@@ -1,0 +1,63 @@
+{{ define "admin" }}
+{{ template "header_admin" }}
+ 
+      <div class="row">
+        <div class="col">
+		<div id="container" class="card" style="width: 80%">
+		  <div class="card-body">
+		    <h2 class="card-title">Upload</h2>
+		    <br>
+		    <p class="card-text"><form action="/upload"
+			      class="dropzone"
+			      id="uploaddropzone"></form></p><br>
+		<div class="container">
+		  <div class="row">
+		    <div class="col-sm">
+		      Allowed downloads: &nbsp;&nbsp;  <input type="number" value="{{ .DefaultDownloads }}" name="allowedDownloads" id="allowedDownloads" min="1" />
+		    </div>
+		    <div class="col-sm">
+		       Expires in days: &nbsp;&nbsp;  <input type="number" value="{{ .DefaultExpiry }}" name="expiryDays" id="expiryDays" min="1" />
+		    </div>
+		  </div>
+		</div>
+		<br><br>
+		<div class="table-responsive">
+			<table class="table table-dark">
+				<thead>
+					<tr>
+						<th scope="col">Filename</th>
+						<th scope="col">Size</th>
+						<th scope="col">Downloads remaining</th>
+						<th scope="col">Stored until</th>
+						<th scope="col">URL</th>
+						<th scope="col">Actions</th>
+					</tr>
+				</thead>
+				<tbody id="downloadtable">
+{{ range .Items }}
+{{ if gt .ExpireAt $.TimeNow }}
+{{ if gt .DownloadsRemaining 0 }}
+					<tr>
+						<td scope="col">{{ .Name }}</td>
+						<td scope="col">{{ .Size }}</td>
+						<td scope="col">{{ .DownloadsRemaining }}</td>
+						<td scope="col">{{ .ExpireAtString }}</td>
+						<td scope="col"><a target="_blank" href="{{ $.Url }}{{ .Id }}">{{ $.Url }}{{ .Id }}</a></td>
+						<td scope="col"><button type="button" data-clipboard-text="{{ $.Url }}{{ .Id }}" class="copyurl btn btn-outline-light btn-sm">Copy URL</button> <button type="button" class="btn btn-outline-light btn-sm" onclick="window.location='./delete?id={{ .Id }}'">Delete</button></td>
+					</tr>
+{{ end }}
+{{ end }}
+{{ end }}
+				</tbody>
+			</table>
+		      </div>
+		  </div>
+		</div>
+	    </div>
+   	 </div>
+
+	<script src="./js/admin.js"></script>
+
+
+{{ template "footer" }}
+{{ end }}

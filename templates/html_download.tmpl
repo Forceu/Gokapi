@@ -1,0 +1,17 @@
+{{define "download"}}
+{{template "header"}}
+ 
+      <div class="row">
+        <div class="col">
+		<div class="card" style="width: 18rem;">
+		  <div class="card-body">
+		    <h4 class="card-title">{{ .Name }}</h4>
+		    <p class="card-text">Filesize: {{ .Size }}</p>
+		    <a href="./downloadFile?id={{ .Id }}" class="card-link">Download</a>
+		  </div>
+		</div>
+	    </div>
+    </div>
+
+{{template "footer"}}    
+{{end}}
