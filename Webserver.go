@@ -40,7 +40,7 @@ func startWebserver() {
 	http.HandleFunc("/delete", deleteFile)
 	http.HandleFunc("/downloadFile", downloadFile)
 	http.HandleFunc("/forgotpw", forgotPassword)
-	fmt.Println("Webserver started on " + globalConfig.Port )
+	fmt.Println("Webserver started on " + globalConfig.Port)
 	fmt.Println("Webserver can be accessed on " + globalConfig.ServerUrl + "admin")
 	log.Fatal(http.ListenAndServe(globalConfig.Port, nil))
 }
@@ -144,6 +144,7 @@ func deleteFile(w http.ResponseWriter, r *http.Request) {
 func queryUrl(w http.ResponseWriter, r *http.Request, redirectUrl string) string {
 	keys, ok := r.URL.Query()["id"]
 	if !ok || len(keys[0]) < 15 {
+		time.Sleep(500 * time.Millisecond)
 		redirect(w, redirectUrl)
 		return ""
 	}
