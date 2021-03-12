@@ -154,6 +154,9 @@ func askForUrl() string {
 func askForRedirect() string {
 	fmt.Print("URL that the index gets redirected to [eg. https://yourcompany.com/]: ")
 	url := readLine()
+	if url == "" {
+		return "https://github.com/Forceu/Gokapi/"
+	}
 	if !isValidUrl(url) {
 		return askForUrl()
 	}
