@@ -22,7 +22,7 @@ Simply download the latest release for your platform and execute the binary (rec
 
 ### Docker
 
-Run the following command to create the container, volumes and execute the initial setup: `docker run -it -v gokapi-data:/app/data -v gokapi-config:/app/config -p 127.0.0.1:53842:53842 f0rc3/gokapi:latest`
+Run the following command to create the container, volumes and execute the initial setup: `docker run -it -v gokapi-data:/app/data -v gokapi-config:/app/config -p 127.0.0.1:53842:53842 f0rc3/gokapi:latest`. Please note the `-it` docker argument, which is required for the first start!
 
 ## Usage
 
