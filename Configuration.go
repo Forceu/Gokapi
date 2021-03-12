@@ -122,7 +122,7 @@ func askForPassword() string {
 }
 
 func askForUrl() string {
-	fmt.Print("Server URL [eg. https://sgdownload.url/]: ")
+	fmt.Print("Server URL [eg. https://gokapi.url/]: ")
 	url := readLine()
 	if !isValidUrl(url) {
 		return askForUrl()

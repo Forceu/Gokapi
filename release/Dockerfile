@@ -1,0 +1,16 @@
+FROM golang:1.16
+
+## To compile:
+## cd Gokapi/release/
+## docker build . --tag gokapi-builder
+## docker run --rm -it -v ../:/usr/src/myapp -w /usr/src/myapp gokapi-builder
+
+RUN \
+  apt-get update && \
+  apt-get install -y ca-certificates openssl zip && \
+  update-ca-certificates && \
+  rm -rf /var/lib/apt
+
+COPY entrypoint.sh /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
