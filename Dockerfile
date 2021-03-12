@@ -13,9 +13,8 @@ RUN cd /compile  && CGO_ENABLED=0 go build -o /compile/gokapi
 FROM alpine:3.13
 
 
-RUN apk add ca-certificates && mkdir /app  
+RUN apk add ca-certificates && mkdir /app  && touch /app/.isdocker
 COPY --from=build_base /compile/gokapi /app/gokapi
-RUN touch /app/.isdocker
 WORKDIR /app
 
 CMD ["/app/gokapi"]
