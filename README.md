@@ -24,6 +24,8 @@ Simply download the latest release for your platform and execute the binary (rec
 
 Run the following command to create the container, volumes and execute the initial setup: `docker run -it -v gokapi-data:/app/data -v gokapi-config:/app/config -p 127.0.0.1:53842:53842 f0rc3/gokapi:latest`. Please note the `-it` docker argument, which is required for the first start!
 
+With the argument `-p 127.0.0.1:53842:53842` the service will only be accessible from the machine it is running on. Normally you will use a reverse proxy to enable SSL - if you want to make the service availabe to other computers in the network without a reverse proxy, replace the argument with `-p 127.0.0.1:53842:53842`. Please note that traffic will **not** be encypted that way and data like passwords and transferred files can easily be read by 3rd parties!
+
 ## Usage
 
 ### First start
