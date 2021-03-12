@@ -10,7 +10,9 @@ import (
 	"strings"
 )
 
+const configDir = "config"
 const configFile = "config.json"
+const configPath = configDir + "/" + configFile
 
 var globalConfig Configuration
 
@@ -41,10 +43,11 @@ func (f *FileList) toJsonResult() string {
 }
 
 func loadConfig() {
-	if !fileExists(configFile) {
+	createConfigDir()
+	if !fileExists(configPath) {
 		generateDefaultConfig()
 	}
-	file, err := os.Open(configFile)
+	file, err := os.Open(configPath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -63,8 +66,14 @@ func generateDefaultConfig() {
 	password := askForPassword()
 	url := askForUrl()
 	redirect := askForRedirect()
+	localOnly := askForLocalOnly()
+	port := "127.0.0.1:53842"
+	if !localOnly {
+		port = "0.0.0.0:53842"
+	}
+
 	globalConfig = Configuration{
-		Port:             "127.0.0.1:53842",
+		Port:             port,
 		AdminName:        username,
 		AdminPassword:    hashPassword(password),
 		ServerUrl:        url,
@@ -78,7 +87,7 @@ func generateDefaultConfig() {
 }
 
 func saveConfig() {
-	file, err := os.OpenFile(configFile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+	file, err := os.OpenFile(configPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		fmt.Println("Error reading configuration:", err)
 		os.Exit(1)
@@ -100,6 +109,15 @@ func askForUsername() string {
 	}
 	fmt.Println("Username needs to be at least 4 characters long")
 	return askForUsername()
+}
+
+func askForLocalOnly() bool {
+	if isDocker() {
+		return false
+	}
+	fmt.Print("Bind port to localhost only? [Y/n]: ")
+	input := strings.ToLower(readLine())
+	return input != "n"
 }
 
 func askForPassword() string {
@@ -162,4 +180,15 @@ type Result struct {
 	Result   string    `json:"Result"`
 	FileInfo *FileList `json:"FileInfo"`
 	Url      string    `json:"Url"`
+}
+
+func createConfigDir() {
+	if !folderExists(configDir) {
+		err := os.Mkdir(configDir, 0770)
+		check(err)
+	}
+}
+
+func isDocker() bool {
+	return fileExists(".isdocker")
 }
