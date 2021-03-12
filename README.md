@@ -48,7 +48,7 @@ To upload, drag and drop a file, folder or multiple files to the Upload Zone. If
 By default, all files are included in the executable. If you want to change the layout (e.g. add your company logo or change the app name etc.), follow these steps:
 * Clone this repository
 * Copy either the folder `static`, `templates` or both to the directory where the executable is located
-* Make changes to the folders. `static` contains images, CSS files and JavaScript. `templates` contains the generated HTML code.
+* Make changes to the folders. `static` contains images, CSS files and JavaScript. `templates` contains the HTML code.
 * Restart the server. If the folders exist, the server will use the local files instead of the embedded files
 * Optional: To embed the files permanently, the executable needs to be recompiled with `go build`.
 
