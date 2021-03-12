@@ -54,6 +54,9 @@ By default, all files are included in the executable. If you want to change the 
 
 
 ## Screenshots
+Admin Menu![image](https://user-images.githubusercontent.com/1593467/110936500-45a4da80-8331-11eb-8a2d-986af5ab411a.png)
+Download Link![image](https://user-images.githubusercontent.com/1593467/110936659-869cef00-8331-11eb-83d8-7c2837f55620.png)
+
 
 
 ## Contributors
