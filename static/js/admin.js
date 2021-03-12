@@ -1,6 +1,7 @@
 var clipboard = new ClipboardJS('.btn');
 
 
+var dropzoneObject;
 
 Dropzone.options.uploaddropzone = {
   paramName: "file",
@@ -14,9 +15,22 @@ Dropzone.options.uploaddropzone = {
                 formData.append("allowedDownloads", document.getElementById("allowedDownloads").value);
                 formData.append("expiryDays", document.getElementById("expiryDays").value);
         });
-    }
-
+    },
+  init: function() {
+      dropzoneObject = this;
+  }
 };
+
+document.onpaste = function(event){
+  var items = (event.clipboardData || event.originalEvent.clipboardData).items;
+  for (index in items) {
+    var item = items[index];
+    if (item.kind === 'file') {
+      dropzoneObject.addFile(item.getAsFile())
+    }
+  }
+}
+
 
 function addRow(jsonText) {
   let jsonObject = JSON.parse(jsonText);
