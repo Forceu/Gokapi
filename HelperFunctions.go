@@ -11,8 +11,6 @@ import (
 	"os"
 )
 
-var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-
 func check(e error) {
 	if e != nil {
 		panic(e)
@@ -57,11 +55,13 @@ func byteCountSI(b int64) string {
 		float64(b)/float64(div), "kMGTPE"[exp])
 }
 
+var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
 //Used if unable to generate secure random string. A warning will be output
 //to the CLI window
-func unsafeId(n int) string {
+func unsafeId(length int) string {
 	log.Println("Warning! Cannot generate securely random ID!")
-	b := make([]rune, n)
+	b := make([]rune, length)
 	for i := range b {
 		b[i] = letters[rand.Intn(len(letters))]
 	}
@@ -82,7 +82,7 @@ func generateRandomBytes(n int) ([]byte, error) {
 
 // generateRandomString returns a URL-safe, base64 encoded
 // securely generated random string.
-func generateRandomString(s int) (string, error) {
-	b, err := generateRandomBytes(s)
+func generateRandomString(length int) (string, error) {
+	b, err := generateRandomBytes(length)
 	return base64.URLEncoding.EncodeToString(b), err
 }

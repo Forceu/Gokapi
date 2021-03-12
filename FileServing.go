@@ -20,10 +20,12 @@ type FileList struct {
 	DownloadsRemaining int    `json:"DownloadsRemaining"`
 }
 
+const lengthId = 15
+
 func createNewFile(fileContent *multipart.File, fileHeader *multipart.FileHeader, expireAt int64, downloads int) (FileList, error) {
-	id, err := generateRandomString(15)
+	id, err := generateRandomString(lengthId)
 	if err != nil {
-		id = unsafeId(15)
+		id = unsafeId(lengthId)
 	}
 
 	fileBytes, err := ioutil.ReadAll(*fileContent)
