@@ -42,7 +42,10 @@ func isValidSession(w http.ResponseWriter, r *http.Request) bool {
 }
 
 func createSession(w http.ResponseWriter) {
-	sessionString := randSeq(60)
+	sessionString, err := generateRandomString(60)
+	if err != nil {
+		sessionString = unsafeId(60)
+	}
 	globalConfig.Sessions[sessionString] = Session{
 		RenewAt:    time.Now().Add(time.Hour).Unix(),
 		ValidUntil: time.Now().Add(COOKIE_LIFE).Unix(),

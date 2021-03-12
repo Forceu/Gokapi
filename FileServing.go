@@ -10,7 +10,6 @@ import (
 	"time"
 )
 
-
 type FileList struct {
 	Id                 string `json:"Id"`
 	Name               string `json:"Name"`
@@ -22,7 +21,10 @@ type FileList struct {
 }
 
 func createNewFile(fileContent *multipart.File, fileHeader *multipart.FileHeader, expireAt int64, downloads int) (FileList, error) {
-	id := randSeq(15)
+	id, err := generateRandomString(15)
+	if err != nil {
+		id = unsafeId(15)
+	}
 
 	fileBytes, err := ioutil.ReadAll(*fileContent)
 	if err != nil {
@@ -52,7 +54,6 @@ func createNewFile(fileContent *multipart.File, fileHeader *multipart.FileHeader
 	saveConfig()
 	return file, nil
 }
-
 
 func cleanUpOldFiles(sleep bool) {
 	timeNow := time.Now().Unix()

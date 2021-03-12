@@ -1,9 +1,12 @@
 package main
 
 import (
+	cryptorand "crypto/rand"
 	"crypto/sha1"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"log"
 	"math/rand"
 	"os"
 )
@@ -54,10 +57,32 @@ func byteCountSI(b int64) string {
 		float64(b)/float64(div), "kMGTPE"[exp])
 }
 
-func randSeq(n int) string {
+//Used if unable to generate secure random string. A warning will be output
+//to the CLI window
+func unsafeId(n int) string {
+	log.Println("Warning! Cannot generate securely random ID!")
 	b := make([]rune, n)
 	for i := range b {
 		b[i] = letters[rand.Intn(len(letters))]
 	}
 	return string(b)
+}
+
+// generateRandomBytes returns securely generated random bytes.
+// It will return an error if the system's secure random
+// number generator fails to function correctly
+func generateRandomBytes(n int) ([]byte, error) {
+	b := make([]byte, n)
+	_, err := cryptorand.Read(b)
+	if err != nil {
+		return nil, err
+	}
+	return b, nil
+}
+
+// generateRandomString returns a URL-safe, base64 encoded
+// securely generated random string.
+func generateRandomString(s int) (string, error) {
+	b, err := generateRandomBytes(s)
+	return base64.URLEncoding.EncodeToString(b), err
 }
