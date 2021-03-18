@@ -11,14 +11,12 @@ Dropzone.options.uploaddropzone = {
    this.removeFile(file);
  },
     init: function() {
+      dropzoneObject = this;
         this.on("sending", function(file, xhr, formData){
                 formData.append("allowedDownloads", document.getElementById("allowedDownloads").value);
                 formData.append("expiryDays", document.getElementById("expiryDays").value);
         });
     },
-  init: function() {
-      dropzoneObject = this;
-  }
 };
 
 document.onpaste = function(event){
