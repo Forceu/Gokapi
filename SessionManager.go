@@ -70,3 +70,4 @@ func writeSessionCookie(w http.ResponseWriter, sessionString string, expiry time
 		Expires: expiry,
 	})
 }
+

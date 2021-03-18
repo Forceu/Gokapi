@@ -15,6 +15,7 @@ Dropzone.options.uploaddropzone = {
         this.on("sending", function(file, xhr, formData){
                 formData.append("allowedDownloads", document.getElementById("allowedDownloads").value);
                 formData.append("expiryDays", document.getElementById("expiryDays").value);
+                formData.append("password", document.getElementById("password").value);
         });
     },
 };
@@ -46,11 +47,16 @@ function addRow(jsonText) {
   let cell4 = row.insertCell(3);
   let cell5 = row.insertCell(4);
   let cell6 = row.insertCell(5);
+  let lockIcon = "";
+  
+  if (item.PasswordHash != "") {
+	lockIcon = " &#128274;";
+  }
   cell1.innerText = item.Name;
   cell2.innerText = item.Size;
   cell3.innerText = item.DownloadsRemaining;
   cell4.innerText = item.ExpireAtString;
-  cell5.innerHTML = '<a  target="_blank" style="color: inherit" href="'+jsonObject.Url+item.Id+'">'+jsonObject.Url+item.Id+'</a>';
+  cell5.innerHTML = '<a  target="_blank" style="color: inherit" href="'+jsonObject.Url+item.Id+'">'+jsonObject.Url+item.Id+'</a>'+lockIcon;
   cell6.innerHTML = "<button type=\"button\" data-clipboard-text=\""+jsonObject.Url+item.Id+"\" class=\"copyurl btn btn-outline-light btn-sm\">Copy URL</button> <button type=\"button\" class=\"btn btn-outline-light btn-sm\" onclick=\"window.location='./delete?id="+item.Id+"'\">Delete</button>";
   cell1.style.backgroundColor="green"
   cell2.style.backgroundColor="green"

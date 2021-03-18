@@ -10,14 +10,23 @@
 		    <p class="card-text"><form action="/upload"
 			      class="dropzone"
 			      id="uploaddropzone"></form></p><br>
-		<div class="container">
+
+		<div class="container-md">
 		  <div class="row">
-		    <div class="col-sm">
-		      Allowed downloads: &nbsp;&nbsp;  <input type="number" value="{{ .DefaultDownloads }}" name="allowedDownloads" id="allowedDownloads" min="1" />
-		    </div>
-		    <div class="col-sm">
-		       Expires in days: &nbsp;&nbsp;  <input type="number" value="{{ .DefaultExpiry }}" name="expiryDays" id="expiryDays" min="1" />
-		    </div>
+			  <div class="form-group col">
+	     			<label class="control-label small" for="allowedDownloads">Allowed downloads</label>
+				<input type="number" class="form-control admin-input" value="{{ .DefaultDownloads }}" name="allowedDownloads" id="allowedDownloads" min="1"/>
+			 </div>
+  			 <div class="break"></div>
+	   		 <div class="form-group col">
+	     			<label class="control-label  small" for="expiryDays">Expiry in days</label>
+				<input type="number" class="form-control admin-input" value="{{ .DefaultExpiry }}" name="expiryDays" id="expiryDays" min="1"/>
+			 </div>
+  			 <div class="break"></div>
+	    		 <div class="form-group col">
+	     			<label class="control-label  small" for="password">Password</label>
+				<input class="form-control admin-input" value="{{ .DefaultPassword }}" name="password" id="password" placeholder="None"/>
+			  </div>
 		  </div>
 		</div>
 		<br><br>
@@ -42,7 +51,7 @@
 						<td scope="col">{{ .Size }}</td>
 						<td scope="col">{{ .DownloadsRemaining }}</td>
 						<td scope="col">{{ .ExpireAtString }}</td>
-						<td scope="col"><a target="_blank" href="{{ $.Url }}{{ .Id }}">{{ $.Url }}{{ .Id }}</a></td>
+						<td scope="col"><a target="_blank" href="{{ $.Url }}{{ .Id }}">{{ $.Url }}{{ .Id }}</a>{{ if ne .PasswordHash "" }} &#128274;{{ end }}</td>
 						<td scope="col"><button type="button" data-clipboard-text="{{ $.Url }}{{ .Id }}" class="copyurl btn btn-outline-light btn-sm">Copy URL</button> <button type="button" class="btn btn-outline-light btn-sm" onclick="window.location='./delete?id={{ .Id }}'">Delete</button></td>
 					</tr>
 {{ end }}
@@ -56,7 +65,7 @@
 	    </div>
    	 </div>
 
-	<script src="./js/admin.js?v=2"></script>
+	<script src="./js/admin.js?v=3"></script>
 
 
 {{ template "footer" }}

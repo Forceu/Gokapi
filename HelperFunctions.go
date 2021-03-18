@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	cryptorand "crypto/rand"
 	"crypto/sha1"
 	"encoding/base64"
@@ -9,6 +10,7 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"strings"
 )
 
 func check(e error) {
@@ -17,8 +19,13 @@ func check(e error) {
 	}
 }
 
-func hashPassword(password string) string {
-	const salt = "eefwkjqweduiotbrkl##$2342brerlk2321"
+const SALT_PW_ADMIN = "eefwkjqweduiotbrkl##$2342brerlk2321"
+const SALT_PW_FILES = "P1UI5sRNDwuBgOvOYhNsmucZ2pqo4KEvOoqqbpdu"
+
+func hashPassword(password, salt string) string {
+	if password == "" {
+		return ""
+	}
 	bytes := []byte(password + salt)
 	hash := sha1.New()
 	hash.Write(bytes)
@@ -55,7 +62,7 @@ func byteCountSI(b int64) string {
 		float64(b)/float64(div), "kMGTPE"[exp])
 }
 
-var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+var characters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 
 //Used if unable to generate secure random string. A warning will be output
 //to the CLI window
@@ -63,7 +70,7 @@ func unsafeId(length int) string {
 	log.Println("Warning! Cannot generate securely random ID!")
 	b := make([]rune, length)
 	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
+		b[i] = characters[rand.Intn(len(characters))]
 	}
 	return string(b)
 }
@@ -85,4 +92,27 @@ func generateRandomBytes(n int) ([]byte, error) {
 func generateRandomString(length int) (string, error) {
 	b, err := generateRandomBytes(length)
 	return base64.URLEncoding.EncodeToString(b), err
+}
+
+func createDataDir() {
+	if !folderExists("data") {
+		err := os.Mkdir("data", 0770)
+		check(err)
+	}
+}
+
+func createConfigDir() {
+	if !folderExists(configDir) {
+		err := os.Mkdir(configDir, 0770)
+		check(err)
+	}
+}
+func readLine() string {
+	reader := bufio.NewReader(os.Stdin)
+	text, _ := reader.ReadString('\n')
+	return strings.Replace(text, "\n", "", -1)
+}
+
+func isDocker() bool {
+	return fileExists(".isdocker")
 }

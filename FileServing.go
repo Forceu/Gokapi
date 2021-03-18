@@ -18,11 +18,12 @@ type FileList struct {
 	ExpireAt           int64  `json:"ExpireAt"`
 	ExpireAtString     string `json:"ExpireAtString"`
 	DownloadsRemaining int    `json:"DownloadsRemaining"`
+	PasswordHash       string `json:"PasswordHash"`
 }
 
 const lengthId = 15
 
-func createNewFile(fileContent *multipart.File, fileHeader *multipart.FileHeader, expireAt int64, downloads int) (FileList, error) {
+func createNewFile(fileContent *multipart.File, fileHeader *multipart.FileHeader, expireAt int64, downloads int, password string) (FileList, error) {
 	id, err := generateRandomString(lengthId)
 	if err != nil {
 		id = unsafeId(lengthId)
@@ -42,6 +43,7 @@ func createNewFile(fileContent *multipart.File, fileHeader *multipart.FileHeader
 		ExpireAt:           expireAt,
 		ExpireAtString:     time.Unix(expireAt, 0).Format("2006-01-02 15:04"),
 		DownloadsRemaining: downloads,
+		PasswordHash:       hashPassword(password, SALT_PW_FILES),
 	}
 	globalConfig.Files[id] = file
 	filename := "data/" + file.SHA256

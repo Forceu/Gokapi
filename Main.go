@@ -8,7 +8,7 @@ import (
 )
 
 //needs to be changed in ./templates/string_constants.tmpl as well
-const VERSION = "1.0"
+const VERSION = "1.1.0"
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
@@ -25,15 +25,8 @@ func checkArguments() {
 	if len(os.Args) > 1 {
 		if os.Args[1] == "--reset-pw" {
 			fmt.Println("Password change requested")
-			globalConfig.AdminPassword = hashPassword(askForPassword())
+			globalConfig.AdminPassword = hashPassword(askForPassword(),SALT_PW_ADMIN)
 			saveConfig()
 		}
-	}
-}
-
-func createDataDir() {
-	if !folderExists("data") {
-		err := os.Mkdir("data", 0770)
-		check(err)
 	}
 }

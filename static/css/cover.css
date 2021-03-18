@@ -55,6 +55,15 @@ a:hover {
     border: 0px;
 }
 
+.admin-input {
+   text-align: center;
+}
+
+.break {
+  flex-basis: 100%;
+  height: 0;
+}
+
 .bd-placeholder-img {
 	font-size: 1.125rem;
 	text-anchor: middle;
@@ -66,7 +75,10 @@ a:hover {
 
 @media (min-width: 768px) {
 	.bd-placeholder-img-lg {
-	  font-size: 3.5rem;
+		font-size: 3.5rem;
+	}
+	.break {
+  	 	flex-basis: 0%;
 	}
 }
 

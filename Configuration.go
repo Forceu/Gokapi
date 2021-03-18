@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"golang.org/x/crypto/ssh/terminal"
@@ -23,6 +22,7 @@ type Configuration struct {
 	ServerUrl        string              `json:"ServerUrl"`
 	DefaultDownloads int                 `json:"DefaultDownloads"`
 	DefaultExpiry    int                 `json:"DefaultExpiry"`
+	DefaultPassword  string              `json:"DefaultPassword"`
 	RedirectUrl      string              `json:"RedirectUrl"`
 	Sessions         map[string]Session  `json:"Sessions"`
 	Files            map[string]FileList `json:"Files"`
@@ -75,7 +75,7 @@ func generateDefaultConfig() {
 	globalConfig = Configuration{
 		Port:             port,
 		AdminName:        username,
-		AdminPassword:    hashPassword(password),
+		AdminPassword:    hashPassword(password, SALT_PW_ADMIN),
 		ServerUrl:        url,
 		DefaultDownloads: 1,
 		DefaultExpiry:    14,
@@ -173,25 +173,9 @@ func isValidUrl(url string) bool {
 	}
 	return true
 }
-func readLine() string {
-	reader := bufio.NewReader(os.Stdin)
-	text, _ := reader.ReadString('\n')
-	return strings.Replace(text, "\n", "", -1)
-}
 
 type Result struct {
 	Result   string    `json:"Result"`
 	FileInfo *FileList `json:"FileInfo"`
 	Url      string    `json:"Url"`
-}
-
-func createConfigDir() {
-	if !folderExists(configDir) {
-		err := os.Mkdir(configDir, 0770)
-		check(err)
-	}
-}
-
-func isDocker() bool {
-	return fileExists(".isdocker")
 }

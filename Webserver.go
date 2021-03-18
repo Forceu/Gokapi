@@ -87,7 +87,7 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 	pw := r.Form.Get("password")
 	failedLogin := false
 	if pw != "" && user != "" {
-		if strings.ToLower(user) == strings.ToLower(globalConfig.AdminName) && hashPassword(pw) == globalConfig.AdminPassword {
+		if strings.ToLower(user) == strings.ToLower(globalConfig.AdminName) && hashPassword(pw, SALT_PW_ADMIN) == globalConfig.AdminPassword {
 			createSession(w)
 			redirect(w, "admin")
 			return
@@ -118,11 +118,39 @@ func showDownload(w http.ResponseWriter, r *http.Request) {
 		redirect(w, "error")
 		return
 	}
-	err := templateFolder.ExecuteTemplate(w, "download", DownloadView{
-		Name: file.Name,
-		Size: file.Size,
-		Id:   file.Id,
-	})
+	if !fileExists("data/" + file.SHA256) {
+		redirect(w, "error")
+		return
+
+	}
+	view := DownloadView{
+		Name:          file.Name,
+		Size:          file.Size,
+		Id:            file.Id,
+		IsFailedLogin: false,
+	}
+
+	if file.PasswordHash != "" {
+		r.ParseForm()
+		enteredPassword := r.Form.Get("password")
+		if hashPassword(enteredPassword, SALT_PW_FILES) != file.PasswordHash && !isValidPwCookie(r, file) {
+			if enteredPassword != "" {
+				view.IsFailedLogin = true
+				time.Sleep(1 * time.Second)
+			}
+			err := templateFolder.ExecuteTemplate(w, "download_password", view)
+			check(err)
+			return
+		} else {
+			if !isValidPwCookie(r, file) {
+				writeFilePwCookie(w, file)
+				//redirect so that there is no post data to be resent if user refreshes page
+				redirect(w, "d?id="+file.Id)
+				return
+			}
+		}
+	}
+	err := templateFolder.ExecuteTemplate(w, "download", view)
 	check(err)
 }
 
@@ -160,9 +188,10 @@ func showAdminMenu(w http.ResponseWriter, r *http.Request) {
 }
 
 type DownloadView struct {
-	Name string
-	Size string
-	Id   string
+	Name          string
+	Size          string
+	Id            string
+	IsFailedLogin bool
 }
 
 type UploadView struct {
@@ -171,6 +200,7 @@ type UploadView struct {
 	TimeNow          int64
 	DefaultDownloads int
 	DefaultExpiry    int
+	DefaultPassword  string
 }
 
 func (u *UploadView) convertGlobalConfig() *UploadView {
@@ -182,6 +212,7 @@ func (u *UploadView) convertGlobalConfig() *UploadView {
 		return result[i].ExpireAt > result[j].ExpireAt
 	})
 	u.Url = globalConfig.ServerUrl + "d?id="
+	u.DefaultPassword = globalConfig.DefaultPassword
 	u.Items = result
 	u.DefaultExpiry = globalConfig.DefaultExpiry
 	u.DefaultDownloads = globalConfig.DefaultDownloads
@@ -197,6 +228,7 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 	responseError(w, err)
 	allowedDownloads := r.Form.Get("allowedDownloads")
 	expiryDays := r.Form.Get("expiryDays")
+	password := r.Form.Get("password")
 	allowedDownloadsInt, err := strconv.Atoi(allowedDownloads)
 	if err != nil {
 		allowedDownloadsInt = globalConfig.DefaultDownloads
@@ -207,9 +239,10 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 	}
 	globalConfig.DefaultExpiry = expiryDaysInt
 	globalConfig.DefaultDownloads = allowedDownloadsInt
+	globalConfig.DefaultPassword = password
 	file, handler, err := r.FormFile("file")
 	responseError(w, err)
-	result, err := createNewFile(&file, handler, time.Now().Add(time.Duration(expiryDaysInt)*time.Hour*24).Unix(), allowedDownloadsInt)
+	result, err := createNewFile(&file, handler, time.Now().Add(time.Duration(expiryDaysInt)*time.Hour*24).Unix(), allowedDownloadsInt, password)
 	responseError(w, err)
 	defer file.Close()
 	_, err = fmt.Fprint(w, result.toJsonResult())
@@ -231,6 +264,12 @@ func downloadFile(w http.ResponseWriter, r *http.Request) {
 	if savedFile.DownloadsRemaining == 0 || savedFile.ExpireAt < time.Now().Unix() || !fileExists("data/"+savedFile.SHA256) {
 		redirect(w, "error")
 		return
+	}
+	if savedFile.PasswordHash != "" {
+		if !(isValidPwCookie(r, savedFile)) {
+			redirect(w, "d?id="+savedFile.Id)
+			return
+		}
 	}
 	savedFile.DownloadsRemaining = savedFile.DownloadsRemaining - 1
 	globalConfig.Files[keyId] = savedFile
@@ -254,6 +293,26 @@ func isAuthenticated(w http.ResponseWriter, r *http.Request, isUpload bool) bool
 		check(err)
 	} else {
 		redirect(w, "login")
+	}
+	return false
+}
+
+func writeFilePwCookie(w http.ResponseWriter, file FileList) {
+	http.SetCookie(w, &http.Cookie{
+		Name:    "p" + file.Id,
+		Value:   file.PasswordHash,
+		Expires: time.Now().Add(5 * time.Minute),
+	})
+}
+
+func isValidPwCookie(r *http.Request, file FileList) bool {
+	cookie, err := r.Cookie("p" + file.Id)
+	if err == nil {
+		if cookie.Value == file.PasswordHash {
+			return true
+		} else {
+			time.Sleep(3 * time.Second)
+		}
 	}
 	return false
 }
