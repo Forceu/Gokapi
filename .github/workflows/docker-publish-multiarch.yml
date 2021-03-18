@@ -7,7 +7,7 @@ on:
   pull_request:
 
 env:
-  VERSION_NUMBER: "1.0"
+  VERSION_NUMBER: "1.1"
 
 jobs:
   build:
