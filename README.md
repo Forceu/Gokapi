@@ -14,6 +14,13 @@ This enables companies or individuals to share their files very easily and havin
 
 The project is very new, but can already be used in production. Customization is very easy with HTML/CSS knowledge. Identical files will be deduplicated.
 
+
+## Screenshots
+Admin Menu![image](https://user-images.githubusercontent.com/1593467/110936500-45a4da80-8331-11eb-8a2d-986af5ab411a.png)
+Download Link![image](https://user-images.githubusercontent.com/1593467/110936659-869cef00-8331-11eb-83d8-7c2837f55620.png)
+
+
+
 ## Installation
 
 ### Bare Metal
@@ -53,12 +60,6 @@ By default, all files are included in the executable. If you want to change the 
 * Make changes to the folders. `static` contains images, CSS files and JavaScript. `templates` contains the HTML code.
 * Restart the server. If the folders exist, the server will use the local files instead of the embedded files
 * Optional: To embed the files permanently, the executable needs to be recompiled with `go build`.
-
-
-## Screenshots
-Admin Menu![image](https://user-images.githubusercontent.com/1593467/110936500-45a4da80-8331-11eb-8a2d-986af5ab411a.png)
-Download Link![image](https://user-images.githubusercontent.com/1593467/110936659-869cef00-8331-11eb-83d8-7c2837f55620.png)
-
 
 
 ## Contributors
