@@ -1,0 +1,19 @@
+name: Docker Publish Test Compile
+on: [push, pull_request]
+
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v2
+      - name: install buildx
+        id: buildx
+        uses: crazy-max/ghaction-docker-buildx@v1
+        with:
+          version: latest
+      - name: build the image
+        run: |
+          docker buildx build --tag f0rc3/gokapi:test --platform linux/386,linux/amd64,linux/arm/v6,linux/arm/v7 .
