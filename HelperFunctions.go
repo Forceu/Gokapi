@@ -112,7 +112,3 @@ func readLine() string {
 	text, _ := reader.ReadString('\n')
 	return strings.Replace(text, "\n", "", -1)
 }
-
-func isDocker() bool {
-	return fileExists(".isdocker")
-}

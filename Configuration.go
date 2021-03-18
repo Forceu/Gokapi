@@ -112,7 +112,7 @@ func askForUsername() string {
 }
 
 func askForLocalOnly() bool {
-	if isDocker() {
+	if IS_DOCKER != "false" {
 		return false
 	}
 	fmt.Print("Bind port to localhost only? [Y/n]: ")

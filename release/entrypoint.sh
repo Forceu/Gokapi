@@ -16,7 +16,7 @@ for target in $targets; do
   fi
 
   echo "----> Building project for: $target"
-  GOOS=$os GOARCH=$arch CGO_ENABLED=0 go build -o $output
+  GOOS=$os GOARCH=$arch CGO_ENABLED=0 go build -ldflags="-s -w -X 'main.BUILDER=Github Release Builder' -X 'main.BUILD_TIME=$(date)'" -o $output
   zip -j $output.zip $output > /dev/null
   rm $output
 done

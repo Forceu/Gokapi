@@ -11,6 +11,10 @@ RUN \
   update-ca-certificates && \
   rm -rf /var/lib/apt
 
+COPY go.mod /tmp/tmp/go.mod
+
+RUN cd /tmp/tmp/ && go mod download && rm -r /tmp/tmp
+
 COPY entrypoint.sh /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]
