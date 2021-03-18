@@ -4,7 +4,7 @@
 ### Available for:
 
 - Bare Metal
-- [Docker](https://hub.docker.com/repository/docker/f0rc3/gokapi)
+- [Docker](https://hub.docker.com/r/f0rc3/gokapi)
 
 ## About
 
