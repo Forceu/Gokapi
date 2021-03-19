@@ -58,10 +58,10 @@ function addRow(jsonText) {
   cell4.innerText = item.ExpireAtString;
   cell5.innerHTML = '<a  target="_blank" style="color: inherit" href="'+jsonObject.Url+item.Id+'">'+jsonObject.Url+item.Id+'</a>'+lockIcon;
   cell6.innerHTML = "<button type=\"button\" data-clipboard-text=\""+jsonObject.Url+item.Id+"\" class=\"copyurl btn btn-outline-light btn-sm\">Copy URL</button> <button type=\"button\" class=\"btn btn-outline-light btn-sm\" onclick=\"window.location='./delete?id="+item.Id+"'\">Delete</button>";
-  cell1.style.backgroundColor="green"
-  cell2.style.backgroundColor="green"
-  cell3.style.backgroundColor="green"
-  cell4.style.backgroundColor="green"
-  cell5.style.backgroundColor="green"
-  cell6.style.backgroundColor="green"
+  cell1.style.backgroundColor="#282e33"
+  cell2.style.backgroundColor="#282e33"
+  cell3.style.backgroundColor="#282e33"
+  cell4.style.backgroundColor="#282e33"
+  cell5.style.backgroundColor="#282e33"
+  cell6.style.backgroundColor="#282e33"
 }
