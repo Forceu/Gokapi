@@ -1,5 +1,5 @@
 /*
- * Globals
+ * Globals 
  */
 
 
@@ -39,8 +39,10 @@ a:hover {
 }
 
 .dropzone {
-  background: #efefef;
-  color: #646363;
+  background: #212529;
+  color: #fff;
+  border-radius: 5px;
+  border:2px solid #2b3035;
 }
 
 .card {
@@ -50,10 +52,10 @@ a:hover {
 }
 
 .card-body {
-    background-color: #555;
-    color: #ddd;
-    border: 0px;
-}
+  background-color: #212529;
+  color: #ddd;
+  border: 0px;
+} 
 
 .admin-input {
    text-align: center;
