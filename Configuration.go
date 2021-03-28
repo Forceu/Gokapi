@@ -9,12 +9,26 @@ import (
 	"strings"
 )
 
+/**
+Loading and saving of the persistent configuration
+*/
+
+// Name of the config dir that will be created
 const configDir = "config"
+
+// Name of the config file where the configuration is written to
 const configFile = "config.json"
+
+// Full path of configDir and configFile
 const configPath = configDir + "/" + configFile
 
+// Name of the data dir that will be created
+const dataDir = "data"
+
+// Global object containing the configuration
 var globalConfig Configuration
 
+// Struct that contains the global configuration
 type Configuration struct {
 	Port             string              `json:"Port"`
 	AdminName        string              `json:"AdminName"`
@@ -28,20 +42,7 @@ type Configuration struct {
 	Files            map[string]FileList `json:"Files"`
 }
 
-func (f *FileList) toJsonResult() string {
-	result := Result{
-		Result:   "OK",
-		Url:      globalConfig.ServerUrl + "d?id=",
-		FileInfo: f,
-	}
-	bytes, err := json.Marshal(result)
-	if err != nil {
-		fmt.Println(err)
-		return "{\"Result\":\"error\",\"ErrorMessage\":\"" + err.Error() + "\"}"
-	}
-	return string(bytes)
-}
-
+// Loads the configuration or creates the folder structure and a default configuration
 func loadConfig() {
 	createConfigDir()
 	if !fileExists(configPath) {
@@ -60,6 +61,7 @@ func loadConfig() {
 	}
 }
 
+// Creates a default configuration and asks for items like username/password etc.
 func generateDefaultConfig() {
 	fmt.Println("First start, creating new admin account")
 	username := askForUsername()
@@ -86,6 +88,7 @@ func generateDefaultConfig() {
 	saveConfig()
 }
 
+// Saves the configuration as a json file
 func saveConfig() {
 	file, err := os.OpenFile(configPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
@@ -101,6 +104,7 @@ func saveConfig() {
 	}
 }
 
+// Asks for username and returns input as string if valid
 func askForUsername() string {
 	fmt.Print("Username: ")
 	username := readLine()
@@ -111,15 +115,7 @@ func askForUsername() string {
 	return askForUsername()
 }
 
-func askForLocalOnly() bool {
-	if IS_DOCKER != "false" {
-		return false
-	}
-	fmt.Print("Bind port to localhost only? [Y/n]: ")
-	input := strings.ToLower(readLine())
-	return input != "n"
-}
-
+// Asks for password and returns input as string if valid
 func askForPassword() string {
 	fmt.Print("Password: ")
 	password1, err := terminal.ReadPassword(0)
@@ -139,6 +135,17 @@ func askForPassword() string {
 	return string(password1)
 }
 
+// Asks if the server shall be bound to 127.0.0.1 and returns result as bool
+func askForLocalOnly() bool {
+	if IS_DOCKER != "false" {
+		return false
+	}
+	fmt.Print("Bind port to localhost only? [Y/n]: ")
+	input := strings.ToLower(readLine())
+	return input != "n"
+}
+
+// Asks for server URL and returns input as string if valid
 func askForUrl() string {
 	fmt.Print("Server URL [eg. https://gokapi.url/]: ")
 	url := readLine()
@@ -151,6 +158,7 @@ func askForUrl() string {
 	return url
 }
 
+// Asks for redirect URL and returns input as string if valid
 func askForRedirect() string {
 	fmt.Print("URL that the index gets redirected to [eg. https://yourcompany.com/]: ")
 	url := readLine()
@@ -166,16 +174,11 @@ func askForRedirect() string {
 	return url
 }
 
+// Returns true if URL starts with http:// or https://
 func isValidUrl(url string) bool {
 	if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
 		fmt.Println("URL needs to start with http:// or https://")
 		return false
 	}
 	return true
-}
-
-type Result struct {
-	Result   string    `json:"Result"`
-	FileInfo *FileList `json:"FileInfo"`
-	Url      string    `json:"Url"`
 }

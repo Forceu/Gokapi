@@ -7,9 +7,20 @@ import (
 	"time"
 )
 
-//needs to be changed in ./templates/string_constants.tmpl as well
+/**
+Main routine
+*/
+
+// needs to be changed in ./templates/string_constants.tmpl as well
 const VERSION = "1.1.0"
 
+// Salt for the admin password hash
+const SALT_PW_ADMIN = "eefwkjqweduiotbrkl##$2342brerlk2321"
+
+// Salt for the file password hashes
+const SALT_PW_FILES = "P1UI5sRNDwuBgOvOYhNsmucZ2pqo4KEvOoqqbpdu"
+
+// Main routine that is called on startup
 func main() {
 	checkPrimaryArguments()
 	rand.Seed(time.Now().UnixNano())
@@ -22,6 +33,7 @@ func main() {
 	startWebserver()
 }
 
+// Checks for command line arguments that have to be parsed before loading the configuration
 func checkPrimaryArguments() {
 	if len(os.Args) > 1 {
 		if os.Args[1] == "--version" || os.Args[1] == "-v" {
@@ -34,6 +46,7 @@ func checkPrimaryArguments() {
 	}
 }
 
+// Checks for command line arguments that have to be parsed after loading the configuration
 func checkArguments() {
 	if len(os.Args) > 1 {
 		if os.Args[1] == "--reset-pw" {

@@ -1,4 +1,4 @@
-module SingleDownload
+module Gokapi
 
 go 1.16
 

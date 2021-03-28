@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/sha1"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"mime/multipart"
@@ -10,6 +11,14 @@ import (
 	"time"
 )
 
+/**
+Serving and processing uploaded files
+*/
+
+// The length for IDs used in URLs. Can be increased to improve security and decreased to increase readability
+const lengthId = 15
+
+// Struct used for saving information about an uploaded file
 type FileList struct {
 	Id                 string `json:"Id"`
 	Name               string `json:"Name"`
@@ -21,8 +30,31 @@ type FileList struct {
 	PasswordHash       string `json:"PasswordHash"`
 }
 
-const lengthId = 15
+// Converts the file info to a json String used for returning a result for an upload
+func (f *FileList) toJsonResult() string {
+	result := Result{
+		Result:   "OK",
+		Url:      globalConfig.ServerUrl + "d?id=",
+		FileInfo: f,
+	}
+	bytes, err := json.Marshal(result)
+	if err != nil {
+		fmt.Println(err)
+		return "{\"Result\":\"error\",\"ErrorMessage\":\"" + err.Error() + "\"}"
+	}
+	return string(bytes)
+}
 
+// The struct used for the result after an upload
+type Result struct {
+	Result   string    `json:"Result"`
+	FileInfo *FileList `json:"FileInfo"`
+	Url      string    `json:"Url"`
+}
+
+// Creates a new file in the system. Called after an upload has been completed. If a file with the same sha256 hash
+// already exists, it is deduplicated. This function gathers information about the file, creates and ID and saves
+// it into the global configuration.
 func createNewFile(fileContent *multipart.File, fileHeader *multipart.FileHeader, expireAt int64, downloads int, password string) (FileList, error) {
 	id, err := generateRandomString(lengthId)
 	if err != nil {
@@ -46,8 +78,8 @@ func createNewFile(fileContent *multipart.File, fileHeader *multipart.FileHeader
 		PasswordHash:       hashPassword(password, SALT_PW_FILES),
 	}
 	globalConfig.Files[id] = file
-	filename := "data/" + file.SHA256
-	if !fileExists("data/" + file.SHA256) {
+	filename := dataDir + "/" + file.SHA256
+	if !fileExists(dataDir + "/" + file.SHA256) {
 		destinationFile, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 		if err != nil {
 			return FileList{}, err
@@ -59,7 +91,10 @@ func createNewFile(fileContent *multipart.File, fileHeader *multipart.FileHeader
 	return file, nil
 }
 
-func cleanUpOldFiles(sleep bool) {
+// Removes expired files from the config and from the filesystem if they are not referenced by other files anymore
+// Will be called periodically or after a file has been manually deleted in the admin view.
+// If parameter periodic is true, this function is recursive and calls itself every hour.
+func cleanUpOldFiles(periodic bool) {
 	timeNow := time.Now().Unix()
 	wasItemDeleted := false
 	for key, element := range globalConfig.Files {
@@ -71,7 +106,7 @@ func cleanUpOldFiles(sleep bool) {
 				}
 			}
 			if deleteFile {
-				err := os.Remove("data/" + element.SHA256)
+				err := os.Remove(dataDir + "/" + element.SHA256)
 				if err != nil {
 					fmt.Println(err)
 				}
@@ -84,8 +119,8 @@ func cleanUpOldFiles(sleep bool) {
 		saveConfig()
 		cleanUpOldFiles(false)
 	}
-	if sleep {
+	if periodic {
 		time.Sleep(time.Hour)
-		go cleanUpOldFiles(true)
+		go cleanUpOldFiles(periodic)
 	}
 }

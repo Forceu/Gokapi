@@ -13,15 +13,11 @@ import (
 	"strings"
 )
 
-func check(e error) {
-	if e != nil {
-		panic(e)
-	}
-}
+/**
+Various functions, mostly for OS access
+*/
 
-const SALT_PW_ADMIN = "eefwkjqweduiotbrkl##$2342brerlk2321"
-const SALT_PW_FILES = "P1UI5sRNDwuBgOvOYhNsmucZ2pqo4KEvOoqqbpdu"
-
+// Hashes a password with SHA256 and a salt
 func hashPassword(password, salt string) string {
 	if password == "" {
 		return ""
@@ -32,6 +28,7 @@ func hashPassword(password, salt string) string {
 	return hex.EncodeToString(hash.Sum(nil))
 }
 
+// Returns true if a folder exists
 func folderExists(folder string) bool {
 	_, err := os.Stat(folder)
 	if err == nil {
@@ -40,6 +37,7 @@ func folderExists(folder string) bool {
 	return !os.IsNotExist(err)
 }
 
+// Returns true if a file exists
 func fileExists(filename string) bool {
 	info, err := os.Stat(filename)
 	if os.IsNotExist(err) {
@@ -48,6 +46,7 @@ func fileExists(filename string) bool {
 	return !info.IsDir()
 }
 
+// Converts bytes to a human readable format
 func byteCountSI(b int64) string {
 	const unit = 1024
 	if b < unit {
@@ -62,6 +61,7 @@ func byteCountSI(b int64) string {
 		float64(b)/float64(div), "kMGTPE"[exp])
 }
 
+// A rune array to be used for pseudo-random string generation
 var characters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 
 //Used if unable to generate secure random string. A warning will be output
@@ -75,7 +75,7 @@ func unsafeId(length int) string {
 	return string(b)
 }
 
-// generateRandomBytes returns securely generated random bytes.
+// Returns securely generated random bytes.
 // It will return an error if the system's secure random
 // number generator fails to function correctly
 func generateRandomBytes(n int) ([]byte, error) {
@@ -87,28 +87,38 @@ func generateRandomBytes(n int) ([]byte, error) {
 	return b, nil
 }
 
-// generateRandomString returns a URL-safe, base64 encoded
-// securely generated random string.
+// Returns a URL-safe, base64 encoded securely generated random string.
 func generateRandomString(length int) (string, error) {
 	b, err := generateRandomBytes(length)
 	return base64.URLEncoding.EncodeToString(b), err
 }
 
+// Creates the data folder if it does not exist
 func createDataDir() {
-	if !folderExists("data") {
-		err := os.Mkdir("data", 0770)
+	if !folderExists(dataDir) {
+		err := os.Mkdir(dataDir, 0770)
 		check(err)
 	}
 }
 
+// Creates the config folder if it does not exist
 func createConfigDir() {
 	if !folderExists(configDir) {
 		err := os.Mkdir(configDir, 0770)
 		check(err)
 	}
 }
+
+// Reads a line from the terminal and returns it as a string
 func readLine() string {
 	reader := bufio.NewReader(os.Stdin)
 	text, _ := reader.ReadString('\n')
 	return strings.Replace(text, "\n", "", -1)
+}
+
+// Panics if error is not nil
+func check(e error) {
+	if e != nil {
+		panic(e)
+	}
 }

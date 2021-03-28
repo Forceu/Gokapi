@@ -15,14 +15,24 @@ import (
 	"time"
 )
 
+/**
+Handling of webserver and requests / uploads
+*/
+
+// Embedded version of the "static" folder
+// This contains JS files, CSS, images etc
 //go:embed static
 var staticFolderEmbedded embed.FS
 
+// Embedded version of the "templates" folder
+// This contains templates that Gokapi uses for creating the HTML output
 //go:embed templates
 var templateFolderEmbedded embed.FS
 
+// Variable containing all parsed templates
 var templateFolder *template.Template
 
+// Starts the webserver on the port set in the config
 func startWebserver() {
 	webserverDir, _ := fs.Sub(staticFolderEmbedded, "static")
 	if folderExists("static") {
@@ -45,6 +55,9 @@ func startWebserver() {
 	log.Fatal(http.ListenAndServe(globalConfig.Port, nil))
 }
 
+// Initialises the templateFolder variable by scanning through all the templates.
+// If a folder "templates" exists in the main directory, it is used.
+// Otherwise templateFolderEmbedded will be used.
 func initTemplates() {
 	var err error
 	if folderExists("templates") {
@@ -56,30 +69,38 @@ func initTemplates() {
 	}
 }
 
+// Sends a redirect HTTP output to the client. Variable url is used to redirect to ./url
 func redirect(w http.ResponseWriter, url string) {
 	_, _ = fmt.Fprint(w, "<head><meta http-equiv=\"Refresh\" content=\"0; URL=./"+url+"\"></head>")
 }
 
+// Handling of /logout
 func doLogout(w http.ResponseWriter, r *http.Request) {
 	logoutSession(w, r)
 	redirect(w, "login")
 }
 
+// Handling of /index and redirecting to globalConfig.RedirectUrl
 func showIndex(w http.ResponseWriter, r *http.Request) {
 	err := templateFolder.ExecuteTemplate(w, "index", globalConfig.RedirectUrl)
 	check(err)
 }
 
+// Handling of /error
 func showError(w http.ResponseWriter, r *http.Request) {
 	err := templateFolder.ExecuteTemplate(w, "error", nil)
 	check(err)
 }
 
+// Handling of /forgotpw
 func forgotPassword(w http.ResponseWriter, r *http.Request) {
 	err := templateFolder.ExecuteTemplate(w, "forgotpw", nil)
 	check(err)
 }
 
+// Handling of /login
+// Shows a login form. If username / pw combo is incorrect, client needs to wait for three seconds.
+// If correct, a new session is created and the user is redirected to the admin menu
 func showLogin(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	check(err)
@@ -103,11 +124,15 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 	check(err)
 }
 
+// Variables for the login template
 type LoginView struct {
 	IsFailedLogin bool
 	User          string
 }
 
+// Handling of /d
+// Checks if a file exists for the submitted ID
+// If it exists, a download form is shown or a password needs to be entered.
 func showDownload(w http.ResponseWriter, r *http.Request) {
 	keyId := queryUrl(w, r, "error")
 	if keyId == "" {
@@ -154,6 +179,8 @@ func showDownload(w http.ResponseWriter, r *http.Request) {
 	check(err)
 }
 
+// Handling of /delete
+// User needs to be admin. Deleted the requested file
 func deleteFile(w http.ResponseWriter, r *http.Request) {
 	if !isAuthenticated(w, r, false) {
 		return
@@ -169,9 +196,11 @@ func deleteFile(w http.ResponseWriter, r *http.Request) {
 	redirect(w, "admin")
 }
 
+// Checks if a file is associated with the GET parameter from the current URL
+// Stops for 500ms to limit brute forcing if invalid key and redirects to redirectUrl
 func queryUrl(w http.ResponseWriter, r *http.Request, redirectUrl string) string {
 	keys, ok := r.URL.Query()["id"]
-	if !ok || len(keys[0]) < 15 {
+	if !ok || len(keys[0]) < lengthId {
 		time.Sleep(500 * time.Millisecond)
 		redirect(w, redirectUrl)
 		return ""
@@ -179,6 +208,8 @@ func queryUrl(w http.ResponseWriter, r *http.Request, redirectUrl string) string
 	return keys[0]
 }
 
+// Handling of /admin
+// If user is authenticated, this menu lists all uploads and enables uploading new files
 func showAdminMenu(w http.ResponseWriter, r *http.Request) {
 	if !isAuthenticated(w, r, false) {
 		return
@@ -187,6 +218,7 @@ func showAdminMenu(w http.ResponseWriter, r *http.Request) {
 	check(err)
 }
 
+// Parameters for the download template
 type DownloadView struct {
 	Name          string
 	Size          string
@@ -194,6 +226,7 @@ type DownloadView struct {
 	IsFailedLogin bool
 }
 
+// Parameters for the admin menu template
 type UploadView struct {
 	Items            []FileList
 	Url              string
@@ -203,6 +236,8 @@ type UploadView struct {
 	DefaultPassword  string
 }
 
+// Converts the globalConfig variable to an UploadView struct to pass the infos to
+// the admin template
 func (u *UploadView) convertGlobalConfig() *UploadView {
 	var result []FileList
 	for _, element := range globalConfig.Files {
@@ -220,6 +255,9 @@ func (u *UploadView) convertGlobalConfig() *UploadView {
 	return u
 }
 
+// Handling of /upload
+// If the user is authenticated, this parses the uploaded file from the Multipart Form and
+// adds it to the system.
 func uploadFile(w http.ResponseWriter, r *http.Request) {
 	if !isAuthenticated(w, r, true) {
 		return
@@ -248,6 +286,8 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 	_, err = fmt.Fprint(w, result.toJsonResult())
 	check(err)
 }
+
+// Outputs an error in json format
 func responseError(w http.ResponseWriter, err error) {
 	if err != nil {
 		fmt.Fprint(w, "{\"Result\":\"error\",\"ErrorMessage\":\""+err.Error()+"\"}")
@@ -255,6 +295,7 @@ func responseError(w http.ResponseWriter, err error) {
 	}
 }
 
+// Outputs the file to the user and reduces the download remaining count for the file
 func downloadFile(w http.ResponseWriter, r *http.Request) {
 	keyId := queryUrl(w, r, "error")
 	if keyId == "" {
@@ -284,6 +325,7 @@ func downloadFile(w http.ResponseWriter, r *http.Request) {
 	check(err)
 }
 
+// Checks if the user is logged in as an admin
 func isAuthenticated(w http.ResponseWriter, r *http.Request, isUpload bool) bool {
 	if isValidSession(w, r) {
 		return true
@@ -297,6 +339,7 @@ func isAuthenticated(w http.ResponseWriter, r *http.Request, isUpload bool) bool
 	return false
 }
 
+// Write a cookie if the user has entered a correct password for a password-protected file
 func writeFilePwCookie(w http.ResponseWriter, file FileList) {
 	http.SetCookie(w, &http.Cookie{
 		Name:    "p" + file.Id,
@@ -305,6 +348,8 @@ func writeFilePwCookie(w http.ResponseWriter, file FileList) {
 	})
 }
 
+// Checks if a cookie contains the correct password hash for a password-protected file
+// If incorrect, a 3 second delay is introduced unless the cookie was empty.
 func isValidPwCookie(r *http.Request, file FileList) bool {
 	cookie, err := r.Cookie("p" + file.Id)
 	if err == nil {

@@ -1,4 +1,4 @@
-name: Docker Publish Test Compile
+name: Test Compilation
 on: [push, pull_request]
 
 
