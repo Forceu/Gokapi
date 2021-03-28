@@ -1,5 +1,9 @@
 package main
 
+/**
+Handling of webserver and requests / uploads
+*/
+
 import (
 	"embed"
 	"fmt"
@@ -15,9 +19,6 @@ import (
 	"time"
 )
 
-/**
-Handling of webserver and requests / uploads
-*/
 
 // Embedded version of the "static" folder
 // This contains JS files, CSS, images etc

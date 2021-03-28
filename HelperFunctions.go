@@ -1,5 +1,9 @@
 package main
 
+/**
+Various functions, mostly for OS access
+*/
+
 import (
 	"bufio"
 	cryptorand "crypto/rand"
@@ -13,9 +17,6 @@ import (
 	"strings"
 )
 
-/**
-Various functions, mostly for OS access
-*/
 
 // Hashes a password with SHA256 and a salt
 func hashPassword(password, salt string) string {

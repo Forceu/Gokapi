@@ -1,5 +1,9 @@
 package main
 
+/**
+Serving and processing uploaded files
+*/
+
 import (
 	"crypto/sha1"
 	"encoding/hex"
@@ -11,9 +15,6 @@ import (
 	"time"
 )
 
-/**
-Serving and processing uploaded files
-*/
 
 // The length for IDs used in URLs. Can be increased to improve security and decreased to increase readability
 const lengthId = 15

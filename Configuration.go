@@ -1,5 +1,9 @@
 package main
 
+/**
+Loading and saving of the persistent configuration
+*/
+
 import (
 	"encoding/json"
 	"fmt"
@@ -9,9 +13,6 @@ import (
 	"strings"
 )
 
-/**
-Loading and saving of the persistent configuration
-*/
 
 // Name of the config dir that will be created
 const configDir = "config"

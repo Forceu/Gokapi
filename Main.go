@@ -1,5 +1,9 @@
 package main
 
+/**
+Main routine
+*/
+
 import (
 	"fmt"
 	"math/rand"
@@ -7,9 +11,6 @@ import (
 	"time"
 )
 
-/**
-Main routine
-*/
 
 // needs to be changed in ./templates/string_constants.tmpl as well
 const VERSION = "1.1.0"

@@ -1,13 +1,14 @@
 package main
 
+/**
+Manages the sessions for the admin user or to access password protected files
+*/
+
 import (
 	"net/http"
 	"time"
 )
 
-/**
-Manages the sessions for the admin user or to access password protected files
-*/
 
 //If no login occurred during this time, the admin session will be deleted. Default 30 days
 const COOKIE_LIFE_ADMIN = 30 * 24 * time.Hour
