@@ -1,23 +1,19 @@
-package main
+package webserver
 
 /**
 Manages the sessions for the admin user or to access password protected files
 */
 
 import (
+	"Gokapi/src/configuration"
+	"Gokapi/src/helper"
+	"Gokapi/src/webserver/sessionstructure"
 	"net/http"
 	"time"
 )
 
-
-//If no login occurred during this time, the admin session will be deleted. Default 30 days
+// If no login occurred during this time, the admin session will be deleted. Default 30 days
 const COOKIE_LIFE_ADMIN = 30 * 24 * time.Hour
-
-// Structure for cookies
-type Session struct {
-	RenewAt    int64
-	ValidUntil int64
-}
 
 // Checks if the user is submitting a valid session token
 // If valid session is found, useSession will be called
@@ -27,7 +23,7 @@ func isValidSession(w http.ResponseWriter, r *http.Request) bool {
 	if err == nil {
 		sessionString := cookie.Value
 		if sessionString != "" {
-			_, ok := globalConfig.Sessions[sessionString]
+			_, ok := configuration.ServerSettings.Sessions[sessionString]
 			if ok {
 				return useSession(w, sessionString)
 			}
@@ -41,39 +37,36 @@ func isValidSession(w http.ResponseWriter, r *http.Request) bool {
 // Returns true if session is still valid
 // Returns false if session is invalid (and deletes it)
 func useSession(w http.ResponseWriter, sessionString string) bool {
-	session := globalConfig.Sessions[sessionString]
+	session := configuration.ServerSettings.Sessions[sessionString]
 	if session.ValidUntil < time.Now().Unix() {
-		delete(globalConfig.Sessions, sessionString)
+		delete(configuration.ServerSettings.Sessions, sessionString)
 		return false
 	}
 	if session.RenewAt < time.Now().Unix() {
 		createSession(w)
-		delete(globalConfig.Sessions, sessionString)
-		saveConfig()
+		delete(configuration.ServerSettings.Sessions, sessionString)
+		configuration.Save()
 	}
 	return true
 }
 
-//Creates a new session - called after login with correct username / password
+// Creates a new session - called after login with correct username / password
 func createSession(w http.ResponseWriter) {
-	sessionString, err := generateRandomString(60)
-	if err != nil {
-		sessionString = unsafeId(60)
-	}
-	globalConfig.Sessions[sessionString] = Session{
+	sessionString := helper.GenerateRandomString(60)
+	configuration.ServerSettings.Sessions[sessionString] = sessionstructure.Session{
 		RenewAt:    time.Now().Add(time.Hour).Unix(),
 		ValidUntil: time.Now().Add(COOKIE_LIFE_ADMIN).Unix(),
 	}
 	writeSessionCookie(w, sessionString, time.Now().Add(COOKIE_LIFE_ADMIN))
-	saveConfig()
+	configuration.Save()
 }
 
 // Logs out user and deletes session
 func logoutSession(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("session_token")
 	if err == nil {
-		delete(globalConfig.Sessions, cookie.Value)
-		saveConfig()
+		delete(configuration.ServerSettings.Sessions, cookie.Value)
+		configuration.Save()
 	}
 	writeSessionCookie(w, "", time.Now())
 }

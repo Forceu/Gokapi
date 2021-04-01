@@ -1,14 +1,14 @@
-package main
+package environment
 
 /**
 Variables that are set during build
 */
 
 // Has to be true if compiled for the Docker image
-var IS_DOCKER = "false"
+var IsDocker = "false"
 
 // Time of the build
-var BUILD_TIME = "Dev Build"
+var BuildTime = "Dev Build"
 
 // Name of builder
-var BUILDER = "Manual Build"
+var Builder = "Manual Build"

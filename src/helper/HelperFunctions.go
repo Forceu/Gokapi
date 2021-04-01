@@ -1,4 +1,4 @@
-package main
+package helper
 
 /**
 Various functions, mostly for OS access
@@ -7,9 +7,7 @@ Various functions, mostly for OS access
 import (
 	"bufio"
 	cryptorand "crypto/rand"
-	"crypto/sha1"
 	"encoding/base64"
-	"encoding/hex"
 	"fmt"
 	"log"
 	"math/rand"
@@ -17,20 +15,8 @@ import (
 	"strings"
 )
 
-
-// Hashes a password with SHA256 and a salt
-func hashPassword(password, salt string) string {
-	if password == "" {
-		return ""
-	}
-	bytes := []byte(password + salt)
-	hash := sha1.New()
-	hash.Write(bytes)
-	return hex.EncodeToString(hash.Sum(nil))
-}
-
 // Returns true if a folder exists
-func folderExists(folder string) bool {
+func FolderExists(folder string) bool {
 	_, err := os.Stat(folder)
 	if err == nil {
 		return true
@@ -39,7 +25,7 @@ func folderExists(folder string) bool {
 }
 
 // Returns true if a file exists
-func fileExists(filename string) bool {
+func FileExists(filename string) bool {
 	info, err := os.Stat(filename)
 	if os.IsNotExist(err) {
 		return false
@@ -48,7 +34,7 @@ func fileExists(filename string) bool {
 }
 
 // Converts bytes to a human readable format
-func byteCountSI(b int64) string {
+func ByteCountSI(b int64) string {
 	const unit = 1024
 	if b < unit {
 		return fmt.Sprintf("%d B", b)
@@ -65,9 +51,9 @@ func byteCountSI(b int64) string {
 // A rune array to be used for pseudo-random string generation
 var characters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 
-//Used if unable to generate secure random string. A warning will be output
-//to the CLI window
-func unsafeId(length int) string {
+// Used if unable to generate secure random string. A warning will be output
+// to the CLI window
+func generateUnsafeId(length int) string {
 	log.Println("Warning! Cannot generate securely random ID!")
 	b := make([]rune, length)
 	for i := range b {
@@ -89,36 +75,39 @@ func generateRandomBytes(n int) ([]byte, error) {
 }
 
 // Returns a URL-safe, base64 encoded securely generated random string.
-func generateRandomString(length int) (string, error) {
+func GenerateRandomString(length int) string {
 	b, err := generateRandomBytes(length)
-	return base64.URLEncoding.EncodeToString(b), err
+	if err != nil {
+		return generateUnsafeId(length)
+	}
+	return base64.URLEncoding.EncodeToString(b)
 }
 
 // Creates the data folder if it does not exist
-func createDataDir() {
-	if !folderExists(dataDir) {
+func CreateDataDir(dataDir string) {
+	if !FolderExists(dataDir) {
 		err := os.Mkdir(dataDir, 0770)
-		check(err)
+		Check(err)
 	}
 }
 
-// Creates the config folder if it does not exist
-func createConfigDir() {
-	if !folderExists(configDir) {
+// Creates the ServerSettings folder if it does not exist
+func CreateConfigDir(configDir string) {
+	if !FolderExists(configDir) {
 		err := os.Mkdir(configDir, 0770)
-		check(err)
+		Check(err)
 	}
 }
 
 // Reads a line from the terminal and returns it as a string
-func readLine() string {
+func ReadLine() string {
 	reader := bufio.NewReader(os.Stdin)
 	text, _ := reader.ReadString('\n')
 	return strings.Replace(text, "\n", "", -1)
 }
 
 // Panics if error is not nil
-func check(e error) {
+func Check(e error) {
 	if e != nil {
 		panic(e)
 	}
