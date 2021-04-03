@@ -34,7 +34,7 @@ var Environment environment.Environment
 var ServerSettings Configuration
 
 // Version of the configuration structure. Used for upgrading
-const currentConfigVersion = 2
+const currentConfigVersion = 3
 
 // Struct that contains the global configuration
 type Configuration struct {
@@ -52,13 +52,13 @@ type Configuration struct {
 	SaltAdmin        string                              `json:"SaltAdmin"`
 	SaltFiles        string                              `json:"SaltFiles"`
 	LengthId         int                                 `json:"LengthId"`
+	DataDir          string                              `json:"DataDir"`
 }
 
 // Loads the configuration or creates the folder structure and a default configuration
 func Load() {
 	Environment = environment.New()
 	helper.CreateConfigDir(Environment.ConfigDir)
-	helper.CreateDataDir(Environment.DataDir)
 	if !helper.FileExists(Environment.ConfigPath) {
 		generateDefaultConfig()
 	}
@@ -74,15 +74,17 @@ func Load() {
 		log.Fatal(err)
 	}
 	updateConfig()
+	helper.CreateDataDir(ServerSettings.DataDir)
 }
 
 // Upgrades the ServerSettings if saved with a previous version
 func updateConfig() {
 	// < v1.1.2
-	if ServerSettings.ConfigVersion < 2 {
+	if ServerSettings.ConfigVersion < 3 {
 		ServerSettings.SaltAdmin = "eefwkjqweduiotbrkl##$2342brerlk2321"
 		ServerSettings.SaltFiles = "P1UI5sRNDwuBgOvOYhNsmucZ2pqo4KEvOoqqbpdu"
 		ServerSettings.LengthId = 15
+		ServerSettings.DataDir = Environment.DataDir
 	}
 
 	if ServerSettings.ConfigVersion < currentConfigVersion {

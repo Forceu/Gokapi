@@ -42,8 +42,8 @@ func NewFile(fileContent *multipart.File, fileHeader *multipart.FileHeader, expi
 		PasswordHash:       configuration.HashPassword(password, true),
 	}
 	configuration.ServerSettings.Files[id] = file
-	filename := configuration.Environment.DataDir + "/" + file.SHA256
-	if !helper.FileExists(configuration.Environment.DataDir + "/" + file.SHA256) {
+	filename := configuration.ServerSettings.DataDir + "/" + file.SHA256
+	if !helper.FileExists(configuration.ServerSettings.DataDir + "/" + file.SHA256) {
 		destinationFile, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 		if err != nil {
 			return filestructure.File{}, err
@@ -70,7 +70,7 @@ func CleanUp(periodic bool) {
 				}
 			}
 			if deleteFile {
-				err := os.Remove(configuration.Environment.DataDir + "/" + element.SHA256)
+				err := os.Remove(configuration.ServerSettings.DataDir + "/" + element.SHA256)
 				if err != nil {
 					fmt.Println(err)
 				}

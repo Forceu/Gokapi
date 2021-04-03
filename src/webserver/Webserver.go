@@ -140,7 +140,7 @@ func showDownload(w http.ResponseWriter, r *http.Request) {
 		redirect(w, "error")
 		return
 	}
-	if !helper.FileExists(configuration.Environment.DataDir + "/" + file.SHA256) {
+	if !helper.FileExists(configuration.ServerSettings.DataDir + "/" + file.SHA256) {
 		redirect(w, "error")
 		return
 
@@ -299,7 +299,7 @@ func downloadFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	savedFile := configuration.ServerSettings.Files[keyId]
-	if savedFile.DownloadsRemaining == 0 || savedFile.ExpireAt < time.Now().Unix() || !helper.FileExists(configuration.Environment.DataDir+"/"+savedFile.SHA256) {
+	if savedFile.DownloadsRemaining == 0 || savedFile.ExpireAt < time.Now().Unix() || !helper.FileExists(configuration.ServerSettings.DataDir+"/"+savedFile.SHA256) {
 		redirect(w, "error")
 		return
 	}
@@ -315,7 +315,7 @@ func downloadFile(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Disposition", "attachment; filename=\""+savedFile.Name+"\"")
 	w.Header().Set("Content-Type", r.Header.Get("Content-Type"))
-	file, err := os.OpenFile(configuration.Environment.DataDir+"/"+savedFile.SHA256, os.O_RDONLY, 0644)
+	file, err := os.OpenFile(configuration.ServerSettings.DataDir+"/"+savedFile.SHA256, os.O_RDONLY, 0644)
 	defer file.Close()
 	helper.Check(err)
 	_, err = io.Copy(w, file)
