@@ -16,8 +16,10 @@ The project is very new, but can already be used in production. Customization is
 
 
 ## Screenshots
-Admin Menu![image](https://user-images.githubusercontent.com/1593467/110936500-45a4da80-8331-11eb-8a2d-986af5ab411a.png)
-Download Link![image](https://user-images.githubusercontent.com/1593467/110936659-869cef00-8331-11eb-83d8-7c2837f55620.png)
+Admin Menu![image](https://user-images.githubusercontent.com/1593467/113477593-3d007980-9483-11eb-9513-78e0fda8abe7.png)
+
+Download Link![image](https://user-images.githubusercontent.com/1593467/113477600-48ec3b80-9483-11eb-9f02-a68586de4308.png)
+
 
 
 
