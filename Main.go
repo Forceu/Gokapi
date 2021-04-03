@@ -16,10 +16,11 @@ import (
 	"time"
 )
 
-// Current version in readable form. Needs to be changed in ./templates/string_constants.tmpl as well,
-// which can be done with "go generate"
+// Current version in readable form. The go generate call below
+// needs to be modified as well
 const VERSION = "1.1.2"
-//go:generate sed "-i" "s/{{define \"version\"}}.*{{end}}/{{define \"version\"}}1.1.2{{end}}/g" "./templates/string_constants.tmpl"
+
+//go:generate sh "./.release/setVersionTemplate.sh" "1.1.2"
 
 // Main routine that is called on startup
 func main() {
@@ -57,7 +58,8 @@ func checkArguments() {
 }
 
 // ASCII art logo
-const logo = ` ██████   ██████  ██   ██  █████  ██████  ██ 
+const logo = `
+██████   ██████  ██   ██  █████  ██████  ██ 
 ██       ██    ██ ██  ██  ██   ██ ██   ██ ██ 
 ██   ███ ██    ██ █████   ███████ ██████  ██ 
 ██    ██ ██    ██ ██  ██  ██   ██ ██      ██ 

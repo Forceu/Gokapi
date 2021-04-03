@@ -31,6 +31,7 @@ func Start(staticFolderEmbedded, templateFolderEmbedded embed.FS) {
 	initTemplates(templateFolderEmbedded)
 	webserverDir, _ := fs.Sub(staticFolderEmbedded, "static")
 	if helper.FolderExists("static") {
+		fmt.Println("Found folder 'static', using local folder instead of internal static folder")
 		http.Handle("/", http.FileServer(http.Dir("static")))
 	} else {
 		http.Handle("/", http.FileServer(http.FS(webserverDir)))
@@ -56,6 +57,7 @@ func Start(staticFolderEmbedded, templateFolderEmbedded embed.FS) {
 func initTemplates(templateFolderEmbedded embed.FS) {
 	var err error
 	if helper.FolderExists("templates") {
+		fmt.Println("Found folder 'templates', using local folder instead of internal template folder")
 		templateFolder, err = template.ParseGlob("templates/*.tmpl")
 		helper.Check(err)
 	} else {
