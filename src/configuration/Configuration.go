@@ -121,6 +121,7 @@ func generateDefaultConfig() {
 		ConfigVersion:    currentConfigVersion,
 		SaltAdmin:        Environment.SaltAdmin,
 		SaltFiles:        Environment.SaltFiles,
+		DataDir:          Environment.DataDir,
 	}
 	Save()
 }

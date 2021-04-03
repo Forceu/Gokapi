@@ -11,7 +11,7 @@ go generate
 for target in $targets; do
   os="$(echo $target | cut -d '/' -f1)"
   arch="$(echo $target | cut -d '/' -f2)"
-  output="release/gokapi-${os}_${arch}"
+  output=".release/gokapi-${os}_${arch}"
   if [ $os = "windows" ]; then
     output+='.exe'
   fi
@@ -23,5 +23,5 @@ for target in $targets; do
 done
 
 echo "----> Build is complete. List of files at $release_path:"
-cd release/
+cd .release/
 ls -l gokapi-*
