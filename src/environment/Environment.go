@@ -53,7 +53,7 @@ func New() Environment {
 		SaltAdmin:          envString("SALT_ADMIN"),
 		SaltFiles:          envString("SALT_FILES"),
 		WebserverLocalhost: envBool("LOCALHOST"),
-		LengthId:           envInt("LENGTH_ID"),
+		LengthId:           envInt("LENGTH_ID", 5),
 	}
 }
 
@@ -83,7 +83,7 @@ func envBool(key string) string {
 }
 
 // Looks up an environment variable or returns an empty string
-func envInt(key string) int {
+func envInt(key string, minValue int) int {
 	val, ok := os.LookupEnv("GOKAPI_" + key)
 	if !ok {
 		return defaultValues.GetInt(key)
@@ -91,6 +91,9 @@ func envInt(key string) int {
 	intVal, err := strconv.Atoi(val)
 	if err != nil {
 		return -1
+	}
+	if intVal < minValue {
+		return minValue
 	}
 	return intVal
 

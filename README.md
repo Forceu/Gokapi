@@ -73,7 +73,7 @@ GOKAPI_REDIRECT_URL | Sets the external URL where Gokapi will redirect to the in
 GOKAPI_SALT_ADMIN | Sets the salt for the admin password hash | Yes | default salt
 GOKAPI_SALT_FILES | Sets the salt for the file password hashes | Yes | default salt
 GOKAPI_LOCALHOST | Bind server to localhost. Expects `true`/`false`/`yes`/`no`, always false for Docker images | Yes | `false` for Docker, otherwise unset
-GOKAPI_LENGTH_ID | Sets the length of the download IDs | Yes | `15`
+GOKAPI_LENGTH_ID | Sets the length of the download IDs. Value needs to be 5 or more | Yes | `15`
 
 *Variables that are persistent must be submitted during the first start when Gokapi creates a new config file. They can be omitted afterwards. Non-persistent variables need to be set on every start.
 
