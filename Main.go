@@ -18,9 +18,9 @@ import (
 
 // Current version in readable form. The go generate call below
 // needs to be modified as well
-const VERSION = "1.1.2"
+const VERSION = "1.1.3-dev"
 
-//go:generate sh "./.release/setVersionTemplate.sh" "1.1.2"
+//go:generate sh "./.release/setVersionTemplate.sh" "1.1.3-dev"
 
 // Main routine that is called on startup
 func main() {
@@ -57,15 +57,6 @@ func checkArguments() {
 	}
 }
 
-// ASCII art logo
-const logo = `
-██████   ██████  ██   ██  █████  ██████  ██ 
-██       ██    ██ ██  ██  ██   ██ ██   ██ ██ 
-██   ███ ██    ██ █████   ███████ ██████  ██ 
-██    ██ ██    ██ ██  ██  ██   ██ ██      ██ 
- ██████   ██████  ██   ██ ██   ██ ██      ██ 
-                                             `
-
 // Embedded version of the "static" folder
 // This contains JS files, CSS, images etc
 //go:embed static
@@ -75,3 +66,12 @@ var staticFolderEmbedded embed.FS
 // This contains templates that Gokapi uses for creating the HTML output
 //go:embed templates
 var templateFolderEmbedded embed.FS
+
+// ASCII art logo
+const logo = `
+██████   ██████  ██   ██  █████  ██████  ██ 
+██       ██    ██ ██  ██  ██   ██ ██   ██ ██ 
+██   ███ ██    ██ █████   ███████ ██████  ██ 
+██    ██ ██    ██ ██  ██  ██   ██ ██      ██ 
+ ██████   ██████  ██   ██ ██   ██ ██      ██ 
+                                             `

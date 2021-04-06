@@ -30,8 +30,6 @@ var defaultValues = defaultsEnvironment{
 	CONFIG_DIR:  "config",
 	CONFIG_FILE: "config.json",
 	DATA_DIR:    "data",
-	SALT_ADMIN:  "eefwkjqweduiotbrkl##$2342brerlk2321",
-	SALT_FILES:  "P1UI5sRNDwuBgOvOYhNsmucZ2pqo4KEvOoqqbpdu",
 	LENGTH_ID:   15,
 }
 

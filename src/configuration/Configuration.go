@@ -107,6 +107,14 @@ func generateDefaultConfig() {
 	if localOnly == environment.IsFalse {
 		bindAddress = ":" + port
 	}
+	saltAdmin := Environment.SaltAdmin
+	saltFiles := Environment.SaltFiles
+	if saltAdmin == "" {
+		saltAdmin = helper.GenerateRandomString(30)
+	}
+	if saltFiles == "" {
+		saltFiles = helper.GenerateRandomString(30)
+	}
 
 	ServerSettings = Configuration{
 		Port:             bindAddress,
@@ -119,8 +127,8 @@ func generateDefaultConfig() {
 		Files:            make(map[string]filestructure.File),
 		Sessions:         make(map[string]sessionstructure.Session),
 		ConfigVersion:    currentConfigVersion,
-		SaltAdmin:        Environment.SaltAdmin,
-		SaltFiles:        Environment.SaltFiles,
+		SaltAdmin:        saltAdmin,
+		SaltFiles:        saltFiles,
 		DataDir:          Environment.DataDir,
 	}
 	Save()
