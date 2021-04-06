@@ -15,14 +15,21 @@ type File struct {
 	ExpireAtString     string `json:"ExpireAtString"`
 	DownloadsRemaining int    `json:"DownloadsRemaining"`
 	PasswordHash       string `json:"PasswordHash"`
+	HotlinkId          string `json:"HotlinkId"`
+}
+
+type Hotlink struct {
+	Id     string `json:"Id"`
+	FileId string `json:"FileId"`
 }
 
 // Converts the file info to a json String used for returning a result for an upload
 func (f *File) ToJsonResult(serverUrl string) string {
 	result := Result{
-		Result:   "OK",
-		Url:      serverUrl + "d?id=",
-		FileInfo: f,
+		Result:     "OK",
+		Url:        serverUrl + "d?id=",
+		HotlinkUrl: serverUrl + "hotlink/",
+		FileInfo:   f,
 	}
 	bytes, err := json.Marshal(result)
 	if err != nil {
@@ -34,7 +41,8 @@ func (f *File) ToJsonResult(serverUrl string) string {
 
 // The struct used for the result after an upload
 type Result struct {
-	Result   string `json:"Result"`
-	FileInfo *File  `json:"FileInfo"`
-	Url      string `json:"Url"`
+	Result     string `json:"Result"`
+	FileInfo   *File  `json:"FileInfo"`
+	Url        string `json:"Url"`
+	HotlinkUrl string `json:"HotlinkUrl"`
 }

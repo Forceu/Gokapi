@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"regexp"
 )
 
 // A rune array to be used for pseudo-random string generation
@@ -44,7 +45,7 @@ func GenerateRandomString(length int) string {
 	if err != nil {
 		return generateUnsafeId(length)
 	}
-	return base64.URLEncoding.EncodeToString(b)
+	return cleanRandomString(base64.URLEncoding.EncodeToString(b))
 }
 
 // Converts bytes to a human readable format
@@ -60,4 +61,14 @@ func ByteCountSI(b int64) string {
 	}
 	return fmt.Sprintf("%.1f %cB",
 		float64(b)/float64(div), "kMGTPE"[exp])
+}
+
+// Removes special characters from string
+func cleanRandomString(input string) string {
+	reg, err := regexp.Compile("[^a-zA-Z0-9]+")
+	if err != nil {
+		log.Fatal(err)
+	}
+	return reg.ReplaceAllString(input, "")
+
 }

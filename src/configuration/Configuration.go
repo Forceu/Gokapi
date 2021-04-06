@@ -34,7 +34,7 @@ var Environment environment.Environment
 var ServerSettings Configuration
 
 // Version of the configuration structure. Used for upgrading
-const currentConfigVersion = 3
+const currentConfigVersion = 4
 
 // Struct that contains the global configuration
 type Configuration struct {
@@ -48,6 +48,7 @@ type Configuration struct {
 	RedirectUrl      string                              `json:"RedirectUrl"`
 	Sessions         map[string]sessionstructure.Session `json:"Sessions"`
 	Files            map[string]filestructure.File       `json:"Files"`
+	Hotlinks         map[string]filestructure.Hotlink    `json:"Hotlinks"`
 	ConfigVersion    int                                 `json:"ConfigVersion"`
 	SaltAdmin        string                              `json:"SaltAdmin"`
 	SaltFiles        string                              `json:"SaltFiles"`
@@ -85,6 +86,10 @@ func updateConfig() {
 		ServerSettings.SaltFiles = "P1UI5sRNDwuBgOvOYhNsmucZ2pqo4KEvOoqqbpdu"
 		ServerSettings.LengthId = 15
 		ServerSettings.DataDir = Environment.DataDir
+	}
+	// < v1.1.3
+	if ServerSettings.ConfigVersion < 4 {
+		ServerSettings.Hotlinks = make(map[string]filestructure.Hotlink)
 	}
 
 	if ServerSettings.ConfigVersion < currentConfigVersion {
@@ -126,6 +131,7 @@ func generateDefaultConfig() {
 		RedirectUrl:      redirect,
 		Files:            make(map[string]filestructure.File),
 		Sessions:         make(map[string]sessionstructure.Session),
+		Hotlinks:         make(map[string]filestructure.Hotlink),
 		ConfigVersion:    currentConfigVersion,
 		SaltAdmin:        saltAdmin,
 		SaltFiles:        saltFiles,

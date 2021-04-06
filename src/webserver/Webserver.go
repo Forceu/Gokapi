@@ -12,7 +12,6 @@ import (
 	"embed"
 	"fmt"
 	"html/template"
-	"io"
 	"io/fs"
 	"log"
 	"net/http"
@@ -26,18 +25,28 @@ import (
 // Variable containing all parsed templates
 var templateFolder *template.Template
 
+var imageExpiredPicture []byte
+
+const expiredFile = "static/expired.png"
+
 // Starts the webserver on the port set in the config
-func Start(staticFolderEmbedded, templateFolderEmbedded embed.FS) {
-	initTemplates(templateFolderEmbedded)
-	webserverDir, _ := fs.Sub(staticFolderEmbedded, "static")
+func Start(staticFolderEmbedded, templateFolderEmbedded *embed.FS) {
+	initTemplates(*templateFolderEmbedded)
+	webserverDir, _ := fs.Sub(*staticFolderEmbedded, "static")
+	var err error
 	if helper.FolderExists("static") {
 		fmt.Println("Found folder 'static', using local folder instead of internal static folder")
 		http.Handle("/", http.FileServer(http.Dir("static")))
+		imageExpiredPicture, err = os.ReadFile(expiredFile)
+		helper.Check(err)
 	} else {
 		http.Handle("/", http.FileServer(http.FS(webserverDir)))
+		imageExpiredPicture, err = fs.ReadFile(staticFolderEmbedded, expiredFile)
+		helper.Check(err)
 	}
 	http.HandleFunc("/index", showIndex)
 	http.HandleFunc("/d", showDownload)
+	http.HandleFunc("/hotlink/", showHotlink)
 	http.HandleFunc("/error", showError)
 	http.HandleFunc("/login", showLogin)
 	http.HandleFunc("/logout", doLogout)
@@ -132,19 +141,12 @@ type LoginView struct {
 // If it exists, a download form is shown or a password needs to be entered.
 func showDownload(w http.ResponseWriter, r *http.Request) {
 	keyId := queryUrl(w, r, "error")
-	if keyId == "" {
-		return
-	}
-	file := configuration.ServerSettings.Files[keyId]
-	if file.ExpireAt < time.Now().Unix() || file.DownloadsRemaining < 1 {
+	file, ok := storage.GetFile(keyId)
+	if !ok {
 		redirect(w, "error")
 		return
 	}
-	if !helper.FileExists(configuration.ServerSettings.DataDir + "/" + file.SHA256) {
-		redirect(w, "error")
-		return
 
-	}
 	view := DownloadView{
 		Name:          file.Name,
 		Size:          file.Size,
@@ -174,6 +176,20 @@ func showDownload(w http.ResponseWriter, r *http.Request) {
 	}
 	err := templateFolder.ExecuteTemplate(w, "download", view)
 	helper.Check(err)
+}
+
+// Handling of /hotlink/
+// Hotlinks an image or returns a static error image if image has expired
+func showHotlink(w http.ResponseWriter, r *http.Request) {
+	hotlinkId := strings.Replace(r.URL.Path, "/hotlink/", "", 1)
+	file, ok := storage.GetFileByHotlink(hotlinkId)
+	if !ok {
+		w.Header().Set("Content-Type", r.Header.Get("Content-Type"))
+		_, err := w.Write(imageExpiredPicture)
+		helper.Check(err)
+		return
+	}
+	storage.ServeFile(file, w, r, false)
 }
 
 // Handling of /delete
@@ -227,6 +243,7 @@ type DownloadView struct {
 type UploadView struct {
 	Items            []filestructure.File
 	Url              string
+	HotlinkUrl       string
 	TimeNow          int64
 	DefaultDownloads int
 	DefaultExpiry    int
@@ -244,6 +261,7 @@ func (u *UploadView) convertGlobalConfig() *UploadView {
 		return result[i].ExpireAt > result[j].ExpireAt
 	})
 	u.Url = configuration.ServerSettings.ServerUrl + "d?id="
+	u.HotlinkUrl = configuration.ServerSettings.ServerUrl + "hotlink/"
 	u.DefaultPassword = configuration.ServerSettings.DefaultPassword
 	u.Items = result
 	u.DefaultExpiry = configuration.ServerSettings.DefaultExpiry
@@ -295,11 +313,8 @@ func responseError(w http.ResponseWriter, err error) {
 // Outputs the file to the user and reduces the download remaining count for the file
 func downloadFile(w http.ResponseWriter, r *http.Request) {
 	keyId := queryUrl(w, r, "error")
-	if keyId == "" {
-		return
-	}
-	savedFile := configuration.ServerSettings.Files[keyId]
-	if savedFile.DownloadsRemaining == 0 || savedFile.ExpireAt < time.Now().Unix() || !helper.FileExists(configuration.ServerSettings.DataDir+"/"+savedFile.SHA256) {
+	savedFile, ok := storage.GetFile(keyId)
+	if !ok {
 		redirect(w, "error")
 		return
 	}
@@ -309,17 +324,7 @@ func downloadFile(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	savedFile.DownloadsRemaining = savedFile.DownloadsRemaining - 1
-	configuration.ServerSettings.Files[keyId] = savedFile
-	configuration.Save()
-
-	w.Header().Set("Content-Disposition", "attachment; filename=\""+savedFile.Name+"\"")
-	w.Header().Set("Content-Type", r.Header.Get("Content-Type"))
-	file, err := os.OpenFile(configuration.ServerSettings.DataDir+"/"+savedFile.SHA256, os.O_RDONLY, 0644)
-	defer file.Close()
-	helper.Check(err)
-	_, err = io.Copy(w, file)
-	helper.Check(err)
+	storage.ServeFile(savedFile, w, r, true)
 }
 
 // Checks if the user is logged in as an admin

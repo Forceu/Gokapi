@@ -11,9 +11,13 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"mime/multipart"
+	"net/http"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -41,6 +45,7 @@ func NewFile(fileContent *multipart.File, fileHeader *multipart.FileHeader, expi
 		DownloadsRemaining: downloads,
 		PasswordHash:       configuration.HashPassword(password, true),
 	}
+	addHotlink(&file)
 	configuration.ServerSettings.Files[id] = file
 	filename := configuration.ServerSettings.DataDir + "/" + file.SHA256
 	if !helper.FileExists(configuration.ServerSettings.DataDir + "/" + file.SHA256) {
@@ -53,6 +58,68 @@ func NewFile(fileContent *multipart.File, fileHeader *multipart.FileHeader, expi
 	}
 	configuration.Save()
 	return file, nil
+}
+
+var imageFileExtensions = []string{".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg"}
+
+// If file is an image, create link for hotlinking
+func addHotlink(file *filestructure.File) {
+	extension := strings.ToLower(filepath.Ext(file.Name))
+	if !helper.IsInArray(imageFileExtensions, extension) {
+		return
+	}
+	link := helper.GenerateRandomString(40) + extension
+	file.HotlinkId = link
+	configuration.ServerSettings.Hotlinks[link] = filestructure.Hotlink{
+		Id:     link,
+		FileId: file.Id,
+	}
+}
+
+// Gets the file by id. Returns (empty File, false) if invalid / expired file
+// or (file, true) if valid file
+func GetFile(id string) (filestructure.File, bool) {
+	var emptyResult = filestructure.File{}
+	if id == "" {
+		return emptyResult, false
+	}
+	file := configuration.ServerSettings.Files[id]
+	if file.ExpireAt < time.Now().Unix() || file.DownloadsRemaining < 1 {
+		return emptyResult, false
+	}
+	if !helper.FileExists(configuration.ServerSettings.DataDir + "/" + file.SHA256) {
+		return emptyResult, false
+	}
+	return file, true
+}
+
+// Gets the file by hotlink id. Returns (empty File, false) if invalid / expired file
+// or (file, true) if valid file
+func GetFileByHotlink(id string) (filestructure.File, bool) {
+	var emptyResult = filestructure.File{}
+	if id == "" {
+		return emptyResult, false
+	}
+	hotlink := configuration.ServerSettings.Hotlinks[id]
+	return GetFile(hotlink.FileId)
+}
+
+// Subtracts a download allowance and serves the file to the browser
+func ServeFile(file filestructure.File, w http.ResponseWriter, r *http.Request, forceDownload bool) {
+	file.DownloadsRemaining = file.DownloadsRemaining - 1
+	configuration.ServerSettings.Files[file.Id] = file
+	// Investigate: Possible race condition with clean-up routine?
+	configuration.Save()
+
+	if forceDownload {
+		w.Header().Set("Content-Disposition", "attachment; filename=\""+file.Name+"\"")
+	}
+	w.Header().Set("Content-Type", r.Header.Get("Content-Type"))
+	storageData, err := os.OpenFile(configuration.ServerSettings.DataDir+"/"+file.SHA256, os.O_RDONLY, 0644)
+	defer storageData.Close()
+	helper.Check(err)
+	_, err = io.Copy(w, storageData)
+	helper.Check(err)
 }
 
 // Removes expired files from the config and from the filesystem if they are not referenced by other files anymore
@@ -74,6 +141,9 @@ func CleanUp(periodic bool) {
 				if err != nil {
 					fmt.Println(err)
 				}
+			}
+			if element.HotlinkId != "" {
+				delete(configuration.ServerSettings.Hotlinks, element.HotlinkId)
 			}
 			delete(configuration.ServerSettings.Files, key)
 			wasItemDeleted = true

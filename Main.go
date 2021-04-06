@@ -31,7 +31,7 @@ func main() {
 	configuration.Load()
 	checkArguments()
 	go storage.CleanUp(true)
-	webserver.Start(staticFolderEmbedded, templateFolderEmbedded)
+	webserver.Start(&staticFolderEmbedded, &templateFolderEmbedded)
 }
 
 // Checks for command line arguments that have to be parsed before loading the configuration

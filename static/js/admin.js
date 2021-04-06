@@ -57,7 +57,16 @@ function addRow(jsonText) {
   cell3.innerText = item.DownloadsRemaining;
   cell4.innerText = item.ExpireAtString;
   cell5.innerHTML = '<a  target="_blank" style="color: inherit" href="'+jsonObject.Url+item.Id+'">'+jsonObject.Url+item.Id+'</a>'+lockIcon;
-  cell6.innerHTML = "<button type=\"button\" data-clipboard-text=\""+jsonObject.Url+item.Id+"\" class=\"copyurl btn btn-outline-light btn-sm\">Copy URL</button> <button type=\"button\" class=\"btn btn-outline-light btn-sm\" onclick=\"window.location='./delete?id="+item.Id+"'\">Delete</button>";
+
+  let buttons = "<button type=\"button\" data-clipboard-text=\""+jsonObject.Url+item.Id+"\" class=\"copyurl btn btn-outline-light btn-sm\">Copy URL</button> ";
+  if (item.HotlinkId != "") {
+	buttons = buttons + '<button type="button" data-clipboard-text="'+jsonObject.HotlinkUrl+item.HotlinkId+'" class="copyurl btn btn-outline-light btn-sm">Copy Hotlink</button> ';
+  } else {
+	buttons = buttons + '<button type="button"class="copyurl btn btn-outline-light btn-sm disabled">Copy Hotlink</button> ';
+  }
+  buttons = buttons + "<button type=\"button\" class=\"btn btn-outline-light btn-sm\" onclick=\"window.location='./delete?id="+item.Id+"'\">Delete</button>";
+
+  cell6.innerHTML = buttons;
   cell1.style.backgroundColor="green"
   cell2.style.backgroundColor="green"
   cell3.style.backgroundColor="green"
