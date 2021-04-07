@@ -88,19 +88,19 @@ func doLogout(w http.ResponseWriter, r *http.Request) {
 
 // Handling of /index and redirecting to globalConfig.RedirectUrl
 func showIndex(w http.ResponseWriter, r *http.Request) {
-	err := templateFolder.ExecuteTemplate(w, "index", configuration.ServerSettings.RedirectUrl)
+	err := templateFolder.ExecuteTemplate(w, "index", GenericView{RedirectUrl: configuration.ServerSettings.RedirectUrl})
 	helper.Check(err)
 }
 
 // Handling of /error
 func showError(w http.ResponseWriter, r *http.Request) {
-	err := templateFolder.ExecuteTemplate(w, "error", nil)
+	err := templateFolder.ExecuteTemplate(w, "error", GenericView{})
 	helper.Check(err)
 }
 
 // Handling of /forgotpw
 func forgotPassword(w http.ResponseWriter, r *http.Request) {
-	err := templateFolder.ExecuteTemplate(w, "forgotpw", nil)
+	err := templateFolder.ExecuteTemplate(w, "forgotpw", GenericView{})
 	helper.Check(err)
 }
 
@@ -126,6 +126,7 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 	err = templateFolder.ExecuteTemplate(w, "login", LoginView{
 		IsFailedLogin: failedLogin,
 		User:          user,
+		IsAdminView:   false,
 	})
 	helper.Check(err)
 }
@@ -134,6 +135,7 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 type LoginView struct {
 	IsFailedLogin bool
 	User          string
+	IsAdminView   bool
 }
 
 // Handling of /d
@@ -237,6 +239,7 @@ type DownloadView struct {
 	Size          string
 	Id            string
 	IsFailedLogin bool
+	IsAdminView   bool
 }
 
 // Parameters for the admin menu template
@@ -248,6 +251,7 @@ type UploadView struct {
 	DefaultDownloads int
 	DefaultExpiry    int
 	DefaultPassword  string
+	IsAdminView      bool
 }
 
 // Converts the globalConfig variable to an UploadView struct to pass the infos to
@@ -271,6 +275,7 @@ func (u *UploadView) convertGlobalConfig() *UploadView {
 	u.DefaultExpiry = configuration.ServerSettings.DefaultExpiry
 	u.DefaultDownloads = configuration.ServerSettings.DefaultDownloads
 	u.TimeNow = time.Now().Unix()
+	u.IsAdminView = true
 	return u
 }
 
@@ -366,4 +371,9 @@ func isValidPwCookie(r *http.Request, file filestructure.File) bool {
 		}
 	}
 	return false
+}
+
+type GenericView struct {
+	IsAdminView bool
+	RedirectUrl string
 }
