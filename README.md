@@ -1,4 +1,5 @@
 # Gokapi
+[![Docker Pulls](https://img.shields.io/docker/pulls/f0rc3/gokapi.svg)](https://hub.docker.com/r/f0rc3/gokapi/)
 
 
 ### Available for:
