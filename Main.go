@@ -18,9 +18,9 @@ import (
 
 // Current version in readable form. The go generate call below
 // needs to be modified as well
-const VERSION = "1.1.3-dev"
+const VERSION = "1.1.3"
 
-//go:generate sh "./.release/setVersionTemplate.sh" "1.1.3-dev"
+//go:generate sh "./.release/setVersionTemplate.sh" "1.1.3"
 
 // Main routine that is called on startup
 func main() {
@@ -53,6 +53,8 @@ func checkArguments() {
 		if os.Args[1] == "--reset-pw" {
 			fmt.Println("Password change requested")
 			configuration.DisplayPasswordReset()
+			fmt.Println("Password has been changed!")
+			os.Exit(0)
 		}
 	}
 }
