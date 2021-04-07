@@ -1,11 +1,11 @@
 {{ define "admin" }}
-{{ template "header_admin" }}
+{{ template "header" . }}
  
       <div class="row">
         <div class="col">
 		<div id="container" class="card" style="width: 80%">
 		  <div class="card-body">
-		    <h2 class="card-title">Upload</h2>
+		    <h3 class="card-title">Upload</h3>
 		    <br>
 		    <p class="card-text"><form action="/upload"
 			      class="dropzone"

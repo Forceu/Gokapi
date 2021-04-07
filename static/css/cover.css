@@ -23,6 +23,12 @@ body {
   -moz-background-size: cover;
   -o-background-size: cover;
   background-size: cover;
+  display: -ms-flexbox;
+  display: -webkit-box;
+  display: flex;
+  -ms-flex-pack: center;
+  -webkit-box-pack: center;
+  justify-content: center;
 }
 
 td {
@@ -82,14 +88,19 @@ a:hover {
 	}
 }
 
-.cover-container {
-  max-width: 42em;
-}
-
 
 /*
  * Header
  */
+
+
+.masthead {
+  margin-bottom: 2rem;
+}
+
+.masthead-brand {
+  margin-bottom: 0;
+}
 
 .nav-masthead .nav-link {
   padding: .25rem 0;
@@ -112,5 +123,4 @@ a:hover {
   color: #fff;
   border-bottom-color: #fff;
 }
-
 

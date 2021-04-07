@@ -258,7 +258,11 @@ func (u *UploadView) convertGlobalConfig() *UploadView {
 		result = append(result, element)
 	}
 	sort.Slice(result[:], func(i, j int) bool {
-		return result[i].ExpireAt > result[j].ExpireAt
+		if result[i].ExpireAt == result[j].ExpireAt {
+			return result[i].Id > result[j].Id
+		} else {
+			return result[i].ExpireAt > result[j].ExpireAt
+		}
 	})
 	u.Url = configuration.ServerSettings.ServerUrl + "d?id="
 	u.HotlinkUrl = configuration.ServerSettings.ServerUrl + "hotlink/"

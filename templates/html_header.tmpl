@@ -1,5 +1,4 @@
-{{define "header_top"}}
-<!doctype html>
+{{define "header"}}<!doctype html>
 <html lang="en" class="h-100">
   <head>
     <meta charset="utf-8">
@@ -12,16 +11,23 @@
 	<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
 	<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
 	<link rel="manifest" href="/site.webmanifest">
-{{end}}
-{{define "header_mid_admin"}}
+        <link href="css/cover.css?v=3" rel="stylesheet">
+{{ if .IsAdminView }}
         <title>{{template "app_name"}} Admin</title>
 	<link href="./assets/dist/css/dropzone.min.css" rel="stylesheet">
 	<script src="./assets/dist/js/jquery.min.js"></script>
 	<script src="./assets/dist/js/bootstrap.bundle.min.js"></script>
 	<script src="./assets/dist/js/dropzone.min.js"></script>
 	<script src="./assets/dist/js/clipboard.min.js"></script>
-{{end}}
-{{define "header_mid_nonadmin"}}
+	<style>
+		.masthead-brand {
+			float: left;
+		}
+		.nav-masthead {
+			float: right;
+		}
+	</style>
+{{ else }}
         <title>{{template "app_name"}}</title>
 	<style>
 	body {
@@ -29,28 +35,28 @@
 	}
 	</style>
 {{end}}
-{{define "header_bottom"}}
-    <link href="css/cover.css?v=2" rel="stylesheet">
   </head>
   <body class="d-flex h-100 text-center text-white bg-dark">
-<div class="d-flex w-100 h-100 p-3 mx-auto flex-column">
+{{ if .IsAdminView }}
+  <div class="d-flex w-100 h-100 p-3 mx-auto flex-column">
+      <header class="masthead mb-auto">
+        <div  style="max-width: 80em;  margin: 0 auto;"  class="inner">
+          <h1>{{template "app_name"}}</h1>
+          <nav class="nav nav-masthead justify-content-center">
+            <a class="nav-link active" href="#">Upload</a>
+            <a class="nav-link" href="./logout">Logout</a>
+          </nav>
+        </div>
+      </header>
+  <main style="margin-top: 2rem">
+{{ else }}
+  <div class="d-flex w-100 h-100 p-3 mx-auto flex-column">
   <header class="mb-auto">
     <div>
-      <h1><a href="/" style="text-decoration: none;display: block;">{{template "app_name"}}</a></h1>
+      <h1><a href="/index" style="text-decoration: none;display: block;">{{template "app_name"}}</a></h1>
     </div>
   </header>
   <main>
+{{ end }}
 {{end}}
 
-{{define "header"}}
-{{template "header_top"}}
-{{template "header_mid_nonadmin"}}
-{{template "header_bottom"}}
-{{end}}
-
-
-{{define "header_admin"}}
-{{template "header_top"}}
-{{template "header_mid_admin"}}
-{{template "header_bottom"}}
-{{end}}
