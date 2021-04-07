@@ -322,9 +322,9 @@ func HashPassword(password string, useFileSalt bool) string {
 	if password == "" {
 		return ""
 	}
-	salt := Environment.SaltAdmin
+	salt := ServerSettings.SaltAdmin
 	if useFileSalt {
-		salt = Environment.SaltFiles
+		salt = ServerSettings.SaltFiles
 	}
 	bytes := []byte(password + salt)
 	hash := sha1.New()
