@@ -102,6 +102,13 @@ func updateConfig() {
 // Creates a default configuration and asks for items like username/password etc.
 func generateDefaultConfig() {
 	fmt.Println("First start, creating new admin account")
+	saltAdmin := Environment.SaltAdmin
+	if saltAdmin == "" {
+		saltAdmin = helper.GenerateRandomString(30)
+	}
+	ServerSettings = Configuration{
+		SaltAdmin:        saltAdmin,
+	}
 	username := askForUsername()
 	password := askForPassword()
 	port := askForPort()
@@ -112,11 +119,7 @@ func generateDefaultConfig() {
 	if localOnly == environment.IsFalse {
 		bindAddress = ":" + port
 	}
-	saltAdmin := Environment.SaltAdmin
 	saltFiles := Environment.SaltFiles
-	if saltAdmin == "" {
-		saltAdmin = helper.GenerateRandomString(30)
-	}
 	if saltFiles == "" {
 		saltFiles = helper.GenerateRandomString(30)
 	}
