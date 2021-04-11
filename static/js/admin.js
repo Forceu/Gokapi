@@ -5,6 +5,7 @@ var dropzoneObject;
 
 Dropzone.options.uploaddropzone = {
   paramName: "file",
+  timeout: 7200000,
   createImageThumbnails: false,
   success: function (file, response) {
    addRow(response)
