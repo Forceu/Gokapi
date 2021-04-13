@@ -32,7 +32,7 @@ var imageExpiredPicture []byte
 const expiredFile = "static/expired.png"
 
 // Start the webserver on the port set in the config
-func Start(staticFolderEmbedded, templateFolderEmbedded *embed.FS) {
+func Start(staticFolderEmbedded, templateFolderEmbedded *embed.FS, verbose bool) {
 	initTemplates(*templateFolderEmbedded)
 	webserverDir, _ := fs.Sub(*staticFolderEmbedded, "web/static")
 	var err error
@@ -57,8 +57,10 @@ func Start(staticFolderEmbedded, templateFolderEmbedded *embed.FS) {
 	http.HandleFunc("/delete", deleteFile)
 	http.HandleFunc("/downloadFile", downloadFile)
 	http.HandleFunc("/forgotpw", forgotPassword)
-	fmt.Println("Binding webserver to " + configuration.ServerSettings.Port)
-	fmt.Println("Webserver can be accessed at " + configuration.ServerSettings.ServerUrl + "admin")
+	if verbose {
+		fmt.Println("Binding webserver to " + configuration.ServerSettings.Port)
+		fmt.Println("Webserver can be accessed at " + configuration.ServerSettings.ServerUrl + "admin")
+	}
 	srv := &http.Server{
 		Addr:         configuration.ServerSettings.Port,
 		ReadTimeout:  timeOutWebserver,
@@ -84,7 +86,7 @@ func initTemplates(templateFolderEmbedded embed.FS) {
 
 // Sends a redirect HTTP output to the client. Variable url is used to redirect to ./url
 func redirect(w http.ResponseWriter, url string) {
-	_, _ = fmt.Fprint(w, "<head><meta http-equiv=\"Refresh\" content=\"0; URL=./"+url+"\"></head>")
+	_, _ = fmt.Fprint(w, "<html><head><meta http-equiv=\"Refresh\" content=\"0; URL=./"+url+"\"></head></html>")
 }
 
 // Handling of /logout

@@ -2,3 +2,4 @@ config/
 data/
 .idea/
 Gokapi
+test/

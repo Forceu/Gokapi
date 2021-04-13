@@ -31,7 +31,7 @@ func main() {
 	configuration.Load()
 	checkArguments()
 	go storage.CleanUp(true)
-	webserver.Start(&staticFolderEmbedded, &templateFolderEmbedded)
+	webserver.Start(&StaticFolderEmbedded, &TemplateFolderEmbedded, true)
 }
 
 // Checks for command line arguments that have to be parsed before loading the configuration
@@ -59,15 +59,15 @@ func checkArguments() {
 	}
 }
 
-// Embedded version of the "static" folder
+// StaticFolderEmbedded is the embedded version of the "static" folder
 // This contains JS files, CSS, images etc
 //go:embed web/static
-var staticFolderEmbedded embed.FS
+var StaticFolderEmbedded embed.FS
 
-// Embedded version of the "templates" folder
+// TemplateFolderEmbedded is the embedded version of the "templates" folder
 // This contains templates that Gokapi uses for creating the HTML output
 //go:embed web/templates
-var templateFolderEmbedded embed.FS
+var TemplateFolderEmbedded embed.FS
 
 // ASCII art logo
 const logo = `
