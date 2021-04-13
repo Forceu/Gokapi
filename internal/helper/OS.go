@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-// Returns true if a folder exists
+// FolderExists returns true if a folder exists
 func FolderExists(folder string) bool {
 	_, err := os.Stat(folder)
 	if err == nil {
@@ -19,7 +19,7 @@ func FolderExists(folder string) bool {
 	return !os.IsNotExist(err)
 }
 
-// Returns true if a file exists
+// FileExists returns true if a file exists
 func FileExists(filename string) bool {
 	info, err := os.Stat(filename)
 	if os.IsNotExist(err) {
@@ -28,7 +28,7 @@ func FileExists(filename string) bool {
 	return !info.IsDir()
 }
 
-// Creates the data folder if it does not exist
+// CreateDataDir creates the data folder if it does not exist
 func CreateDataDir(dataDir string) {
 	if !FolderExists(dataDir) {
 		err := os.Mkdir(dataDir, 0770)
@@ -36,7 +36,7 @@ func CreateDataDir(dataDir string) {
 	}
 }
 
-// Creates the ServerSettings folder if it does not exist
+// CreateConfigDir creates the ServerSettings folder if it does not exist
 func CreateConfigDir(configDir string) {
 	if !FolderExists(configDir) {
 		err := os.Mkdir(configDir, 0770)
@@ -44,20 +44,21 @@ func CreateConfigDir(configDir string) {
 	}
 }
 
-// Reads a line from the terminal and returns it as a string
+// ReadLine reads a line from the terminal and returns it as a string
 func ReadLine() string {
 	reader := bufio.NewReader(os.Stdin)
 	text, _ := reader.ReadString('\n')
 	return strings.Replace(text, "\n", "", -1)
 }
 
-// Panics if error is not nil
+// Check panics if error is not nil
 func Check(e error) {
 	if e != nil {
 		panic(e)
 	}
 }
 
+// IsInArray returns true if value is in array
 func IsInArray(haystack []string, needle string) bool {
 	for _, item := range haystack {
 		if needle == item {

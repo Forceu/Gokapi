@@ -25,7 +25,7 @@ import (
 // The length for IDs used in URLs. Can be increased to improve security and decreased to increase readability
 const lengthId = 15
 
-// Creates a new file in the system. Called after an upload has been completed. If a file with the same sha256 hash
+// NewFile creates a new file in the system. Called after an upload has been completed. If a file with the same sha256 hash
 // already exists, it is deduplicated. This function gathers information about the file, creates and ID and saves
 // it into the global configuration.
 func NewFile(fileContent *multipart.File, fileHeader *multipart.FileHeader, expireAt int64, downloads int, password string) (filestructure.File, error) {
@@ -77,7 +77,7 @@ func addHotlink(file *filestructure.File) {
 	}
 }
 
-// Gets the file by id. Returns (empty File, false) if invalid / expired file
+// GetFile gets the file by id. Returns (empty File, false) if invalid / expired file
 // or (file, true) if valid file
 func GetFile(id string) (filestructure.File, bool) {
 	var emptyResult = filestructure.File{}
@@ -94,7 +94,7 @@ func GetFile(id string) (filestructure.File, bool) {
 	return file, true
 }
 
-// Gets the file by hotlink id. Returns (empty File, false) if invalid / expired file
+// GetFileByHotlink gets the file by hotlink id. Returns (empty File, false) if invalid / expired file
 // or (file, true) if valid file
 func GetFileByHotlink(id string) (filestructure.File, bool) {
 	var emptyResult = filestructure.File{}
@@ -105,7 +105,7 @@ func GetFileByHotlink(id string) (filestructure.File, bool) {
 	return GetFile(hotlink.FileId)
 }
 
-// Subtracts a download allowance and serves the file to the browser
+// ServeFile subtracts a download allowance and serves the file to the browser
 func ServeFile(file filestructure.File, w http.ResponseWriter, r *http.Request, forceDownload bool) {
 	file.DownloadsRemaining = file.DownloadsRemaining - 1
 	configuration.ServerSettings.Files[file.Id] = file
@@ -135,7 +135,7 @@ func getFileSize(file *os.File) (int64, error) {
 	return fileInfo.Size(), nil
 }
 
-// Removes expired files from the config and from the filesystem if they are not referenced by other files anymore
+// CleanUp removes expired files from the config and from the filesystem if they are not referenced by other files anymore
 // Will be called periodically or after a file has been manually deleted in the admin view.
 // If parameter periodic is true, this function is recursive and calls itself every hour.
 func CleanUp(periodic bool) {

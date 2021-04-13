@@ -31,7 +31,7 @@ var imageExpiredPicture []byte
 
 const expiredFile = "static/expired.png"
 
-// Starts the webserver on the port set in the config
+// Start the webserver on the port set in the config
 func Start(staticFolderEmbedded, templateFolderEmbedded *embed.FS) {
 	initTemplates(*templateFolderEmbedded)
 	webserverDir, _ := fs.Sub(*staticFolderEmbedded, "web/static")
@@ -95,19 +95,19 @@ func doLogout(w http.ResponseWriter, r *http.Request) {
 
 // Handling of /index and redirecting to globalConfig.RedirectUrl
 func showIndex(w http.ResponseWriter, r *http.Request) {
-	err := templateFolder.ExecuteTemplate(w, "index", GenericView{RedirectUrl: configuration.ServerSettings.RedirectUrl})
+	err := templateFolder.ExecuteTemplate(w, "index", genericView{RedirectUrl: configuration.ServerSettings.RedirectUrl})
 	helper.Check(err)
 }
 
 // Handling of /error
 func showError(w http.ResponseWriter, r *http.Request) {
-	err := templateFolder.ExecuteTemplate(w, "error", GenericView{})
+	err := templateFolder.ExecuteTemplate(w, "error", genericView{})
 	helper.Check(err)
 }
 
 // Handling of /forgotpw
 func forgotPassword(w http.ResponseWriter, r *http.Request) {
-	err := templateFolder.ExecuteTemplate(w, "forgotpw", GenericView{})
+	err := templateFolder.ExecuteTemplate(w, "forgotpw", genericView{})
 	helper.Check(err)
 }
 
@@ -125,10 +125,9 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 			createSession(w)
 			redirect(w, "admin")
 			return
-		} else {
-			time.Sleep(3 * time.Second)
-			failedLogin = true
 		}
+		time.Sleep(3 * time.Second)
+		failedLogin = true
 	}
 	err = templateFolder.ExecuteTemplate(w, "login", LoginView{
 		IsFailedLogin: failedLogin,
@@ -138,7 +137,7 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 	helper.Check(err)
 }
 
-// Variables for the login template
+// LoginView contains variables for the login template
 type LoginView struct {
 	IsFailedLogin bool
 	User          string
@@ -174,13 +173,12 @@ func showDownload(w http.ResponseWriter, r *http.Request) {
 			err := templateFolder.ExecuteTemplate(w, "download_password", view)
 			helper.Check(err)
 			return
-		} else {
-			if !isValidPwCookie(r, file) {
-				writeFilePwCookie(w, file)
-				// redirect so that there is no post data to be resent if user refreshes page
-				redirect(w, "d?id="+file.Id)
-				return
-			}
+		}
+		if !isValidPwCookie(r, file) {
+			writeFilePwCookie(w, file)
+			// redirect so that there is no post data to be resent if user refreshes page
+			redirect(w, "d?id="+file.Id)
+			return
 		}
 	}
 	err := templateFolder.ExecuteTemplate(w, "download", view)
@@ -240,7 +238,7 @@ func showAdminMenu(w http.ResponseWriter, r *http.Request) {
 	helper.Check(err)
 }
 
-// Parameters for the download template
+// DownloadView contains parameters for the download template
 type DownloadView struct {
 	Name          string
 	Size          string
@@ -249,7 +247,7 @@ type DownloadView struct {
 	IsAdminView   bool
 }
 
-// Parameters for the admin menu template
+// UploadView contains parameters for the admin menu template
 type UploadView struct {
 	Items            []filestructure.File
 	Url              string
@@ -273,9 +271,8 @@ func (u *UploadView) convertGlobalConfig() *UploadView {
 	sort.Slice(result[:], func(i, j int) bool {
 		if result[i].ExpireAt == result[j].ExpireAt {
 			return result[i].Id > result[j].Id
-		} else {
-			return result[i].ExpireAt > result[j].ExpireAt
 		}
+		return result[i].ExpireAt > result[j].ExpireAt
 	})
 	u.Url = configuration.ServerSettings.ServerUrl + "d?id="
 	u.HotlinkUrl = configuration.ServerSettings.ServerUrl + "hotlink/"
@@ -376,14 +373,14 @@ func isValidPwCookie(r *http.Request, file filestructure.File) bool {
 	if err == nil {
 		if cookie.Value == file.PasswordHash {
 			return true
-		} else {
-			time.Sleep(3 * time.Second)
 		}
+		time.Sleep(3 * time.Second)
 	}
 	return false
 }
 
-type GenericView struct {
+// A view containing parameters for a generic template
+type genericView struct {
 	IsAdminView bool
 	RedirectUrl string
 }

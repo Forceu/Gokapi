@@ -7,9 +7,13 @@ import (
 	"strings"
 )
 
+// IsTrue is a placeholder for yes
 const IsTrue = "yes"
+
+// IsFalse is a placeholder for no
 const IsFalse = "no"
 
+// Environment is a struct containing available env variables
 type Environment struct {
 	ConfigDir          string
 	ConfigFile         string
@@ -33,6 +37,7 @@ var defaultValues = defaultsEnvironment{
 	LENGTH_ID:   15,
 }
 
+// New parses the env variables
 func New() Environment {
 	configDir := envString("CONFIG_DIR")
 	configFile := envString("CONFIG_FILE")
@@ -59,7 +64,7 @@ func New() Environment {
 func envString(key string) string {
 	val, ok := os.LookupEnv("GOKAPI_" + key)
 	if !ok {
-		return defaultValues.GetString(key)
+		return defaultValues.getString(key)
 	}
 	return val
 }
@@ -84,7 +89,7 @@ func envBool(key string) string {
 func envInt(key string, minValue int) int {
 	val, ok := os.LookupEnv("GOKAPI_" + key)
 	if !ok {
-		return defaultValues.GetInt(key)
+		return defaultValues.getInt(key)
 	}
 	intVal, err := strconv.Atoi(val)
 	if err != nil {
@@ -97,7 +102,8 @@ func envInt(key string, minValue int) int {
 
 }
 
-func (structPointer *defaultsEnvironment) GetString(name string) string {
+// Gets the env variable or default value as string
+func (structPointer *defaultsEnvironment) getString(name string) string {
 	field := reflect.ValueOf(structPointer).Elem().FieldByName(name)
 	if field.IsValid() {
 		return field.String()
@@ -105,7 +111,8 @@ func (structPointer *defaultsEnvironment) GetString(name string) string {
 	return ""
 }
 
-func (structPointer *defaultsEnvironment) GetInt(name string) int {
+// Gets the env variable or default value as int
+func (structPointer *defaultsEnvironment) getInt(name string) int {
 	field := reflect.ValueOf(structPointer).Elem().FieldByName(name)
 	if field.IsValid() {
 		return int(field.Int())

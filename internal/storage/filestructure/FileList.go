@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-// Struct used for saving information about an uploaded file
+// File is a struct used for saving information about an uploaded file
 type File struct {
 	Id                 string `json:"Id"`
 	Name               string `json:"Name"`
@@ -18,12 +18,13 @@ type File struct {
 	HotlinkId          string `json:"HotlinkId"`
 }
 
+// Hotlink is a struct containing hotlink ids
 type Hotlink struct {
 	Id     string `json:"Id"`
 	FileId string `json:"FileId"`
 }
 
-// Converts the file info to a json String used for returning a result for an upload
+// ToJsonResult converts the file info to a json String used for returning a result for an upload
 func (f *File) ToJsonResult(serverUrl string) string {
 	result := Result{
 		Result:     "OK",
@@ -39,7 +40,7 @@ func (f *File) ToJsonResult(serverUrl string) string {
 	return string(bytes)
 }
 
-// The struct used for the result after an upload
+// Result is the struct used for the result after an upload
 type Result struct {
 	Result     string `json:"Result"`
 	FileInfo   *File  `json:"FileInfo"`

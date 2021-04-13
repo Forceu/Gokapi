@@ -16,9 +16,9 @@ import (
 	"time"
 )
 
-// Current version in readable form. The go generate call below
-// needs to be modified as well
-const VERSION = "1.1.4-dev"
+// Version is the current version in readable form.
+// The go generate call below needs to be modified as well
+const Version = "1.1.4-dev"
 
 //go:generate sh "./build/setVersionTemplate.sh" "1.1.4-dev"
 
@@ -27,7 +27,7 @@ func main() {
 	checkPrimaryArguments()
 	rand.Seed(time.Now().UnixNano())
 	fmt.Println(logo)
-	fmt.Println("Gokapi v" + VERSION + " starting")
+	fmt.Println("Gokapi v" + Version + " starting")
 	configuration.Load()
 	checkArguments()
 	go storage.CleanUp(true)
@@ -38,7 +38,7 @@ func main() {
 func checkPrimaryArguments() {
 	if len(os.Args) > 1 {
 		if os.Args[1] == "--version" || os.Args[1] == "-v" {
-			fmt.Println("Gokapi v" + VERSION)
+			fmt.Println("Gokapi v" + Version)
 			fmt.Println("Builder: " + environment.Builder)
 			fmt.Println("Build Date: " + environment.BuildTime)
 			fmt.Println("Docker Version: " + environment.IsDocker)

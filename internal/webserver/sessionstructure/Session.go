@@ -1,9 +1,7 @@
 package sessionstructure
 
-
-// Structure for cookies
+// Session contains cookie parameter
 type Session struct {
 	RenewAt    int64
 	ValidUntil int64
 }
-

@@ -13,7 +13,7 @@ import (
 )
 
 // If no login occurred during this time, the admin session will be deleted. Default 30 days
-const COOKIE_LIFE_ADMIN = 30 * 24 * time.Hour
+const cookieLifeAdmin = 30 * 24 * time.Hour
 
 // Checks if the user is submitting a valid session token
 // If valid session is found, useSession will be called
@@ -55,9 +55,9 @@ func createSession(w http.ResponseWriter) {
 	sessionString := helper.GenerateRandomString(60)
 	configuration.ServerSettings.Sessions[sessionString] = sessionstructure.Session{
 		RenewAt:    time.Now().Add(time.Hour).Unix(),
-		ValidUntil: time.Now().Add(COOKIE_LIFE_ADMIN).Unix(),
+		ValidUntil: time.Now().Add(cookieLifeAdmin).Unix(),
 	}
-	writeSessionCookie(w, sessionString, time.Now().Add(COOKIE_LIFE_ADMIN))
+	writeSessionCookie(w, sessionString, time.Now().Add(cookieLifeAdmin))
 	configuration.Save()
 }
 

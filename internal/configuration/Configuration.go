@@ -27,16 +27,16 @@ const defaultPort = "53842"
 // Min length of admin password in characters
 const minLengthPassword = 6
 
-// Object containing the environment
+// Environment is an object containing the environment variables
 var Environment environment.Environment
 
-// Object containing the configuration
+// ServerSettings is an object containing the server configuration
 var ServerSettings Configuration
 
 // Version of the configuration structure. Used for upgrading
 const currentConfigVersion = 4
 
-// Struct that contains the global configuration
+// Configuration is a struct that contains the global configuration
 type Configuration struct {
 	Port             string                              `json:"Port"`
 	AdminName        string                              `json:"AdminName"`
@@ -56,7 +56,7 @@ type Configuration struct {
 	DataDir          string                              `json:"DataDir"`
 }
 
-// Loads the configuration or creates the folder structure and a default configuration
+// Load loads the configuration or creates the folder structure and a default configuration
 func Load() {
 	Environment = environment.New()
 	helper.CreateConfigDir(Environment.ConfigDir)
@@ -107,7 +107,7 @@ func generateDefaultConfig() {
 		saltAdmin = helper.GenerateRandomString(30)
 	}
 	ServerSettings = Configuration{
-		SaltAdmin:        saltAdmin,
+		SaltAdmin: saltAdmin,
 	}
 	username := askForUsername()
 	password := askForPassword()
@@ -143,7 +143,7 @@ func generateDefaultConfig() {
 	Save()
 }
 
-// Saves the configuration as a json file
+// Save the configuration as a json file
 func Save() {
 	file, err := os.OpenFile(Environment.ConfigPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
@@ -320,7 +320,7 @@ func DisplayPasswordReset() {
 	Save()
 }
 
-// Hashes a password with SHA256 and a salt
+// HashPassword hashes a string with SHA256 and a salt
 func HashPassword(password string, useFileSalt bool) string {
 	if password == "" {
 		return ""

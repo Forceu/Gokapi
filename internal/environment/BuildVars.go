@@ -4,11 +4,11 @@ package environment
 Variables that are set during build
 */
 
-// Has to be true if compiled for the Docker image
+// IsDocker has to be true if compiled for the Docker image (auto-generated value)
 var IsDocker = "false"
 
-// Time of the build
+// BuildTime is the time of the build (auto-generated value)
 var BuildTime = "Dev Build"
 
-// Name of builder
+// Builder is the name of builder (auto-generated value)
 var Builder = "Manual Build"

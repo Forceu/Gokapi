@@ -39,7 +39,7 @@ func generateRandomBytes(n int) ([]byte, error) {
 	return b, nil
 }
 
-// Returns a URL-safe, base64 encoded securely generated random string.
+// GenerateRandomString returns a URL-safe, base64 encoded securely generated random string.
 func GenerateRandomString(length int) string {
 	b, err := generateRandomBytes(length)
 	if err != nil {
@@ -48,7 +48,7 @@ func GenerateRandomString(length int) string {
 	return cleanRandomString(base64.URLEncoding.EncodeToString(b))
 }
 
-// Converts bytes to a human readable format
+// ByteCountSI converts bytes to a human readable format
 func ByteCountSI(b int64) string {
 	const unit = 1024
 	if b < unit {
