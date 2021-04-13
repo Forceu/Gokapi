@@ -5,10 +5,10 @@ Main routine
 */
 
 import (
-	"Gokapi/src/configuration"
-	"Gokapi/src/environment"
-	"Gokapi/src/storage"
-	"Gokapi/src/webserver"
+	"Gokapi/internal/configuration"
+	"Gokapi/internal/environment"
+	"Gokapi/internal/storage"
+	"Gokapi/internal/webserver"
 	"embed"
 	"fmt"
 	"math/rand"
@@ -18,9 +18,9 @@ import (
 
 // Current version in readable form. The go generate call below
 // needs to be modified as well
-const VERSION = "1.1.3"
+const VERSION = "1.1.4-dev"
 
-//go:generate sh "./.release/setVersionTemplate.sh" "1.1.3"
+//go:generate sh "./build/setVersionTemplate.sh" "1.1.4-dev"
 
 // Main routine that is called on startup
 func main() {
@@ -61,12 +61,12 @@ func checkArguments() {
 
 // Embedded version of the "static" folder
 // This contains JS files, CSS, images etc
-//go:embed static
+//go:embed web/static
 var staticFolderEmbedded embed.FS
 
 // Embedded version of the "templates" folder
 // This contains templates that Gokapi uses for creating the HTML output
-//go:embed templates
+//go:embed web/templates
 var templateFolderEmbedded embed.FS
 
 // ASCII art logo

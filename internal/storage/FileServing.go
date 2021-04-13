@@ -5,9 +5,9 @@ Serving and processing uploaded files
 */
 
 import (
-	"Gokapi/src/configuration"
-	"Gokapi/src/helper"
-	"Gokapi/src/storage/filestructure"
+	"Gokapi/internal/configuration"
+	"Gokapi/internal/helper"
+	"Gokapi/internal/storage/filestructure"
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"

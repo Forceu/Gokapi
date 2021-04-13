@@ -17,11 +17,11 @@ for target in $targets; do
   fi
 
   echo "----> Building project for: $target"
-  GOOS=$os GOARCH=$arch CGO_ENABLED=0 go build -ldflags="-s -w -X 'Gokapi/src/environment.Builder=Github Release Builder' -X 'Gokapi/src/environment.BuildTime=$(date)'" -o $output
+  GOOS=$os GOARCH=$arch CGO_ENABLED=0 go build -ldflags="-s -w -X 'Gokapi/internal/environment.Builder=Github Release Builder' -X 'Gokapi/internal/environment.BuildTime=$(date)'" -o $output
   zip -j $output.zip $output > /dev/null
   rm $output
 done
 
 echo "----> Build is complete. List of files at $release_path:"
-cd .release/
+cd build/
 ls -l gokapi-*

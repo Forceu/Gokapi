@@ -5,9 +5,9 @@ Manages the sessions for the admin user or to access password protected files
 */
 
 import (
-	"Gokapi/src/configuration"
-	"Gokapi/src/helper"
-	"Gokapi/src/webserver/sessionstructure"
+	"Gokapi/internal/configuration"
+	"Gokapi/internal/helper"
+	"Gokapi/internal/webserver/sessionstructure"
 	"net/http"
 	"time"
 )

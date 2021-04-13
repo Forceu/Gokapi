@@ -1,7 +1,7 @@
 FROM golang:1.16
 
 ## To compile:
-## cd Gokapi/release/
+## cd Gokapi/build/
 ## docker build . --tag gokapi-builder
 ## docker run --rm -it -v ../:/usr/src/myapp -w /usr/src/myapp gokapi-builder
 

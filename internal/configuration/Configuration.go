@@ -5,10 +5,10 @@ Loading and saving of the persistent configuration
 */
 
 import (
-	"Gokapi/src/environment"
-	"Gokapi/src/helper"
-	"Gokapi/src/storage/filestructure"
-	"Gokapi/src/webserver/sessionstructure"
+	"Gokapi/internal/environment"
+	"Gokapi/internal/helper"
+	"Gokapi/internal/storage/filestructure"
+	"Gokapi/internal/webserver/sessionstructure"
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"

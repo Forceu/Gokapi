@@ -5,10 +5,10 @@ Handling of webserver and requests / uploads
 */
 
 import (
-	"Gokapi/src/configuration"
-	"Gokapi/src/helper"
-	"Gokapi/src/storage"
-	"Gokapi/src/storage/filestructure"
+	"Gokapi/internal/configuration"
+	"Gokapi/internal/helper"
+	"Gokapi/internal/storage"
+	"Gokapi/internal/storage/filestructure"
 	"embed"
 	"fmt"
 	"html/template"
@@ -34,7 +34,7 @@ const expiredFile = "static/expired.png"
 // Starts the webserver on the port set in the config
 func Start(staticFolderEmbedded, templateFolderEmbedded *embed.FS) {
 	initTemplates(*templateFolderEmbedded)
-	webserverDir, _ := fs.Sub(*staticFolderEmbedded, "static")
+	webserverDir, _ := fs.Sub(*staticFolderEmbedded, "web/static")
 	var err error
 	if helper.FolderExists("static") {
 		fmt.Println("Found folder 'static', using local folder instead of internal static folder")
@@ -43,7 +43,7 @@ func Start(staticFolderEmbedded, templateFolderEmbedded *embed.FS) {
 		helper.Check(err)
 	} else {
 		http.Handle("/", http.FileServer(http.FS(webserverDir)))
-		imageExpiredPicture, err = fs.ReadFile(staticFolderEmbedded, expiredFile)
+		imageExpiredPicture, err = fs.ReadFile(staticFolderEmbedded, "web/"+expiredFile)
 		helper.Check(err)
 	}
 	http.HandleFunc("/index", showIndex)
@@ -77,7 +77,7 @@ func initTemplates(templateFolderEmbedded embed.FS) {
 		templateFolder, err = template.ParseGlob("templates/*.tmpl")
 		helper.Check(err)
 	} else {
-		templateFolder, err = template.ParseFS(templateFolderEmbedded, "templates/*.tmpl")
+		templateFolder, err = template.ParseFS(templateFolderEmbedded, "web/templates/*.tmpl")
 		helper.Check(err)
 	}
 }
@@ -259,6 +259,8 @@ type UploadView struct {
 	DefaultExpiry    int
 	DefaultPassword  string
 	IsAdminView      bool
+	IsMainView       bool
+	IsApiView        bool
 }
 
 // Converts the globalConfig variable to an UploadView struct to pass the infos to
@@ -283,6 +285,7 @@ func (u *UploadView) convertGlobalConfig() *UploadView {
 	u.DefaultDownloads = configuration.ServerSettings.DefaultDownloads
 	u.TimeNow = time.Now().Unix()
 	u.IsAdminView = true
+	u.IsMainView = true
 	return u
 }
 
