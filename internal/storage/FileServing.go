@@ -17,6 +17,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -116,10 +117,22 @@ func ServeFile(file filestructure.File, w http.ResponseWriter, r *http.Request, 
 	}
 	w.Header().Set("Content-Type", r.Header.Get("Content-Type"))
 	storageData, err := os.OpenFile(configuration.ServerSettings.DataDir+"/"+file.SHA256, os.O_RDONLY, 0644)
+	helper.Check(err)
 	defer storageData.Close()
+	size, err := getFileSize(storageData)
+	if err == nil {
+		w.Header().Set("Content-Length", strconv.FormatInt(size, 10))
+	}
 	helper.Check(err)
-	_, err = io.Copy(w, storageData)
-	helper.Check(err)
+	_, _ = io.Copy(w, storageData)
+}
+
+func getFileSize(file *os.File) (int64, error) {
+	fileInfo, err := file.Stat()
+	if err != nil {
+		return 0, err
+	}
+	return fileInfo.Size(), nil
 }
 
 // Removes expired files from the config and from the filesystem if they are not referenced by other files anymore
