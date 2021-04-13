@@ -315,6 +315,7 @@ func addTrailingSlash(url string) string {
 	return url
 }
 
+// DisplayPasswordReset shows a password prompt in the CLI and saves the new password
 func DisplayPasswordReset() {
 	ServerSettings.AdminPassword = HashPassword(askForPassword(), false)
 	Save()
