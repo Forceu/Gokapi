@@ -22,6 +22,8 @@ import (
 	"time"
 )
 
+const timeOutWebserver = 2 * time.Hour
+
 // Variable containing all parsed templates
 var templateFolder *template.Template
 
@@ -57,7 +59,12 @@ func Start(staticFolderEmbedded, templateFolderEmbedded *embed.FS) {
 	http.HandleFunc("/forgotpw", forgotPassword)
 	fmt.Println("Binding webserver to " + configuration.ServerSettings.Port)
 	fmt.Println("Webserver can be accessed at " + configuration.ServerSettings.ServerUrl + "admin")
-	log.Fatal(http.ListenAndServe(configuration.ServerSettings.Port, nil))
+	srv := &http.Server{
+		Addr:         configuration.ServerSettings.Port,
+		ReadTimeout:  timeOutWebserver,
+		WriteTimeout: 10 * time.Second,
+	}
+	log.Fatal(srv.ListenAndServe())
 }
 
 // Initialises the templateFolder variable by scanning through all the templates.
