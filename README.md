@@ -29,7 +29,7 @@ Download Link![image](https://user-images.githubusercontent.com/1593467/11347760
 
 ### Bare Metal
 
-Simply download the latest release for your platform and execute the binary (recommended). If you want to compile the source yourself, clone this repository and execute `go build`.
+Simply download the latest release for your platform and execute the binary (recommended). If you want to compile the source yourself, clone this repository and execute `go build Gokapi/cmd/gokapi` (requires Go 1.16+).
 
 ### Docker
 
@@ -94,7 +94,7 @@ By default, all files are included in the executable. If you want to change the 
 * Copy either the folder `static`, `templates` or both from the `web` folder to the directory where the executable is located
 * Make changes to the folders. `static` contains images, CSS files and JavaScript. `templates` contains the HTML code.
 * Restart the server. If the folders exist, the server will use the local files instead of the embedded files
-* Optional: To embed the files permanently, the executable needs to be recompiled with `go build`.
+* Optional: To embed the files permanently, copy the modified files back to the original folders and recompiled with `go build Gokapi/cmd/gokapi`.
 
 
 ## Contributors

@@ -22,6 +22,18 @@ import (
 	"time"
 )
 
+// TODO add 404 handler
+
+// staticFolderEmbedded is the embedded version of the "static" folder
+// This contains JS files, CSS, images etc
+//go:embed web/static
+var staticFolderEmbedded embed.FS
+
+// templateFolderEmbedded is the embedded version of the "templates" folder
+// This contains templates that Gokapi uses for creating the HTML output
+//go:embed web/templates
+var templateFolderEmbedded embed.FS
+
 const timeOutWebserver = 2 * time.Hour
 
 // Variable containing all parsed templates
@@ -32,9 +44,9 @@ var imageExpiredPicture []byte
 const expiredFile = "static/expired.png"
 
 // Start the webserver on the port set in the config
-func Start(staticFolderEmbedded, templateFolderEmbedded *embed.FS, verbose bool) {
-	initTemplates(*templateFolderEmbedded)
-	webserverDir, _ := fs.Sub(*staticFolderEmbedded, "web/static")
+func Start() {
+	initTemplates(templateFolderEmbedded)
+	webserverDir, _ := fs.Sub(staticFolderEmbedded, "web/static")
 	var err error
 	if helper.FolderExists("static") {
 		fmt.Println("Found folder 'static', using local folder instead of internal static folder")
@@ -57,10 +69,8 @@ func Start(staticFolderEmbedded, templateFolderEmbedded *embed.FS, verbose bool)
 	http.HandleFunc("/delete", deleteFile)
 	http.HandleFunc("/downloadFile", downloadFile)
 	http.HandleFunc("/forgotpw", forgotPassword)
-	if verbose {
-		fmt.Println("Binding webserver to " + configuration.ServerSettings.Port)
-		fmt.Println("Webserver can be accessed at " + configuration.ServerSettings.ServerUrl + "admin")
-	}
+	fmt.Println("Binding webserver to " + configuration.ServerSettings.Port)
+	fmt.Println("Webserver can be accessed at " + configuration.ServerSettings.ServerUrl + "admin")
 	srv := &http.Server{
 		Addr:         configuration.ServerSettings.Port,
 		ReadTimeout:  timeOutWebserver,
@@ -324,7 +334,7 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 func responseError(w http.ResponseWriter, err error) {
 	if err != nil {
 		fmt.Fprint(w, "{\"Result\":\"error\",\"ErrorMessage\":\""+err.Error()+"\"}")
-		panic(err)
+		helper.Check(err)
 	}
 }
 

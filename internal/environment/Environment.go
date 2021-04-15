@@ -69,7 +69,7 @@ func envString(key string) string {
 	return val
 }
 
-// Looks up a boolean environment variable, returns either IsFalse, IsTrue or IsUnset
+// Looks up a boolean environment variable, returns either IsFalse or IsTrue
 func envBool(key string) string {
 	val, ok := os.LookupEnv("GOKAPI_" + key)
 	if !ok {

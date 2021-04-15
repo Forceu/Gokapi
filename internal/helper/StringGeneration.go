@@ -66,9 +66,7 @@ func ByteCountSI(b int64) string {
 // Removes special characters from string
 func cleanRandomString(input string) string {
 	reg, err := regexp.Compile("[^a-zA-Z0-9]+")
-	if err != nil {
-		log.Fatal(err)
-	}
+	Check(err)
 	return reg.ReplaceAllString(input, "")
 
 }

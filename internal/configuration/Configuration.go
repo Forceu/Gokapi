@@ -139,6 +139,7 @@ func generateDefaultConfig() {
 		SaltAdmin:        saltAdmin,
 		SaltFiles:        saltFiles,
 		DataDir:          Environment.DataDir,
+		LengthId:         Environment.LengthId,
 	}
 	Save()
 }

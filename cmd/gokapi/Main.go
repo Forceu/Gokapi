@@ -9,7 +9,6 @@ import (
 	"Gokapi/internal/environment"
 	"Gokapi/internal/storage"
 	"Gokapi/internal/webserver"
-	"embed"
 	"fmt"
 	"math/rand"
 	"os"
@@ -20,7 +19,7 @@ import (
 // The go generate call below needs to be modified as well
 const Version = "1.1.4-dev"
 
-//go:generate sh "./build/setVersionTemplate.sh" "1.1.4-dev"
+//go:generate sh "../../build/setVersionTemplate.sh" "1.1.4-dev"
 
 // Main routine that is called on startup
 func main() {
@@ -31,7 +30,7 @@ func main() {
 	configuration.Load()
 	checkArguments()
 	go storage.CleanUp(true)
-	webserver.Start(&StaticFolderEmbedded, &TemplateFolderEmbedded, true)
+	webserver.Start()
 }
 
 // Checks for command line arguments that have to be parsed before loading the configuration
@@ -58,16 +57,6 @@ func checkArguments() {
 		}
 	}
 }
-
-// StaticFolderEmbedded is the embedded version of the "static" folder
-// This contains JS files, CSS, images etc
-//go:embed web/static
-var StaticFolderEmbedded embed.FS
-
-// TemplateFolderEmbedded is the embedded version of the "templates" folder
-// This contains templates that Gokapi uses for creating the HTML output
-//go:embed web/templates
-var TemplateFolderEmbedded embed.FS
 
 // ASCII art logo
 const logo = `
