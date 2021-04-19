@@ -36,6 +36,7 @@ func IsEqualInt(t *testing.T, got, want int) {
 	}
 }
 
+// IsNil fails test if error not nil
 func IsNil(t *testing.T, got error) {
 	if got != nil {
 		t.Errorf("Assertion failed, got: %s, want: nil.", got.Error())
@@ -53,9 +54,8 @@ func HttpPageResult(t *testing.T, configuration HttpTestConfig) []*http.Cookie {
 	}
 
 	req, err := http.NewRequest(configuration.Method, configuration.Url, strings.NewReader(data.Encode()))
-	if err != nil {
-		t.Fatal(err)
-	}
+	IsNil(t, err)
+
 	for _, cookie := range configuration.Cookies {
 		req.Header.Set("Cookie", cookie.toString())
 	}
@@ -64,14 +64,13 @@ func HttpPageResult(t *testing.T, configuration HttpTestConfig) []*http.Cookie {
 		req.Header.Add("Content-Length", strconv.Itoa(len(data.Encode())))
 	}
 	resp, err := client.Do(req)
+	IsNil(t, err)
 
 	if resp.StatusCode != 200 {
 		t.Errorf("Status %d != 200", resp.StatusCode)
 	}
 	bs, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		t.Fatal(err)
-	}
+	IsNil(t, err)
 	if configuration.IsHtml && !bytes.Contains(bs, []byte("</html>")) {
 		t.Error(configuration.Url + ": Incorrect response")
 	}
@@ -120,23 +119,17 @@ type PostBody struct {
 // HttpPostRequest sends a post request
 func HttpPostRequest(t *testing.T, url, filename, fieldName, requiredText string, cookies []Cookie) {
 	file, err := os.Open(filename)
-	if err != nil {
-		t.Fatal(err)
-	}
+	IsNil(t, err)
 	defer file.Close()
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 	part, err := writer.CreateFormFile(fieldName, filepath.Base(file.Name()))
-	if err != nil {
-		t.Fatal(err)
-	}
+	IsNil(t, err)
 
 	io.Copy(part, file)
 	writer.Close()
 	request, err := http.NewRequest("POST", url, body)
-	if err != nil {
-		t.Fatal(err)
-	}
+	IsNil(t, err)
 
 	for _, cookie := range cookies {
 		request.Header.Set("Cookie", cookie.toString())
@@ -145,15 +138,11 @@ func HttpPostRequest(t *testing.T, url, filename, fieldName, requiredText string
 	client := &http.Client{}
 
 	response, err := client.Do(request)
-	if err != nil {
-		t.Fatal(err)
-	}
+	IsNil(t, err)
 	defer response.Body.Close()
 
 	content, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		t.Fatal(err)
-	}
+	IsNil(t, err)
 
 	if requiredText != "" && !bytes.Contains(content, []byte(requiredText)) {
 		t.Error(url + ": Incorrect response. Got:\n" + string(content))
