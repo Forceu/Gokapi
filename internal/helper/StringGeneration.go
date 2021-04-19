@@ -45,7 +45,8 @@ func GenerateRandomString(length int) string {
 	if err != nil {
 		return generateUnsafeId(length)
 	}
-	return cleanRandomString(base64.URLEncoding.EncodeToString(b))
+	result := cleanRandomString(base64.URLEncoding.EncodeToString(b))
+	return result[:length]
 }
 
 // ByteCountSI converts bytes to a human readable format

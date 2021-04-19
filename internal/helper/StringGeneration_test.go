@@ -16,3 +16,11 @@ func TestByteCountSI(t *testing.T) {
 func TestCleanString(t *testing.T) {
 	test.IsEqualString(t, cleanRandomString("abc-123%%___!"), "abc123")
 }
+
+func TestGenerateRandomString(t *testing.T) {
+	test.IsEqualBool(t, len(GenerateRandomString(100)) == 100, true)
+}
+
+func TestGenerateUnsafeId(t *testing.T) {
+	test.IsEqualBool(t, len(generateUnsafeId(100)) == 100, true)
+}

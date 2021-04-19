@@ -59,7 +59,7 @@ type Configuration struct {
 // Load loads the configuration or creates the folder structure and a default configuration
 func Load() {
 	Environment = environment.New()
-	helper.CreateConfigDir(Environment.ConfigDir)
+	helper.CreateDir(Environment.ConfigDir)
 	if !helper.FileExists(Environment.ConfigPath) {
 		generateDefaultConfig()
 	}
@@ -75,7 +75,7 @@ func Load() {
 		log.Fatal(err)
 	}
 	updateConfig()
-	helper.CreateDataDir(ServerSettings.DataDir)
+	helper.CreateDir(ServerSettings.DataDir)
 }
 
 // Upgrades the ServerSettings if saved with a previous version
@@ -128,7 +128,7 @@ func generateDefaultConfig() {
 		Port:             bindAddress,
 		AdminName:        username,
 		AdminPassword:    HashPassword(password, false),
-		ServerUrl:        addTrailingSlash(url),
+		ServerUrl:        url,
 		DefaultDownloads: 1,
 		DefaultExpiry:    14,
 		RedirectUrl:      redirect,
@@ -250,7 +250,7 @@ func askForUrl(port string) string {
 		if !isValidUrl(envUrl) {
 			os.Exit(1)
 		}
-		return envUrl
+		return addTrailingSlash(envUrl)
 	}
 	url := helper.ReadLine()
 	if url == "" {
@@ -259,7 +259,7 @@ func askForUrl(port string) string {
 	if !isValidUrl(url) {
 		return askForUrl(port)
 	}
-	return url
+	return addTrailingSlash(url)
 }
 
 // Asks for redirect URL or loads it from env and returns input as string if valid

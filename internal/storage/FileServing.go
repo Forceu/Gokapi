@@ -22,20 +22,22 @@ import (
 	"time"
 )
 
-// The length for IDs used in URLs. Can be increased to improve security and decreased to increase readability
-const lengthId = 15
-
 // NewFile creates a new file in the system. Called after an upload has been completed. If a file with the same sha256 hash
-// already exists, it is deduplicated. This function gathers information about the file, creates and ID and saves
+// already exists, it is deduplicated. This function gathers information about the file, creates an ID and saves
 // it into the global configuration.
 func NewFile(fileContent *multipart.File, fileHeader *multipart.FileHeader, expireAt int64, downloads int, password string) (filestructure.File, error) {
-	id := helper.GenerateRandomString(lengthId)
 	fileBytes, err := ioutil.ReadAll(*fileContent)
 	if err != nil {
 		return filestructure.File{}, err
 	}
+	return processUpload(&fileBytes, fileHeader, expireAt, downloads, password)
+}
+
+// Called by NewFile, split into second function to make unit testing easier
+func processUpload(fileContent *[]byte, fileHeader *multipart.FileHeader, expireAt int64, downloads int, password string) (filestructure.File, error) {
+	id := helper.GenerateRandomString(configuration.ServerSettings.LengthId)
 	hash := sha1.New()
-	hash.Write(fileBytes)
+	hash.Write(*fileContent)
 	file := filestructure.File{
 		Id:                 id,
 		Name:               fileHeader.Filename,
@@ -55,7 +57,7 @@ func NewFile(fileContent *multipart.File, fileHeader *multipart.FileHeader, expi
 			return filestructure.File{}, err
 		}
 		defer destinationFile.Close()
-		destinationFile.Write(fileBytes)
+		destinationFile.Write(*fileContent)
 	}
 	configuration.Save()
 	return file, nil
@@ -119,20 +121,12 @@ func ServeFile(file filestructure.File, w http.ResponseWriter, r *http.Request, 
 	storageData, err := os.OpenFile(configuration.ServerSettings.DataDir+"/"+file.SHA256, os.O_RDONLY, 0644)
 	helper.Check(err)
 	defer storageData.Close()
-	size, err := getFileSize(storageData)
+	size, err := helper.GetFileSize(storageData)
 	if err == nil {
 		w.Header().Set("Content-Length", strconv.FormatInt(size, 10))
 	}
 	helper.Check(err)
 	_, _ = io.Copy(w, storageData)
-}
-
-func getFileSize(file *os.File) (int64, error) {
-	fileInfo, err := file.Stat()
-	if err != nil {
-		return 0, err
-	}
-	return fileInfo.Size(), nil
 }
 
 // CleanUp removes expired files from the config and from the filesystem if they are not referenced by other files anymore
@@ -142,14 +136,15 @@ func CleanUp(periodic bool) {
 	timeNow := time.Now().Unix()
 	wasItemDeleted := false
 	for key, element := range configuration.ServerSettings.Files {
-		if element.ExpireAt < timeNow || element.DownloadsRemaining < 1 {
+		fileExists := helper.FileExists(configuration.ServerSettings.DataDir + "/" + element.SHA256)
+		if element.ExpireAt < timeNow || element.DownloadsRemaining < 1 || !fileExists {
 			deleteFile := true
 			for _, secondLoopElement := range configuration.ServerSettings.Files {
 				if element.Id != secondLoopElement.Id && element.SHA256 == secondLoopElement.SHA256 {
 					deleteFile = false
 				}
 			}
-			if deleteFile {
+			if deleteFile && fileExists {
 				err := os.Remove(configuration.ServerSettings.DataDir + "/" + element.SHA256)
 				if err != nil {
 					fmt.Println(err)

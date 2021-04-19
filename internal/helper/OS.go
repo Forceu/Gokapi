@@ -28,18 +28,10 @@ func FileExists(filename string) bool {
 	return !info.IsDir()
 }
 
-// CreateDataDir creates the data folder if it does not exist
-func CreateDataDir(dataDir string) {
-	if !FolderExists(dataDir) {
-		err := os.Mkdir(dataDir, 0770)
-		Check(err)
-	}
-}
-
-// CreateConfigDir creates the ServerSettings folder if it does not exist
-func CreateConfigDir(configDir string) {
-	if !FolderExists(configDir) {
-		err := os.Mkdir(configDir, 0770)
+// CreateDir creates the data folder if it does not exist
+func CreateDir(name string) {
+	if !FolderExists(name) {
+		err := os.Mkdir(name, 0770)
 		Check(err)
 	}
 }
@@ -66,4 +58,13 @@ func IsInArray(haystack []string, needle string) bool {
 		}
 	}
 	return false
+}
+
+// GetFileSize returns the file size in bytes
+func GetFileSize(file *os.File) (int64, error) {
+	fileInfo, err := file.Stat()
+	if err != nil {
+		return 0, err
+	}
+	return fileInfo.Size(), nil
 }

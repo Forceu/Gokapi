@@ -321,9 +321,9 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 	configuration.ServerSettings.DefaultExpiry = expiryDaysInt
 	configuration.ServerSettings.DefaultDownloads = allowedDownloadsInt
 	configuration.ServerSettings.DefaultPassword = password
-	file, handler, err := r.FormFile("file")
+	file, header, err := r.FormFile("file")
 	responseError(w, err)
-	result, err := storage.NewFile(&file, handler, time.Now().Add(time.Duration(expiryDaysInt)*time.Hour*24).Unix(), allowedDownloadsInt, password)
+	result, err := storage.NewFile(&file, header, time.Now().Add(time.Duration(expiryDaysInt)*time.Hour*24).Unix(), allowedDownloadsInt, password)
 	responseError(w, err)
 	defer file.Close()
 	_, err = fmt.Fprint(w, result.ToJsonResult(configuration.ServerSettings.ServerUrl))

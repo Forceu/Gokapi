@@ -87,6 +87,36 @@ func TestWebserverEmbedFs(t *testing.T) {
 			Value: "expiredsession",
 		}},
 	})
+	// Admin with auth needing renewal
+	cookies := test.HttpPageResult(t, test.HttpTestConfig{
+		Url:             "http://localhost:53843/admin",
+		RequiredContent: "Downloads remaining",
+		IsHtml:          true,
+		Cookies: []test.Cookie{{
+			Name:  "session_token",
+			Value: "needsRenewal",
+		}},
+	})
+	sessionCookie := "needsRenewal"
+	for _, cookie := range cookies {
+		if (*cookie).Name == "session_token" {
+			sessionCookie = (*cookie).Value
+			break
+		}
+	}
+	if sessionCookie == "needsRenewal" {
+		t.Error("Session not renewed")
+	}
+	test.HttpPageResult(t, test.HttpTestConfig{
+		Url:             "http://localhost:53843/admin",
+		RequiredContent: "Downloads remaining",
+		IsHtml:          true,
+		Cookies: []test.Cookie{{
+			Name:  "session_token",
+			Value: sessionCookie,
+		}},
+	})
+
 	// Admin with invalid auth
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://localhost:53843/admin",
@@ -187,7 +217,7 @@ func TestWebserverEmbedFs(t *testing.T) {
 		PostValues:      []test.PostBody{{"password", "incorrect"}},
 	})
 	// Submit download page correct password
-	cookies := test.HttpPageResult(t, test.HttpTestConfig{
+	cookies = test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/d?id=jpLXGJKigM4hjtA6T6sN",
 		IsHtml:          true,
 		RequiredContent: "URL=./d?id=jpLXGJKigM4hjtA6T6sN",
@@ -240,6 +270,16 @@ func TestWebserverEmbedFs(t *testing.T) {
 	// Delete file authorised
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/delete?id=e4TjE7CokWK0giiLNxDL",
+		IsHtml:          true,
+		RequiredContent: "URL=./admin",
+		Cookies: []test.Cookie{{
+			Name:  "session_token",
+			Value: "validsession",
+		}},
+	})
+	// Delete file authorised, invalid key
+	test.HttpPageResult(t, test.HttpTestConfig{
+		Url:             "http://127.0.0.1:53843/delete",
 		IsHtml:          true,
 		RequiredContent: "URL=./admin",
 		Cookies: []test.Cookie{{

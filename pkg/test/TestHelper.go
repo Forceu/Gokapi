@@ -36,6 +36,12 @@ func IsEqualInt(t *testing.T, got, want int) {
 	}
 }
 
+func IsNil(t *testing.T, got error) {
+	if got != nil {
+		t.Errorf("Assertion failed, got: %s, want: nil.", got.Error())
+	}
+}
+
 // HttpPageResult tests if a http server is outputting the correct result
 func HttpPageResult(t *testing.T, configuration HttpTestConfig) []*http.Cookie {
 	configuration.init()
@@ -110,6 +116,7 @@ type PostBody struct {
 	Value string
 }
 
+// HttpPostRequest sends a post request
 func HttpPostRequest(t *testing.T, url, filename, fieldName, requiredText string, cookies []Cookie) {
 	file, err := os.Open(filename)
 	if err != nil {

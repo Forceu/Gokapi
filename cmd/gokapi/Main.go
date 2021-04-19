@@ -9,6 +9,7 @@ import (
 	"Gokapi/internal/environment"
 	"Gokapi/internal/storage"
 	"Gokapi/internal/webserver"
+	"flag"
 	"fmt"
 	"math/rand"
 	"os"
@@ -23,39 +24,52 @@ const Version = "1.1.4-dev"
 
 // Main routine that is called on startup
 func main() {
-	checkPrimaryArguments()
+	passedFlags := parseFlags()
+	showVersion(passedFlags)
 	rand.Seed(time.Now().UnixNano())
 	fmt.Println(logo)
 	fmt.Println("Gokapi v" + Version + " starting")
 	configuration.Load()
-	checkArguments()
+	resetPassword(passedFlags)
 	go storage.CleanUp(true)
 	webserver.Start()
 }
 
 // Checks for command line arguments that have to be parsed before loading the configuration
-func checkPrimaryArguments() {
-	if len(os.Args) > 1 {
-		if os.Args[1] == "--version" || os.Args[1] == "-v" {
-			fmt.Println("Gokapi v" + Version)
-			fmt.Println("Builder: " + environment.Builder)
-			fmt.Println("Build Date: " + environment.BuildTime)
-			fmt.Println("Docker Version: " + environment.IsDocker)
-			os.Exit(0)
-		}
+func showVersion(passedFlags flags) {
+	if passedFlags.showVersion {
+		fmt.Println("Gokapi v" + Version)
+		fmt.Println("Builder: " + environment.Builder)
+		fmt.Println("Build Date: " + environment.BuildTime)
+		fmt.Println("Docker Version: " + environment.IsDocker)
+		os.Exit(0)
+	}
+}
+
+func parseFlags() flags {
+	versionShortFlag := flag.Bool("v", false, "Show version info")
+	versionLongFlag := flag.Bool("version", false, "Show version info")
+	resetPwFlag := flag.Bool("reset-pw", false, "Show prompt to reset admin password")
+	flag.Parse()
+	return flags{
+		showVersion: *versionShortFlag || *versionLongFlag,
+		resetPw:     *resetPwFlag,
 	}
 }
 
 // Checks for command line arguments that have to be parsed after loading the configuration
-func checkArguments() {
-	if len(os.Args) > 1 {
-		if os.Args[1] == "--reset-pw" {
-			fmt.Println("Password change requested")
-			configuration.DisplayPasswordReset()
-			fmt.Println("Password has been changed!")
-			os.Exit(0)
-		}
+func resetPassword(passedFlags flags) {
+	if passedFlags.resetPw {
+		fmt.Println("Password change requested")
+		configuration.DisplayPasswordReset()
+		fmt.Println("Password has been changed!")
+		os.Exit(0)
 	}
+}
+
+type flags struct {
+	showVersion bool
+	resetPw     bool
 }
 
 // ASCII art logo
