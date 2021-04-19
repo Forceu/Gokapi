@@ -66,3 +66,9 @@ const logo = `
 ██    ██ ██    ██ ██  ██  ██   ██ ██      ██ 
  ██████   ██████  ██   ██ ██   ██ ██      ██ 
                                              `
+
+// Generates coverage badge
+//go:generate sh "../../build/updateCoverage.sh"
+
+// Copy go mod file to docker image builder
+//go:generate cp "../../go.mod" "../../build/go.mod"
