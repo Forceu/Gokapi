@@ -65,6 +65,7 @@ func TestAddHotlink(t *testing.T) {
 }
 
 func TestNewFile(t *testing.T) {
+	os.Setenv("TZ", "UTC")
 	content := []byte("This is a file for testing purposes")
 	mimeHeader := make(textproto.MIMEHeader)
 	mimeHeader.Set("Content-Disposition", "form-data; name=\"file\"; filename=\"test.dat\"")
@@ -81,7 +82,7 @@ func TestNewFile(t *testing.T) {
 	test.IsEqualString(t, file.HotlinkId, "")
 	test.IsEqualString(t, file.PasswordHash, "")
 	test.IsEqualString(t, file.Size, "35 B")
-	test.IsEqualString(t, file.ExpireAtString, "2038-01-19 04:13")
+	test.IsEqualString(t, file.ExpireAtString, "2038-01-19 03:13")
 	test.IsEqualInt(t, file.DownloadsRemaining, 1)
 	test.IsEqualInt(t, len(file.Id), 20)
 	test.IsEqualInt(t, int(file.ExpireAt), 2147483600)
