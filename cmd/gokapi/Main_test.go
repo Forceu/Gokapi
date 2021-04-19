@@ -7,7 +7,7 @@ import (
 )
 
 func TestParseFlags(t *testing.T) {
-	os.Args = []string{"gokapi", "-v", "--reset-pw"}
+	os.Args = []string{"gokapi", "--version", "--reset-pw"}
 	flags := parseFlags()
 	test.IsEqualBool(t, flags.showVersion, true)
 	test.IsEqualBool(t, flags.resetPw, true)

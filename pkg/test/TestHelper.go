@@ -111,6 +111,7 @@ func (c *Cookie) toString() string {
 	return c.Name + "=" + c.Value
 }
 
+// PostBody contains mock key/value post data
 type PostBody struct {
 	Key   string
 	Value string
