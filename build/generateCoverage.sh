@@ -1,3 +1,3 @@
 #!/bin/sh
 cd ..
-go test ./... -coverprofile=/tmp/coverage.out --tags=test && go tool cover -html=/tmp/coverage.out
+go test ./... -parallel 8 -coverprofile=/tmp/coverage.out --tags=test && go tool cover -html=/tmp/coverage.out

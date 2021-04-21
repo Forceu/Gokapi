@@ -16,6 +16,7 @@ type File struct {
 	DownloadsRemaining int    `json:"DownloadsRemaining"`
 	PasswordHash       string `json:"PasswordHash"`
 	HotlinkId          string `json:"HotlinkId"`
+	ContentType        string `json:"ContentType"`
 }
 
 // Hotlink is a struct containing hotlink ids
@@ -46,4 +47,12 @@ type Result struct {
 	FileInfo   *File  `json:"FileInfo"`
 	Url        string `json:"Url"`
 	HotlinkUrl string `json:"HotlinkUrl"`
+}
+
+
+// DownloadStatus contains current downloads, so they do not get removed during cleanup
+type DownloadStatus struct {
+	Id       string
+	FileId   string
+	ExpireAt int64
 }

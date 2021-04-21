@@ -6,12 +6,12 @@ Serving and processing uploaded files
 
 import (
 	"Gokapi/internal/configuration"
+	"Gokapi/internal/configuration/downloadStatus"
 	"Gokapi/internal/helper"
 	"Gokapi/internal/storage/filestructure"
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
@@ -47,6 +47,7 @@ func processUpload(fileContent *[]byte, fileHeader *multipart.FileHeader, expire
 		ExpireAtString:     time.Unix(expireAt, 0).Format("2006-01-02 15:04"),
 		DownloadsRemaining: downloads,
 		PasswordHash:       configuration.HashPassword(password, true),
+		ContentType:        fileHeader.Header.Get("Content-Type"),
 	}
 	addHotlink(&file)
 	configuration.ServerSettings.Files[id] = file
@@ -111,33 +112,33 @@ func GetFileByHotlink(id string) (filestructure.File, bool) {
 func ServeFile(file filestructure.File, w http.ResponseWriter, r *http.Request, forceDownload bool) {
 	file.DownloadsRemaining = file.DownloadsRemaining - 1
 	configuration.ServerSettings.Files[file.Id] = file
-	// Investigate: Possible race condition with clean-up routine?
-	configuration.Save()
-
-	if forceDownload {
-		w.Header().Set("Content-Disposition", "attachment; filename=\""+file.Name+"\"")
-	}
-	w.Header().Set("Content-Type", r.Header.Get("Content-Type"))
 	storageData, err := os.OpenFile(configuration.ServerSettings.DataDir+"/"+file.SHA256, os.O_RDONLY, 0644)
 	helper.Check(err)
 	defer storageData.Close()
 	size, err := helper.GetFileSize(storageData)
-	if err == nil {
-		w.Header().Set("Content-Length", strconv.FormatInt(size, 10))
-	}
 	helper.Check(err)
-	_, _ = io.Copy(w, storageData)
+	if forceDownload {
+		w.Header().Set("Content-Disposition", "attachment; filename=\""+file.Name+"\"")
+	}
+	w.Header().Set("Content-Length", strconv.FormatInt(size, 10))
+	w.Header().Set("Content-Type", file.ContentType)
+	statusId := downloadStatus.SetDownload(file)
+	configuration.Save()
+	http.ServeContent(w, r, file.Name, time.Now(), storageData)
+	downloadStatus.SetComplete(statusId)
+	configuration.Save()
 }
 
 // CleanUp removes expired files from the config and from the filesystem if they are not referenced by other files anymore
 // Will be called periodically or after a file has been manually deleted in the admin view.
 // If parameter periodic is true, this function is recursive and calls itself every hour.
 func CleanUp(periodic bool) {
+	downloadStatus.Clean()
 	timeNow := time.Now().Unix()
 	wasItemDeleted := false
 	for key, element := range configuration.ServerSettings.Files {
 		fileExists := helper.FileExists(configuration.ServerSettings.DataDir + "/" + element.SHA256)
-		if element.ExpireAt < timeNow || element.DownloadsRemaining < 1 || !fileExists {
+		if (element.ExpireAt < timeNow || element.DownloadsRemaining < 1 || !fileExists) && !downloadStatus.IsCurrentlyDownloading(element) {
 			deleteFile := true
 			for _, secondLoopElement := range configuration.ServerSettings.Files {
 				if element.Id != secondLoopElement.Id && element.SHA256 == secondLoopElement.SHA256 {

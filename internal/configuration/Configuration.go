@@ -34,26 +34,27 @@ var Environment environment.Environment
 var ServerSettings Configuration
 
 // Version of the configuration structure. Used for upgrading
-const currentConfigVersion = 4
+const currentConfigVersion = 5
 
 // Configuration is a struct that contains the global configuration
 type Configuration struct {
-	Port             string                              `json:"Port"`
-	AdminName        string                              `json:"AdminName"`
-	AdminPassword    string                              `json:"AdminPassword"`
-	ServerUrl        string                              `json:"ServerUrl"`
-	DefaultDownloads int                                 `json:"DefaultDownloads"`
-	DefaultExpiry    int                                 `json:"DefaultExpiry"`
-	DefaultPassword  string                              `json:"DefaultPassword"`
-	RedirectUrl      string                              `json:"RedirectUrl"`
-	Sessions         map[string]sessionstructure.Session `json:"Sessions"`
-	Files            map[string]filestructure.File       `json:"Files"`
-	Hotlinks         map[string]filestructure.Hotlink    `json:"Hotlinks"`
-	ConfigVersion    int                                 `json:"ConfigVersion"`
-	SaltAdmin        string                              `json:"SaltAdmin"`
-	SaltFiles        string                              `json:"SaltFiles"`
-	LengthId         int                                 `json:"LengthId"`
-	DataDir          string                              `json:"DataDir"`
+	Port             string                                  `json:"Port"`
+	AdminName        string                                  `json:"AdminName"`
+	AdminPassword    string                                  `json:"AdminPassword"`
+	ServerUrl        string                                  `json:"ServerUrl"`
+	DefaultDownloads int                                     `json:"DefaultDownloads"`
+	DefaultExpiry    int                                     `json:"DefaultExpiry"`
+	DefaultPassword  string                                  `json:"DefaultPassword"`
+	RedirectUrl      string                                  `json:"RedirectUrl"`
+	Sessions         map[string]sessionstructure.Session     `json:"Sessions"`
+	Files            map[string]filestructure.File           `json:"Files"`
+	Hotlinks         map[string]filestructure.Hotlink        `json:"Hotlinks"`
+	DownloadStatus   map[string]filestructure.DownloadStatus `json:"DownloadStatus"`
+	ConfigVersion    int                                     `json:"ConfigVersion"`
+	SaltAdmin        string                                  `json:"SaltAdmin"`
+	SaltFiles        string                                  `json:"SaltFiles"`
+	LengthId         int                                     `json:"LengthId"`
+	DataDir          string                                  `json:"DataDir"`
 }
 
 // Load loads the configuration or creates the folder structure and a default configuration
@@ -90,6 +91,16 @@ func updateConfig() {
 	// < v1.1.3
 	if ServerSettings.ConfigVersion < 4 {
 		ServerSettings.Hotlinks = make(map[string]filestructure.Hotlink)
+	}
+
+	// < v1.1.4
+	if ServerSettings.ConfigVersion < 5 {
+		ServerSettings.LengthId = 15
+		ServerSettings.DownloadStatus = make(map[string]filestructure.DownloadStatus)
+		for _, file := range ServerSettings.Files {
+			file.ContentType = "application/octet-stream"
+			ServerSettings.Files[file.Id] = file
+		}
 	}
 
 	if ServerSettings.ConfigVersion < currentConfigVersion {

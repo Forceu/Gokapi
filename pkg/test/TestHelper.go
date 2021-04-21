@@ -36,6 +36,20 @@ func IsEqualInt(t *testing.T, got, want int) {
 	}
 }
 
+// IsNotEmpty fails test if string is empty
+func IsNotEmpty(t *testing.T, s string) {
+	if s == "" {
+		t.Errorf("Assertion failed, got: %s, want: empty.", s)
+	}
+}
+
+// IsEmpty fails test if string is not empty
+func IsEmpty(t *testing.T, s string) {
+	if s != "" {
+		t.Errorf("Assertion failed, got: %s, want: empty.", s)
+	}
+}
+
 // IsNil fails test if error not nil
 func IsNil(t *testing.T, got error) {
 	if got != nil {
@@ -44,22 +58,22 @@ func IsNil(t *testing.T, got error) {
 }
 
 // HttpPageResult tests if a http server is outputting the correct result
-func HttpPageResult(t *testing.T, configuration HttpTestConfig) []*http.Cookie {
-	configuration.init()
+func HttpPageResult(t *testing.T, config HttpTestConfig) []*http.Cookie {
+	config.init()
 	client := &http.Client{}
 
 	data := url.Values{}
-	for _, value := range configuration.PostValues {
+	for _, value := range config.PostValues {
 		data.Add(value.Key, value.Value)
 	}
 
-	req, err := http.NewRequest(configuration.Method, configuration.Url, strings.NewReader(data.Encode()))
+	req, err := http.NewRequest(config.Method, config.Url, strings.NewReader(data.Encode()))
 	IsNil(t, err)
 
-	for _, cookie := range configuration.Cookies {
+	for _, cookie := range config.Cookies {
 		req.Header.Set("Cookie", cookie.toString())
 	}
-	if len(configuration.PostValues) > 0 {
+	if len(config.PostValues) > 0 {
 		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 		req.Header.Add("Content-Length", strconv.Itoa(len(data.Encode())))
 	}
@@ -69,13 +83,20 @@ func HttpPageResult(t *testing.T, configuration HttpTestConfig) []*http.Cookie {
 	if resp.StatusCode != 200 {
 		t.Errorf("Status %d != 200", resp.StatusCode)
 	}
-	bs, err := ioutil.ReadAll(resp.Body)
+	content, err := ioutil.ReadAll(resp.Body)
 	IsNil(t, err)
-	if configuration.IsHtml && !bytes.Contains(bs, []byte("</html>")) {
-		t.Error(configuration.Url + ": Incorrect response")
+	if config.IsHtml && !bytes.Contains(content, []byte("</html>")) {
+		t.Error(config.Url + ": Incorrect response")
 	}
-	if configuration.RequiredContent != "" && !bytes.Contains(bs, []byte(configuration.RequiredContent)) {
-		t.Error(configuration.Url + ": Incorrect response. Got:\n" + string(bs))
+	for _, requiredString := range config.RequiredContent {
+		if !bytes.Contains(content, []byte(requiredString)) {
+			t.Error(config.Url + ": Incorrect response. Got:\n" + string(content))
+		}
+	}
+	for _, excludedString := range config.ExcludedContent {
+		if bytes.Contains(content, []byte(excludedString)) {
+			t.Error(config.Url + ": Incorrect response. Got:\n" + string(content))
+		}
 	}
 	resp.Body.Close()
 	return resp.Cookies()
@@ -84,11 +105,14 @@ func HttpPageResult(t *testing.T, configuration HttpTestConfig) []*http.Cookie {
 // HttpTestConfig is a struct for http test init
 type HttpTestConfig struct {
 	Url             string
-	RequiredContent string
+	RequiredContent []string
+	ExcludedContent []string
 	IsHtml          bool
 	Method          string
 	PostValues      []PostBody
 	Cookies         []Cookie
+	UploadFileName  string
+	UploadFieldName string
 }
 
 func (c *HttpTestConfig) init() {
@@ -117,21 +141,21 @@ type PostBody struct {
 }
 
 // HttpPostRequest sends a post request
-func HttpPostRequest(t *testing.T, url, filename, fieldName, requiredText string, cookies []Cookie) {
-	file, err := os.Open(filename)
+func HttpPostRequest(t *testing.T, config HttpTestConfig) {
+	file, err := os.Open(config.UploadFileName)
 	IsNil(t, err)
 	defer file.Close()
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile(fieldName, filepath.Base(file.Name()))
+	part, err := writer.CreateFormFile(config.UploadFieldName, filepath.Base(file.Name()))
 	IsNil(t, err)
 
 	io.Copy(part, file)
 	writer.Close()
-	request, err := http.NewRequest("POST", url, body)
+	request, err := http.NewRequest("POST", config.Url, body)
 	IsNil(t, err)
 
-	for _, cookie := range cookies {
+	for _, cookie := range config.Cookies {
 		request.Header.Set("Cookie", cookie.toString())
 	}
 	request.Header.Add("Content-Type", writer.FormDataContentType())
@@ -144,7 +168,14 @@ func HttpPostRequest(t *testing.T, url, filename, fieldName, requiredText string
 	content, err := ioutil.ReadAll(response.Body)
 	IsNil(t, err)
 
-	if requiredText != "" && !bytes.Contains(content, []byte(requiredText)) {
-		t.Error(url + ": Incorrect response. Got:\n" + string(content))
+	for _, requiredString := range config.RequiredContent {
+		if !bytes.Contains(content, []byte(requiredString)) {
+			t.Error(config.Url + ": Incorrect response. Got:\n" + string(content))
+		}
+	}
+	for _, excludedString := range config.ExcludedContent {
+		if bytes.Contains(content, []byte(excludedString)) {
+			t.Error(config.Url + ": Incorrect response. Got:\n" + string(content))
+		}
 	}
 }

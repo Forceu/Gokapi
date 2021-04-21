@@ -34,7 +34,7 @@ var staticFolderEmbedded embed.FS
 //go:embed web/templates
 var templateFolderEmbedded embed.FS
 
-const timeOutWebserver = 2 * time.Hour
+const timeOutWebserver = 12 * time.Hour
 
 // Variable containing all parsed templates
 var templateFolder *template.Template
@@ -74,7 +74,7 @@ func Start() {
 	srv := &http.Server{
 		Addr:         configuration.ServerSettings.Port,
 		ReadTimeout:  timeOutWebserver,
-		WriteTimeout: 10 * time.Second,
+		WriteTimeout: timeOutWebserver,
 	}
 	log.Fatal(srv.ListenAndServe())
 }
