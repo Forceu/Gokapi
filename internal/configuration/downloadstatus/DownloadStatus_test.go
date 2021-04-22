@@ -1,4 +1,4 @@
-package downloadStatus
+package downloadstatus
 
 import (
 	"Gokapi/internal/configuration"

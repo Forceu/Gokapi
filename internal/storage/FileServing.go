@@ -6,7 +6,7 @@ Serving and processing uploaded files
 
 import (
 	"Gokapi/internal/configuration"
-	"Gokapi/internal/configuration/downloadStatus"
+	"Gokapi/internal/configuration/downloadstatus"
 	"Gokapi/internal/helper"
 	"Gokapi/internal/storage/filestructure"
 	"crypto/sha1"
@@ -122,10 +122,10 @@ func ServeFile(file filestructure.File, w http.ResponseWriter, r *http.Request, 
 	}
 	w.Header().Set("Content-Length", strconv.FormatInt(size, 10))
 	w.Header().Set("Content-Type", file.ContentType)
-	statusId := downloadStatus.SetDownload(file)
+	statusId := downloadstatus.SetDownload(file)
 	configuration.Save()
 	http.ServeContent(w, r, file.Name, time.Now(), storageData)
-	downloadStatus.SetComplete(statusId)
+	downloadstatus.SetComplete(statusId)
 	configuration.Save()
 }
 
@@ -133,12 +133,12 @@ func ServeFile(file filestructure.File, w http.ResponseWriter, r *http.Request, 
 // Will be called periodically or after a file has been manually deleted in the admin view.
 // If parameter periodic is true, this function is recursive and calls itself every hour.
 func CleanUp(periodic bool) {
-	downloadStatus.Clean()
+	downloadstatus.Clean()
 	timeNow := time.Now().Unix()
 	wasItemDeleted := false
 	for key, element := range configuration.ServerSettings.Files {
 		fileExists := helper.FileExists(configuration.ServerSettings.DataDir + "/" + element.SHA256)
-		if (element.ExpireAt < timeNow || element.DownloadsRemaining < 1 || !fileExists) && !downloadStatus.IsCurrentlyDownloading(element) {
+		if (element.ExpireAt < timeNow || element.DownloadsRemaining < 1 || !fileExists) && !downloadstatus.IsCurrentlyDownloading(element) {
 			deleteFile := true
 			for _, secondLoopElement := range configuration.ServerSettings.Files {
 				if element.Id != secondLoopElement.Id && element.SHA256 == secondLoopElement.SHA256 {

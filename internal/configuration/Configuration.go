@@ -18,6 +18,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"unicode/utf8"
 )
 
@@ -35,6 +36,9 @@ var ServerSettings Configuration
 
 // Version of the configuration structure. Used for upgrading
 const currentConfigVersion = 5
+
+// For locking the Files variable
+var mutex sync.Mutex
 
 // Configuration is a struct that contains the global configuration
 type Configuration struct {
@@ -77,6 +81,17 @@ func Load() {
 	}
 	updateConfig()
 	helper.CreateDir(ServerSettings.DataDir)
+}
+
+// Lock locks configuration to prevent race conditions (blocking)
+func Lock() {
+	mutex.Lock()
+}
+
+// UnlockAndSave unlocks and saves the configuration
+func UnlockAndSave() {
+	Save()
+	mutex.Unlock()
 }
 
 // Upgrades the ServerSettings if saved with a previous version

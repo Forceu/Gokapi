@@ -49,7 +49,6 @@ type Result struct {
 	HotlinkUrl string `json:"HotlinkUrl"`
 }
 
-
 // DownloadStatus contains current downloads, so they do not get removed during cleanup
 type DownloadStatus struct {
 	Id       string

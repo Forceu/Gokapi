@@ -23,9 +23,11 @@ func isValidSession(w http.ResponseWriter, r *http.Request) bool {
 	if err == nil {
 		sessionString := cookie.Value
 		if sessionString != "" {
+			configuration.Lock()
+			defer func() { configuration.UnlockAndSave() }()
 			_, ok := configuration.ServerSettings.Sessions[sessionString]
 			if ok {
-				return useSession(w, sessionString)
+				return useSession(w, sessionString, true)
 			}
 		}
 	}
@@ -36,37 +38,44 @@ func isValidSession(w http.ResponseWriter, r *http.Request) bool {
 // been used for more than an hour to limit session hijacking
 // Returns true if session is still valid
 // Returns false if session is invalid (and deletes it)
-func useSession(w http.ResponseWriter, sessionString string) bool {
+func useSession(w http.ResponseWriter, sessionString string, isLocked bool) bool {
+	if !isLocked {
+		configuration.Lock()
+		defer func() { configuration.UnlockAndSave() }()
+	}
 	session := configuration.ServerSettings.Sessions[sessionString]
 	if session.ValidUntil < time.Now().Unix() {
 		delete(configuration.ServerSettings.Sessions, sessionString)
 		return false
 	}
 	if session.RenewAt < time.Now().Unix() {
-		createSession(w)
+		createSession(w, true)
 		delete(configuration.ServerSettings.Sessions, sessionString)
-		configuration.Save()
 	}
 	return true
 }
 
 // Creates a new session - called after login with correct username / password
-func createSession(w http.ResponseWriter) {
+func createSession(w http.ResponseWriter, isLocked bool) {
+	if !isLocked {
+		configuration.Lock()
+		defer func() { configuration.UnlockAndSave() }()
+	}
 	sessionString := helper.GenerateRandomString(60)
 	configuration.ServerSettings.Sessions[sessionString] = sessionstructure.Session{
 		RenewAt:    time.Now().Add(time.Hour).Unix(),
 		ValidUntil: time.Now().Add(cookieLifeAdmin).Unix(),
 	}
 	writeSessionCookie(w, sessionString, time.Now().Add(cookieLifeAdmin))
-	configuration.Save()
 }
 
 // Logs out user and deletes session
 func logoutSession(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("session_token")
 	if err == nil {
+		configuration.Lock()
 		delete(configuration.ServerSettings.Sessions, cookie.Value)
-		configuration.Save()
+		configuration.UnlockAndSave()
 	}
 	writeSessionCookie(w, "", time.Now())
 }
