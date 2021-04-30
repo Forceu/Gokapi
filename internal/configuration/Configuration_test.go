@@ -2,8 +2,8 @@ package configuration
 
 import (
 	"Gokapi/internal/environment"
-	 "Gokapi/internal/test"
-	 "Gokapi/internal/test/testconfiguration"
+	"Gokapi/internal/test"
+	"Gokapi/internal/test/testconfiguration"
 	"os"
 	"testing"
 	"time"
@@ -19,31 +19,31 @@ func TestMain(m *testing.M) {
 func TestLoad(t *testing.T) {
 	Load()
 	test.IsEqualString(t, Environment.ConfigDir, "test")
-	test.IsEqualString(t, ServerSettings.Port, "127.0.0.1:53843")
-	test.IsEqualString(t, ServerSettings.AdminName, "test")
-	test.IsEqualString(t, ServerSettings.ServerUrl, "http://127.0.0.1:53843/")
-	test.IsEqualString(t, ServerSettings.AdminPassword, "10340aece68aa4fb14507ae45b05506026f276cf")
+	test.IsEqualString(t, serverSettings.Port, "127.0.0.1:53843")
+	test.IsEqualString(t, serverSettings.AdminName, "test")
+	test.IsEqualString(t, serverSettings.ServerUrl, "http://127.0.0.1:53843/")
+	test.IsEqualString(t, serverSettings.AdminPassword, "10340aece68aa4fb14507ae45b05506026f276cf")
 	test.IsEqualString(t, HashPassword("testtest", false), "10340aece68aa4fb14507ae45b05506026f276cf")
-	test.IsEqualInt(t, ServerSettings.LengthId, 20)
+	test.IsEqualInt(t, serverSettings.LengthId, 20)
 }
 
 func TestMutex(t *testing.T) {
 	finished := make(chan bool)
-	oldValue := ServerSettings.ConfigVersion
+	oldValue := serverSettings.ConfigVersion
 	go func() {
 		time.Sleep(100 * time.Millisecond)
-		LockSessions()
-		test.IsEqualInt(t, ServerSettings.ConfigVersion, -9)
-		ServerSettings.ConfigVersion = oldValue
-		UnlockSessionsAndSave()
-		test.IsEqualInt(t, ServerSettings.ConfigVersion, oldValue)
+		Lock()
+		test.IsEqualInt(t, serverSettings.ConfigVersion, -9)
+		serverSettings.ConfigVersion = oldValue
+		ReleaseAndSave()
+		test.IsEqualInt(t, serverSettings.ConfigVersion, oldValue)
 		finished <- true
 	}()
-	LockSessions()
-	ServerSettings.ConfigVersion = -9
+	Lock()
+	serverSettings.ConfigVersion = -9
 	time.Sleep(150 * time.Millisecond)
-	test.IsEqualInt(t, ServerSettings.ConfigVersion, -9)
-	UnlockSessionsAndSave()
+	test.IsEqualInt(t, serverSettings.ConfigVersion, -9)
+	ReleaseAndSave()
 	<-finished
 }
 
@@ -58,18 +58,18 @@ func TestCreateNewConfig(t *testing.T) {
 	os.Setenv("GOKAPI_LOCALHOST", "false")
 	Load()
 	test.IsEqualString(t, Environment.ConfigDir, "test")
-	test.IsEqualString(t, ServerSettings.Port, ":1234")
-	test.IsEqualString(t, ServerSettings.AdminName, "test2")
-	test.IsEqualString(t, ServerSettings.ServerUrl, "http://test.com/")
-	test.IsEqualString(t, ServerSettings.RedirectUrl, "http://test2.com")
-	test.IsEqualString(t, ServerSettings.AdminPassword, "5bbf5684437a4c658d2e0890d784694afb63f715")
+	test.IsEqualString(t, serverSettings.Port, ":1234")
+	test.IsEqualString(t, serverSettings.AdminName, "test2")
+	test.IsEqualString(t, serverSettings.ServerUrl, "http://test.com/")
+	test.IsEqualString(t, serverSettings.RedirectUrl, "http://test2.com")
+	test.IsEqualString(t, serverSettings.AdminPassword, "5bbf5684437a4c658d2e0890d784694afb63f715")
 	test.IsEqualString(t, HashPassword("testtest2", false), "5bbf5684437a4c658d2e0890d784694afb63f715")
-	test.IsEqualInt(t, ServerSettings.LengthId, 15)
+	test.IsEqualInt(t, serverSettings.LengthId, 15)
 	os.Remove("test/config.json")
 	os.Unsetenv("GOKAPI_SALT_ADMIN")
 	Load()
-	test.IsEqualInt(t, len(ServerSettings.SaltAdmin), 30)
-	test.IsNotEqualString(t, ServerSettings.SaltAdmin, "eefwkjqweduiotbrkl##$2342brerlk2321")
+	test.IsEqualInt(t, len(serverSettings.SaltAdmin), 30)
+	test.IsNotEqualString(t, serverSettings.SaltAdmin, "eefwkjqweduiotbrkl##$2342brerlk2321")
 	os.Unsetenv("GOKAPI_USERNAME")
 	os.Unsetenv("GOKAPI_PASSWORD")
 	os.Unsetenv("GOKAPI_PORT")
@@ -81,14 +81,14 @@ func TestCreateNewConfig(t *testing.T) {
 func TestUpgradeDb(t *testing.T) {
 	testconfiguration.WriteUpgradeConfigFile()
 	Load()
-	test.IsEqualString(t, ServerSettings.SaltAdmin, "eefwkjqweduiotbrkl##$2342brerlk2321")
-	test.IsEqualString(t, ServerSettings.SaltFiles, "P1UI5sRNDwuBgOvOYhNsmucZ2pqo4KEvOoqqbpdu")
-	test.IsEqualString(t, ServerSettings.DataDir, Environment.DataDir)
-	test.IsEqualInt(t, ServerSettings.LengthId, 15)
-	test.IsEqualBool(t, ServerSettings.Hotlinks == nil, false)
-	test.IsEqualBool(t, ServerSettings.DownloadStatus == nil, false)
-	test.IsEqualString(t, ServerSettings.Files["MgXJLe4XLfpXcL12ec4i"].ContentType, "application/octet-stream")
-	test.IsEqualInt(t, ServerSettings.ConfigVersion, currentConfigVersion)
+	test.IsEqualString(t, serverSettings.SaltAdmin, "eefwkjqweduiotbrkl##$2342brerlk2321")
+	test.IsEqualString(t, serverSettings.SaltFiles, "P1UI5sRNDwuBgOvOYhNsmucZ2pqo4KEvOoqqbpdu")
+	test.IsEqualString(t, serverSettings.DataDir, Environment.DataDir)
+	test.IsEqualInt(t, serverSettings.LengthId, 15)
+	test.IsEqualBool(t, serverSettings.Hotlinks == nil, false)
+	test.IsEqualBool(t, serverSettings.DownloadStatus == nil, false)
+	test.IsEqualString(t, serverSettings.Files["MgXJLe4XLfpXcL12ec4i"].ContentType, "application/octet-stream")
+	test.IsEqualInt(t, serverSettings.ConfigVersion, currentConfigVersion)
 	testconfiguration.Create(false)
 	Load()
 }

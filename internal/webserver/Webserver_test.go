@@ -46,11 +46,13 @@ func TestIndexRedirect(t *testing.T) {
 }
 func TestIndexFile(t *testing.T) {
 	t.Parallel()
+	settings := configuration.GetServerSettings()
 	testconfiguration.HttpPageResult(t, testconfiguration.HttpTestConfig{
 		Url:             "http://localhost:53843/index",
-		RequiredContent: []string{configuration.ServerSettings.RedirectUrl},
+		RequiredContent: []string{settings.RedirectUrl},
 		IsHtml:          true,
 	})
+	configuration.Release()
 }
 func TestStaticDirs(t *testing.T) {
 	t.Parallel()

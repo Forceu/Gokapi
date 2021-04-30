@@ -4,6 +4,7 @@ import (
 	"Gokapi/internal/configuration"
 	"Gokapi/internal/models"
 	"Gokapi/internal/test"
+	"Gokapi/internal/test/testconfiguration"
 	"os"
 	"testing"
 	"time"
@@ -13,7 +14,10 @@ var testFile models.File
 var statusId string
 
 func TestMain(m *testing.M) {
-	configuration.ServerSettings.DownloadStatus = make(map[string]models.DownloadStatus)
+	testconfiguration.Create(false)
+	configuration.Load()
+	settings := configuration.GetServerSettings()
+	settings.DownloadStatus = make(map[string]models.DownloadStatus)
 	testFile = models.File{
 		Id:                 "test",
 		Name:               "testName",
@@ -23,7 +27,9 @@ func TestMain(m *testing.M) {
 		ExpireAtString:     "expire",
 		DownloadsRemaining: 1,
 	}
+	configuration.Release()
 	exitVal := m.Run()
+	testconfiguration.Delete()
 	os.Exit(exitVal)
 }
 
@@ -36,7 +42,9 @@ func TestNewDownloadStatus(t *testing.T) {
 
 func TestSetDownload(t *testing.T) {
 	statusId = SetDownload(testFile)
-	status := configuration.ServerSettings.DownloadStatus[statusId]
+	settings := configuration.GetServerSettings()
+	status := settings.DownloadStatus[statusId]
+	configuration.Release()
 	test.IsNotEmpty(t, status.Id)
 	test.IsEqualString(t, status.Id, statusId)
 	test.IsEqualString(t, status.FileId, testFile.Id)
@@ -44,27 +52,33 @@ func TestSetDownload(t *testing.T) {
 }
 
 func TestSetComplete(t *testing.T) {
-	status := configuration.ServerSettings.DownloadStatus[statusId]
+	settings := configuration.GetServerSettings()
+	status := settings.DownloadStatus[statusId]
+	configuration.Release()
 	test.IsNotEmpty(t, status.Id)
 	SetComplete(statusId)
-	status = configuration.ServerSettings.DownloadStatus[statusId]
+	status = settings.DownloadStatus[statusId]
 	test.IsEmpty(t, status.Id)
 }
 
 func TestIsCurrentlyDownloading(t *testing.T) {
 	statusId = SetDownload(testFile)
-	test.IsEqualBool(t, IsCurrentlyDownloading(testFile), true)
-	test.IsEqualBool(t, IsCurrentlyDownloading(models.File{Id: "notDownloading"}), false)
+	settings := configuration.GetServerSettings()
+	configuration.Release()
+	test.IsEqualBool(t, IsCurrentlyDownloading(testFile, settings), true)
+	test.IsEqualBool(t, IsCurrentlyDownloading(models.File{Id: "notDownloading"}, settings), false)
 }
 
 func TestClean(t *testing.T) {
-	test.IsEqualInt(t, len(configuration.ServerSettings.DownloadStatus), 1)
+	settings := configuration.GetServerSettings()
+	configuration.Release()
+	test.IsEqualInt(t, len(settings.DownloadStatus), 1)
 	Clean()
-	test.IsEqualInt(t, len(configuration.ServerSettings.DownloadStatus), 1)
-	status := configuration.ServerSettings.DownloadStatus[statusId]
+	test.IsEqualInt(t, len(settings.DownloadStatus), 1)
+	status := settings.DownloadStatus[statusId]
 	status.ExpireAt = 1
-	configuration.ServerSettings.DownloadStatus[statusId] = status
-	test.IsEqualInt(t, len(configuration.ServerSettings.DownloadStatus), 1)
+	settings.DownloadStatus[statusId] = status
+	test.IsEqualInt(t, len(settings.DownloadStatus), 1)
 	Clean()
-	test.IsEqualInt(t, len(configuration.ServerSettings.DownloadStatus), 0)
+	test.IsEqualInt(t, len(settings.DownloadStatus), 0)
 }

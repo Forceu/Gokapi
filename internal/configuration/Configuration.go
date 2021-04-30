@@ -30,7 +30,7 @@ const minLengthPassword = 6
 var Environment environment.Environment
 
 // ServerSettings is an object containing the server configuration
-var ServerSettings Configuration
+var serverSettings Configuration
 
 // Version of the configuration structure. Used for upgrading
 const currentConfigVersion = 6
@@ -71,54 +71,66 @@ func Load() {
 	helper.Check(err)
 	defer file.Close()
 	decoder := json.NewDecoder(file)
-	ServerSettings = Configuration{}
-	err = decoder.Decode(&ServerSettings)
+	serverSettings = Configuration{}
+	err = decoder.Decode(&serverSettings)
 	helper.Check(err)
 	updateConfig()
-	helper.CreateDir(ServerSettings.DataDir)
+	helper.CreateDir(serverSettings.DataDir)
 }
 
-// LockSessions locks sessions to prevent race conditions (blocking)
-func LockSessions() {
+// Lock locks configuration to prevent race conditions (blocking)
+func Lock() {
 	mutexSessions.Lock()
 }
 
-// UnlockSessionsAndSave unlocks sessions and saves the configuration
-func UnlockSessionsAndSave() {
+// ReleaseAndSave unlocks and saves the configuration
+func ReleaseAndSave() {
 	Save()
 	mutexSessions.Unlock()
+}
+
+// Release unlocks the configuration
+func Release() {
+	mutexSessions.Unlock()
+}
+
+// GetServerSettings locks the settings returns a pointer to the configuration
+// Release needs to be called when finished with the operation!
+func GetServerSettings() *Configuration {
+	mutexSessions.Lock()
+	return &serverSettings
 }
 
 // Upgrades the ServerSettings if saved with a previous version
 func updateConfig() {
 	// < v1.1.2
-	if ServerSettings.ConfigVersion < 3 {
-		ServerSettings.SaltAdmin = "eefwkjqweduiotbrkl##$2342brerlk2321"
-		ServerSettings.SaltFiles = "P1UI5sRNDwuBgOvOYhNsmucZ2pqo4KEvOoqqbpdu"
-		ServerSettings.LengthId = 15
-		ServerSettings.DataDir = Environment.DataDir
+	if serverSettings.ConfigVersion < 3 {
+		serverSettings.SaltAdmin = "eefwkjqweduiotbrkl##$2342brerlk2321"
+		serverSettings.SaltFiles = "P1UI5sRNDwuBgOvOYhNsmucZ2pqo4KEvOoqqbpdu"
+		serverSettings.LengthId = 15
+		serverSettings.DataDir = Environment.DataDir
 	}
 	// < v1.1.3
-	if ServerSettings.ConfigVersion < 4 {
-		ServerSettings.Hotlinks = make(map[string]models.Hotlink)
+	if serverSettings.ConfigVersion < 4 {
+		serverSettings.Hotlinks = make(map[string]models.Hotlink)
 	}
 	// < v1.1.4
-	if ServerSettings.ConfigVersion < 5 {
-		ServerSettings.LengthId = 15
-		ServerSettings.DownloadStatus = make(map[string]models.DownloadStatus)
-		for _, file := range ServerSettings.Files {
+	if serverSettings.ConfigVersion < 5 {
+		serverSettings.LengthId = 15
+		serverSettings.DownloadStatus = make(map[string]models.DownloadStatus)
+		for _, file := range serverSettings.Files {
 			file.ContentType = "application/octet-stream"
-			ServerSettings.Files[file.Id] = file
+			serverSettings.Files[file.Id] = file
 		}
 	}
 	// < v1.2.0
-	if ServerSettings.ConfigVersion < 6 {
-		ServerSettings.ApiKeys = make(map[string]models.ApiKey)
+	if serverSettings.ConfigVersion < 6 {
+		serverSettings.ApiKeys = make(map[string]models.ApiKey)
 	}
 
-	if ServerSettings.ConfigVersion < currentConfigVersion {
+	if serverSettings.ConfigVersion < currentConfigVersion {
 		fmt.Println("Successfully upgraded database")
-		ServerSettings.ConfigVersion = currentConfigVersion
+		serverSettings.ConfigVersion = currentConfigVersion
 		Save()
 	}
 }
@@ -130,7 +142,7 @@ func generateDefaultConfig() {
 	if saltAdmin == "" {
 		saltAdmin = helper.GenerateRandomString(30)
 	}
-	ServerSettings = Configuration{
+	serverSettings = Configuration{
 		SaltAdmin: saltAdmin,
 	}
 	username := askForUsername()
@@ -148,7 +160,7 @@ func generateDefaultConfig() {
 		saltFiles = helper.GenerateRandomString(30)
 	}
 
-	ServerSettings = Configuration{
+	serverSettings = Configuration{
 		Port:             bindAddress,
 		AdminName:        username,
 		AdminPassword:    HashPassword(password, false),
@@ -179,7 +191,7 @@ func Save() {
 	}
 	defer file.Close()
 	encoder := json.NewEncoder(file)
-	err = encoder.Encode(&ServerSettings)
+	err = encoder.Encode(&serverSettings)
 	if err != nil {
 		fmt.Println("Error writing configuration:", err)
 		os.Exit(1)
@@ -344,7 +356,7 @@ func addTrailingSlash(url string) string {
 
 // DisplayPasswordReset shows a password prompt in the CLI and saves the new password
 func DisplayPasswordReset() {
-	ServerSettings.AdminPassword = HashPassword(askForPassword(), false)
+	serverSettings.AdminPassword = HashPassword(askForPassword(), false)
 	Save()
 }
 
@@ -353,12 +365,22 @@ func HashPassword(password string, useFileSalt bool) string {
 	if password == "" {
 		return ""
 	}
-	salt := ServerSettings.SaltAdmin
+	salt := serverSettings.SaltAdmin
 	if useFileSalt {
-		salt = ServerSettings.SaltFiles
+		salt = serverSettings.SaltFiles
 	}
 	bytes := []byte(password + salt)
 	hash := sha1.New()
 	hash.Write(bytes)
 	return hex.EncodeToString(hash.Sum(nil))
+}
+
+// GetLengthId returns the length of the file IDs to be generated
+func GetLengthId() int {
+	return serverSettings.LengthId
+}
+
+// GetSessions returns a pointer to the session storage
+func GetSessions() *map[string]models.Session {
+	return &serverSettings.Sessions
 }

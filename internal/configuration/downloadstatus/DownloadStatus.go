@@ -10,23 +10,29 @@ import (
 // SetDownload creates a new DownloadStatus struct and returns its Id
 func SetDownload(file models.File) string {
 	status := newDownloadStatus(file)
-	configuration.ServerSettings.DownloadStatus[status.Id] = status
+	settings := configuration.GetServerSettings()
+	settings.DownloadStatus[status.Id] = status
+	configuration.ReleaseAndSave()
 	return status.Id
 }
 
 // SetComplete removes the download object
 func SetComplete(id string) {
-	delete(configuration.ServerSettings.DownloadStatus, id)
+	settings := configuration.GetServerSettings()
+	delete(settings.DownloadStatus, id)
+	configuration.ReleaseAndSave()
 }
 
 // Clean removes all expires status objects
 func Clean() {
+	settings := configuration.GetServerSettings()
 	now := time.Now().Unix()
-	for _, item := range configuration.ServerSettings.DownloadStatus {
+	for _, item := range settings.DownloadStatus {
 		if item.ExpireAt < now {
-			delete(configuration.ServerSettings.DownloadStatus, item.Id)
+			delete(settings.DownloadStatus, item.Id)
 		}
 	}
+	configuration.Release()
 }
 
 // newDownloadStatus initialises the a new DownloadStatus item
@@ -40,8 +46,8 @@ func newDownloadStatus(file models.File) models.DownloadStatus {
 }
 
 // IsCurrentlyDownloading returns true if file is currently being downloaded
-func IsCurrentlyDownloading(file models.File) bool {
-	for _, status := range configuration.ServerSettings.DownloadStatus {
+func IsCurrentlyDownloading(file models.File, settings *configuration.Configuration) bool {
+	for _, status := range settings.DownloadStatus {
 		if status.FileId == file.Id {
 			if status.ExpireAt > time.Now().Unix() {
 				return true

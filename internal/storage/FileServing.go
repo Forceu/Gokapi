@@ -31,7 +31,7 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, expireAt i
 	if err != nil {
 		return models.File{}, err
 	}
-	id := helper.GenerateRandomString(configuration.ServerSettings.LengthId)
+	id := helper.GenerateRandomString(configuration.GetLengthId())
 	hash := sha1.New()
 	hash.Write(fileBytes)
 	file := models.File{
@@ -46,9 +46,11 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, expireAt i
 		ContentType:        fileHeader.Header.Get("Content-Type"),
 	}
 	addHotlink(&file)
-	configuration.ServerSettings.Files[id] = file
-	filename := configuration.ServerSettings.DataDir + "/" + file.SHA256
-	if !helper.FileExists(configuration.ServerSettings.DataDir + "/" + file.SHA256) {
+	settings := configuration.GetServerSettings()
+	defer func() { configuration.ReleaseAndSave() }()
+	settings.Files[id] = file
+	filename := settings.DataDir + "/" + file.SHA256
+	if !helper.FileExists(settings.DataDir + "/" + file.SHA256) {
 		destinationFile, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 		if err != nil {
 			return models.File{}, err
@@ -56,7 +58,6 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, expireAt i
 		defer destinationFile.Close()
 		destinationFile.Write(fileBytes)
 	}
-	configuration.Save()
 	return file, nil
 }
 
@@ -70,10 +71,12 @@ func addHotlink(file *models.File) {
 	}
 	link := helper.GenerateRandomString(40) + extension
 	file.HotlinkId = link
-	configuration.ServerSettings.Hotlinks[link] = models.Hotlink{
+	settings := configuration.GetServerSettings()
+	settings.Hotlinks[link] = models.Hotlink{
 		Id:     link,
 		FileId: file.Id,
 	}
+	configuration.Release()
 }
 
 // GetFile gets the file by id. Returns (empty File, false) if invalid / expired file
@@ -83,11 +86,13 @@ func GetFile(id string) (models.File, bool) {
 	if id == "" {
 		return emptyResult, false
 	}
-	file := configuration.ServerSettings.Files[id]
+	settings := configuration.GetServerSettings()
+	file := settings.Files[id]
+	configuration.Release()
 	if file.ExpireAt < time.Now().Unix() || file.DownloadsRemaining < 1 {
 		return emptyResult, false
 	}
-	if !helper.FileExists(configuration.ServerSettings.DataDir + "/" + file.SHA256) {
+	if !helper.FileExists(settings.DataDir + "/" + file.SHA256) {
 		return emptyResult, false
 	}
 	return file, true
@@ -100,15 +105,19 @@ func GetFileByHotlink(id string) (models.File, bool) {
 	if id == "" {
 		return emptyResult, false
 	}
-	hotlink := configuration.ServerSettings.Hotlinks[id]
+	settings := configuration.GetServerSettings()
+	hotlink := settings.Hotlinks[id]
+	configuration.Release()
 	return GetFile(hotlink.FileId)
 }
 
 // ServeFile subtracts a download allowance and serves the file to the browser
 func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDownload bool) {
 	file.DownloadsRemaining = file.DownloadsRemaining - 1
-	configuration.ServerSettings.Files[file.Id] = file
-	storageData, err := os.OpenFile(configuration.ServerSettings.DataDir+"/"+file.SHA256, os.O_RDONLY, 0644)
+	settings := configuration.GetServerSettings()
+	settings.Files[file.Id] = file
+	storageData, err := os.OpenFile(settings.DataDir+"/"+file.SHA256, os.O_RDONLY, 0644)
+	configuration.Release()
 	helper.Check(err)
 	defer storageData.Close()
 	size, err := helper.GetFileSize(storageData)
@@ -119,10 +128,8 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 	w.Header().Set("Content-Length", strconv.FormatInt(size, 10))
 	w.Header().Set("Content-Type", file.ContentType)
 	statusId := downloadstatus.SetDownload(file)
-	configuration.Save()
 	http.ServeContent(w, r, file.Name, time.Now(), storageData)
 	downloadstatus.SetComplete(statusId)
-	configuration.Save()
 }
 
 // CleanUp removes expired files from the config and from the filesystem if they are not referenced by other files anymore
@@ -132,28 +139,30 @@ func CleanUp(periodic bool) {
 	downloadstatus.Clean()
 	timeNow := time.Now().Unix()
 	wasItemDeleted := false
-	for key, element := range configuration.ServerSettings.Files {
-		fileExists := helper.FileExists(configuration.ServerSettings.DataDir + "/" + element.SHA256)
-		if (element.ExpireAt < timeNow || element.DownloadsRemaining < 1 || !fileExists) && !downloadstatus.IsCurrentlyDownloading(element) {
+	settings := configuration.GetServerSettings()
+	for key, element := range settings.Files {
+		fileExists := helper.FileExists(settings.DataDir + "/" + element.SHA256)
+		if (element.ExpireAt < timeNow || element.DownloadsRemaining < 1 || !fileExists) && !downloadstatus.IsCurrentlyDownloading(element, settings) {
 			deleteFile := true
-			for _, secondLoopElement := range configuration.ServerSettings.Files {
+			for _, secondLoopElement := range settings.Files {
 				if element.Id != secondLoopElement.Id && element.SHA256 == secondLoopElement.SHA256 {
 					deleteFile = false
 				}
 			}
 			if deleteFile && fileExists {
-				err := os.Remove(configuration.ServerSettings.DataDir + "/" + element.SHA256)
+				err := os.Remove(settings.DataDir + "/" + element.SHA256)
 				if err != nil {
 					fmt.Println(err)
 				}
 			}
 			if element.HotlinkId != "" {
-				delete(configuration.ServerSettings.Hotlinks, element.HotlinkId)
+				delete(settings.Hotlinks, element.HotlinkId)
 			}
-			delete(configuration.ServerSettings.Files, key)
+			delete(settings.Files, key)
 			wasItemDeleted = true
 		}
 	}
+	configuration.Release()
 	if wasItemDeleted {
 		configuration.Save()
 		CleanUp(false)
@@ -162,4 +171,14 @@ func CleanUp(periodic bool) {
 		time.Sleep(time.Hour)
 		go CleanUp(periodic)
 	}
+}
+
+// DeleteFile is called when an admin requests deletion of a file
+func DeleteFile(keyId string) {
+	settings := configuration.GetServerSettings()
+	item := settings.Files[keyId]
+	item.ExpireAt = 0
+	settings.Files[keyId] = item
+	configuration.Release()
+	CleanUp(false)
 }

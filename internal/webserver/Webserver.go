@@ -44,8 +44,17 @@ var imageExpiredPicture []byte
 
 const expiredFile = "static/expired.png"
 
+var (
+	webserverPort          string
+	webserverExtUrl        string
+	webserverRedirectUrl   string
+	webserverAdminName     string
+	WebserverAdminPassword string
+)
+
 // Start the webserver on the port set in the config
 func Start() {
+	initLocalVariables()
 	initTemplates(templateFolderEmbedded)
 	webserverDir, _ := fs.Sub(staticFolderEmbedded, "web/static")
 	var err error
@@ -70,14 +79,24 @@ func Start() {
 	http.HandleFunc("/delete", deleteFile)
 	http.HandleFunc("/downloadFile", downloadFile)
 	http.HandleFunc("/forgotpw", forgotPassword)
-	fmt.Println("Binding webserver to " + configuration.ServerSettings.Port)
-	fmt.Println("Webserver can be accessed at " + configuration.ServerSettings.ServerUrl + "admin")
+	fmt.Println("Binding webserver to " + webserverPort)
+	fmt.Println("Webserver can be accessed at " + webserverExtUrl + "admin")
 	srv := &http.Server{
-		Addr:         configuration.ServerSettings.Port,
+		Addr:         webserverPort,
 		ReadTimeout:  timeOutWebserver,
 		WriteTimeout: timeOutWebserver,
 	}
 	log.Fatal(srv.ListenAndServe())
+}
+
+func initLocalVariables() {
+	settings := configuration.GetServerSettings()
+	webserverPort = settings.Port
+	webserverExtUrl = settings.ServerUrl
+	webserverRedirectUrl = settings.RedirectUrl
+	webserverAdminName = settings.AdminName
+	WebserverAdminPassword = settings.AdminPassword
+	configuration.Release()
 }
 
 // Initialises the templateFolder variable by scanning through all the templates.
@@ -108,7 +127,7 @@ func doLogout(w http.ResponseWriter, r *http.Request) {
 
 // Handling of /index and redirecting to globalConfig.RedirectUrl
 func showIndex(w http.ResponseWriter, r *http.Request) {
-	err := templateFolder.ExecuteTemplate(w, "index", genericView{RedirectUrl: configuration.ServerSettings.RedirectUrl})
+	err := templateFolder.ExecuteTemplate(w, "index", genericView{RedirectUrl: webserverRedirectUrl})
 	helper.Check(err)
 }
 
@@ -134,7 +153,7 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 	pw := r.Form.Get("password")
 	failedLogin := false
 	if pw != "" && user != "" {
-		if strings.ToLower(user) == strings.ToLower(configuration.ServerSettings.AdminName) && configuration.HashPassword(pw, false) == configuration.ServerSettings.AdminPassword {
+		if strings.ToLower(user) == strings.ToLower(webserverAdminName) && configuration.HashPassword(pw, false) == WebserverAdminPassword {
 			sessionmanager.CreateSession(w, false)
 			redirect(w, "admin")
 			return
@@ -213,7 +232,7 @@ func showHotlink(w http.ResponseWriter, r *http.Request) {
 }
 
 // Handling of /delete
-// User needs to be admin. Deleted the requested file
+// User needs to be admin. Deletes the requested file
 func deleteFile(w http.ResponseWriter, r *http.Request) {
 	if !isAuthenticated(w, r, false) {
 		return
@@ -222,10 +241,7 @@ func deleteFile(w http.ResponseWriter, r *http.Request) {
 	if keyId == "" {
 		return
 	}
-	item := configuration.ServerSettings.Files[keyId]
-	item.ExpireAt = 0
-	configuration.ServerSettings.Files[keyId] = item
-	storage.CleanUp(false)
+	storage.DeleteFile(keyId)
 	redirect(w, "admin")
 }
 
@@ -233,7 +249,7 @@ func deleteFile(w http.ResponseWriter, r *http.Request) {
 // Stops for 500ms to limit brute forcing if invalid key and redirects to redirectUrl
 func queryUrl(w http.ResponseWriter, r *http.Request, redirectUrl string) string {
 	keys, ok := r.URL.Query()["id"]
-	if !ok || len(keys[0]) < configuration.ServerSettings.LengthId {
+	if !ok || len(keys[0]) < configuration.GetLengthId() {
 		time.Sleep(500 * time.Millisecond)
 		redirect(w, redirectUrl)
 		return ""
@@ -278,7 +294,8 @@ type UploadView struct {
 // the admin template
 func (u *UploadView) convertGlobalConfig() *UploadView {
 	var result []models.File
-	for _, element := range configuration.ServerSettings.Files {
+	settings := configuration.GetServerSettings()
+	for _, element := range settings.Files {
 		result = append(result, element)
 	}
 	sort.Slice(result[:], func(i, j int) bool {
@@ -287,15 +304,16 @@ func (u *UploadView) convertGlobalConfig() *UploadView {
 		}
 		return result[i].ExpireAt > result[j].ExpireAt
 	})
-	u.Url = configuration.ServerSettings.ServerUrl + "d?id="
-	u.HotlinkUrl = configuration.ServerSettings.ServerUrl + "hotlink/"
-	u.DefaultPassword = configuration.ServerSettings.DefaultPassword
+	u.Url = settings.ServerUrl + "d?id="
+	u.HotlinkUrl = settings.ServerUrl + "hotlink/"
+	u.DefaultPassword = settings.DefaultPassword
 	u.Items = result
-	u.DefaultExpiry = configuration.ServerSettings.DefaultExpiry
-	u.DefaultDownloads = configuration.ServerSettings.DefaultDownloads
+	u.DefaultExpiry = settings.DefaultExpiry
+	u.DefaultDownloads = settings.DefaultDownloads
 	u.TimeNow = time.Now().Unix()
 	u.IsAdminView = true
 	u.IsMainView = true
+	configuration.Release()
 	return u
 }
 
@@ -312,22 +330,24 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 	expiryDays := r.Form.Get("expiryDays")
 	password := r.Form.Get("password")
 	allowedDownloadsInt, err := strconv.Atoi(allowedDownloads)
+	settings := configuration.GetServerSettings()
 	if err != nil {
-		allowedDownloadsInt = configuration.ServerSettings.DefaultDownloads
+		allowedDownloadsInt = settings.DefaultDownloads
 	}
 	expiryDaysInt, err := strconv.Atoi(expiryDays)
 	if err != nil {
-		expiryDaysInt = configuration.ServerSettings.DefaultExpiry
+		expiryDaysInt = settings.DefaultExpiry
 	}
-	configuration.ServerSettings.DefaultExpiry = expiryDaysInt
-	configuration.ServerSettings.DefaultDownloads = allowedDownloadsInt
-	configuration.ServerSettings.DefaultPassword = password
+	settings.DefaultExpiry = expiryDaysInt
+	settings.DefaultDownloads = allowedDownloadsInt
+	settings.DefaultPassword = password
+	configuration.Release()
 	file, header, err := r.FormFile("file")
 	responseError(w, err)
 	result, err := storage.NewFile(file, header, time.Now().Add(time.Duration(expiryDaysInt)*time.Hour*24).Unix(), allowedDownloadsInt, password)
 	responseError(w, err)
 	defer file.Close()
-	_, err = fmt.Fprint(w, result.ToJsonResult(configuration.ServerSettings.ServerUrl))
+	_, err = fmt.Fprint(w, result.ToJsonResult(webserverExtUrl))
 	helper.Check(err)
 }
 

@@ -9,11 +9,14 @@ import (
 	"Gokapi/internal/helper"
 	"Gokapi/internal/models"
 	"net/http"
+	"sync"
 	"time"
 )
 
 // If no login occurred during this time, the admin session will be deleted. Default 30 days
 const cookieLifeAdmin = 30 * 24 * time.Hour
+
+var mutex sync.Mutex
 
 // IsValidSession checks if the user is submitting a valid session token
 // If valid session is found, useSession will be called
@@ -23,9 +26,10 @@ func IsValidSession(w http.ResponseWriter, r *http.Request) bool {
 	if err == nil {
 		sessionString := cookie.Value
 		if sessionString != "" {
-			configuration.LockSessions()
-			defer func() { configuration.UnlockSessionsAndSave() }()
-			_, ok := configuration.ServerSettings.Sessions[sessionString]
+			mutex.Lock()
+			sessions := configuration.GetSessions()
+			defer func() { unlockAndSave() }()
+			_, ok := (*sessions)[sessionString]
 			if ok {
 				return useSession(w, sessionString)
 			}
@@ -34,19 +38,25 @@ func IsValidSession(w http.ResponseWriter, r *http.Request) bool {
 	return false
 }
 
+func unlockAndSave() {
+	configuration.Save()
+	mutex.Unlock()
+}
+
 // useSession checks if a session is still valid. It Changes the session string
 // if it has // been used for more than an hour to limit session hijacking
 // Returns true if session is still valid
 // Returns false if session is invalid (and deletes it)
 func useSession(w http.ResponseWriter, sessionString string) bool {
-	session := configuration.ServerSettings.Sessions[sessionString]
+	sessions := configuration.GetSessions()
+	session := (*sessions)[sessionString]
 	if session.ValidUntil < time.Now().Unix() {
-		delete(configuration.ServerSettings.Sessions, sessionString)
+		delete(*sessions, sessionString)
 		return false
 	}
 	if session.RenewAt < time.Now().Unix() {
 		CreateSession(w, true)
-		delete(configuration.ServerSettings.Sessions, sessionString)
+		delete(*sessions, sessionString)
 	}
 	return true
 }
@@ -54,11 +64,12 @@ func useSession(w http.ResponseWriter, sessionString string) bool {
 // CreateSession creates a new session - called after login with correct username / password
 func CreateSession(w http.ResponseWriter, isLocked bool) {
 	if !isLocked {
-		configuration.LockSessions()
-		defer func() { configuration.UnlockSessionsAndSave() }()
+		mutex.Lock()
+		defer func() { unlockAndSave() }()
 	}
 	sessionString := helper.GenerateRandomString(60)
-	configuration.ServerSettings.Sessions[sessionString] = models.Session{
+	sessions := configuration.GetSessions()
+	(*sessions)[sessionString] = models.Session{
 		RenewAt:    time.Now().Add(time.Hour).Unix(),
 		ValidUntil: time.Now().Add(cookieLifeAdmin).Unix(),
 	}
@@ -69,9 +80,10 @@ func CreateSession(w http.ResponseWriter, isLocked bool) {
 func LogoutSession(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("session_token")
 	if err == nil {
-		configuration.LockSessions()
-		delete(configuration.ServerSettings.Sessions, cookie.Value)
-		configuration.UnlockSessionsAndSave()
+		mutex.Lock()
+		sessions := configuration.GetSessions()
+		delete(*sessions, cookie.Value)
+		unlockAndSave()
 	}
 	writeSessionCookie(w, "", time.Now())
 }
