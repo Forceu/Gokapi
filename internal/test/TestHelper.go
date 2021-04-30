@@ -1,3 +1,5 @@
+//  +build test
+
 package test
 
 import (
@@ -12,53 +14,70 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"testing"
 )
 
+type MockT interface {
+	Errorf(format string, args ...interface{})
+}
+
 // IsEqualString fails test if got and want are not identical
-func IsEqualString(t *testing.T, got, want string) {
+func IsEqualString(t MockT, got, want string) {
 	if got != want {
 		t.Errorf("Assertion failed, got: %s, want: %s.", got, want)
 	}
 }
 
+// IsNotEqualString fails test if got and want are not identical
+func IsNotEqualString(t MockT, got, want string) {
+	if got == want {
+		t.Errorf("Assertion failed, got: %s, want: not %s.", got, want)
+	}
+}
+
 // IsEqualBool fails test if got and want are not identical
-func IsEqualBool(t *testing.T, got, want bool) {
+func IsEqualBool(t MockT, got, want bool) {
 	if got != want {
 		t.Errorf("Assertion failed, got: %t, want: %t.", got, want)
 	}
 }
 
 // IsEqualInt fails test if got and want are not identical
-func IsEqualInt(t *testing.T, got, want int) {
+func IsEqualInt(t MockT, got, want int) {
 	if got != want {
 		t.Errorf("Assertion failed, got: %d, want: %d.", got, want)
 	}
 }
 
 // IsNotEmpty fails test if string is empty
-func IsNotEmpty(t *testing.T, s string) {
+func IsNotEmpty(t MockT, s string) {
 	if s == "" {
 		t.Errorf("Assertion failed, got: %s, want: empty.", s)
 	}
 }
 
 // IsEmpty fails test if string is not empty
-func IsEmpty(t *testing.T, s string) {
+func IsEmpty(t MockT, s string) {
 	if s != "" {
 		t.Errorf("Assertion failed, got: %s, want: empty.", s)
 	}
 }
 
 // IsNil fails test if error not nil
-func IsNil(t *testing.T, got error) {
+func IsNil(t MockT, got error) {
 	if got != nil {
-		t.Errorf("Assertion failed, got: %s, want: nil.", got.Error())
+		t.Errorf("Assertion failed, got: %s, want: nil.", got.(error).Error())
+	}
+}
+
+// IsNotNil fails test if error is nil
+func IsNotNil(t MockT, got error) {
+	if got == nil {
+		t.Errorf("Assertion failed, got: nil, want: not nil.")
 	}
 }
 
 // HttpPageResult tests if a http server is outputting the correct result
-func HttpPageResult(t *testing.T, config HttpTestConfig) []*http.Cookie {
+func HttpPageResult(t MockT, config HttpTestConfig) []*http.Cookie {
 	config.init()
 	client := &http.Client{}
 
@@ -86,16 +105,16 @@ func HttpPageResult(t *testing.T, config HttpTestConfig) []*http.Cookie {
 	content, err := ioutil.ReadAll(resp.Body)
 	IsNil(t, err)
 	if config.IsHtml && !bytes.Contains(content, []byte("</html>")) {
-		t.Error(config.Url + ": Incorrect response")
+		t.Errorf(config.Url + ": Incorrect response")
 	}
 	for _, requiredString := range config.RequiredContent {
 		if !bytes.Contains(content, []byte(requiredString)) {
-			t.Error(config.Url + ": Incorrect response. Got:\n" + string(content))
+			t.Errorf(config.Url + ": Incorrect response. Got:\n" + string(content))
 		}
 	}
 	for _, excludedString := range config.ExcludedContent {
 		if bytes.Contains(content, []byte(excludedString)) {
-			t.Error(config.Url + ": Incorrect response. Got:\n" + string(content))
+			t.Errorf(config.Url + ": Incorrect response. Got:\n" + string(content))
 		}
 	}
 	resp.Body.Close()
@@ -141,7 +160,7 @@ type PostBody struct {
 }
 
 // HttpPostRequest sends a post request
-func HttpPostRequest(t *testing.T, config HttpTestConfig) {
+func HttpPostRequest(t MockT, config HttpTestConfig) {
 	file, err := os.Open(config.UploadFileName)
 	IsNil(t, err)
 	defer file.Close()
@@ -170,12 +189,12 @@ func HttpPostRequest(t *testing.T, config HttpTestConfig) {
 
 	for _, requiredString := range config.RequiredContent {
 		if !bytes.Contains(content, []byte(requiredString)) {
-			t.Error(config.Url + ": Incorrect response. Got:\n" + string(content))
+			t.Errorf(config.Url + ": Incorrect response. Got:\n" + string(content))
 		}
 	}
 	for _, excludedString := range config.ExcludedContent {
 		if bytes.Contains(content, []byte(excludedString)) {
-			t.Error(config.Url + ": Incorrect response. Got:\n" + string(content))
+			t.Errorf(config.Url + ": Incorrect response. Got:\n" + string(content))
 		}
 	}
 }

@@ -4,15 +4,19 @@ package testconfiguration
 
 import (
 	"os"
-	"testing"
+)
+
+const (
+	dataDir    = "test"
+	configFile = dataDir + "/config.json"
 )
 
 // Create creates a configuration for unit testing
 func Create(initFiles bool) {
 	os.Setenv("GOKAPI_CONFIG_DIR", "test")
 	os.Setenv("GOKAPI_DATA_DIR", "test")
-	os.Mkdir("test", 0777)
-	os.WriteFile("test/config.json", configTestFile, 0777)
+	os.Mkdir(dataDir, 0777)
+	os.WriteFile(configFile, configTestFile, 0777)
 	if initFiles {
 		os.Mkdir("test/data", 0777)
 		os.WriteFile("test/data/a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd0", []byte("123"), 0777)
@@ -23,21 +27,26 @@ func Create(initFiles bool) {
 	}
 }
 
+// WriteUpgradeConfigFile writes a Gokapi v1.1.0 config file
+func WriteUpgradeConfigFile() {
+	os.Mkdir(dataDir, 0777)
+	os.WriteFile(configFile, configUpgradeTestFile, 0777)
+}
+
 // Delete deletes the configuration for unit testing
 func Delete() {
-	os.RemoveAll("test")
+	os.RemoveAll(dataDir)
 }
 
 // StartMockInputStdin simulates a user input on stdin. Call StopMockInputStdin afterwards!
-func StartMockInputStdin(t *testing.T, input string) *os.File {
+func StartMockInputStdin(input string) *os.File {
 	r, w, err := os.Pipe()
 	if err != nil {
-		t.Fatal(err)
+		panic(err)
 	}
-
 	_, err = w.Write([]byte(input))
 	if err != nil {
-		t.Error(err)
+		panic(err)
 	}
 	w.Close()
 
@@ -189,9 +198,65 @@ var configTestFile = []byte(`{
          "ExpireAt":2147483646
       }
    },
-   "ConfigVersion":5,
+   "ApiKeys":{
+      "validkey":{
+         "Id":"validkey",
+         "FriendlyName":"Test Key",
+         "LastUsed":1619367972
+      }
+   },
+   "ConfigVersion":6,
    "SaltAdmin":"LW6fW4Pjv8GtdWVLSZD66gYEev6NAaXxOVBw7C",
    "SaltFiles":"lL5wMTtnVCn5TPbpRaSe4vAQodWW0hgk00WCZE",
    "LengthId":20,
    "DataDir":"test/data"
+}`)
+
+var configUpgradeTestFile = []byte(`{
+   "Port":"127.0.0.1:53842",
+   "AdminName":"admin",
+   "AdminPassword":"7450c2403ab85f0e8d5436818b66b99fdd287ac6",
+   "ServerUrl":"https://gokapi.url/",
+   "DefaultDownloads":1,
+   "DefaultExpiry":14,
+   "DefaultPassword":"123",
+   "RedirectUrl":"https://github.com/Forceu/Gokapi/",
+   "Sessions":{
+      "y0t-OQGF5UPFHyFOLab38SNjrc_a4xdIHTsZclkLpxuSwwTzS_qEETsinkgVIdWNMnQjhcaZtgCoJdpu":{
+         "RenewAt":1619774155,
+         "ValidUntil":1622362555
+      }
+   },
+   "Files":{
+      "MgXJLe4XLfpXcL12ec4i":{
+         "Id":"MgXJLe4XLfpXcL12ec4i",
+         "Name":"gokapi-linux_amd64",
+         "Size":"10.2 MB",
+         "SHA256":"b08f5989e1c6d57b45fffe39a8edc5da715799b7",
+         "ExpireAt":1620980170,
+         "ExpireAtString":"2021-05-14 10:16",
+         "DownloadsRemaining":1,
+         "PasswordHash":"e143a1801faba4c5c6fdc2e823127c988940f72e"
+      },
+      "doLN1pgbb945DfhGottx":{
+         "Id":"doLN1pgbb945DfhGottx",
+         "Name":"config.json",
+         "Size":"945 B",
+         "SHA256":"d2d6fd5fbf4a4bb1b1ae2f19130dd75b5adc0a0b",
+         "ExpireAt":1620980181,
+         "ExpireAtString":"2021-05-14 10:16",
+         "DownloadsRemaining":1,
+         "PasswordHash":"e143a1801faba4c5c6fdc2e823127c988940f72e"
+      },
+      "q06tcBco9gdJTf_pZ8xf":{
+         "Id":"q06tcBco9gdJTf_pZ8xf",
+         "Name":"gokapi-linux_amd64",
+         "Size":"10.2 MB",
+         "SHA256":"b08f5989e1c6d57b45fffe39a8edc5da715799b7",
+         "ExpireAt":1620980160,
+         "ExpireAtString":"2021-05-14 10:16",
+         "DownloadsRemaining":1,
+         "PasswordHash":""
+      }
+   }
 }`)

@@ -1,7 +1,7 @@
 package helper
 
 import (
-	"Gokapi/pkg/test"
+	"Gokapi/internal/test"
 	"testing"
 )
 

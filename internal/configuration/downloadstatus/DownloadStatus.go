@@ -3,12 +3,12 @@ package downloadstatus
 import (
 	"Gokapi/internal/configuration"
 	"Gokapi/internal/helper"
-	"Gokapi/internal/storage/filestructure"
+	"Gokapi/internal/models"
 	"time"
 )
 
 // SetDownload creates a new DownloadStatus struct and returns its Id
-func SetDownload(file filestructure.File) string {
+func SetDownload(file models.File) string {
 	status := newDownloadStatus(file)
 	configuration.ServerSettings.DownloadStatus[status.Id] = status
 	return status.Id
@@ -30,8 +30,8 @@ func Clean() {
 }
 
 // newDownloadStatus initialises the a new DownloadStatus item
-func newDownloadStatus(file filestructure.File) filestructure.DownloadStatus {
-	s := filestructure.DownloadStatus{
+func newDownloadStatus(file models.File) models.DownloadStatus {
+	s := models.DownloadStatus{
 		Id:       helper.GenerateRandomString(30),
 		FileId:   file.Id,
 		ExpireAt: time.Now().Add(24 * time.Hour).Unix(),
@@ -40,7 +40,7 @@ func newDownloadStatus(file filestructure.File) filestructure.DownloadStatus {
 }
 
 // IsCurrentlyDownloading returns true if file is currently being downloaded
-func IsCurrentlyDownloading(file filestructure.File) bool {
+func IsCurrentlyDownloading(file models.File) bool {
 	for _, status := range configuration.ServerSettings.DownloadStatus {
 		if status.FileId == file.Id {
 			if status.ExpireAt > time.Now().Unix() {

@@ -1,7 +1,7 @@
-package filestructure
+package models
 
 import (
-	"Gokapi/pkg/test"
+	"Gokapi/internal/test"
 	"testing"
 )
 

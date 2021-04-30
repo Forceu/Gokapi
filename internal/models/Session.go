@@ -1,4 +1,4 @@
-package sessionstructure
+package models
 
 // Session contains cookie parameter
 type Session struct {

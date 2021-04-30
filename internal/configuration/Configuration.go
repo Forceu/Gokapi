@@ -7,14 +7,12 @@ Loading and saving of the persistent configuration
 import (
 	"Gokapi/internal/environment"
 	"Gokapi/internal/helper"
-	"Gokapi/internal/storage/filestructure"
-	"Gokapi/internal/webserver/sessionstructure"
+	"Gokapi/internal/models"
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"golang.org/x/crypto/ssh/terminal"
-	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -35,30 +33,31 @@ var Environment environment.Environment
 var ServerSettings Configuration
 
 // Version of the configuration structure. Used for upgrading
-const currentConfigVersion = 5
+const currentConfigVersion = 6
 
-// For locking the Files variable
-var mutex sync.Mutex
+// For locking this object to prevent race conditions
+var mutexSessions sync.Mutex
 
 // Configuration is a struct that contains the global configuration
 type Configuration struct {
-	Port             string                                  `json:"Port"`
-	AdminName        string                                  `json:"AdminName"`
-	AdminPassword    string                                  `json:"AdminPassword"`
-	ServerUrl        string                                  `json:"ServerUrl"`
-	DefaultDownloads int                                     `json:"DefaultDownloads"`
-	DefaultExpiry    int                                     `json:"DefaultExpiry"`
-	DefaultPassword  string                                  `json:"DefaultPassword"`
-	RedirectUrl      string                                  `json:"RedirectUrl"`
-	Sessions         map[string]sessionstructure.Session     `json:"Sessions"`
-	Files            map[string]filestructure.File           `json:"Files"`
-	Hotlinks         map[string]filestructure.Hotlink        `json:"Hotlinks"`
-	DownloadStatus   map[string]filestructure.DownloadStatus `json:"DownloadStatus"`
-	ConfigVersion    int                                     `json:"ConfigVersion"`
-	SaltAdmin        string                                  `json:"SaltAdmin"`
-	SaltFiles        string                                  `json:"SaltFiles"`
-	LengthId         int                                     `json:"LengthId"`
-	DataDir          string                                  `json:"DataDir"`
+	Port             string                           `json:"Port"`
+	AdminName        string                           `json:"AdminName"`
+	AdminPassword    string                           `json:"AdminPassword"`
+	ServerUrl        string                           `json:"ServerUrl"`
+	DefaultDownloads int                              `json:"DefaultDownloads"`
+	DefaultExpiry    int                              `json:"DefaultExpiry"`
+	DefaultPassword  string                           `json:"DefaultPassword"`
+	RedirectUrl      string                           `json:"RedirectUrl"`
+	Sessions         map[string]models.Session        `json:"Sessions"`
+	Files            map[string]models.File           `json:"Files"`
+	Hotlinks         map[string]models.Hotlink        `json:"Hotlinks"`
+	DownloadStatus   map[string]models.DownloadStatus `json:"DownloadStatus"`
+	ApiKeys          map[string]models.ApiKey         `json:"ApiKeys"`
+	ConfigVersion    int                              `json:"ConfigVersion"`
+	SaltAdmin        string                           `json:"SaltAdmin"`
+	SaltFiles        string                           `json:"SaltFiles"`
+	LengthId         int                              `json:"LengthId"`
+	DataDir          string                           `json:"DataDir"`
 }
 
 // Load loads the configuration or creates the folder structure and a default configuration
@@ -69,29 +68,25 @@ func Load() {
 		generateDefaultConfig()
 	}
 	file, err := os.Open(Environment.ConfigPath)
-	if err != nil {
-		log.Fatal(err)
-	}
+	helper.Check(err)
 	defer file.Close()
 	decoder := json.NewDecoder(file)
 	ServerSettings = Configuration{}
 	err = decoder.Decode(&ServerSettings)
-	if err != nil {
-		log.Fatal(err)
-	}
+	helper.Check(err)
 	updateConfig()
 	helper.CreateDir(ServerSettings.DataDir)
 }
 
-// Lock locks configuration to prevent race conditions (blocking)
-func Lock() {
-	mutex.Lock()
+// LockSessions locks sessions to prevent race conditions (blocking)
+func LockSessions() {
+	mutexSessions.Lock()
 }
 
-// UnlockAndSave unlocks and saves the configuration
-func UnlockAndSave() {
+// UnlockSessionsAndSave unlocks sessions and saves the configuration
+func UnlockSessionsAndSave() {
 	Save()
-	mutex.Unlock()
+	mutexSessions.Unlock()
 }
 
 // Upgrades the ServerSettings if saved with a previous version
@@ -105,17 +100,20 @@ func updateConfig() {
 	}
 	// < v1.1.3
 	if ServerSettings.ConfigVersion < 4 {
-		ServerSettings.Hotlinks = make(map[string]filestructure.Hotlink)
+		ServerSettings.Hotlinks = make(map[string]models.Hotlink)
 	}
-
 	// < v1.1.4
 	if ServerSettings.ConfigVersion < 5 {
 		ServerSettings.LengthId = 15
-		ServerSettings.DownloadStatus = make(map[string]filestructure.DownloadStatus)
+		ServerSettings.DownloadStatus = make(map[string]models.DownloadStatus)
 		for _, file := range ServerSettings.Files {
 			file.ContentType = "application/octet-stream"
 			ServerSettings.Files[file.Id] = file
 		}
+	}
+	// < v1.2.0
+	if ServerSettings.ConfigVersion < 6 {
+		ServerSettings.ApiKeys = make(map[string]models.ApiKey)
 	}
 
 	if ServerSettings.ConfigVersion < currentConfigVersion {
@@ -158,9 +156,11 @@ func generateDefaultConfig() {
 		DefaultDownloads: 1,
 		DefaultExpiry:    14,
 		RedirectUrl:      redirect,
-		Files:            make(map[string]filestructure.File),
-		Sessions:         make(map[string]sessionstructure.Session),
-		Hotlinks:         make(map[string]filestructure.Hotlink),
+		Files:            make(map[string]models.File),
+		Sessions:         make(map[string]models.Session),
+		Hotlinks:         make(map[string]models.Hotlink),
+		ApiKeys:          make(map[string]models.ApiKey),
+		DownloadStatus:   make(map[string]models.DownloadStatus),
 		ConfigVersion:    currentConfigVersion,
 		SaltAdmin:        saltAdmin,
 		SaltFiles:        saltFiles,

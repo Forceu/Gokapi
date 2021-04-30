@@ -2,19 +2,19 @@ package downloadstatus
 
 import (
 	"Gokapi/internal/configuration"
-	"Gokapi/internal/storage/filestructure"
-	"Gokapi/pkg/test"
+	"Gokapi/internal/models"
+	"Gokapi/internal/test"
 	"os"
 	"testing"
 	"time"
 )
 
-var testFile filestructure.File
+var testFile models.File
 var statusId string
 
 func TestMain(m *testing.M) {
-	configuration.ServerSettings.DownloadStatus = make(map[string]filestructure.DownloadStatus)
-	testFile = filestructure.File{
+	configuration.ServerSettings.DownloadStatus = make(map[string]models.DownloadStatus)
+	testFile = models.File{
 		Id:                 "test",
 		Name:               "testName",
 		Size:               "3 B",
@@ -28,7 +28,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestNewDownloadStatus(t *testing.T) {
-	status := newDownloadStatus(filestructure.File{Id: "testId"})
+	status := newDownloadStatus(models.File{Id: "testId"})
 	test.IsNotEmpty(t, status.Id)
 	test.IsEqualString(t, status.FileId, "testId")
 	test.IsEqualBool(t, status.ExpireAt > time.Now().Unix(), true)
@@ -54,7 +54,7 @@ func TestSetComplete(t *testing.T) {
 func TestIsCurrentlyDownloading(t *testing.T) {
 	statusId = SetDownload(testFile)
 	test.IsEqualBool(t, IsCurrentlyDownloading(testFile), true)
-	test.IsEqualBool(t, IsCurrentlyDownloading(filestructure.File{Id: "notDownloading"}), false)
+	test.IsEqualBool(t, IsCurrentlyDownloading(models.File{Id: "notDownloading"}), false)
 }
 
 func TestClean(t *testing.T) {

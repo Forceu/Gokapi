@@ -7,8 +7,9 @@ Handling of webserver and requests / uploads
 import (
 	"Gokapi/internal/configuration"
 	"Gokapi/internal/helper"
+	"Gokapi/internal/models"
 	"Gokapi/internal/storage"
-	"Gokapi/internal/storage/filestructure"
+	"Gokapi/internal/webserver/sessionmanager"
 	"embed"
 	"fmt"
 	"html/template"
@@ -101,7 +102,7 @@ func redirect(w http.ResponseWriter, url string) {
 
 // Handling of /logout
 func doLogout(w http.ResponseWriter, r *http.Request) {
-	logoutSession(w, r)
+	sessionmanager.LogoutSession(w, r)
 	redirect(w, "login")
 }
 
@@ -134,7 +135,7 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 	failedLogin := false
 	if pw != "" && user != "" {
 		if strings.ToLower(user) == strings.ToLower(configuration.ServerSettings.AdminName) && configuration.HashPassword(pw, false) == configuration.ServerSettings.AdminPassword {
-			createSession(w, false)
+			sessionmanager.CreateSession(w, false)
 			redirect(w, "admin")
 			return
 		}
@@ -261,7 +262,7 @@ type DownloadView struct {
 
 // UploadView contains parameters for the admin menu template
 type UploadView struct {
-	Items            []filestructure.File
+	Items            []models.File
 	Url              string
 	HotlinkUrl       string
 	TimeNow          int64
@@ -276,7 +277,7 @@ type UploadView struct {
 // Converts the globalConfig variable to an UploadView struct to pass the infos to
 // the admin template
 func (u *UploadView) convertGlobalConfig() *UploadView {
-	var result []filestructure.File
+	var result []models.File
 	for _, element := range configuration.ServerSettings.Files {
 		result = append(result, element)
 	}
@@ -323,7 +324,7 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 	configuration.ServerSettings.DefaultPassword = password
 	file, header, err := r.FormFile("file")
 	responseError(w, err)
-	result, err := storage.NewFile(&file, header, time.Now().Add(time.Duration(expiryDaysInt)*time.Hour*24).Unix(), allowedDownloadsInt, password)
+	result, err := storage.NewFile(file, header, time.Now().Add(time.Duration(expiryDaysInt)*time.Hour*24).Unix(), allowedDownloadsInt, password)
 	responseError(w, err)
 	defer file.Close()
 	_, err = fmt.Fprint(w, result.ToJsonResult(configuration.ServerSettings.ServerUrl))
@@ -357,7 +358,7 @@ func downloadFile(w http.ResponseWriter, r *http.Request) {
 
 // Checks if the user is logged in as an admin
 func isAuthenticated(w http.ResponseWriter, r *http.Request, isUpload bool) bool {
-	if isValidSession(w, r) {
+	if sessionmanager.IsValidSession(w, r) {
 		return true
 	}
 	if isUpload {
@@ -370,7 +371,7 @@ func isAuthenticated(w http.ResponseWriter, r *http.Request, isUpload bool) bool
 }
 
 // Write a cookie if the user has entered a correct password for a password-protected file
-func writeFilePwCookie(w http.ResponseWriter, file filestructure.File) {
+func writeFilePwCookie(w http.ResponseWriter, file models.File) {
 	http.SetCookie(w, &http.Cookie{
 		Name:    "p" + file.Id,
 		Value:   file.PasswordHash,
@@ -380,7 +381,7 @@ func writeFilePwCookie(w http.ResponseWriter, file filestructure.File) {
 
 // Checks if a cookie contains the correct password hash for a password-protected file
 // If incorrect, a 3 second delay is introduced unless the cookie was empty.
-func isValidPwCookie(r *http.Request, file filestructure.File) bool {
+func isValidPwCookie(r *http.Request, file models.File) bool {
 	cookie, err := r.Cookie("p" + file.Id)
 	if err == nil {
 		if cookie.Value == file.PasswordHash {

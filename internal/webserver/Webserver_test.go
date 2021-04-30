@@ -3,7 +3,7 @@ package webserver
 import (
 	"Gokapi/internal/configuration"
 	testconfiguration "Gokapi/internal/test"
-	"Gokapi/pkg/test"
+	testconfiguration2 "Gokapi/internal/test/testconfiguration"
 	"html/template"
 	"io/fs"
 	"os"
@@ -13,12 +13,12 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	testconfiguration.Create(true)
+	testconfiguration2.Create(true)
 	configuration.Load()
 	go Start()
 	time.Sleep(1 * time.Second)
 	exitVal := m.Run()
-	testconfiguration.Delete()
+	testconfiguration2.Delete()
 	os.Exit(exitVal)
 }
 
@@ -38,7 +38,7 @@ func TestEmbedFs(t *testing.T) {
 
 func TestIndexRedirect(t *testing.T) {
 	t.Parallel()
-	test.HttpPageResult(t, test.HttpTestConfig{
+	testconfiguration.HttpPageResult(t, testconfiguration.HttpTestConfig{
 		Url:             "http://localhost:53843/",
 		RequiredContent: []string{"<html><head><meta http-equiv=\"Refresh\" content=\"0; URL=./index\"></head></html>"},
 		IsHtml:          true,
@@ -46,7 +46,7 @@ func TestIndexRedirect(t *testing.T) {
 }
 func TestIndexFile(t *testing.T) {
 	t.Parallel()
-	test.HttpPageResult(t, test.HttpTestConfig{
+	testconfiguration.HttpPageResult(t, testconfiguration.HttpTestConfig{
 		Url:             "http://localhost:53843/index",
 		RequiredContent: []string{configuration.ServerSettings.RedirectUrl},
 		IsHtml:          true,
@@ -54,14 +54,14 @@ func TestIndexFile(t *testing.T) {
 }
 func TestStaticDirs(t *testing.T) {
 	t.Parallel()
-	test.HttpPageResult(t, test.HttpTestConfig{
+	testconfiguration.HttpPageResult(t, testconfiguration.HttpTestConfig{
 		Url:             "http://localhost:53843/css/cover.css",
 		RequiredContent: []string{".btn-secondary:hover"},
 	})
 }
 func TestLogin(t *testing.T) {
 	t.Parallel()
-	test.HttpPageResult(t, test.HttpTestConfig{
+	testconfiguration.HttpPageResult(t, testconfiguration.HttpTestConfig{
 		Url:             "http://localhost:53843/login",
 		RequiredContent: []string{"id=\"uname_hidden\""},
 		IsHtml:          true,
@@ -69,7 +69,7 @@ func TestLogin(t *testing.T) {
 }
 func TestAdminNoAuth(t *testing.T) {
 	t.Parallel()
-	test.HttpPageResult(t, test.HttpTestConfig{
+	testconfiguration.HttpPageResult(t, testconfiguration.HttpTestConfig{
 		Url:             "http://localhost:53843/admin",
 		RequiredContent: []string{"URL=./login\""},
 		IsHtml:          true,
@@ -77,11 +77,11 @@ func TestAdminNoAuth(t *testing.T) {
 }
 func TestAdminAuth(t *testing.T) {
 	t.Parallel()
-	test.HttpPageResult(t, test.HttpTestConfig{
+	testconfiguration.HttpPageResult(t, testconfiguration.HttpTestConfig{
 		Url:             "http://localhost:53843/admin",
 		RequiredContent: []string{"Downloads remaining"},
 		IsHtml:          true,
-		Cookies: []test.Cookie{{
+		Cookies: []testconfiguration.Cookie{{
 			Name:  "session_token",
 			Value: "validsession",
 		}},
@@ -89,11 +89,11 @@ func TestAdminAuth(t *testing.T) {
 }
 func TestAdminExpiredAuth(t *testing.T) {
 	t.Parallel()
-	test.HttpPageResult(t, test.HttpTestConfig{
+	testconfiguration.HttpPageResult(t, testconfiguration.HttpTestConfig{
 		Url:             "http://localhost:53843/admin",
 		RequiredContent: []string{"URL=./login\""},
 		IsHtml:          true,
-		Cookies: []test.Cookie{{
+		Cookies: []testconfiguration.Cookie{{
 			Name:  "session_token",
 			Value: "expiredsession",
 		}},
@@ -102,11 +102,11 @@ func TestAdminExpiredAuth(t *testing.T) {
 
 func TestAdminRenewalAuth(t *testing.T) {
 	t.Parallel()
-	cookies := test.HttpPageResult(t, test.HttpTestConfig{
+	cookies := testconfiguration.HttpPageResult(t, testconfiguration.HttpTestConfig{
 		Url:             "http://localhost:53843/admin",
 		RequiredContent: []string{"Downloads remaining"},
 		IsHtml:          true,
-		Cookies: []test.Cookie{{
+		Cookies: []testconfiguration.Cookie{{
 			Name:  "session_token",
 			Value: "needsRenewal",
 		}},
@@ -121,11 +121,11 @@ func TestAdminRenewalAuth(t *testing.T) {
 	if sessionCookie == "needsRenewal" {
 		t.Error("Session not renewed")
 	}
-	test.HttpPageResult(t, test.HttpTestConfig{
+	testconfiguration.HttpPageResult(t, testconfiguration.HttpTestConfig{
 		Url:             "http://localhost:53843/admin",
 		RequiredContent: []string{"Downloads remaining"},
 		IsHtml:          true,
-		Cookies: []test.Cookie{{
+		Cookies: []testconfiguration.Cookie{{
 			Name:  "session_token",
 			Value: sessionCookie,
 		}},
@@ -134,11 +134,11 @@ func TestAdminRenewalAuth(t *testing.T) {
 
 func TestAdminInvalidAuth(t *testing.T) {
 	t.Parallel()
-	test.HttpPageResult(t, test.HttpTestConfig{
+	testconfiguration.HttpPageResult(t, testconfiguration.HttpTestConfig{
 		Url:             "http://localhost:53843/admin",
 		RequiredContent: []string{"URL=./login\""},
 		IsHtml:          true,
-		Cookies: []test.Cookie{{
+		Cookies: []testconfiguration.Cookie{{
 			Name:  "session_token",
 			Value: "invalid",
 		}},
@@ -147,7 +147,7 @@ func TestAdminInvalidAuth(t *testing.T) {
 
 func TestInvalidLink(t *testing.T) {
 	t.Parallel()
-	test.HttpPageResult(t, test.HttpTestConfig{
+	testconfiguration.HttpPageResult(t, testconfiguration.HttpTestConfig{
 		Url:             "http://localhost:53843/d?id=123",
 		RequiredContent: []string{"URL=./error\""},
 		IsHtml:          true,
@@ -155,7 +155,7 @@ func TestInvalidLink(t *testing.T) {
 }
 func TestError(t *testing.T) {
 	t.Parallel()
-	test.HttpPageResult(t, test.HttpTestConfig{
+	testconfiguration.HttpPageResult(t, testconfiguration.HttpTestConfig{
 		Url:             "http://localhost:53843/error",
 		RequiredContent: []string{"this file cannot be found"},
 		IsHtml:          true,
@@ -163,7 +163,7 @@ func TestError(t *testing.T) {
 }
 func TestForgotPw(t *testing.T) {
 	t.Parallel()
-	test.HttpPageResult(t, test.HttpTestConfig{
+	testconfiguration.HttpPageResult(t, testconfiguration.HttpTestConfig{
 		Url:             "http://localhost:53843/forgotpw",
 		RequiredContent: []string{"--reset-pw"},
 		IsHtml:          true,
@@ -171,63 +171,63 @@ func TestForgotPw(t *testing.T) {
 }
 func TestLoginCorrect(t *testing.T) {
 	t.Parallel()
-	test.HttpPageResult(t, test.HttpTestConfig{
+	testconfiguration.HttpPageResult(t, testconfiguration.HttpTestConfig{
 		Url:             "http://localhost:53843/login",
 		RequiredContent: []string{"URL=./admin\""},
 		IsHtml:          true,
 		Method:          "POST",
-		PostValues:      []test.PostBody{{"username", "test"}, {"password", "testtest"}},
+		PostValues:      []testconfiguration.PostBody{{"username", "test"}, {"password", "testtest"}},
 	})
 }
 
 func TestLoginIncorrectPassword(t *testing.T) {
 	t.Parallel()
-	test.HttpPageResult(t, test.HttpTestConfig{
+	testconfiguration.HttpPageResult(t, testconfiguration.HttpTestConfig{
 		Url:             "http://localhost:53843/login",
 		RequiredContent: []string{"Incorrect username or password"},
 		IsHtml:          true,
 		Method:          "POST",
-		PostValues:      []test.PostBody{{"username", "test"}, {"password", "incorrect"}},
+		PostValues:      []testconfiguration.PostBody{{"username", "test"}, {"password", "incorrect"}},
 	})
 }
 func TestLoginIncorrectUsername(t *testing.T) {
 	t.Parallel()
-	test.HttpPageResult(t, test.HttpTestConfig{
+	testconfiguration.HttpPageResult(t, testconfiguration.HttpTestConfig{
 		Url:             "http://localhost:53843/login",
 		RequiredContent: []string{"Incorrect username or password"},
 		IsHtml:          true,
 		Method:          "POST",
-		PostValues:      []test.PostBody{{"username", "incorrect"}, {"password", "incorrect"}},
+		PostValues:      []testconfiguration.PostBody{{"username", "incorrect"}, {"password", "incorrect"}},
 	})
 }
 
 func TestLogout(t *testing.T) {
 	t.Parallel()
-	test.HttpPageResult(t, test.HttpTestConfig{
+	testconfiguration.HttpPageResult(t, testconfiguration.HttpTestConfig{
 		Url:             "http://localhost:53843/admin",
 		RequiredContent: []string{"Downloads remaining"},
 		IsHtml:          true,
-		Cookies: []test.Cookie{{
+		Cookies: []testconfiguration.Cookie{{
 			Name:  "session_token",
 			Value: "logoutsession",
 		}},
 	})
 	// Logout
-	test.HttpPageResult(t, test.HttpTestConfig{
+	testconfiguration.HttpPageResult(t, testconfiguration.HttpTestConfig{
 		Url:             "http://localhost:53843/logout",
 		RequiredContent: []string{"URL=./login\""},
 		IsHtml:          true,
-		Cookies: []test.Cookie{{
+		Cookies: []testconfiguration.Cookie{{
 			Name:  "session_token",
 			Value: "logoutsession",
 		}},
 	})
 	// Admin after logout
-	test.HttpPageResult(t, test.HttpTestConfig{
+	testconfiguration.HttpPageResult(t, testconfiguration.HttpTestConfig{
 		Url:             "http://localhost:53843/admin",
 		RequiredContent: []string{"URL=./login\""},
 		IsHtml:          true,
-		Cookies: []test.Cookie{{
+		Cookies: []testconfiguration.Cookie{{
 			Name:  "session_token",
 			Value: "logoutsession",
 		}},
@@ -236,12 +236,12 @@ func TestLogout(t *testing.T) {
 
 func TestDownloadHotlink(t *testing.T) {
 	t.Parallel()
-	test.HttpPageResult(t, test.HttpTestConfig{
+	testconfiguration.HttpPageResult(t, testconfiguration.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/hotlink/PhSs6mFtf8O5YGlLMfNw9rYXx9XRNkzCnJZpQBi7inunv3Z4A.jpg",
 		RequiredContent: []string{"123"},
 	})
 	// Download expired hotlink
-	test.HttpPageResult(t, test.HttpTestConfig{
+	testconfiguration.HttpPageResult(t, testconfiguration.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/hotlink/PhSs6mFtf8O5YGlLMfNw9rYXx9XRNkzCnJZpQBi7inunv3Z4A.jpg",
 		RequiredContent: []string{"Created with GIMP"},
 	})
@@ -250,24 +250,24 @@ func TestDownloadHotlink(t *testing.T) {
 func TestDownloadNoPassword(t *testing.T) {
 	t.Parallel()
 	// Show download page
-	test.HttpPageResult(t, test.HttpTestConfig{
+	testconfiguration.HttpPageResult(t, testconfiguration.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/d?id=Wzol7LyY2QVczXynJtVo",
 		IsHtml:          true,
 		RequiredContent: []string{"smallfile2"},
 	})
 	// Download
-	test.HttpPageResult(t, test.HttpTestConfig{
+	testconfiguration.HttpPageResult(t, testconfiguration.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/downloadFile?id=Wzol7LyY2QVczXynJtVo",
 		RequiredContent: []string{"789"},
 	})
 	// Show download page expired file
-	test.HttpPageResult(t, test.HttpTestConfig{
+	testconfiguration.HttpPageResult(t, testconfiguration.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/d?id=Wzol7LyY2QVczXynJtVo",
 		IsHtml:          true,
 		RequiredContent: []string{"URL=./error\""},
 	})
 	// Download expired file
-	test.HttpPageResult(t, test.HttpTestConfig{
+	testconfiguration.HttpPageResult(t, testconfiguration.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/downloadFile?id=Wzol7LyY2QVczXynJtVo",
 		IsHtml:          true,
 		RequiredContent: []string{"URL=./error\""},
@@ -276,7 +276,7 @@ func TestDownloadNoPassword(t *testing.T) {
 
 func TestDownloadPagePassword(t *testing.T) {
 	t.Parallel()
-	test.HttpPageResult(t, test.HttpTestConfig{
+	testconfiguration.HttpPageResult(t, testconfiguration.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/d?id=jpLXGJKigM4hjtA6T6sN",
 		IsHtml:          true,
 		RequiredContent: []string{"Password required"},
@@ -284,44 +284,44 @@ func TestDownloadPagePassword(t *testing.T) {
 }
 func TestDownloadPageIncorrectPassword(t *testing.T) {
 	t.Parallel()
-	test.HttpPageResult(t, test.HttpTestConfig{
+	testconfiguration.HttpPageResult(t, testconfiguration.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/d?id=jpLXGJKigM4hjtA6T6sN",
 		IsHtml:          true,
 		RequiredContent: []string{"Incorrect password!"},
 		Method:          "POST",
-		PostValues:      []test.PostBody{{"password", "incorrect"}},
+		PostValues:      []testconfiguration.PostBody{{"password", "incorrect"}},
 	})
 }
 
 func TestDownloadIncorrectPasswordCookie(t *testing.T) {
 	t.Parallel()
-	test.HttpPageResult(t, test.HttpTestConfig{
+	testconfiguration.HttpPageResult(t, testconfiguration.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/d?id=jpLXGJKigM4hjtA6T6sN",
 		IsHtml:          true,
 		RequiredContent: []string{"Password required"},
-		Cookies:         []test.Cookie{{"pjpLXGJKigM4hjtA6T6sN", "invalid"}},
+		Cookies:         []testconfiguration.Cookie{{"pjpLXGJKigM4hjtA6T6sN", "invalid"}},
 	})
 }
 
 func TestDownloadIncorrectPassword(t *testing.T) {
 	t.Parallel()
-	test.HttpPageResult(t, test.HttpTestConfig{
+	testconfiguration.HttpPageResult(t, testconfiguration.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/downloadFile?id=jpLXGJKigM4hjtA6T6sN",
 		IsHtml:          true,
 		RequiredContent: []string{"URL=./d?id=jpLXGJKigM4hjtA6T6sN"},
-		Cookies:         []test.Cookie{{"pjpLXGJKigM4hjtA6T6sN", "invalid"}},
+		Cookies:         []testconfiguration.Cookie{{"pjpLXGJKigM4hjtA6T6sN", "invalid"}},
 	})
 }
 
 func TestDownloadCorrectPassword(t *testing.T) {
 	t.Parallel()
 	// Submit download page correct password
-	cookies := test.HttpPageResult(t, test.HttpTestConfig{
+	cookies := testconfiguration.HttpPageResult(t, testconfiguration.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/d?id=jpLXGJKigM4hjtA6T6sN2",
 		IsHtml:          true,
 		RequiredContent: []string{"URL=./d?id=jpLXGJKigM4hjtA6T6sN2"},
 		Method:          "POST",
-		PostValues:      []test.PostBody{{"password", "123"}},
+		PostValues:      []testconfiguration.PostBody{{"password", "123"}},
 	})
 	pwCookie := ""
 	for _, cookie := range cookies {
@@ -334,23 +334,23 @@ func TestDownloadCorrectPassword(t *testing.T) {
 		t.Error("Cookie not set")
 	}
 	// Show download page correct password
-	test.HttpPageResult(t, test.HttpTestConfig{
+	testconfiguration.HttpPageResult(t, testconfiguration.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/d?id=jpLXGJKigM4hjtA6T6sN2",
 		IsHtml:          true,
 		RequiredContent: []string{"smallfile"},
-		Cookies:         []test.Cookie{{"pjpLXGJKigM4hjtA6T6sN2", pwCookie}},
+		Cookies:         []testconfiguration.Cookie{{"pjpLXGJKigM4hjtA6T6sN2", pwCookie}},
 	})
 	// Download correct password
-	test.HttpPageResult(t, test.HttpTestConfig{
+	testconfiguration.HttpPageResult(t, testconfiguration.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/downloadFile?id=jpLXGJKigM4hjtA6T6sN2",
 		RequiredContent: []string{"456"},
-		Cookies:         []test.Cookie{{"pjpLXGJKigM4hjtA6T6sN2", pwCookie}},
+		Cookies:         []testconfiguration.Cookie{{"pjpLXGJKigM4hjtA6T6sN2", pwCookie}},
 	})
 }
 
 func TestDeleteFileNonAuth(t *testing.T) {
 	t.Parallel()
-	test.HttpPageResult(t, test.HttpTestConfig{
+	testconfiguration.HttpPageResult(t, testconfiguration.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/delete?id=e4TjE7CokWK0giiLNxDL",
 		IsHtml:          true,
 		RequiredContent: []string{"URL=./login"},
@@ -359,20 +359,20 @@ func TestDeleteFileNonAuth(t *testing.T) {
 
 func TestDeleteFileInvalidKey(t *testing.T) {
 	t.Parallel()
-	test.HttpPageResult(t, test.HttpTestConfig{
+	testconfiguration.HttpPageResult(t, testconfiguration.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/delete",
 		IsHtml:          true,
 		RequiredContent: []string{"URL=./admin"},
-		Cookies: []test.Cookie{{
+		Cookies: []testconfiguration.Cookie{{
 			Name:  "session_token",
 			Value: "validsession",
 		}},
 	})
-	test.HttpPageResult(t, test.HttpTestConfig{
+	testconfiguration.HttpPageResult(t, testconfiguration.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/delete?id=",
 		IsHtml:          true,
 		RequiredContent: []string{"URL=./admin"},
-		Cookies: []test.Cookie{{
+		Cookies: []testconfiguration.Cookie{{
 			Name:  "session_token",
 			Value: "validsession",
 		}},
@@ -381,11 +381,11 @@ func TestDeleteFileInvalidKey(t *testing.T) {
 
 func TestDeleteFile(t *testing.T) {
 	t.Parallel()
-	test.HttpPageResult(t, test.HttpTestConfig{
+	testconfiguration.HttpPageResult(t, testconfiguration.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/delete?id=e4TjE7CokWK0giiLNxDL",
 		IsHtml:          true,
 		RequiredContent: []string{"URL=./admin"},
-		Cookies: []test.Cookie{{
+		Cookies: []testconfiguration.Cookie{{
 			Name:  "session_token",
 			Value: "validsession",
 		}},
@@ -394,7 +394,7 @@ func TestDeleteFile(t *testing.T) {
 
 func TestPostUploadNoAuth(t *testing.T) {
 	t.Parallel()
-	test.HttpPostRequest(t, test.HttpTestConfig{
+	testconfiguration.HttpPostRequest(t, testconfiguration.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/upload",
 		UploadFileName:  "test/fileupload.jpg",
 		UploadFieldName: "file",
@@ -402,13 +402,13 @@ func TestPostUploadNoAuth(t *testing.T) {
 	})
 }
 func TestPostUpload(t *testing.T) {
-	test.HttpPostRequest(t, test.HttpTestConfig{
+	testconfiguration.HttpPostRequest(t, testconfiguration.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/upload",
 		UploadFileName:  "test/fileupload.jpg",
 		UploadFieldName: "file",
 		RequiredContent: []string{"{\"Result\":\"OK\"", "\"Name\":\"fileupload.jpg\"", "\"SHA256\":\"a9993e364706816aba3e25717850c26c9cd0d89d\"", "DownloadsRemaining\":3"},
 		ExcludedContent: []string{"\"Id\":\"\"", "HotlinkId\":\"\""},
-		Cookies: []test.Cookie{{
+		Cookies: []testconfiguration.Cookie{{
 			Name:  "session_token",
 			Value: "validsession",
 		}},

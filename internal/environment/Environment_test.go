@@ -1,7 +1,7 @@
 package environment
 
 import (
-	"Gokapi/pkg/test"
+	"Gokapi/internal/test"
 	"os"
 	"testing"
 )
@@ -25,4 +25,9 @@ func TestEnvLoad(t *testing.T) {
 	env = New()
 	test.IsEqualString(t, env.WebserverLocalhost, "")
 	os.Setenv("GOKAPI_LENGTH_ID", "15")
+	os.Setenv("GOKAPI_LOCALHOST", "invalid")
+	os.Setenv("GOKAPI_LENGTH_ID", "invalid")
+	env = New()
+	test.IsEqualString(t, env.WebserverLocalhost, "")
+	test.IsEqualInt(t, env.LengthId, -1)
 }

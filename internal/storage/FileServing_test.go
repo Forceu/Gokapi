@@ -3,9 +3,10 @@ package storage
 import (
 	"Gokapi/internal/configuration"
 	"Gokapi/internal/helper"
-	"Gokapi/internal/storage/filestructure"
+	"Gokapi/internal/models"
 	testconfiguration "Gokapi/internal/test"
-	"Gokapi/pkg/test"
+	testconfiguration2 "Gokapi/internal/test/testconfiguration"
+	"bytes"
 	"io/ioutil"
 	"mime/multipart"
 	"net/http/httptest"
@@ -15,10 +16,10 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	testconfiguration.Create(true)
+	testconfiguration2.Create(true)
 	configuration.Load()
 	exitVal := m.Run()
-	testconfiguration.Delete()
+	testconfiguration2.Delete()
 	os.Exit(exitVal)
 }
 
@@ -26,42 +27,42 @@ var idNewFile string
 
 func TestGetFile(t *testing.T) {
 	_, result := GetFile("invalid")
-	test.IsEqualBool(t, result, false)
+	testconfiguration.IsEqualBool(t, result, false)
 	file, result := GetFile("Wzol7LyY2QVczXynJtVo")
-	test.IsEqualBool(t, result, true)
-	test.IsEqualString(t, file.Id, "Wzol7LyY2QVczXynJtVo")
-	test.IsEqualString(t, file.Name, "smallfile2")
-	test.IsEqualString(t, file.Size, "8 B")
-	test.IsEqualInt(t, file.DownloadsRemaining, 1)
+	testconfiguration.IsEqualBool(t, result, true)
+	testconfiguration.IsEqualString(t, file.Id, "Wzol7LyY2QVczXynJtVo")
+	testconfiguration.IsEqualString(t, file.Name, "smallfile2")
+	testconfiguration.IsEqualString(t, file.Size, "8 B")
+	testconfiguration.IsEqualInt(t, file.DownloadsRemaining, 1)
 	_, result = GetFile("deletedfile1234")
-	test.IsEqualBool(t, result, false)
+	testconfiguration.IsEqualBool(t, result, false)
 
 }
 
 func TestGetFileByHotlink(t *testing.T) {
 	_, result := GetFileByHotlink("invalid")
-	test.IsEqualBool(t, result, false)
+	testconfiguration.IsEqualBool(t, result, false)
 	_, result = GetFileByHotlink("")
-	test.IsEqualBool(t, result, false)
+	testconfiguration.IsEqualBool(t, result, false)
 	file, result := GetFileByHotlink("PhSs6mFtf8O5YGlLMfNw9rYXx9XRNkzCnJZpQBi7inunv3Z4A.jpg")
-	test.IsEqualBool(t, result, true)
-	test.IsEqualString(t, file.Id, "n1tSTAGj8zan9KaT4u6p")
-	test.IsEqualString(t, file.Name, "picture.jpg")
-	test.IsEqualString(t, file.Size, "4 B")
-	test.IsEqualInt(t, file.DownloadsRemaining, 1)
+	testconfiguration.IsEqualBool(t, result, true)
+	testconfiguration.IsEqualString(t, file.Id, "n1tSTAGj8zan9KaT4u6p")
+	testconfiguration.IsEqualString(t, file.Name, "picture.jpg")
+	testconfiguration.IsEqualString(t, file.Size, "4 B")
+	testconfiguration.IsEqualInt(t, file.DownloadsRemaining, 1)
 }
 
 func TestAddHotlink(t *testing.T) {
-	file := filestructure.File{Name: "test.dat", Id: "testIdE"}
+	file := models.File{Name: "test.dat", Id: "testIdE"}
 	addHotlink(&file)
-	test.IsEqualString(t, file.HotlinkId, "")
-	file = filestructure.File{Name: "test.jpg", Id: "testId"}
+	testconfiguration.IsEqualString(t, file.HotlinkId, "")
+	file = models.File{Name: "test.jpg", Id: "testId"}
 	addHotlink(&file)
-	test.IsEqualInt(t, len(file.HotlinkId), 44)
+	testconfiguration.IsEqualInt(t, len(file.HotlinkId), 44)
 	lastCharacters := file.HotlinkId[len(file.HotlinkId)-4:]
-	test.IsEqualBool(t, lastCharacters == ".jpg", true)
-	test.IsEqualString(t, configuration.ServerSettings.Hotlinks[file.HotlinkId].FileId, "testId")
-	test.IsEqualString(t, configuration.ServerSettings.Hotlinks[file.HotlinkId].Id, file.HotlinkId)
+	testconfiguration.IsEqualBool(t, lastCharacters == ".jpg", true)
+	testconfiguration.IsEqualString(t, configuration.ServerSettings.Hotlinks[file.HotlinkId].FileId, "testId")
+	testconfiguration.IsEqualString(t, configuration.ServerSettings.Hotlinks[file.HotlinkId].Id, file.HotlinkId)
 }
 
 func TestNewFile(t *testing.T) {
@@ -75,79 +76,78 @@ func TestNewFile(t *testing.T) {
 		Header:   mimeHeader,
 		Size:     int64(len(content)),
 	}
-	file, err := processUpload(&content, &header, 2147483600, 1, "")
-	test.IsNil(t, err)
-	test.IsEqualString(t, file.Name, "test.dat")
-	test.IsEqualString(t, file.SHA256, "f1474c19eff0fc8998fa6e1b1f7bf31793b103a6")
-	test.IsEqualString(t, file.HotlinkId, "")
-	test.IsEqualString(t, file.PasswordHash, "")
-	test.IsEqualString(t, file.Size, "35 B")
-	test.IsEqualString(t, file.ExpireAtString, "2038-01-19 03:13")
-	test.IsEqualInt(t, file.DownloadsRemaining, 1)
-	test.IsEqualInt(t, len(file.Id), 20)
-	test.IsEqualInt(t, int(file.ExpireAt), 2147483600)
+	file, err := NewFile(bytes.NewReader(content), &header, 2147483600, 1, "")
+	testconfiguration.IsNil(t, err)
+	testconfiguration.IsEqualString(t, file.Name, "test.dat")
+	testconfiguration.IsEqualString(t, file.SHA256, "f1474c19eff0fc8998fa6e1b1f7bf31793b103a6")
+	testconfiguration.IsEqualString(t, file.HotlinkId, "")
+	testconfiguration.IsEqualString(t, file.PasswordHash, "")
+	testconfiguration.IsEqualString(t, file.Size, "35 B")
+	testconfiguration.IsEqualString(t, file.ExpireAtString, "2038-01-19 03:13")
+	testconfiguration.IsEqualInt(t, file.DownloadsRemaining, 1)
+	testconfiguration.IsEqualInt(t, len(file.Id), 20)
+	testconfiguration.IsEqualInt(t, int(file.ExpireAt), 2147483600)
 	idNewFile = file.Id
 }
 
 func TestServeFile(t *testing.T) {
 	file, result := GetFile(idNewFile)
-	test.IsEqualBool(t, result, true)
+	testconfiguration.IsEqualBool(t, result, true)
 	r := httptest.NewRequest("GET", "/upload", nil)
 	w := httptest.NewRecorder()
 	ServeFile(file, w, r, true)
 	_, result = GetFile(idNewFile)
-	test.IsEqualBool(t, result, false)
+	testconfiguration.IsEqualBool(t, result, false)
 
-	test.IsEqualString(t, w.Result().Header.Get("Content-Disposition"), "attachment; filename=\"test.dat\"")
-	test.IsEqualString(t, w.Result().Header.Get("Content-Length"), "35")
-	test.IsEqualString(t, w.Result().Header.Get("Content-Type"), "text")
+	testconfiguration.IsEqualString(t, w.Result().Header.Get("Content-Disposition"), "attachment; filename=\"test.dat\"")
+	testconfiguration.IsEqualString(t, w.Result().Header.Get("Content-Length"), "35")
+	testconfiguration.IsEqualString(t, w.Result().Header.Get("Content-Type"), "text")
 	content, err := ioutil.ReadAll(w.Result().Body)
-	test.IsNil(t, err)
-	test.IsEqualString(t, string(content), "This is a file for testing purposes")
-
+	testconfiguration.IsNil(t, err)
+	testconfiguration.IsEqualString(t, string(content), "This is a file for testing purposes")
 }
 
 func TestCleanUp(t *testing.T) {
-	test.IsEqualString(t, configuration.ServerSettings.Files["cleanuptest123456789"].Name, "cleanup")
-	test.IsEqualString(t, configuration.ServerSettings.Files["Wzol7LyY2QVczXynJtVo"].Name, "smallfile2")
-	test.IsEqualString(t, configuration.ServerSettings.Files["e4TjE7CokWK0giiLNxDL"].Name, "smallfile2")
-	test.IsEqualString(t, configuration.ServerSettings.Files["wefffewhtrhhtrhtrhtr"].Name, "smallfile3")
-	test.IsEqualString(t, configuration.ServerSettings.Files["n1tSTAGj8zan9KaT4u6p"].Name, "picture.jpg")
-	test.IsEqualString(t, configuration.ServerSettings.Files["deletedfile123456789"].Name, "DeletedFile")
-	test.IsEqualBool(t, helper.FileExists("test/data/2341354656543213246465465465432456898794"), true)
+	testconfiguration.IsEqualString(t, configuration.ServerSettings.Files["cleanuptest123456789"].Name, "cleanup")
+	testconfiguration.IsEqualString(t, configuration.ServerSettings.Files["Wzol7LyY2QVczXynJtVo"].Name, "smallfile2")
+	testconfiguration.IsEqualString(t, configuration.ServerSettings.Files["e4TjE7CokWK0giiLNxDL"].Name, "smallfile2")
+	testconfiguration.IsEqualString(t, configuration.ServerSettings.Files["wefffewhtrhhtrhtrhtr"].Name, "smallfile3")
+	testconfiguration.IsEqualString(t, configuration.ServerSettings.Files["n1tSTAGj8zan9KaT4u6p"].Name, "picture.jpg")
+	testconfiguration.IsEqualString(t, configuration.ServerSettings.Files["deletedfile123456789"].Name, "DeletedFile")
+	testconfiguration.IsEqualBool(t, helper.FileExists("test/data/2341354656543213246465465465432456898794"), true)
 
 	CleanUp(false)
-	test.IsEqualString(t, configuration.ServerSettings.Files["cleanuptest123456789"].Name, "cleanup")
-	test.IsEqualBool(t, helper.FileExists("test/data/2341354656543213246465465465432456898794"), true)
-	test.IsEqualString(t, configuration.ServerSettings.Files["deletedfile123456789"].Name, "")
-	test.IsEqualString(t, configuration.ServerSettings.Files["Wzol7LyY2QVczXynJtVo"].Name, "smallfile2")
-	test.IsEqualString(t, configuration.ServerSettings.Files["e4TjE7CokWK0giiLNxDL"].Name, "smallfile2")
-	test.IsEqualString(t, configuration.ServerSettings.Files["wefffewhtrhhtrhtrhtr"].Name, "smallfile3")
-	test.IsEqualString(t, configuration.ServerSettings.Files["n1tSTAGj8zan9KaT4u6p"].Name, "picture.jpg")
+	testconfiguration.IsEqualString(t, configuration.ServerSettings.Files["cleanuptest123456789"].Name, "cleanup")
+	testconfiguration.IsEqualBool(t, helper.FileExists("test/data/2341354656543213246465465465432456898794"), true)
+	testconfiguration.IsEqualString(t, configuration.ServerSettings.Files["deletedfile123456789"].Name, "")
+	testconfiguration.IsEqualString(t, configuration.ServerSettings.Files["Wzol7LyY2QVczXynJtVo"].Name, "smallfile2")
+	testconfiguration.IsEqualString(t, configuration.ServerSettings.Files["e4TjE7CokWK0giiLNxDL"].Name, "smallfile2")
+	testconfiguration.IsEqualString(t, configuration.ServerSettings.Files["wefffewhtrhhtrhtrhtr"].Name, "smallfile3")
+	testconfiguration.IsEqualString(t, configuration.ServerSettings.Files["n1tSTAGj8zan9KaT4u6p"].Name, "picture.jpg")
 
 	file, _ := GetFile("n1tSTAGj8zan9KaT4u6p")
 	file.DownloadsRemaining = 0
 	configuration.ServerSettings.Files["n1tSTAGj8zan9KaT4u6p"] = file
 
 	CleanUp(false)
-	test.IsEqualBool(t, helper.FileExists("test/data/a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd0"), false)
-	test.IsEqualString(t, configuration.ServerSettings.Files["n1tSTAGj8zan9KaT4u6p"].Name, "")
-	test.IsEqualString(t, configuration.ServerSettings.Files["deletedfile123456789"].Name, "")
-	test.IsEqualString(t, configuration.ServerSettings.Files["Wzol7LyY2QVczXynJtVo"].Name, "smallfile2")
-	test.IsEqualString(t, configuration.ServerSettings.Files["e4TjE7CokWK0giiLNxDL"].Name, "smallfile2")
-	test.IsEqualString(t, configuration.ServerSettings.Files["wefffewhtrhhtrhtrhtr"].Name, "smallfile3")
+	testconfiguration.IsEqualBool(t, helper.FileExists("test/data/a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd0"), false)
+	testconfiguration.IsEqualString(t, configuration.ServerSettings.Files["n1tSTAGj8zan9KaT4u6p"].Name, "")
+	testconfiguration.IsEqualString(t, configuration.ServerSettings.Files["deletedfile123456789"].Name, "")
+	testconfiguration.IsEqualString(t, configuration.ServerSettings.Files["Wzol7LyY2QVczXynJtVo"].Name, "smallfile2")
+	testconfiguration.IsEqualString(t, configuration.ServerSettings.Files["e4TjE7CokWK0giiLNxDL"].Name, "smallfile2")
+	testconfiguration.IsEqualString(t, configuration.ServerSettings.Files["wefffewhtrhhtrhtrhtr"].Name, "smallfile3")
 
 	file, _ = GetFile("Wzol7LyY2QVczXynJtVo")
 	file.DownloadsRemaining = 0
 	configuration.ServerSettings.Files["Wzol7LyY2QVczXynJtVo"] = file
 
 	CleanUp(false)
-	test.IsEqualBool(t, helper.FileExists("test/data/e017693e4a04a59d0b0f400fe98177fe7ee13cf7"), true)
-	test.IsEqualString(t, configuration.ServerSettings.Files["Wzol7LyY2QVczXynJtVo"].Name, "")
-	test.IsEqualString(t, configuration.ServerSettings.Files["n1tSTAGj8zan9KaT4u6p"].Name, "")
-	test.IsEqualString(t, configuration.ServerSettings.Files["deletedfile123456789"].Name, "")
-	test.IsEqualString(t, configuration.ServerSettings.Files["e4TjE7CokWK0giiLNxDL"].Name, "smallfile2")
-	test.IsEqualString(t, configuration.ServerSettings.Files["wefffewhtrhhtrhtrhtr"].Name, "smallfile3")
+	testconfiguration.IsEqualBool(t, helper.FileExists("test/data/e017693e4a04a59d0b0f400fe98177fe7ee13cf7"), true)
+	testconfiguration.IsEqualString(t, configuration.ServerSettings.Files["Wzol7LyY2QVczXynJtVo"].Name, "")
+	testconfiguration.IsEqualString(t, configuration.ServerSettings.Files["n1tSTAGj8zan9KaT4u6p"].Name, "")
+	testconfiguration.IsEqualString(t, configuration.ServerSettings.Files["deletedfile123456789"].Name, "")
+	testconfiguration.IsEqualString(t, configuration.ServerSettings.Files["e4TjE7CokWK0giiLNxDL"].Name, "smallfile2")
+	testconfiguration.IsEqualString(t, configuration.ServerSettings.Files["wefffewhtrhhtrhtrhtr"].Name, "smallfile3")
 
 	file, _ = GetFile("e4TjE7CokWK0giiLNxDL")
 	file.DownloadsRemaining = 0
@@ -157,17 +157,17 @@ func TestCleanUp(t *testing.T) {
 	configuration.ServerSettings.Files["wefffewhtrhhtrhtrhtr"] = file
 
 	CleanUp(false)
-	test.IsEqualBool(t, helper.FileExists("test/data/e017693e4a04a59d0b0f400fe98177fe7ee13cf7"), false)
-	test.IsEqualString(t, configuration.ServerSettings.Files["Wzol7LyY2QVczXynJtVo"].Name, "")
-	test.IsEqualString(t, configuration.ServerSettings.Files["n1tSTAGj8zan9KaT4u6p"].Name, "")
-	test.IsEqualString(t, configuration.ServerSettings.Files["deletedfile123456789"].Name, "")
-	test.IsEqualString(t, configuration.ServerSettings.Files["e4TjE7CokWK0giiLNxDL"].Name, "")
-	test.IsEqualString(t, configuration.ServerSettings.Files["wefffewhtrhhtrhtrhtr"].Name, "")
+	testconfiguration.IsEqualBool(t, helper.FileExists("test/data/e017693e4a04a59d0b0f400fe98177fe7ee13cf7"), false)
+	testconfiguration.IsEqualString(t, configuration.ServerSettings.Files["Wzol7LyY2QVczXynJtVo"].Name, "")
+	testconfiguration.IsEqualString(t, configuration.ServerSettings.Files["n1tSTAGj8zan9KaT4u6p"].Name, "")
+	testconfiguration.IsEqualString(t, configuration.ServerSettings.Files["deletedfile123456789"].Name, "")
+	testconfiguration.IsEqualString(t, configuration.ServerSettings.Files["e4TjE7CokWK0giiLNxDL"].Name, "")
+	testconfiguration.IsEqualString(t, configuration.ServerSettings.Files["wefffewhtrhhtrhtrhtr"].Name, "")
 
-	test.IsEqualString(t, configuration.ServerSettings.Files["cleanuptest123456789"].Name, "cleanup")
-	test.IsEqualBool(t, helper.FileExists("test/data/2341354656543213246465465465432456898794"), true)
-	configuration.ServerSettings.DownloadStatus = make(map[string]filestructure.DownloadStatus)
+	testconfiguration.IsEqualString(t, configuration.ServerSettings.Files["cleanuptest123456789"].Name, "cleanup")
+	testconfiguration.IsEqualBool(t, helper.FileExists("test/data/2341354656543213246465465465432456898794"), true)
+	configuration.ServerSettings.DownloadStatus = make(map[string]models.DownloadStatus)
 	CleanUp(false)
-	test.IsEqualString(t, configuration.ServerSettings.Files["cleanuptest123456789"].Name, "")
-	test.IsEqualBool(t, helper.FileExists("test/data/2341354656543213246465465465432456898794"), false)
+	testconfiguration.IsEqualString(t, configuration.ServerSettings.Files["cleanuptest123456789"].Name, "")
+	testconfiguration.IsEqualBool(t, helper.FileExists("test/data/2341354656543213246465465465432456898794"), false)
 }

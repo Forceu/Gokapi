@@ -8,10 +8,11 @@ import (
 	"Gokapi/internal/configuration"
 	"Gokapi/internal/configuration/downloadstatus"
 	"Gokapi/internal/helper"
-	"Gokapi/internal/storage/filestructure"
+	"Gokapi/internal/models"
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
@@ -25,20 +26,15 @@ import (
 // NewFile creates a new file in the system. Called after an upload has been completed. If a file with the same sha256 hash
 // already exists, it is deduplicated. This function gathers information about the file, creates an ID and saves
 // it into the global configuration.
-func NewFile(fileContent *multipart.File, fileHeader *multipart.FileHeader, expireAt int64, downloads int, password string) (filestructure.File, error) {
-	fileBytes, err := ioutil.ReadAll(*fileContent)
+func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, expireAt int64, downloads int, password string) (models.File, error) {
+	fileBytes, err := ioutil.ReadAll(fileContent)
 	if err != nil {
-		return filestructure.File{}, err
+		return models.File{}, err
 	}
-	return processUpload(&fileBytes, fileHeader, expireAt, downloads, password)
-}
-
-// Called by NewFile, split into second function to make unit testing easier
-func processUpload(fileContent *[]byte, fileHeader *multipart.FileHeader, expireAt int64, downloads int, password string) (filestructure.File, error) {
 	id := helper.GenerateRandomString(configuration.ServerSettings.LengthId)
 	hash := sha1.New()
-	hash.Write(*fileContent)
-	file := filestructure.File{
+	hash.Write(fileBytes)
+	file := models.File{
 		Id:                 id,
 		Name:               fileHeader.Filename,
 		SHA256:             hex.EncodeToString(hash.Sum(nil)),
@@ -55,10 +51,10 @@ func processUpload(fileContent *[]byte, fileHeader *multipart.FileHeader, expire
 	if !helper.FileExists(configuration.ServerSettings.DataDir + "/" + file.SHA256) {
 		destinationFile, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 		if err != nil {
-			return filestructure.File{}, err
+			return models.File{}, err
 		}
 		defer destinationFile.Close()
-		destinationFile.Write(*fileContent)
+		destinationFile.Write(fileBytes)
 	}
 	configuration.Save()
 	return file, nil
@@ -67,14 +63,14 @@ func processUpload(fileContent *[]byte, fileHeader *multipart.FileHeader, expire
 var imageFileExtensions = []string{".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg"}
 
 // If file is an image, create link for hotlinking
-func addHotlink(file *filestructure.File) {
+func addHotlink(file *models.File) {
 	extension := strings.ToLower(filepath.Ext(file.Name))
 	if !helper.IsInArray(imageFileExtensions, extension) {
 		return
 	}
 	link := helper.GenerateRandomString(40) + extension
 	file.HotlinkId = link
-	configuration.ServerSettings.Hotlinks[link] = filestructure.Hotlink{
+	configuration.ServerSettings.Hotlinks[link] = models.Hotlink{
 		Id:     link,
 		FileId: file.Id,
 	}
@@ -82,8 +78,8 @@ func addHotlink(file *filestructure.File) {
 
 // GetFile gets the file by id. Returns (empty File, false) if invalid / expired file
 // or (file, true) if valid file
-func GetFile(id string) (filestructure.File, bool) {
-	var emptyResult = filestructure.File{}
+func GetFile(id string) (models.File, bool) {
+	var emptyResult = models.File{}
 	if id == "" {
 		return emptyResult, false
 	}
@@ -99,8 +95,8 @@ func GetFile(id string) (filestructure.File, bool) {
 
 // GetFileByHotlink gets the file by hotlink id. Returns (empty File, false) if invalid / expired file
 // or (file, true) if valid file
-func GetFileByHotlink(id string) (filestructure.File, bool) {
-	var emptyResult = filestructure.File{}
+func GetFileByHotlink(id string) (models.File, bool) {
+	var emptyResult = models.File{}
 	if id == "" {
 		return emptyResult, false
 	}
@@ -109,7 +105,7 @@ func GetFileByHotlink(id string) (filestructure.File, bool) {
 }
 
 // ServeFile subtracts a download allowance and serves the file to the browser
-func ServeFile(file filestructure.File, w http.ResponseWriter, r *http.Request, forceDownload bool) {
+func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDownload bool) {
 	file.DownloadsRemaining = file.DownloadsRemaining - 1
 	configuration.ServerSettings.Files[file.Id] = file
 	storageData, err := os.OpenFile(configuration.ServerSettings.DataDir+"/"+file.SHA256, os.O_RDONLY, 0644)

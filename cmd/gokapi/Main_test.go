@@ -1,7 +1,7 @@
 package main
 
 import (
-	"Gokapi/pkg/test"
+	"Gokapi/internal/test"
 	"os"
 	"testing"
 )

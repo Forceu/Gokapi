@@ -1,4 +1,4 @@
-package filestructure
+package models
 
 import (
 	"encoding/json"
