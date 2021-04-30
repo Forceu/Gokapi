@@ -2,29 +2,29 @@ package configuration
 
 import (
 	"Gokapi/internal/environment"
-	testconfiguration "Gokapi/internal/test"
-	testconfiguration2 "Gokapi/internal/test/testconfiguration"
+	 "Gokapi/internal/test"
+	 "Gokapi/internal/test/testconfiguration"
 	"os"
 	"testing"
 	"time"
 )
 
 func TestMain(m *testing.M) {
-	testconfiguration2.Create(false)
+	testconfiguration.Create(false)
 	exitVal := m.Run()
-	testconfiguration2.Delete()
+	testconfiguration.Delete()
 	os.Exit(exitVal)
 }
 
 func TestLoad(t *testing.T) {
 	Load()
-	testconfiguration.IsEqualString(t, Environment.ConfigDir, "test")
-	testconfiguration.IsEqualString(t, ServerSettings.Port, "127.0.0.1:53843")
-	testconfiguration.IsEqualString(t, ServerSettings.AdminName, "test")
-	testconfiguration.IsEqualString(t, ServerSettings.ServerUrl, "http://127.0.0.1:53843/")
-	testconfiguration.IsEqualString(t, ServerSettings.AdminPassword, "10340aece68aa4fb14507ae45b05506026f276cf")
-	testconfiguration.IsEqualString(t, HashPassword("testtest", false), "10340aece68aa4fb14507ae45b05506026f276cf")
-	testconfiguration.IsEqualInt(t, ServerSettings.LengthId, 20)
+	test.IsEqualString(t, Environment.ConfigDir, "test")
+	test.IsEqualString(t, ServerSettings.Port, "127.0.0.1:53843")
+	test.IsEqualString(t, ServerSettings.AdminName, "test")
+	test.IsEqualString(t, ServerSettings.ServerUrl, "http://127.0.0.1:53843/")
+	test.IsEqualString(t, ServerSettings.AdminPassword, "10340aece68aa4fb14507ae45b05506026f276cf")
+	test.IsEqualString(t, HashPassword("testtest", false), "10340aece68aa4fb14507ae45b05506026f276cf")
+	test.IsEqualInt(t, ServerSettings.LengthId, 20)
 }
 
 func TestMutex(t *testing.T) {
@@ -33,16 +33,16 @@ func TestMutex(t *testing.T) {
 	go func() {
 		time.Sleep(100 * time.Millisecond)
 		LockSessions()
-		testconfiguration.IsEqualInt(t, ServerSettings.ConfigVersion, -9)
+		test.IsEqualInt(t, ServerSettings.ConfigVersion, -9)
 		ServerSettings.ConfigVersion = oldValue
 		UnlockSessionsAndSave()
-		testconfiguration.IsEqualInt(t, ServerSettings.ConfigVersion, oldValue)
+		test.IsEqualInt(t, ServerSettings.ConfigVersion, oldValue)
 		finished <- true
 	}()
 	LockSessions()
 	ServerSettings.ConfigVersion = -9
 	time.Sleep(150 * time.Millisecond)
-	testconfiguration.IsEqualInt(t, ServerSettings.ConfigVersion, -9)
+	test.IsEqualInt(t, ServerSettings.ConfigVersion, -9)
 	UnlockSessionsAndSave()
 	<-finished
 }
@@ -57,19 +57,19 @@ func TestCreateNewConfig(t *testing.T) {
 	os.Setenv("GOKAPI_SALT_ADMIN", "salt123")
 	os.Setenv("GOKAPI_LOCALHOST", "false")
 	Load()
-	testconfiguration.IsEqualString(t, Environment.ConfigDir, "test")
-	testconfiguration.IsEqualString(t, ServerSettings.Port, ":1234")
-	testconfiguration.IsEqualString(t, ServerSettings.AdminName, "test2")
-	testconfiguration.IsEqualString(t, ServerSettings.ServerUrl, "http://test.com/")
-	testconfiguration.IsEqualString(t, ServerSettings.RedirectUrl, "http://test2.com")
-	testconfiguration.IsEqualString(t, ServerSettings.AdminPassword, "5bbf5684437a4c658d2e0890d784694afb63f715")
-	testconfiguration.IsEqualString(t, HashPassword("testtest2", false), "5bbf5684437a4c658d2e0890d784694afb63f715")
-	testconfiguration.IsEqualInt(t, ServerSettings.LengthId, 15)
+	test.IsEqualString(t, Environment.ConfigDir, "test")
+	test.IsEqualString(t, ServerSettings.Port, ":1234")
+	test.IsEqualString(t, ServerSettings.AdminName, "test2")
+	test.IsEqualString(t, ServerSettings.ServerUrl, "http://test.com/")
+	test.IsEqualString(t, ServerSettings.RedirectUrl, "http://test2.com")
+	test.IsEqualString(t, ServerSettings.AdminPassword, "5bbf5684437a4c658d2e0890d784694afb63f715")
+	test.IsEqualString(t, HashPassword("testtest2", false), "5bbf5684437a4c658d2e0890d784694afb63f715")
+	test.IsEqualInt(t, ServerSettings.LengthId, 15)
 	os.Remove("test/config.json")
 	os.Unsetenv("GOKAPI_SALT_ADMIN")
 	Load()
-	testconfiguration.IsEqualInt(t, len(ServerSettings.SaltAdmin), 30)
-	testconfiguration.IsNotEqualString(t, ServerSettings.SaltAdmin, "eefwkjqweduiotbrkl##$2342brerlk2321")
+	test.IsEqualInt(t, len(ServerSettings.SaltAdmin), 30)
+	test.IsNotEqualString(t, ServerSettings.SaltAdmin, "eefwkjqweduiotbrkl##$2342brerlk2321")
 	os.Unsetenv("GOKAPI_USERNAME")
 	os.Unsetenv("GOKAPI_PASSWORD")
 	os.Unsetenv("GOKAPI_PORT")
@@ -79,99 +79,99 @@ func TestCreateNewConfig(t *testing.T) {
 }
 
 func TestUpgradeDb(t *testing.T) {
-	testconfiguration2.WriteUpgradeConfigFile()
+	testconfiguration.WriteUpgradeConfigFile()
 	Load()
-	testconfiguration.IsEqualString(t, ServerSettings.SaltAdmin, "eefwkjqweduiotbrkl##$2342brerlk2321")
-	testconfiguration.IsEqualString(t, ServerSettings.SaltFiles, "P1UI5sRNDwuBgOvOYhNsmucZ2pqo4KEvOoqqbpdu")
-	testconfiguration.IsEqualString(t, ServerSettings.DataDir, Environment.DataDir)
-	testconfiguration.IsEqualInt(t, ServerSettings.LengthId, 15)
-	testconfiguration.IsEqualBool(t, ServerSettings.Hotlinks == nil, false)
-	testconfiguration.IsEqualBool(t, ServerSettings.DownloadStatus == nil, false)
-	testconfiguration.IsEqualString(t, ServerSettings.Files["MgXJLe4XLfpXcL12ec4i"].ContentType, "application/octet-stream")
-	testconfiguration.IsEqualInt(t, ServerSettings.ConfigVersion, currentConfigVersion)
-	testconfiguration2.Create(false)
+	test.IsEqualString(t, ServerSettings.SaltAdmin, "eefwkjqweduiotbrkl##$2342brerlk2321")
+	test.IsEqualString(t, ServerSettings.SaltFiles, "P1UI5sRNDwuBgOvOYhNsmucZ2pqo4KEvOoqqbpdu")
+	test.IsEqualString(t, ServerSettings.DataDir, Environment.DataDir)
+	test.IsEqualInt(t, ServerSettings.LengthId, 15)
+	test.IsEqualBool(t, ServerSettings.Hotlinks == nil, false)
+	test.IsEqualBool(t, ServerSettings.DownloadStatus == nil, false)
+	test.IsEqualString(t, ServerSettings.Files["MgXJLe4XLfpXcL12ec4i"].ContentType, "application/octet-stream")
+	test.IsEqualInt(t, ServerSettings.ConfigVersion, currentConfigVersion)
+	testconfiguration.Create(false)
 	Load()
 }
 
 func TestAskForUsername(t *testing.T) {
-	original := testconfiguration2.StartMockInputStdin("admin")
+	original := testconfiguration.StartMockInputStdin("admin")
 	output := askForUsername()
-	testconfiguration2.StopMockInputStdin(original)
-	testconfiguration.IsEqualString(t, output, "admin")
+	testconfiguration.StopMockInputStdin(original)
+	test.IsEqualString(t, output, "admin")
 }
 
 func TestIsValidPortNumber(t *testing.T) {
-	testconfiguration.IsEqualBool(t, isValidPortNumber("invalid"), false)
-	testconfiguration.IsEqualBool(t, isValidPortNumber("-1"), false)
-	testconfiguration.IsEqualBool(t, isValidPortNumber("0"), true)
-	testconfiguration.IsEqualBool(t, isValidPortNumber("100"), true)
-	testconfiguration.IsEqualBool(t, isValidPortNumber("65353"), true)
-	testconfiguration.IsEqualBool(t, isValidPortNumber("65354"), false)
+	test.IsEqualBool(t, isValidPortNumber("invalid"), false)
+	test.IsEqualBool(t, isValidPortNumber("-1"), false)
+	test.IsEqualBool(t, isValidPortNumber("0"), true)
+	test.IsEqualBool(t, isValidPortNumber("100"), true)
+	test.IsEqualBool(t, isValidPortNumber("65353"), true)
+	test.IsEqualBool(t, isValidPortNumber("65354"), false)
 }
 
 func TestHashPassword(t *testing.T) {
-	testconfiguration.IsEqualString(t, HashPassword("123", false), "423b63a68c68bd7e07b14590927c1e9a473fe035")
-	testconfiguration.IsEqualString(t, HashPassword("", false), "")
-	testconfiguration.IsEqualString(t, HashPassword("123", true), "7b30508aa9b233ab4b8a11b2af5816bdb58ca3e7")
+	test.IsEqualString(t, HashPassword("123", false), "423b63a68c68bd7e07b14590927c1e9a473fe035")
+	test.IsEqualString(t, HashPassword("", false), "")
+	test.IsEqualString(t, HashPassword("123", true), "7b30508aa9b233ab4b8a11b2af5816bdb58ca3e7")
 }
 
 func TestIsValidUrl(t *testing.T) {
-	testconfiguration.IsEqualBool(t, isValidUrl("http://"), false)
-	testconfiguration.IsEqualBool(t, isValidUrl("https://"), false)
-	testconfiguration.IsEqualBool(t, isValidUrl("invalid"), false)
-	testconfiguration.IsEqualBool(t, isValidUrl("http://abc"), true)
-	testconfiguration.IsEqualBool(t, isValidUrl("https://abc"), true)
+	test.IsEqualBool(t, isValidUrl("http://"), false)
+	test.IsEqualBool(t, isValidUrl("https://"), false)
+	test.IsEqualBool(t, isValidUrl("invalid"), false)
+	test.IsEqualBool(t, isValidUrl("http://abc"), true)
+	test.IsEqualBool(t, isValidUrl("https://abc"), true)
 }
 
 func TestAddTrailingSlash(t *testing.T) {
-	testconfiguration.IsEqualString(t, addTrailingSlash("abc"), "abc/")
-	testconfiguration.IsEqualString(t, addTrailingSlash("abc/"), "abc/")
-	testconfiguration.IsEqualString(t, addTrailingSlash("/"), "/")
-	testconfiguration.IsEqualString(t, addTrailingSlash(""), "/")
+	test.IsEqualString(t, addTrailingSlash("abc"), "abc/")
+	test.IsEqualString(t, addTrailingSlash("abc/"), "abc/")
+	test.IsEqualString(t, addTrailingSlash("/"), "/")
+	test.IsEqualString(t, addTrailingSlash(""), "/")
 }
 
 func TestAskForRedirect(t *testing.T) {
-	original := testconfiguration2.StartMockInputStdin("")
+	original := testconfiguration.StartMockInputStdin("")
 	url := askForRedirect()
-	testconfiguration2.StopMockInputStdin(original)
-	testconfiguration.IsEqualString(t, url, "https://github.com/Forceu/Gokapi/")
-	original = testconfiguration2.StartMockInputStdin("https://test.com")
+	testconfiguration.StopMockInputStdin(original)
+	test.IsEqualString(t, url, "https://github.com/Forceu/Gokapi/")
+	original = testconfiguration.StartMockInputStdin("https://test.com")
 	url = askForRedirect()
-	testconfiguration2.StopMockInputStdin(original)
-	testconfiguration.IsEqualString(t, url, "https://test.com")
+	testconfiguration.StopMockInputStdin(original)
+	test.IsEqualString(t, url, "https://test.com")
 }
 
 func TestAskForLocalOnly(t *testing.T) {
 	environment.IsDocker = "true"
-	testconfiguration.IsEqualString(t, askForLocalOnly(), environment.IsTrue)
+	test.IsEqualString(t, askForLocalOnly(), environment.IsTrue)
 	environment.IsDocker = "false"
-	original := testconfiguration2.StartMockInputStdin("")
-	testconfiguration.IsEqualString(t, askForLocalOnly(), environment.IsTrue)
-	testconfiguration2.StopMockInputStdin(original)
-	original = testconfiguration2.StartMockInputStdin("no")
-	testconfiguration.IsEqualString(t, askForLocalOnly(), environment.IsFalse)
-	testconfiguration2.StopMockInputStdin(original)
-	original = testconfiguration2.StartMockInputStdin("yes")
-	testconfiguration.IsEqualString(t, askForLocalOnly(), environment.IsTrue)
-	testconfiguration2.StopMockInputStdin(original)
-	original = testconfiguration2.StartMockInputStdin("n")
-	testconfiguration.IsEqualString(t, askForLocalOnly(), environment.IsFalse)
-	testconfiguration2.StopMockInputStdin(original)
+	original := testconfiguration.StartMockInputStdin("")
+	test.IsEqualString(t, askForLocalOnly(), environment.IsTrue)
+	testconfiguration.StopMockInputStdin(original)
+	original = testconfiguration.StartMockInputStdin("no")
+	test.IsEqualString(t, askForLocalOnly(), environment.IsFalse)
+	testconfiguration.StopMockInputStdin(original)
+	original = testconfiguration.StartMockInputStdin("yes")
+	test.IsEqualString(t, askForLocalOnly(), environment.IsTrue)
+	testconfiguration.StopMockInputStdin(original)
+	original = testconfiguration.StartMockInputStdin("n")
+	test.IsEqualString(t, askForLocalOnly(), environment.IsFalse)
+	testconfiguration.StopMockInputStdin(original)
 }
 
 func TestAskForPort(t *testing.T) {
-	original := testconfiguration2.StartMockInputStdin("8000")
-	testconfiguration.IsEqualString(t, askForPort(), "8000")
-	testconfiguration2.StopMockInputStdin(original)
-	original = testconfiguration2.StartMockInputStdin("")
-	testconfiguration.IsEqualString(t, askForPort(), defaultPort)
-	testconfiguration2.StopMockInputStdin(original)
+	original := testconfiguration.StartMockInputStdin("8000")
+	test.IsEqualString(t, askForPort(), "8000")
+	testconfiguration.StopMockInputStdin(original)
+	original = testconfiguration.StartMockInputStdin("")
+	test.IsEqualString(t, askForPort(), defaultPort)
+	testconfiguration.StopMockInputStdin(original)
 }
 func TestAskForUrl(t *testing.T) {
-	original := testconfiguration2.StartMockInputStdin("https://test.com")
-	testconfiguration.IsEqualString(t, askForUrl("1234"), "https://test.com/")
-	testconfiguration2.StopMockInputStdin(original)
-	original = testconfiguration2.StartMockInputStdin("")
-	testconfiguration.IsEqualString(t, askForUrl("1234"), "http://127.0.0.1:1234/")
-	testconfiguration2.StopMockInputStdin(original)
+	original := testconfiguration.StartMockInputStdin("https://test.com")
+	test.IsEqualString(t, askForUrl("1234"), "https://test.com/")
+	testconfiguration.StopMockInputStdin(original)
+	original = testconfiguration.StartMockInputStdin("")
+	test.IsEqualString(t, askForUrl("1234"), "http://127.0.0.1:1234/")
+	testconfiguration.StopMockInputStdin(original)
 }
