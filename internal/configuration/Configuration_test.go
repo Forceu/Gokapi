@@ -95,7 +95,7 @@ func TestUpgradeDb(t *testing.T) {
 
 func TestAskForUsername(t *testing.T) {
 	original := testconfiguration.StartMockInputStdin("admin")
-	output := askForUsername()
+	output := askForUsername(1)
 	testconfiguration.StopMockInputStdin(original)
 	test.IsEqualString(t, output, "admin")
 }

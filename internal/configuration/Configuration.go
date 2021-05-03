@@ -145,7 +145,7 @@ func generateDefaultConfig() {
 	serverSettings = Configuration{
 		SaltAdmin: saltAdmin,
 	}
-	username := askForUsername()
+	username := askForUsername(1)
 	password := askForPassword()
 	port := askForPort()
 	url := askForUrl(port)
@@ -199,7 +199,11 @@ func Save() {
 }
 
 // Asks for username or loads it from env and returns input as string if valid
-func askForUsername() string {
+func askForUsername(try int) string {
+	if try > 5 {
+		fmt.Println("Too many invalid entries! If you are running the setup with Docker, make sure to start the container with the -it flag.")
+		os.Exit(1)
+	}
 	fmt.Print("Username: ")
 	envUsername := Environment.AdminName
 	if envUsername != "" {
@@ -211,7 +215,7 @@ func askForUsername() string {
 		return username
 	}
 	fmt.Println("Username needs to be at least 4 characters long")
-	return askForUsername()
+	return askForUsername(try + 1)
 }
 
 // Asks for password or loads it from env and returns input as string if valid
