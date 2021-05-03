@@ -143,7 +143,7 @@ func TestAskForRedirect(t *testing.T) {
 
 func TestAskForLocalOnly(t *testing.T) {
 	environment.IsDocker = "true"
-	test.IsEqualString(t, askForLocalOnly(), environment.IsTrue)
+	test.IsEqualString(t, askForLocalOnly(), environment.IsFalse)
 	environment.IsDocker = "false"
 	original := testconfiguration.StartMockInputStdin("")
 	test.IsEqualString(t, askForLocalOnly(), environment.IsTrue)
