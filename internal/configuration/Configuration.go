@@ -244,9 +244,10 @@ func askForPassword() string {
 }
 
 // Asks if the server shall be bound to 127.0.0.1 or loads it from env and returns result as bool
+// Always returns environment.IsFalse for Docker environment
 func askForLocalOnly() string {
 	if environment.IsDocker != "false" {
-		return environment.IsTrue
+		return environment.IsFalse
 	}
 	fmt.Print("Bind port to localhost only? [Y/n]: ")
 	envLocalhost := Environment.WebserverLocalhost
