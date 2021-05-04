@@ -49,7 +49,7 @@ var (
 	webserverExtUrl        string
 	webserverRedirectUrl   string
 	webserverAdminName     string
-	WebserverAdminPassword string
+	webserverAdminPassword string
 )
 
 // Start the webserver on the port set in the config
@@ -95,7 +95,7 @@ func initLocalVariables() {
 	webserverExtUrl = settings.ServerUrl
 	webserverRedirectUrl = settings.RedirectUrl
 	webserverAdminName = settings.AdminName
-	WebserverAdminPassword = settings.AdminPassword
+	webserverAdminPassword = settings.AdminPassword
 	configuration.Release()
 }
 
@@ -153,7 +153,7 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 	pw := r.Form.Get("password")
 	failedLogin := false
 	if pw != "" && user != "" {
-		if strings.ToLower(user) == strings.ToLower(webserverAdminName) && configuration.HashPassword(pw, false) == WebserverAdminPassword {
+		if strings.ToLower(user) == strings.ToLower(webserverAdminName) && configuration.HashPassword(pw, false) == webserverAdminPassword {
 			sessionmanager.CreateSession(w, false)
 			redirect(w, "admin")
 			return
@@ -180,6 +180,7 @@ type LoginView struct {
 // Checks if a file exists for the submitted ID
 // If it exists, a download form is shown or a password needs to be entered.
 func showDownload(w http.ResponseWriter, r *http.Request) {
+	addNoCacheHeader(w)
 	keyId := queryUrl(w, r, "error")
 	file, ok := storage.GetFile(keyId)
 	if !ok {
@@ -220,6 +221,7 @@ func showDownload(w http.ResponseWriter, r *http.Request) {
 // Handling of /hotlink/
 // Hotlinks an image or returns a static error image if image has expired
 func showHotlink(w http.ResponseWriter, r *http.Request) {
+	addNoCacheHeader(w)
 	hotlinkId := strings.Replace(r.URL.Path, "/hotlink/", "", 1)
 	file, ok := storage.GetFileByHotlink(hotlinkId)
 	if !ok {
@@ -234,6 +236,7 @@ func showHotlink(w http.ResponseWriter, r *http.Request) {
 // Handling of /delete
 // User needs to be admin. Deletes the requested file
 func deleteFile(w http.ResponseWriter, r *http.Request) {
+	addNoCacheHeader(w)
 	if !isAuthenticated(w, r, false) {
 		return
 	}
@@ -260,6 +263,7 @@ func queryUrl(w http.ResponseWriter, r *http.Request, redirectUrl string) string
 // Handling of /admin
 // If user is authenticated, this menu lists all uploads and enables uploading new files
 func showAdminMenu(w http.ResponseWriter, r *http.Request) {
+	addNoCacheHeader(w)
 	if !isAuthenticated(w, r, false) {
 		return
 	}
@@ -321,6 +325,7 @@ func (u *UploadView) convertGlobalConfig() *UploadView {
 // If the user is authenticated, this parses the uploaded file from the Multipart Form and
 // adds it to the system.
 func uploadFile(w http.ResponseWriter, r *http.Request) {
+	addNoCacheHeader(w)
 	if !isAuthenticated(w, r, true) {
 		return
 	}
@@ -361,6 +366,7 @@ func responseError(w http.ResponseWriter, err error) {
 
 // Outputs the file to the user and reduces the download remaining count for the file
 func downloadFile(w http.ResponseWriter, r *http.Request) {
+	addNoCacheHeader(w)
 	keyId := queryUrl(w, r, "error")
 	savedFile, ok := storage.GetFile(keyId)
 	if !ok {
@@ -410,6 +416,11 @@ func isValidPwCookie(r *http.Request, file models.File) bool {
 		time.Sleep(3 * time.Second)
 	}
 	return false
+}
+
+// Adds a header to disable external caching
+func addNoCacheHeader(w http.ResponseWriter) {
+	w.Header().Set("cache-control", "no-store")
 }
 
 // A view containing parameters for a generic template

@@ -24,10 +24,13 @@ func TestLoad(t *testing.T) {
 	test.IsEqualString(t, serverSettings.ServerUrl, "http://127.0.0.1:53843/")
 	test.IsEqualString(t, serverSettings.AdminPassword, "10340aece68aa4fb14507ae45b05506026f276cf")
 	test.IsEqualString(t, HashPassword("testtest", false), "10340aece68aa4fb14507ae45b05506026f276cf")
-	test.IsEqualInt(t, serverSettings.LengthId, 20)
+	test.IsEqualInt(t, GetLengthId(), 20)
+	settings := GetServerSettings()
+	Release()
+	test.IsEqualInt(t, settings.LengthId, 20)
 }
 
-func TestMutex(t *testing.T) {
+func TestMutexSession(t *testing.T) {
 	finished := make(chan bool)
 	oldValue := serverSettings.ConfigVersion
 	go func() {
@@ -43,7 +46,7 @@ func TestMutex(t *testing.T) {
 	serverSettings.ConfigVersion = -9
 	time.Sleep(150 * time.Millisecond)
 	test.IsEqualInt(t, serverSettings.ConfigVersion, -9)
-	ReleaseAndSave()
+	Release()
 	<-finished
 }
 
@@ -86,6 +89,7 @@ func TestUpgradeDb(t *testing.T) {
 	test.IsEqualString(t, serverSettings.DataDir, Environment.DataDir)
 	test.IsEqualInt(t, serverSettings.LengthId, 15)
 	test.IsEqualBool(t, serverSettings.Hotlinks == nil, false)
+	test.IsEqualBool(t, GetSessions() == nil, false)
 	test.IsEqualBool(t, serverSettings.DownloadStatus == nil, false)
 	test.IsEqualString(t, serverSettings.Files["MgXJLe4XLfpXcL12ec4i"].ContentType, "application/octet-stream")
 	test.IsEqualInt(t, serverSettings.ConfigVersion, currentConfigVersion)

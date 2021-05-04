@@ -36,7 +36,7 @@ var serverSettings Configuration
 const currentConfigVersion = 6
 
 // For locking this object to prevent race conditions
-var mutexSessions sync.Mutex
+var mutex sync.Mutex
 
 // Configuration is a struct that contains the global configuration
 type Configuration struct {
@@ -80,24 +80,24 @@ func Load() {
 
 // Lock locks configuration to prevent race conditions (blocking)
 func Lock() {
-	mutexSessions.Lock()
+	mutex.Lock()
 }
 
 // ReleaseAndSave unlocks and saves the configuration
 func ReleaseAndSave() {
 	Save()
-	mutexSessions.Unlock()
+	mutex.Unlock()
 }
 
 // Release unlocks the configuration
 func Release() {
-	mutexSessions.Unlock()
+	mutex.Unlock()
 }
 
 // GetServerSettings locks the settings returns a pointer to the configuration
 // Release needs to be called when finished with the operation!
 func GetServerSettings() *Configuration {
-	mutexSessions.Lock()
+	mutex.Lock()
 	return &serverSettings
 }
 
