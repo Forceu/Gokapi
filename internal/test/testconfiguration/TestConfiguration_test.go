@@ -25,6 +25,7 @@ func TestMockInputStdin(t *testing.T) {
 	StopMockInputStdin(original)
 	test.IsEqualString(t, result, dataDir)
 }
+
 func TestSetUpgradeConfigFile(t *testing.T) {
 	os.Remove(configFile)
 	WriteUpgradeConfigFile()

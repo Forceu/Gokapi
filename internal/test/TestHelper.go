@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"io"
 	"io/ioutil"
-	"log"
 	"mime/multipart"
 	"net/http"
 	"net/url"
@@ -78,7 +77,7 @@ func IsNotNil(t MockT, got error) {
 
 // HttpPageResult tests if a http server is outputting the correct result
 func HttpPageResult(t MockT, config HttpTestConfig) []*http.Cookie {
-	config.init()
+	config.init(t)
 	client := &http.Client{}
 
 	data := url.Values{}
@@ -134,9 +133,9 @@ type HttpTestConfig struct {
 	UploadFieldName string
 }
 
-func (c *HttpTestConfig) init() {
+func (c *HttpTestConfig) init(t MockT) {
 	if c.Url == "" {
-		log.Fatalln("No url passed!")
+		t.Errorf("No url passed!")
 	}
 	if c.Method == "" {
 		c.Method = "GET"
