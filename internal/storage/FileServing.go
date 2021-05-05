@@ -162,10 +162,11 @@ func CleanUp(periodic bool) {
 			wasItemDeleted = true
 		}
 	}
-	configuration.Release()
 	if wasItemDeleted {
-		configuration.Save()
+		configuration.ReleaseAndSave()
 		CleanUp(false)
+	} else {
+		configuration.Release()
 	}
 	if periodic {
 		time.Sleep(time.Hour)

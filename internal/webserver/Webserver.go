@@ -154,7 +154,7 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 	failedLogin := false
 	if pw != "" && user != "" {
 		if strings.ToLower(user) == strings.ToLower(webserverAdminName) && configuration.HashPassword(pw, false) == webserverAdminPassword {
-			sessionmanager.CreateSession(w, false)
+			sessionmanager.CreateSession(w, nil)
 			redirect(w, "admin")
 			return
 		}

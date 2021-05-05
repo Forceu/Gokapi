@@ -12,6 +12,9 @@ import (
 	"time"
 )
 
+// Please note that if this test is run with go test -race, it will fail as there is a bug in html/template that
+// causes data race. It will be fixed in Go 1.17, see https://github.com/golang/go/issues/39807
+
 func TestMain(m *testing.M) {
 	testconfiguration2.Create(true)
 	configuration.Load()

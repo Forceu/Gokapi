@@ -85,7 +85,7 @@ func Lock() {
 
 // ReleaseAndSave unlocks and saves the configuration
 func ReleaseAndSave() {
-	Save()
+	save()
 	mutex.Unlock()
 }
 
@@ -131,7 +131,7 @@ func updateConfig() {
 	if serverSettings.ConfigVersion < currentConfigVersion {
 		fmt.Println("Successfully upgraded database")
 		serverSettings.ConfigVersion = currentConfigVersion
-		Save()
+		save()
 	}
 }
 
@@ -179,11 +179,11 @@ func generateDefaultConfig() {
 		DataDir:          Environment.DataDir,
 		LengthId:         Environment.LengthId,
 	}
-	Save()
+	save()
 }
 
 // Save the configuration as a json file
-func Save() {
+func save() {
 	file, err := os.OpenFile(Environment.ConfigPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		fmt.Println("Error reading configuration:", err)
@@ -362,7 +362,7 @@ func addTrailingSlash(url string) string {
 // DisplayPasswordReset shows a password prompt in the CLI and saves the new password
 func DisplayPasswordReset() {
 	serverSettings.AdminPassword = HashPassword(askForPassword(), false)
-	Save()
+	save()
 }
 
 // HashPassword hashes a string with SHA256 and a salt
@@ -383,9 +383,4 @@ func HashPassword(password string, useFileSalt bool) string {
 // GetLengthId returns the length of the file IDs to be generated
 func GetLengthId() int {
 	return serverSettings.LengthId
-}
-
-// GetSessions returns a pointer to the session storage
-func GetSessions() *map[string]models.Session {
-	return &serverSettings.Sessions
 }

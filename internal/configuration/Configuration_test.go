@@ -89,7 +89,7 @@ func TestUpgradeDb(t *testing.T) {
 	test.IsEqualString(t, serverSettings.DataDir, Environment.DataDir)
 	test.IsEqualInt(t, serverSettings.LengthId, 15)
 	test.IsEqualBool(t, serverSettings.Hotlinks == nil, false)
-	test.IsEqualBool(t, GetSessions() == nil, false)
+	test.IsEqualBool(t, serverSettings.Sessions == nil, false)
 	test.IsEqualBool(t, serverSettings.DownloadStatus == nil, false)
 	test.IsEqualString(t, serverSettings.Files["MgXJLe4XLfpXcL12ec4i"].ContentType, "application/octet-stream")
 	test.IsEqualInt(t, serverSettings.ConfigVersion, currentConfigVersion)

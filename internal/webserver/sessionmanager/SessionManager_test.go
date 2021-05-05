@@ -64,7 +64,7 @@ func TestIsValidSession(t *testing.T) {
 
 func TestCreateSession(t *testing.T) {
 	w, _ := getRecorder(nil)
-	CreateSession(w, false)
+	CreateSession(w, nil)
 	cookies := w.Result().Cookies()
 	test.IsEqualInt(t, len(cookies), 1)
 	test.IsEqualString(t, cookies[0].Name, "session_token")
