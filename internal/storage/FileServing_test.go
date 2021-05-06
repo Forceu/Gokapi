@@ -78,7 +78,12 @@ func TestNewFile(t *testing.T) {
 		Header:   mimeHeader,
 		Size:     int64(len(content)),
 	}
-	file, err := NewFile(bytes.NewReader(content), &header, 2147483600, 1, "")
+	request := models.UploadRequest{
+		AllowedDownloads: 1,
+		Expiry:           999,
+		ExpiryTimestamp:  2147483600,
+	}
+	file, err := NewFile(bytes.NewReader(content), &header, request)
 	test.IsNil(t, err)
 	test.IsEqualString(t, file.Name, "test.dat")
 	test.IsEqualString(t, file.SHA256, "f1474c19eff0fc8998fa6e1b1f7bf31793b103a6")
@@ -183,7 +188,12 @@ func TestDeleteFile(t *testing.T) {
 	configuration.Release()
 	test.IsEqualString(t, settings.Files["n1tSTAGj8zan9KaT4u6p"].Name, "picture.jpg")
 	test.IsEqualBool(t, helper.FileExists("test/data/a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd0"), true)
-	DeleteFile("n1tSTAGj8zan9KaT4u6p")
+	result := DeleteFile("n1tSTAGj8zan9KaT4u6p")
+	test.IsEqualBool(t, result, true)
 	test.IsEqualString(t, settings.Files["n1tSTAGj8zan9KaT4u6p"].Name, "")
 	test.IsEqualBool(t, helper.FileExists("test/data/a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd0"), false)
+	result = DeleteFile("invalid")
+	test.IsEqualBool(t, result, false)
+	result = DeleteFile("")
+	test.IsEqualBool(t, result, false)
 }

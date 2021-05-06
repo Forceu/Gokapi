@@ -26,7 +26,7 @@ import (
 // NewFile creates a new file in the system. Called after an upload has been completed. If a file with the same sha256 hash
 // already exists, it is deduplicated. This function gathers information about the file, creates an ID and saves
 // it into the global configuration.
-func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, expireAt int64, downloads int, password string) (models.File, error) {
+func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequest models.UploadRequest) (models.File, error) {
 	fileBytes, err := ioutil.ReadAll(fileContent)
 	if err != nil {
 		return models.File{}, err
@@ -39,10 +39,10 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, expireAt i
 		Name:               fileHeader.Filename,
 		SHA256:             hex.EncodeToString(hash.Sum(nil)),
 		Size:               helper.ByteCountSI(fileHeader.Size),
-		ExpireAt:           expireAt,
-		ExpireAtString:     time.Unix(expireAt, 0).Format("2006-01-02 15:04"),
-		DownloadsRemaining: downloads,
-		PasswordHash:       configuration.HashPassword(password, true),
+		ExpireAt:           uploadRequest.ExpiryTimestamp,
+		ExpireAtString:     time.Unix(uploadRequest.ExpiryTimestamp, 0).Format("2006-01-02 15:04"),
+		DownloadsRemaining: uploadRequest.AllowedDownloads,
+		PasswordHash:       configuration.HashPassword(uploadRequest.Password, true),
 		ContentType:        fileHeader.Header.Get("Content-Type"),
 	}
 	addHotlink(&file)
@@ -175,11 +175,19 @@ func CleanUp(periodic bool) {
 }
 
 // DeleteFile is called when an admin requests deletion of a file
-func DeleteFile(keyId string) {
+// Returns true if file was deleted or false if ID did not exist
+func DeleteFile(keyId string) bool {
+	if keyId == "" {
+		return false
+	}
 	settings := configuration.GetServerSettings()
-	item := settings.Files[keyId]
+	item, ok := settings.Files[keyId]
+	if !ok {
+		return false
+	}
 	item.ExpireAt = 0
 	settings.Files[keyId] = item
 	configuration.Release()
 	CleanUp(false)
+	return true
 }

@@ -9,16 +9,18 @@ import (
 	"Gokapi/internal/helper"
 	"Gokapi/internal/models"
 	"Gokapi/internal/storage"
+	"Gokapi/internal/webserver/api"
+	"Gokapi/internal/webserver/fileupload"
 	"Gokapi/internal/webserver/sessionmanager"
 	"embed"
 	"fmt"
 	"html/template"
+	"io"
 	"io/fs"
 	"log"
 	"net/http"
 	"os"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -79,6 +81,7 @@ func Start() {
 	http.HandleFunc("/delete", deleteFile)
 	http.HandleFunc("/downloadFile", downloadFile)
 	http.HandleFunc("/forgotpw", forgotPassword)
+	http.HandleFunc("/api/", processApi)
 	fmt.Println("Binding webserver to " + webserverPort)
 	fmt.Println("Webserver can be accessed at " + webserverExtUrl + "admin")
 	srv := &http.Server{
@@ -116,7 +119,7 @@ func initTemplates(templateFolderEmbedded embed.FS) {
 
 // Sends a redirect HTTP output to the client. Variable url is used to redirect to ./url
 func redirect(w http.ResponseWriter, url string) {
-	_, _ = fmt.Fprint(w, "<html><head><meta http-equiv=\"Refresh\" content=\"0; URL=./"+url+"\"></head></html>")
+	_, _ = io.WriteString(w, "<html><head><meta http-equiv=\"Refresh\" content=\"0; URL=./"+url+"\"></head></html>")
 }
 
 // Handling of /logout
@@ -141,6 +144,11 @@ func showError(w http.ResponseWriter, r *http.Request) {
 func forgotPassword(w http.ResponseWriter, r *http.Request) {
 	err := templateFolder.ExecuteTemplate(w, "forgotpw", genericView{})
 	helper.Check(err)
+}
+
+// Handling of /api/
+func processApi(w http.ResponseWriter, r *http.Request) {
+	api.Process(w, r)
 }
 
 // Handling of /login
@@ -326,40 +334,18 @@ func (u *UploadView) convertGlobalConfig() *UploadView {
 // adds it to the system.
 func uploadFile(w http.ResponseWriter, r *http.Request) {
 	addNoCacheHeader(w)
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	if !isAuthenticated(w, r, true) {
 		return
 	}
-	err := r.ParseMultipartForm(20 * 1024 * 1024)
+	err := fileupload.Process(w, r, true)
 	responseError(w, err)
-	allowedDownloads := r.Form.Get("allowedDownloads")
-	expiryDays := r.Form.Get("expiryDays")
-	password := r.Form.Get("password")
-	allowedDownloadsInt, err := strconv.Atoi(allowedDownloads)
-	settings := configuration.GetServerSettings()
-	if err != nil {
-		allowedDownloadsInt = settings.DefaultDownloads
-	}
-	expiryDaysInt, err := strconv.Atoi(expiryDays)
-	if err != nil {
-		expiryDaysInt = settings.DefaultExpiry
-	}
-	settings.DefaultExpiry = expiryDaysInt
-	settings.DefaultDownloads = allowedDownloadsInt
-	settings.DefaultPassword = password
-	configuration.Release()
-	file, header, err := r.FormFile("file")
-	responseError(w, err)
-	result, err := storage.NewFile(file, header, time.Now().Add(time.Duration(expiryDaysInt)*time.Hour*24).Unix(), allowedDownloadsInt, password)
-	responseError(w, err)
-	defer file.Close()
-	_, err = fmt.Fprint(w, result.ToJsonResult(webserverExtUrl))
-	helper.Check(err)
 }
 
 // Outputs an error in json format
 func responseError(w http.ResponseWriter, err error) {
 	if err != nil {
-		fmt.Fprint(w, "{\"Result\":\"error\",\"ErrorMessage\":\""+err.Error()+"\"}")
+		_, _ = io.WriteString(w, "{\"Result\":\"error\",\"ErrorMessage\":\""+err.Error()+"\"}")
 		helper.Check(err)
 	}
 }
@@ -388,7 +374,7 @@ func isAuthenticated(w http.ResponseWriter, r *http.Request, isUpload bool) bool
 		return true
 	}
 	if isUpload {
-		_, err := fmt.Fprint(w, "{\"Result\":\"error\",\"ErrorMessage\":\"Not authenticated\"}")
+		_, err := io.WriteString(w, "{\"Result\":\"error\",\"ErrorMessage\":\"Not authenticated\"}")
 		helper.Check(err)
 	} else {
 		redirect(w, "login")

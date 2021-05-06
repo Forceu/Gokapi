@@ -2,7 +2,7 @@ package test
 
 import (
 	"errors"
-	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -137,18 +137,34 @@ func TestHttpPostRequest(t *testing.T) {
 			Value: "testValue",
 		}},
 	})
+	mockT := MockTest{reference: t}
+	mockT.WantFail()
+	HttpPostRequest(mockT, HttpTestConfig{
+		Url:             "http://127.0.0.1:9999/test",
+		UploadFileName:  "testfile",
+		UploadFieldName: "file",
+		ExcludedContent: []string{"TestContent"}},
+	)
+	mockT.WantFail()
+	HttpPostRequest(mockT, HttpTestConfig{
+		Url:             "http://127.0.0.1:9999/test",
+		UploadFileName:  "testfile",
+		UploadFieldName: "file",
+		RequiredContent: []string{"invalid"}},
+	)
+	mockT.Check()
 	os.Remove("testfile")
 }
 
 func startTestServer() {
 	http.HandleFunc("/test", func(writer http.ResponseWriter, request *http.Request) {
-		fmt.Fprint(writer, "TestContent\n")
+		io.WriteString(writer, "TestContent\n")
 		for _, cookie := range request.Cookies() {
-			fmt.Fprint(writer, "cookie name: "+cookie.Name+" cookie value: "+cookie.Value+"\n")
+			io.WriteString(writer, "cookie name: "+cookie.Name+" cookie value: "+cookie.Value+"\n")
 		}
 		request.ParseForm()
 		if request.Form.Get("testPostKey") != "" {
-			fmt.Fprint(writer, "testPostKey: "+request.Form.Get("testPostKey")+"\n")
+			io.WriteString(writer, "testPostKey: "+request.Form.Get("testPostKey")+"\n")
 		}
 	})
 	go func() { log.Fatal(http.ListenAndServe("127.0.0.1:9999", nil)) }()
