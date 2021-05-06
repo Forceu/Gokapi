@@ -183,6 +183,7 @@ func DeleteFile(keyId string) bool {
 	settings := configuration.GetServerSettings()
 	item, ok := settings.Files[keyId]
 	if !ok {
+		configuration.Release()
 		return false
 	}
 	item.ExpireAt = 0

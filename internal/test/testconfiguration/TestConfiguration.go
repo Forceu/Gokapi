@@ -201,8 +201,27 @@ var configTestFile = []byte(`{
    "ApiKeys":{
       "validkey":{
          "Id":"validkey",
-         "FriendlyName":"Test Key",
-         "LastUsed":1619367972
+         "FriendlyName":"Unnamed Key",
+         "LastUsed":0,
+         "LastUsedString":""
+      },
+      "GAh1IhXDvYnqfYLazWBqMB9HSFmNPO":{
+         "Id":"GAh1IhXDvYnqfYLazWBqMB9HSFmNPO",
+         "FriendlyName":"Unnamed Key",
+         "LastUsed":0,
+         "LastUsedString":""
+      },
+      "jiREglQJW0bOqJakfjdVfe8T1EM8n8":{
+         "Id":"jiREglQJW0bOqJakfjdVfe8T1EM8n8",
+         "FriendlyName":"Unnamed Key",
+         "LastUsed":0,
+         "LastUsedString":""
+      },
+      "okeCMWqhVMZSpt5c1qpCWhKvJJPifb":{
+         "Id":"okeCMWqhVMZSpt5c1qpCWhKvJJPifb",
+         "FriendlyName":"Unnamed Key",
+         "LastUsed":0,
+         "LastUsedString":""
       }
    },
    "ConfigVersion":6,

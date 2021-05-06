@@ -166,7 +166,7 @@ func newApiKey(w http.ResponseWriter, r *http.Request) {
 	if !isAuthenticated(w, r, false) {
 		return
 	}
-	api.NewApiKey("Unnamed Key")
+	api.NewKey()
 	redirect(w, "./api")
 }
 
@@ -178,7 +178,7 @@ func deleteApiKey(w http.ResponseWriter, r *http.Request) {
 	}
 	keys, ok := r.URL.Query()["id"]
 	if ok {
-		api.DeleteApiKey(keys[0])
+		api.DeleteKey(keys[0])
 	}
 	redirect(w, "./api")
 }

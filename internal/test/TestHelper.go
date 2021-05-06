@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -22,6 +23,14 @@ type MockT interface {
 // IsEqualString fails test if got and want are not identical
 func IsEqualString(t MockT, got, want string) {
 	if got != want {
+		t.Errorf("Assertion failed, got: %s, want: %s.", got, want)
+	}
+}
+
+// ResponseBodyContains fails test if http response does contain string
+func ResponseBodyContains(t MockT, got *httptest.ResponseRecorder, want string) {
+	result, _ := io.ReadAll(got.Result().Body)
+	if !strings.Contains(string(result), want) {
 		t.Errorf("Assertion failed, got: %s, want: %s.", got, want)
 	}
 }
@@ -150,6 +159,12 @@ type Cookie struct {
 
 func (c *Cookie) toString() string {
 	return c.Name + "=" + c.Value
+}
+
+// Header is a simple struct to pass header values for testing
+type Header struct {
+	Name  string
+	Value string
 }
 
 // PostBody contains mock key/value post data

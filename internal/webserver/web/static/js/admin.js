@@ -32,8 +32,16 @@ document.onpaste = function(event){
 }
 
 
+function parseData(data) {
+    if (!data) return {"Result":"error"};
+    if (typeof data === 'object') return data;
+    if (typeof data === 'string') return JSON.parse(data);
+
+    return {"Result":"error"};
+}
+
 function addRow(jsonText) {
-  let jsonObject = JSON.parse(jsonText);
+  let jsonObject = parseData(jsonText);
   if (jsonObject.Result != "OK") {
 	alert("Failed to upload file!");
 	location.reload();

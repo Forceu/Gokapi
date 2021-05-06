@@ -34,8 +34,8 @@ func Process(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func DeleteApiKey(id string) bool {
-	if !isValidApiKey(id, false) {
+func DeleteKey(id string) bool {
+	if !isValidKey(id, false) {
 		return false
 	}
 	settings := configuration.GetServerSettings()
@@ -44,22 +44,20 @@ func DeleteApiKey(id string) bool {
 	return true
 }
 
-func NewApiKey(name string) {
-	if name == "" {
-		name = "Unnamed key"
-	}
+func NewKey() string {
 	settings := configuration.GetServerSettings()
 	newKey := models.ApiKey{
 		Id:           helper.GenerateRandomString(30),
-		FriendlyName: name,
+		FriendlyName: "Unnamed key",
 		LastUsed:     0,
 	}
 	settings.ApiKeys[newKey.Id] = newKey
 	configuration.ReleaseAndSave()
+	return newKey.Id
 }
 
 func changeFriendlyName(w http.ResponseWriter, request apiRequest) {
-	if !isValidApiKey(request.apiKeyToModify, false) {
+	if !isValidKey(request.apiKeyToModify, false) {
 		sendError(w, http.StatusBadRequest, "Invalid api key provided.")
 		return
 	}
@@ -79,7 +77,7 @@ func changeFriendlyName(w http.ResponseWriter, request apiRequest) {
 }
 
 func deleteFile(w http.ResponseWriter, request apiRequest) {
-	ok := storage.DeleteFile(request.headerId)
+	ok := storage.DeleteFile(request.fileId)
 	if ok {
 		sendOk(w)
 	} else {
@@ -101,7 +99,7 @@ func upload(w http.ResponseWriter, request apiRequest) {
 	// TODO
 }
 
-func isValidApiKey(key string, modifyTime bool) bool {
+func isValidKey(key string, modifyTime bool) bool {
 	if key == "" {
 		return false
 	}
@@ -121,7 +119,7 @@ func isValidApiKey(key string, modifyTime bool) bool {
 }
 
 func isAuthorised(w http.ResponseWriter, request apiRequest) bool {
-	if isValidApiKey(request.apiKey, true) || sessionmanager.IsValidSession(w, request.request) {
+	if isValidKey(request.apiKey, true) || sessionmanager.IsValidSession(w, request.request) {
 		return true
 	}
 	sendError(w, http.StatusUnauthorized, "Unauthorized")
@@ -140,7 +138,7 @@ func sendOk(w http.ResponseWriter) {
 type apiRequest struct {
 	apiKey         string
 	requestUrl     string
-	headerId       string
+	fileId         string
 	friendlyName   string
 	apiKeyToModify string
 	request        *http.Request
@@ -149,7 +147,7 @@ type apiRequest struct {
 func parseRequest(r *http.Request) apiRequest {
 	return apiRequest{
 		apiKey:         r.Header.Get("apikey"),
-		headerId:       r.Header.Get("id"),
+		fileId:         r.Header.Get("id"),
 		friendlyName:   r.Header.Get("friendlyName"),
 		apiKeyToModify: r.Header.Get("apiKeyToModify"),
 		requestUrl:     strings.Replace(r.URL.String(), "/api", "", 1),
