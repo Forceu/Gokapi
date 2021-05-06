@@ -82,6 +82,9 @@ func Start() {
 	http.HandleFunc("/downloadFile", downloadFile)
 	http.HandleFunc("/forgotpw", forgotPassword)
 	http.HandleFunc("/api/", processApi)
+	http.HandleFunc("/api", showApiAdmin)
+	http.HandleFunc("/apiNew", newApiKey)
+	http.HandleFunc("/apiDelete", deleteApiKey)
 	fmt.Println("Binding webserver to " + webserverPort)
 	fmt.Println("Webserver can be accessed at " + webserverExtUrl + "admin")
 	srv := &http.Server{
@@ -144,6 +147,40 @@ func showError(w http.ResponseWriter, r *http.Request) {
 func forgotPassword(w http.ResponseWriter, r *http.Request) {
 	err := templateFolder.ExecuteTemplate(w, "forgotpw", genericView{})
 	helper.Check(err)
+}
+
+// Handling of /api
+// If user is authenticated, this menu lists all uploads and enables uploading new files
+func showApiAdmin(w http.ResponseWriter, r *http.Request) {
+	addNoCacheHeader(w)
+	if !isAuthenticated(w, r, false) {
+		return
+	}
+	err := templateFolder.ExecuteTemplate(w, "api", (&UploadView{}).convertGlobalConfig(false))
+	helper.Check(err)
+}
+
+// Handling of /apiNew
+func newApiKey(w http.ResponseWriter, r *http.Request) {
+	addNoCacheHeader(w)
+	if !isAuthenticated(w, r, false) {
+		return
+	}
+	api.NewApiKey("Unnamed Key")
+	redirect(w, "./api")
+}
+
+// Handling of /apiDelete
+func deleteApiKey(w http.ResponseWriter, r *http.Request) {
+	addNoCacheHeader(w)
+	if !isAuthenticated(w, r, false) {
+		return
+	}
+	keys, ok := r.URL.Query()["id"]
+	if ok {
+		api.DeleteApiKey(keys[0])
+	}
+	redirect(w, "./api")
 }
 
 // Handling of /api/
@@ -275,7 +312,7 @@ func showAdminMenu(w http.ResponseWriter, r *http.Request) {
 	if !isAuthenticated(w, r, false) {
 		return
 	}
-	err := templateFolder.ExecuteTemplate(w, "admin", (&UploadView{}).convertGlobalConfig())
+	err := templateFolder.ExecuteTemplate(w, "admin", (&UploadView{}).convertGlobalConfig(true))
 	helper.Check(err)
 }
 
@@ -291,6 +328,7 @@ type DownloadView struct {
 // UploadView contains parameters for the admin menu template
 type UploadView struct {
 	Items            []models.File
+	ApiKeys          []models.ApiKey
 	Url              string
 	HotlinkUrl       string
 	TimeNow          int64
@@ -304,27 +342,46 @@ type UploadView struct {
 
 // Converts the globalConfig variable to an UploadView struct to pass the infos to
 // the admin template
-func (u *UploadView) convertGlobalConfig() *UploadView {
+func (u *UploadView) convertGlobalConfig(isMainView bool) *UploadView {
 	var result []models.File
+	var resultApi []models.ApiKey
 	settings := configuration.GetServerSettings()
-	for _, element := range settings.Files {
-		result = append(result, element)
-	}
-	sort.Slice(result[:], func(i, j int) bool {
-		if result[i].ExpireAt == result[j].ExpireAt {
-			return result[i].Id > result[j].Id
+	if isMainView {
+		for _, element := range settings.Files {
+			result = append(result, element)
 		}
-		return result[i].ExpireAt > result[j].ExpireAt
-	})
+		sort.Slice(result[:], func(i, j int) bool {
+			if result[i].ExpireAt == result[j].ExpireAt {
+				return result[i].Id > result[j].Id
+			}
+			return result[i].ExpireAt > result[j].ExpireAt
+		})
+	} else {
+		for _, element := range settings.ApiKeys {
+			if element.LastUsed == 0 {
+				element.LastUsedString = "Never"
+			} else {
+				element.LastUsedString = time.Unix(element.LastUsed, 0).Format("2006-01-02 15:04:05")
+			}
+			resultApi = append(resultApi, element)
+		}
+		sort.Slice(resultApi[:], func(i, j int) bool {
+			if resultApi[i].LastUsed == resultApi[j].LastUsed {
+				return resultApi[i].Id < resultApi[j].Id
+			}
+			return resultApi[i].LastUsed > resultApi[j].LastUsed
+		})
+	}
 	u.Url = settings.ServerUrl + "d?id="
 	u.HotlinkUrl = settings.ServerUrl + "hotlink/"
 	u.DefaultPassword = settings.DefaultPassword
 	u.Items = result
 	u.DefaultExpiry = settings.DefaultExpiry
+	u.ApiKeys = resultApi
 	u.DefaultDownloads = settings.DefaultDownloads
 	u.TimeNow = time.Now().Unix()
 	u.IsAdminView = true
-	u.IsMainView = true
+	u.IsMainView = isMainView
 	configuration.Release()
 	return u
 }

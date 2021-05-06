@@ -1,0 +1,84 @@
+{{ define "api" }}
+{{ template "header" . }}
+<div class="row">
+    <div class="col">
+        <div id="container" class="card" style="width: 80%">
+            <div class="card-body">
+                <h3 class="card-title">API Keys</h3>
+                <br>
+                TODO: API documentation
+                <br>
+                <div class="table-responsive">
+                    <table class="table table-dark">
+                        <thead>
+                            <tr>
+                                <th scope="col">Name</th>
+                                <th scope="col">API Key</th>
+                                <th scope="col">Last Used</th>
+                                <th scope="col">Actions</th>
+				<th scope="col"><button type="button" class="btn btn-outline-light btn-sm" onclick="window.location='./apiNew'">New Key</button></th>
+
+                            </tr>
+                        </thead>
+                        <tbody>
+{{ range .ApiKeys }}
+                            <tr>
+                                <td scope="col" id="{{ .Id }}" class="apiname">{{ .FriendlyName }}</td>
+                                <td scope="col">{{ .Id }}</td>
+                                <td scope="col">{{ .LastUsedString }}</td>
+                                <td scope="col"><button type="button" data-clipboard-text="{{ .Id }}" class="copyurl btn btn-outline-light btn-sm">Copy API Key</button> <button type="button" class="btn btn-outline-light btn-sm" onclick="window.location='./apiDelete?id={{ .Id }}'">Delete</button></td>
+ <td scope="col"></td>
+                            </tr>
+{{ end }}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="./js/admin.js?v=4"></script>
+<script>
+	document.querySelectorAll(".apiname").forEach(function(node) {
+	    node.onclick = function() {
+		if (this.classList.contains("isBeingEdited"))
+		    return;
+		this.classList.add("isBeingEdited");
+		var val = this.innerHTML;
+		var input = document.createElement("input");
+		input.size = 5;
+		input.value = val;
+		let row = this;
+		let allowEdit = true;
+		let submitEntry = function() {
+		    if (!allowEdit)
+			return;
+		    allowEdit = false;
+		    var val = input.value;
+		    input.parentNode.innerHTML = val;
+		    let xmlhttp = new XMLHttpRequest();
+		    xmlhttp.open("GET", "./api/auth/friendlyname");
+		    xmlhttp.setRequestHeader("apiKeyToModify", row.id);
+		    xmlhttp.setRequestHeader("friendlyName", val);
+		    xmlhttp.send();
+		    row.classList.remove("isBeingEdited");
+
+		    //xmlhttp.onreadystatechange = (e) => {
+		    //}
+		}
+		input.onblur = submitEntry;
+		input.addEventListener("keyup", function(event) {
+		    //Enter
+		    if (event.keyCode === 13) {
+		        event.preventDefault();
+		        submitEntry();
+		    }
+		});
+		this.innerHTML = "";
+		this.appendChild(input);
+		input.focus();
+	    }
+	});
+</script>
+{{ template "footer" }}
+{{ end }}

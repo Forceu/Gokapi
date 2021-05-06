@@ -43,7 +43,8 @@
         <div  style="max-width: 80em;  margin: 0 auto;"  class="inner">
           <h1>{{template "app_name"}}</h1>
           <nav class="nav nav-masthead justify-content-center">
-            <a class="nav-link {{ if .IsMainView }}active{{ end }}" href="#">Upload</a>
+            <a class="nav-link {{ if .IsMainView }}active{{ end }}" href="./admin">Upload</a>
+            <a class="nav-link {{ if not .IsMainView }}active{{ end }}" href="./api">API</a>
             <a class="nav-link" href="./logout">Logout</a>
           </nav>
         </div>
