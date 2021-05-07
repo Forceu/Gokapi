@@ -2,11 +2,17 @@ package api
 
 import (
 	"Gokapi/internal/configuration"
+	"Gokapi/internal/models"
 	"Gokapi/internal/test"
 	"Gokapi/internal/test/testconfiguration"
+	"bytes"
+	"encoding/json"
+	"io"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -50,22 +56,22 @@ func TestIsValidApiKey(t *testing.T) {
 }
 
 func TestProcess(t *testing.T) {
-	w, r := getRecorder("GET", "/api/auth/friendlyname", nil, nil)
+	w, r := getRecorder("GET", "/api/auth/friendlyname", nil, nil, nil)
 	Process(w, r)
 	test.ResponseBodyContains(t, w, "{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}")
-	w, r = getRecorder("GET", "/api/invalid", nil, nil)
+	w, r = getRecorder("GET", "/api/invalid", nil, nil, nil)
 	Process(w, r)
 	test.ResponseBodyContains(t, w, "Unauthorized")
 	w, r = getRecorder("GET", "/api/invalid", nil, []test.Header{{
 		Name:  "apikey",
 		Value: "validkey",
-	}})
+	}}, nil)
 	Process(w, r)
 	test.ResponseBodyContains(t, w, "Invalid request")
 	w, r = getRecorder("GET", "/api/invalid", []test.Cookie{{
 		Name:  "session_token",
 		Value: "validsession",
-	}}, nil)
+	}}, nil, nil)
 	Process(w, r)
 	test.ResponseBodyContains(t, w, "Invalid request")
 }
@@ -76,19 +82,19 @@ func TestChangeFriendlyName(t *testing.T) {
 	w, r := getRecorder("GET", "/api/auth/friendlyname", nil, []test.Header{{
 		Name:  "apikey",
 		Value: "validkey",
-	}})
+	}}, nil)
 	Process(w, r)
 	test.ResponseBodyContains(t, w, "Invalid api key provided.")
 	w, r = getRecorder("GET", "/api/auth/friendlyname", nil, []test.Header{{
 		Name: "apikey", Value: "validkey"}, {
-		Name: "apiKeyToModify", Value: "validkey"}})
+		Name: "apiKeyToModify", Value: "validkey"}}, nil)
 	Process(w, r)
 	test.IsEqualInt(t, w.Code, 200)
 	test.IsEqualString(t, settings.ApiKeys["validkey"].FriendlyName, "Unnamed key")
 	w, r = getRecorder("GET", "/api/auth/friendlyname", nil, []test.Header{{
 		Name: "apikey", Value: "validkey"}, {
 		Name: "apiKeyToModify", Value: "validkey"}, {
-		Name: "friendlyName", Value: "NewName"}})
+		Name: "friendlyName", Value: "NewName"}}, nil)
 	Process(w, r)
 	test.IsEqualInt(t, w.Code, 200)
 	test.IsEqualString(t, settings.ApiKeys["validkey"].FriendlyName, "NewName")
@@ -103,7 +109,7 @@ func TestDeleteFile(t *testing.T) {
 	w, r := getRecorder("GET", "/api/files/delete", nil, []test.Header{{
 		Name:  "apikey",
 		Value: "validkey",
-	}})
+	}}, nil)
 	Process(w, r)
 	test.ResponseBodyContains(t, w, "Invalid id provided.")
 	w, r = getRecorder("GET", "/api/files/delete", nil, []test.Header{{
@@ -113,7 +119,7 @@ func TestDeleteFile(t *testing.T) {
 		Name:  "id",
 		Value: "invalid",
 	},
-	})
+	}, nil)
 	Process(w, r)
 	test.ResponseBodyContains(t, w, "Invalid id provided.")
 	test.IsEqualString(t, settings.Files["jpLXGJKigM4hjtA6T6sN2"].Id, "jpLXGJKigM4hjtA6T6sN2")
@@ -124,25 +130,59 @@ func TestDeleteFile(t *testing.T) {
 		Name:  "id",
 		Value: "jpLXGJKigM4hjtA6T6sN2",
 	},
-	})
+	}, nil)
 	Process(w, r)
 	test.IsEqualInt(t, w.Code, 200)
 	test.IsEqualString(t, settings.Files["jpLXGJKigM4hjtA6T6sN2"].Id, "")
+}
+
+func TestUpload(t *testing.T) {
+	file, err := os.Open("test/fileupload.jpg")
+	test.IsNil(t, err)
+	defer file.Close()
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile("file", filepath.Base(file.Name()))
+	test.IsNil(t, err)
+	io.Copy(part, file)
+	writer.Close()
+	w, r := getRecorder("POST", "/api/files/add", nil, []test.Header{{
+		Name:  "apikey",
+		Value: "validkey",
+	}}, body)
+	r.Header.Add("Content-Type", writer.FormDataContentType())
+
+	Process(w, r)
+	response, err := io.ReadAll(w.Result().Body)
+	test.IsNil(t, err)
+	result := models.Result{}
+	err = json.Unmarshal(response, &result)
+	test.IsNil(t, err)
+	test.IsEqualString(t, result.Result, "OK")
+	test.IsEqualString(t, result.FileInfo.Size, "3 B")
+	test.IsEqualString(t, result.Url, "http://127.0.0.1:53843/d?id=")
+	w, r = getRecorder("POST", "/api/files/add", nil, []test.Header{{
+		Name:  "apikey",
+		Value: "validkey",
+	}}, body)
+	Process(w, r)
+	test.ResponseBodyContains(t, w, "Content-Type isn't multipart/form-data")
+	test.IsEqualInt(t, w.Code, 400)
 }
 
 func TestList(t *testing.T) {
 	w, r := getRecorder("GET", "/api/files/list", nil, []test.Header{{
 		Name:  "apikey",
 		Value: "validkey",
-	}})
+	}}, nil)
 	Process(w, r)
 	test.IsEqualInt(t, w.Code, 200)
 	test.ResponseBodyContains(t, w, "picture.jpg")
 }
 
-func getRecorder(method, target string, cookies []test.Cookie, headers []test.Header) (*httptest.ResponseRecorder, *http.Request) {
+func getRecorder(method, target string, cookies []test.Cookie, headers []test.Header, body io.Reader) (*httptest.ResponseRecorder, *http.Request) {
 	w := httptest.NewRecorder()
-	r := httptest.NewRequest(method, target, nil)
+	r := httptest.NewRequest(method, target, body)
 	if cookies != nil {
 		for _, cookie := range cookies {
 			r.AddCookie(&http.Cookie{

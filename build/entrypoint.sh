@@ -6,7 +6,7 @@ set -e
 targets=${@-"darwin/amd64 linux/amd64 linux/386 linux/arm linux/arm64 windows/amd64 windows/386"}
 
 cd /usr/src/myapp
-go generate Gokapi/cmd/gokapi
+go generate ./...
 
 for target in $targets; do
   os="$(echo $target | cut -d '/' -f1)"

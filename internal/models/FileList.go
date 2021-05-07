@@ -42,6 +42,7 @@ func (f *File) ToJsonResult(serverUrl string) string {
 }
 
 // Result is the struct used for the result after an upload
+// swagger:model UploadResult
 type Result struct {
 	Result     string `json:"Result"`
 	FileInfo   *File  `json:"FileInfo"`

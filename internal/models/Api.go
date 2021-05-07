@@ -7,13 +7,3 @@ type ApiKey struct {
 	LastUsed       int64  `json:"LastUsed"`
 	LastUsedString string `json:"LastUsedString"`
 }
-
-// UploadItem is the result for the "list uploads" api call
-type UploadItem struct {
-	Id                 string `json:"Id"`
-	Name               string `json:"Name"`
-	Filesize           int64  `json:"Filesize"`
-	Expiry             int64  `json:"Expiry"`
-	DownloadsRemaining int    `json:"DownloadsRemaining"`
-	Url                string `json:"Url"`
-}

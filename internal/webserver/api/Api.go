@@ -5,12 +5,16 @@ import (
 	"Gokapi/internal/helper"
 	"Gokapi/internal/models"
 	"Gokapi/internal/storage"
+	"Gokapi/internal/webserver/fileupload"
 	"Gokapi/internal/webserver/sessionmanager"
 	"encoding/json"
 	"net/http"
 	"strings"
 	"time"
 )
+
+//go:generate cp ../../../openapi.json ../web/static/apidocumentation/
+//go:generate echo "Copied openapi.json"
 
 // Process parses the request and executes the API call or returns an error message to the sender
 func Process(w http.ResponseWriter, r *http.Request) {
@@ -86,17 +90,27 @@ func deleteFile(w http.ResponseWriter, request apiRequest) {
 }
 
 func list(w http.ResponseWriter) {
+	var validFiles []models.File
 	sendOk(w)
 	settings := configuration.GetServerSettings()
-	result, err := json.Marshal(settings.Files)
+	for _, element := range settings.Files {
+		if element.ExpireAt > time.Now().Unix() && element.DownloadsRemaining > 0 {
+			validFiles = append(validFiles, element)
+		}
+	}
 	configuration.Release()
+	result, err := json.Marshal(validFiles)
 	helper.Check(err)
 	_, _ = w.Write(result)
 }
 
 func upload(w http.ResponseWriter, request apiRequest) {
+	err := fileupload.Process(w, request.request, false)
+	if err != nil {
+		sendError(w, http.StatusBadRequest, err.Error())
+		return
+	}
 	sendOk(w)
-	// TODO
 }
 
 func isValidKey(key string, modifyTime bool) bool {
