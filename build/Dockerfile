@@ -1,4 +1,4 @@
-FROM golang:1.16
+FROM golang:1.16.4
 
 ## To compile:
 ## cd Gokapi/build/

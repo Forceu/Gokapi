@@ -11,6 +11,7 @@ import (
 	"time"
 )
 
+// Process processes a file upload request
 func Process(w http.ResponseWriter, r *http.Request, isWeb bool) error {
 	err := r.ParseMultipartForm(20 * 1024 * 1024)
 	if err != nil {

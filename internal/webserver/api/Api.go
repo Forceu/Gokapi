@@ -38,6 +38,7 @@ func Process(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// DeleteKey deletes the selected API key
 func DeleteKey(id string) bool {
 	if !isValidKey(id, false) {
 		return false
@@ -48,6 +49,7 @@ func DeleteKey(id string) bool {
 	return true
 }
 
+// NewKey generates a new API key
 func NewKey() string {
 	settings := configuration.GetServerSettings()
 	newKey := models.ApiKey{
