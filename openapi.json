@@ -99,7 +99,7 @@
         "tags": [
           "files"
         ],
-        "summary": "Deletes file",
+        "summary": "Deletes the selected file",
         "description": "This API call deletes the selected file and runs the clean-up procedure which purges all expired files from the data directory immediately",
         "operationId": "delete",
         "parameters": [

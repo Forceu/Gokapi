@@ -15,13 +15,13 @@ Gokapi is a lightweight server to share files, which expire after a set amount o
 
 This enables companies or individuals to share their files very easily and having them removed afterwards, therefore saving disk space and having control over who downloads the file from the server.
 
-Customization is very easy with HTML/CSS knowledge. Identical files will be deduplicated.
+Customization is very easy with HTML/CSS knowledge. Identical files will be deduplicated. An API is available to interact with Gokapi.
 
 
 ## Screenshots
-Admin Menu![image](https://user-images.githubusercontent.com/1593467/113477593-3d007980-9483-11eb-9513-78e0fda8abe7.png)
+Admin Menu![image](https://user-images.githubusercontent.com/1593467/117467861-62861480-af54-11eb-8823-a7b8e60d9017.png)
 
-Download Link![image](https://user-images.githubusercontent.com/1593467/113477600-48ec3b80-9483-11eb-9f02-a68586de4308.png)
+Download Link![image](https://user-images.githubusercontent.com/1593467/117467941-7893d500-af54-11eb-9930-6480160fa2e1.png)
 
 
 
