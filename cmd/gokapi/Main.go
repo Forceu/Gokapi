@@ -86,3 +86,4 @@ const logo = `
 
 // Copy go mod file to docker image builder
 //go:generate cp "../../go.mod" "../../build/go.mod"
+//go:generate echo "Copied go.mod to Docker build directory"
