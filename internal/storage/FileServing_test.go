@@ -124,13 +124,15 @@ func TestNewFile(t *testing.T) {
 	bigFile.Close()
 	os.Remove("bigfile")
 
-	testconfiguration.EnableS3()
-	file, err = NewFile(bytes.NewReader(content), &header, request)
-	test.IsNil(t, err)
-	test.IsEqualString(t, file.Name, "bigfile")
-	test.IsEqualString(t, file.SHA256, "da39a3ee5e6b4b0d3255bfef95601890afd80709")
-	test.IsEqualString(t, file.Size, "20.0 MB")
-	testconfiguration.DisableS3()
+	if aws.IsAvailable {
+		testconfiguration.EnableS3()
+		file, err = NewFile(bytes.NewReader(content), &header, request)
+		test.IsNil(t, err)
+		test.IsEqualString(t, file.Name, "bigfile")
+		test.IsEqualString(t, file.SHA256, "da39a3ee5e6b4b0d3255bfef95601890afd80709")
+		test.IsEqualString(t, file.Size, "20.0 MB")
+		testconfiguration.DisableS3()
+	}
 }
 
 func TestServeFile(t *testing.T) {
@@ -149,18 +151,19 @@ func TestServeFile(t *testing.T) {
 	test.IsNil(t, err)
 	test.IsEqualString(t, string(content), "This is a file for testing purposes")
 
-	testconfiguration.EnableS3()
-	r = httptest.NewRequest("GET", "/upload", nil)
-	w = httptest.NewRecorder()
-	file, result = GetFile("awsTest1234567890123")
-	test.IsEqualBool(t, result, true)
-	ServeFile(file, w, r, false)
-	test.ResponseBodyContains(t, w, "https://redirect.url")
-	testconfiguration.DisableS3()
+	if aws.IsAvailable {
+		testconfiguration.EnableS3()
+		r = httptest.NewRequest("GET", "/upload", nil)
+		w = httptest.NewRecorder()
+		file, result = GetFile("awsTest1234567890123")
+		test.IsEqualBool(t, result, true)
+		ServeFile(file, w, r, false)
+		test.ResponseBodyContains(t, w, "https://redirect.url")
+		testconfiguration.DisableS3()
+	}
 }
 
 func TestCleanUp(t *testing.T) {
-	testconfiguration.EnableS3()
 	settings := configuration.GetServerSettings()
 	configuration.Release()
 	test.IsEqualString(t, settings.Files["cleanuptest123456789"].Name, "cleanup")
@@ -226,12 +229,14 @@ func TestCleanUp(t *testing.T) {
 	test.IsEqualString(t, settings.Files["cleanuptest123456789"].Name, "")
 	test.IsEqualBool(t, helper.FileExists("test/data/2341354656543213246465465465432456898794"), false)
 
-	test.IsEqualString(t, settings.Files["awsTest1234567890123"].Name, "Aws Test File")
-	testconfiguration.DisableS3()
+	if aws.IsAvailable {
+		testconfiguration.EnableS3()
+		test.IsEqualString(t, settings.Files["awsTest1234567890123"].Name, "Aws Test File")
+		testconfiguration.DisableS3()
+	}
 }
 
 func TestDeleteFile(t *testing.T) {
-	testconfiguration.EnableS3()
 	testconfiguration.Create(true)
 	configuration.Load()
 	settings := configuration.GetServerSettings()
@@ -246,14 +251,18 @@ func TestDeleteFile(t *testing.T) {
 	test.IsEqualBool(t, result, false)
 	result = DeleteFile("")
 	test.IsEqualBool(t, result, false)
-	result, err := aws.FileExists(settings.Files["awsTest1234567890123"])
-	test.IsEqualBool(t, result, true)
-	test.IsNil(t, err)
-	DeleteFile("awsTest1234567890123")
-	result, err = aws.FileExists(settings.Files["awsTest1234567890123"])
-	test.IsEqualBool(t, result, false)
-	test.IsNil(t, err)
-	testconfiguration.DisableS3()
+
+	if aws.IsAvailable {
+		testconfiguration.EnableS3()
+		result, err := aws.FileExists(settings.Files["awsTest1234567890123"])
+		test.IsEqualBool(t, result, true)
+		test.IsNil(t, err)
+		DeleteFile("awsTest1234567890123")
+		result, err = aws.FileExists(settings.Files["awsTest1234567890123"])
+		test.IsEqualBool(t, result, false)
+		test.IsNil(t, err)
+		testconfiguration.DisableS3()
+	}
 }
 
 func createBigFile(name string, megabytes int64) {

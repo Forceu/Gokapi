@@ -5,6 +5,7 @@ package aws
 
 import (
 	"Gokapi/internal/models"
+	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -16,14 +17,35 @@ import (
 	"time"
 )
 
-// IsCredentialProvided returns true if all credentials are provided, however does not check them to be valid
-func IsCredentialProvided() bool {
+// IsAvailable is true if Gokapi has been compiled with AWS support or the API is being mocked
+const IsAvailable = true
+
+// IsMockApi is true if the API is being mocked and therefore can only be used for testing purposes
+const IsMockApi = false
+
+// IsCredentialProvided returns true if all credentials are provided
+func IsCredentialProvided(checkIfValid bool) bool {
 	requiredKeys := []string{"GOKAPI_AWS_BUCKET", "AWS_REGION", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"}
 	for _, key := range requiredKeys {
 		if !isValidEnv(key) {
 			return false
 		}
 	}
+	if checkIfValid {
+		return checkIfValidLogin()
+	}
+	return true
+}
+
+func checkIfValidLogin() bool {
+	sess := session.Must(session.NewSession())
+	svc := s3.New(sess)
+	_, err := svc.Config.Credentials.Get()
+	if err != nil {
+		fmt.Println("WARNING: AWS S3 login not successful: " + err.Error())
+		return false
+	}
+	fmt.Println("AWS S3 login successful")
 	return true
 }
 
@@ -34,8 +56,8 @@ func isValidEnv(key string) bool {
 
 // Upload uploads a file to AWS
 func Upload(input io.Reader, file models.File) (string, error) {
-	session := session.Must(session.NewSession())
-	uploader := s3manager.NewUploader(session)
+	sess := session.Must(session.NewSession())
+	uploader := s3manager.NewUploader(sess)
 
 	result, err := uploader.Upload(&s3manager.UploadInput{
 		Bucket: aws.String(file.AwsBucket),
@@ -50,8 +72,8 @@ func Upload(input io.Reader, file models.File) (string, error) {
 
 // Download downloads a file from AWS
 func Download(writer io.WriterAt, file models.File) (int64, error) {
-	session := session.Must(session.NewSession())
-	downloader := s3manager.NewDownloader(session)
+	sess := session.Must(session.NewSession())
+	downloader := s3manager.NewDownloader(sess)
 
 	size, err := downloader.Download(writer, &s3.GetObjectInput{
 		Bucket: aws.String(file.AwsBucket),
@@ -66,8 +88,8 @@ func Download(writer io.WriterAt, file models.File) (int64, error) {
 // RedirectToDownload creates a presigned link that is valid for 15 seconds and redirects the
 // client to this url
 func RedirectToDownload(w http.ResponseWriter, r *http.Request, file models.File) error {
-	session := session.Must(session.NewSession())
-	s3svc := s3.New(session)
+	sess := session.Must(session.NewSession())
+	s3svc := s3.New(sess)
 
 	req, _ := s3svc.GetObjectRequest(&s3.GetObjectInput{
 		Bucket:                     aws.String(file.AwsBucket),
@@ -86,8 +108,8 @@ func RedirectToDownload(w http.ResponseWriter, r *http.Request, file models.File
 
 // FileExists returns true if the object is stored in S3
 func FileExists(file models.File) (bool, error) {
-	session := session.Must(session.NewSession())
-	svc := s3.New(session)
+	sess := session.Must(session.NewSession())
+	svc := s3.New(sess)
 
 	_, err := svc.HeadObject(&s3.HeadObjectInput{
 		Bucket: aws.String(file.AwsBucket),
@@ -108,8 +130,8 @@ func FileExists(file models.File) (bool, error) {
 
 // DeleteObject deletes a file from S3
 func DeleteObject(file models.File) (bool, error) {
-	session := session.Must(session.NewSession())
-	svc := s3.New(session)
+	sess := session.Must(session.NewSession())
+	svc := s3.New(sess)
 
 	_, err := svc.DeleteObject(&s3.DeleteObjectInput{
 		Bucket: aws.String(file.AwsBucket),

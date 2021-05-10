@@ -50,7 +50,7 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 	file.AwsBucket = settings.AwsBucket
 	settings.Files[id] = file
 	configuration.ReleaseAndSave()
-	if !aws.IsCredentialProvided() {
+	if !aws.IsCredentialProvided(false) {
 		if !helper.FileExists(dataDir + "/" + file.SHA256) {
 			destinationFile, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 			if err != nil {
@@ -190,7 +190,10 @@ func getFileHandler(file models.File, dataDir string) (*os.File, int64) {
 func FileExists(file models.File, dataDir string) bool {
 	if file.AwsBucket != "" {
 		result, err := aws.FileExists(file)
-		helper.Check(err)
+		if err != nil {
+			fmt.Println("Warning, cannot check file " + file.Id + ": " + err.Error())
+			return true
+		}
 		return result
 	}
 	return helper.FileExists(dataDir + "/" + file.SHA256)

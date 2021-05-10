@@ -108,7 +108,6 @@ func TestChangeFriendlyName(t *testing.T) {
 func TestDeleteFile(t *testing.T) {
 	settings := configuration.GetServerSettings()
 	configuration.Release()
-	testconfiguration.EnableS3()
 	w, r := getRecorder("GET", "/api/files/delete", nil, []test.Header{{
 		Name:  "apikey",
 		Value: "validkey",
@@ -137,7 +136,6 @@ func TestDeleteFile(t *testing.T) {
 	Process(w, r, maxMemory)
 	test.IsEqualInt(t, w.Code, 200)
 	test.IsEqualString(t, settings.Files["jpLXGJKigM4hjtA6T6sN2"].Id, "")
-	testconfiguration.DisableS3()
 }
 
 func TestUpload(t *testing.T) {

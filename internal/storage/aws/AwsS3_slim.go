@@ -12,8 +12,14 @@ import (
 
 const errorString = "AWS not supported in this build"
 
+// IsAvailable is true if Gokapi has been compiled with AWS support or the API is being mocked
+const IsAvailable = false
+
+// IsMockApi is true if the API is being mocked and therefore can only be used for testing purposes
+const IsMockApi = false
+
 // IsCredentialProvided returns true if all credentials are provided, however does not check them to be valid
-func IsCredentialProvided() bool {
+func IsCredentialProvided(checkIfValid bool) bool {
 	return false
 }
 

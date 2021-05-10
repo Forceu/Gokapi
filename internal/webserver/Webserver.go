@@ -169,7 +169,7 @@ func newApiKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	api.NewKey()
-	redirect(w, "./api")
+	redirect(w, "api")
 }
 
 // Handling of /apiDelete
@@ -182,7 +182,7 @@ func deleteApiKey(w http.ResponseWriter, r *http.Request) {
 	if ok {
 		api.DeleteKey(keys[0])
 	}
-	redirect(w, "./api")
+	redirect(w, "api")
 }
 
 // Handling of /api/

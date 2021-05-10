@@ -100,6 +100,9 @@ func HttpPageResult(t MockT, config HttpTestConfig) []*http.Cookie {
 	for _, cookie := range config.Cookies {
 		req.Header.Set("Cookie", cookie.toString())
 	}
+	for _, header := range config.Headers {
+		req.Header.Set(header.Name, header.Value)
+	}
 	if len(config.PostValues) > 0 {
 		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 		req.Header.Add("Content-Length", strconv.Itoa(len(data.Encode())))
@@ -107,8 +110,8 @@ func HttpPageResult(t MockT, config HttpTestConfig) []*http.Cookie {
 	resp, err := client.Do(req)
 	IsNil(t, err)
 
-	if resp.StatusCode != 200 {
-		t.Errorf("Status %d != 200", resp.StatusCode)
+	if resp.StatusCode != config.ResultCode {
+		t.Errorf("Status %d != %d", config.ResultCode, resp.StatusCode)
 	}
 	content, err := ioutil.ReadAll(resp.Body)
 	IsNil(t, err)
@@ -138,8 +141,10 @@ type HttpTestConfig struct {
 	Method          string
 	PostValues      []PostBody
 	Cookies         []Cookie
+	Headers         []Header
 	UploadFileName  string
 	UploadFieldName string
+	ResultCode      int
 }
 
 func (c *HttpTestConfig) init(t MockT) {
@@ -148,6 +153,9 @@ func (c *HttpTestConfig) init(t MockT) {
 	}
 	if c.Method == "" {
 		c.Method = "GET"
+	}
+	if c.ResultCode == 0 {
+		c.ResultCode = 200
 	}
 }
 

@@ -408,9 +408,7 @@ func TestPostUpload(t *testing.T) {
 	})
 }
 
-
 func TestDeleteFile(t *testing.T) {
-	testconfiguration.EnableS3()
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/delete?id=e4TjE7CokWK0giiLNxDL",
 		IsHtml:          true,
@@ -420,5 +418,149 @@ func TestDeleteFile(t *testing.T) {
 			Value: "validsession",
 		}},
 	})
-	testconfiguration.DisableS3()
+}
+
+func TestApiPageAuthorized(t *testing.T) {
+	t.Parallel()
+	test.HttpPageResult(t, test.HttpTestConfig{
+		Url:             "http://127.0.0.1:53843/api",
+		IsHtml:          true,
+		RequiredContent: []string{"Click on the API key name to give it a new name."},
+		Cookies: []test.Cookie{{
+			Name:  "session_token",
+			Value: "validsession",
+		}},
+	})
+}
+func TestApiPageNotAuthorized(t *testing.T) {
+	t.Parallel()
+	test.HttpPageResult(t, test.HttpTestConfig{
+		Url:             "http://127.0.0.1:53843/api",
+		IsHtml:          true,
+		RequiredContent: []string{"URL=./login"},
+		ExcludedContent: []string{"Click on the API key name to give it a new name."},
+		Cookies: []test.Cookie{{
+			Name:  "session_token",
+			Value: "invalid",
+		}},
+	})
+}
+
+func TestNewApiKey(t *testing.T) {
+	// Authorised
+	settings := configuration.GetServerSettings()
+	amountKeys := len(settings.ApiKeys)
+	configuration.Release()
+	test.HttpPageResult(t, test.HttpTestConfig{
+		Url:             "http://127.0.0.1:53843/apiNew",
+		IsHtml:          true,
+		RequiredContent: []string{"URL=./api"},
+		ExcludedContent: []string{"URL=./login"},
+		Cookies: []test.Cookie{{
+			Name:  "session_token",
+			Value: "validsession",
+		}},
+	})
+	settings = configuration.GetServerSettings()
+	amountKeysAfter := len(settings.ApiKeys)
+	configuration.Release()
+	test.IsEqualInt(t, amountKeysAfter, amountKeys+1)
+	test.IsEqualInt(t, amountKeysAfter, 5)
+
+	// Not authorised
+	amountKeys++
+	test.HttpPageResult(t, test.HttpTestConfig{
+		Url:             "http://127.0.0.1:53843/apiNew",
+		IsHtml:          true,
+		RequiredContent: []string{"URL=./login"},
+		ExcludedContent: []string{"URL=./api"},
+		Cookies: []test.Cookie{{
+			Name:  "session_token",
+			Value: "invalid",
+		}},
+	})
+	settings = configuration.GetServerSettings()
+	amountKeysAfter = len(settings.ApiKeys)
+	configuration.Release()
+	test.IsEqualInt(t, amountKeysAfter, amountKeys)
+	test.IsEqualInt(t, amountKeysAfter, 5)
+}
+
+func TestDeleteApiKey(t *testing.T) {
+	// Not authorised
+	settings := configuration.GetServerSettings()
+	amountKeys := len(settings.ApiKeys)
+	configuration.Release()
+	test.HttpPageResult(t, test.HttpTestConfig{
+		Url:             "http://127.0.0.1:53843/apiDelete?id=jiREglQJW0bOqJakfjdVfe8T1EM8n8",
+		IsHtml:          true,
+		RequiredContent: []string{"URL=./login"},
+		ExcludedContent: []string{"URL=./api"},
+		Cookies: []test.Cookie{{
+			Name:  "session_token",
+			Value: "invalid",
+		}},
+	})
+	settings = configuration.GetServerSettings()
+	amountKeysAfter := len(settings.ApiKeys)
+	test.IsEqualString(t, settings.ApiKeys["jiREglQJW0bOqJakfjdVfe8T1EM8n8"].Id, "jiREglQJW0bOqJakfjdVfe8T1EM8n8")
+	configuration.Release()
+	test.IsEqualInt(t, amountKeysAfter, amountKeys)
+	test.IsEqualInt(t, amountKeysAfter, 5)
+
+	// Authorised
+	test.HttpPageResult(t, test.HttpTestConfig{
+		Url:             "http://127.0.0.1:53843/apiDelete?id=jiREglQJW0bOqJakfjdVfe8T1EM8n8",
+		IsHtml:          true,
+		RequiredContent: []string{"URL=./api"},
+		ExcludedContent: []string{"URL=./login"},
+		Cookies: []test.Cookie{{
+			Name:  "session_token",
+			Value: "validsession",
+		}},
+	})
+	settings = configuration.GetServerSettings()
+	amountKeysAfter = len(settings.ApiKeys)
+	test.IsEmpty(t, settings.ApiKeys["jiREglQJW0bOqJakfjdVfe8T1EM8n8"].Id)
+	configuration.Release()
+	test.IsEqualInt(t, amountKeysAfter, amountKeys-1)
+	test.IsEqualInt(t, amountKeysAfter, 4)
+}
+
+func TestProcessApi(t *testing.T) {
+	// Not authorised
+	test.HttpPageResult(t, test.HttpTestConfig{
+		Url:             "http://127.0.0.1:53843/api/files/list",
+		RequiredContent: []string{"{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}"},
+		ExcludedContent: []string{"smallfile2"},
+		ResultCode:      401,
+		Cookies: []test.Cookie{{
+			Name:  "session_token",
+			Value: "invalid",
+		}},
+	})
+	test.HttpPageResult(t, test.HttpTestConfig{
+		Url:             "http://127.0.0.1:53843/api/files/list",
+		RequiredContent: []string{"{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}"},
+		ExcludedContent: []string{"smallfile2"},
+		ResultCode:      401,
+		Headers:         []test.Header{{"apikey", "invalid"}},
+	})
+
+	// Authorised
+	test.HttpPageResult(t, test.HttpTestConfig{
+		Url:             "http://127.0.0.1:53843/api/files/list",
+		RequiredContent: []string{"smallfile2"},
+		ExcludedContent: []string{"Unauthorized"},
+		Cookies: []test.Cookie{{
+			Name:  "session_token",
+			Value: "validsession",
+		}},
+	})
+	test.HttpPageResult(t, test.HttpTestConfig{
+		Url:             "http://127.0.0.1:53843/api/files/list",
+		RequiredContent: []string{"smallfile2"},
+		ExcludedContent: []string{"Unauthorized"},
+		Headers:         []test.Header{{"apikey", "validkey"}},
+	})
 }

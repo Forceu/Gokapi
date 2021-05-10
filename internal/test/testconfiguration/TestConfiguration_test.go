@@ -2,6 +2,7 @@ package testconfiguration
 
 import (
 	"Gokapi/internal/helper"
+	"Gokapi/internal/storage/aws"
 	"Gokapi/internal/test"
 	"os"
 	"testing"
@@ -31,4 +32,17 @@ func TestSetUpgradeConfigFile(t *testing.T) {
 	WriteUpgradeConfigFile()
 	test.IsEqualBool(t, helper.FileExists(configFile), true)
 	TestDelete(t)
+}
+
+func TestEnableS3(t *testing.T) {
+	EnableS3()
+	if aws.IsMockApi {
+		test.IsEqualString(t, os.Getenv("AWS_REGION"), "mock-region-1")
+	}
+}
+func TestDisableS3S3(t *testing.T) {
+	DisableS3()
+	if aws.IsMockApi {
+		test.IsEqualString(t, os.Getenv("AWS_REGION"), "")
+	}
 }

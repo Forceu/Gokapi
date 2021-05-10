@@ -21,6 +21,12 @@ const (
 	accessKey  = "accKey"
 )
 
+// IsAvailable is true if Gokapi has been compiled with AWS support or the API is being mocked
+const IsAvailable = true
+
+// IsMockApi is true if the API is being mocked and therefore can only be used for testing purposes
+const IsMockApi = true
+
 func isValidCredentials() bool {
 	requiredKeys := []string{"GOKAPI_AWS_BUCKET", "AWS_REGION", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"}
 	requiredValues := []string{bucketName, region, accessId, accessKey}
@@ -34,7 +40,7 @@ func isValidCredentials() bool {
 }
 
 // IsCredentialProvided returns true if all credentials are provided, however does not check them to be valid
-func IsCredentialProvided() bool {
+func IsCredentialProvided(checkIfValid bool) bool {
 	requiredKeys := []string{"GOKAPI_AWS_BUCKET", "AWS_REGION", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"}
 	for _, key := range requiredKeys {
 		if !isValidEnv(key) {

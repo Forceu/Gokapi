@@ -5,6 +5,7 @@ package testconfiguration
 import (
 	"Gokapi/internal/models"
 	"Gokapi/internal/storage/aws"
+	"fmt"
 	"os"
 )
 
@@ -42,21 +43,33 @@ func Delete() {
 
 // EnableS3 sets env variables for mock S3
 func EnableS3() {
+	if !aws.IsMockApi {
+		fmt.Println("Warning, using real AWS S3 API! This test will fail if no valid credentials have been provided.")
+		fmt.Println("To mock the API, run test with --tags test,awsmock")
+		return
+	}
 	os.Setenv("GOKAPI_AWS_BUCKET", "gokapi-test")
 	os.Setenv("AWS_REGION", "mock-region-1")
 	os.Setenv("AWS_ACCESS_KEY_ID", "accId")
 	os.Setenv("AWS_SECRET_ACCESS_KEY", "accKey")
-	aws.Upload(nil, models.File{
+	awsFile := models.File{
 		Id:        "awsTest1234567890123",
 		Name:      "aws Test File",
 		Size:      "20 MB",
 		SHA256:    "x341354656543213246465465465432456898794",
 		AwsBucket: "gokapi-test",
-	})
+	}
+	aws.Upload(nil, awsFile)
+	// settings := configuration.GetServerSettings()
+	// settings.Files["awsTest1234567890123"] = awsFile
+	// configuration.Release()
 }
 
 // DisableS3 unsets env variables for mock S3
 func DisableS3() {
+	if !aws.IsMockApi {
+		return
+	}
 	os.Unsetenv("GOKAPI_AWS_BUCKET")
 	os.Unsetenv("AWS_REGION")
 	os.Unsetenv("AWS_ACCESS_KEY_ID")
@@ -239,15 +252,15 @@ var configTestFile = []byte(`{
    "ApiKeys":{
       "validkey":{
          "Id":"validkey",
-         "FriendlyName":"Unnamed Key",
+         "FriendlyName":"First Key",
          "LastUsed":0,
          "LastUsedString":""
       },
       "GAh1IhXDvYnqfYLazWBqMB9HSFmNPO":{
          "Id":"GAh1IhXDvYnqfYLazWBqMB9HSFmNPO",
-         "FriendlyName":"Unnamed Key",
-         "LastUsed":0,
-         "LastUsedString":""
+         "FriendlyName":"Second Key",
+         "LastUsed":1620671580,
+         "LastUsedString":"used"
       },
       "jiREglQJW0bOqJakfjdVfe8T1EM8n8":{
          "Id":"jiREglQJW0bOqJakfjdVfe8T1EM8n8",
