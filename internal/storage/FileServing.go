@@ -186,6 +186,7 @@ func getFileHandler(file models.File, dataDir string) (*os.File, int64) {
 	return storageData, size
 }
 
+// FileExists checks if the file exists locally or in S3
 func FileExists(file models.File, dataDir string) bool {
 	if file.AwsBucket != "" {
 		result, err := aws.FileExists(file)

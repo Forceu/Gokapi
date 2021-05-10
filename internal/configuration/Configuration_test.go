@@ -74,6 +74,7 @@ func TestCreateNewConfig(t *testing.T) {
 	os.Unsetenv("GOKAPI_SALT_ADMIN")
 	Load()
 	test.IsEqualInt(t, len(serverSettings.SaltAdmin), 30)
+	test.IsEqualInt(t, serverSettings.MaxMemory, 20)
 	test.IsNotEqualString(t, serverSettings.SaltAdmin, "eefwkjqweduiotbrkl##$2342brerlk2321")
 	os.Unsetenv("GOKAPI_USERNAME")
 	os.Unsetenv("GOKAPI_PASSWORD")

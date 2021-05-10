@@ -384,19 +384,6 @@ func TestDeleteFileInvalidKey(t *testing.T) {
 	})
 }
 
-func TestDeleteFile(t *testing.T) {
-	t.Parallel()
-	test.HttpPageResult(t, test.HttpTestConfig{
-		Url:             "http://127.0.0.1:53843/delete?id=e4TjE7CokWK0giiLNxDL",
-		IsHtml:          true,
-		RequiredContent: []string{"URL=./admin"},
-		Cookies: []test.Cookie{{
-			Name:  "session_token",
-			Value: "validsession",
-		}},
-	})
-}
-
 func TestPostUploadNoAuth(t *testing.T) {
 	t.Parallel()
 	test.HttpPostRequest(t, test.HttpTestConfig{
@@ -419,4 +406,19 @@ func TestPostUpload(t *testing.T) {
 			Value: "validsession",
 		}},
 	})
+}
+
+
+func TestDeleteFile(t *testing.T) {
+	testconfiguration.EnableS3()
+	test.HttpPageResult(t, test.HttpTestConfig{
+		Url:             "http://127.0.0.1:53843/delete?id=e4TjE7CokWK0giiLNxDL",
+		IsHtml:          true,
+		RequiredContent: []string{"URL=./admin"},
+		Cookies: []test.Cookie{{
+			Name:  "session_token",
+			Value: "validsession",
+		}},
+	})
+	testconfiguration.DisableS3()
 }

@@ -1,4 +1,5 @@
 // +build noaws
+// +build !awsmock
 
 package aws
 

@@ -5,6 +5,7 @@ import (
 	"Gokapi/internal/helper"
 	"Gokapi/internal/models"
 	"Gokapi/internal/storage"
+	"Gokapi/internal/test/testconfiguration"
 	"Gokapi/internal/webserver/fileupload"
 	"Gokapi/internal/webserver/sessionmanager"
 	"encoding/json"
@@ -83,12 +84,14 @@ func changeFriendlyName(w http.ResponseWriter, request apiRequest) {
 }
 
 func deleteFile(w http.ResponseWriter, request apiRequest) {
+	testconfiguration.EnableS3()
 	ok := storage.DeleteFile(request.fileId)
 	if ok {
 		sendOk(w)
 	} else {
 		sendError(w, http.StatusBadRequest, "Invalid id provided.")
 	}
+	testconfiguration.DisableS3()
 }
 
 func list(w http.ResponseWriter) {

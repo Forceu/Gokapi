@@ -5,7 +5,7 @@
 cd ../../
 which gopherbadger > /dev/null
 if [ $? -eq 0 ]; then
-	gopherbadger -png=false -md=README.md -tags "test" > /dev/null
+	gopherbadger -png=false -md=README.md -tags "test,awsmock" > /dev/null
 	rm coverage.out
 	echo "Updated coverage in readme file"
 else

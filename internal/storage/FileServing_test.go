@@ -4,6 +4,7 @@ import (
 	"Gokapi/internal/configuration"
 	"Gokapi/internal/helper"
 	"Gokapi/internal/models"
+	"Gokapi/internal/storage/aws"
 	"Gokapi/internal/test"
 	"Gokapi/internal/test/testconfiguration"
 	"bytes"
@@ -97,6 +98,39 @@ func TestNewFile(t *testing.T) {
 	test.IsEqualInt(t, len(file.Id), 20)
 	test.IsEqualInt(t, int(file.ExpireAt), 2147483600)
 	idNewFile = file.Id
+
+	createBigFile("bigfile", 20)
+	bigFile, _ := os.Open("bigfile")
+	mimeHeader = make(textproto.MIMEHeader)
+	mimeHeader.Set("Content-Disposition", "form-data; name=\"file\"; filename=\"bigfile\"")
+	mimeHeader.Set("Content-Type", "application/binary")
+	header = multipart.FileHeader{
+		Filename: "bigfile",
+		Header:   mimeHeader,
+		Size:     int64(20) * 1024 * 1024,
+	}
+	request = models.UploadRequest{
+		AllowedDownloads: 1,
+		Expiry:           999,
+		ExpiryTimestamp:  2147483600,
+		MaxMemory:        10,
+		DataDir:          "test/data",
+	}
+	file, err = NewFile(bigFile, &header, request)
+	test.IsNil(t, err)
+	test.IsEqualString(t, file.Name, "bigfile")
+	test.IsEqualString(t, file.SHA256, "da39a3ee5e6b4b0d3255bfef95601890afd80709")
+	test.IsEqualString(t, file.Size, "20.0 MB")
+	bigFile.Close()
+	os.Remove("bigfile")
+
+	testconfiguration.EnableS3()
+	file, err = NewFile(bytes.NewReader(content), &header, request)
+	test.IsNil(t, err)
+	test.IsEqualString(t, file.Name, "bigfile")
+	test.IsEqualString(t, file.SHA256, "da39a3ee5e6b4b0d3255bfef95601890afd80709")
+	test.IsEqualString(t, file.Size, "20.0 MB")
+	testconfiguration.DisableS3()
 }
 
 func TestServeFile(t *testing.T) {
@@ -114,9 +148,19 @@ func TestServeFile(t *testing.T) {
 	content, err := ioutil.ReadAll(w.Result().Body)
 	test.IsNil(t, err)
 	test.IsEqualString(t, string(content), "This is a file for testing purposes")
+
+	testconfiguration.EnableS3()
+	r = httptest.NewRequest("GET", "/upload", nil)
+	w = httptest.NewRecorder()
+	file, result = GetFile("awsTest1234567890123")
+	test.IsEqualBool(t, result, true)
+	ServeFile(file, w, r, false)
+	test.ResponseBodyContains(t, w, "https://redirect.url")
+	testconfiguration.DisableS3()
 }
 
 func TestCleanUp(t *testing.T) {
+	testconfiguration.EnableS3()
 	settings := configuration.GetServerSettings()
 	configuration.Release()
 	test.IsEqualString(t, settings.Files["cleanuptest123456789"].Name, "cleanup")
@@ -181,9 +225,13 @@ func TestCleanUp(t *testing.T) {
 	CleanUp(false)
 	test.IsEqualString(t, settings.Files["cleanuptest123456789"].Name, "")
 	test.IsEqualBool(t, helper.FileExists("test/data/2341354656543213246465465465432456898794"), false)
+
+	test.IsEqualString(t, settings.Files["awsTest1234567890123"].Name, "Aws Test File")
+	testconfiguration.DisableS3()
 }
 
 func TestDeleteFile(t *testing.T) {
+	testconfiguration.EnableS3()
 	testconfiguration.Create(true)
 	configuration.Load()
 	settings := configuration.GetServerSettings()
@@ -198,4 +246,20 @@ func TestDeleteFile(t *testing.T) {
 	test.IsEqualBool(t, result, false)
 	result = DeleteFile("")
 	test.IsEqualBool(t, result, false)
+	result, err := aws.FileExists(settings.Files["awsTest1234567890123"])
+	test.IsEqualBool(t, result, true)
+	test.IsNil(t, err)
+	DeleteFile("awsTest1234567890123")
+	result, err = aws.FileExists(settings.Files["awsTest1234567890123"])
+	test.IsEqualBool(t, result, false)
+	test.IsNil(t, err)
+	testconfiguration.DisableS3()
+}
+
+func createBigFile(name string, megabytes int64) {
+	size := megabytes * 1024 * 1024
+	file, _ := os.Create(name)
+	_, _ = file.Seek(size-1, 0)
+	_, _ = file.Write([]byte{0})
+	_ = file.Close()
 }

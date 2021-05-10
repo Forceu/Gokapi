@@ -1,4 +1,5 @@
-//  +build awstest
+// +build awstest
+// +build !awsmock
 
 package aws
 

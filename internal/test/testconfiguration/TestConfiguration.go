@@ -3,6 +3,8 @@
 package testconfiguration
 
 import (
+	"Gokapi/internal/models"
+	"Gokapi/internal/storage/aws"
 	"os"
 )
 
@@ -36,6 +38,29 @@ func WriteUpgradeConfigFile() {
 // Delete deletes the configuration for unit testing
 func Delete() {
 	os.RemoveAll(dataDir)
+}
+
+// EnableS3 sets env variables for mock S3
+func EnableS3() {
+	os.Setenv("GOKAPI_AWS_BUCKET", "gokapi-test")
+	os.Setenv("AWS_REGION", "mock-region-1")
+	os.Setenv("AWS_ACCESS_KEY_ID", "accId")
+	os.Setenv("AWS_SECRET_ACCESS_KEY", "accKey")
+	aws.Upload(nil, models.File{
+		Id:        "awsTest1234567890123",
+		Name:      "aws Test File",
+		Size:      "20 MB",
+		SHA256:    "x341354656543213246465465465432456898794",
+		AwsBucket: "gokapi-test",
+	})
+}
+
+// DisableS3 unsets env variables for mock S3
+func DisableS3() {
+	os.Unsetenv("GOKAPI_AWS_BUCKET")
+	os.Unsetenv("AWS_REGION")
+	os.Unsetenv("AWS_ACCESS_KEY_ID")
+	os.Unsetenv("AWS_SECRET_ACCESS_KEY")
 }
 
 // StartMockInputStdin simulates a user input on stdin. Call StopMockInputStdin afterwards!
@@ -182,6 +207,19 @@ var configTestFile = []byte(`{
          "DownloadsRemaining":0,
          "PasswordHash":"",
          "ContentType":"text/html",
+         "HotlinkId":""
+      },
+      "awsTest1234567890123":{
+         "Id":"awsTest1234567890123",
+         "Name":"Aws Test File",
+         "Size":"20 MB",
+         "SHA256":"x341354656543213246465465465432456898794",
+         "ExpireAt":2147483646,
+         "ExpireAtString":"2021-05-04 15:19",
+         "DownloadsRemaining":4,
+         "PasswordHash":"",
+         "ContentType":"application/octet-stream",
+         "AwsBucket":"gokapi-test",
          "HotlinkId":""
       }
    },
