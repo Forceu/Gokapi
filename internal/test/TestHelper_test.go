@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 	"time"
@@ -154,6 +155,19 @@ func TestHttpPostRequest(t *testing.T) {
 	)
 	mockT.Check()
 	os.Remove("testfile")
+}
+
+func TestResponseBodyContains(t *testing.T) {
+	mockT := MockTest{reference: t}
+	mockT.WantNoFail()
+	w := httptest.NewRecorder()
+	_, _ = io.WriteString(w, "TestContentWrite")
+	ResponseBodyContains(mockT, w, "TestContentWrite")
+	mockT.WantFail()
+	w = httptest.NewRecorder()
+	_, _ = io.WriteString(w, "TestContentWrite")
+	ResponseBodyContains(mockT, w, "invalid")
+	mockT.Check()
 }
 
 func startTestServer() {

@@ -58,6 +58,8 @@ type Configuration struct {
 	SaltFiles        string                           `json:"SaltFiles"`
 	LengthId         int                              `json:"LengthId"`
 	DataDir          string                           `json:"DataDir"`
+	AwsBucket        string                           `json:"AwsBucket"`
+	MaxMemory        int                              `json:"MaxMemory"`
 }
 
 // Load loads the configuration or creates the folder structure and a default configuration
@@ -75,6 +77,8 @@ func Load() {
 	err = decoder.Decode(&serverSettings)
 	helper.Check(err)
 	updateConfig()
+	serverSettings.AwsBucket = Environment.AwsBucketName
+	serverSettings.MaxMemory = Environment.MaxMemory
 	helper.CreateDir(serverSettings.DataDir)
 }
 
@@ -127,7 +131,6 @@ func updateConfig() {
 	if serverSettings.ConfigVersion < 6 {
 		serverSettings.ApiKeys = make(map[string]models.ApiKey)
 	}
-
 	if serverSettings.ConfigVersion < currentConfigVersion {
 		fmt.Println("Successfully upgraded database")
 		serverSettings.ConfigVersion = currentConfigVersion

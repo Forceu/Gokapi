@@ -17,12 +17,7 @@ type File struct {
 	PasswordHash       string `json:"PasswordHash"`
 	HotlinkId          string `json:"HotlinkId"`
 	ContentType        string `json:"ContentType"`
-}
-
-// Hotlink is a struct containing hotlink ids
-type Hotlink struct {
-	Id     string `json:"Id"`
-	FileId string `json:"FileId"`
+	AwsBucket          string `json:"AwsBucket"`
 }
 
 // ToJsonResult converts the file info to a json String used for returning a result for an upload
@@ -39,6 +34,12 @@ func (f *File) ToJsonResult(serverUrl string) string {
 		return "{\"Result\":\"error\",\"ErrorMessage\":\"" + err.Error() + "\"}"
 	}
 	return string(bytes)
+}
+
+// Hotlink is a struct containing hotlink ids
+type Hotlink struct {
+	Id     string `json:"Id"`
+	FileId string `json:"FileId"`
 }
 
 // Result is the struct used for the result after an upload

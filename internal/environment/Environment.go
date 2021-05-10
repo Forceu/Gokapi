@@ -28,13 +28,16 @@ type Environment struct {
 	SaltAdmin          string
 	SaltFiles          string
 	LengthId           int
+	AwsBucketName      string
+	MaxMemory          int
 }
 
 var defaultValues = defaultsEnvironment{
-	CONFIG_DIR:  "config",
-	CONFIG_FILE: "config.json",
-	DATA_DIR:    "data",
-	LENGTH_ID:   15,
+	CONFIG_DIR:           "config",
+	CONFIG_FILE:          "config.json",
+	DATA_DIR:             "data",
+	LENGTH_ID:            15,
+	MAX_MEMORY_UPLOAD_MB: 20,
 }
 
 // New parses the env variables
@@ -57,6 +60,8 @@ func New() Environment {
 		SaltFiles:          envString("SALT_FILES"),
 		WebserverLocalhost: envBool("LOCALHOST"),
 		LengthId:           envInt("LENGTH_ID", 5),
+		AwsBucketName:      envString("AWS_BUCKET"),
+		MaxMemory:          envInt("MAX_MEMORY_UPLOAD_MB", 5),
 	}
 }
 
@@ -121,10 +126,11 @@ func (structPointer *defaultsEnvironment) getInt(name string) int {
 }
 
 type defaultsEnvironment struct {
-	CONFIG_DIR  string
-	CONFIG_FILE string
-	DATA_DIR    string
-	SALT_ADMIN  string
-	SALT_FILES  string
-	LENGTH_ID   int
+	CONFIG_DIR           string
+	CONFIG_FILE          string
+	DATA_DIR             string
+	SALT_ADMIN           string
+	SALT_FILES           string
+	LENGTH_ID            int
+	MAX_MEMORY_UPLOAD_MB int
 }

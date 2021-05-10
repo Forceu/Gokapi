@@ -52,6 +52,7 @@ var (
 	webserverRedirectUrl   string
 	webserverAdminName     string
 	webserverAdminPassword string
+	webserverMaxMemory     int
 )
 
 // Start the webserver on the port set in the config
@@ -102,6 +103,7 @@ func initLocalVariables() {
 	webserverRedirectUrl = settings.RedirectUrl
 	webserverAdminName = settings.AdminName
 	webserverAdminPassword = settings.AdminPassword
+	webserverMaxMemory = settings.MaxMemory
 	configuration.Release()
 }
 
@@ -185,7 +187,7 @@ func deleteApiKey(w http.ResponseWriter, r *http.Request) {
 
 // Handling of /api/
 func processApi(w http.ResponseWriter, r *http.Request) {
-	api.Process(w, r)
+	api.Process(w, r, webserverMaxMemory)
 }
 
 // Handling of /login
@@ -395,7 +397,7 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 	if !isAuthenticated(w, r, true) {
 		return
 	}
-	err := fileupload.Process(w, r, true)
+	err := fileupload.Process(w, r, true, webserverMaxMemory)
 	responseError(w, err)
 }
 

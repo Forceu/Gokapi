@@ -12,8 +12,8 @@ import (
 )
 
 // Process processes a file upload request
-func Process(w http.ResponseWriter, r *http.Request, isWeb bool) error {
-	err := r.ParseMultipartForm(20 * 1024 * 1024)
+func Process(w http.ResponseWriter, r *http.Request, isWeb bool, maxMemory int) error {
+	err := r.ParseMultipartForm(int64(maxMemory) * 1024 * 1024)
 	if err != nil {
 		return err
 	}
@@ -59,6 +59,8 @@ func parseConfig(values formOrHeader, setNewDefaults bool) models.UploadRequest 
 		settings.DefaultPassword = password
 	}
 	externalUrl := settings.ServerUrl
+	dataDir := settings.DataDir
+	maxMemory := settings.MaxMemory
 	configuration.Release()
 	return models.UploadRequest{
 		AllowedDownloads: allowedDownloadsInt,
@@ -66,6 +68,8 @@ func parseConfig(values formOrHeader, setNewDefaults bool) models.UploadRequest 
 		ExpiryTimestamp:  time.Now().Add(time.Duration(expiryDaysInt) * time.Hour * 24).Unix(),
 		Password:         password,
 		ExternalUrl:      externalUrl,
+		MaxMemory:        maxMemory,
+		DataDir:          dataDir,
 	}
 }
 

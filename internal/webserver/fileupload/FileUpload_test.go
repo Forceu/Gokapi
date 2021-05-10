@@ -51,7 +51,7 @@ func TestParseConfig(t *testing.T) {
 func TestProcess(t *testing.T) {
 	w := httptest.NewRecorder()
 	r := getRecorder()
-	err := Process(w, r, false)
+	err := Process(w, r, false, 20)
 	test.IsNil(t, err)
 	resp := w.Result()
 	body, _ := io.ReadAll(resp.Body)

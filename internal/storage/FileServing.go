@@ -9,6 +9,8 @@ import (
 	"Gokapi/internal/configuration/downloadstatus"
 	"Gokapi/internal/helper"
 	"Gokapi/internal/models"
+	"Gokapi/internal/storage/aws"
+	"bytes"
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
@@ -27,17 +29,13 @@ import (
 // already exists, it is deduplicated. This function gathers information about the file, creates an ID and saves
 // it into the global configuration.
 func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequest models.UploadRequest) (models.File, error) {
-	fileBytes, err := ioutil.ReadAll(fileContent)
-	if err != nil {
-		return models.File{}, err
-	}
 	id := helper.GenerateRandomString(configuration.GetLengthId())
-	hash := sha1.New()
-	hash.Write(fileBytes)
+	reader, hash, tempFile := generateHash(fileContent, fileHeader, uploadRequest)
+	defer deleteTempFile(tempFile)
 	file := models.File{
 		Id:                 id,
 		Name:               fileHeader.Filename,
-		SHA256:             hex.EncodeToString(hash.Sum(nil)),
+		SHA256:             hex.EncodeToString(hash),
 		Size:               helper.ByteCountSI(fileHeader.Size),
 		ExpireAt:           uploadRequest.ExpiryTimestamp,
 		ExpireAtString:     time.Unix(uploadRequest.ExpiryTimestamp, 0).Format("2006-01-02 15:04"),
@@ -47,18 +45,57 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 	}
 	addHotlink(&file)
 	settings := configuration.GetServerSettings()
-	defer func() { configuration.ReleaseAndSave() }()
-	settings.Files[id] = file
 	filename := settings.DataDir + "/" + file.SHA256
-	if !helper.FileExists(settings.DataDir + "/" + file.SHA256) {
-		destinationFile, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+	dataDir := settings.DataDir
+	file.AwsBucket = settings.AwsBucket
+	settings.Files[id] = file
+	configuration.ReleaseAndSave()
+	if !aws.IsCredentialProvided() {
+		if !helper.FileExists(dataDir + "/" + file.SHA256) {
+			destinationFile, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+			if err != nil {
+				return models.File{}, err
+			}
+			defer destinationFile.Close()
+			_, err = io.Copy(destinationFile, reader)
+			if err != nil {
+				return models.File{}, err
+			}
+		}
+	} else {
+		_, err := aws.Upload(reader, file)
 		if err != nil {
 			return models.File{}, err
 		}
-		defer destinationFile.Close()
-		destinationFile.Write(fileBytes)
 	}
 	return file, nil
+}
+
+func deleteTempFile(file *os.File) {
+	if file == nil {
+		return
+	}
+	err := os.Remove(file.Name())
+	helper.Check(err)
+}
+
+func generateHash(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequest models.UploadRequest) (io.Reader, []byte, *os.File) {
+	hash := sha1.New()
+	if fileHeader.Size <= int64(uploadRequest.MaxMemory)*1024*1024 {
+		content, err := ioutil.ReadAll(fileContent)
+		helper.Check(err)
+		hash.Write(content)
+		return bytes.NewReader(content), hash.Sum(nil), nil
+	}
+	tempFile, err := os.CreateTemp(uploadRequest.DataDir, "upload")
+	helper.Check(err)
+	_, err = io.Copy(tempFile, fileContent)
+	helper.Check(err)
+	_, err = io.Copy(hash, tempFile)
+	helper.Check(err)
+	_, err = tempFile.Seek(0, io.SeekStart)
+	helper.Check(err)
+	return tempFile, hash.Sum(nil), tempFile
 }
 
 var imageFileExtensions = []string{".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg"}
@@ -92,7 +129,7 @@ func GetFile(id string) (models.File, bool) {
 	if file.ExpireAt < time.Now().Unix() || file.DownloadsRemaining < 1 {
 		return emptyResult, false
 	}
-	if !helper.FileExists(settings.DataDir + "/" + file.SHA256) {
+	if !FileExists(file, settings.DataDir) {
 		return emptyResult, false
 	}
 	return file, true
@@ -116,20 +153,46 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 	file.DownloadsRemaining = file.DownloadsRemaining - 1
 	settings := configuration.GetServerSettings()
 	settings.Files[file.Id] = file
-	storageData, err := os.OpenFile(settings.DataDir+"/"+file.SHA256, os.O_RDONLY, 0644)
+	dataDir := settings.DataDir
 	configuration.Release()
+
+	// If file is not stored on AWS
+	if file.AwsBucket == "" {
+		storageData, size := getFileHandler(file, dataDir)
+		defer storageData.Close()
+		if forceDownload {
+			w.Header().Set("Content-Disposition", "attachment; filename=\""+file.Name+"\"")
+		}
+		w.Header().Set("Content-Length", strconv.FormatInt(size, 10))
+		w.Header().Set("Content-Type", file.ContentType)
+		statusId := downloadstatus.SetDownload(file)
+		http.ServeContent(w, r, file.Name, time.Now(), storageData)
+		downloadstatus.SetComplete(statusId)
+	} else {
+		// If file is stored on AWS
+		downloadstatus.SetDownload(file)
+		err := aws.RedirectToDownload(w, r, file)
+		helper.Check(err)
+		// We are not setting a download complete status, as there is no reliable way to confirm that the
+		// file has been completely downloaded. It expires automatically after 24 hours.
+	}
+}
+
+func getFileHandler(file models.File, dataDir string) (*os.File, int64) {
+	storageData, err := os.OpenFile(dataDir+"/"+file.SHA256, os.O_RDONLY, 0644)
 	helper.Check(err)
-	defer storageData.Close()
 	size, err := helper.GetFileSize(storageData)
 	helper.Check(err)
-	if forceDownload {
-		w.Header().Set("Content-Disposition", "attachment; filename=\""+file.Name+"\"")
+	return storageData, size
+}
+
+func FileExists(file models.File, dataDir string) bool {
+	if file.AwsBucket != "" {
+		result, err := aws.FileExists(file)
+		helper.Check(err)
+		return result
 	}
-	w.Header().Set("Content-Length", strconv.FormatInt(size, 10))
-	w.Header().Set("Content-Type", file.ContentType)
-	statusId := downloadstatus.SetDownload(file)
-	http.ServeContent(w, r, file.Name, time.Now(), storageData)
-	downloadstatus.SetComplete(statusId)
+	return helper.FileExists(dataDir + "/" + file.SHA256)
 }
 
 // CleanUp removes expired files from the config and from the filesystem if they are not referenced by other files anymore
@@ -141,7 +204,7 @@ func CleanUp(periodic bool) {
 	wasItemDeleted := false
 	settings := configuration.GetServerSettings()
 	for key, element := range settings.Files {
-		fileExists := helper.FileExists(settings.DataDir + "/" + element.SHA256)
+		fileExists := FileExists(element, settings.DataDir)
 		if (element.ExpireAt < timeNow || element.DownloadsRemaining < 1 || !fileExists) && !downloadstatus.IsCurrentlyDownloading(element, settings) {
 			deleteFile := true
 			for _, secondLoopElement := range settings.Files {
@@ -150,10 +213,7 @@ func CleanUp(periodic bool) {
 				}
 			}
 			if deleteFile && fileExists {
-				err := os.Remove(settings.DataDir + "/" + element.SHA256)
-				if err != nil {
-					fmt.Println(err)
-				}
+				deleteSource(element, settings.DataDir)
 			}
 			if element.HotlinkId != "" {
 				delete(settings.Hotlinks, element.HotlinkId)
@@ -171,6 +231,19 @@ func CleanUp(periodic bool) {
 	if periodic {
 		time.Sleep(time.Hour)
 		go CleanUp(periodic)
+	}
+}
+
+func deleteSource(file models.File, dataDir string) {
+	var err error
+	if file.AwsBucket != "" {
+		_, err = aws.DeleteObject(file)
+		helper.Check(err)
+	} else {
+		err = os.Remove(dataDir + "/" + file.SHA256)
+	}
+	if err != nil {
+		fmt.Println(err)
 	}
 }
 

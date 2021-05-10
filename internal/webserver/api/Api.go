@@ -17,7 +17,7 @@ import (
 //go:generate echo "Copied openapi.json"
 
 // Process parses the request and executes the API call or returns an error message to the sender
-func Process(w http.ResponseWriter, r *http.Request) {
+func Process(w http.ResponseWriter, r *http.Request, maxMemory int) {
 	w.Header().Set("cache-control", "no-store")
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	request := parseRequest(r)
@@ -28,7 +28,7 @@ func Process(w http.ResponseWriter, r *http.Request) {
 	case "/files/list":
 		list(w)
 	case "/files/add":
-		upload(w, request)
+		upload(w, request, maxMemory)
 	case "/files/delete":
 		deleteFile(w, request)
 	case "/auth/friendlyname":
@@ -106,8 +106,8 @@ func list(w http.ResponseWriter) {
 	_, _ = w.Write(result)
 }
 
-func upload(w http.ResponseWriter, request apiRequest) {
-	err := fileupload.Process(w, request.request, false)
+func upload(w http.ResponseWriter, request apiRequest, maxMemory int) {
+	err := fileupload.Process(w, request.request, false, maxMemory)
 	if err != nil {
 		sendError(w, http.StatusBadRequest, err.Error())
 		return

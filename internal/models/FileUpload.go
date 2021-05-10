@@ -7,4 +7,6 @@ type UploadRequest struct {
 	ExpiryTimestamp  int64
 	Password         string
 	ExternalUrl      string
+	MaxMemory        int
+	DataDir          string
 }

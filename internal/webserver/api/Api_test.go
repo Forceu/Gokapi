@@ -24,6 +24,8 @@ func TestMain(m *testing.M) {
 	os.Exit(exitVal)
 }
 
+const maxMemory = 20
+
 var newKeyId string
 
 func TestNewKey(t *testing.T) {
@@ -57,22 +59,22 @@ func TestIsValidApiKey(t *testing.T) {
 
 func TestProcess(t *testing.T) {
 	w, r := getRecorder("GET", "/api/auth/friendlyname", nil, nil, nil)
-	Process(w, r)
+	Process(w, r, maxMemory)
 	test.ResponseBodyContains(t, w, "{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}")
 	w, r = getRecorder("GET", "/api/invalid", nil, nil, nil)
-	Process(w, r)
+	Process(w, r, maxMemory)
 	test.ResponseBodyContains(t, w, "Unauthorized")
 	w, r = getRecorder("GET", "/api/invalid", nil, []test.Header{{
 		Name:  "apikey",
 		Value: "validkey",
 	}}, nil)
-	Process(w, r)
+	Process(w, r, maxMemory)
 	test.ResponseBodyContains(t, w, "Invalid request")
 	w, r = getRecorder("GET", "/api/invalid", []test.Cookie{{
 		Name:  "session_token",
 		Value: "validsession",
 	}}, nil, nil)
-	Process(w, r)
+	Process(w, r, maxMemory)
 	test.ResponseBodyContains(t, w, "Invalid request")
 }
 
@@ -83,23 +85,23 @@ func TestChangeFriendlyName(t *testing.T) {
 		Name:  "apikey",
 		Value: "validkey",
 	}}, nil)
-	Process(w, r)
+	Process(w, r, maxMemory)
 	test.ResponseBodyContains(t, w, "Invalid api key provided.")
 	w, r = getRecorder("GET", "/api/auth/friendlyname", nil, []test.Header{{
 		Name: "apikey", Value: "validkey"}, {
 		Name: "apiKeyToModify", Value: "validkey"}}, nil)
-	Process(w, r)
+	Process(w, r, maxMemory)
 	test.IsEqualInt(t, w.Code, 200)
 	test.IsEqualString(t, settings.ApiKeys["validkey"].FriendlyName, "Unnamed key")
 	w, r = getRecorder("GET", "/api/auth/friendlyname", nil, []test.Header{{
 		Name: "apikey", Value: "validkey"}, {
 		Name: "apiKeyToModify", Value: "validkey"}, {
 		Name: "friendlyName", Value: "NewName"}}, nil)
-	Process(w, r)
+	Process(w, r, maxMemory)
 	test.IsEqualInt(t, w.Code, 200)
 	test.IsEqualString(t, settings.ApiKeys["validkey"].FriendlyName, "NewName")
 	w = httptest.NewRecorder()
-	Process(w, r)
+	Process(w, r, maxMemory)
 	test.IsEqualInt(t, w.Code, 200)
 }
 
@@ -110,7 +112,7 @@ func TestDeleteFile(t *testing.T) {
 		Name:  "apikey",
 		Value: "validkey",
 	}}, nil)
-	Process(w, r)
+	Process(w, r, maxMemory)
 	test.ResponseBodyContains(t, w, "Invalid id provided.")
 	w, r = getRecorder("GET", "/api/files/delete", nil, []test.Header{{
 		Name:  "apikey",
@@ -120,7 +122,7 @@ func TestDeleteFile(t *testing.T) {
 		Value: "invalid",
 	},
 	}, nil)
-	Process(w, r)
+	Process(w, r, maxMemory)
 	test.ResponseBodyContains(t, w, "Invalid id provided.")
 	test.IsEqualString(t, settings.Files["jpLXGJKigM4hjtA6T6sN2"].Id, "jpLXGJKigM4hjtA6T6sN2")
 	w, r = getRecorder("GET", "/api/files/delete", nil, []test.Header{{
@@ -131,7 +133,7 @@ func TestDeleteFile(t *testing.T) {
 		Value: "jpLXGJKigM4hjtA6T6sN2",
 	},
 	}, nil)
-	Process(w, r)
+	Process(w, r, maxMemory)
 	test.IsEqualInt(t, w.Code, 200)
 	test.IsEqualString(t, settings.Files["jpLXGJKigM4hjtA6T6sN2"].Id, "")
 }
@@ -152,7 +154,7 @@ func TestUpload(t *testing.T) {
 	}}, body)
 	r.Header.Add("Content-Type", writer.FormDataContentType())
 
-	Process(w, r)
+	Process(w, r, maxMemory)
 	response, err := io.ReadAll(w.Result().Body)
 	test.IsNil(t, err)
 	result := models.Result{}
@@ -165,7 +167,7 @@ func TestUpload(t *testing.T) {
 		Name:  "apikey",
 		Value: "validkey",
 	}}, body)
-	Process(w, r)
+	Process(w, r, maxMemory)
 	test.ResponseBodyContains(t, w, "Content-Type isn't multipart/form-data")
 	test.IsEqualInt(t, w.Code, 400)
 }
@@ -175,7 +177,7 @@ func TestList(t *testing.T) {
 		Name:  "apikey",
 		Value: "validkey",
 	}}, nil)
-	Process(w, r)
+	Process(w, r, maxMemory)
 	test.IsEqualInt(t, w.Code, 200)
 	test.ResponseBodyContains(t, w, "picture.jpg")
 }

@@ -72,7 +72,7 @@ func TestNewFile(t *testing.T) {
 	content := []byte("This is a file for testing purposes")
 	mimeHeader := make(textproto.MIMEHeader)
 	mimeHeader.Set("Content-Disposition", "form-data; name=\"file\"; filename=\"test.dat\"")
-	mimeHeader.Set("Content-Type", "text")
+	mimeHeader.Set("Content-Type", "text/plain")
 	header := multipart.FileHeader{
 		Filename: "test.dat",
 		Header:   mimeHeader,
@@ -82,6 +82,8 @@ func TestNewFile(t *testing.T) {
 		AllowedDownloads: 1,
 		Expiry:           999,
 		ExpiryTimestamp:  2147483600,
+		MaxMemory:        10,
+		DataDir:          "test/data",
 	}
 	file, err := NewFile(bytes.NewReader(content), &header, request)
 	test.IsNil(t, err)
@@ -108,7 +110,7 @@ func TestServeFile(t *testing.T) {
 
 	test.IsEqualString(t, w.Result().Header.Get("Content-Disposition"), "attachment; filename=\"test.dat\"")
 	test.IsEqualString(t, w.Result().Header.Get("Content-Length"), "35")
-	test.IsEqualString(t, w.Result().Header.Get("Content-Type"), "text")
+	test.IsEqualString(t, w.Result().Header.Get("Content-Type"), "text/plain")
 	content, err := ioutil.ReadAll(w.Result().Body)
 	test.IsNil(t, err)
 	test.IsEqualString(t, string(content), "This is a file for testing purposes")

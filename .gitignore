@@ -2,3 +2,5 @@ config/
 data/
 .idea/
 Gokapi
+build/*.zip
+gokapi
