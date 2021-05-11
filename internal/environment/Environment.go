@@ -30,6 +30,7 @@ type Environment struct {
 	LengthId           int
 	AwsBucketName      string
 	MaxMemory          int
+	UseSsl             string
 }
 
 var defaultValues = defaultsEnvironment{
@@ -62,6 +63,7 @@ func New() Environment {
 		LengthId:           envInt("LENGTH_ID", 5),
 		AwsBucketName:      envString("AWS_BUCKET"),
 		MaxMemory:          envInt("MAX_MEMORY_UPLOAD_MB", 5),
+		UseSsl:             envBool("USE_SSL"),
 	}
 }
 

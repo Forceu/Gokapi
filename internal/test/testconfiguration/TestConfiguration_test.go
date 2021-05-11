@@ -46,3 +46,14 @@ func TestDisableS3S3(t *testing.T) {
 		test.IsEqualString(t, os.Getenv("AWS_REGION"), "")
 	}
 }
+
+func TestWriteSslCertificates(t *testing.T) {
+	test.IsEqualBool(t, helper.FileExists("test/ssl.key"), false)
+	WriteSslCertificates(true)
+	test.IsEqualBool(t, helper.FileExists("test/ssl.key"), true)
+	os.Remove("test/ssl.key")
+	test.IsEqualBool(t, helper.FileExists("test/ssl.key"), false)
+	WriteSslCertificates(false)
+	test.IsEqualBool(t, helper.FileExists("test/ssl.key"), true)
+	Delete()
+}

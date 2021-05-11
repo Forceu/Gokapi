@@ -9,6 +9,7 @@ import (
 	"Gokapi/internal/environment"
 	"Gokapi/internal/storage"
 	"Gokapi/internal/webserver"
+	"Gokapi/internal/webserver/ssl"
 	"flag"
 	"fmt"
 	"math/rand"
@@ -31,6 +32,7 @@ func main() {
 	fmt.Println("Gokapi v" + Version + " starting")
 	configuration.Load()
 	resetPassword(passedFlags)
+	createSsl(passedFlags)
 	go storage.CleanUp(true)
 	webserver.Start()
 }
@@ -50,10 +52,12 @@ func parseFlags() flags {
 	versionShortFlag := flag.Bool("v", false, "Show version info")
 	versionLongFlag := flag.Bool("version", false, "Show version info")
 	resetPwFlag := flag.Bool("reset-pw", false, "Show prompt to reset admin password")
+	createSslFlag := flag.Bool("create-ssl", false, "Creates a new SSL certificate valid for 365 days")
 	flag.Parse()
 	return flags{
 		showVersion: *versionShortFlag || *versionLongFlag,
 		resetPw:     *resetPwFlag,
+		createSsl:   *createSslFlag,
 	}
 }
 
@@ -67,9 +71,18 @@ func resetPassword(passedFlags flags) {
 	}
 }
 
+func createSsl(passedFlags flags) {
+	if passedFlags.createSsl {
+		settings := configuration.GetServerSettings()
+		configuration.Release()
+		ssl.GenerateIfInvalidCert(settings.ServerUrl, true)
+	}
+}
+
 type flags struct {
 	showVersion bool
 	resetPw     bool
+	createSsl   bool
 }
 
 // ASCII art logo

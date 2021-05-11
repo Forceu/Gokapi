@@ -25,6 +25,7 @@ func TestLoad(t *testing.T) {
 	test.IsEqualString(t, serverSettings.ServerUrl, "http://127.0.0.1:53843/")
 	test.IsEqualString(t, serverSettings.AdminPassword, "10340aece68aa4fb14507ae45b05506026f276cf")
 	test.IsEqualString(t, HashPassword("testtest", false), "10340aece68aa4fb14507ae45b05506026f276cf")
+	test.IsEqualBool(t, serverSettings.UseSsl, false)
 	test.IsEqualInt(t, GetLengthId(), 20)
 	settings := GetServerSettings()
 	Release()
@@ -60,6 +61,7 @@ func TestCreateNewConfig(t *testing.T) {
 	os.Setenv("GOKAPI_REDIRECT_URL", "http://test2.com")
 	os.Setenv("GOKAPI_SALT_ADMIN", "salt123")
 	os.Setenv("GOKAPI_LOCALHOST", "false")
+	os.Setenv("GOKAPI_USE_SSL", "false")
 	Load()
 	test.IsEqualString(t, Environment.ConfigDir, "test")
 	test.IsEqualString(t, serverSettings.Port, ":1234")
@@ -70,6 +72,7 @@ func TestCreateNewConfig(t *testing.T) {
 	test.IsEqualString(t, HashPassword("testtest2", false), "5bbf5684437a4c658d2e0890d784694afb63f715")
 	test.IsEqualString(t, serverSettings.AwsBucket, "bucket")
 	test.IsEqualInt(t, serverSettings.LengthId, 15)
+	test.IsEqualBool(t, serverSettings.UseSsl, false)
 	os.Remove("test/config.json")
 	os.Unsetenv("GOKAPI_SALT_ADMIN")
 	Load()
@@ -82,10 +85,12 @@ func TestCreateNewConfig(t *testing.T) {
 	os.Unsetenv("GOKAPI_EXTERNAL_URL")
 	os.Unsetenv("GOKAPI_REDIRECT_URL")
 	os.Unsetenv("GOKAPI_LOCALHOST")
+	os.Unsetenv("GOKAPI_USE_SSL")
 }
 
 func TestUpgradeDb(t *testing.T) {
 	testconfiguration.WriteUpgradeConfigFile()
+	os.Setenv("GOKAPI_USE_SSL", "true")
 	Load()
 	test.IsEqualString(t, serverSettings.SaltAdmin, "eefwkjqweduiotbrkl##$2342brerlk2321")
 	test.IsEqualString(t, serverSettings.SaltFiles, "P1UI5sRNDwuBgOvOYhNsmucZ2pqo4KEvOoqqbpdu")
@@ -97,6 +102,8 @@ func TestUpgradeDb(t *testing.T) {
 	test.IsEqualString(t, serverSettings.Files["MgXJLe4XLfpXcL12ec4i"].ContentType, "application/octet-stream")
 	test.IsEqualInt(t, serverSettings.ConfigVersion, currentConfigVersion)
 	test.IsEqualString(t, serverSettings.AwsBucket, "bucket")
+	test.IsEqualBool(t, serverSettings.UseSsl, true)
+	os.Unsetenv("GOKAPI_USE_SSL")
 	testconfiguration.Create(false)
 	Load()
 }

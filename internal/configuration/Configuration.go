@@ -32,7 +32,7 @@ var Environment environment.Environment
 var serverSettings Configuration
 
 // Version of the configuration structure. Used for upgrading
-const currentConfigVersion = 6
+const currentConfigVersion = 7
 
 // For locking this object to prevent race conditions
 var mutex sync.Mutex
@@ -59,6 +59,7 @@ type Configuration struct {
 	DataDir          string                           `json:"DataDir"`
 	AwsBucket        string                           `json:"AwsBucket"`
 	MaxMemory        int                              `json:"MaxMemory"`
+	UseSsl           bool                             `json:"UseSsl"`
 }
 
 // Load loads the configuration or creates the folder structure and a default configuration
@@ -130,6 +131,13 @@ func updateConfig() {
 	if serverSettings.ConfigVersion < 6 {
 		serverSettings.ApiKeys = make(map[string]models.ApiKey)
 	}
+	// < v1.2.1
+	if serverSettings.ConfigVersion < 7 {
+		if Environment.UseSsl == environment.IsTrue {
+			serverSettings.UseSsl = true
+		}
+	}
+
 	if serverSettings.ConfigVersion < currentConfigVersion {
 		fmt.Println("Successfully upgraded database")
 		serverSettings.ConfigVersion = currentConfigVersion
@@ -157,6 +165,7 @@ func generateDefaultConfig() {
 	if localOnly == environment.IsFalse {
 		bindAddress = ":" + port
 	}
+	useSsl := askForSsl()
 	saltFiles := Environment.SaltFiles
 	if saltFiles == "" {
 		saltFiles = helper.GenerateRandomString(30)
@@ -180,6 +189,7 @@ func generateDefaultConfig() {
 		SaltFiles:        saltFiles,
 		DataDir:          Environment.DataDir,
 		LengthId:         Environment.LengthId,
+		UseSsl:           useSsl,
 	}
 	save()
 }
@@ -264,6 +274,21 @@ func askForLocalOnly() string {
 		return environment.IsFalse
 	}
 	return environment.IsTrue
+}
+
+// Asks if the server shall use SSL instead of plain text HTTP
+func askForSsl() bool {
+	fmt.Print("Use SSL? [y/N]: ")
+	useSsl := Environment.UseSsl
+	if useSsl != "" {
+		fmt.Println(useSsl)
+		return useSsl == environment.IsTrue
+	}
+	input := strings.ToLower(helper.ReadLine())
+	if input == "y" || input == "yes" {
+		return true
+	}
+	return false
 }
 
 // Asks for server port or loads it from env and returns input as string if valid

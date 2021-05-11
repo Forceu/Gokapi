@@ -36,6 +36,17 @@ func WriteUpgradeConfigFile() {
 	os.WriteFile(configFile, configUpgradeTestFile, 0777)
 }
 
+func WriteSslCertificates(valid bool) {
+	os.Mkdir(dataDir, 0777)
+	if valid {
+		os.WriteFile("test/ssl.crt", sslCertValid, 0700)
+		os.WriteFile("test/ssl.key", sslKeyValid, 0700)
+	} else {
+		os.WriteFile("test/ssl.crt", sslCertExpired, 0700)
+		os.WriteFile("test/ssl.key", sslKeyExpired, 0700)
+	}
+}
+
 // Delete deletes the configuration for unit testing
 func Delete() {
 	os.RemoveAll(dataDir)
@@ -275,11 +286,12 @@ var configTestFile = []byte(`{
          "LastUsedString":""
       }
    },
-   "ConfigVersion":6,
+   "ConfigVersion":7,
    "SaltAdmin":"LW6fW4Pjv8GtdWVLSZD66gYEev6NAaXxOVBw7C",
    "SaltFiles":"lL5wMTtnVCn5TPbpRaSe4vAQodWW0hgk00WCZE",
    "LengthId":20,
-   "DataDir":"test/data"
+   "DataDir":"test/data",
+   "UseSsl":false
 }`)
 
 var configUpgradeTestFile = []byte(`{
@@ -330,3 +342,37 @@ var configUpgradeTestFile = []byte(`{
       }
    }
 }`)
+
+var sslCertValid = []byte(`-----BEGIN CERTIFICATE-----
+MIIBVzCB/aADAgECAgEBMAoGCCqGSM49BAMCMBExDzANBgNVBAoTBkdva2FwaTAe
+Fw0yMTA1MTExNzMwMzVaFw0zODAxMTkwMzE0MDVaMBExDzANBgNVBAoTBkdva2Fw
+aTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABPVFhEGE9MomZ8jLt011yvDnWx8k
+i2jPNG/FzDjXpfgY/PhDWzR+HS3uoMSsAPnxlg/Xqz681ifvO2Ke8tsjZUujRjBE
+MA4GA1UdDwEB/wQEAwIFoDATBgNVHSUEDDAKBggrBgEFBQcDATAMBgNVHRMBAf8E
+AjAAMA8GA1UdEQQIMAaHBH8AAAEwCgYIKoZIzj0EAwIDSQAwRgIhAPOAn+51jcMH
+tKO1wjI6vA0avJIuZNUh7wxq0y6K22mzAiEAisbOg45sRuD2V3ffsGfY6d3XyQvC
+2A69IsVJJwxqr+g=
+-----END CERTIFICATE-----`)
+
+var sslKeyValid = []byte(`-----BEGIN EC PRIVATE KEY-----
+MHcCAQEEINFOm9o9K15wzt2fHcnujDPPNERk02zYiMGfYChhaS8zoAoGCCqGSM49
+AwEHoUQDQgAE9UWEQYT0yiZnyMu3TXXK8OdbHySLaM80b8XMONel+Bj8+ENbNH4d
+Le6gxKwA+fGWD9erPrzWJ+87Yp7y2yNlSw==
+-----END EC PRIVATE KEY-----`)
+
+var sslCertExpired = []byte(`-----BEGIN CERTIFICATE-----
+MIIBVjCB/aADAgECAgEBMAoGCCqGSM49BAMCMBExDzANBgNVBAoTBkdva2FwaTAe
+Fw0yMTA1MTExNzU1MDVaFw0yMTA1MTExNzU1MDZaMBExDzANBgNVBAoTBkdva2Fw
+aTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABF+tcmF6JjtKhltXTWo9mlLCLJ+4
+C2cAi8ahZS9tIaz/QHC1/Gl3i4Nx8QwubYVw9TScAPMUZTZr7TYJ6Gc3vuWjRjBE
+MA4GA1UdDwEB/wQEAwIFoDATBgNVHSUEDDAKBggrBgEFBQcDATAMBgNVHRMBAf8E
+AjAAMA8GA1UdEQQIMAaHBH8AAAEwCgYIKoZIzj0EAwIDSAAwRQIhAI0ZfsFfr/K/
+lcHL0rWkwwlCKIe16v74VFob0pzREW1JAiA0hTFSlv12254Lqf5hEUWPXDeQsq+o
+tTe2z6xKh0dwkQ==
+-----END CERTIFICATE-----`)
+
+var sslKeyExpired = []byte(`-----BEGIN EC PRIVATE KEY-----
+MHcCAQEEIG4kCb5tqz0HyRMBY+HItWtZuT2RmH9w1vsyO2XJcHlLoAoGCCqGSM49
+AwEHoUQDQgAEX61yYXomO0qGW1dNaj2aUsIsn7gLZwCLxqFlL20hrP9AcLX8aXeL
+g3HxDC5thXD1NJwA8xRlNmvtNgnoZze+5Q==
+-----END EC PRIVATE KEY-----`)

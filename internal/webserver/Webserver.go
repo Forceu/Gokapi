@@ -12,6 +12,7 @@ import (
 	"Gokapi/internal/webserver/api"
 	"Gokapi/internal/webserver/fileupload"
 	"Gokapi/internal/webserver/sessionmanager"
+	"Gokapi/internal/webserver/ssl"
 	"embed"
 	"fmt"
 	"html/template"
@@ -53,6 +54,7 @@ var (
 	webserverAdminName     string
 	webserverAdminPassword string
 	webserverMaxMemory     int
+	webserverUseSsl        bool
 )
 
 // Start the webserver on the port set in the config
@@ -87,13 +89,27 @@ func Start() {
 	http.HandleFunc("/apiNew", newApiKey)
 	http.HandleFunc("/apiDelete", deleteApiKey)
 	fmt.Println("Binding webserver to " + webserverPort)
-	fmt.Println("Webserver can be accessed at " + webserverExtUrl + "admin")
 	srv := &http.Server{
 		Addr:         webserverPort,
 		ReadTimeout:  timeOutWebserver,
 		WriteTimeout: timeOutWebserver,
 	}
-	log.Fatal(srv.ListenAndServe())
+	infoMessage := "Webserver can be accessed at " + webserverExtUrl + "admin"
+	if strings.Contains(webserverExtUrl, "127.0.0.1") {
+		if webserverUseSsl {
+			infoMessage = strings.Replace(infoMessage, "http://", "https://", 1)
+		} else {
+			infoMessage = strings.Replace(infoMessage, "https://", "http://", 1)
+		}
+	}
+	if webserverUseSsl {
+		ssl.GenerateIfInvalidCert(webserverExtUrl, false)
+		fmt.Println(infoMessage)
+		log.Fatal(srv.ListenAndServeTLS(ssl.GetCertificateLocations()))
+	} else {
+		fmt.Println(infoMessage)
+		log.Fatal(srv.ListenAndServe())
+	}
 }
 
 func initLocalVariables() {
@@ -104,6 +120,7 @@ func initLocalVariables() {
 	webserverAdminName = settings.AdminName
 	webserverAdminPassword = settings.AdminPassword
 	webserverMaxMemory = settings.MaxMemory
+	webserverUseSsl = settings.UseSsl
 	configuration.Release()
 }
 
