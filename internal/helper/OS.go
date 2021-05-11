@@ -6,7 +6,9 @@ Simplified OS functions
 
 import (
 	"bufio"
+	"golang.org/x/term"
 	"os"
+	"syscall"
 )
 
 // FolderExists returns true if a folder exists
@@ -41,6 +43,16 @@ func ReadLine() string {
 	scanner.Scan()
 	text := scanner.Text()
 	return text
+}
+
+// ReadPassword reads a line without displaying input from the terminal and returns it as a string
+func ReadPassword() string {
+	// int conversion is required for Windows systems
+	pw, err := term.ReadPassword(int(syscall.Stdin))
+	if err == nil {
+		return string(pw)
+	}
+	return ReadLine()
 }
 
 // Check panics if error is not nil
