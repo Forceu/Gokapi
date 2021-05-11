@@ -75,6 +75,7 @@ func deleteTempFile(file *os.File) {
 	if file == nil {
 		return
 	}
+	file.Close()
 	err := os.Remove(file.Name())
 	helper.Check(err)
 }

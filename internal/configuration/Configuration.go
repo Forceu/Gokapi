@@ -12,8 +12,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -233,21 +234,29 @@ func askForPassword() string {
 		}
 		return envPassword
 	}
-	password1, err := terminal.ReadPassword(0)
-	helper.Check(err)
-	if utf8.RuneCountInString(string(password1)) < minLengthPassword {
+	password1 := readPassword()
+	if utf8.RuneCountInString(password1) < minLengthPassword {
 		fmt.Println("\nPassword needs to be at least " + strconv.Itoa(minLengthPassword) + " characters long")
 		return askForPassword()
 	}
 	fmt.Print("\nPassword (repeat): ")
-	password2, err := terminal.ReadPassword(0)
-	helper.Check(err)
-	if string(password1) != string(password2) {
+	password2 := readPassword()
+	if password1 != password2 {
 		fmt.Println("\nPasswords dont match")
 		return askForPassword()
 	}
 	fmt.Println()
-	return string(password1)
+	return password1
+}
+
+func readPassword() string {
+	if runtime.GOOS != "windows" {
+		pw, err := term.ReadPassword(0)
+		if err == nil {
+			return string(pw)
+		}
+	}
+	return helper.ReadLine()
 }
 
 // Asks if the server shall be bound to 127.0.0.1 or loads it from env and returns result as bool

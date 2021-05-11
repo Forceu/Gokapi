@@ -7,7 +7,6 @@ Simplified OS functions
 import (
 	"bufio"
 	"os"
-	"strings"
 )
 
 // FolderExists returns true if a folder exists
@@ -38,9 +37,10 @@ func CreateDir(name string) {
 
 // ReadLine reads a line from the terminal and returns it as a string
 func ReadLine() string {
-	reader := bufio.NewReader(os.Stdin)
-	text, _ := reader.ReadString('\n')
-	return strings.Replace(text, "\n", "", -1)
+	scanner := bufio.NewScanner(os.Stdin)
+	scanner.Scan()
+	text := scanner.Text()
+	return text
 }
 
 // Check panics if error is not nil
