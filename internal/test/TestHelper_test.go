@@ -23,6 +23,8 @@ type MockTest struct {
 func (t MockTest) Errorf(format string, args ...interface{}) {
 	isFailed = true
 }
+func (t MockTest) Helper() {
+}
 
 func (t *MockTest) WantFail() {
 	t.Check()

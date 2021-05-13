@@ -8,6 +8,7 @@ import (
 	"Gokapi/internal/test"
 	"Gokapi/internal/test/testconfiguration"
 	"bytes"
+	"io"
 	"io/ioutil"
 	"mime/multipart"
 	"net/http/httptest"
@@ -116,10 +117,17 @@ func TestNewFile(t *testing.T) {
 		MaxMemory:        10,
 		DataDir:          "test/data",
 	}
+	// Also testing renaming of temp file
 	file, err = NewFile(bigFile, &header, request)
 	test.IsNil(t, err)
 	test.IsEqualString(t, file.Name, "bigfile")
-	test.IsEqualString(t, file.SHA256, "da39a3ee5e6b4b0d3255bfef95601890afd80709")
+	test.IsEqualString(t, file.SHA256, "9674344c90c2f0646f0b78026e127c9b86e3ad77")
+	test.IsEqualString(t, file.Size, "20.0 MB")
+	_, err = bigFile.Seek(0, io.SeekStart)
+	test.IsNil(t, err)
+	// Testing removal of temp file
+	test.IsEqualString(t, file.Name, "bigfile")
+	test.IsEqualString(t, file.SHA256, "9674344c90c2f0646f0b78026e127c9b86e3ad77")
 	test.IsEqualString(t, file.Size, "20.0 MB")
 	bigFile.Close()
 	os.Remove("bigfile")
@@ -129,7 +137,7 @@ func TestNewFile(t *testing.T) {
 		file, err = NewFile(bytes.NewReader(content), &header, request)
 		test.IsNil(t, err)
 		test.IsEqualString(t, file.Name, "bigfile")
-		test.IsEqualString(t, file.SHA256, "da39a3ee5e6b4b0d3255bfef95601890afd80709")
+		test.IsEqualString(t, file.SHA256, "f1474c19eff0fc8998fa6e1b1f7bf31793b103a6")
 		test.IsEqualString(t, file.Size, "20.0 MB")
 		testconfiguration.DisableS3()
 	}

@@ -18,10 +18,12 @@ import (
 
 type MockT interface {
 	Errorf(format string, args ...interface{})
+	Helper()
 }
 
 // IsEqualString fails test if got and want are not identical
 func IsEqualString(t MockT, got, want string) {
+	t.Helper()
 	if got != want {
 		t.Errorf("Assertion failed, got: %s, want: %s.", got, want)
 	}
@@ -29,6 +31,7 @@ func IsEqualString(t MockT, got, want string) {
 
 // ResponseBodyContains fails test if http response does contain string
 func ResponseBodyContains(t MockT, got *httptest.ResponseRecorder, want string) {
+	t.Helper()
 	result, _ := io.ReadAll(got.Result().Body)
 	if !strings.Contains(string(result), want) {
 		t.Errorf("Assertion failed, got: %s, want: %s.", got, want)
@@ -37,6 +40,7 @@ func ResponseBodyContains(t MockT, got *httptest.ResponseRecorder, want string) 
 
 // IsNotEqualString fails test if got and want are not identical
 func IsNotEqualString(t MockT, got, want string) {
+	t.Helper()
 	if got == want {
 		t.Errorf("Assertion failed, got: %s, want: not %s.", got, want)
 	}
@@ -44,6 +48,7 @@ func IsNotEqualString(t MockT, got, want string) {
 
 // IsEqualBool fails test if got and want are not identical
 func IsEqualBool(t MockT, got, want bool) {
+	t.Helper()
 	if got != want {
 		t.Errorf("Assertion failed, got: %t, want: %t.", got, want)
 	}
@@ -51,6 +56,7 @@ func IsEqualBool(t MockT, got, want bool) {
 
 // IsEqualInt fails test if got and want are not identical
 func IsEqualInt(t MockT, got, want int) {
+	t.Helper()
 	if got != want {
 		t.Errorf("Assertion failed, got: %d, want: %d.", got, want)
 	}
@@ -58,6 +64,7 @@ func IsEqualInt(t MockT, got, want int) {
 
 // IsNotEmpty fails test if string is empty
 func IsNotEmpty(t MockT, s string) {
+	t.Helper()
 	if s == "" {
 		t.Errorf("Assertion failed, got: %s, want: empty.", s)
 	}
@@ -65,6 +72,7 @@ func IsNotEmpty(t MockT, s string) {
 
 // IsEmpty fails test if string is not empty
 func IsEmpty(t MockT, s string) {
+	t.Helper()
 	if s != "" {
 		t.Errorf("Assertion failed, got: %s, want: empty.", s)
 	}
@@ -72,6 +80,7 @@ func IsEmpty(t MockT, s string) {
 
 // IsNil fails test if error not nil
 func IsNil(t MockT, got error) {
+	t.Helper()
 	if got != nil {
 		t.Errorf("Assertion failed, got: %s, want: nil.", got.(error).Error())
 	}
@@ -79,6 +88,7 @@ func IsNil(t MockT, got error) {
 
 // IsNotNil fails test if error is nil
 func IsNotNil(t MockT, got error) {
+	t.Helper()
 	if got == nil {
 		t.Errorf("Assertion failed, got: nil, want: not nil.")
 	}
@@ -86,6 +96,7 @@ func IsNotNil(t MockT, got error) {
 
 // HttpPageResult tests if a http server is outputting the correct result
 func HttpPageResult(t MockT, config HttpTestConfig) []*http.Cookie {
+	t.Helper()
 	config.init(t)
 	client := &http.Client{}
 
@@ -148,6 +159,7 @@ type HttpTestConfig struct {
 }
 
 func (c *HttpTestConfig) init(t MockT) {
+	t.Helper()
 	if c.Url == "" {
 		t.Errorf("No url passed!")
 	}
@@ -183,6 +195,7 @@ type PostBody struct {
 
 // HttpPostRequest sends a post request
 func HttpPostRequest(t MockT, config HttpTestConfig) {
+	t.Helper()
 	file, err := os.Open(config.UploadFileName)
 	IsNil(t, err)
 	defer file.Close()

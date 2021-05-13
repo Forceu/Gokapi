@@ -69,6 +69,3 @@ func TestGenerateIfInvalidCert(t *testing.T) {
 	GenerateIfInvalidCert("http://127.0.0.1/", false)
 	test.IsEqualInt(t, getDaysRemaining(), 365)
 }
-
-// fingerprint 79294C898BB086DCCC8CCA1509849F482A4981978907A00E7BD1DE86B4B87F4F
-// valid until

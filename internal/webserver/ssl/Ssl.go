@@ -29,6 +29,7 @@ func isCertificatePresent() bool {
 	return helper.FileExists(certificate) && helper.FileExists(key)
 }
 
+// GetCertificateLocations returns the filepath of the public certificate and private key
 func GetCertificateLocations() (string, string) {
 	if configDir == "" {
 		env := environment.New()
@@ -37,16 +38,17 @@ func GetCertificateLocations() (string, string) {
 	return configDir + "/ssl.crt", configDir + "/ssl.key"
 }
 
+// GenerateIfInvalidCert checks validity of the SSL certificate and generates a new one if none is present or if it is expired
 func GenerateIfInvalidCert(extUrl string, forceGeneration bool) {
 	if !isCertificatePresent() || forceGeneration {
 		generateCertificates(extUrl)
 	} else {
 		days := getDaysRemaining()
-		if days < 15 {
-			fmt.Println("Certificate is valid for less than 15 days.")
+		if days < 8 {
+			fmt.Println("Certificate is valid for less than 8 days.")
 			generateCertificates(extUrl)
 		} else {
-			fmt.Printf("Certificate is valid for %d days. A new one will be generated 14 days before expiration.\n", days)
+			fmt.Printf("Certificate is valid for %d days. A new one will be generated 7 days before expiration.\n", days)
 		}
 	}
 }

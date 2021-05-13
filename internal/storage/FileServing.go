@@ -30,8 +30,9 @@ import (
 // it into the global configuration.
 func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequest models.UploadRequest) (models.File, error) {
 	id := helper.GenerateRandomString(configuration.GetLengthId())
+	var hasBeenRenamed bool
 	reader, hash, tempFile := generateHash(fileContent, fileHeader, uploadRequest)
-	defer deleteTempFile(tempFile)
+	defer deleteTempFile(tempFile, &hasBeenRenamed)
 	file := models.File{
 		Id:                 id,
 		Name:               fileHeader.Filename,
@@ -50,20 +51,28 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 	file.AwsBucket = settings.AwsBucket
 	settings.Files[id] = file
 	configuration.ReleaseAndSave()
-	if !aws.IsCredentialProvided(false) {
-		if !helper.FileExists(dataDir + "/" + file.SHA256) {
-			destinationFile, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
-			if err != nil {
-				return models.File{}, err
-			}
-			defer destinationFile.Close()
-			_, err = io.Copy(destinationFile, reader)
-			if err != nil {
-				return models.File{}, err
-			}
-		}
-	} else {
+	if aws.IsCredentialProvided(false) {
 		_, err := aws.Upload(reader, file)
+		if err != nil {
+			return models.File{}, err
+		}
+		return file, nil
+	}
+	if !helper.FileExists(dataDir + "/" + file.SHA256) {
+		if tempFile != nil {
+			err := tempFile.Close()
+			helper.Check(err)
+			err = os.Rename(tempFile.Name(), dataDir+"/"+file.SHA256)
+			helper.Check(err)
+			hasBeenRenamed = true
+			return file, nil
+		}
+		destinationFile, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+		if err != nil {
+			return models.File{}, err
+		}
+		defer destinationFile.Close()
+		_, err = io.Copy(destinationFile, reader)
 		if err != nil {
 			return models.File{}, err
 		}
@@ -71,15 +80,17 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 	return file, nil
 }
 
-func deleteTempFile(file *os.File) {
-	if file == nil {
-		return
+func deleteTempFile(file *os.File, hasBeenRenamed *bool) {
+	if file != nil && !*hasBeenRenamed {
+		err := file.Close()
+		helper.Check(err)
+		err = os.Remove(file.Name())
+		helper.Check(err)
 	}
-	file.Close()
-	err := os.Remove(file.Name())
-	helper.Check(err)
 }
 
+// Generates the SHA1 hash of an uploaded file and returns a reader for the file, the hash and if a temporary file was created the
+// reference to that file.
 func generateHash(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequest models.UploadRequest) (io.Reader, []byte, *os.File) {
 	hash := sha1.New()
 	if fileHeader.Size <= int64(uploadRequest.MaxMemory)*1024*1024 {
@@ -90,12 +101,12 @@ func generateHash(fileContent io.Reader, fileHeader *multipart.FileHeader, uploa
 	}
 	tempFile, err := os.CreateTemp(uploadRequest.DataDir, "upload")
 	helper.Check(err)
-	_, err = io.Copy(tempFile, fileContent)
-	helper.Check(err)
-	_, err = io.Copy(hash, tempFile)
+	multiWriter := io.MultiWriter(tempFile, hash)
+	_, err = io.Copy(multiWriter, fileContent)
 	helper.Check(err)
 	_, err = tempFile.Seek(0, io.SeekStart)
 	helper.Check(err)
+	// Instead of returning a reference to the file as the 3rd result, one could use reflections. However that would be more expensive.
 	return tempFile, hash.Sum(nil), tempFile
 }
 
