@@ -295,7 +295,7 @@ var configTestFile = []byte(`{
 }`)
 
 var configUpgradeTestFile = []byte(`{
-   "Port":"127.0.0.1:53842",
+   "Port":"127.0.0.1:53844",
    "AdminName":"admin",
    "AdminPassword":"7450c2403ab85f0e8d5436818b66b99fdd287ac6",
    "ServerUrl":"https://gokapi.url/",

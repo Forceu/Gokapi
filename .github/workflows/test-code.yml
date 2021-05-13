@@ -15,3 +15,5 @@ jobs:
       - run: go test ./... --tags=test,awsmock
       - run: go clean -testcache
       - run: go test ./... --tags=test,noaws
+      - run: go clean -testcache
+      - run: go test ./... --tags=test,noaws,integration

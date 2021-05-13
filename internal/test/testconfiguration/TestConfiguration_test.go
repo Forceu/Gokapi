@@ -11,8 +11,8 @@ import (
 func TestCreate(t *testing.T) {
 	Create(true)
 	test.IsEqualBool(t, helper.FolderExists(dataDir), true)
-	test.IsEqualBool(t, helper.FileExists(configFile), true)
-	test.IsEqualBool(t, helper.FileExists("test/data/a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd0"), true)
+	test.FileExists(t, configFile)
+	test.FileExists(t, "test/data/a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd0")
 }
 
 func TestDelete(t *testing.T) {
@@ -30,7 +30,7 @@ func TestMockInputStdin(t *testing.T) {
 func TestSetUpgradeConfigFile(t *testing.T) {
 	os.Remove(configFile)
 	WriteUpgradeConfigFile()
-	test.IsEqualBool(t, helper.FileExists(configFile), true)
+	test.FileExists(t, configFile)
 	TestDelete(t)
 }
 
@@ -48,12 +48,12 @@ func TestDisableS3S3(t *testing.T) {
 }
 
 func TestWriteSslCertificates(t *testing.T) {
-	test.IsEqualBool(t, helper.FileExists("test/ssl.key"), false)
+	test.FileDoesNotExist(t, "test/ssl.key")
 	WriteSslCertificates(true)
-	test.IsEqualBool(t, helper.FileExists("test/ssl.key"), true)
+	test.FileExists(t, "test/ssl.key")
 	os.Remove("test/ssl.key")
-	test.IsEqualBool(t, helper.FileExists("test/ssl.key"), false)
+	test.FileDoesNotExist(t, "test/ssl.key")
 	WriteSslCertificates(false)
-	test.IsEqualBool(t, helper.FileExists("test/ssl.key"), true)
+	test.FileExists(t, "test/ssl.key")
 	Delete()
 }

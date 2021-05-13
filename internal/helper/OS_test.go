@@ -15,6 +15,7 @@ func TestIsInArray(t *testing.T) {
 
 func TestFolderCreation(t *testing.T) {
 	test.IsEqualBool(t, FolderExists("invalid"), false)
+	test.FileDoesNotExist(t, "invalid/file")
 	test.IsEqualBool(t, FileExists("invalid/file"), false)
 	CreateDir("invalid")
 	test.IsEqualBool(t, FolderExists("invalid"), true)
@@ -22,6 +23,7 @@ func TestFolderCreation(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	test.FileExists(t, "invalid/file")
 	test.IsEqualBool(t, FileExists("invalid/file"), true)
 	os.RemoveAll("invalid")
 }

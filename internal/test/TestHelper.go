@@ -86,6 +86,31 @@ func IsNil(t MockT, got error) {
 	}
 }
 
+// FileExists fails test a file does not exist
+func FileExists(t MockT, name string) {
+	t.Helper()
+	if !fileExists(name) {
+		t.Errorf("Assertion failed, file does not exist: %s, want: nil.", name)
+	}
+}
+
+// FileDoesNotExist fails test a file exists
+func FileDoesNotExist(t MockT, name string) {
+	t.Helper()
+	if fileExists(name) {
+		t.Errorf("Assertion failed, file exist: %s, want: nil.", name)
+	}
+}
+
+// Copy of helper.FileExists, which cannot be used due to import cycle
+func fileExists(name string) bool {
+	info, err := os.Stat(name)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return !info.IsDir()
+}
+
 // IsNotNil fails test if error is nil
 func IsNotNil(t MockT, got error) {
 	t.Helper()

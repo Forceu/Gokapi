@@ -2,7 +2,6 @@ package storage
 
 import (
 	"Gokapi/internal/configuration"
-	"Gokapi/internal/helper"
 	"Gokapi/internal/models"
 	"Gokapi/internal/storage/aws"
 	"Gokapi/internal/test"
@@ -180,11 +179,11 @@ func TestCleanUp(t *testing.T) {
 	test.IsEqualString(t, settings.Files["wefffewhtrhhtrhtrhtr"].Name, "smallfile3")
 	test.IsEqualString(t, settings.Files["n1tSTAGj8zan9KaT4u6p"].Name, "picture.jpg")
 	test.IsEqualString(t, settings.Files["deletedfile123456789"].Name, "DeletedFile")
-	test.IsEqualBool(t, helper.FileExists("test/data/2341354656543213246465465465432456898794"), true)
+	test.FileExists(t, "test/data/2341354656543213246465465465432456898794")
 
 	CleanUp(false)
 	test.IsEqualString(t, settings.Files["cleanuptest123456789"].Name, "cleanup")
-	test.IsEqualBool(t, helper.FileExists("test/data/2341354656543213246465465465432456898794"), true)
+	test.FileExists(t, "test/data/2341354656543213246465465465432456898794")
 	test.IsEqualString(t, settings.Files["deletedfile123456789"].Name, "")
 	test.IsEqualString(t, settings.Files["Wzol7LyY2QVczXynJtVo"].Name, "smallfile2")
 	test.IsEqualString(t, settings.Files["e4TjE7CokWK0giiLNxDL"].Name, "smallfile2")
@@ -196,7 +195,7 @@ func TestCleanUp(t *testing.T) {
 	settings.Files["n1tSTAGj8zan9KaT4u6p"] = file
 
 	CleanUp(false)
-	test.IsEqualBool(t, helper.FileExists("test/data/a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd0"), false)
+	test.FileDoesNotExist(t, "test/data/a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd0")
 	test.IsEqualString(t, settings.Files["n1tSTAGj8zan9KaT4u6p"].Name, "")
 	test.IsEqualString(t, settings.Files["deletedfile123456789"].Name, "")
 	test.IsEqualString(t, settings.Files["Wzol7LyY2QVczXynJtVo"].Name, "smallfile2")
@@ -208,7 +207,7 @@ func TestCleanUp(t *testing.T) {
 	settings.Files["Wzol7LyY2QVczXynJtVo"] = file
 
 	CleanUp(false)
-	test.IsEqualBool(t, helper.FileExists("test/data/e017693e4a04a59d0b0f400fe98177fe7ee13cf7"), true)
+	test.FileExists(t, "test/data/e017693e4a04a59d0b0f400fe98177fe7ee13cf7")
 	test.IsEqualString(t, settings.Files["Wzol7LyY2QVczXynJtVo"].Name, "")
 	test.IsEqualString(t, settings.Files["n1tSTAGj8zan9KaT4u6p"].Name, "")
 	test.IsEqualString(t, settings.Files["deletedfile123456789"].Name, "")
@@ -223,7 +222,7 @@ func TestCleanUp(t *testing.T) {
 	settings.Files["wefffewhtrhhtrhtrhtr"] = file
 
 	CleanUp(false)
-	test.IsEqualBool(t, helper.FileExists("test/data/e017693e4a04a59d0b0f400fe98177fe7ee13cf7"), false)
+	test.FileDoesNotExist(t, "test/data/e017693e4a04a59d0b0f400fe98177fe7ee13cf7")
 	test.IsEqualString(t, settings.Files["Wzol7LyY2QVczXynJtVo"].Name, "")
 	test.IsEqualString(t, settings.Files["n1tSTAGj8zan9KaT4u6p"].Name, "")
 	test.IsEqualString(t, settings.Files["deletedfile123456789"].Name, "")
@@ -231,11 +230,11 @@ func TestCleanUp(t *testing.T) {
 	test.IsEqualString(t, settings.Files["wefffewhtrhhtrhtrhtr"].Name, "")
 
 	test.IsEqualString(t, settings.Files["cleanuptest123456789"].Name, "cleanup")
-	test.IsEqualBool(t, helper.FileExists("test/data/2341354656543213246465465465432456898794"), true)
+	test.FileExists(t, "test/data/2341354656543213246465465465432456898794")
 	settings.DownloadStatus = make(map[string]models.DownloadStatus)
 	CleanUp(false)
 	test.IsEqualString(t, settings.Files["cleanuptest123456789"].Name, "")
-	test.IsEqualBool(t, helper.FileExists("test/data/2341354656543213246465465465432456898794"), false)
+	test.FileDoesNotExist(t, "test/data/2341354656543213246465465465432456898794")
 
 	if aws.IsAvailable {
 		testconfiguration.EnableS3()
@@ -250,11 +249,11 @@ func TestDeleteFile(t *testing.T) {
 	settings := configuration.GetServerSettings()
 	configuration.Release()
 	test.IsEqualString(t, settings.Files["n1tSTAGj8zan9KaT4u6p"].Name, "picture.jpg")
-	test.IsEqualBool(t, helper.FileExists("test/data/a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd0"), true)
+	test.FileExists(t, "test/data/a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd0")
 	result := DeleteFile("n1tSTAGj8zan9KaT4u6p")
 	test.IsEqualBool(t, result, true)
 	test.IsEqualString(t, settings.Files["n1tSTAGj8zan9KaT4u6p"].Name, "")
-	test.IsEqualBool(t, helper.FileExists("test/data/a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd0"), false)
+	test.FileDoesNotExist(t, "test/data/a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd0")
 	result = DeleteFile("invalid")
 	test.IsEqualBool(t, result, false)
 	result = DeleteFile("")

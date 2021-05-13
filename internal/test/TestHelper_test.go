@@ -60,6 +60,12 @@ func TestFunctions(t *testing.T) {
 	mockT.WantNoFail()
 	IsNil(mockT, nil)
 	mockT.WantNoFail()
+	FileDoesNotExist(mockT, "testfile")
+	os.WriteFile("testfile", []byte("content"), 0777)
+	mockT.WantNoFail()
+	FileExists(mockT, "testfile")
+
+	mockT.WantNoFail()
 	IsNotNil(mockT, errors.New("hello"))
 	mockT.WantFail()
 	IsEqualString(mockT, "test", "test2")
@@ -77,6 +83,11 @@ func TestFunctions(t *testing.T) {
 	IsNil(mockT, errors.New("hello"))
 	mockT.WantFail()
 	IsNotNil(mockT, nil)
+	mockT.WantFail()
+	FileDoesNotExist(mockT, "testfile")
+	os.Remove("testfile")
+	mockT.WantFail()
+	FileExists(mockT, "testfile")
 	mockT.Check()
 }
 
@@ -101,6 +112,10 @@ func TestHttpPageResult(t *testing.T) {
 		Cookies: []Cookie{{
 			Name:  "testName",
 			Value: "testValue",
+		}},
+		Headers: []Header{{
+			Name:  "testHeader",
+			Value: "value",
 		}},
 		Method: "POST",
 	})

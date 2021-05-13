@@ -4,7 +4,6 @@
 package aws
 
 import (
-	"Gokapi/internal/helper"
 	"Gokapi/internal/models"
 	"Gokapi/internal/test"
 	"os"
@@ -36,12 +35,12 @@ func TestUploadToAws(t *testing.T) {
 }
 
 func TestDownloadFromAws(t *testing.T) {
-	test.IsEqualBool(t, helper.FileExists("test"), false)
+	test.FileDoesNotExist(t, "test")
 	file, _ := os.Create("test")
 	size, err := Download(file, testFile)
 	test.IsNil(t, err)
 	test.IsEqualBool(t, size == 16, true)
-	test.IsEqualBool(t, helper.FileExists("test"), true)
+	test.FileExists(t, "test")
 	content, _ := os.ReadFile("test")
 	test.IsEqualString(t, string(content), "testfile-content")
 	os.Remove("test")
