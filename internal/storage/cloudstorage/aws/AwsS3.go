@@ -4,7 +4,6 @@ package aws
 
 import (
 	"Gokapi/internal/configuration/cloudconfig"
-	"Gokapi/internal/environment"
 	"Gokapi/internal/models"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
@@ -19,51 +18,48 @@ import (
 )
 
 var awsConfig models.AwsConfig
-var environmentHolder environment.Environment
 
-// IsAvailable is true if Gokapi has been compiled with AWS support or the API is being mocked
-const IsAvailable = true
+var isCorrectLogin bool
+
+// IsIncludedInBuild is true if Gokapi has been compiled with AWS support or the API is being mocked
+const IsIncludedInBuild = true
 
 // IsMockApi is true if the API is being mocked and therefore can only be used for testing purposes
 const IsMockApi = false
 
-// IsCredentialProvided returns true if all credentials are provided
-func IsCredentialProvided(checkIfValid bool) bool {
-	e := getEnvironment()
-	isProvided := e.IsAwsProvided()
-	if !isProvided {
-		return false
-	}
-	if checkIfValid {
-		return isValidLogin()
-	}
-	return true
-}
-
-func getEnvironment() *environment.Environment {
-	if environmentHolder == (environment.Environment{}) {
-		environmentHolder = environment.New()
-	}
-	return &environmentHolder
-}
-
-// Init reads the credentials for AWS
-func Init() {
+// Init reads the credentials for AWS. Returns true if valid
+func Init() bool {
 	config, ok := cloudconfig.Load()
 	if ok {
+		fmt.Println("AWS config loaded")
 		awsConfig = config.Aws
 	}
+	return isValidLogin()
+}
+
+// AddBucketName adds the bucket name to the file to be stored
+func AddBucketName(file *models.File) {
+	file.AwsBucket = awsConfig.Bucket
+}
+
+// IsAvailable returns true if valid credentials have been passed
+func IsAvailable() bool {
+	return isCorrectLogin
 }
 
 func isValidLogin() bool {
-	sess := createSession()
-	svc := s3.New(sess)
-	_, err := svc.Config.Credentials.Get()
+	if !awsConfig.IsAllProvided() {
+		return false
+	}
+	_, err := FileExists(models.File{AwsBucket: awsConfig.Bucket, SHA256: "invalid"})
 	if err != nil {
-		fmt.Println("WARNING: AWS login not successful: " + err.Error())
+		fmt.Println("WARNING: AWS login not successful")
+		fmt.Println(err.Error())
+		isCorrectLogin = false
 		return false
 	}
 	fmt.Println("AWS login successful")
+	isCorrectLogin = true
 	return true
 }
 
@@ -110,14 +106,21 @@ func Download(writer io.WriterAt, file models.File) (int64, error) {
 
 // RedirectToDownload creates a presigned link that is valid for 15 seconds and redirects the
 // client to this url
-func RedirectToDownload(w http.ResponseWriter, r *http.Request, file models.File) error {
+func RedirectToDownload(w http.ResponseWriter, r *http.Request, file models.File, forceDownload bool) error {
 	sess := createSession()
 	s3svc := s3.New(sess)
+
+	contentDisposition := "inline; filename=\"" + file.Name + "\""
+	if forceDownload {
+		contentDisposition = "Attachment; filename=\"" + file.Name + "\""
+	}
 
 	req, _ := s3svc.GetObjectRequest(&s3.GetObjectInput{
 		Bucket:                     aws.String(file.AwsBucket),
 		Key:                        aws.String(file.SHA256),
-		ResponseContentDisposition: aws.String("filename=" + file.Name),
+		ResponseContentDisposition: aws.String(contentDisposition),
+		ResponseCacheControl:       aws.String("no-store"),
+		ResponseContentType:        aws.String(file.ContentType),
 	})
 
 	url, err := req.Presign(15 * time.Second)

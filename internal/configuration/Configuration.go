@@ -57,7 +57,6 @@ type Configuration struct {
 	SaltFiles        string                           `json:"SaltFiles"`
 	LengthId         int                              `json:"LengthId"`
 	DataDir          string                           `json:"DataDir"`
-	AwsBucket        string                           `json:"AwsBucket"`
 	MaxMemory        int                              `json:"MaxMemory"`
 	UseSsl           bool                             `json:"UseSsl"`
 }
@@ -77,7 +76,6 @@ func Load() {
 	err = decoder.Decode(&serverSettings)
 	helper.Check(err)
 	updateConfig()
-	serverSettings.AwsBucket = Environment.AwsBucket
 	serverSettings.MaxMemory = Environment.MaxMemory
 	helper.CreateDir(serverSettings.DataDir)
 }

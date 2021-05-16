@@ -11,7 +11,6 @@ import (
 
 func TestMain(m *testing.M) {
 	testconfiguration.Create(false)
-	os.Setenv("GOKAPI_AWS_BUCKET", "bucket")
 	exitVal := m.Run()
 	testconfiguration.Delete()
 	os.Exit(exitVal)
@@ -70,7 +69,6 @@ func TestCreateNewConfig(t *testing.T) {
 	test.IsEqualString(t, serverSettings.RedirectUrl, "http://test2.com")
 	test.IsEqualString(t, serverSettings.AdminPassword, "5bbf5684437a4c658d2e0890d784694afb63f715")
 	test.IsEqualString(t, HashPassword("testtest2", false), "5bbf5684437a4c658d2e0890d784694afb63f715")
-	test.IsEqualString(t, serverSettings.AwsBucket, "bucket")
 	test.IsEqualInt(t, serverSettings.LengthId, 15)
 	test.IsEqualBool(t, serverSettings.UseSsl, false)
 	os.Remove("test/config.json")
@@ -101,7 +99,6 @@ func TestUpgradeDb(t *testing.T) {
 	test.IsEqualBool(t, serverSettings.DownloadStatus == nil, false)
 	test.IsEqualString(t, serverSettings.Files["MgXJLe4XLfpXcL12ec4i"].ContentType, "application/octet-stream")
 	test.IsEqualInt(t, serverSettings.ConfigVersion, currentConfigVersion)
-	test.IsEqualString(t, serverSettings.AwsBucket, "bucket")
 	test.IsEqualBool(t, serverSettings.UseSsl, true)
 	os.Unsetenv("GOKAPI_USE_SSL")
 	testconfiguration.Create(false)

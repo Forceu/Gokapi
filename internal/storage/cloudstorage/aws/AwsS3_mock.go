@@ -12,6 +12,7 @@ import (
 )
 
 var uploadedFiles []models.File
+var isCorrectLogin bool
 
 const (
 	region     = "mock-region-1"
@@ -20,15 +21,27 @@ const (
 	accessKey  = "accKey"
 )
 
-// Init reads the credentials for AWS
-func Init() {
-}
-
-// IsAvailable is true if Gokapi has been compiled with AWS support or the API is being mocked
-const IsAvailable = true
+// IsIncludedInBuild is true if Gokapi has been compiled with AWS support or the API is being mocked
+const IsIncludedInBuild = true
 
 // IsMockApi is true if the API is being mocked and therefore can only be used for testing purposes
 const IsMockApi = true
+
+// Init reads the credentials for AWS
+func Init() bool {
+	return isValidCredentials()
+}
+
+// IsAvailable returns true if valid credentials have been passed
+func IsAvailable() bool {
+	return isCorrectLogin
+}
+
+
+// AddBucketName adds the bucket name to the file to be stored
+func AddBucketName(file *models.File) {
+	file.AwsBucket = bucketName
+}
 
 func isValidCredentials() bool {
 	requiredKeys := []string{"GOKAPI_AWS_BUCKET", "AWS_REGION", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"}
@@ -36,9 +49,11 @@ func isValidCredentials() bool {
 	for i, key := range requiredKeys {
 		val, _ := os.LookupEnv(key)
 		if val != requiredValues[i] {
+			isCorrectLogin = false
 			return false
 		}
 	}
+	isCorrectLogin = true
 	return true
 }
 
@@ -93,7 +108,7 @@ func isUploaded(file models.File) bool {
 
 // RedirectToDownload creates a presigned link that is valid for 15 seconds and redirects the
 // client to this url
-func RedirectToDownload(w http.ResponseWriter, r *http.Request, file models.File) error {
+func RedirectToDownload(w http.ResponseWriter, r *http.Request, file models.File, forceDownload bool) error {
 	if !isValidCredentials() {
 		return errors.New("invalid credentials / invalid bucket / invalid region")
 	}

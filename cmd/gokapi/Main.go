@@ -35,8 +35,8 @@ func main() {
 	configuration.Load()
 	resetPassword(passedFlags)
 	createSsl(passedFlags)
-	aws.Init()
-	if aws.IsCredentialProvided(true) {
+
+	if aws.Init() {
 		fmt.Println("Saving new files to cloud storage")
 	} else {
 		fmt.Println("Saving new files to local storage")

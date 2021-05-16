@@ -45,13 +45,16 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 		ContentType:        fileHeader.Header.Get("Content-Type"),
 	}
 	addHotlink(&file)
+	if aws.IsAvailable() {
+		aws.AddBucketName(&file)
+	}
 	settings := configuration.GetServerSettings()
 	filename := settings.DataDir + "/" + file.SHA256
 	dataDir := settings.DataDir
-	file.AwsBucket = settings.AwsBucket
 	settings.Files[id] = file
 	configuration.ReleaseAndSave()
-	if aws.IsCredentialProvided(false) {
+	if aws.IsAvailable() {
+		aws.AddBucketName(&file)
 		_, err := aws.Upload(reader, file)
 		if err != nil {
 			return models.File{}, err
@@ -174,6 +177,8 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 		defer storageData.Close()
 		if forceDownload {
 			w.Header().Set("Content-Disposition", "attachment; filename=\""+file.Name+"\"")
+		} else {
+			w.Header().Set("Content-Disposition", "inline; filename=\""+file.Name+"\"")
 		}
 		w.Header().Set("Content-Length", strconv.FormatInt(size, 10))
 		w.Header().Set("Content-Type", file.ContentType)
@@ -183,7 +188,7 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 	} else {
 		// If file is stored on AWS
 		downloadstatus.SetDownload(file)
-		err := aws.RedirectToDownload(w, r, file)
+		err := aws.RedirectToDownload(w, r, file, forceDownload)
 		helper.Check(err)
 		// We are not setting a download complete status, as there is no reliable way to confirm that the
 		// file has been completely downloaded. It expires automatically after 24 hours.
@@ -277,6 +282,12 @@ func DeleteFile(keyId string) bool {
 	}
 	item.ExpireAt = 0
 	settings.Files[keyId] = item
+	for _, status := range settings.DownloadStatus {
+		if status.FileId == item.Id {
+			status.ExpireAt = 0
+			settings.DownloadStatus[status.Id] = status
+		}
+	}
 	configuration.Release()
 	CleanUp(false)
 	return true

@@ -11,19 +11,25 @@ import (
 
 const errorString = "AWS not supported in this build"
 
-// IsAvailable is true if Gokapi has been compiled with AWS support or the API is being mocked
-const IsAvailable = false
+// IsIncludedInBuild is true if Gokapi has been compiled with AWS support or the API is being mocked
+const IsIncludedInBuild = false
 
 // IsMockApi is true if the API is being mocked and therefore can only be used for testing purposes
 const IsMockApi = false
 
 // Init reads the credentials for AWS
-func Init() {
+func Init() bool {
+	return false
 }
 
-// IsCredentialProvided returns true if all credentials are provided, however does not check them to be valid
-func IsCredentialProvided(checkIfValid bool) bool {
+// IsAvailable returns true if valid credentials have been passed
+func IsAvailable() bool {
 	return false
+}
+
+// AddBucketName adds the bucket name to the file to be stored
+func AddBucketName(file *models.File) {
+	return
 }
 
 // Upload uploads a file to AWS
@@ -38,7 +44,7 @@ func Download(writer io.WriterAt, file models.File) (int64, error) {
 
 // RedirectToDownload creates a presigned link that is valid for 15 seconds and redirects the
 // client to this url
-func RedirectToDownload(w http.ResponseWriter, r *http.Request, file models.File) error {
+func RedirectToDownload(w http.ResponseWriter, r *http.Request, file models.File, forceDownload bool) error {
 	return errors.New(errorString)
 }
 

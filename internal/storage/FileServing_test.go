@@ -131,7 +131,7 @@ func TestNewFile(t *testing.T) {
 	bigFile.Close()
 	os.Remove("bigfile")
 
-	if aws.IsAvailable {
+	if aws.IsIncludedInBuild {
 		testconfiguration.EnableS3()
 		file, err = NewFile(bytes.NewReader(content), &header, request)
 		test.IsNil(t, err)
@@ -158,7 +158,7 @@ func TestServeFile(t *testing.T) {
 	test.IsNil(t, err)
 	test.IsEqualString(t, string(content), "This is a file for testing purposes")
 
-	if aws.IsAvailable {
+	if aws.IsIncludedInBuild {
 		testconfiguration.EnableS3()
 		r = httptest.NewRequest("GET", "/upload", nil)
 		w = httptest.NewRecorder()
@@ -236,7 +236,7 @@ func TestCleanUp(t *testing.T) {
 	test.IsEqualString(t, settings.Files["cleanuptest123456789"].Name, "")
 	test.FileDoesNotExist(t, "test/data/2341354656543213246465465465432456898794")
 
-	if aws.IsAvailable {
+	if aws.IsIncludedInBuild {
 		testconfiguration.EnableS3()
 		test.IsEqualString(t, settings.Files["awsTest1234567890123"].Name, "Aws Test File")
 		testconfiguration.DisableS3()
@@ -259,7 +259,7 @@ func TestDeleteFile(t *testing.T) {
 	result = DeleteFile("")
 	test.IsEqualBool(t, result, false)
 
-	if aws.IsAvailable {
+	if aws.IsIncludedInBuild {
 		testconfiguration.EnableS3()
 		result, err := aws.FileExists(settings.Files["awsTest1234567890123"])
 		test.IsEqualBool(t, result, true)

@@ -4,7 +4,6 @@
 package aws
 
 import (
-	"Gokapi/internal/environment"
 	"Gokapi/internal/models"
 	"Gokapi/internal/test"
 	"fmt"
@@ -61,7 +60,7 @@ func TestDownloadFromAws(t *testing.T) {
 func TestRedirectToDownload(t *testing.T) {
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest("GET", "/download", nil)
-	err := RedirectToDownload(w, r, testFile)
+	err := RedirectToDownload(w, r, testFile, false)
 	test.IsNil(t, err)
 	fmt.Println(w.Body.String())
 	test.ResponseBodyContains(t, w, "<a href=\"https://")
@@ -94,29 +93,4 @@ func TestDeleteObject(t *testing.T) {
 	result, err = DeleteObject(invalidFile)
 	test.IsEqualBool(t, result, true)
 	test.IsNil(t, err)
-}
-
-func TestIsCredentialProvided(t *testing.T) {
-	os.Unsetenv("GOKAPI_AWS_REGION")
-	os.Unsetenv("GOKAPI_AWS_KEY")
-	os.Unsetenv("GOKAPI_KEY_SECRET")
-	os.Unsetenv("GOKAPI_AWS_BUCKET")
-	environmentHolder = environment.Environment{}
-	test.IsEqualBool(t, IsCredentialProvided(false), false)
-	environmentHolder = environment.Environment{}
-	os.Setenv("GOKAPI_AWS_REGION", "valid")
-	environmentHolder = environment.Environment{}
-	test.IsEqualBool(t, IsCredentialProvided(false), false)
-	environmentHolder = environment.Environment{}
-	os.Setenv("GOKAPI_AWS_KEY", "valid")
-	test.IsEqualBool(t, IsCredentialProvided(false), false)
-	test.IsEqualBool(t, IsCredentialProvided(true), false)
-	environmentHolder = environment.Environment{}
-	os.Setenv("GOKAPI_AWS_KEY_SECRET", "valid")
-	test.IsEqualBool(t, IsCredentialProvided(false), false)
-	test.IsEqualBool(t, IsCredentialProvided(true), false)
-	environmentHolder = environment.Environment{}
-	os.Setenv("GOKAPI_AWS_BUCKET", "valid")
-	test.IsEqualBool(t, IsCredentialProvided(false), true)
-	test.IsEqualBool(t, IsCredentialProvided(true), true)
 }
