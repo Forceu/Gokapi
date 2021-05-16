@@ -3,7 +3,7 @@ package storage
 import (
 	"Gokapi/internal/configuration"
 	"Gokapi/internal/models"
-	"Gokapi/internal/storage/aws"
+	"Gokapi/internal/storage/cloudstorage/aws"
 	"Gokapi/internal/test"
 	"Gokapi/internal/test/testconfiguration"
 	"bytes"

@@ -1,0 +1,6 @@
+aws:
+  Bucket: "gokapi"
+  Region: "eu-central-1"
+  Endpoint: ""
+  KeyId: "keyname"
+  KeySecret: "secret"

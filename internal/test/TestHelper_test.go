@@ -1,6 +1,7 @@
 package test
 
 import (
+	"Gokapi/internal/helper"
 	"errors"
 	"io"
 	"log"
@@ -97,6 +98,13 @@ func TestHttpConfig(t *testing.T) {
 	test := HttpTestConfig{}
 	test.init(mockT)
 	mockT.Check()
+}
+
+func TestMockInputStdin(t *testing.T) {
+	original := StartMockInputStdin("test input")
+	result := helper.ReadLine()
+	StopMockInputStdin(original)
+	IsEqualString(t, result, "test input")
 }
 
 func TestHttpPageResult(t *testing.T) {
@@ -200,4 +208,15 @@ func startTestServer() {
 	})
 	go func() { log.Fatal(http.ListenAndServe("127.0.0.1:9999", nil)) }()
 	time.Sleep(2 * time.Second)
+}
+
+func TestOsExit(t *testing.T) {
+	osExit := os.Exit
+	mockT := MockTest{reference: t}
+	mockT.WantNoFail()
+	osExit = ExitCode(mockT, 0)
+	osExit(0)
+	mockT.WantFail()
+	osExit(1)
+	mockT.Check()
 }

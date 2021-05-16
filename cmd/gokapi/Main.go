@@ -7,7 +7,9 @@ Main routine
 import (
 	"Gokapi/internal/configuration"
 	"Gokapi/internal/environment"
+	"Gokapi/internal/helper"
 	"Gokapi/internal/storage"
+	"Gokapi/internal/storage/cloudstorage/aws"
 	"Gokapi/internal/webserver"
 	"Gokapi/internal/webserver/ssl"
 	"flag"
@@ -33,6 +35,12 @@ func main() {
 	configuration.Load()
 	resetPassword(passedFlags)
 	createSsl(passedFlags)
+	aws.Init()
+	if aws.IsCredentialProvided(true) {
+		fmt.Println("Saving new files to cloud storage")
+	} else {
+		fmt.Println("Saving new files to local storage")
+	}
 	go storage.CleanUp(true)
 	webserver.Start()
 }
@@ -44,16 +52,18 @@ func showVersion(passedFlags flags) {
 		fmt.Println("Builder: " + environment.Builder)
 		fmt.Println("Build Date: " + environment.BuildTime)
 		fmt.Println("Docker Version: " + environment.IsDocker)
-		os.Exit(0)
+		osExit(0)
 	}
 }
 
 func parseFlags() flags {
-	versionShortFlag := flag.Bool("v", false, "Show version info")
-	versionLongFlag := flag.Bool("version", false, "Show version info")
-	resetPwFlag := flag.Bool("reset-pw", false, "Show prompt to reset admin password")
-	createSslFlag := flag.Bool("create-ssl", false, "Creates a new SSL certificate valid for 365 days")
-	flag.Parse()
+	passedFlags := flag.FlagSet{}
+	versionShortFlag := passedFlags.Bool("v", false, "Show version info")
+	versionLongFlag := passedFlags.Bool("version", false, "Show version info")
+	resetPwFlag := passedFlags.Bool("reset-pw", false, "Show prompt to reset admin password")
+	createSslFlag := passedFlags.Bool("create-ssl", false, "Creates a new SSL certificate valid for 365 days")
+	err := passedFlags.Parse(os.Args[1:])
+	helper.Check(err)
 	return flags{
 		showVersion: *versionShortFlag || *versionLongFlag,
 		resetPw:     *resetPwFlag,
@@ -67,7 +77,7 @@ func resetPassword(passedFlags flags) {
 		fmt.Println("Password change requested")
 		configuration.DisplayPasswordReset()
 		fmt.Println("Password has been changed!")
-		os.Exit(0)
+		osExit(0)
 	}
 }
 
@@ -84,6 +94,8 @@ type flags struct {
 	resetPw     bool
 	createSsl   bool
 }
+
+var osExit = os.Exit
 
 // ASCII art logo
 const logo = `

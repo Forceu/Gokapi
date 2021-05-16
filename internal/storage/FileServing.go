@@ -9,7 +9,7 @@ import (
 	"Gokapi/internal/configuration/downloadstatus"
 	"Gokapi/internal/helper"
 	"Gokapi/internal/models"
-	"Gokapi/internal/storage/aws"
+	"Gokapi/internal/storage/cloudstorage/aws"
 	"bytes"
 	"crypto/sha1"
 	"encoding/hex"

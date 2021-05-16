@@ -4,6 +4,7 @@
 package aws
 
 import (
+	"Gokapi/internal/environment"
 	"Gokapi/internal/models"
 	"Gokapi/internal/test"
 	"os"
@@ -23,6 +24,15 @@ func TestMain(m *testing.M) {
 	invalidAll.SHA256 = "invalid"
 	exitVal := m.Run()
 	os.Exit(exitVal)
+}
+
+func TestInit(t *testing.T) {
+	Init()
+	// For testing Backblaze, as the bucket name in the dev account is gokapi instead of gokapi-test
+	if os.Getenv("GOKAPI_AWS_ENDPOINT") != "" {
+		testFile.AwsBucket = "gokapi"
+		invalidFile.AwsBucket = "gokapi"
+	}
 }
 
 func TestUploadToAws(t *testing.T) {
@@ -52,10 +62,8 @@ func TestFileExists(t *testing.T) {
 	test.IsNil(t, err)
 	result, err = FileExists(invalidBucket)
 	test.IsEqualBool(t, result, false)
-	test.IsNotNil(t, err)
 	result, err = FileExists(invalidAll)
 	test.IsEqualBool(t, result, false)
-	test.IsNotNil(t, err)
 	result, err = FileExists(testFile)
 	test.IsEqualBool(t, result, true)
 	test.IsNil(t, err)
@@ -77,16 +85,26 @@ func TestDeleteObject(t *testing.T) {
 }
 
 func TestIsCredentialProvided(t *testing.T) {
-	os.Unsetenv("AWS_REGION")
-	os.Unsetenv("AWS_ACCESS_KEY_ID")
-	os.Unsetenv("AWS_SECRET_ACCESS_KEY")
+	os.Unsetenv("GOKAPI_AWS_REGION")
+	os.Unsetenv("GOKAPI_AWS_KEY")
+	os.Unsetenv("GOKAPI_KEY_SECRET")
+	os.Unsetenv("GOKAPI_AWS_BUCKET")
+	environmentHolder = environment.Environment{}
 	test.IsEqualBool(t, IsCredentialProvided(false), false)
-	os.Setenv("AWS_REGION", "valid")
+	environmentHolder = environment.Environment{}
+	os.Setenv("GOKAPI_AWS_REGION", "valid")
+	environmentHolder = environment.Environment{}
 	test.IsEqualBool(t, IsCredentialProvided(false), false)
-	os.Setenv("AWS_ACCESS_KEY_ID", "valid")
+	environmentHolder = environment.Environment{}
+	os.Setenv("GOKAPI_AWS_KEY", "valid")
 	test.IsEqualBool(t, IsCredentialProvided(false), false)
 	test.IsEqualBool(t, IsCredentialProvided(true), false)
-	os.Setenv("AWS_SECRET_ACCESS_KEY", "valid")
+	environmentHolder = environment.Environment{}
+	os.Setenv("GOKAPI_AWS_KEY_SECRET", "valid")
+	test.IsEqualBool(t, IsCredentialProvided(false), false)
+	test.IsEqualBool(t, IsCredentialProvided(true), false)
+	environmentHolder = environment.Environment{}
+	os.Setenv("GOKAPI_AWS_BUCKET", "valid")
 	test.IsEqualBool(t, IsCredentialProvided(false), true)
 	test.IsEqualBool(t, IsCredentialProvided(true), true)
 }

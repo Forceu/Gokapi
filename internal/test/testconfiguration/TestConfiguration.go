@@ -4,7 +4,7 @@ package testconfiguration
 
 import (
 	"Gokapi/internal/models"
-	"Gokapi/internal/storage/aws"
+	"Gokapi/internal/storage/cloudstorage/aws"
 	"fmt"
 	"os"
 )
@@ -36,6 +36,7 @@ func WriteUpgradeConfigFile() {
 	os.WriteFile(configFile, configUpgradeTestFile, 0777)
 }
 
+// WriteSslCertificates writes a valid or invalid SSL certificate
 func WriteSslCertificates(valid bool) {
 	os.Mkdir(dataDir, 0777)
 	if valid {
@@ -44,6 +45,16 @@ func WriteSslCertificates(valid bool) {
 	} else {
 		os.WriteFile("test/ssl.crt", sslCertExpired, 0700)
 		os.WriteFile("test/ssl.key", sslKeyExpired, 0700)
+	}
+}
+
+// WriteCloudConfigFile writes a valid or invalid AWS config file
+func WriteCloudConfigFile(valid bool) {
+	os.Mkdir(dataDir, 0777)
+	if valid {
+		os.WriteFile("test/cloudconfig.yml", cloudConfigTestFile, 0700)
+	} else {
+		os.WriteFile("test/cloudconfig.yml", []byte("invalid"), 0700)
 	}
 }
 
@@ -85,28 +96,6 @@ func DisableS3() {
 	os.Unsetenv("AWS_REGION")
 	os.Unsetenv("AWS_ACCESS_KEY_ID")
 	os.Unsetenv("AWS_SECRET_ACCESS_KEY")
-}
-
-// StartMockInputStdin simulates a user input on stdin. Call StopMockInputStdin afterwards!
-func StartMockInputStdin(input string) *os.File {
-	r, w, err := os.Pipe()
-	if err != nil {
-		panic(err)
-	}
-	_, err = w.Write([]byte(input))
-	if err != nil {
-		panic(err)
-	}
-	w.Close()
-
-	stdin := os.Stdin
-	os.Stdin = r
-	return stdin
-}
-
-// StopMockInputStdin needs to be called after StartMockInputStdin
-func StopMockInputStdin(stdin *os.File) {
-	os.Stdin = stdin
 }
 
 var configTestFile = []byte(`{
@@ -376,3 +365,11 @@ MHcCAQEEIG4kCb5tqz0HyRMBY+HItWtZuT2RmH9w1vsyO2XJcHlLoAoGCCqGSM49
 AwEHoUQDQgAEX61yYXomO0qGW1dNaj2aUsIsn7gLZwCLxqFlL20hrP9AcLX8aXeL
 g3HxDC5thXD1NJwA8xRlNmvtNgnoZze+5Q==
 -----END EC PRIVATE KEY-----`)
+
+var cloudConfigTestFile = []byte(`aws:
+  Bucket: "gokapi"
+  Region: "test-region"
+  Endpoint: "test-endpoint"
+  KeyId: "test-keyid"
+  KeySecret: "test-secret"
+`)

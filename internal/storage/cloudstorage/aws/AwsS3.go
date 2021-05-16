@@ -3,18 +3,23 @@
 package aws
 
 import (
+	"Gokapi/internal/configuration/cloudconfig"
+	"Gokapi/internal/environment"
 	"Gokapi/internal/models"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"io"
 	"net/http"
-	"os"
 	"time"
 )
+
+var awsConfig models.AwsConfig
+var environmentHolder environment.Environment
 
 // IsAvailable is true if Gokapi has been compiled with AWS support or the API is being mocked
 const IsAvailable = true
@@ -24,38 +29,57 @@ const IsMockApi = false
 
 // IsCredentialProvided returns true if all credentials are provided
 func IsCredentialProvided(checkIfValid bool) bool {
-	requiredKeys := []string{"GOKAPI_AWS_BUCKET", "AWS_REGION", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"}
-	for _, key := range requiredKeys {
-		if !isValidEnv(key) {
-			return false
-		}
+	e := getEnvironment()
+	isProvided := e.IsAwsProvided()
+	if !isProvided {
+		return false
 	}
 	if checkIfValid {
-		return checkIfValidLogin()
+		return isValidLogin()
 	}
 	return true
 }
 
-func checkIfValidLogin() bool {
-	sess := session.Must(session.NewSession())
+func getEnvironment() *environment.Environment {
+	if environmentHolder == (environment.Environment{}) {
+		environmentHolder = environment.New()
+	}
+	return &environmentHolder
+}
+
+// Init reads the credentials for AWS
+func Init() {
+	config, ok := cloudconfig.Load()
+	if ok {
+		awsConfig = config.Aws
+	}
+}
+
+func isValidLogin() bool {
+	sess := createSession()
 	svc := s3.New(sess)
 	_, err := svc.Config.Credentials.Get()
 	if err != nil {
-		fmt.Println("WARNING: AWS S3 login not successful: " + err.Error())
+		fmt.Println("WARNING: AWS login not successful: " + err.Error())
 		return false
 	}
-	fmt.Println("AWS S3 login successful")
+	fmt.Println("AWS login successful")
 	return true
 }
 
-func isValidEnv(key string) bool {
-	val, ok := os.LookupEnv(key)
-	return ok && val != ""
+func createSession() *session.Session {
+	s3Config := &aws.Config{
+		Credentials:      credentials.NewStaticCredentials(awsConfig.KeyId, awsConfig.KeySecret, ""),
+		Endpoint:         aws.String(awsConfig.Endpoint),
+		Region:           aws.String(awsConfig.Region),
+		S3ForcePathStyle: aws.Bool(true),
+	}
+	return session.Must(session.NewSession(s3Config))
 }
 
 // Upload uploads a file to AWS
 func Upload(input io.Reader, file models.File) (string, error) {
-	sess := session.Must(session.NewSession())
+	sess := createSession()
 	uploader := s3manager.NewUploader(sess)
 
 	result, err := uploader.Upload(&s3manager.UploadInput{
@@ -71,7 +95,7 @@ func Upload(input io.Reader, file models.File) (string, error) {
 
 // Download downloads a file from AWS
 func Download(writer io.WriterAt, file models.File) (int64, error) {
-	sess := session.Must(session.NewSession())
+	sess := createSession()
 	downloader := s3manager.NewDownloader(sess)
 
 	size, err := downloader.Download(writer, &s3.GetObjectInput{
@@ -87,7 +111,7 @@ func Download(writer io.WriterAt, file models.File) (int64, error) {
 // RedirectToDownload creates a presigned link that is valid for 15 seconds and redirects the
 // client to this url
 func RedirectToDownload(w http.ResponseWriter, r *http.Request, file models.File) error {
-	sess := session.Must(session.NewSession())
+	sess := createSession()
 	s3svc := s3.New(sess)
 
 	req, _ := s3svc.GetObjectRequest(&s3.GetObjectInput{
@@ -107,7 +131,7 @@ func RedirectToDownload(w http.ResponseWriter, r *http.Request, file models.File
 
 // FileExists returns true if the object is stored in S3
 func FileExists(file models.File) (bool, error) {
-	sess := session.Must(session.NewSession())
+	sess := createSession()
 	svc := s3.New(sess)
 
 	_, err := svc.HeadObject(&s3.HeadObjectInput{
@@ -129,7 +153,7 @@ func FileExists(file models.File) (bool, error) {
 
 // DeleteObject deletes a file from S3
 func DeleteObject(file models.File) (bool, error) {
-	sess := session.Must(session.NewSession())
+	sess := createSession()
 	svc := s3.New(sess)
 
 	_, err := svc.DeleteObject(&s3.DeleteObjectInput{

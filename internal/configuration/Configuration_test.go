@@ -109,10 +109,13 @@ func TestUpgradeDb(t *testing.T) {
 }
 
 func TestAskForUsername(t *testing.T) {
-	original := testconfiguration.StartMockInputStdin("admin")
+	original := test.StartMockInputStdin("admin")
 	output := askForUsername(1)
-	testconfiguration.StopMockInputStdin(original)
+	test.StopMockInputStdin(original)
 	test.IsEqualString(t, output, "admin")
+	osExit = test.ExitCode(t, 1)
+	askForUsername(6)
+	osExit = os.Exit
 }
 
 func TestIsValidPortNumber(t *testing.T) {
@@ -146,13 +149,13 @@ func TestAddTrailingSlash(t *testing.T) {
 }
 
 func TestAskForRedirect(t *testing.T) {
-	original := testconfiguration.StartMockInputStdin("")
+	original := test.StartMockInputStdin("")
 	url := askForRedirect()
-	testconfiguration.StopMockInputStdin(original)
+	test.StopMockInputStdin(original)
 	test.IsEqualString(t, url, "https://github.com/Forceu/Gokapi/")
-	original = testconfiguration.StartMockInputStdin("https://test.com")
+	original = test.StartMockInputStdin("https://test.com")
 	url = askForRedirect()
-	testconfiguration.StopMockInputStdin(original)
+	test.StopMockInputStdin(original)
 	test.IsEqualString(t, url, "https://test.com")
 }
 
@@ -160,33 +163,64 @@ func TestAskForLocalOnly(t *testing.T) {
 	environment.IsDocker = "true"
 	test.IsEqualString(t, askForLocalOnly(), environment.IsFalse)
 	environment.IsDocker = "false"
-	original := testconfiguration.StartMockInputStdin("")
+	original := test.StartMockInputStdin("")
 	test.IsEqualString(t, askForLocalOnly(), environment.IsTrue)
-	testconfiguration.StopMockInputStdin(original)
-	original = testconfiguration.StartMockInputStdin("no")
+	test.StopMockInputStdin(original)
+	original = test.StartMockInputStdin("no")
 	test.IsEqualString(t, askForLocalOnly(), environment.IsFalse)
-	testconfiguration.StopMockInputStdin(original)
-	original = testconfiguration.StartMockInputStdin("yes")
+	test.StopMockInputStdin(original)
+	original = test.StartMockInputStdin("yes")
 	test.IsEqualString(t, askForLocalOnly(), environment.IsTrue)
-	testconfiguration.StopMockInputStdin(original)
-	original = testconfiguration.StartMockInputStdin("n")
+	test.StopMockInputStdin(original)
+	original = test.StartMockInputStdin("n")
 	test.IsEqualString(t, askForLocalOnly(), environment.IsFalse)
-	testconfiguration.StopMockInputStdin(original)
+	test.StopMockInputStdin(original)
 }
 
 func TestAskForPort(t *testing.T) {
-	original := testconfiguration.StartMockInputStdin("8000")
+	original := test.StartMockInputStdin("8000")
 	test.IsEqualString(t, askForPort(), "8000")
-	testconfiguration.StopMockInputStdin(original)
-	original = testconfiguration.StartMockInputStdin("")
+	test.StopMockInputStdin(original)
+	original = test.StartMockInputStdin("")
 	test.IsEqualString(t, askForPort(), defaultPort)
-	testconfiguration.StopMockInputStdin(original)
+	test.StopMockInputStdin(original)
 }
+
 func TestAskForUrl(t *testing.T) {
-	original := testconfiguration.StartMockInputStdin("https://test.com")
+	original := test.StartMockInputStdin("https://test.com")
 	test.IsEqualString(t, askForUrl("1234"), "https://test.com/")
-	testconfiguration.StopMockInputStdin(original)
-	original = testconfiguration.StartMockInputStdin("")
+	test.StopMockInputStdin(original)
+	original = test.StartMockInputStdin("")
 	test.IsEqualString(t, askForUrl("1234"), "http://127.0.0.1:1234/")
-	testconfiguration.StopMockInputStdin(original)
+	test.StopMockInputStdin(original)
+}
+
+func TestAskForPassword(t *testing.T) {
+	os.Setenv("GOKAPI_PASSWORD", "not_short")
+	Load()
+	test.IsEqualString(t, askForPassword(), "not_short")
+}
+
+func TestAskForSsl(t *testing.T) {
+	original := test.StartMockInputStdin("y")
+	test.IsEqualBool(t, askForSsl(), true)
+	test.StartMockInputStdin("n")
+	test.IsEqualBool(t, askForSsl(), false)
+	test.StartMockInputStdin("")
+	test.IsEqualBool(t, askForSsl(), false)
+	test.StopMockInputStdin(original)
+}
+
+func TestExitValues(t *testing.T) {
+	os.Setenv("GOKAPI_PASSWORD", "short")
+	os.Setenv("GOKAPI_EXTERNAL_URL", "invalid")
+	os.Setenv("GOKAPI_REDIRECT_URL", "invalid")
+	Environment = environment.New()
+	osExit = test.ExitCode(t, 1)
+	askForPassword()
+	osExit = test.ExitCode(t, 1)
+	askForUrl("123")
+	osExit = test.ExitCode(t, 1)
+	askForRedirect()
+	osExit = os.Exit
 }

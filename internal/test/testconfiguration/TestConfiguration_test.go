@@ -2,7 +2,7 @@ package testconfiguration
 
 import (
 	"Gokapi/internal/helper"
-	"Gokapi/internal/storage/aws"
+	"Gokapi/internal/storage/cloudstorage/aws"
 	"Gokapi/internal/test"
 	"os"
 	"testing"
@@ -18,13 +18,6 @@ func TestCreate(t *testing.T) {
 func TestDelete(t *testing.T) {
 	Delete()
 	test.IsEqualBool(t, helper.FolderExists(dataDir), false)
-}
-
-func TestMockInputStdin(t *testing.T) {
-	original := StartMockInputStdin(dataDir)
-	result := helper.ReadLine()
-	StopMockInputStdin(original)
-	test.IsEqualString(t, result, dataDir)
 }
 
 func TestSetUpgradeConfigFile(t *testing.T) {
@@ -55,5 +48,16 @@ func TestWriteSslCertificates(t *testing.T) {
 	test.FileDoesNotExist(t, "test/ssl.key")
 	WriteSslCertificates(false)
 	test.FileExists(t, "test/ssl.key")
+	Delete()
+}
+
+func TestWriteCloudConfigFile(t *testing.T) {
+	test.FileDoesNotExist(t, "test/cloudconfig.yml")
+	WriteCloudConfigFile(true)
+	test.FileExists(t, "test/cloudconfig.yml")
+	os.Remove("test/cloudconfig.yml")
+	test.FileDoesNotExist(t, "test/cloudconfig.yml")
+	WriteCloudConfigFile(false)
+	test.FileExists(t, "test/cloudconfig.yml")
 	Delete()
 }

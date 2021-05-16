@@ -22,10 +22,17 @@ func TestParseFlags(t *testing.T) {
 	test.IsEqualBool(t, flags.showVersion, true)
 	test.IsEqualBool(t, flags.resetPw, true)
 	test.IsEqualBool(t, flags.createSsl, true)
+	os.Args = []string{"gokapi", "--reset-pw", "-create-ssl"}
+	flags = parseFlags()
+	test.IsEqualBool(t, flags.showVersion, false)
+	test.IsEqualBool(t, flags.resetPw, true)
+	test.IsEqualBool(t, flags.createSsl, true)
 }
 
-func TestNoShowVersion(t *testing.T) {
+func TestShowVersion(t *testing.T) {
 	showVersion(flags{})
+	osExit = test.ExitCode(t, 0)
+	showVersion(flags{showVersion: true})
 }
 
 func TestNoResetPw(t *testing.T) {

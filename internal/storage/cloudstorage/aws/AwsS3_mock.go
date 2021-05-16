@@ -20,6 +20,10 @@ const (
 	accessKey  = "accKey"
 )
 
+// Init reads the credentials for AWS
+func Init() {
+}
+
 // IsAvailable is true if Gokapi has been compiled with AWS support or the API is being mocked
 const IsAvailable = true
 

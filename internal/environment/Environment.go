@@ -28,9 +28,21 @@ type Environment struct {
 	SaltAdmin          string
 	SaltFiles          string
 	LengthId           int
-	AwsBucketName      string
 	MaxMemory          int
 	UseSsl             string
+	AwsBucket          string
+	AwsRegion          string
+	AwsKeyId           string
+	AwsKeySecret       string
+	AwsEndpoint        string
+}
+
+// IsAwsProvided returns true if all required env variables have been set for using AWS S3 / Backblaze
+func (e *Environment) IsAwsProvided() bool {
+	return e.AwsBucket != "" &&
+		e.AwsRegion != "" &&
+		e.AwsKeyId != "" &&
+		e.AwsKeySecret != ""
 }
 
 var defaultValues = defaultsEnvironment{
@@ -61,9 +73,13 @@ func New() Environment {
 		SaltFiles:          envString("SALT_FILES"),
 		WebserverLocalhost: envBool("LOCALHOST"),
 		LengthId:           envInt("LENGTH_ID", 5),
-		AwsBucketName:      envString("AWS_BUCKET"),
 		MaxMemory:          envInt("MAX_MEMORY_UPLOAD_MB", 5),
 		UseSsl:             envBool("USE_SSL"),
+		AwsBucket:          envString("AWS_BUCKET"),
+		AwsRegion:          envString("AWS_REGION"),
+		AwsKeyId:           envString("AWS_KEY"),
+		AwsKeySecret:       envString("AWS_KEY_SECRET"),
+		AwsEndpoint:        envString("AWS_ENDPOINT"),
 	}
 }
 

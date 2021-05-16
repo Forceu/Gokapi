@@ -119,6 +119,36 @@ func IsNotNil(t MockT, got error) {
 	}
 }
 
+// ExitCode returns a function to replace os.Exit()
+func ExitCode(t MockT, want int) func(code int) {
+	t.Helper()
+	return func(code int) {
+		IsEqualInt(t, code, want)
+	}
+}
+
+// StartMockInputStdin simulates a user input on stdin. Call StopMockInputStdin afterwards!
+func StartMockInputStdin(input string) *os.File {
+	r, w, err := os.Pipe()
+	if err != nil {
+		panic(err)
+	}
+	_, err = w.Write([]byte(input))
+	if err != nil {
+		panic(err)
+	}
+	w.Close()
+
+	stdin := os.Stdin
+	os.Stdin = r
+	return stdin
+}
+
+// StopMockInputStdin needs to be called after StartMockInputStdin
+func StopMockInputStdin(stdin *os.File) {
+	os.Stdin = stdin
+}
+
 // HttpPageResult tests if a http server is outputting the correct result
 func HttpPageResult(t MockT, config HttpTestConfig) []*http.Cookie {
 	t.Helper()

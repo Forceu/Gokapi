@@ -17,6 +17,10 @@ const IsAvailable = false
 // IsMockApi is true if the API is being mocked and therefore can only be used for testing purposes
 const IsMockApi = false
 
+// Init reads the credentials for AWS
+func Init() {
+}
+
 // IsCredentialProvided returns true if all credentials are provided, however does not check them to be valid
 func IsCredentialProvided(checkIfValid bool) bool {
 	return false

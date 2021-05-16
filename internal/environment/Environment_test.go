@@ -31,3 +31,14 @@ func TestEnvLoad(t *testing.T) {
 	test.IsEqualString(t, env.WebserverLocalhost, "")
 	test.IsEqualInt(t, env.LengthId, -1)
 }
+
+func TestIsAwsProvided(t *testing.T) {
+	env := New()
+	test.IsEqualBool(t, env.IsAwsProvided(), false)
+	os.Setenv("GOKAPI_AWS_BUCKET", "test")
+	os.Setenv("GOKAPI_AWS_REGION", "test")
+	os.Setenv("GOKAPI_AWS_KEY", "test")
+	os.Setenv("GOKAPI_AWS_KEY_SECRET", "test")
+	env = New()
+	test.IsEqualBool(t, env.IsAwsProvided(), true)
+}

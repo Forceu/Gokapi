@@ -2,7 +2,6 @@ package helper
 
 import (
 	"Gokapi/internal/test"
-	"Gokapi/internal/test/testconfiguration"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -29,9 +28,9 @@ func TestFolderCreation(t *testing.T) {
 }
 
 func TestReadLine(t *testing.T) {
-	original := testconfiguration.StartMockInputStdin("test")
+	original := test.StartMockInputStdin("test")
 	output := ReadLine()
-	testconfiguration.StopMockInputStdin(original)
+	test.StopMockInputStdin(original)
 	test.IsEqualString(t, output, "test")
 }
 

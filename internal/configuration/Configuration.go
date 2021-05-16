@@ -77,7 +77,7 @@ func Load() {
 	err = decoder.Decode(&serverSettings)
 	helper.Check(err)
 	updateConfig()
-	serverSettings.AwsBucket = Environment.AwsBucketName
+	serverSettings.AwsBucket = Environment.AwsBucket
 	serverSettings.MaxMemory = Environment.MaxMemory
 	helper.CreateDir(serverSettings.DataDir)
 }
@@ -199,14 +199,14 @@ func save() {
 	file, err := os.OpenFile(Environment.ConfigPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		fmt.Println("Error reading configuration:", err)
-		os.Exit(1)
+		osExit(1)
 	}
 	defer file.Close()
 	encoder := json.NewEncoder(file)
 	err = encoder.Encode(&serverSettings)
 	if err != nil {
 		fmt.Println("Error writing configuration:", err)
-		os.Exit(1)
+		osExit(1)
 	}
 }
 
@@ -214,7 +214,9 @@ func save() {
 func askForUsername(try int) string {
 	if try > 5 {
 		fmt.Println("Too many invalid entries! If you are running the setup with Docker, make sure to start the container with the -it flag.")
-		os.Exit(1)
+		osExit(1)
+		// Return needs to be called, if osExit is replaced turing testing
+		return ""
 	}
 	fmt.Print("Username: ")
 	envUsername := Environment.AdminName
@@ -238,7 +240,7 @@ func askForPassword() string {
 		fmt.Println("*******************")
 		if utf8.RuneCountInString(envPassword) < minLengthPassword {
 			fmt.Println("\nPassword needs to be at least " + strconv.Itoa(minLengthPassword) + " characters long")
-			os.Exit(1)
+			osExit(1)
 		}
 		return envPassword
 	}
@@ -316,7 +318,7 @@ func askForUrl(port string) string {
 	if envUrl != "" {
 		fmt.Println(envUrl)
 		if !isValidUrl(envUrl) {
-			os.Exit(1)
+			osExit(1)
 		}
 		return addTrailingSlash(envUrl)
 	}
@@ -337,7 +339,7 @@ func askForRedirect() string {
 	if envRedirect != "" {
 		fmt.Println(envRedirect)
 		if !isValidUrl(envRedirect) {
-			os.Exit(1)
+			osExit(1)
 		}
 		return envRedirect
 	}
@@ -411,3 +413,5 @@ func HashPassword(password string, useFileSalt bool) string {
 func GetLengthId() int {
 	return serverSettings.LengthId
 }
+
+var osExit = os.Exit
