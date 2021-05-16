@@ -366,7 +366,11 @@ AwEHoUQDQgAEX61yYXomO0qGW1dNaj2aUsIsn7gLZwCLxqFlL20hrP9AcLX8aXeL
 g3HxDC5thXD1NJwA8xRlNmvtNgnoZze+5Q==
 -----END EC PRIVATE KEY-----`)
 
-var cloudConfigTestFile = []byte(`aws:
+var cloudConfigTestFile = []byte(`
+##
+## Example AWS S3 config. Modify this file and save it to config/cloudconfig.yml
+##
+aws:
   Bucket: "gokapi"
   Region: "test-region"
   Endpoint: "test-endpoint"

@@ -7,6 +7,8 @@ import (
 	"Gokapi/internal/environment"
 	"Gokapi/internal/models"
 	"Gokapi/internal/test"
+	"fmt"
+	"net/http/httptest"
 	"os"
 	"testing"
 )
@@ -54,6 +56,16 @@ func TestDownloadFromAws(t *testing.T) {
 	content, _ := os.ReadFile("test")
 	test.IsEqualString(t, string(content), "testfile-content")
 	os.Remove("test")
+}
+
+func TestRedirectToDownload(t *testing.T) {
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("GET", "/download", nil)
+	err := RedirectToDownload(w, r, testFile)
+	test.IsNil(t, err)
+	fmt.Println(w.Body.String())
+	test.ResponseBodyContains(t, w, "<a href=\"https://")
+	test.IsEqualInt(t, w.Code, 307)
 }
 
 func TestFileExists(t *testing.T) {
