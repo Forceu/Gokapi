@@ -1,5 +1,6 @@
 package models
 
+// AwsConfig contains all configuration values / credentials for AWS cloud storage
 type AwsConfig struct {
 	Bucket    string `yaml:"Bucket"`
 	Region    string `yaml:"Region"`

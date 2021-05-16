@@ -9,10 +9,12 @@ import (
 	"io/ioutil"
 )
 
+// CloudConfig contains all configuration values / credentials for cloud storage
 type CloudConfig struct {
 	Aws models.AwsConfig `yaml:"aws"`
 }
 
+// Load loads cloud storage configuration / credentials from env variables or data/cloudconfig.yml
 func Load() (CloudConfig, bool) {
 	env := environment.New()
 	if env.IsAwsProvided() {

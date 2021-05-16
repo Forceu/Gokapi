@@ -211,10 +211,9 @@ func startTestServer() {
 }
 
 func TestOsExit(t *testing.T) {
-	osExit := os.Exit
 	mockT := MockTest{reference: t}
 	mockT.WantNoFail()
-	osExit = ExitCode(mockT, 0)
+	osExit := ExitCode(mockT, 0)
 	osExit(0)
 	mockT.WantFail()
 	osExit(1)
