@@ -18,7 +18,7 @@ const IsIncludedInBuild = false
 const IsMockApi = false
 
 // Init reads the credentials for AWS
-func Init() bool {
+func Init(config models.AwsConfig) bool {
 	return false
 }
 

@@ -3,9 +3,12 @@
 package testconfiguration
 
 import (
-	"Gokapi/internal/models"
 	"Gokapi/internal/storage/cloudstorage/aws"
+	"bytes"
 	"fmt"
+	"github.com/johannesboyne/gofakes3"
+	"github.com/johannesboyne/gofakes3/backend/s3mem"
+	"net/http/httptest"
 	"os"
 )
 
@@ -63,28 +66,39 @@ func Delete() {
 	os.RemoveAll(dataDir)
 }
 
+var testServer *httptest.Server
+
 // EnableS3 sets env variables for mock S3
 func EnableS3() {
 	if !aws.IsMockApi {
-		fmt.Println("Warning, using real AWS S3 API! This test will fail if no valid credentials have been provided.")
-		fmt.Println("To mock the API, run test with --tags test,awsmock")
 		return
 	}
 	os.Setenv("GOKAPI_AWS_BUCKET", "gokapi-test")
-	os.Setenv("AWS_REGION", "mock-region-1")
-	os.Setenv("AWS_ACCESS_KEY_ID", "accId")
-	os.Setenv("AWS_SECRET_ACCESS_KEY", "accKey")
-	awsFile := models.File{
-		Id:        "awsTest1234567890123",
-		Name:      "aws Test File",
-		Size:      "20 MB",
-		SHA256:    "x341354656543213246465465465432456898794",
-		AwsBucket: "gokapi-test",
+	os.Setenv("GOKAPI_AWS_REGION", "mock-region-1")
+	os.Setenv("GOKAPI_AWS_KEY", "accId")
+	os.Setenv("GOKAPI_AWS_KEY_SECRET", "accKey")
+}
+
+func UseMockS3Server() bool {
+	if os.Getenv("REAL_AWS_CREDENTIALS") != "true" {
+		fmt.Println("Using MOCK S3 SERVER! To test real credentials, pass REAL_AWS_CREDENTIALS=true")
+		fmt.Println("To mock the API, run test with --tags test,awsmock")
+		return true
 	}
-	aws.Upload(nil, awsFile)
-	// settings := configuration.GetServerSettings()
-	// settings.Files["awsTest1234567890123"] = awsFile
-	// configuration.Release()
+	fmt.Println("Warning, using REAL AWS S3 API! This test will fail if no valid credentials have been provided.")
+	fmt.Println("To mock the API, run test with --tags test,awsmock or pass REAL_AWS_CREDENTIALS=false")
+	return false
+}
+
+func StartS3TestServer() *httptest.Server {
+	backend := s3mem.New()
+	_ = backend.CreateBucket("gokapi")
+	_ = backend.CreateBucket("gokapi-test")
+	_, _ = backend.PutObject("gokapi-test", "x341354656543213246465465465432456898794", nil, bytes.NewReader([]byte{}), 0)
+	faker := gofakes3.New(backend)
+	server := httptest.NewServer(faker.Server())
+	os.Setenv("GOKAPI_AWS_ENDPOINT", server.URL)
+	return server
 }
 
 // DisableS3 unsets env variables for mock S3

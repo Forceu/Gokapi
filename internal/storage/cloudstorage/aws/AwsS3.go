@@ -3,7 +3,6 @@
 package aws
 
 import (
-	"Gokapi/internal/configuration/cloudconfig"
 	"Gokapi/internal/models"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
@@ -28,12 +27,8 @@ const IsIncludedInBuild = true
 const IsMockApi = false
 
 // Init reads the credentials for AWS. Returns true if valid
-func Init() bool {
-	config, ok := cloudconfig.Load()
-	if ok {
-		fmt.Println("AWS config loaded")
-		awsConfig = config.Aws
-	}
+func Init(config models.AwsConfig) bool {
+	awsConfig = config
 	return isValidLogin()
 }
 
@@ -89,7 +84,7 @@ func Upload(input io.Reader, file models.File) (string, error) {
 	return result.Location, nil
 }
 
-// Download downloads a file from AWS
+// Download downloads a file from AWS, only used for testing
 func Download(writer io.WriterAt, file models.File) (int64, error) {
 	sess := createSession()
 	downloader := s3manager.NewDownloader(sess)

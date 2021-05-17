@@ -30,7 +30,7 @@ func TestSetUpgradeConfigFile(t *testing.T) {
 func TestEnableS3(t *testing.T) {
 	EnableS3()
 	if aws.IsMockApi {
-		test.IsEqualString(t, os.Getenv("AWS_REGION"), "mock-region-1")
+		test.IsEqualString(t, os.Getenv("GOKAPI_AWS_REGION"), "mock-region-1")
 	}
 }
 func TestDisableS3S3(t *testing.T) {

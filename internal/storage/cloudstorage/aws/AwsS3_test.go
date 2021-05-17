@@ -4,9 +4,11 @@
 package aws
 
 import (
+	"Gokapi/internal/configuration/cloudconfig"
 	"Gokapi/internal/models"
 	"Gokapi/internal/test"
-	"fmt"
+	"github.com/johannesboyne/gofakes3"
+	"github.com/johannesboyne/gofakes3/backend/s3mem"
 	"net/http/httptest"
 	"os"
 	"testing"
@@ -23,12 +25,31 @@ func TestMain(m *testing.M) {
 	invalidBucket.SHA256 = "testfile"
 	invalidAll.AwsBucket = "invalid"
 	invalidAll.SHA256 = "invalid"
+	if os.Getenv("REAL_AWS_CREDENTIALS") != "true" {
+		ts := startMockServer()
+		os.Setenv("GOKAPI_AWS_ENDPOINT", ts.URL)
+		defer ts.Close()
+	}
 	exitVal := m.Run()
 	os.Exit(exitVal)
 }
 
+func startMockServer() *httptest.Server {
+	os.Setenv("GOKAPI_AWS_BUCKET", "gokapi-test")
+	os.Setenv("GOKAPI_AWS_REGION", "mock-region-1")
+	os.Setenv("GOKAPI_AWS_KEY", "accId")
+	os.Setenv("GOKAPI_AWS_KEY_SECRET", "accKey")
+	backend := s3mem.New()
+	_ = backend.CreateBucket("gokapi")
+	_ = backend.CreateBucket("gokapi-test")
+	faker := gofakes3.New(backend)
+	return httptest.NewServer(faker.Server())
+}
+
 func TestInit(t *testing.T) {
-	Init()
+	config, ok := cloudconfig.Load()
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualBool(t, Init(config.Aws), true)
 	// For testing Backblaze, as the bucket name in the dev account is gokapi instead of gokapi-test
 	if os.Getenv("GOKAPI_AWS_ENDPOINT") != "" {
 		testFile.AwsBucket = "gokapi"
@@ -62,8 +83,7 @@ func TestRedirectToDownload(t *testing.T) {
 	r := httptest.NewRequest("GET", "/download", nil)
 	err := RedirectToDownload(w, r, testFile, false)
 	test.IsNil(t, err)
-	fmt.Println(w.Body.String())
-	test.ResponseBodyContains(t, w, "<a href=\"https://")
+	test.ResponseBodyContains(t, w, "<a href=\"http")
 	test.IsEqualInt(t, w.Code, 307)
 }
 

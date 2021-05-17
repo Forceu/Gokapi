@@ -2,6 +2,7 @@ package storage
 
 import (
 	"Gokapi/internal/configuration"
+	"Gokapi/internal/configuration/cloudconfig"
 	"Gokapi/internal/models"
 	"Gokapi/internal/storage/cloudstorage/aws"
 	"Gokapi/internal/test"
@@ -19,8 +20,15 @@ import (
 func TestMain(m *testing.M) {
 	testconfiguration.Create(true)
 	configuration.Load()
+	var testserver *httptest.Server
+	if testconfiguration.UseMockS3Server() {
+		testserver = testconfiguration.StartS3TestServer()
+	}
 	exitVal := m.Run()
 	testconfiguration.Delete()
+	if testserver != nil {
+		testserver.Close()
+	}
 	os.Exit(exitVal)
 }
 
@@ -133,6 +141,10 @@ func TestNewFile(t *testing.T) {
 
 	if aws.IsIncludedInBuild {
 		testconfiguration.EnableS3()
+		config, ok := cloudconfig.Load()
+		test.IsEqualBool(t, ok, true)
+		ok = aws.Init(config.Aws)
+		test.IsEqualBool(t, ok, true)
 		file, err = NewFile(bytes.NewReader(content), &header, request)
 		test.IsNil(t, err)
 		test.IsEqualString(t, file.Name, "bigfile")
@@ -160,12 +172,20 @@ func TestServeFile(t *testing.T) {
 
 	if aws.IsIncludedInBuild {
 		testconfiguration.EnableS3()
+		config, ok := cloudconfig.Load()
+		test.IsEqualBool(t, ok, true)
+		ok = aws.Init(config.Aws)
+		test.IsEqualBool(t, ok, true)
 		r = httptest.NewRequest("GET", "/upload", nil)
 		w = httptest.NewRecorder()
 		file, result = GetFile("awsTest1234567890123")
 		test.IsEqualBool(t, result, true)
 		ServeFile(file, w, r, false)
-		test.ResponseBodyContains(t, w, "https://redirect.url")
+		if aws.IsMockApi {
+			test.ResponseBodyContains(t, w, "https://redirect.url")
+		} else {
+			test.ResponseBodyContains(t, w, "<a href=\"http")
+		}
 		testconfiguration.DisableS3()
 	}
 }
@@ -238,6 +258,10 @@ func TestCleanUp(t *testing.T) {
 
 	if aws.IsIncludedInBuild {
 		testconfiguration.EnableS3()
+		config, ok := cloudconfig.Load()
+		test.IsEqualBool(t, ok, true)
+		ok = aws.Init(config.Aws)
+		test.IsEqualBool(t, ok, true)
 		test.IsEqualString(t, settings.Files["awsTest1234567890123"].Name, "Aws Test File")
 		testconfiguration.DisableS3()
 	}
@@ -261,11 +285,23 @@ func TestDeleteFile(t *testing.T) {
 
 	if aws.IsIncludedInBuild {
 		testconfiguration.EnableS3()
+		config, ok := cloudconfig.Load()
+		test.IsEqualBool(t, ok, true)
+		ok = aws.Init(config.Aws)
+		test.IsEqualBool(t, ok, true)
+		awsFile := models.File{
+			Id:        "awsTest1234567890123",
+			Name:      "aws Test File",
+			Size:      "20 MB",
+			SHA256:    "x341354656543213246465465465432456898794",
+			AwsBucket: "gokapi-test",
+		}
+		settings.Files["awsTest1234567890123"] = awsFile
 		result, err := aws.FileExists(settings.Files["awsTest1234567890123"])
 		test.IsEqualBool(t, result, true)
 		test.IsNil(t, err)
 		DeleteFile("awsTest1234567890123")
-		result, err = aws.FileExists(settings.Files["awsTest1234567890123"])
+		result, err = aws.FileExists(awsFile)
 		test.IsEqualBool(t, result, false)
 		test.IsNil(t, err)
 		testconfiguration.DisableS3()

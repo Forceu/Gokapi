@@ -28,7 +28,7 @@ const IsIncludedInBuild = true
 const IsMockApi = true
 
 // Init reads the credentials for AWS
-func Init() bool {
+func Init(config models.AwsConfig) bool {
 	return isValidCredentials()
 }
 
@@ -36,7 +36,6 @@ func Init() bool {
 func IsAvailable() bool {
 	return isCorrectLogin
 }
-
 
 // AddBucketName adds the bucket name to the file to be stored
 func AddBucketName(file *models.File) {

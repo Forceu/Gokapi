@@ -6,6 +6,7 @@ Main routine
 
 import (
 	"Gokapi/internal/configuration"
+	"Gokapi/internal/configuration/cloudconfig"
 	"Gokapi/internal/environment"
 	"Gokapi/internal/helper"
 	"Gokapi/internal/storage"
@@ -36,7 +37,8 @@ func main() {
 	resetPassword(passedFlags)
 	createSsl(passedFlags)
 
-	if aws.Init() {
+	cConfig, ok := cloudconfig.Load()
+	if ok && aws.Init(cConfig.Aws) {
 		fmt.Println("Saving new files to cloud storage")
 	} else {
 		fmt.Println("Saving new files to local storage")

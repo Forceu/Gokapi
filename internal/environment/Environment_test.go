@@ -33,6 +33,10 @@ func TestEnvLoad(t *testing.T) {
 }
 
 func TestIsAwsProvided(t *testing.T) {
+	os.Unsetenv("GOKAPI_AWS_BUCKET")
+	os.Unsetenv("GOKAPI_AWS_REGION")
+	os.Unsetenv("GOKAPI_AWS_KEY")
+	os.Unsetenv("GOKAPI_AWS_KEY_SECRET")
 	env := New()
 	test.IsEqualBool(t, env.IsAwsProvided(), false)
 	os.Setenv("GOKAPI_AWS_BUCKET", "test")
