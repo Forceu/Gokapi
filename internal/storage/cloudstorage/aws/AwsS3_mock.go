@@ -4,6 +4,7 @@ package aws
 
 import (
 	"Gokapi/internal/models"
+	"bytes"
 	"errors"
 	"io"
 	"net/http"
@@ -29,7 +30,17 @@ const IsMockApi = true
 
 // Init reads the credentials for AWS
 func Init(config models.AwsConfig) bool {
-	return isValidCredentials()
+	if !isValidCredentials() {
+		return false
+	}
+	Upload(bytes.NewReader([]byte("test")), models.File{
+		Id:        "awsTest1234567890123",
+		Name:      "aws Test File",
+		Size:      "20 MB",
+		SHA256:    "x341354656543213246465465465432456898794",
+		AwsBucket: "gokapi-test",
+	})
+	return true
 }
 
 // IsAvailable returns true if valid credentials have been passed
@@ -43,7 +54,7 @@ func AddBucketName(file *models.File) {
 }
 
 func isValidCredentials() bool {
-	requiredKeys := []string{"GOKAPI_AWS_BUCKET", "AWS_REGION", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"}
+	requiredKeys := []string{"GOKAPI_AWS_BUCKET", "GOKAPI_AWS_REGION", "GOKAPI_AWS_KEY", "GOKAPI_AWS_KEY_SECRET"}
 	requiredValues := []string{bucketName, region, accessId, accessKey}
 	for i, key := range requiredKeys {
 		val, _ := os.LookupEnv(key)

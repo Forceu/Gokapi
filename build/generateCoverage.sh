@@ -1,5 +1,7 @@
 #!/bin/sh
 cd ..
+go test ./... -parallel 8 --tags=test,awsmock
+go test ./... -parallel 8 --tags=test,noaws
 go test ./... -parallel 8 --tags=test,integration,noaws -coverprofile=/tmp/coverage1.out
 GOKAPI_AWS_BUCKET="gokapi" GOKAPI_AWS_REGION="eu-central-1" GOKAPI_AWS_KEY="keyid" GOKAPI_AWS_KEY_SECRET="secret" go test ./... -parallel 8 -coverprofile=/tmp/coverage2.out --tags=test,awstest
 
