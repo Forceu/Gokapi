@@ -129,7 +129,7 @@ func updateConfig() {
 	if serverSettings.ConfigVersion < 6 {
 		serverSettings.ApiKeys = make(map[string]models.ApiKey)
 	}
-	// < v1.2.1
+	// < v1.3.0
 	if serverSettings.ConfigVersion < 7 {
 		if Environment.UseSsl == environment.IsTrue {
 			serverSettings.UseSsl = true

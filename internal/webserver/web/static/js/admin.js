@@ -5,6 +5,7 @@ var dropzoneObject;
 
 Dropzone.options.uploaddropzone = {
   paramName: "file",
+  maxFilesize: 102400, // 100 GB
   timeout: 7200000,
   createImageThumbnails: false,
   success: function (file, response) {
