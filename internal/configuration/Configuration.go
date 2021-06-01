@@ -39,26 +39,27 @@ var mutex sync.Mutex
 
 // Configuration is a struct that contains the global configuration
 type Configuration struct {
-	Port             string                           `json:"Port"`
-	AdminName        string                           `json:"AdminName"`
-	AdminPassword    string                           `json:"AdminPassword"`
-	ServerUrl        string                           `json:"ServerUrl"`
-	DefaultDownloads int                              `json:"DefaultDownloads"`
-	DefaultExpiry    int                              `json:"DefaultExpiry"`
-	DefaultPassword  string                           `json:"DefaultPassword"`
-	RedirectUrl      string                           `json:"RedirectUrl"`
-	Sessions         map[string]models.Session        `json:"Sessions"`
-	Files            map[string]models.File           `json:"Files"`
-	Hotlinks         map[string]models.Hotlink        `json:"Hotlinks"`
-	DownloadStatus   map[string]models.DownloadStatus `json:"DownloadStatus"`
-	ApiKeys          map[string]models.ApiKey         `json:"ApiKeys"`
-	ConfigVersion    int                              `json:"ConfigVersion"`
-	SaltAdmin        string                           `json:"SaltAdmin"`
-	SaltFiles        string                           `json:"SaltFiles"`
-	LengthId         int                              `json:"LengthId"`
-	DataDir          string                           `json:"DataDir"`
-	MaxMemory        int                              `json:"MaxMemory"`
-	UseSsl           bool                             `json:"UseSsl"`
+	Port             string                            `json:"Port"`
+	AdminName        string                            `json:"AdminName"`
+	AdminPassword    string                            `json:"AdminPassword"`
+	ServerUrl        string                            `json:"ServerUrl"`
+	DefaultDownloads int                               `json:"DefaultDownloads"`
+	DefaultExpiry    int                               `json:"DefaultExpiry"`
+	DefaultPassword  string                            `json:"DefaultPassword"`
+	RedirectUrl      string                            `json:"RedirectUrl"`
+	Sessions         map[string]models.Session         `json:"Sessions"`
+	Files            map[string]models.File            `json:"Files"`
+	Hotlinks         map[string]models.Hotlink         `json:"Hotlinks"`
+	DownloadStatus   map[string]models.DownloadStatus  `json:"DownloadStatus"`
+	ApiKeys          map[string]models.ApiKey          `json:"ApiKeys"`
+	DownloadHistory  map[string]models.DownloadHistory `json:"DownloadHistory"`	
+	ConfigVersion    int                               `json:"ConfigVersion"`
+	SaltAdmin        string                            `json:"SaltAdmin"`
+	SaltFiles        string                            `json:"SaltFiles"`
+	LengthId         int                               `json:"LengthId"`
+	DataDir          string                            `json:"DataDir"`
+	MaxMemory        int                               `json:"MaxMemory"`
+	UseSsl           bool                              `json:"UseSsl"`
 }
 
 // Load loads the configuration or creates the folder structure and a default configuration
@@ -129,6 +130,9 @@ func updateConfig() {
 	if serverSettings.ConfigVersion < 6 {
 		serverSettings.ApiKeys = make(map[string]models.ApiKey)
 	}
+	if serverSettings.ConfigVersion < 3 {
+		serverSettings.DownloadHistory = make(map[string]models.DownloadHistory)
+	}	
 	// < v1.3.0
 	if serverSettings.ConfigVersion < 7 {
 		if Environment.UseSsl == environment.IsTrue {
@@ -182,6 +186,7 @@ func generateDefaultConfig() {
 		Hotlinks:         make(map[string]models.Hotlink),
 		ApiKeys:          make(map[string]models.ApiKey),
 		DownloadStatus:   make(map[string]models.DownloadStatus),
+		DownloadHistory:  make(map[string]models.DownloadHistory),
 		ConfigVersion:    currentConfigVersion,
 		SaltAdmin:        saltAdmin,
 		SaltFiles:        saltFiles,

@@ -7,6 +7,8 @@ Serving and processing uploaded files
 import (
 	"Gokapi/internal/configuration"
 	"Gokapi/internal/configuration/downloadstatus"
+	"Gokapi/internal/configuration/history"
+
 	"Gokapi/internal/helper"
 	"Gokapi/internal/models"
 	"Gokapi/internal/storage/cloudstorage/aws"
@@ -170,6 +172,10 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 	settings.Files[file.Id] = file
 	dataDir := settings.DataDir
 	configuration.Release()
+
+	history.LogHistory(file, r)
+
+
 
 	// If file is not stored on AWS
 	if file.AwsBucket == "" {
