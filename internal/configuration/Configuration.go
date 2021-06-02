@@ -130,7 +130,7 @@ func updateConfig() {
 	if serverSettings.ConfigVersion < 6 {
 		serverSettings.ApiKeys = make(map[string]models.ApiKey)
 	}
-	if serverSettings.ConfigVersion < 3 {
+	if serverSettings.ConfigVersion < 8 {
 		serverSettings.DownloadHistory = make(map[string]models.DownloadHistory)
 	}	
 	// < v1.3.0
