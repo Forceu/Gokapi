@@ -9,6 +9,7 @@ import (
 	"Gokapi/internal/configuration/cloudconfig"
 	"Gokapi/internal/environment"
 	"Gokapi/internal/helper"
+	"Gokapi/internal/logging"
 	"Gokapi/internal/storage"
 	"Gokapi/internal/storage/cloudstorage/aws"
 	"Gokapi/internal/webserver"
@@ -44,6 +45,7 @@ func main() {
 		fmt.Println("Saving new files to local storage")
 	}
 	go storage.CleanUp(true)
+	logging.AddString("Gokapi started")
 	webserver.Start()
 }
 

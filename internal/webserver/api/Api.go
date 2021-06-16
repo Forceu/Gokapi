@@ -120,9 +120,7 @@ func isValidKey(key string, modifyTime bool) bool {
 		return false
 	}
 	settings := configuration.GetServerSettings()
-	defer func() {
-		configuration.Release()
-	}()
+	defer configuration.Release()
 	savedKey, ok := settings.ApiKeys[key]
 	if ok && savedKey.Id != "" {
 		if modifyTime {

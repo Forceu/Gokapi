@@ -8,6 +8,7 @@ import (
 	"Gokapi/internal/configuration"
 	"Gokapi/internal/configuration/downloadstatus"
 	"Gokapi/internal/helper"
+	"Gokapi/internal/logging"
 	"Gokapi/internal/models"
 	"Gokapi/internal/storage/cloudstorage/aws"
 	"bytes"
@@ -170,6 +171,7 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 	settings.Files[file.Id] = file
 	dataDir := settings.DataDir
 	configuration.Release()
+	logging.AddDownload(&file, r)
 
 	// If file is not stored on AWS
 	if file.AwsBucket == "" {

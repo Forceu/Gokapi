@@ -24,7 +24,7 @@ func IsValidSession(w http.ResponseWriter, r *http.Request) bool {
 		sessionString := cookie.Value
 		if sessionString != "" {
 			settings := configuration.GetServerSettings()
-			defer func() { configuration.ReleaseAndSave() }()
+			defer configuration.ReleaseAndSave()
 			_, ok := (settings.Sessions)[sessionString]
 			if ok {
 				return useSession(w, sessionString, &settings.Sessions)
@@ -56,7 +56,7 @@ func CreateSession(w http.ResponseWriter, sessions *map[string]models.Session) {
 	if sessions == nil {
 		settings := configuration.GetServerSettings()
 		sessions = &settings.Sessions
-		defer func() { configuration.ReleaseAndSave() }()
+		defer configuration.ReleaseAndSave()
 	}
 	sessionString := helper.GenerateRandomString(60)
 	(*sessions)[sessionString] = models.Session{

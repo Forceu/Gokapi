@@ -90,7 +90,7 @@ func IsNil(t MockT, got error) {
 func FileExists(t MockT, name string) {
 	t.Helper()
 	if !fileExists(name) {
-		t.Errorf("Assertion failed, file does not exist: %s, want: nil.", name)
+		t.Errorf("Assertion failed, file does not exist: %s, want: Exists.", name)
 	}
 }
 
@@ -98,7 +98,7 @@ func FileExists(t MockT, name string) {
 func FileDoesNotExist(t MockT, name string) {
 	t.Helper()
 	if fileExists(name) {
-		t.Errorf("Assertion failed, file exist: %s, want: nil.", name)
+		t.Errorf("Assertion failed, file exist: %s, want: Does not exist", name)
 	}
 }
 

@@ -7,6 +7,7 @@ Loading and saving of the persistent configuration
 import (
 	"Gokapi/internal/environment"
 	"Gokapi/internal/helper"
+	log "Gokapi/internal/logging"
 	"Gokapi/internal/models"
 	"crypto/sha1"
 	"encoding/hex"
@@ -78,6 +79,7 @@ func Load() {
 	updateConfig()
 	serverSettings.MaxMemory = Environment.MaxMemory
 	helper.CreateDir(serverSettings.DataDir)
+	log.Init(Environment.ConfigDir)
 }
 
 // Lock locks configuration to prevent race conditions (blocking)
