@@ -94,13 +94,13 @@ func deleteFile(w http.ResponseWriter, request apiRequest) {
 func list(w http.ResponseWriter) {
 	var validFiles []models.File
 	sendOk(w)
-	settings := configuration.GetServerSettings()
+	settings := configuration.GetServerSettingsReadOnly()
 	for _, element := range settings.Files {
 		if element.ExpireAt > time.Now().Unix() && element.DownloadsRemaining > 0 {
 			validFiles = append(validFiles, element)
 		}
 	}
-	configuration.Release()
+	configuration.ReleaseReadOnly()
 	result, err := json.Marshal(validFiles)
 	helper.Check(err)
 	_, _ = w.Write(result)

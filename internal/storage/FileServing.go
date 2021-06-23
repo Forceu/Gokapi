@@ -139,9 +139,9 @@ func GetFile(id string) (models.File, bool) {
 	if id == "" {
 		return emptyResult, false
 	}
-	settings := configuration.GetServerSettings()
+	settings := configuration.GetServerSettingsReadOnly()
+	defer configuration.ReleaseReadOnly()
 	file := settings.Files[id]
-	configuration.Release()
 	if file.ExpireAt < time.Now().Unix() || file.DownloadsRemaining < 1 {
 		return emptyResult, false
 	}
@@ -158,9 +158,9 @@ func GetFileByHotlink(id string) (models.File, bool) {
 	if id == "" {
 		return emptyResult, false
 	}
-	settings := configuration.GetServerSettings()
+	settings := configuration.GetServerSettingsReadOnly()
 	hotlink := settings.Hotlinks[id]
-	configuration.Release()
+	configuration.ReleaseReadOnly()
 	return GetFile(hotlink.FileId)
 }
 

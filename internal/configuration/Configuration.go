@@ -36,7 +36,7 @@ var serverSettings Configuration
 const currentConfigVersion = 7
 
 // For locking this object to prevent race conditions
-var mutex sync.Mutex
+var mutex sync.RWMutex
 
 // Configuration is a struct that contains the global configuration
 type Configuration struct {
@@ -98,11 +98,23 @@ func Release() {
 	mutex.Unlock()
 }
 
-// GetServerSettings locks the settings returns a pointer to the configuration
+// GetServerSettings locks the settings returns a pointer to the configuration for Read/Write access
 // Release needs to be called when finished with the operation!
 func GetServerSettings() *Configuration {
 	mutex.Lock()
 	return &serverSettings
+}
+
+// GetServerSettingsReadOnly locks the settings for read-only access and returns a copy of the configuration
+// ReleaseReadOnly needs to be called when finished with the operation!
+func GetServerSettingsReadOnly() *Configuration {
+	mutex.RLock()
+	return &serverSettings
+}
+
+// ReleaseReadOnly unlocks the configuration opened for read-only access
+func ReleaseReadOnly() {
+	mutex.RUnlock()
 }
 
 // Upgrades the ServerSettings if saved with a previous version

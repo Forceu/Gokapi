@@ -24,7 +24,7 @@ func IsValidSession(w http.ResponseWriter, r *http.Request) bool {
 		sessionString := cookie.Value
 		if sessionString != "" {
 			settings := configuration.GetServerSettings()
-			defer configuration.ReleaseAndSave()
+			defer configuration.Release()
 			_, ok := (settings.Sessions)[sessionString]
 			if ok {
 				return useSession(w, sessionString, &settings.Sessions)

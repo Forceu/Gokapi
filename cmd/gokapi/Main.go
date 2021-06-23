@@ -87,9 +87,9 @@ func resetPassword(passedFlags flags) {
 
 func createSsl(passedFlags flags) {
 	if passedFlags.createSsl {
-		settings := configuration.GetServerSettings()
-		configuration.Release()
+		settings := configuration.GetServerSettingsReadOnly()
 		ssl.GenerateIfInvalidCert(settings.ServerUrl, true)
+		configuration.ReleaseReadOnly()
 	}
 }
 

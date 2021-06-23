@@ -113,7 +113,7 @@ func Start() {
 }
 
 func initLocalVariables() {
-	settings := configuration.GetServerSettings()
+	settings := configuration.GetServerSettingsReadOnly()
 	webserverPort = settings.Port
 	webserverExtUrl = settings.ServerUrl
 	webserverRedirectUrl = settings.RedirectUrl
@@ -121,7 +121,7 @@ func initLocalVariables() {
 	webserverAdminPassword = settings.AdminPassword
 	webserverMaxMemory = settings.MaxMemory
 	webserverUseSsl = settings.UseSsl
-	configuration.Release()
+	configuration.ReleaseReadOnly()
 }
 
 // Initialises the templateFolder variable by scanning through all the templates.
@@ -364,7 +364,7 @@ type UploadView struct {
 func (u *UploadView) convertGlobalConfig(isMainView bool) *UploadView {
 	var result []models.File
 	var resultApi []models.ApiKey
-	settings := configuration.GetServerSettings()
+	settings := configuration.GetServerSettingsReadOnly()
 	if isMainView {
 		for _, element := range settings.Files {
 			result = append(result, element)
@@ -401,7 +401,7 @@ func (u *UploadView) convertGlobalConfig(isMainView bool) *UploadView {
 	u.TimeNow = time.Now().Unix()
 	u.IsAdminView = true
 	u.IsMainView = isMainView
-	configuration.Release()
+	configuration.ReleaseReadOnly()
 	return u
 }
 
