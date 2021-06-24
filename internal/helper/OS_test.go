@@ -1,3 +1,5 @@
+// +build test
+
 package helper
 
 import (
@@ -32,6 +34,13 @@ func TestReadLine(t *testing.T) {
 	output := ReadLine()
 	test.StopMockInputStdin(original)
 	test.IsEqualString(t, output, "test")
+}
+
+func TestReadPassword(t *testing.T) {
+	original := test.StartMockInputStdin("testpw")
+	output := ReadPassword()
+	test.StopMockInputStdin(original)
+	test.IsEqualString(t, output, "testpw")
 }
 
 func TestGetFileSize(t *testing.T) {

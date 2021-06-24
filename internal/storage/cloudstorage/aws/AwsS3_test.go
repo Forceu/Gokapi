@@ -1,5 +1,6 @@
 // +build awstest
 // +build !awsmock
+// +build test
 
 package aws
 
@@ -57,6 +58,16 @@ func TestInit(t *testing.T) {
 	}
 }
 
+func TestAddBucketName(t *testing.T) {
+	file := models.File{Name: "Test"}
+	AddBucketName(&file)
+	test.IsEqualString(t, file.AwsBucket, "gokapi-test")
+}
+
+func TestIsAvailable(t *testing.T) {
+	test.IsEqualBool(t, IsAvailable(), true)
+}
+
 func TestUploadToAws(t *testing.T) {
 	os.WriteFile("test", []byte("testfile-content"), 0777)
 	file, _ := os.Open("test")
@@ -82,6 +93,14 @@ func TestRedirectToDownload(t *testing.T) {
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest("GET", "/download", nil)
 	err := RedirectToDownload(w, r, testFile, false)
+	test.IsNil(t, err)
+	test.ResponseBodyContains(t, w, "<a href=\"http")
+	test.IsEqualInt(t, w.Code, 307)
+
+	// Test with force download
+	w = httptest.NewRecorder()
+	r = httptest.NewRequest("GET", "/download", nil)
+	err = RedirectToDownload(w, r, testFile, true)
 	test.IsNil(t, err)
 	test.ResponseBodyContains(t, w, "<a href=\"http")
 	test.IsEqualInt(t, w.Code, 307)

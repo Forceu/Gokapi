@@ -1,4 +1,5 @@
 // +build !integration
+// +build test
 
 package webserver
 
