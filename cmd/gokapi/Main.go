@@ -23,9 +23,9 @@ import (
 
 // Version is the current version in readable form.
 // The go generate call below needs to be modified as well
-const Version = "1.3.1-dev"
+const Version = "1.3.1"
 
-//go:generate sh "../../build/setVersionTemplate.sh" "1.3.1-dev"
+//go:generate sh "../../build/setVersionTemplate.sh" "1.3.1"
 
 // Main routine that is called on startup
 func main() {
