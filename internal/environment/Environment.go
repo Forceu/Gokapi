@@ -35,6 +35,7 @@ type Environment struct {
 	AwsKeyId           string
 	AwsKeySecret       string
 	AwsEndpoint        string
+	MaxFileSize        int
 }
 
 // IsAwsProvided returns true if all required env variables have been set for using AWS S3 / Backblaze
@@ -51,6 +52,7 @@ var defaultValues = defaultsEnvironment{
 	DATA_DIR:             "data",
 	LENGTH_ID:            15,
 	MAX_MEMORY_UPLOAD_MB: 20,
+	MAX_FILESIZE:         102400, // 100GB
 }
 
 // New parses the env variables
@@ -80,6 +82,7 @@ func New() Environment {
 		AwsKeyId:           envString("AWS_KEY"),
 		AwsKeySecret:       envString("AWS_KEY_SECRET"),
 		AwsEndpoint:        envString("AWS_ENDPOINT"),
+		MaxFileSize:        envInt("MAX_FILESIZE", 1),
 	}
 }
 
@@ -151,4 +154,5 @@ type defaultsEnvironment struct {
 	SALT_FILES           string
 	LENGTH_ID            int
 	MAX_MEMORY_UPLOAD_MB int
+	MAX_FILESIZE         int
 }

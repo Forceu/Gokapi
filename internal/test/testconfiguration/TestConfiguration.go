@@ -294,7 +294,8 @@ var configTestFile = []byte(`{
    "SaltFiles":"lL5wMTtnVCn5TPbpRaSe4vAQodWW0hgk00WCZE",
    "LengthId":20,
    "DataDir":"test/data",
-   "UseSsl":false
+   "UseSsl":false,
+   "MaxFileSizeMB":25
 }`)
 
 var configUpgradeTestFile = []byte(`{

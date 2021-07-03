@@ -91,6 +91,8 @@ General
 +---------------------+--------------------------------------------------------------------------------------+-------------+-----------------------------------+-------------------------------+
 | GOKAPI_LENGTH_ID    | Sets the length of the download IDs. Value needs to be 5 or more                     | Yes         | 15                                | No                            |
 +---------------------+--------------------------------------------------------------------------------------+-------------+-----------------------------------+-------------------------------+
+| GOKAPI_MAX_FILESIZE | Sets the maximum allowed file size in MB                                             | Yes         | 102400 (100GB)                    | No                            |
++---------------------+--------------------------------------------------------------------------------------+-------------+-----------------------------------+-------------------------------+
 
 \*Variables that are persistent must be submitted during the first start when Gokapi creates a new config file. They can be omitted afterwards. Non-persistent variables need to be set on every start.
 

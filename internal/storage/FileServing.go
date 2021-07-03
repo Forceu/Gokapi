@@ -14,6 +14,7 @@ import (
 	"bytes"
 	"crypto/sha1"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -31,6 +32,12 @@ import (
 // it into the global configuration.
 func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequest models.UploadRequest) (models.File, error) {
 	id := helper.GenerateRandomString(configuration.GetLengthId())
+	settings := configuration.GetServerSettingsReadOnly()
+	maxSize := settings.MaxFileSizeMB
+	configuration.ReleaseReadOnly()
+	if fileHeader.Size > int64(maxSize)*1014*1024 {
+		return models.File{}, errors.New("upload limit exceeded")
+	}
 	var hasBeenRenamed bool
 	reader, hash, tempFile := generateHash(fileContent, fileHeader, uploadRequest)
 	defer deleteTempFile(tempFile, &hasBeenRenamed)
@@ -49,7 +56,7 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 	if aws.IsAvailable() {
 		aws.AddBucketName(&file)
 	}
-	settings := configuration.GetServerSettings()
+	settings = configuration.GetServerSettings()
 	filename := settings.DataDir + "/" + file.SHA256
 	dataDir := settings.DataDir
 	settings.Files[id] = file

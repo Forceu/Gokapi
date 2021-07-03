@@ -154,6 +154,28 @@ func TestNewFile(t *testing.T) {
 		test.IsEqualString(t, file.Size, "20.0 MB")
 		testconfiguration.DisableS3()
 	}
+
+	createBigFile("bigfile", 30)
+	bigFile, _ = os.Open("bigfile")
+	mimeHeader = make(textproto.MIMEHeader)
+	mimeHeader.Set("Content-Disposition", "form-data; name=\"file\"; filename=\"bigfile\"")
+	mimeHeader.Set("Content-Type", "application/binary")
+	header = multipart.FileHeader{
+		Filename: "bigfile",
+		Header:   mimeHeader,
+		Size:     int64(30) * 1024 * 1024,
+	}
+	request = models.UploadRequest{
+		AllowedDownloads: 1,
+		Expiry:           999,
+		ExpiryTimestamp:  2147483600,
+		MaxMemory:        10,
+		DataDir:          "test/data",
+	}
+	file, err = NewFile(bigFile, &header, request)
+	test.IsNotNil(t, err)
+	bigFile.Close()
+	os.Remove("bigfile")
 }
 
 func TestServeFile(t *testing.T) {

@@ -79,6 +79,7 @@ func TestCreateNewConfig(t *testing.T) {
 	test.IsEqualInt(t, len(serverSettings.SaltAdmin), 30)
 	test.IsEqualInt(t, serverSettings.MaxMemory, 20)
 	test.IsNotEqualString(t, serverSettings.SaltAdmin, "eefwkjqweduiotbrkl##$2342brerlk2321")
+	test.IsEqualInt(t, serverSettings.MaxFileSizeMB, 102400)
 	os.Unsetenv("GOKAPI_USERNAME")
 	os.Unsetenv("GOKAPI_PASSWORD")
 	os.Unsetenv("GOKAPI_PORT")
@@ -91,6 +92,7 @@ func TestCreateNewConfig(t *testing.T) {
 func TestUpgradeDb(t *testing.T) {
 	testconfiguration.WriteUpgradeConfigFile()
 	os.Setenv("GOKAPI_USE_SSL", "true")
+	os.Setenv("GOKAPI_MAX_FILESIZE", "5")
 	Load()
 	test.IsEqualString(t, serverSettings.SaltAdmin, "eefwkjqweduiotbrkl##$2342brerlk2321")
 	test.IsEqualString(t, serverSettings.SaltFiles, "P1UI5sRNDwuBgOvOYhNsmucZ2pqo4KEvOoqqbpdu")
@@ -102,7 +104,9 @@ func TestUpgradeDb(t *testing.T) {
 	test.IsEqualString(t, serverSettings.Files["MgXJLe4XLfpXcL12ec4i"].ContentType, "application/octet-stream")
 	test.IsEqualInt(t, serverSettings.ConfigVersion, currentConfigVersion)
 	test.IsEqualBool(t, serverSettings.UseSsl, true)
+	test.IsEqualInt(t, serverSettings.MaxFileSizeMB, 5)
 	os.Unsetenv("GOKAPI_USE_SSL")
+	os.Unsetenv("GOKAPI_MAX_FILESIZE")
 	testconfiguration.Create(false)
 	Load()
 }

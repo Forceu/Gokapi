@@ -357,6 +357,7 @@ type UploadView struct {
 	IsAdminView      bool
 	IsMainView       bool
 	IsApiView        bool
+	MaxFileSize      int
 }
 
 // Converts the globalConfig variable to an UploadView struct to pass the infos to
@@ -401,6 +402,7 @@ func (u *UploadView) convertGlobalConfig(isMainView bool) *UploadView {
 	u.TimeNow = time.Now().Unix()
 	u.IsAdminView = true
 	u.IsMainView = isMainView
+	u.MaxFileSize = settings.MaxFileSizeMB
 	configuration.ReleaseReadOnly()
 	return u
 }

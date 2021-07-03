@@ -71,6 +71,9 @@
    	 </div>
 
 	<script src="./js/admin.js?v=6"></script>
+	<script>
+		Dropzone.options.uploaddropzone["maxFilesize"] = {{ .MaxFileSize }};
+	</script>
 
 
 {{ template "footer" }}

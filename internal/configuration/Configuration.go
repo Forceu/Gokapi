@@ -33,7 +33,7 @@ var Environment environment.Environment
 var serverSettings Configuration
 
 // Version of the configuration structure. Used for upgrading
-const currentConfigVersion = 7
+const currentConfigVersion = 8
 
 // For locking this object to prevent race conditions
 var mutex sync.RWMutex
@@ -60,6 +60,7 @@ type Configuration struct {
 	DataDir          string                           `json:"DataDir"`
 	MaxMemory        int                              `json:"MaxMemory"`
 	UseSsl           bool                             `json:"UseSsl"`
+	MaxFileSizeMB    int                              `json:"MaxFileSizeMB"`
 }
 
 // Load loads the configuration or creates the folder structure and a default configuration
@@ -149,6 +150,10 @@ func updateConfig() {
 			serverSettings.UseSsl = true
 		}
 	}
+	// < v1.3.1
+	if serverSettings.ConfigVersion < 8 {
+		serverSettings.MaxFileSizeMB = Environment.MaxFileSize
+	}
 
 	if serverSettings.ConfigVersion < currentConfigVersion {
 		fmt.Println("Successfully upgraded database")
@@ -202,6 +207,7 @@ func generateDefaultConfig() {
 		DataDir:          Environment.DataDir,
 		LengthId:         Environment.LengthId,
 		UseSsl:           useSsl,
+		MaxFileSizeMB:    Environment.MaxFileSize,
 	}
 	save()
 }
