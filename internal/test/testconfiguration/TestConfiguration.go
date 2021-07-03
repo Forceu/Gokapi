@@ -289,7 +289,7 @@ var configTestFile = []byte(`{
          "LastUsedString":""
       }
    },
-   "ConfigVersion":7,
+   "ConfigVersion":8,
    "SaltAdmin":"LW6fW4Pjv8GtdWVLSZD66gYEev6NAaXxOVBw7C",
    "SaltFiles":"lL5wMTtnVCn5TPbpRaSe4vAQodWW0hgk00WCZE",
    "LengthId":20,

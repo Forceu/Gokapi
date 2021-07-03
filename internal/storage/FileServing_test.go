@@ -141,20 +141,6 @@ func TestNewFile(t *testing.T) {
 	bigFile.Close()
 	os.Remove("bigfile")
 
-	if aws.IsIncludedInBuild {
-		testconfiguration.EnableS3()
-		config, ok := cloudconfig.Load()
-		test.IsEqualBool(t, ok, true)
-		ok = aws.Init(config.Aws)
-		test.IsEqualBool(t, ok, true)
-		file, err = NewFile(bytes.NewReader(content), &header, request)
-		test.IsNil(t, err)
-		test.IsEqualString(t, file.Name, "bigfile")
-		test.IsEqualString(t, file.SHA256, "f1474c19eff0fc8998fa6e1b1f7bf31793b103a6")
-		test.IsEqualString(t, file.Size, "20.0 MB")
-		testconfiguration.DisableS3()
-	}
-
 	createBigFile("bigfile", 30)
 	bigFile, _ = os.Open("bigfile")
 	mimeHeader = make(textproto.MIMEHeader)
@@ -172,10 +158,36 @@ func TestNewFile(t *testing.T) {
 		MaxMemory:        10,
 		DataDir:          "test/data",
 	}
-	file, err = NewFile(bigFile, &header, request)
+	_, err = NewFile(bigFile, &header, request)
 	test.IsNotNil(t, err)
 	bigFile.Close()
 	os.Remove("bigfile")
+
+	if aws.IsIncludedInBuild {
+		header = multipart.FileHeader{
+			Filename: "bigfile",
+			Header:   mimeHeader,
+			Size:     int64(20) * 1024 * 1024,
+		}
+		request = models.UploadRequest{
+			AllowedDownloads: 1,
+			Expiry:           999,
+			ExpiryTimestamp:  2147483600,
+			MaxMemory:        10,
+			DataDir:          "test/data",
+		}
+		testconfiguration.EnableS3()
+		config, ok := cloudconfig.Load()
+		test.IsEqualBool(t, ok, true)
+		ok = aws.Init(config.Aws)
+		test.IsEqualBool(t, ok, true)
+		file, err = NewFile(bytes.NewReader(content), &header, request)
+		test.IsNil(t, err)
+		test.IsEqualString(t, file.Name, "bigfile")
+		test.IsEqualString(t, file.SHA256, "f1474c19eff0fc8998fa6e1b1f7bf31793b103a6")
+		test.IsEqualString(t, file.Size, "20.0 MB")
+		testconfiguration.DisableS3()
+	}
 }
 
 func TestServeFile(t *testing.T) {
