@@ -35,7 +35,7 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 	settings := configuration.GetServerSettingsReadOnly()
 	maxSize := settings.MaxFileSizeMB
 	configuration.ReleaseReadOnly()
-	if fileHeader.Size > int64(maxSize)*1014*1024 {
+	if fileHeader.Size > int64(maxSize)*1024*1024 {
 		return models.File{}, errors.New("upload limit exceeded")
 	}
 	var hasBeenRenamed bool
