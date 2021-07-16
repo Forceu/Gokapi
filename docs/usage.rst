@@ -37,7 +37,7 @@ If you uploaded an image, you can also use the *Copy Hotlink* button. The hotlin
 File deletion
 ---------------
 
-Every hour Gokapi runs a cleanup routine which deletes all files from the storage that have been expired. If you click on the *Delete* button in the list, that file will be deleted from the disk immediately.
+Every hour Gokapi runs a cleanup routine which deletes all files from the storage that have been expired. If you click on the *Delete* button in the list, that file will be deleted from the disk immediately. AWS files are deleted after 24 hours, as of right now there is no proper way to find out if a download has been completed. 
 
 
 API Menu
