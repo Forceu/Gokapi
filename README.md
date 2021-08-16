@@ -42,7 +42,7 @@ Please refer to the [documentation](https://gokapi.readthedocs.io/en/latest/usag
 
 ## License
 
-This project is licensed under the GNU GPL3 - see the [LICENSE.md](LICENSE.md) file for details
+This project is licensed under the AGPL3 - see the [LICENSE.md](LICENSE.md) file for details
 
 
 ## Donations
