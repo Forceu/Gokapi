@@ -26,6 +26,9 @@ const defaultPort = "53842"
 // Min length of admin password in characters
 const minLengthPassword = 6
 
+// Min length of admin username in characters
+const minLengthUsername = 3
+
 // Environment is an object containing the environment variables
 var Environment environment.Environment
 
@@ -243,10 +246,10 @@ func askForUsername(try int) string {
 		return envUsername
 	}
 	username := helper.ReadLine()
-	if len(username) >= 4 {
+	if utf8.RuneCountInString(username) >= minLengthUsername {
 		return username
 	}
-	fmt.Println("Username needs to be at least 4 characters long")
+	fmt.Println("Username needs to be at least " + strconv.Itoa(minLengthUsername) + " characters long")
 	return askForUsername(try + 1)
 }
 
