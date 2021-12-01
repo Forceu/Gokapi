@@ -8,6 +8,22 @@ Overview of all Changes
 -----------------------
 
 
+v1.3.1: 03 Jul 2021
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+* Default upload limit is now 100GB and can be changed with environment variables on first start
+* Fixed upload not working when using suburl on webserver for Gokapi
+* Added log file
+* Minor performance increase
+
+v1.3.0: 17 May 2021
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* Added cloudstorage support (AWS S3 / Backblaze B2)
+* After changing password, all sessions will be logged out
+* Fixed terminal input on Windows
+* Added SSL support
+* Documentation now hosted on ReadTheDocs
+
 v1.2.0: 07 May 2021
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -59,4 +75,8 @@ v1.0: 12 Mar 2021
 Upgrading
 -----------------------
 
-See TODO for upgrade instructions
+Upgrading to 1.3
+^^^^^^^^^^^^^^^^^^
+
+* If you would like to use native SSL, please pass the environment variable ``GOKAPI_USE_SSL`` on first start after the update or manually edit the configuration file
+* AWS S3 and Backblaze B2 can now be used instead of local storage! Please refer to the documentation on how to set it up.

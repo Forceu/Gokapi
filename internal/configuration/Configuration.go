@@ -36,7 +36,7 @@ var Environment environment.Environment
 var serverSettings Configuration
 
 // Version of the configuration structure. Used for upgrading
-const currentConfigVersion = 8
+const currentConfigVersion = 9
 
 // For locking this object to prevent race conditions
 var mutex sync.RWMutex
@@ -64,6 +64,7 @@ type Configuration struct {
 	MaxMemory        int                              `json:"MaxMemory"`
 	UseSsl           bool                             `json:"UseSsl"`
 	MaxFileSizeMB    int                              `json:"MaxFileSizeMB"`
+	DisableLogin     bool                             `json:"DisableLogin"`
 }
 
 // Load loads the configuration or creates the folder structure and a default configuration
@@ -156,6 +157,10 @@ func updateConfig() {
 	// < v1.3.1
 	if serverSettings.ConfigVersion < 8 {
 		serverSettings.MaxFileSizeMB = Environment.MaxFileSize
+	}
+	// < v1.3.2
+	if serverSettings.ConfigVersion < 9 {
+		serverSettings.DisableLogin = environment.ToBool(Environment.DisableLogin)
 	}
 
 	if serverSettings.ConfigVersion < currentConfigVersion {
@@ -433,6 +438,10 @@ func HashPassword(password string, useFileSalt bool) string {
 // GetLengthId returns the length of the file IDs to be generated
 func GetLengthId() int {
 	return serverSettings.LengthId
+}
+
+func IsLoginDisabled() bool {
+	return serverSettings.DisableLogin
 }
 
 var osExit = os.Exit

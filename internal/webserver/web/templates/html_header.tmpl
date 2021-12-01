@@ -45,7 +45,7 @@
           <nav class="nav nav-masthead justify-content-center">
             <a class="nav-link {{ if .IsMainView }}active{{ end }}" href="./admin">Upload</a>
             <a class="nav-link {{ if not .IsMainView }}active{{ end }}" href="./api">API</a>
-            <a class="nav-link" href="./logout">Logout</a>
+            {{ if not .IsLoginDisabled }}<a class="nav-link" href="./logout">Logout</a>{{ end }}
           </nav>
         </div>
       </header>

@@ -211,6 +211,10 @@ func processApi(w http.ResponseWriter, r *http.Request) {
 // Shows a login form. If username / pw combo is incorrect, client needs to wait for three seconds.
 // If correct, a new session is created and the user is redirected to the admin menu
 func showLogin(w http.ResponseWriter, r *http.Request) {
+	if configuration.IsLoginDisabled() {
+		redirect(w, "admin")
+		return
+	}
 	err := r.ParseForm()
 	helper.Check(err)
 	user := r.Form.Get("username")
@@ -358,6 +362,7 @@ type UploadView struct {
 	IsMainView       bool
 	IsApiView        bool
 	MaxFileSize      int
+	IsLoginDisabled  bool
 }
 
 // Converts the globalConfig variable to an UploadView struct to pass the infos to
@@ -403,6 +408,7 @@ func (u *UploadView) convertGlobalConfig(isMainView bool) *UploadView {
 	u.IsAdminView = true
 	u.IsMainView = isMainView
 	u.MaxFileSize = settings.MaxFileSizeMB
+	u.IsLoginDisabled = settings.DisableLogin
 	configuration.ReleaseReadOnly()
 	return u
 }
@@ -446,17 +452,20 @@ func downloadFile(w http.ResponseWriter, r *http.Request) {
 	storage.ServeFile(savedFile, w, r, true)
 }
 
-// Checks if the user is logged in as an admin
+// Checks if the user is logged in as an admin.
 func isAuthenticated(w http.ResponseWriter, r *http.Request, isUpload bool) bool {
+	if configuration.IsLoginDisabled() {
+		return true
+	}
 	if sessionmanager.IsValidSession(w, r) {
 		return true
 	}
 	if isUpload {
 		_, err := io.WriteString(w, "{\"Result\":\"error\",\"ErrorMessage\":\"Not authenticated\"}")
 		helper.Check(err)
-	} else {
-		redirect(w, "login")
+		return false
 	}
+	redirect(w, "login")
 	return false
 }
 

@@ -27,15 +27,21 @@ type Environment struct {
 	RedirectUrl        string
 	SaltAdmin          string
 	SaltFiles          string
-	LengthId           int
-	MaxMemory          int
 	UseSsl             string
 	AwsBucket          string
 	AwsRegion          string
 	AwsKeyId           string
 	AwsKeySecret       string
 	AwsEndpoint        string
+	DisableLogin       string
+	LengthId           int
+	MaxMemory          int
 	MaxFileSize        int
+}
+
+// ToBool checks if a string output by the environment package is equal true or false
+func ToBool(input string) bool {
+	return input == IsTrue
 }
 
 // IsAwsProvided returns true if all required env variables have been set for using AWS S3 / Backblaze
@@ -83,6 +89,7 @@ func New() Environment {
 		AwsKeySecret:       envString("AWS_KEY_SECRET"),
 		AwsEndpoint:        envString("AWS_ENDPOINT"),
 		MaxFileSize:        envInt("MAX_FILESIZE", 1),
+		DisableLogin:       envBool("DISABLE_LOGIN"),
 	}
 }
 

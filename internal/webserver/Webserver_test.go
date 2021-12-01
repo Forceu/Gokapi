@@ -567,3 +567,30 @@ func TestProcessApi(t *testing.T) {
 		Headers:         []test.Header{{"apikey", "validkey"}},
 	})
 }
+
+func TestDisableLogin(t *testing.T) {
+	test.HttpPageResult(t, test.HttpTestConfig{
+		Url:             "http://localhost:53843/admin",
+		RequiredContent: []string{"URL=./login\""},
+		IsHtml:          true,
+		Cookies: []test.Cookie{{
+			Name:  "session_token",
+			Value: "invalid",
+		}},
+	})
+	settings := configuration.GetServerSettings()
+	settings.DisableLogin = true
+	configuration.Release()
+	test.HttpPageResult(t, test.HttpTestConfig{
+		Url:             "http://localhost:53843/admin",
+		RequiredContent: []string{"Downloads remaining"},
+		IsHtml:          true,
+		Cookies: []test.Cookie{{
+			Name:  "session_token",
+			Value: "invalid",
+		}},
+	})
+	settings = configuration.GetServerSettings()
+	settings.DisableLogin = false
+	configuration.Release()
+}
