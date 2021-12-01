@@ -93,7 +93,7 @@ General
 +----------------------+----------------------------------------------------------------------------------------------------------+-------------+-----------------------------------+-------------------------------+
 | GOKAPI_MAX_FILESIZE  | Sets the maximum allowed file size in MB                                                                 | Yes         | 102400 (100GB)                    | No                            |
 +----------------------+----------------------------------------------------------------------------------------------------------+-------------+-----------------------------------+-------------------------------+
-| GOKAPI_DISABLE_LOGIN | Disables login for admin menu. DO NOT USE unless you have a 3rd party authentication for the ``/admin`` URL! | Yes         | false                             | No                            |
+| GOKAPI_DISABLE_LOGIN | Disables login for admin menu. DO NOT USE unless you have a 3rd party authentication for the /admin URL! | Yes         | false                             | No                            |
 +----------------------+----------------------------------------------------------------------------------------------------------+-------------+-----------------------------------+-------------------------------+
 
 \*Variables that are persistent must be submitted during the first start when Gokapi creates a new config file. They can be omitted afterwards. Non-persistent variables need to be set on every start.
