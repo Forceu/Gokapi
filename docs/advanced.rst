@@ -118,8 +118,9 @@ All values that are described in :ref:`cloudstorage` can be passed as environmen
 +-----------------------+-------------------------+
 
 
+********************************
 External Authentication
-------------------------
+********************************
 
 In order to use external authentication (eg. services like Authelia or Authentik), set the environment variable ``GOKAPI_DISABLE_LOGIN`` to ``true`` on the first start. *Warning:* This will diasable authentication for the admin menu, which can be dangerous if not set up correctly!
 

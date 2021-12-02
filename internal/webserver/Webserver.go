@@ -172,7 +172,7 @@ func forgotPassword(w http.ResponseWriter, r *http.Request) {
 // If user is authenticated, this menu lists all uploads and enables uploading new files
 func showApiAdmin(w http.ResponseWriter, r *http.Request) {
 	addNoCacheHeader(w)
-	if !isAuthenticated(w, r, false) {
+	if !isAuthenticatedOrRedirect(w, r, false) {
 		return
 	}
 	err := templateFolder.ExecuteTemplate(w, "api", (&UploadView{}).convertGlobalConfig(false))
@@ -182,7 +182,7 @@ func showApiAdmin(w http.ResponseWriter, r *http.Request) {
 // Handling of /apiNew
 func newApiKey(w http.ResponseWriter, r *http.Request) {
 	addNoCacheHeader(w)
-	if !isAuthenticated(w, r, false) {
+	if !isAuthenticatedOrRedirect(w, r, false) {
 		return
 	}
 	api.NewKey()
@@ -192,7 +192,7 @@ func newApiKey(w http.ResponseWriter, r *http.Request) {
 // Handling of /apiDelete
 func deleteApiKey(w http.ResponseWriter, r *http.Request) {
 	addNoCacheHeader(w)
-	if !isAuthenticated(w, r, false) {
+	if !isAuthenticatedOrRedirect(w, r, false) {
 		return
 	}
 	keys, ok := r.URL.Query()["id"]
@@ -305,7 +305,7 @@ func showHotlink(w http.ResponseWriter, r *http.Request) {
 // User needs to be admin. Deletes the requested file
 func deleteFile(w http.ResponseWriter, r *http.Request) {
 	addNoCacheHeader(w)
-	if !isAuthenticated(w, r, false) {
+	if !isAuthenticatedOrRedirect(w, r, false) {
 		return
 	}
 	keyId := queryUrl(w, r, "admin")
@@ -332,7 +332,7 @@ func queryUrl(w http.ResponseWriter, r *http.Request, redirectUrl string) string
 // If user is authenticated, this menu lists all uploads and enables uploading new files
 func showAdminMenu(w http.ResponseWriter, r *http.Request) {
 	addNoCacheHeader(w)
-	if !isAuthenticated(w, r, false) {
+	if !isAuthenticatedOrRedirect(w, r, false) {
 		return
 	}
 	err := templateFolder.ExecuteTemplate(w, "admin", (&UploadView{}).convertGlobalConfig(true))
@@ -419,7 +419,7 @@ func (u *UploadView) convertGlobalConfig(isMainView bool) *UploadView {
 func uploadFile(w http.ResponseWriter, r *http.Request) {
 	addNoCacheHeader(w)
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	if !isAuthenticated(w, r, true) {
+	if !isAuthenticatedOrRedirect(w, r, true) {
 		return
 	}
 	err := fileupload.Process(w, r, true, webserverMaxMemory)
@@ -452,8 +452,8 @@ func downloadFile(w http.ResponseWriter, r *http.Request) {
 	storage.ServeFile(savedFile, w, r, true)
 }
 
-// Checks if the user is logged in as an admin.
-func isAuthenticated(w http.ResponseWriter, r *http.Request, isUpload bool) bool {
+// Checks if the user is logged in as an admin. Redirects to login page if not authenticated
+func isAuthenticatedOrRedirect(w http.ResponseWriter, r *http.Request, isUpload bool) bool {
 	if configuration.IsLoginDisabled() {
 		return true
 	}

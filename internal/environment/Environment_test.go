@@ -48,3 +48,9 @@ func TestIsAwsProvided(t *testing.T) {
 	env = New()
 	test.IsEqualBool(t, env.IsAwsProvided(), true)
 }
+
+func TestToBool(t *testing.T) {
+	test.IsEqualBool(t, ToBool(IsTrue), true)
+	test.IsEqualBool(t, ToBool(IsFalse), false)
+	test.IsEqualBool(t, ToBool("invalid"), false)
+}

@@ -21,7 +21,7 @@ func Process(w http.ResponseWriter, r *http.Request, maxMemory int) {
 	w.Header().Set("cache-control", "no-store")
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	request := parseRequest(r)
-	if !isAuthorised(w, request) {
+	if !isAuthorisedForApi(w, request) {
 		return
 	}
 	switch request.requestUrl {
@@ -132,7 +132,7 @@ func isValidKey(key string, modifyTime bool) bool {
 	return false
 }
 
-func isAuthorised(w http.ResponseWriter, request apiRequest) bool {
+func isAuthorisedForApi(w http.ResponseWriter, request apiRequest) bool {
 	if isValidKey(request.apiKey, true) || sessionmanager.IsValidSession(w, request.request) {
 		return true
 	}
