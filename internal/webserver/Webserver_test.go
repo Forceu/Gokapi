@@ -426,7 +426,7 @@ func TestDeleteFile(t *testing.T) {
 func TestApiPageAuthorized(t *testing.T) {
 	t.Parallel()
 	test.HttpPageResult(t, test.HttpTestConfig{
-		Url:             "http://127.0.0.1:53843/api",
+		Url:             "http://127.0.0.1:53843/apiKeys",
 		IsHtml:          true,
 		RequiredContent: []string{"Click on the API key name to give it a new name."},
 		Cookies: []test.Cookie{{
@@ -438,7 +438,7 @@ func TestApiPageAuthorized(t *testing.T) {
 func TestApiPageNotAuthorized(t *testing.T) {
 	t.Parallel()
 	test.HttpPageResult(t, test.HttpTestConfig{
-		Url:             "http://127.0.0.1:53843/api",
+		Url:             "http://127.0.0.1:53843/apiKeys",
 		IsHtml:          true,
 		RequiredContent: []string{"URL=./login"},
 		ExcludedContent: []string{"Click on the API key name to give it a new name."},
@@ -457,7 +457,7 @@ func TestNewApiKey(t *testing.T) {
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/apiNew",
 		IsHtml:          true,
-		RequiredContent: []string{"URL=./api"},
+		RequiredContent: []string{"URL=./apiKeys"},
 		ExcludedContent: []string{"URL=./login"},
 		Cookies: []test.Cookie{{
 			Name:  "session_token",
@@ -476,7 +476,7 @@ func TestNewApiKey(t *testing.T) {
 		Url:             "http://127.0.0.1:53843/apiNew",
 		IsHtml:          true,
 		RequiredContent: []string{"URL=./login"},
-		ExcludedContent: []string{"URL=./api"},
+		ExcludedContent: []string{"URL=./apiKeys"},
 		Cookies: []test.Cookie{{
 			Name:  "session_token",
 			Value: "invalid",
@@ -498,7 +498,7 @@ func TestDeleteApiKey(t *testing.T) {
 		Url:             "http://127.0.0.1:53843/apiDelete?id=jiREglQJW0bOqJakfjdVfe8T1EM8n8",
 		IsHtml:          true,
 		RequiredContent: []string{"URL=./login"},
-		ExcludedContent: []string{"URL=./api"},
+		ExcludedContent: []string{"URL=./apiKeys"},
 		Cookies: []test.Cookie{{
 			Name:  "session_token",
 			Value: "invalid",
@@ -515,7 +515,7 @@ func TestDeleteApiKey(t *testing.T) {
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/apiDelete?id=jiREglQJW0bOqJakfjdVfe8T1EM8n8",
 		IsHtml:          true,
-		RequiredContent: []string{"URL=./api"},
+		RequiredContent: []string{"URL=./apiKeys"},
 		ExcludedContent: []string{"URL=./login"},
 		Cookies: []test.Cookie{{
 			Name:  "session_token",

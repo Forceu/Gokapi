@@ -124,15 +124,16 @@ All values that are described in :ref:`cloudstorage` can be passed as environmen
 External Authentication
 ********************************
 
-In order to use external authentication (eg. services like Authelia or Authentik), set the environment variable ``GOKAPI_DISABLE_LOGIN`` to ``true`` on the first start. *Warning:* This will diasable authentication for the admin menu, which can be dangerous if not set up correctly!
+In order to use external authentication (eg. services like Authelia or Authentik), set the environment variable ``GOKAPI_DISABLE_LOGIN`` to ``true`` on the first start. **Warning:** This will diasable authentication for the admin menu, which can be dangerous if not set up correctly!
 
-Refer to the documention of your reverse proxy on how to protect the following URLs:
+**Refer to the documention of your reverse proxy on how to protect the following URLs:**
+
  * ``/admin``
- * ``/apiNew``
  * ``/apiDelete``
+ * ``/apiKeys`` 
+ * ``/apiNew``
  * ``/delete``
  * ``/upload``
- * ``/api`` (``/api/`` however does not need to be protected)
 
 .. _api:
 
@@ -140,7 +141,7 @@ Refer to the documention of your reverse proxy on how to protect the following U
 API
 ********************************
 
-Gokapi offers an API that can be reached at ``http(s)://your.gokapi.url/api``. You can find the current documentation with an overview of all API functions and examples at ``http(s)://your.gokapi.url/apidocumentation/``.
+Gokapi offers an API that can be reached at ``http(s)://your.gokapi.url/api/``. You can find the current documentation with an overview of all API functions and examples at ``http(s)://your.gokapi.url/apidocumentation/``.
 
 
 Interacting with the API

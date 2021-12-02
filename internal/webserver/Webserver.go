@@ -85,7 +85,7 @@ func Start() {
 	http.HandleFunc("/downloadFile", downloadFile)
 	http.HandleFunc("/forgotpw", forgotPassword)
 	http.HandleFunc("/api/", processApi)
-	http.HandleFunc("/api", showApiAdmin)
+	http.HandleFunc("/apiKeys", showApiAdmin)
 	http.HandleFunc("/apiNew", newApiKey)
 	http.HandleFunc("/apiDelete", deleteApiKey)
 	fmt.Println("Binding webserver to " + webserverPort)
@@ -186,7 +186,7 @@ func newApiKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	api.NewKey()
-	redirect(w, "api")
+	redirect(w, "apiKeys")
 }
 
 // Handling of /apiDelete
@@ -199,7 +199,7 @@ func deleteApiKey(w http.ResponseWriter, r *http.Request) {
 	if ok {
 		api.DeleteKey(keys[0])
 	}
-	redirect(w, "api")
+	redirect(w, "apiKeys")
 }
 
 // Handling of /api/
