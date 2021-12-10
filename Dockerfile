@@ -6,7 +6,7 @@ FROM golang:1.17 AS build_base
 
 RUN mkdir /compile
 COPY go.mod /compile
-RUN cd /compile && go mod download
+RUN cd /compile && go mod tidy && go mod download
   
 COPY . /compile  
 
