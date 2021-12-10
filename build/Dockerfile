@@ -13,7 +13,7 @@ RUN \
 
 COPY go.mod /tmp/tmp/go.mod
 
-RUN cd /tmp/tmp/ && go mod download && rm -r /tmp/tmp
+RUN cd /tmp/tmp/ && go mod tidy && go mod download && rm -r /tmp/tmp
 
 COPY entrypoint.sh /entrypoint.sh
 
