@@ -30,6 +30,7 @@ jobs:
         run: echo "${{ secrets.DOCKER_PW }}" | docker login -u "${{ secrets.DOCKER_USER }}" --password-stdin
       - name: build the image
         run: |
+          go mod tidy
           docker buildx build --tag f0rc3/gokapi:latest --platform linux/386,linux/amd64,linux/arm/v6,linux/arm/v7 .
       - name: push the image
         run: |
