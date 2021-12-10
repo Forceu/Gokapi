@@ -21,7 +21,7 @@ func Process(w http.ResponseWriter, r *http.Request, isWeb bool, maxMemory int) 
 	if isWeb {
 		config = parseConfig(r.Form, true)
 	} else {
-		config = parseConfig(r.Header, false)
+		config = parseConfig(r.Form, false)
 	}
 	file, header, err := r.FormFile("file")
 	if err != nil {

@@ -80,7 +80,6 @@ func TestProcess(t *testing.T) {
 	test.ResponseBodyContains(t, w, "Invalid request")
 }
 
-
 func TestAuthDisabledLogin(t *testing.T) {
 	w, r := getRecorder("GET", "/api/auth/friendlyname", nil, nil, nil)
 	Process(w, r, maxMemory)
@@ -163,6 +162,9 @@ func TestUpload(t *testing.T) {
 	part, err := writer.CreateFormFile("file", filepath.Base(file.Name()))
 	test.IsNil(t, err)
 	io.Copy(part, file)
+	writer.WriteField("allowedDownloads", "200")
+	writer.WriteField("expiryDays", "10")
+	writer.WriteField("password", "12345")
 	writer.Close()
 	w, r := getRecorder("POST", "/api/files/add", nil, []test.Header{{
 		Name:  "apikey",
@@ -178,6 +180,8 @@ func TestUpload(t *testing.T) {
 	test.IsNil(t, err)
 	test.IsEqualString(t, result.Result, "OK")
 	test.IsEqualString(t, result.FileInfo.Size, "3 B")
+	test.IsEqualInt(t, result.FileInfo.DownloadsRemaining, 200)
+	test.IsNotEqualString(t, result.FileInfo.PasswordHash, "")
 	test.IsEqualString(t, result.Url, "http://127.0.0.1:53843/d?id=")
 	w, r = getRecorder("POST", "/api/files/add", nil, []test.Header{{
 		Name:  "apikey",
