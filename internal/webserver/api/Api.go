@@ -40,7 +40,7 @@ func Process(w http.ResponseWriter, r *http.Request, maxMemory int) {
 
 // DeleteKey deletes the selected API key
 func DeleteKey(id string) bool {
-	if !isValidKey(id, false) {
+	if !IsValidApiKey(id, false) {
 		return false
 	}
 	settings := configuration.GetServerSettings()
@@ -63,7 +63,7 @@ func NewKey() string {
 }
 
 func changeFriendlyName(w http.ResponseWriter, request apiRequest) {
-	if !isValidKey(request.apiKeyToModify, false) {
+	if !IsValidApiKey(request.apiKeyToModify, false) {
 		sendError(w, http.StatusBadRequest, "Invalid api key provided.")
 		return
 	}
@@ -115,25 +115,8 @@ func upload(w http.ResponseWriter, request apiRequest, maxMemory int) {
 	sendOk(w)
 }
 
-func isValidKey(key string, modifyTime bool) bool {
-	if key == "" {
-		return false
-	}
-	settings := configuration.GetServerSettings()
-	defer configuration.Release()
-	savedKey, ok := settings.ApiKeys[key]
-	if ok && savedKey.Id != "" {
-		if modifyTime {
-			savedKey.LastUsed = time.Now().Unix()
-			settings.ApiKeys[key] = savedKey
-		}
-		return true
-	}
-	return false
-}
-
 func isAuthorisedForApi(w http.ResponseWriter, request apiRequest) bool {
-	if isValidKey(request.apiKey, true) || sessionmanager.IsValidSession(w, request.request) {
+	if IsValidApiKey(request.apiKey, true) || sessionmanager.IsValidSession(w, request.request) {
 		return true
 	}
 	sendError(w, http.StatusUnauthorized, "Unauthorized")
@@ -167,4 +150,21 @@ func parseRequest(r *http.Request) apiRequest {
 		requestUrl:     strings.Replace(r.URL.String(), "/api", "", 1),
 		request:        r,
 	}
+}
+
+func IsValidApiKey(key string, modifyTime bool) bool {
+	if key == "" {
+		return false
+	}
+	settings := configuration.GetServerSettings()
+	defer configuration.Release()
+	savedKey, ok := settings.ApiKeys[key]
+	if ok && savedKey.Id != "" {
+		if modifyTime {
+			savedKey.LastUsed = time.Now().Unix()
+			settings.ApiKeys[key] = savedKey
+		}
+		return true
+	}
+	return false
 }

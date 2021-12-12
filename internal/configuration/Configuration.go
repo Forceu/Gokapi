@@ -43,28 +43,30 @@ var mutex sync.RWMutex
 
 // Configuration is a struct that contains the global configuration
 type Configuration struct {
-	Port             string                           `json:"Port"`
-	AdminName        string                           `json:"AdminName"`
-	AdminPassword    string                           `json:"AdminPassword"`
-	ServerUrl        string                           `json:"ServerUrl"`
-	DefaultDownloads int                              `json:"DefaultDownloads"`
-	DefaultExpiry    int                              `json:"DefaultExpiry"`
-	DefaultPassword  string                           `json:"DefaultPassword"`
-	RedirectUrl      string                           `json:"RedirectUrl"`
-	Sessions         map[string]models.Session        `json:"Sessions"`
-	Files            map[string]models.File           `json:"Files"`
-	Hotlinks         map[string]models.Hotlink        `json:"Hotlinks"`
-	DownloadStatus   map[string]models.DownloadStatus `json:"DownloadStatus"`
-	ApiKeys          map[string]models.ApiKey         `json:"ApiKeys"`
-	ConfigVersion    int                              `json:"ConfigVersion"`
-	SaltAdmin        string                           `json:"SaltAdmin"`
-	SaltFiles        string                           `json:"SaltFiles"`
-	LengthId         int                              `json:"LengthId"`
-	DataDir          string                           `json:"DataDir"`
-	MaxMemory        int                              `json:"MaxMemory"`
-	UseSsl           bool                             `json:"UseSsl"`
-	MaxFileSizeMB    int                              `json:"MaxFileSizeMB"`
-	DisableLogin     bool                             `json:"DisableLogin"`
+	Port                     string                           `json:"Port"`
+	AdminName                string                           `json:"AdminName"`
+	AdminPassword            string                           `json:"AdminPassword"`
+	ServerUrl                string                           `json:"ServerUrl"`
+	DefaultDownloads         int                              `json:"DefaultDownloads"`
+	DefaultExpiry            int                              `json:"DefaultExpiry"`
+	DefaultPassword          string                           `json:"DefaultPassword"`
+	RedirectUrl              string                           `json:"RedirectUrl"`
+	Sessions                 map[string]models.Session        `json:"Sessions"`
+	Files                    map[string]models.File           `json:"Files"`
+	Hotlinks                 map[string]models.Hotlink        `json:"Hotlinks"`
+	DownloadStatus           map[string]models.DownloadStatus `json:"DownloadStatus"`
+	ApiKeys                  map[string]models.ApiKey         `json:"ApiKeys"`
+	ConfigVersion            int                              `json:"ConfigVersion"`
+	SaltAdmin                string                           `json:"SaltAdmin"`
+	SaltFiles                string                           `json:"SaltFiles"`
+	LengthId                 int                              `json:"LengthId"`
+	DataDir                  string                           `json:"DataDir"`
+	MaxMemory                int                              `json:"MaxMemory"`
+	UseSsl                   bool                             `json:"UseSsl"`
+	MaxFileSizeMB            int                              `json:"MaxFileSizeMB"`
+	DisableLogin             bool                             `json:"DisableLogin"`
+	LoginHeaderKey           string                           `json:"LoginHeaderKey"`
+	LoginHeaderForceUsername bool                             `json:"LoginHeaderForceUsername"`
 }
 
 // Load loads the configuration or creates the folder structure and a default configuration
@@ -161,6 +163,8 @@ func updateConfig() {
 	// < v1.3.2
 	if serverSettings.ConfigVersion < 9 {
 		serverSettings.DisableLogin = environment.ToBool(Environment.DisableLogin)
+		serverSettings.LoginHeaderForceUsername = environment.ToBool(Environment.LoginHeaderForceUser)
+		serverSettings.LoginHeaderKey = Environment.LoginHeaderKey
 	}
 
 	if serverSettings.ConfigVersion < currentConfigVersion {
@@ -442,6 +446,10 @@ func GetLengthId() int {
 
 func IsLoginDisabled() bool {
 	return serverSettings.DisableLogin
+}
+
+func IsLogoutAvailable() bool {
+	return !serverSettings.DisableLogin && serverSettings.LoginHeaderKey == ""
 }
 
 var osExit = os.Exit

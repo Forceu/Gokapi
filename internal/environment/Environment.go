@@ -15,28 +15,30 @@ const IsFalse = "no"
 
 // Environment is a struct containing available env variables
 type Environment struct {
-	ConfigDir          string
-	ConfigFile         string
-	ConfigPath         string
-	DataDir            string
-	AdminName          string
-	AdminPassword      string
-	WebserverPort      string
-	WebserverLocalhost string
-	ExternalUrl        string
-	RedirectUrl        string
-	SaltAdmin          string
-	SaltFiles          string
-	UseSsl             string
-	AwsBucket          string
-	AwsRegion          string
-	AwsKeyId           string
-	AwsKeySecret       string
-	AwsEndpoint        string
-	DisableLogin       string
-	LengthId           int
-	MaxMemory          int
-	MaxFileSize        int
+	ConfigDir            string
+	ConfigFile           string
+	ConfigPath           string
+	DataDir              string
+	AdminName            string
+	AdminPassword        string
+	WebserverPort        string
+	WebserverLocalhost   string
+	ExternalUrl          string
+	RedirectUrl          string
+	SaltAdmin            string
+	SaltFiles            string
+	UseSsl               string
+	AwsBucket            string
+	AwsRegion            string
+	AwsKeyId             string
+	AwsKeySecret         string
+	AwsEndpoint          string
+	DisableLogin         string
+	LoginHeaderKey       string
+	LoginHeaderForceUser string
+	LengthId             int
+	MaxMemory            int
+	MaxFileSize          int
 }
 
 // ToBool checks if a string output by the environment package is equal true or false
@@ -68,28 +70,30 @@ func New() Environment {
 	configPath := configDir + "/" + configFile
 
 	return Environment{
-		ConfigDir:          configDir,
-		ConfigFile:         configFile,
-		ConfigPath:         configPath,
-		DataDir:            envString("DATA_DIR"),
-		AdminName:          envString("USERNAME"),
-		AdminPassword:      envString("PASSWORD"),
-		WebserverPort:      envString("PORT"),
-		ExternalUrl:        envString("EXTERNAL_URL"),
-		RedirectUrl:        envString("REDIRECT_URL"),
-		SaltAdmin:          envString("SALT_ADMIN"),
-		SaltFiles:          envString("SALT_FILES"),
-		WebserverLocalhost: envBool("LOCALHOST"),
-		LengthId:           envInt("LENGTH_ID", 5),
-		MaxMemory:          envInt("MAX_MEMORY_UPLOAD_MB", 5),
-		UseSsl:             envBool("USE_SSL"),
-		AwsBucket:          envString("AWS_BUCKET"),
-		AwsRegion:          envString("AWS_REGION"),
-		AwsKeyId:           envString("AWS_KEY"),
-		AwsKeySecret:       envString("AWS_KEY_SECRET"),
-		AwsEndpoint:        envString("AWS_ENDPOINT"),
-		MaxFileSize:        envInt("MAX_FILESIZE", 1),
-		DisableLogin:       envBool("DISABLE_LOGIN"),
+		ConfigDir:            configDir,
+		ConfigFile:           configFile,
+		ConfigPath:           configPath,
+		DataDir:              envString("DATA_DIR"),
+		AdminName:            envString("USERNAME"),
+		AdminPassword:        envString("PASSWORD"),
+		WebserverPort:        envString("PORT"),
+		ExternalUrl:          envString("EXTERNAL_URL"),
+		RedirectUrl:          envString("REDIRECT_URL"),
+		SaltAdmin:            envString("SALT_ADMIN"),
+		SaltFiles:            envString("SALT_FILES"),
+		WebserverLocalhost:   envBool("LOCALHOST"),
+		LengthId:             envInt("LENGTH_ID", 5),
+		MaxMemory:            envInt("MAX_MEMORY_UPLOAD_MB", 5),
+		UseSsl:               envBool("USE_SSL"),
+		AwsBucket:            envString("AWS_BUCKET"),
+		AwsRegion:            envString("AWS_REGION"),
+		AwsKeyId:             envString("AWS_KEY"),
+		AwsKeySecret:         envString("AWS_KEY_SECRET"),
+		AwsEndpoint:          envString("AWS_ENDPOINT"),
+		MaxFileSize:          envInt("MAX_FILESIZE", 1),
+		DisableLogin:         envBool("DISABLE_LOGIN"),
+		LoginHeaderKey:       envString("LOGIN_HEADER_KEY"),
+		LoginHeaderForceUser: envBool("LOGIN_HEADER_FORCE_USER"),
 	}
 }
 

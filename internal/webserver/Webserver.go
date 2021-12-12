@@ -10,6 +10,7 @@ import (
 	"Gokapi/internal/models"
 	"Gokapi/internal/storage"
 	"Gokapi/internal/webserver/api"
+	"Gokapi/internal/webserver/authentication"
 	"Gokapi/internal/webserver/fileupload"
 	"Gokapi/internal/webserver/sessionmanager"
 	"Gokapi/internal/webserver/ssl"
@@ -48,13 +49,11 @@ var imageExpiredPicture []byte
 const expiredFile = "static/expired.png"
 
 var (
-	webserverPort          string
-	webserverExtUrl        string
-	webserverRedirectUrl   string
-	webserverAdminName     string
-	webserverAdminPassword string
-	webserverMaxMemory     int
-	webserverUseSsl        bool
+	webserverPort        string
+	webserverExtUrl      string
+	webserverRedirectUrl string
+	webserverMaxMemory   int
+	webserverUseSsl      bool
 )
 
 // Start the webserver on the port set in the config
@@ -117,8 +116,6 @@ func initLocalVariables() {
 	webserverPort = settings.Port
 	webserverExtUrl = settings.ServerUrl
 	webserverRedirectUrl = settings.RedirectUrl
-	webserverAdminName = settings.AdminName
-	webserverAdminPassword = settings.AdminPassword
 	webserverMaxMemory = settings.MaxMemory
 	webserverUseSsl = settings.UseSsl
 	configuration.ReleaseReadOnly()
@@ -211,7 +208,7 @@ func processApi(w http.ResponseWriter, r *http.Request) {
 // Shows a login form. If username / pw combo is incorrect, client needs to wait for three seconds.
 // If correct, a new session is created and the user is redirected to the admin menu
 func showLogin(w http.ResponseWriter, r *http.Request) {
-	if configuration.IsLoginDisabled() {
+	if authentication.IsAuthenticated(w, r) {
 		redirect(w, "admin")
 		return
 	}
@@ -221,7 +218,7 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 	pw := r.Form.Get("password")
 	failedLogin := false
 	if pw != "" && user != "" {
-		if strings.ToLower(user) == strings.ToLower(webserverAdminName) && configuration.HashPassword(pw, false) == webserverAdminPassword {
+		if authentication.IsCorrectUsernameAndPassword(user, pw) {
 			sessionmanager.CreateSession(w, nil)
 			redirect(w, "admin")
 			return
@@ -350,19 +347,19 @@ type DownloadView struct {
 
 // UploadView contains parameters for the admin menu template
 type UploadView struct {
-	Items            []models.File
-	ApiKeys          []models.ApiKey
-	Url              string
-	HotlinkUrl       string
-	TimeNow          int64
-	DefaultDownloads int
-	DefaultExpiry    int
-	DefaultPassword  string
-	IsAdminView      bool
-	IsMainView       bool
-	IsApiView        bool
-	MaxFileSize      int
-	IsLoginDisabled  bool
+	Items             []models.File
+	ApiKeys           []models.ApiKey
+	Url               string
+	HotlinkUrl        string
+	TimeNow           int64
+	DefaultDownloads  int
+	DefaultExpiry     int
+	DefaultPassword   string
+	IsAdminView       bool
+	IsMainView        bool
+	IsApiView         bool
+	MaxFileSize       int
+	IsLogoutAvailable bool
 }
 
 // Converts the globalConfig variable to an UploadView struct to pass the infos to
@@ -408,7 +405,7 @@ func (u *UploadView) convertGlobalConfig(isMainView bool) *UploadView {
 	u.IsAdminView = true
 	u.IsMainView = isMainView
 	u.MaxFileSize = settings.MaxFileSizeMB
-	u.IsLoginDisabled = settings.DisableLogin
+	u.IsLogoutAvailable = configuration.IsLogoutAvailable()
 	configuration.ReleaseReadOnly()
 	return u
 }
@@ -454,10 +451,7 @@ func downloadFile(w http.ResponseWriter, r *http.Request) {
 
 // Checks if the user is logged in as an admin. Redirects to login page if not authenticated
 func isAuthenticatedOrRedirect(w http.ResponseWriter, r *http.Request, isUpload bool) bool {
-	if configuration.IsLoginDisabled() {
-		return true
-	}
-	if sessionmanager.IsValidSession(w, r) {
+	if authentication.IsAuthenticated(w, r) {
 		return true
 	}
 	if isUpload {

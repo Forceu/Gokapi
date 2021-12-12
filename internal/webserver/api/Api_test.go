@@ -51,11 +51,11 @@ func TestDeleteKey(t *testing.T) {
 func TestIsValidApiKey(t *testing.T) {
 	settings := configuration.GetServerSettings()
 	configuration.Release()
-	test.IsEqualBool(t, isValidKey("", false), false)
-	test.IsEqualBool(t, isValidKey("invalid", false), false)
-	test.IsEqualBool(t, isValidKey("validkey", false), true)
+	test.IsEqualBool(t, IsValidApiKey("", false), false)
+	test.IsEqualBool(t, IsValidApiKey("invalid", false), false)
+	test.IsEqualBool(t, IsValidApiKey("validkey", false), true)
 	test.IsEqualBool(t, settings.ApiKeys["validkey"].LastUsed == 0, true)
-	test.IsEqualBool(t, isValidKey("validkey", true), true)
+	test.IsEqualBool(t, IsValidApiKey("validkey", true), true)
 	test.IsEqualBool(t, settings.ApiKeys["validkey"].LastUsed == 0, false)
 }
 
