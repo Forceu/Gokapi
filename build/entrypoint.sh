@@ -6,7 +6,6 @@ targets=${@-"darwin/amd64 linux/amd64 linux/386 linux/arm linux/arm64 windows/am
 
 cd /usr/src/myapp
 go generate ./...
-go mod tidy
 
 for target in $targets; do
 	for tag in "full" "noaws"; do

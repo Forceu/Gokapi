@@ -6,11 +6,11 @@ FROM golang:1.17 AS build_base
 
 RUN mkdir /compile
 COPY go.mod /compile
-RUN cd /compile && go mod tidy && go mod download
+RUN cd /compile && go mod download
   
 COPY . /compile  
 
-RUN cd /compile && go mod tidy && go generate ./... && CGO_ENABLED=0 go build -ldflags="-s -w -X 'Gokapi/internal/environment.IsDocker=true' -X 'Gokapi/internal/environment.Builder=Project Docker File' -X 'Gokapi/internal/environment.BuildTime=$(date)'" -o /compile/gokapi Gokapi/cmd/gokapi
+RUN cd /compile && go generate ./... && CGO_ENABLED=0 go build -ldflags="-s -w -X 'Gokapi/internal/environment.IsDocker=true' -X 'Gokapi/internal/environment.Builder=Project Docker File' -X 'Gokapi/internal/environment.BuildTime=$(date)'" -o /compile/gokapi Gokapi/cmd/gokapi
 
 FROM alpine:3.13
 
