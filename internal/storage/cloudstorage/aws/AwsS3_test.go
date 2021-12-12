@@ -1,6 +1,5 @@
-// +build awstest
-// +build !awsmock
-// +build test
+//go:build awstest && !awsmock && test
+// +build awstest,!awsmock,test
 
 package aws
 

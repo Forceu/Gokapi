@@ -1,5 +1,5 @@
-// +build !integration
-// +build test
+//go:build !integration && test
+// +build !integration,test
 
 package main
 

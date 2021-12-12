@@ -1,4 +1,5 @@
-//  +build test
+//go:build test
+// +build test
 
 package test
 
