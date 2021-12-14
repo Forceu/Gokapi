@@ -13,6 +13,9 @@ const IsTrue = "yes"
 // IsFalse is a placeholder for no
 const IsFalse = "no"
 
+// DefaultPort for the webserver
+const DefaultPort = "53842"
+
 // Environment is a struct containing available env variables
 type Environment struct {
 	ConfigDir            string
@@ -58,6 +61,7 @@ var defaultValues = defaultsEnvironment{
 	CONFIG_DIR:           "config",
 	CONFIG_FILE:          "config.json",
 	DATA_DIR:             "data",
+	PORT:                 DefaultPort,
 	LENGTH_ID:            15,
 	MAX_MEMORY_UPLOAD_MB: 20,
 	MAX_FILESIZE:         102400, // 100GB
@@ -65,18 +69,15 @@ var defaultValues = defaultsEnvironment{
 
 // New parses the env variables
 func New() Environment {
-	configDir := envString("CONFIG_DIR")
-	configFile := envString("CONFIG_FILE")
-	configPath := configDir + "/" + configFile
-
+	configPath, configDir, configFile := GetConfigPaths()
 	return Environment{
 		ConfigDir:            configDir,
 		ConfigFile:           configFile,
 		ConfigPath:           configPath,
+		WebserverPort:        GetPort(),
 		DataDir:              envString("DATA_DIR"),
 		AdminName:            envString("USERNAME"),
 		AdminPassword:        envString("PASSWORD"),
-		WebserverPort:        envString("PORT"),
 		ExternalUrl:          envString("EXTERNAL_URL"),
 		RedirectUrl:          envString("REDIRECT_URL"),
 		SaltAdmin:            envString("SALT_ADMIN"),
@@ -139,6 +140,17 @@ func envInt(key string, minValue int) int {
 
 }
 
+func GetConfigPaths() (string, string, string) {
+	configDir := envString("CONFIG_DIR")
+	configFile := envString("CONFIG_FILE")
+	configPath := configDir + "/" + configFile
+	return configPath, configDir, configFile
+}
+
+func GetPort() string {
+	return envString("PORT")
+}
+
 // Gets the env variable or default value as string
 func (structPointer *defaultsEnvironment) getString(name string) string {
 	field := reflect.ValueOf(structPointer).Elem().FieldByName(name)
@@ -163,6 +175,7 @@ type defaultsEnvironment struct {
 	DATA_DIR             string
 	SALT_ADMIN           string
 	SALT_FILES           string
+	PORT                 string
 	LENGTH_ID            int
 	MAX_MEMORY_UPLOAD_MB int
 	MAX_FILESIZE         int

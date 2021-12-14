@@ -20,14 +20,16 @@ import (
 	"unicode/utf8"
 )
 
-// Default port that the program runs on
-const defaultPort = "53842"
-
 // Min length of admin password in characters
 const minLengthPassword = 6
 
 // Min length of admin username in characters
 const minLengthUsername = 3
+
+const AuthenticationInternal = 0
+const AuthenticationOAuth2 = 1
+const AuthenticationHeader = 2
+const AuthenticationDisabled = 3
 
 // Environment is an object containing the environment variables
 var Environment environment.Environment
@@ -35,38 +37,42 @@ var Environment environment.Environment
 // ServerSettings is an object containing the server configuration
 var serverSettings Configuration
 
-// Version of the configuration structure. Used for upgrading
-const currentConfigVersion = 9
+// CurrentConfigVersion is the version of the configuration structure. Used for upgrading
+const CurrentConfigVersion = 10
 
 // For locking this object to prevent race conditions
 var mutex sync.RWMutex
 
 // Configuration is a struct that contains the global configuration
 type Configuration struct {
-	Port                     string                           `json:"Port"`
-	AdminName                string                           `json:"AdminName"`
-	AdminPassword            string                           `json:"AdminPassword"`
-	ServerUrl                string                           `json:"ServerUrl"`
-	DefaultDownloads         int                              `json:"DefaultDownloads"`
-	DefaultExpiry            int                              `json:"DefaultExpiry"`
-	DefaultPassword          string                           `json:"DefaultPassword"`
-	RedirectUrl              string                           `json:"RedirectUrl"`
-	Sessions                 map[string]models.Session        `json:"Sessions"`
-	Files                    map[string]models.File           `json:"Files"`
-	Hotlinks                 map[string]models.Hotlink        `json:"Hotlinks"`
-	DownloadStatus           map[string]models.DownloadStatus `json:"DownloadStatus"`
-	ApiKeys                  map[string]models.ApiKey         `json:"ApiKeys"`
-	ConfigVersion            int                              `json:"ConfigVersion"`
-	SaltAdmin                string                           `json:"SaltAdmin"`
-	SaltFiles                string                           `json:"SaltFiles"`
-	LengthId                 int                              `json:"LengthId"`
-	DataDir                  string                           `json:"DataDir"`
-	MaxMemory                int                              `json:"MaxMemory"`
-	UseSsl                   bool                             `json:"UseSsl"`
-	MaxFileSizeMB            int                              `json:"MaxFileSizeMB"`
-	DisableLogin             bool                             `json:"DisableLogin"`
-	LoginHeaderKey           string                           `json:"LoginHeaderKey"`
-	LoginHeaderForceUsername bool                             `json:"LoginHeaderForceUsername"`
+	AuthenticationMethod int                              `json:"AuthenticationMethod"`
+	Port                 string                           `json:"Port"`
+	AdminName            string                           `json:"AdminName"`
+	AdminPassword        string                           `json:"AdminPassword"`
+	ServerUrl            string                           `json:"ServerUrl"`
+	DefaultDownloads     int                              `json:"DefaultDownloads"`
+	DefaultExpiry        int                              `json:"DefaultExpiry"`
+	DefaultPassword      string                           `json:"DefaultPassword"`
+	RedirectUrl          string                           `json:"RedirectUrl"`
+	Sessions             map[string]models.Session        `json:"Sessions"`
+	Files                map[string]models.File           `json:"Files"`
+	Hotlinks             map[string]models.Hotlink        `json:"Hotlinks"`
+	DownloadStatus       map[string]models.DownloadStatus `json:"DownloadStatus"`
+	ApiKeys              map[string]models.ApiKey         `json:"ApiKeys"`
+	ConfigVersion        int                              `json:"ConfigVersion"`
+	SaltAdmin            string                           `json:"SaltAdmin"`
+	SaltFiles            string                           `json:"SaltFiles"`
+	LengthId             int                              `json:"LengthId"`
+	DataDir              string                           `json:"DataDir"`
+	MaxMemory            int                              `json:"MaxMemory"`
+	UseSsl               bool                             `json:"UseSsl"`
+	MaxFileSizeMB        int                              `json:"MaxFileSizeMB"`
+	LoginHeaderKey       string                           `json:"LoginHeaderKey"`
+}
+
+func Exists() bool {
+	configPath, _, _ := environment.GetConfigPaths()
+	return helper.FileExists(configPath)
 }
 
 // Load loads the configuration or creates the folder structure and a default configuration
@@ -160,16 +166,15 @@ func updateConfig() {
 	if serverSettings.ConfigVersion < 8 {
 		serverSettings.MaxFileSizeMB = Environment.MaxFileSize
 	}
-	// < v1.3.2
-	if serverSettings.ConfigVersion < 9 {
-		serverSettings.DisableLogin = environment.ToBool(Environment.DisableLogin)
-		serverSettings.LoginHeaderForceUsername = environment.ToBool(Environment.LoginHeaderForceUser)
-		serverSettings.LoginHeaderKey = Environment.LoginHeaderKey
+	// < v1.5.0
+	if serverSettings.ConfigVersion < 10 {
+		serverSettings.AuthenticationMethod = AuthenticationInternal
+		// TODO AWS
 	}
 
-	if serverSettings.ConfigVersion < currentConfigVersion {
+	if serverSettings.ConfigVersion < CurrentConfigVersion {
 		fmt.Println("Successfully upgraded database")
-		serverSettings.ConfigVersion = currentConfigVersion
+		serverSettings.ConfigVersion = CurrentConfigVersion
 		save()
 	}
 }
@@ -213,7 +218,7 @@ func generateDefaultConfig() {
 		Hotlinks:         make(map[string]models.Hotlink),
 		ApiKeys:          make(map[string]models.ApiKey),
 		DownloadStatus:   make(map[string]models.DownloadStatus),
-		ConfigVersion:    currentConfigVersion,
+		ConfigVersion:    CurrentConfigVersion,
 		SaltAdmin:        saltAdmin,
 		SaltFiles:        saltFiles,
 		DataDir:          Environment.DataDir,
@@ -238,6 +243,12 @@ func save() {
 		fmt.Println("Error writing configuration:", err)
 		osExit(1)
 	}
+}
+
+func LoadFromSetup(config Configuration) {
+	Environment = environment.New()
+	serverSettings = config
+	save()
 }
 
 // Asks for username or loads it from env and returns input as string if valid
@@ -325,7 +336,7 @@ func askForSsl() bool {
 
 // Asks for server port or loads it from env and returns input as string if valid
 func askForPort() string {
-	fmt.Print("Server Port [" + defaultPort + "]: ")
+	fmt.Print("Server Port [" + environment.GetPort() + "]: ")
 	envPort := Environment.WebserverPort
 	if envPort != "" {
 		fmt.Println(envPort)
@@ -333,7 +344,7 @@ func askForPort() string {
 	}
 	port := helper.ReadLine()
 	if port == "" {
-		return defaultPort
+		return environment.GetPort()
 	}
 	if !isValidPortNumber(port) {
 		return askForPort()
@@ -426,12 +437,15 @@ func DisplayPasswordReset() {
 
 // HashPassword hashes a string with SHA256 and a salt
 func HashPassword(password string, useFileSalt bool) string {
+	if useFileSalt {
+		return HashPasswordCustomSalt(password, serverSettings.SaltFiles)
+	}
+	return HashPasswordCustomSalt(password, serverSettings.SaltAdmin)
+}
+
+func HashPasswordCustomSalt(password, salt string) string {
 	if password == "" {
 		return ""
-	}
-	salt := serverSettings.SaltAdmin
-	if useFileSalt {
-		salt = serverSettings.SaltFiles
 	}
 	bytes := []byte(password + salt)
 	hash := sha1.New()
@@ -444,12 +458,8 @@ func GetLengthId() int {
 	return serverSettings.LengthId
 }
 
-func IsLoginDisabled() bool {
-	return serverSettings.DisableLogin
-}
-
 func IsLogoutAvailable() bool {
-	return !serverSettings.DisableLogin && serverSettings.LoginHeaderKey == ""
+	return serverSettings.AuthenticationMethod == AuthenticationInternal
 }
 
 var osExit = os.Exit

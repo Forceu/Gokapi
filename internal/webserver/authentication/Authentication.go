@@ -8,20 +8,29 @@ import (
 )
 
 func IsAuthenticated(w http.ResponseWriter, r *http.Request) bool {
-	if byDisabledLogin() {
+	settings := configuration.GetServerSettingsReadOnly()
+	configuration.ReleaseReadOnly()
+	switch settings.AuthenticationMethod {
+	case configuration.AuthenticationInternal:
+		return isGrantedSession(w, r)
+	case configuration.AuthenticationOAuth2:
+		return false // TODO
+	case configuration.AuthenticationHeader:
+		return isGrantedHeader(r)
+	case configuration.AuthenticationDisabled:
 		return true
 	}
-	if byHeader(r) {
+	if isGrantedHeader(r) {
 		return true
 	}
-	if byInternalSession(w, r) {
+	if isGrantedSession(w, r) {
 		return true
 	}
 	return false
 }
 
-// byHeader returns true if the user was authenticated by a proxy header if enabled
-func byHeader(r *http.Request) bool {
+// isGrantedHeader returns true if the user was authenticated by a proxy header if enabled
+func isGrantedHeader(r *http.Request) bool {
 	settings := configuration.GetServerSettingsReadOnly()
 	defer configuration.ReleaseReadOnly()
 
@@ -33,20 +42,16 @@ func byHeader(r *http.Request) bool {
 	if value == "" {
 		return false
 	}
-	if settings.LoginHeaderForceUsername {
-		return strings.ToLower(value) == strings.ToLower(settings.AdminName)
-	} else {
-		return true
-	}
+	// TODO
+	// if settings.LoginHeaderForceUsername {
+	//	return strings.ToLower(value) == strings.ToLower(settings.AdminName)
+	// } else {
+	return true
+	// }
 }
 
-// byDisabledLogin returns true if login has been disabled
-func byDisabledLogin() bool {
-	return configuration.IsLoginDisabled()
-}
-
-// byInternalSession returns true if the user holds a valid internal session cookie
-func byInternalSession(w http.ResponseWriter, r *http.Request) bool {
+// isGrantedSession returns true if the user holds a valid internal session cookie
+func isGrantedSession(w http.ResponseWriter, r *http.Request) bool {
 	return sessionmanager.IsValidSession(w, r)
 }
 

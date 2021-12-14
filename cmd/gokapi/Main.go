@@ -7,6 +7,7 @@ Main routine
 import (
 	"Gokapi/internal/configuration"
 	"Gokapi/internal/configuration/cloudconfig"
+	"Gokapi/internal/configuration/setup"
 	"Gokapi/internal/environment"
 	"Gokapi/internal/helper"
 	"Gokapi/internal/logging"
@@ -23,9 +24,9 @@ import (
 
 // Version is the current version in readable form.
 // The go generate call below needs to be modified as well
-const Version = "1.3.2"
+const Version = "1.5.0"
 
-//go:generate sh "../../build/setVersionTemplate.sh" "1.3.2"
+//go:generate sh "../../build/setVersionTemplate.sh" "1.5.0"
 
 // Main routine that is called on startup
 func main() {
@@ -34,6 +35,7 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 	fmt.Println(logo)
 	fmt.Println("Gokapi v" + Version + " starting")
+	setup.RunIfFirstStart()
 	configuration.Load()
 	resetPassword(passedFlags)
 	createSsl(passedFlags)

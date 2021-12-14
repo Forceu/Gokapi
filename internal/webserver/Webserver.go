@@ -72,21 +72,22 @@ func Start() {
 		imageExpiredPicture, err = fs.ReadFile(staticFolderEmbedded, "web/"+expiredFile)
 		helper.Check(err)
 	}
-	http.HandleFunc("/index", showIndex)
-	http.HandleFunc("/d", showDownload)
-	http.HandleFunc("/hotlink/", showHotlink)
-	http.HandleFunc("/error", showError)
-	http.HandleFunc("/login", showLogin)
-	http.HandleFunc("/logout", doLogout)
 	http.HandleFunc("/admin", showAdminMenu)
-	http.HandleFunc("/upload", uploadFile)
-	http.HandleFunc("/delete", deleteFile)
-	http.HandleFunc("/downloadFile", downloadFile)
-	http.HandleFunc("/forgotpw", forgotPassword)
 	http.HandleFunc("/api/", processApi)
+	http.HandleFunc("/apiDelete", deleteApiKey)
 	http.HandleFunc("/apiKeys", showApiAdmin)
 	http.HandleFunc("/apiNew", newApiKey)
-	http.HandleFunc("/apiDelete", deleteApiKey)
+	http.HandleFunc("/d", showDownload)
+	http.HandleFunc("/delete", deleteFile)
+	http.HandleFunc("/downloadFile", downloadFile)
+	http.HandleFunc("/error", showError)
+	http.HandleFunc("/forgotpw", forgotPassword)
+	http.HandleFunc("/hotlink/", showHotlink)
+	http.HandleFunc("/index", showIndex)
+	http.HandleFunc("/login", showLogin)
+	http.HandleFunc("/logout", doLogout)
+	http.HandleFunc("/setup", showSetup)
+	http.HandleFunc("/upload", uploadFile)
 	fmt.Println("Binding webserver to " + webserverPort)
 	srv := &http.Server{
 		Addr:         webserverPort,
@@ -173,6 +174,15 @@ func showApiAdmin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	err := templateFolder.ExecuteTemplate(w, "api", (&UploadView{}).convertGlobalConfig(false))
+	helper.Check(err)
+}
+
+// Handling of /setup
+// TODO
+// If user is authenticated, this menu lists all uploads and enables uploading new files
+func showSetup(w http.ResponseWriter, r *http.Request) {
+	addNoCacheHeader(w)
+	err := templateFolder.ExecuteTemplate(w, "setup", SetupView{})
 	helper.Check(err)
 }
 
@@ -360,6 +370,10 @@ type UploadView struct {
 	IsApiView         bool
 	MaxFileSize       int
 	IsLogoutAvailable bool
+}
+
+type SetupView struct {
+	IsAdminView bool
 }
 
 // Converts the globalConfig variable to an UploadView struct to pass the infos to

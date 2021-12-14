@@ -105,7 +105,7 @@ func TestUpgradeDb(t *testing.T) {
 	test.IsEqualBool(t, serverSettings.Sessions == nil, false)
 	test.IsEqualBool(t, serverSettings.DownloadStatus == nil, false)
 	test.IsEqualString(t, serverSettings.Files["MgXJLe4XLfpXcL12ec4i"].ContentType, "application/octet-stream")
-	test.IsEqualInt(t, serverSettings.ConfigVersion, currentConfigVersion)
+	test.IsEqualInt(t, serverSettings.ConfigVersion, CurrentConfigVersion)
 	test.IsEqualBool(t, serverSettings.UseSsl, true)
 	test.IsEqualInt(t, serverSettings.MaxFileSizeMB, 5)
 	test.IsEqualBool(t, serverSettings.DisableLogin, true)
@@ -190,7 +190,7 @@ func TestAskForPort(t *testing.T) {
 	test.IsEqualString(t, askForPort(), "8000")
 	test.StopMockInputStdin(original)
 	original = test.StartMockInputStdin("")
-	test.IsEqualString(t, askForPort(), defaultPort)
+	test.IsEqualString(t, askForPort(), DefaultPort)
 	test.StopMockInputStdin(original)
 }
 
