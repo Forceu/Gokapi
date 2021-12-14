@@ -2,6 +2,7 @@ package setup
 
 import (
 	"Gokapi/internal/configuration"
+	"Gokapi/internal/configuration/cloudconfig"
 	"Gokapi/internal/environment"
 	"Gokapi/internal/helper"
 	"Gokapi/internal/models"
@@ -16,6 +17,7 @@ import (
 	"net"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -90,7 +92,7 @@ func getFormValueBool(formObjects *[]jsonFormObject, key string) (bool, error) {
 	if value == "1" {
 		return true, nil
 	}
-	return false, errors.New("could not convert " + value + " to bool")
+	return false, errors.New("could not convert " + key + " to bool, got: " + value)
 }
 
 func getFormValueInt(formObjects *[]jsonFormObject, key string) (int, error) {
@@ -100,7 +102,7 @@ func getFormValueInt(formObjects *[]jsonFormObject, key string) (int, error) {
 	}
 	result, err := strconv.Atoi(value)
 	if err != nil {
-		return 0, errors.New("could not convert " + value + " to int")
+		return 0, errors.New("could not convert " + key + " to int, got: " + value)
 	}
 	return result, nil
 }
@@ -173,20 +175,59 @@ func toConfiguration(formObjects *[]jsonFormObject) (configuration.Configuration
 		return configuration.Configuration{}, err
 	}
 
+	headerAllowedUsers, err := getFormValueString(formObjects, "auth_header_users")
+	if err != nil {
+		return configuration.Configuration{}, err
+	}
+	result.LoginHeaderUsers = strings.Split(headerAllowedUsers, ";")
+
+	useCloud, err := getFormValueString(formObjects, "storage_sel")
+	if err != nil {
+		return configuration.Configuration{}, err
+	}
+	if useCloud == "cloud" {
+		err = writeCloudConfig(formObjects, &result)
+		if err != nil {
+			return configuration.Configuration{}, err
+		}
+	}
+
 	return result, nil
 }
 
-type setupResponse2 struct {
-	AuthHeaderUsers      string `json:"auth_header_users"`
-	StorageMethod        bool   `json:"storage_sel"`
-	S3Bucket             string `json:"&s3_bucket"`
-	S3Region             string `json:"s3_region"`
-	S3Api                string `json:"s3_api"`
-	S3Secret             string `json:"s3_secret"`
-	S3Endpoint           string `json:"s3_endpoint"`
+func writeCloudConfig(formObjects *[]jsonFormObject, config *configuration.Configuration) error {
+	var err error
+	awsConfig := cloudconfig.CloudConfig{}
+	awsConfig.Aws.Bucket, err = getFormValueString(formObjects, "s3_bucket")
+	if err != nil {
+		return err
+	}
+	awsConfig.Aws.Region, err = getFormValueString(formObjects, "s3_region")
+	if err != nil {
+		return err
+	}
+	awsConfig.Aws.KeyId, err = getFormValueString(formObjects, "s3_api")
+	if err != nil {
+		return err
+	}
+	awsConfig.Aws.KeySecret, err = getFormValueString(formObjects, "s3_secret")
+	if err != nil {
+		return err
+	}
+	awsConfig.Aws.Endpoint, err = getFormValueString(formObjects, "s3_endpoint")
+	if err != nil {
+		return err
+	}
+
+	err = cloudconfig.Write(awsConfig)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-// Handling of /setup
+// Handling of /setupResult
 func handleResult(w http.ResponseWriter, r *http.Request) {
 	reader, _ := io.ReadAll(r.Body)
 	fmt.Println(string(reader))

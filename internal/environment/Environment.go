@@ -69,7 +69,7 @@ var defaultValues = defaultsEnvironment{
 
 // New parses the env variables
 func New() Environment {
-	configPath, configDir, configFile := GetConfigPaths()
+	configPath, configDir, configFile, _ := GetConfigPaths()
 	return Environment{
 		ConfigDir:            configDir,
 		ConfigFile:           configFile,
@@ -140,11 +140,12 @@ func envInt(key string, minValue int) int {
 
 }
 
-func GetConfigPaths() (string, string, string) {
+func GetConfigPaths() (string, string, string, string) {
 	configDir := envString("CONFIG_DIR")
 	configFile := envString("CONFIG_FILE")
 	configPath := configDir + "/" + configFile
-	return configPath, configDir, configFile
+	awsConfigPAth := configDir + "/cloudconfig.yml"
+	return configPath, configDir, configFile, awsConfigPAth
 }
 
 func GetPort() string {

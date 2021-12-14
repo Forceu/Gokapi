@@ -77,13 +77,13 @@
 
 					<select name="authentication_sel" id="authentication_sel" style="width:350px;" class="select form-control" onchange="authSelectionChanged(this.value);">
 						<optgroup label="Standalone">
-							<option value="username" selected>Username / Password (recommended)</option>
-							<option value="oauth" disabled>OAuth2 (TODO)</option>
+							<option value="0" selected>Username / Password (recommended)</option>
+							<option value="1" disabled>OAuth2 (TODO)</option>
 						</optgroup>
 
 						<optgroup label="Reverse Proxy">
-							<option value="header">Header Authentication</option>
-							<option value="auth_disabled">Access Restriction</option>
+							<option value="2">Header Authentication</option>
+							<option value="3">Access Restriction</option>
 						</optgroup>
 
 					</select>
@@ -448,16 +448,16 @@
 			wizard.cards["credentials-header"].disable(true);
 			wizard.cards["credentials-disabled"].disable(true);
 			switch (value) {
-				  case 'username':
+				  case '0':
 					wizard.cards["credentials"].enable();
 				    break;
-				  case 'oauth':
+				  case '1':
 					wizard.cards["credentials-oauth"].enable();
 				    break;
-				  case 'header':
+				  case '2':
 					wizard.cards["credentials-header"].enable();
 				    break;
-				  case 'auth_disabled':
+				  case '3':
 					wizard.cards["credentials-disabled"].enable();
 				    break;
 				}

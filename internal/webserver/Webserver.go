@@ -86,7 +86,6 @@ func Start() {
 	http.HandleFunc("/index", showIndex)
 	http.HandleFunc("/login", showLogin)
 	http.HandleFunc("/logout", doLogout)
-	http.HandleFunc("/setup", showSetup)
 	http.HandleFunc("/upload", uploadFile)
 	fmt.Println("Binding webserver to " + webserverPort)
 	srv := &http.Server{
@@ -174,15 +173,6 @@ func showApiAdmin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	err := templateFolder.ExecuteTemplate(w, "api", (&UploadView{}).convertGlobalConfig(false))
-	helper.Check(err)
-}
-
-// Handling of /setup
-// TODO
-// If user is authenticated, this menu lists all uploads and enables uploading new files
-func showSetup(w http.ResponseWriter, r *http.Request) {
-	addNoCacheHeader(w)
-	err := templateFolder.ExecuteTemplate(w, "setup", SetupView{})
 	helper.Check(err)
 }
 
@@ -370,10 +360,6 @@ type UploadView struct {
 	IsApiView         bool
 	MaxFileSize       int
 	IsLogoutAvailable bool
-}
-
-type SetupView struct {
-	IsAdminView bool
 }
 
 // Converts the globalConfig variable to an UploadView struct to pass the infos to

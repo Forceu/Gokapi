@@ -42,12 +42,15 @@ func isGrantedHeader(r *http.Request) bool {
 	if value == "" {
 		return false
 	}
-	// TODO
-	// if settings.LoginHeaderForceUsername {
-	//	return strings.ToLower(value) == strings.ToLower(settings.AdminName)
-	// } else {
-	return true
-	// }
+	if len(settings.LoginHeaderUsers) == 0 {
+		return true
+	}
+	for _, user := range settings.LoginHeaderUsers {
+		if strings.ToLower(user) == strings.ToLower(value) {
+			return true
+		}
+	}
+	return false
 }
 
 // isGrantedSession returns true if the user holds a valid internal session cookie

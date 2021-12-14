@@ -68,10 +68,11 @@ type Configuration struct {
 	UseSsl               bool                             `json:"UseSsl"`
 	MaxFileSizeMB        int                              `json:"MaxFileSizeMB"`
 	LoginHeaderKey       string                           `json:"LoginHeaderKey"`
+	LoginHeaderUsers     []string                         `json:"LoginHeaderUsers"`
 }
 
 func Exists() bool {
-	configPath, _, _ := environment.GetConfigPaths()
+	configPath, _, _, _ := environment.GetConfigPaths()
 	return helper.FileExists(configPath)
 }
 
@@ -175,6 +176,7 @@ func updateConfig() {
 	if serverSettings.ConfigVersion < CurrentConfigVersion {
 		fmt.Println("Successfully upgraded database")
 		serverSettings.ConfigVersion = CurrentConfigVersion
+		serverSettings.LoginHeaderUsers = []string{}
 		save()
 	}
 }
