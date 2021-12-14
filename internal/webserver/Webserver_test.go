@@ -579,7 +579,7 @@ func TestDisableLogin(t *testing.T) {
 		}},
 	})
 	settings := configuration.GetServerSettings()
-	settings.DisableLogin = true
+	settings.AuthenticationMethod = configuration.AuthenticationDisabled
 	configuration.Release()
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://localhost:53843/admin",
@@ -591,6 +591,6 @@ func TestDisableLogin(t *testing.T) {
 		}},
 	})
 	settings = configuration.GetServerSettings()
-	settings.DisableLogin = false
+	settings.AuthenticationMethod = configuration.AuthenticationInternal
 	configuration.Release()
 }

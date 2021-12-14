@@ -27,6 +27,8 @@ import (
 var webserverDirEmb embed.FS
 var srv http.Server
 
+// TODO Validation client side (eg url trailing slash, portnumber)
+
 func RunIfFirstStart() {
 	if !configuration.Exists() {
 		startSetupWebserver()

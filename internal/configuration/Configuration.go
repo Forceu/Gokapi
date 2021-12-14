@@ -15,7 +15,6 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"strings"
 	"sync"
 	"unicode/utf8"
 )
@@ -80,9 +79,7 @@ func Exists() bool {
 func Load() {
 	Environment = environment.New()
 	helper.CreateDir(Environment.ConfigDir)
-	if !helper.FileExists(Environment.ConfigPath) {
-		generateDefaultConfig()
-	}
+	// No check if file exists, as this was checked earlier
 	file, err := os.Open(Environment.ConfigPath)
 	helper.Check(err)
 	defer file.Close()
@@ -170,7 +167,6 @@ func updateConfig() {
 	// < v1.5.0
 	if serverSettings.ConfigVersion < 10 {
 		serverSettings.AuthenticationMethod = AuthenticationInternal
-		// TODO AWS
 	}
 
 	if serverSettings.ConfigVersion < CurrentConfigVersion {
@@ -179,56 +175,6 @@ func updateConfig() {
 		serverSettings.LoginHeaderUsers = []string{}
 		save()
 	}
-}
-
-// Creates a default configuration and asks for items like username/password etc.
-func generateDefaultConfig() {
-	fmt.Println("First start, creating new admin account")
-	saltAdmin := Environment.SaltAdmin
-	if saltAdmin == "" {
-		saltAdmin = helper.GenerateRandomString(30)
-	}
-	serverSettings = Configuration{
-		SaltAdmin: saltAdmin,
-	}
-	username := askForUsername(1)
-	password := askForPassword()
-	port := askForPort()
-	url := askForUrl(port)
-	redirect := askForRedirect()
-	localOnly := askForLocalOnly()
-	bindAddress := "127.0.0.1:" + port
-	if localOnly == environment.IsFalse {
-		bindAddress = ":" + port
-	}
-	useSsl := askForSsl()
-	saltFiles := Environment.SaltFiles
-	if saltFiles == "" {
-		saltFiles = helper.GenerateRandomString(30)
-	}
-
-	serverSettings = Configuration{
-		Port:             bindAddress,
-		AdminName:        username,
-		AdminPassword:    HashPassword(password, false),
-		ServerUrl:        url,
-		DefaultDownloads: 1,
-		DefaultExpiry:    14,
-		RedirectUrl:      redirect,
-		Files:            make(map[string]models.File),
-		Sessions:         make(map[string]models.Session),
-		Hotlinks:         make(map[string]models.Hotlink),
-		ApiKeys:          make(map[string]models.ApiKey),
-		DownloadStatus:   make(map[string]models.DownloadStatus),
-		ConfigVersion:    CurrentConfigVersion,
-		SaltAdmin:        saltAdmin,
-		SaltFiles:        saltFiles,
-		DataDir:          Environment.DataDir,
-		LengthId:         Environment.LengthId,
-		UseSsl:           useSsl,
-		MaxFileSizeMB:    Environment.MaxFileSize,
-	}
-	save()
 }
 
 // Save the configuration as a json file
@@ -251,28 +197,6 @@ func LoadFromSetup(config Configuration) {
 	Environment = environment.New()
 	serverSettings = config
 	save()
-}
-
-// Asks for username or loads it from env and returns input as string if valid
-func askForUsername(try int) string {
-	if try > 5 {
-		fmt.Println("Too many invalid entries! If you are running the setup with Docker, make sure to start the container with the -it flag.")
-		osExit(1)
-		// Return needs to be called, if osExit is replaced turing testing
-		return ""
-	}
-	fmt.Print("Username: ")
-	envUsername := Environment.AdminName
-	if envUsername != "" {
-		fmt.Println(envUsername)
-		return envUsername
-	}
-	username := helper.ReadLine()
-	if utf8.RuneCountInString(username) >= minLengthUsername {
-		return username
-	}
-	fmt.Println("Username needs to be at least " + strconv.Itoa(minLengthUsername) + " characters long")
-	return askForUsername(try + 1)
 }
 
 // Asks for password or loads it from env and returns input as string if valid
@@ -300,133 +224,6 @@ func askForPassword() string {
 	}
 	fmt.Println()
 	return password1
-}
-
-// Asks if the server shall be bound to 127.0.0.1 or loads it from env and returns result as bool
-// Always returns environment.IsFalse for Docker environment
-func askForLocalOnly() string {
-	if environment.IsDocker != "false" {
-		return environment.IsFalse
-	}
-	fmt.Print("Bind port to localhost only? [Y/n]: ")
-	envLocalhost := Environment.WebserverLocalhost
-	if envLocalhost != "" {
-		fmt.Println(envLocalhost)
-		return envLocalhost
-	}
-	input := strings.ToLower(helper.ReadLine())
-	if input == "n" || input == "no" {
-		return environment.IsFalse
-	}
-	return environment.IsTrue
-}
-
-// Asks if the server shall use SSL instead of plain text HTTP
-func askForSsl() bool {
-	fmt.Print("Use SSL? [y/N]: ")
-	useSsl := Environment.UseSsl
-	if useSsl != "" {
-		fmt.Println(useSsl)
-		return useSsl == environment.IsTrue
-	}
-	input := strings.ToLower(helper.ReadLine())
-	if input == "y" || input == "yes" {
-		return true
-	}
-	return false
-}
-
-// Asks for server port or loads it from env and returns input as string if valid
-func askForPort() string {
-	fmt.Print("Server Port [" + environment.GetPort() + "]: ")
-	envPort := Environment.WebserverPort
-	if envPort != "" {
-		fmt.Println(envPort)
-		return envPort
-	}
-	port := helper.ReadLine()
-	if port == "" {
-		return environment.GetPort()
-	}
-	if !isValidPortNumber(port) {
-		return askForPort()
-	}
-	return port
-}
-
-// Asks for server URL or loads it from env and returns input as string if valid
-func askForUrl(port string) string {
-	fmt.Print("External Server URL [http://127.0.0.1:" + port + "/]: ")
-	envUrl := Environment.ExternalUrl
-	if envUrl != "" {
-		fmt.Println(envUrl)
-		if !isValidUrl(envUrl) {
-			osExit(1)
-		}
-		return addTrailingSlash(envUrl)
-	}
-	url := helper.ReadLine()
-	if url == "" {
-		return "http://127.0.0.1:" + port + "/"
-	}
-	if !isValidUrl(url) {
-		return askForUrl(port)
-	}
-	return addTrailingSlash(url)
-}
-
-// Asks for redirect URL or loads it from env and returns input as string if valid
-func askForRedirect() string {
-	fmt.Print("URL that the index gets redirected to [https://github.com/Forceu/Gokapi/]: ")
-	envRedirect := Environment.RedirectUrl
-	if envRedirect != "" {
-		fmt.Println(envRedirect)
-		if !isValidUrl(envRedirect) {
-			osExit(1)
-		}
-		return envRedirect
-	}
-	url := helper.ReadLine()
-	if url == "" {
-		return "https://github.com/Forceu/Gokapi/"
-	}
-	if !isValidUrl(url) {
-		return askForRedirect()
-	}
-	return url
-}
-
-// Returns true if URL starts with http:// or https://
-func isValidUrl(url string) bool {
-	if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
-		fmt.Println("URL needs to start with http:// or https://")
-		return false
-	}
-	postfix := strings.Replace(url, "http://", "", -1)
-	postfix = strings.Replace(postfix, "https://", "", -1)
-	return len(postfix) > 0
-}
-
-// Checks if the string is a valid port number
-func isValidPortNumber(input string) bool {
-	port, err := strconv.Atoi(input)
-	if err != nil {
-		fmt.Println("Input needs to be a number")
-		return false
-	}
-	if port < 0 || port > 65353 {
-		fmt.Println("Port needs to be between 0-65353")
-		return false
-	}
-	return true
-}
-
-// Adds a / character to the end of an URL if it does not exist
-func addTrailingSlash(url string) string {
-	if !strings.HasSuffix(url, "/") {
-		return url + "/"
-	}
-	return url
 }
 
 // DisplayPasswordReset shows a password prompt in the CLI and saves the new password
