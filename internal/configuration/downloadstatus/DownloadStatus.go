@@ -46,7 +46,7 @@ func newDownloadStatus(file models.File) models.DownloadStatus {
 }
 
 // IsCurrentlyDownloading returns true if file is currently being downloaded
-func IsCurrentlyDownloading(file models.File, settings *configuration.Configuration) bool {
+func IsCurrentlyDownloading(file models.File, settings *models.Configuration) bool {
 	for _, status := range settings.DownloadStatus {
 		if status.FileId == file.Id {
 			if status.ExpireAt > time.Now().Unix() {

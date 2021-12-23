@@ -14,6 +14,7 @@ import (
 	"Gokapi/internal/storage"
 	"Gokapi/internal/storage/cloudstorage/aws"
 	"Gokapi/internal/webserver"
+	"Gokapi/internal/webserver/authentication"
 	"Gokapi/internal/webserver/ssl"
 	"flag"
 	"fmt"
@@ -37,6 +38,9 @@ func main() {
 	fmt.Println("Gokapi v" + Version + " starting")
 	setup.RunIfFirstStart()
 	configuration.Load()
+	settings := configuration.GetServerSettingsReadOnly()
+	authentication.Init(settings.Authentication)
+	configuration.ReleaseReadOnly()
 	resetPassword(passedFlags)
 	createSsl(passedFlags)
 

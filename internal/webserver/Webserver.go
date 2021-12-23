@@ -11,6 +11,7 @@ import (
 	"Gokapi/internal/storage"
 	"Gokapi/internal/webserver/api"
 	"Gokapi/internal/webserver/authentication"
+	"Gokapi/internal/webserver/authentication/oauth"
 	"Gokapi/internal/webserver/fileupload"
 	"Gokapi/internal/webserver/sessionmanager"
 	"Gokapi/internal/webserver/ssl"
@@ -49,16 +50,17 @@ var imageExpiredPicture []byte
 const expiredFile = "static/expired.png"
 
 var (
-	webserverPort        string
-	webserverExtUrl      string
 	webserverRedirectUrl string
 	webserverMaxMemory   int
-	webserverUseSsl      bool
 )
 
 // Start the webserver on the port set in the config
 func Start() {
-	initLocalVariables()
+	settings := configuration.GetServerSettingsReadOnly()
+	configuration.ReleaseReadOnly()
+	webserverRedirectUrl = settings.RedirectUrl
+	webserverMaxMemory = settings.MaxMemory
+
 	initTemplates(templateFolderEmbedded)
 	webserverDir, _ := fs.Sub(staticFolderEmbedded, "web/static")
 	var err error
@@ -87,22 +89,29 @@ func Start() {
 	http.HandleFunc("/login", showLogin)
 	http.HandleFunc("/logout", doLogout)
 	http.HandleFunc("/upload", uploadFile)
-	fmt.Println("Binding webserver to " + webserverPort)
+	http.HandleFunc("/error-auth", showErrorAuth)
+	if settings.Authentication.Method == models.AuthenticationOAuth2 {
+		oauth.Init(settings.ServerUrl, settings.Authentication)
+		http.HandleFunc("/oauth-login", oauth.HandlerLogin)
+		http.HandleFunc("/oauth-callback", oauth.HandlerCallback)
+	}
+
+	fmt.Println("Binding webserver to " + settings.Port)
 	srv := &http.Server{
-		Addr:         webserverPort,
+		Addr:         settings.Port,
 		ReadTimeout:  timeOutWebserver,
 		WriteTimeout: timeOutWebserver,
 	}
-	infoMessage := "Webserver can be accessed at " + webserverExtUrl + "admin"
-	if strings.Contains(webserverExtUrl, "127.0.0.1") {
-		if webserverUseSsl {
+	infoMessage := "Webserver can be accessed at " + settings.ServerUrl + "admin"
+	if strings.Contains(settings.ServerUrl, "127.0.0.1") {
+		if settings.UseSsl {
 			infoMessage = strings.Replace(infoMessage, "http://", "https://", 1)
 		} else {
 			infoMessage = strings.Replace(infoMessage, "https://", "http://", 1)
 		}
 	}
-	if webserverUseSsl {
-		ssl.GenerateIfInvalidCert(webserverExtUrl, false)
+	if settings.UseSsl {
+		ssl.GenerateIfInvalidCert(settings.ServerUrl, false)
 		fmt.Println(infoMessage)
 		log.Fatal(srv.ListenAndServeTLS(ssl.GetCertificateLocations()))
 	} else {
@@ -111,19 +120,9 @@ func Start() {
 	}
 }
 
-func initLocalVariables() {
-	settings := configuration.GetServerSettingsReadOnly()
-	webserverPort = settings.Port
-	webserverExtUrl = settings.ServerUrl
-	webserverRedirectUrl = settings.RedirectUrl
-	webserverMaxMemory = settings.MaxMemory
-	webserverUseSsl = settings.UseSsl
-	configuration.ReleaseReadOnly()
-}
-
 // Initialises the templateFolder variable by scanning through all the templates.
 // If a folder "templates" exists in the main directory, it is used.
-// Otherwise templateFolderEmbedded will be used.
+// Otherwise, templateFolderEmbedded will be used.
 func initTemplates(templateFolderEmbedded embed.FS) {
 	var err error
 	if helper.FolderExists("templates") {
@@ -143,8 +142,7 @@ func redirect(w http.ResponseWriter, url string) {
 
 // Handling of /logout
 func doLogout(w http.ResponseWriter, r *http.Request) {
-	sessionmanager.LogoutSession(w, r)
-	redirect(w, "login")
+	authentication.Logout(w, r)
 }
 
 // Handling of /index and redirecting to globalConfig.RedirectUrl
@@ -156,6 +154,12 @@ func showIndex(w http.ResponseWriter, r *http.Request) {
 // Handling of /error
 func showError(w http.ResponseWriter, r *http.Request) {
 	err := templateFolder.ExecuteTemplate(w, "error", genericView{})
+	helper.Check(err)
+}
+
+// Handling of /error-auth
+func showErrorAuth(w http.ResponseWriter, r *http.Request) {
+	err := templateFolder.ExecuteTemplate(w, "error_auth", genericView{})
 	helper.Check(err)
 }
 
@@ -210,6 +214,10 @@ func processApi(w http.ResponseWriter, r *http.Request) {
 func showLogin(w http.ResponseWriter, r *http.Request) {
 	if authentication.IsAuthenticated(w, r) {
 		redirect(w, "admin")
+		return
+	}
+	if authentication.GetMethod() == models.AuthenticationOAuth2 {
+		redirect(w, "oauth-login")
 		return
 	}
 	err := r.ParseForm()
@@ -405,7 +413,7 @@ func (u *UploadView) convertGlobalConfig(isMainView bool) *UploadView {
 	u.IsAdminView = true
 	u.IsMainView = isMainView
 	u.MaxFileSize = settings.MaxFileSizeMB
-	u.IsLogoutAvailable = configuration.IsLogoutAvailable()
+	u.IsLogoutAvailable = authentication.IsLogoutAvailable()
 	configuration.ReleaseReadOnly()
 	return u
 }

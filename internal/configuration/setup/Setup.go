@@ -109,45 +109,117 @@ func getFormValueInt(formObjects *[]jsonFormObject, key string) (int, error) {
 	return result, nil
 }
 
-func toConfiguration(formObjects *[]jsonFormObject) (configuration.Configuration, error) {
+func toConfiguration(formObjects *[]jsonFormObject) (models.Configuration, error) {
 	var err error
 	parsedEnv := environment.New()
 
-	result := configuration.Configuration{
+	result := models.Configuration{
 		DefaultDownloads: 1,
 		DefaultExpiry:    14,
 		MaxFileSizeMB:    parsedEnv.MaxFileSize,
 		LengthId:         parsedEnv.LengthId,
 		MaxMemory:        parsedEnv.MaxMemory,
 		DataDir:          parsedEnv.DataDir,
-		SaltFiles:        helper.GenerateRandomString(30),
-		SaltAdmin:        helper.GenerateRandomString(30),
 		Sessions:         make(map[string]models.Session),
 		Files:            make(map[string]models.File),
 		Hotlinks:         make(map[string]models.Hotlink),
 		DownloadStatus:   make(map[string]models.DownloadStatus),
 		ApiKeys:          make(map[string]models.ApiKey),
 		ConfigVersion:    configuration.CurrentConfigVersion,
+		Authentication: models.AuthenticationConfig{
+			SaltAdmin: helper.GenerateRandomString(30),
+			SaltFiles: helper.GenerateRandomString(30),
+		},
 	}
 
-	result.AdminName, err = getFormValueString(formObjects, "auth_username")
+	err = parseBasicAuthSettings(&result, formObjects)
 	if err != nil {
-		return configuration.Configuration{}, err
+		return models.Configuration{}, err
 	}
 
-	result.AdminPassword, err = getFormValueString(formObjects, "auth_pw")
+	err = parseOAuthSettings(&result, formObjects)
 	if err != nil {
-		return configuration.Configuration{}, err
+		return models.Configuration{}, err
 	}
-	result.AdminPassword = configuration.HashPasswordCustomSalt(result.AdminPassword, result.SaltAdmin)
 
+	err = parseHeaderAuthSettings(&result, formObjects)
+	if err != nil {
+		return models.Configuration{}, err
+	}
+
+	err = parseServerSettings(&result, formObjects)
+	if err != nil {
+		return models.Configuration{}, err
+	}
+
+	return result, nil
+}
+
+func parseBasicAuthSettings(result *models.Configuration, formObjects *[]jsonFormObject) error {
+	var err error
+	result.Authentication.Username, err = getFormValueString(formObjects, "auth_username")
+	if err != nil {
+		return err
+	}
+
+	result.Authentication.Password, err = getFormValueString(formObjects, "auth_pw")
+	if err != nil {
+		return err
+	}
+	result.Authentication.Password = configuration.HashPasswordCustomSalt(result.Authentication.Password, result.Authentication.SaltAdmin)
+	return nil
+}
+
+func parseOAuthSettings(result *models.Configuration, formObjects *[]jsonFormObject) error {
+	var err error
+	result.Authentication.OauthProvider, err = getFormValueString(formObjects, "oauth_provider")
+	if err != nil {
+		return err
+	}
+
+	result.Authentication.OAuthClientId, err = getFormValueString(formObjects, "oauth_id")
+	if err != nil {
+		return err
+	}
+
+	result.Authentication.OAuthClientSecret, err = getFormValueString(formObjects, "oauth_secret")
+	if err != nil {
+		return err
+	}
+
+	oauthAllowedUsers, err := getFormValueString(formObjects, "oauth_header_users")
+	if err != nil {
+		return err
+	}
+	result.Authentication.OauthUsers = strings.Split(oauthAllowedUsers, ";")
+	return nil
+}
+
+func parseHeaderAuthSettings(result *models.Configuration, formObjects *[]jsonFormObject) error {
+	var err error
+	result.Authentication.HeaderKey, err = getFormValueString(formObjects, "auth_headerkey")
+	if err != nil {
+		return err
+	}
+
+	headerAllowedUsers, err := getFormValueString(formObjects, "auth_header_users")
+	if err != nil {
+		return err
+	}
+	result.Authentication.HeaderUsers = strings.Split(headerAllowedUsers, ";")
+
+	return nil
+}
+
+func parseServerSettings(result *models.Configuration, formObjects *[]jsonFormObject) error {
+	var err error
 	port, err := getFormValueInt(formObjects, "port")
 	if err != nil {
-		return configuration.Configuration{}, err
+		return err
 	}
 	bindLocalhost, err := getFormValueBool(formObjects, "localhost_sel")
 	if err != nil {
-		return configuration.Configuration{}, err
+		return err
 	}
 	if bindLocalhost {
 		result.Port = "127.0.0.1:" + strconv.Itoa(port)
@@ -157,47 +229,36 @@ func toConfiguration(formObjects *[]jsonFormObject) (configuration.Configuration
 
 	result.ServerUrl, err = getFormValueString(formObjects, "url")
 	if err != nil {
-		return configuration.Configuration{}, err
+		return err
 	}
 	result.RedirectUrl, err = getFormValueString(formObjects, "url_redirection")
 	if err != nil {
-		return configuration.Configuration{}, err
-	}
-	result.LoginHeaderKey, err = getFormValueString(formObjects, "auth_headerkey")
-	if err != nil {
-		return configuration.Configuration{}, err
+		return err
 	}
 	result.UseSsl, err = getFormValueBool(formObjects, "ssl_sel")
 	if err != nil {
-		return configuration.Configuration{}, err
+		return err
 	}
 
-	result.AuthenticationMethod, err = getFormValueInt(formObjects, "authentication_sel")
+	result.Authentication.Method, err = getFormValueInt(formObjects, "authentication_sel")
 	if err != nil {
-		return configuration.Configuration{}, err
+		return err
 	}
-
-	headerAllowedUsers, err := getFormValueString(formObjects, "auth_header_users")
-	if err != nil {
-		return configuration.Configuration{}, err
-	}
-	result.LoginHeaderUsers = strings.Split(headerAllowedUsers, ";")
 
 	useCloud, err := getFormValueString(formObjects, "storage_sel")
 	if err != nil {
-		return configuration.Configuration{}, err
+		return err
 	}
 	if useCloud == "cloud" {
-		err = writeCloudConfig(formObjects, &result)
+		err = writeCloudConfig(formObjects, result)
 		if err != nil {
-			return configuration.Configuration{}, err
+			return err
 		}
 	}
-
-	return result, nil
+	return nil
 }
 
-func writeCloudConfig(formObjects *[]jsonFormObject, config *configuration.Configuration) error {
+func writeCloudConfig(formObjects *[]jsonFormObject, config *models.Configuration) error {
 	var err error
 	awsConfig := cloudconfig.CloudConfig{}
 	awsConfig.Aws.Bucket, err = getFormValueString(formObjects, "s3_bucket")

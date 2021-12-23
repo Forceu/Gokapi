@@ -77,8 +77,8 @@
 
 					<select name="authentication_sel" id="authentication_sel" style="width:350px;" class="select form-control" onchange="authSelectionChanged(this.value);">
 						<optgroup label="Standalone">
-							<option value="0" selected>Username / Password (recommended)</option>
-							<option value="1" disabled>OAuth2 (TODO)</option>
+							<option value="0" selected>Username / Password</option>
+							<option value="1" >OAuth2 OpenID Connect</option>
 						</optgroup>
 
 						<optgroup label="Reverse Proxy">
@@ -124,12 +124,29 @@
 				<h3>Credentials</h3>
 
 
-				<div class="wizard-input-section">
+					<div class="wizard-input-section">
 					<p>
-						OAUTH TODO
+						Please the OIDC client configuration. Add the allowed users to the list below (seperated by semicolon) or leave it blank if access is granted to all authenticated users.<br>Refer to the documentation for further information.<br><br>
 					</p>
 
-					
+					<div class="wizard-input-section">
+						<div class="form-group">
+							<div class="col-sm-8">
+								<input type="text" class="form-control" id="oauth_provider" name="oauth_provider" placeholder="Provider URL" data-min="1" required data-validate="validateMinLength">
+							</div><br><br>
+							<div class="col-sm-8">
+								<input type="text" class="form-control" id="oauth_id" name="oauth_id" placeholder="Client ID" data-min="1" required data-validate="validateMinLength">
+							</div><br><br>
+							<div class="col-sm-8">
+								<input type="text" class="form-control" id="oauth_secret" name="oauth_secret" placeholder="Client Secret" data-min="1" required data-validate="validateMinLength">
+							</div><br><br>
+							<div class="col-sm-8">
+								<input type="text" class="form-control" id="oauth_header_users" name="oauth_header_users" placeholder="Allowed users">
+							</div><br><br>
+						</div>
+					</div>
+
+
 				</div>
 			</div>
 			

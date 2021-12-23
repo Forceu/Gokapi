@@ -1,7 +1,7 @@
 package sessionmanager
 
 /**
-Manages the sessions for the admin user or to access password protected files
+Manages the sessions for the admin user or to access password-protected files
 */
 
 import (
@@ -52,6 +52,7 @@ func useSession(w http.ResponseWriter, sessionString string, sessions *map[strin
 }
 
 // CreateSession creates a new session - called after login with correct username / password
+// If sessions parameter is nil, it will be loaded from config
 func CreateSession(w http.ResponseWriter, sessions *map[string]models.Session) {
 	if sessions == nil {
 		settings := configuration.GetServerSettings()
@@ -79,9 +80,10 @@ func LogoutSession(w http.ResponseWriter, r *http.Request) {
 
 // Writes session cookie to browser
 func writeSessionCookie(w http.ResponseWriter, sessionString string, expiry time.Time) {
-	http.SetCookie(w, &http.Cookie{
+	c := &http.Cookie{
 		Name:    "session_token",
 		Value:   sessionString,
 		Expires: expiry,
-	})
+	}
+	http.SetCookie(w, c)
 }
