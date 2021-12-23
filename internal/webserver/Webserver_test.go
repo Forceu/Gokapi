@@ -5,8 +5,10 @@ package webserver
 
 import (
 	"Gokapi/internal/configuration"
+	"Gokapi/internal/models"
 	"Gokapi/internal/test"
 	"Gokapi/internal/test/testconfiguration"
+	"Gokapi/internal/webserver/authentication"
 	"html/template"
 	"io/fs"
 	"os"
@@ -579,7 +581,8 @@ func TestDisableLogin(t *testing.T) {
 		}},
 	})
 	settings := configuration.GetServerSettings()
-	settings.AuthenticationMethod = configuration.AuthenticationDisabled
+	settings.Authentication.Method = models.AuthenticationDisabled
+	authentication.Init(settings.Authentication)
 	configuration.Release()
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://localhost:53843/admin",
@@ -591,6 +594,7 @@ func TestDisableLogin(t *testing.T) {
 		}},
 	})
 	settings = configuration.GetServerSettings()
-	settings.AuthenticationMethod = configuration.AuthenticationInternal
+	settings.Authentication.Method  = models.AuthenticationInternal
+	authentication.Init(settings.Authentication)
 	configuration.Release()
 }

@@ -86,12 +86,12 @@ func TestAuthDisabledLogin(t *testing.T) {
 	Process(w, r, maxMemory)
 	test.ResponseBodyContains(t, w, "{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}")
 	settings := configuration.GetServerSettings()
-	settings.AuthenticationMethod = configuration.AuthenticationDisabled
+	settings.Authentication.Method = models.AuthenticationDisabled
 	configuration.Release()
 	w, r = getRecorder("GET", "/api/auth/friendlyname", nil, nil, nil)
 	Process(w, r, maxMemory)
 	test.ResponseBodyContains(t, w, "{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}")
-	settings.AuthenticationMethod = configuration.AuthenticationInternal
+	settings.Authentication.Method = models.AuthenticationInternal
 }
 
 func TestChangeFriendlyName(t *testing.T) {

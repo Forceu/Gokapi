@@ -63,16 +63,20 @@ func updateConfig(settings *models.Configuration, env *environment.Environment) 
 		legacyConfig := loadLegacyConfig(env)
 		settings.Authentication.Username = legacyConfig.AdminName
 		settings.Authentication.Password = legacyConfig.AdminPassword
-		settings.Authentication.SaltAdmin = legacyConfig.SaltAdmin
-		settings.Authentication.SaltFiles = legacyConfig.SaltFiles
+		if legacyConfig.SaltAdmin != "" {
+			settings.Authentication.SaltAdmin = legacyConfig.SaltAdmin
+		}
+		if legacyConfig.SaltFiles != "" {
+			settings.Authentication.SaltFiles = legacyConfig.SaltFiles
+		}
 	}
 }
 
 func loadLegacyConfig(env *environment.Environment) configurationLegacy {
 	file, err := os.Open(env.ConfigPath)
+	defer file.Close()
 	helper.Check(err)
 	decoder := json.NewDecoder(file)
-	file.Close()
 
 	result := configurationLegacy{}
 	err = decoder.Decode(&result)
