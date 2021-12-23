@@ -57,7 +57,7 @@ func updateConfig(settings *models.Configuration, env *environment.Environment) 
 	}
 	// < v1.5.0
 	if settings.ConfigVersion < 10 {
-		settings.Authentication.Method = models.AuthenticationInternal
+		settings.Authentication.Method = 0 // authentication.AuthenticationInternal
 		settings.Authentication.HeaderUsers = []string{}
 		settings.Authentication.OauthUsers = []string{}
 		legacyConfig := loadLegacyConfig(env)

@@ -8,6 +8,7 @@ import (
 	"Gokapi/internal/models"
 	"Gokapi/internal/test"
 	"Gokapi/internal/test/testconfiguration"
+	"Gokapi/internal/webserver/authentication"
 	"bytes"
 	"encoding/json"
 	"io"
@@ -86,12 +87,12 @@ func TestAuthDisabledLogin(t *testing.T) {
 	Process(w, r, maxMemory)
 	test.ResponseBodyContains(t, w, "{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}")
 	settings := configuration.GetServerSettings()
-	settings.Authentication.Method = models.AuthenticationDisabled
+	settings.Authentication.Method = authentication.AuthenticationDisabled
 	configuration.Release()
 	w, r = getRecorder("GET", "/api/auth/friendlyname", nil, nil, nil)
 	Process(w, r, maxMemory)
 	test.ResponseBodyContains(t, w, "{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}")
-	settings.Authentication.Method = models.AuthenticationInternal
+	settings.Authentication.Method = authentication.AuthenticationInternal
 }
 
 func TestChangeFriendlyName(t *testing.T) {

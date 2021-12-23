@@ -13,6 +13,12 @@ import (
 
 const CookieOauth = "state"
 
+
+const AuthenticationInternal = 0
+const AuthenticationOAuth2 = 1
+const AuthenticationHeader = 2
+const AuthenticationDisabled = 3
+
 var authSettings models.AuthenticationConfig
 
 func Init(config models.AuthenticationConfig) {
@@ -21,13 +27,13 @@ func Init(config models.AuthenticationConfig) {
 
 func IsAuthenticated(w http.ResponseWriter, r *http.Request) bool {
 	switch authSettings.Method {
-	case models.AuthenticationInternal:
+	case AuthenticationInternal:
 		return isGrantedSession(w, r)
-	case models.AuthenticationOAuth2:
+	case AuthenticationOAuth2:
 		return isGrantedSession(w, r)
-	case models.AuthenticationHeader:
+	case AuthenticationHeader:
 		return isGrantedHeader(r)
-	case models.AuthenticationDisabled:
+	case AuthenticationDisabled:
 		return true
 	}
 	return false
@@ -107,16 +113,16 @@ func GetMethod() int {
 
 func Logout(w http.ResponseWriter, r *http.Request) {
 	switch authSettings.Method {
-	case models.AuthenticationInternal:
+	case AuthenticationInternal:
 		sessionmanager.LogoutSession(w, r)
-	case models.AuthenticationOAuth2:
+	case AuthenticationOAuth2:
 		sessionmanager.LogoutSession(w, r)
-	case models.AuthenticationHeader:
+	case AuthenticationHeader:
 		// TODO
 	}
 	redirect(w, "login")
 }
 
 func IsLogoutAvailable() bool {
-	return authSettings.Method == models.AuthenticationInternal || authSettings.Method == models.AuthenticationOAuth2
+	return authSettings.Method == AuthenticationInternal || authSettings.Method == AuthenticationOAuth2
 }
