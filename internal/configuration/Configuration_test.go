@@ -4,6 +4,7 @@
 package configuration
 
 import (
+	"Gokapi/internal/configuration/configUpgrade"
 	"Gokapi/internal/environment"
 	"Gokapi/internal/test"
 	"Gokapi/internal/test/testconfiguration"
@@ -55,7 +56,7 @@ func TestMutexSession(t *testing.T) {
 }
 
 func TestUpgradeDb(t *testing.T) {
-	testconfiguration.WriteUpgradeConfigFile()
+	testconfiguration.WriteUpgradeConfigFileV0()
 	os.Setenv("GOKAPI_USE_SSL", "true")
 	os.Setenv("GOKAPI_MAX_FILESIZE", "5")
 	Load()
@@ -67,7 +68,7 @@ func TestUpgradeDb(t *testing.T) {
 	test.IsEqualBool(t, serverSettings.Sessions == nil, false)
 	test.IsEqualBool(t, serverSettings.DownloadStatus == nil, false)
 	test.IsEqualString(t, serverSettings.Files["MgXJLe4XLfpXcL12ec4i"].ContentType, "application/octet-stream")
-	test.IsEqualInt(t, serverSettings.ConfigVersion, CurrentConfigVersion)
+	test.IsEqualInt(t, serverSettings.ConfigVersion, configUpgrade.CurrentConfigVersion)
 	test.IsEqualBool(t, serverSettings.UseSsl, true)
 	test.IsEqualInt(t, serverSettings.MaxFileSizeMB, 5)
 	os.Unsetenv("GOKAPI_USE_SSL")

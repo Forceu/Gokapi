@@ -3,6 +3,7 @@ package setup
 import (
 	"Gokapi/internal/configuration"
 	"Gokapi/internal/configuration/cloudconfig"
+	"Gokapi/internal/configuration/configUpgrade"
 	"Gokapi/internal/environment"
 	"Gokapi/internal/helper"
 	"Gokapi/internal/models"
@@ -125,7 +126,7 @@ func toConfiguration(formObjects *[]jsonFormObject) (models.Configuration, error
 		Hotlinks:         make(map[string]models.Hotlink),
 		DownloadStatus:   make(map[string]models.DownloadStatus),
 		ApiKeys:          make(map[string]models.ApiKey),
-		ConfigVersion:    configuration.CurrentConfigVersion,
+		ConfigVersion:    configUpgrade.CurrentConfigVersion,
 		Authentication: models.AuthenticationConfig{
 			SaltAdmin: helper.GenerateRandomString(30),
 			SaltFiles: helper.GenerateRandomString(30),
@@ -290,16 +291,24 @@ func writeCloudConfig(formObjects *[]jsonFormObject, config *models.Configuratio
 	return nil
 }
 
-// Handling of /setupResult
-func handleResult(w http.ResponseWriter, r *http.Request) {
+func inputToJsonForm(r *http.Request) ([]jsonFormObject, error) {
 	reader, _ := io.ReadAll(r.Body)
-	fmt.Println(string(reader))
 	var setupResult []jsonFormObject
 	err := json.Unmarshal(reader, &setupResult)
+	if err != nil {
+		return nil, err
+	}
+	return setupResult, nil
+}
+
+// Handling of /setupResult
+func handleResult(w http.ResponseWriter, r *http.Request) {
+	setupResult, err := inputToJsonForm(r)
 	if err != nil {
 		outputError(w, err)
 		return
 	}
+
 	newConfig, err := toConfiguration(&setupResult)
 	if err != nil {
 		outputError(w, err)

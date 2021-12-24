@@ -9,11 +9,16 @@ import (
 	"os"
 )
 
-func DoUpgrade(settings *models.Configuration, env *environment.Environment, currentVersion int) bool {
-	if settings.ConfigVersion < currentVersion {
+
+// CurrentConfigVersion is the version of the configuration structure. Used for upgrading
+const CurrentConfigVersion = 10
+
+
+func DoUpgrade(settings *models.Configuration, env *environment.Environment) bool {
+	if settings.ConfigVersion < CurrentConfigVersion {
 		updateConfig(settings, env)
 		fmt.Println("Successfully upgraded database")
-		settings.ConfigVersion = currentVersion
+		settings.ConfigVersion = CurrentConfigVersion
 		return true
 	}
 	return false

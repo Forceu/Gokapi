@@ -90,7 +90,7 @@ func Start() {
 	http.HandleFunc("/logout", doLogout)
 	http.HandleFunc("/upload", uploadFile)
 	http.HandleFunc("/error-auth", showErrorAuth)
-	if settings.Authentication.Method == authentication.AuthenticationOAuth2 {
+	if settings.Authentication.Method == authentication.OAuth2 {
 		oauth.Init(settings.ServerUrl, settings.Authentication)
 		http.HandleFunc("/oauth-login", oauth.HandlerLogin)
 		http.HandleFunc("/oauth-callback", oauth.HandlerCallback)
@@ -216,7 +216,7 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 		redirect(w, "admin")
 		return
 	}
-	if authentication.GetMethod() == authentication.AuthenticationOAuth2 {
+	if authentication.GetMethod() == authentication.OAuth2 {
 		redirect(w, "oauth-login")
 		return
 	}

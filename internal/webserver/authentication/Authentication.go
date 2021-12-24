@@ -13,11 +13,10 @@ import (
 
 const CookieOauth = "state"
 
-
-const AuthenticationInternal = 0
-const AuthenticationOAuth2 = 1
-const AuthenticationHeader = 2
-const AuthenticationDisabled = 3
+const Internal = 0
+const OAuth2 = 1
+const Header = 2
+const Disabled = 3
 
 var authSettings models.AuthenticationConfig
 
@@ -27,13 +26,13 @@ func Init(config models.AuthenticationConfig) {
 
 func IsAuthenticated(w http.ResponseWriter, r *http.Request) bool {
 	switch authSettings.Method {
-	case AuthenticationInternal:
+	case Internal:
 		return isGrantedSession(w, r)
-	case AuthenticationOAuth2:
+	case OAuth2:
 		return isGrantedSession(w, r)
-	case AuthenticationHeader:
+	case Header:
 		return isGrantedHeader(r)
-	case AuthenticationDisabled:
+	case Disabled:
 		return true
 	}
 	return false
@@ -92,7 +91,7 @@ func isGrantedSession(w http.ResponseWriter, r *http.Request) bool {
 // IsCorrectUsernameAndPassword checks if a provided username and password is correct
 func IsCorrectUsernameAndPassword(username, password string) bool {
 	return isEqualStringConstantTime(username, authSettings.Username) &&
-		isEqualStringConstantTime(configuration.HashPassword(password, false), authSettings.Password)
+		isEqualStringConstantTime(configuration.HashPasswordCustomSalt(password, authSettings.SaltAdmin), authSettings.Password)
 }
 
 // Use ConstantTimeCompare to prevent timing attack.
@@ -113,16 +112,16 @@ func GetMethod() int {
 
 func Logout(w http.ResponseWriter, r *http.Request) {
 	switch authSettings.Method {
-	case AuthenticationInternal:
+	case Internal:
 		sessionmanager.LogoutSession(w, r)
-	case AuthenticationOAuth2:
+	case OAuth2:
 		sessionmanager.LogoutSession(w, r)
-	case AuthenticationHeader:
+	case Header:
 		// TODO
 	}
 	redirect(w, "login")
 }
 
 func IsLogoutAvailable() bool {
-	return authSettings.Method == AuthenticationInternal || authSettings.Method == AuthenticationOAuth2
+	return authSettings.Method == Internal || authSettings.Method == OAuth2
 }

@@ -580,7 +580,7 @@ func TestDisableLogin(t *testing.T) {
 		}},
 	})
 	settings := configuration.GetServerSettings()
-	settings.Authentication.Method = authentication.AuthenticationDisabled
+	settings.Authentication.Method = authentication.Disabled
 	authentication.Init(settings.Authentication)
 	configuration.Release()
 	test.HttpPageResult(t, test.HttpTestConfig{
@@ -593,7 +593,7 @@ func TestDisableLogin(t *testing.T) {
 		}},
 	})
 	settings = configuration.GetServerSettings()
-	settings.Authentication.Method  = authentication.AuthenticationInternal
+	settings.Authentication.Method  = authentication.Internal
 	authentication.Init(settings.Authentication)
 	configuration.Release()
 }

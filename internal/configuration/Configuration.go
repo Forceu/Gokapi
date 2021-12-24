@@ -30,9 +30,6 @@ var Environment environment.Environment
 // ServerSettings is an object containing the server configuration
 var serverSettings models.Configuration
 
-// CurrentConfigVersion is the version of the configuration structure. Used for upgrading
-const CurrentConfigVersion = 10
-
 // For locking this object to prevent race conditions
 var mutex sync.RWMutex
 
@@ -53,7 +50,7 @@ func Load() {
 	err = decoder.Decode(&serverSettings)
 	helper.Check(err)
 	file.Close()
-	if configUpgrade.DoUpgrade(&serverSettings, &Environment, CurrentConfigVersion) {
+	if configUpgrade.DoUpgrade(&serverSettings, &Environment) {
 		save()
 	}
 	serverSettings.MaxMemory = Environment.MaxMemory

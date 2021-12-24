@@ -25,7 +25,7 @@ func TestDelete(t *testing.T) {
 
 func TestSetUpgradeConfigFile(t *testing.T) {
 	os.Remove(configFile)
-	WriteUpgradeConfigFile()
+	WriteUpgradeConfigFileV0()
 	test.FileExists(t, configFile)
 	TestDelete(t)
 }

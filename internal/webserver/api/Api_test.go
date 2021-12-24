@@ -13,7 +13,6 @@ import (
 	"encoding/json"
 	"io"
 	"mime/multipart"
-	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
@@ -62,19 +61,19 @@ func TestIsValidApiKey(t *testing.T) {
 }
 
 func TestProcess(t *testing.T) {
-	w, r := getRecorder("GET", "/api/auth/friendlyname", nil, nil, nil)
+	w, r := test.GetRecorder("GET", "/api/auth/friendlyname", nil, nil, nil)
 	Process(w, r, maxMemory)
 	test.ResponseBodyContains(t, w, "{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}")
-	w, r = getRecorder("GET", "/api/invalid", nil, nil, nil)
+	w, r = test.GetRecorder("GET", "/api/invalid", nil, nil, nil)
 	Process(w, r, maxMemory)
 	test.ResponseBodyContains(t, w, "Unauthorized")
-	w, r = getRecorder("GET", "/api/invalid", nil, []test.Header{{
+	w, r = test.GetRecorder("GET", "/api/invalid", nil, []test.Header{{
 		Name:  "apikey",
 		Value: "validkey",
 	}}, nil)
 	Process(w, r, maxMemory)
 	test.ResponseBodyContains(t, w, "Invalid request")
-	w, r = getRecorder("GET", "/api/invalid", []test.Cookie{{
+	w, r = test.GetRecorder("GET", "/api/invalid", []test.Cookie{{
 		Name:  "session_token",
 		Value: "validsession",
 	}}, nil, nil)
@@ -83,34 +82,34 @@ func TestProcess(t *testing.T) {
 }
 
 func TestAuthDisabledLogin(t *testing.T) {
-	w, r := getRecorder("GET", "/api/auth/friendlyname", nil, nil, nil)
+	w, r := test.GetRecorder("GET", "/api/auth/friendlyname", nil, nil, nil)
 	Process(w, r, maxMemory)
 	test.ResponseBodyContains(t, w, "{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}")
 	settings := configuration.GetServerSettings()
-	settings.Authentication.Method = authentication.AuthenticationDisabled
+	settings.Authentication.Method = authentication.Disabled
 	configuration.Release()
-	w, r = getRecorder("GET", "/api/auth/friendlyname", nil, nil, nil)
+	w, r = test.GetRecorder("GET", "/api/auth/friendlyname", nil, nil, nil)
 	Process(w, r, maxMemory)
 	test.ResponseBodyContains(t, w, "{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}")
-	settings.Authentication.Method = authentication.AuthenticationInternal
+	settings.Authentication.Method = authentication.Internal
 }
 
 func TestChangeFriendlyName(t *testing.T) {
 	settings := configuration.GetServerSettings()
 	configuration.Release()
-	w, r := getRecorder("GET", "/api/auth/friendlyname", nil, []test.Header{{
+	w, r := test.GetRecorder("GET", "/api/auth/friendlyname", nil, []test.Header{{
 		Name:  "apikey",
 		Value: "validkey",
 	}}, nil)
 	Process(w, r, maxMemory)
 	test.ResponseBodyContains(t, w, "Invalid api key provided.")
-	w, r = getRecorder("GET", "/api/auth/friendlyname", nil, []test.Header{{
+	w, r = test.GetRecorder("GET", "/api/auth/friendlyname", nil, []test.Header{{
 		Name: "apikey", Value: "validkey"}, {
 		Name: "apiKeyToModify", Value: "validkey"}}, nil)
 	Process(w, r, maxMemory)
 	test.IsEqualInt(t, w.Code, 200)
 	test.IsEqualString(t, settings.ApiKeys["validkey"].FriendlyName, "Unnamed key")
-	w, r = getRecorder("GET", "/api/auth/friendlyname", nil, []test.Header{{
+	w, r = test.GetRecorder("GET", "/api/auth/friendlyname", nil, []test.Header{{
 		Name: "apikey", Value: "validkey"}, {
 		Name: "apiKeyToModify", Value: "validkey"}, {
 		Name: "friendlyName", Value: "NewName"}}, nil)
@@ -125,13 +124,13 @@ func TestChangeFriendlyName(t *testing.T) {
 func TestDeleteFile(t *testing.T) {
 	settings := configuration.GetServerSettings()
 	configuration.Release()
-	w, r := getRecorder("GET", "/api/files/delete", nil, []test.Header{{
+	w, r := test.GetRecorder("GET", "/api/files/delete", nil, []test.Header{{
 		Name:  "apikey",
 		Value: "validkey",
 	}}, nil)
 	Process(w, r, maxMemory)
 	test.ResponseBodyContains(t, w, "Invalid id provided.")
-	w, r = getRecorder("GET", "/api/files/delete", nil, []test.Header{{
+	w, r = test.GetRecorder("GET", "/api/files/delete", nil, []test.Header{{
 		Name:  "apikey",
 		Value: "validkey",
 	}, {
@@ -142,7 +141,7 @@ func TestDeleteFile(t *testing.T) {
 	Process(w, r, maxMemory)
 	test.ResponseBodyContains(t, w, "Invalid id provided.")
 	test.IsEqualString(t, settings.Files["jpLXGJKigM4hjtA6T6sN2"].Id, "jpLXGJKigM4hjtA6T6sN2")
-	w, r = getRecorder("GET", "/api/files/delete", nil, []test.Header{{
+	w, r = test.GetRecorder("GET", "/api/files/delete", nil, []test.Header{{
 		Name:  "apikey",
 		Value: "validkey",
 	}, {
@@ -168,7 +167,7 @@ func TestUpload(t *testing.T) {
 	writer.WriteField("expiryDays", "10")
 	writer.WriteField("password", "12345")
 	writer.Close()
-	w, r := getRecorder("POST", "/api/files/add", nil, []test.Header{{
+	w, r := test.GetRecorder("POST", "/api/files/add", nil, []test.Header{{
 		Name:  "apikey",
 		Value: "validkey",
 	}}, body)
@@ -185,7 +184,7 @@ func TestUpload(t *testing.T) {
 	test.IsEqualInt(t, result.FileInfo.DownloadsRemaining, 200)
 	test.IsNotEqualString(t, result.FileInfo.PasswordHash, "")
 	test.IsEqualString(t, result.Url, "http://127.0.0.1:53843/d?id=")
-	w, r = getRecorder("POST", "/api/files/add", nil, []test.Header{{
+	w, r = test.GetRecorder("POST", "/api/files/add", nil, []test.Header{{
 		Name:  "apikey",
 		Value: "validkey",
 	}}, body)
@@ -195,31 +194,11 @@ func TestUpload(t *testing.T) {
 }
 
 func TestList(t *testing.T) {
-	w, r := getRecorder("GET", "/api/files/list", nil, []test.Header{{
+	w, r := test.GetRecorder("GET", "/api/files/list", nil, []test.Header{{
 		Name:  "apikey",
 		Value: "validkey",
 	}}, nil)
 	Process(w, r, maxMemory)
 	test.IsEqualInt(t, w.Code, 200)
 	test.ResponseBodyContains(t, w, "picture.jpg")
-}
-
-func getRecorder(method, target string, cookies []test.Cookie, headers []test.Header, body io.Reader) (*httptest.ResponseRecorder, *http.Request) {
-	w := httptest.NewRecorder()
-	r := httptest.NewRequest(method, target, body)
-	if cookies != nil {
-		for _, cookie := range cookies {
-			r.AddCookie(&http.Cookie{
-				Name:  cookie.Name,
-				Value: cookie.Value,
-				Path:  "/",
-			})
-		}
-	}
-	if headers != nil {
-		for _, header := range headers {
-			r.Header.Set(header.Name, header.Value)
-		}
-	}
-	return w, r
 }
