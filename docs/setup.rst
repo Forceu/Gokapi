@@ -52,7 +52,7 @@ If you don't want to download the prebuilt image, you can find the Dockerfile on
 First Start
 **************
 
-During the first start you will be asked several questions for the inital setup. To automate the setup, all questions can be preset with environment variables as well, see :ref:`envvar`
+After the first start you will be redirected to a setup webpage. To change the port for the setup please set the GOKAPI_PORT env variable, see :ref:`envvar`
 
 
 Starting Gokapi
@@ -69,9 +69,7 @@ Docker
 
 To start the container, run the following command: ::
 
- docker run -it -v gokapi-data:/app/data -v gokapi-config:/app/config -p 127.0.0.1:53842:53842 f0rc3/gokapi:latest
-
-Please note the ``-it`` flag, which is needed if you are not populating all setup questions with environment variables. 
+ docker run -v gokapi-data:/app/data -v gokapi-config:/app/config -p 127.0.0.1:53842:53842 f0rc3/gokapi:latest
 
 With the argument ``-p 127.0.0.1:53842:53842`` the service will only be accessible from the machine it is running on. In most usecases you will use a reverse proxy for SSL - if you want to make the service available to other computers in the network without a reverse proxy, replace the argument with ``-p 53842:53842``. Please note, unless you select SSL during the setup, the traffic will not be encrypted that way and data like passwords and transferred files can easily be read by 3rd parties!
 
@@ -79,59 +77,96 @@ With the argument ``-p 127.0.0.1:53842:53842`` the service will only be accessib
 Initial Setup
 ^^^^^^^^^^^^^^^
 
-During the first start, a new configuration file will be created. You will be asked questions for all required values that have not been populated with environment variables, see :ref:`envvar`
+During the first start, a new configuration file will be created and you will be asked for several inputs.
 
-The following values are required:
 
-+-----------------------------+-------------------------------------------------------------------------------------------------------------+----------------------------------------+-----------------------------------+
-| Question                    | Expected Entry                                                                                              | Expected format                        | Default                           |
-+=============================+=============================================================================================================+========================================+===================================+
-| Username                    | Username used for admin login (only user that can upload files)                                             | string, min 3 characters               |                                   |
-+-----------------------------+-------------------------------------------------------------------------------------------------------------+----------------------------------------+-----------------------------------+
-| Password                    | Password used for admin login                                                                               | string, min 6 characters               |                                   |
-+-----------------------------+-------------------------------------------------------------------------------------------------------------+----------------------------------------+-----------------------------------+
-| Server Port                 | The port Gokapi listens on                                                                                  | int, 0-65353, >1024 recommended        | 53842                             |
-+-----------------------------+-------------------------------------------------------------------------------------------------------------+----------------------------------------+-----------------------------------+
-| External                    | The URL that will be used for generating Gokapi download links.                                             | url, starting with http:// or https:// | http://127.0.0.1:53842/           |
-| Server URL                  | Use an URL that users from an external network can use to reach Gokapi.                                     |                                        |                                   |
-|                             | For testing purposes you can use the default value                                                          |                                        |                                   |
-+-----------------------------+-------------------------------------------------------------------------------------------------------------+----------------------------------------+-----------------------------------+
-| URL that the index          | By default Gokapi redirects to another URL instead of showing a generic page if no download link was passed | url, starting with http:// or https:// | https://github.com/Forceu/Gokapi/ |
-| gets redirected to          |                                                                                                             |                                        |                                   |
-+-----------------------------+-------------------------------------------------------------------------------------------------------------+----------------------------------------+-----------------------------------+
-| Bind port to localhost only | If bound to localhost, Gokapi can only be accessed from the machine it runs on.                             | "y"/"yes" or "n"/"no"                  | Yes                               |
-|                             | Recommended to set to "yes" if you use a reverse proxy or run Gokapi for testing purposes.                  |                                        |                                   |
-+-----------------------------+-------------------------------------------------------------------------------------------------------------+----------------------------------------+-----------------------------------+
-| Use SSL                     | If set to "yes", Gokapi will serve the content on the port with HTTPS.                                      | "y"/"yes" or "n"/"no"                  | No                                |
-|                             | If no valid certificate is present in the config folder, a new one will be generated.                       |                                        |                                   |
-+-----------------------------+-------------------------------------------------------------------------------------------------------------+----------------------------------------+-----------------------------------+
+Authentication
+""""""""""""""
+
+This menu guides you through the authentication setup, where you select how an admin user logs in (only user that can upload files)
+
+
+Username / Password 
+*********************
+
+The default authentication method. A single admin user will be generated that authenticates with a password
+
+
+OAuth2 OpenID Connect
+************************
+
+Use this to authenticate with an OIDC server, eg. Google, Github or an internal server. *Note:* If a user is revoked on the OIDC server, it might take several days to affect the Gokapi session. 
+
++---------------+---------------------------------------------------------------------------------+---------------------------------------------+
+| Option        | Expected Entry                                                                  | Example                                     |
++===============+=================================================================================+=============================================+
+| Provider URL  | The URL to connect to the OIDC server                                           | https://accounts.google.com                 |
++---------------+---------------------------------------------------------------------------------+---------------------------------------------+
+| Client ID     | Client ID provided by the OIDC server                                           | [random String]                             |
++---------------+---------------------------------------------------------------------------------+---------------------------------------------+
+| Client Secret | Client secret provided by the OIDC server                                       | [random String]                             |
++---------------+---------------------------------------------------------------------------------+---------------------------------------------+
+| Allowed users | List of users that is allowed to log in as an admin.                            | gokapiuser@gmail.com;companyadmin@gmail.com |
+|               | Separate users with a semicolon or leave blank to allow any authenticated user  |                                             |
++---------------+---------------------------------------------------------------------------------+---------------------------------------------+
+
+When creating an OIDC client on the server, you will need to provide a **redirection URL**. Enter http(s)://[gokapi URL]/oauth-callback
+
+You can find a guide on how to create an OIDC client with Github at `Setting up GitHub OAuth 2.0 <https://docs.readme.com/docs/setting-up-github-oauth>`_ and a guide for Google at `Setting up OAuth 2.0 <https://support.google.com/cloud/answer/6158849>`_.
+
+
+Header Authentication
+************************
+
+Only use this if you are running Gokapi behind a reverse proxy that is capable of authenticating users, e.g. by using Authelia or Authentik.
+
+Enter the key of the header that returns the username. For Authelia this would be ``Remote-User`` and for Authentik `` X-authentik-username``.
+Separate users with a semicolon or leave blank to allow any authenticated user, e.g. ``gokapiuser@gmail.com;companyadmin@gmail.com``
+
+
+Access Restriction
+************************
+
+Only use this if you are running Gokapi behind a reverse proxy that is capable of authenticating users, e.g. by using Authelia or Authentik.
+
+This option disables Gokapis internal authentication completely, except for API calls. The following URLs need to be restricted by the reverse proxy:
+
+- ``/admin``
+- ``/apiDelete``
+- ``/apiKeys``
+- ``/apiNew``
+- ``/delete``
+- ``/upload``
+
+**Warning:** This option has potential to be dangerous, only proceed if you know what you are doing!
+
+
+
+Storage
+""""""""""""""
+
+Here you can choose where uploaded files shall be stored
+
+Local Storage
+*********************
+
+Stores files locally in the subdirectory ``data`` by default.
 
 
 .. _cloudstorage:
 
-********************
-Cloudstorage Setup
-********************
+Cloudstorage
+""""""""""""""
 
-By default Gokapi uses local storage. You can also use external cloud storage providers for file storage. Please note that currently no native encryption is available for Gokapi, therefore all files will be stored in plain text on the cloud server.
+Stores files remotely on an S3 compatible server, e.g. Amazon AWS S3 or Backblaze B2. Please note that currently no native encryption is available for Gokapi, therefore all files will be stored in plain text on the cloud server.
 
-
-AWS S3 / Backblaze B2
-^^^^^^^^^^^^^^^^^^^^^^
-
-Provider setup
-""""""""""""""""""
 
 It is highly recommended to create a new bucket for Gokapi and set it to "private", so that no file can be downloaded externally. For each download request Gokapi will create a public URL that is only valid for a couple of seconds, so that the file can be downloaded from the external server directly instead of routing it through the local server.
 
 You then need to create an app key with read-/write-access to this bucket.
 
-Local setup
-""""""""""""
+The following data needs to be provided:
 
-It is recommended to pass the credentials as environment variables to Gokapi, see :ref:`envvar`. They can however also be loaded from a configuration file. You can find an example file `here <https://github.com/Forceu/Gokapi/blob/master/example/cloudconfig.yml>`_. Modify the values and copy it as ``cloudconfig.yml`` into your ``config`` folder.
-
-The following values can be parsed:
 
 +-----------+-----------------------------------------------+-----------------------+-----------------------------------+
 | Key       | Description                                   | Required              | Example                           |
@@ -148,3 +183,14 @@ The following values can be parsed:
 +-----------+-----------------------------------------------+-----------------------+-----------------------------------+
 
 
+
+Webserver
+""""""""""""""
+
+The following configuration can be set:
+
+-  **Bind to localhost** Only allow the server to be accessed from the machine it is running on. Select this if you are running Gokapi behind a reverse proxy or for testing purposes
+-  **Use SSL** Generates a self-signed SSL certificate (which can be replaced with a valid one). Select this if you are not running Gokapi behind a reverse proxy
+-  **Webserver Port** Set the port that Gokapi can be accessed on
+-  **Public Facing URL** Enter the URL where users from an external network can use to reach Gokapi. The URL will be used for generating download links
+-  **Redirection URL**  By default Gokapi redirects to this URL instead of showing a generic page if no download link was passed

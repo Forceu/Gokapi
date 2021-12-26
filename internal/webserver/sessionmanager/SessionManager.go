@@ -12,6 +12,8 @@ import (
 	"time"
 )
 
+// TODO add username to check for revokkation
+
 // If no login occurred during this time, the admin session will be deleted. Default 30 days
 const cookieLifeAdmin = 30 * 24 * time.Hour
 
