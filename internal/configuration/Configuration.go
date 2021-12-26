@@ -118,15 +118,6 @@ func LoadFromSetup(config models.Configuration) {
 // Asks for password or loads it from env and returns input as string if valid
 func askForPassword() string {
 	fmt.Print("Password: ")
-	envPassword := Environment.AdminPassword
-	if envPassword != "" {
-		fmt.Println("*******************")
-		if utf8.RuneCountInString(envPassword) < minLengthPassword {
-			fmt.Println("\nPassword needs to be at least " + strconv.Itoa(minLengthPassword) + " characters long")
-			osExit(1)
-		}
-		return envPassword
-	}
 	password1 := helper.ReadPassword()
 	if utf8.RuneCountInString(password1) < minLengthPassword {
 		fmt.Println("\nPassword needs to be at least " + strconv.Itoa(minLengthPassword) + " characters long")

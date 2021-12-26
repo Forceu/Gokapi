@@ -9,10 +9,8 @@ import (
 	"os"
 )
 
-
 // CurrentConfigVersion is the version of the configuration structure. Used for upgrading
 const CurrentConfigVersion = 10
-
 
 func DoUpgrade(settings *models.Configuration, env *environment.Environment) bool {
 	if settings.ConfigVersion < CurrentConfigVersion {
@@ -52,9 +50,7 @@ func updateConfig(settings *models.Configuration, env *environment.Environment) 
 	}
 	// < v1.3.0
 	if settings.ConfigVersion < 7 {
-		if env.UseSsl == environment.IsTrue {
-			settings.UseSsl = true
-		}
+		settings.UseSsl = false
 	}
 	// < v1.3.1
 	if settings.ConfigVersion < 8 {

@@ -30,7 +30,6 @@ func TestMain(m *testing.M) {
 
 func TestUpgradeDb(t *testing.T) {
 	testconfiguration.WriteUpgradeConfigFileV0()
-	os.Setenv("GOKAPI_USE_SSL", "true")
 	os.Setenv("GOKAPI_MAX_FILESIZE", "5")
 	oldConfigFile.Files["MgXJLe4XLfpXcL12ec4i"] = models.File{
 		Id: "MgXJLe4XLfpXcL12ec4i",
@@ -55,7 +54,6 @@ func TestUpgradeDb(t *testing.T) {
 	test.IsEqualBool(t, firstUpgrade.DownloadStatus == nil, false)
 	test.IsEqualString(t, firstUpgrade.Files["MgXJLe4XLfpXcL12ec4i"].ContentType, "application/octet-stream")
 	test.IsEqualInt(t, firstUpgrade.ConfigVersion, CurrentConfigVersion)
-	test.IsEqualBool(t, firstUpgrade.UseSsl, true)
 	test.IsEqualInt(t, firstUpgrade.MaxFileSizeMB, 5)
 	test.IsEqualInt(t, firstUpgrade.Authentication.Method, 0)
 	test.IsEqualBool(t, firstUpgrade.Authentication.HeaderUsers == nil, false)
@@ -70,7 +68,6 @@ func TestUpgradeDb(t *testing.T) {
 	test.IsEqualString(t, oldConfigFile.Authentication.SaltAdmin, "LW6fW4Pjv8GtdWVLSZD66gYEev6NAaXxOVBw7C")
 	test.IsEqualString(t, oldConfigFile.Authentication.SaltFiles, "lL5wMTtnVCn5TPbpRaSe4vAQodWW0hgk00WCZE")
 
-	os.Unsetenv("GOKAPI_USE_SSL")
 	os.Unsetenv("GOKAPI_MAX_FILESIZE")
 
 }

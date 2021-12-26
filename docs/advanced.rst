@@ -75,6 +75,25 @@ Available environment variables
 
 
 
+All values that are described in :ref:`cloudstorage` can be passed as environment variables as well. No values are persistent, therefore need to be set on every start.
+
++-----------------------+-------------------------+
+| Name                  | Action                  |
++=======================+=========================+
+| GOKAPI_AWS_BUCKET     | Sets the bucket name    |
++-----------------------+-------------------------+
+| GOKAPI_AWS_REGION     | Sets the region name    |
++-----------------------+-------------------------+
+| GOKAPI_AWS_KEY        | Sets the API key        |
++-----------------------+-------------------------+
+| GOKAPI_AWS_KEY_SECRET | Sets the API key secret |
++-----------------------+-------------------------+
+| GOKAPI_AWS_ENDPOINT   | Sets the endpoint       |
++-----------------------+-------------------------+
+
+
+
+
 ********************************
 API
 ********************************

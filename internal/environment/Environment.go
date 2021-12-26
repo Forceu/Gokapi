@@ -18,43 +18,24 @@ const DefaultPort = "53842"
 
 // Environment is a struct containing available env variables
 type Environment struct {
-	ConfigDir            string
-	ConfigFile           string
-	ConfigPath           string
-	DataDir              string
-	AdminName            string
-	AdminPassword        string
-	WebserverPort        string
-	WebserverLocalhost   string
-	ExternalUrl          string
-	RedirectUrl          string
-	SaltAdmin            string
-	SaltFiles            string
-	UseSsl               string
-	AwsBucket            string
-	AwsRegion            string
-	AwsKeyId             string
-	AwsKeySecret         string
-	AwsEndpoint          string
-	DisableLogin         string
-	LoginHeaderKey       string
-	LoginHeaderForceUser string
-	LengthId             int
-	MaxMemory            int
-	MaxFileSize          int
+	ConfigDir     string
+	ConfigFile    string
+	ConfigPath    string
+	DataDir       string
+	WebserverPort string
+	LengthId      int
+	MaxMemory     int
+	MaxFileSize   int
+	AwsBucket     string
+	AwsRegion     string
+	AwsKeyId      string
+	AwsKeySecret  string
+	AwsEndpoint   string
 }
 
 // ToBool checks if a string output by the environment package is equal true or false
 func ToBool(input string) bool {
 	return input == IsTrue
-}
-
-// IsAwsProvided returns true if all required env variables have been set for using AWS S3 / Backblaze
-func (e *Environment) IsAwsProvided() bool {
-	return e.AwsBucket != "" &&
-		e.AwsRegion != "" &&
-		e.AwsKeyId != "" &&
-		e.AwsKeySecret != ""
 }
 
 var defaultValues = defaultsEnvironment{
@@ -71,31 +52,28 @@ var defaultValues = defaultsEnvironment{
 func New() Environment {
 	configPath, configDir, configFile, _ := GetConfigPaths()
 	return Environment{
-		ConfigDir:            configDir,
-		ConfigFile:           configFile,
-		ConfigPath:           configPath,
-		WebserverPort:        GetPort(),
-		DataDir:              envString("DATA_DIR"),
-		AdminName:            envString("USERNAME"),
-		AdminPassword:        envString("PASSWORD"),
-		ExternalUrl:          envString("EXTERNAL_URL"),
-		RedirectUrl:          envString("REDIRECT_URL"),
-		SaltAdmin:            envString("SALT_ADMIN"),
-		SaltFiles:            envString("SALT_FILES"),
-		WebserverLocalhost:   envBool("LOCALHOST"),
-		LengthId:             envInt("LENGTH_ID", 5),
-		MaxMemory:            envInt("MAX_MEMORY_UPLOAD_MB", 5),
-		UseSsl:               envBool("USE_SSL"),
-		AwsBucket:            envString("AWS_BUCKET"),
-		AwsRegion:            envString("AWS_REGION"),
-		AwsKeyId:             envString("AWS_KEY"),
-		AwsKeySecret:         envString("AWS_KEY_SECRET"),
-		AwsEndpoint:          envString("AWS_ENDPOINT"),
-		MaxFileSize:          envInt("MAX_FILESIZE", 1),
-		DisableLogin:         envBool("DISABLE_LOGIN"),
-		LoginHeaderKey:       envString("LOGIN_HEADER_KEY"),
-		LoginHeaderForceUser: envBool("LOGIN_HEADER_FORCE_USER"),
+		ConfigDir:     configDir,
+		ConfigFile:    configFile,
+		ConfigPath:    configPath,
+		WebserverPort: GetPort(),
+		DataDir:       envString("DATA_DIR"),
+		LengthId:      envInt("LENGTH_ID", 5),
+		MaxMemory:     envInt("MAX_MEMORY_UPLOAD_MB", 5),
+		MaxFileSize:   envInt("MAX_FILESIZE", 1),
+		AwsBucket:     envString("AWS_BUCKET"),
+		AwsRegion:     envString("AWS_REGION"),
+		AwsKeyId:      envString("AWS_KEY"),
+		AwsKeySecret:  envString("AWS_KEY_SECRET"),
+		AwsEndpoint:   envString("AWS_ENDPOINT"),
 	}
+}
+
+// IsAwsProvided returns true if all required env variables have been set for using AWS S3 / Backblaze
+func (e *Environment) IsAwsProvided() bool {
+	return e.AwsBucket != "" &&
+		e.AwsRegion != "" &&
+		e.AwsKeyId != "" &&
+		e.AwsKeySecret != ""
 }
 
 // Looks up an environment variable or returns an empty string
@@ -174,8 +152,6 @@ type defaultsEnvironment struct {
 	CONFIG_DIR           string
 	CONFIG_FILE          string
 	DATA_DIR             string
-	SALT_ADMIN           string
-	SALT_FILES           string
 	PORT                 string
 	LENGTH_ID            int
 	MAX_MEMORY_UPLOAD_MB int

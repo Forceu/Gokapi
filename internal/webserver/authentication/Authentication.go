@@ -3,7 +3,7 @@ package authentication
 import (
 	"Gokapi/internal/configuration"
 	"Gokapi/internal/models"
-	"Gokapi/internal/webserver/sessionmanager"
+	"Gokapi/internal/webserver/authentication/sessionmanager"
 	"crypto/subtle"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"io"
