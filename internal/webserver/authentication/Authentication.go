@@ -111,13 +111,8 @@ func GetMethod() int {
 }
 
 func Logout(w http.ResponseWriter, r *http.Request) {
-	switch authSettings.Method {
-	case Internal:
+	if authSettings.Method == Internal || authSettings.Method == OAuth2 {
 		sessionmanager.LogoutSession(w, r)
-	case OAuth2:
-		sessionmanager.LogoutSession(w, r)
-	case Header:
-		// TODO
 	}
 	redirect(w, "login")
 }

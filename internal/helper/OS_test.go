@@ -5,6 +5,7 @@ package helper
 
 import (
 	"Gokapi/internal/test"
+	"errors"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -59,4 +60,12 @@ func TestGetFileSize(t *testing.T) {
 	size, _ = GetFileSize(file)
 	test.IsEqualInt(t, int(size), 0)
 	os.Remove("testfile")
+}
+
+func TestCheck(t *testing.T) {
+	var err error
+	Check(err)
+	defer test.ExpectPanic(t)
+	err = errors.New("test")
+	Check(err)
 }

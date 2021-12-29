@@ -209,7 +209,7 @@ func processApi(w http.ResponseWriter, r *http.Request) {
 }
 
 // Handling of /login
-// Shows a login form. If username / pw combo is incorrect, client needs to wait for three seconds.
+// Shows a login form. If not authenticated, client needs to wait for three seconds.
 // If correct, a new session is created and the user is redirected to the admin menu
 func showLogin(w http.ResponseWriter, r *http.Request) {
 	if authentication.IsAuthenticated(w, r) {

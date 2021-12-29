@@ -20,6 +20,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestLoad(t *testing.T) {
+	test.IsEqualBool(t, Exists(), true)
 	Load()
 	test.IsEqualString(t, Environment.ConfigDir, "test")
 	test.IsEqualString(t, serverSettings.Port, "127.0.0.1:53843")
@@ -52,6 +53,8 @@ func TestMutexSession(t *testing.T) {
 	test.IsEqualInt(t, serverSettings.ConfigVersion, -9)
 	Release()
 	<-finished
+	GetServerSettingsReadOnly()
+	ReleaseReadOnly()
 }
 
 func TestUpgradeDb(t *testing.T) {
@@ -79,4 +82,11 @@ func TestHashPassword(t *testing.T) {
 	test.IsEqualString(t, HashPassword("123", false), "423b63a68c68bd7e07b14590927c1e9a473fe035")
 	test.IsEqualString(t, HashPassword("", false), "")
 	test.IsEqualString(t, HashPassword("123", true), "7b30508aa9b233ab4b8a11b2af5816bdb58ca3e7")
+}
+
+func TestHashPasswordCustomSalt(t *testing.T) {
+	test.IsEmpty(t, HashPasswordCustomSalt("", "123"))
+	test.IsEqualString(t, HashPasswordCustomSalt("test", "salt"), "f438229716cab43569496f3a3630b3727524b81b")
+	defer test.ExpectPanic(t)
+	HashPasswordCustomSalt("1234", "")
 }

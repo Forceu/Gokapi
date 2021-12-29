@@ -8,7 +8,9 @@ import (
 	"Gokapi/internal/test"
 	"Gokapi/internal/test/testconfiguration"
 	"Gokapi/internal/webserver/authentication"
+	"errors"
 	"html/template"
+	"io"
 	"io/fs"
 	"os"
 	"strings"
@@ -593,7 +595,17 @@ func TestDisableLogin(t *testing.T) {
 		}},
 	})
 	settings = configuration.GetServerSettings()
-	settings.Authentication.Method  = authentication.Internal
+	settings.Authentication.Method = authentication.Internal
 	authentication.Init(settings.Authentication)
 	configuration.Release()
+}
+
+func TestResponseError(t *testing.T) {
+	w, _ := test.GetRecorder("GET", "/", nil, nil, nil)
+	err := errors.New("testerror")
+	defer test.ExpectPanic(t)
+	responseError(w, err)
+	output, err := io.ReadAll(w.Result().Body)
+	test.IsNil(t, err)
+	test.IsEqualString(t, string(output), "{\"Result\":\"error\",\"ErrorMessage\":\""+err.Error()+"\"}")
 }

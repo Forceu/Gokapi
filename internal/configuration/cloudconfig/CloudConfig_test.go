@@ -19,12 +19,17 @@ func TestMain(m *testing.M) {
 }
 
 func TestLoad(t *testing.T) {
+	os.Unsetenv("GOKAPI_AWS_REGION")
+	os.Unsetenv("GOKAPI_AWS_KEY")
+	os.Unsetenv("GOKAPI_AWS_KEY_SECRET")
+	config, ok := Load()
+	test.IsEqualBool(t, ok, false)
 	testconfiguration.WriteCloudConfigFile(true)
 	os.Setenv("GOKAPI_AWS_BUCKET", "test")
 	os.Setenv("GOKAPI_AWS_REGION", "test")
 	os.Setenv("GOKAPI_AWS_KEY", "test")
 	os.Setenv("GOKAPI_AWS_KEY_SECRET", "test")
-	config, ok := Load()
+	config, ok = Load()
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, config.Aws == models.AwsConfig{
 		Bucket:    "test",
@@ -58,4 +63,21 @@ func TestLoad(t *testing.T) {
 	config, ok = Load()
 	test.IsEqualBool(t, ok, false)
 	test.IsEqualBool(t, config.Aws == models.AwsConfig{}, true)
+}
+
+func TestWrite(t *testing.T) {
+	os.Remove("test/cloudconfig.yml")
+	test.FileDoesNotExist(t, "test/cloudconfig.yml")
+	config := CloudConfig{Aws: models.AwsConfig{
+		Bucket:    "test1",
+		Region:    "test2",
+		Endpoint:  "test3",
+		KeyId:     "test4",
+		KeySecret: "test5",
+	}}
+	Write(config)
+	test.FileExists(t, "test/cloudconfig.yml")
+	newConfig, ok := Load()
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualBool(t, newConfig.Aws == config.Aws, true)
 }

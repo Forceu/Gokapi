@@ -11,14 +11,15 @@ require (
 )
 
 require (
-	github.com/golang/protobuf v1.2.0 // indirect
+	github.com/golang/protobuf v1.4.2 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/ryszard/goskiplist v0.0.0-20150312221310-2dfbae5fcf46 // indirect
 	github.com/shabbyrobe/gocovmerge v0.0.0-20180507124511-f6ea450bfb63 // indirect
-	golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2 // indirect
+	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 // indirect
 	golang.org/x/net v0.0.0-20210614182718-04defd469f4e // indirect
-	golang.org/x/tools v0.0.0-20190308174544-00c44ba9c14f // indirect
-	google.golang.org/appengine v1.4.0 // indirect
+	golang.org/x/tools v0.0.0-20190328211700-ab21143f2384 // indirect
+	google.golang.org/appengine v1.6.6 // indirect
+	google.golang.org/protobuf v1.23.0 // indirect
 	gopkg.in/square/go-jose.v2 v2.5.1 // indirect
 )
 

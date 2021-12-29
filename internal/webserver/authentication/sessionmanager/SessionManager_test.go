@@ -24,18 +24,7 @@ func TestMain(m *testing.M) {
 }
 
 func getRecorder(cookies []test.Cookie) (*httptest.ResponseRecorder, *http.Request) {
-	w := httptest.NewRecorder()
-	r := httptest.NewRequest("GET", "/", nil)
-	if cookies != nil {
-		for _, cookie := range cookies {
-			r.AddCookie(&http.Cookie{
-				Name:  cookie.Name,
-				Value: cookie.Value,
-				Path:  "/",
-			})
-		}
-	}
-	return w, r
+	return test.GetRecorder("GET", "/", cookies, nil, nil)
 }
 
 func TestIsValidSession(t *testing.T) {

@@ -290,7 +290,6 @@ func HttpPostRequest(t MockT, config HttpTestConfig) {
 	}
 }
 
-
 func GetRecorder(method, target string, cookies []Cookie, headers []Header, body io.Reader) (*httptest.ResponseRecorder, *http.Request) {
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(method, target, body)
@@ -309,4 +308,11 @@ func GetRecorder(method, target string, cookies []Cookie, headers []Header, body
 		}
 	}
 	return w, r
+}
+
+func ExpectPanic(t MockT) {
+	r := recover()
+	if r == nil {
+		t.Errorf("The code did not panic")
+	}
 }

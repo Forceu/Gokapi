@@ -29,9 +29,17 @@ func TestEnvLoad(t *testing.T) {
 	test.IsEqualInt(t, env.LengthId, -1)
 }
 
-
-func TestToBool(t *testing.T) {
-	test.IsEqualBool(t, ToBool(IsTrue), true)
-	test.IsEqualBool(t, ToBool(IsFalse), false)
-	test.IsEqualBool(t, ToBool("invalid"), false)
+func TestIsAwsProvided(t *testing.T) {
+	os.Unsetenv("GOKAPI_AWS_BUCKET")
+	os.Unsetenv("GOKAPI_AWS_REGION")
+	os.Unsetenv("GOKAPI_AWS_KEY")
+	os.Unsetenv("GOKAPI_AWS_KEY_SECRET")
+	env := New()
+	test.IsEqualBool(t, env.IsAwsProvided(), false)
+	os.Setenv("GOKAPI_AWS_BUCKET", "test")
+	os.Setenv("GOKAPI_AWS_REGION", "test")
+	os.Setenv("GOKAPI_AWS_KEY", "test")
+	os.Setenv("GOKAPI_AWS_KEY_SECRET", "test")
+	env = New()
+	test.IsEqualBool(t, env.IsAwsProvided(), true)
 }

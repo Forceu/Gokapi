@@ -4,14 +4,7 @@ import (
 	"os"
 	"reflect"
 	"strconv"
-	"strings"
 )
-
-// IsTrue is a placeholder for yes
-const IsTrue = "yes"
-
-// IsFalse is a placeholder for no
-const IsFalse = "no"
 
 // DefaultPort for the webserver
 const DefaultPort = "53842"
@@ -31,11 +24,6 @@ type Environment struct {
 	AwsKeyId      string
 	AwsKeySecret  string
 	AwsEndpoint   string
-}
-
-// ToBool checks if a string output by the environment package is equal true or false
-func ToBool(input string) bool {
-	return input == IsTrue
 }
 
 var defaultValues = defaultsEnvironment{
@@ -83,22 +71,6 @@ func envString(key string) string {
 		return defaultValues.getString(key)
 	}
 	return val
-}
-
-// Looks up a boolean environment variable, returns either IsFalse or IsTrue
-func envBool(key string) string {
-	val, ok := os.LookupEnv("GOKAPI_" + key)
-	if !ok {
-		return ""
-	}
-	valLower := strings.ToLower(val)
-	if valLower == "true" || valLower == "yes" {
-		return IsTrue
-	}
-	if valLower == "false" || valLower == "no" {
-		return IsFalse
-	}
-	return ""
 }
 
 // Looks up an environment variable or returns an empty string
