@@ -18,11 +18,16 @@ const (
 	configFile = dataDir + "/config.json"
 )
 
-// Create creates a configuration for unit testing
-func Create(initFiles bool) {
+func SetDirEnv() {
 	os.Setenv("GOKAPI_CONFIG_DIR", "test")
 	os.Setenv("GOKAPI_DATA_DIR", "test")
 	os.Mkdir(dataDir, 0777)
+
+}
+
+// Create creates a configuration for unit testing
+func Create(initFiles bool) {
+	SetDirEnv()
 	os.WriteFile(configFile, configTestFile, 0777)
 	if initFiles {
 		os.Mkdir("test/data", 0777)

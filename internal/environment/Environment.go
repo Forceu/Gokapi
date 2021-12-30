@@ -7,7 +7,7 @@ import (
 )
 
 // DefaultPort for the webserver
-const DefaultPort = "53842"
+const DefaultPort = 53842
 
 // Environment is a struct containing available env variables
 type Environment struct {
@@ -30,7 +30,7 @@ var defaultValues = defaultsEnvironment{
 	CONFIG_DIR:           "config",
 	CONFIG_FILE:          "config.json",
 	DATA_DIR:             "data",
-	PORT:                 DefaultPort,
+	PORT:                 strconv.Itoa(DefaultPort),
 	LENGTH_ID:            15,
 	MAX_MEMORY_UPLOAD_MB: 20,
 	MAX_FILESIZE:         102400, // 100GB

@@ -18,15 +18,15 @@ func TestMain(m *testing.M) {
 }
 
 func TestParseFlags(t *testing.T) {
-	os.Args = []string{"gokapi", "--version", "--reset-pw", "-create-ssl"}
+	os.Args = []string{"gokapi", "--version", "--reconfigure", "-create-ssl"}
 	flags := parseFlags()
 	test.IsEqualBool(t, flags.showVersion, true)
-	test.IsEqualBool(t, flags.resetPw, true)
+	test.IsEqualBool(t, flags.reconfigure, true)
 	test.IsEqualBool(t, flags.createSsl, true)
-	os.Args = []string{"gokapi", "--reset-pw", "-create-ssl"}
+	os.Args = []string{"gokapi", "--reconfigure", "-create-ssl"}
 	flags = parseFlags()
 	test.IsEqualBool(t, flags.showVersion, false)
-	test.IsEqualBool(t, flags.resetPw, true)
+	test.IsEqualBool(t, flags.reconfigure, true)
 	test.IsEqualBool(t, flags.createSsl, true)
 }
 
@@ -37,7 +37,7 @@ func TestShowVersion(t *testing.T) {
 }
 
 func TestNoResetPw(t *testing.T) {
-	resetPassword(flags{})
+	reonfigureServer(flags{})
 }
 
 func TestCreateSsl(t *testing.T) {

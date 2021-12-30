@@ -90,12 +90,12 @@ func isGrantedSession(w http.ResponseWriter, r *http.Request) bool {
 
 // IsCorrectUsernameAndPassword checks if a provided username and password is correct
 func IsCorrectUsernameAndPassword(username, password string) bool {
-	return isEqualStringConstantTime(username, authSettings.Username) &&
-		isEqualStringConstantTime(configuration.HashPasswordCustomSalt(password, authSettings.SaltAdmin), authSettings.Password)
+	return IsEqualStringConstantTime(username, authSettings.Username) &&
+		IsEqualStringConstantTime(configuration.HashPasswordCustomSalt(password, authSettings.SaltAdmin), authSettings.Password)
 }
 
-// Use ConstantTimeCompare to prevent timing attack.
-func isEqualStringConstantTime(s1, s2 string) bool {
+// IsEqualStringConstantTime uses ConstantTimeCompare to prevent timing attack.
+func IsEqualStringConstantTime(s1, s2 string) bool {
 	return subtle.ConstantTimeCompare(
 		[]byte(strings.ToLower(s1)),
 		[]byte(strings.ToLower(s2))) == 1

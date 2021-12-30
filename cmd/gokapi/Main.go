@@ -41,7 +41,7 @@ func main() {
 	settings := configuration.GetServerSettingsReadOnly()
 	authentication.Init(settings.Authentication)
 	configuration.ReleaseReadOnly()
-	resetPassword(passedFlags)
+	reonfigureServer(passedFlags)
 	createSsl(passedFlags)
 
 	cConfig, ok := cloudconfig.Load()
@@ -70,24 +70,21 @@ func parseFlags() flags {
 	passedFlags := flag.FlagSet{}
 	versionShortFlag := passedFlags.Bool("v", false, "Show version info")
 	versionLongFlag := passedFlags.Bool("version", false, "Show version info")
-	resetPwFlag := passedFlags.Bool("reset-pw", false, "Show prompt to reset admin password")
+	reconfigureFlag := passedFlags.Bool("reconfigure", false, "Runs setup again to change Gokapi configuration / passwords")
 	createSslFlag := passedFlags.Bool("create-ssl", false, "Creates a new SSL certificate valid for 365 days")
 	err := passedFlags.Parse(os.Args[1:])
 	helper.Check(err)
 	return flags{
 		showVersion: *versionShortFlag || *versionLongFlag,
-		resetPw:     *resetPwFlag,
+		reconfigure: *reconfigureFlag,
 		createSsl:   *createSslFlag,
 	}
 }
 
 // Checks for command line arguments that have to be parsed after loading the configuration
-func resetPassword(passedFlags flags) {
-	if passedFlags.resetPw {
-		fmt.Println("Password change requested")
-		configuration.DisplayPasswordReset()
-		fmt.Println("Password has been changed!")
-		osExit(0)
+func reonfigureServer(passedFlags flags) {
+	if passedFlags.reconfigure {
+		setup.RunConfigModification()
 	}
 }
 
@@ -101,7 +98,7 @@ func createSsl(passedFlags flags) {
 
 type flags struct {
 	showVersion bool
-	resetPw     bool
+	reconfigure bool
 	createSsl   bool
 }
 

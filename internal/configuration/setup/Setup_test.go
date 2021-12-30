@@ -3,12 +3,21 @@ package setup
 import (
 	"Gokapi/internal/models"
 	"Gokapi/internal/test"
+	"Gokapi/internal/test/testconfiguration"
 	"Gokapi/internal/webserver/authentication"
 	"bytes"
+	"os"
 	"testing"
 )
 
 var jsonForms []jsonFormObject
+
+func TestMain(m *testing.M) {
+	testconfiguration.SetDirEnv()
+	exitVal := m.Run()
+	testconfiguration.Delete()
+	os.Exit(exitVal)
+}
 
 func TestInputToJson(t *testing.T) {
 	buf := bytes.NewBufferString(testInputBasicAuth)
@@ -46,13 +55,14 @@ var config = models.Configuration{
 }
 
 func TestToConfiguration(t *testing.T) {
-	output,err := toConfiguration(&jsonForms)
+	output, cloudConfig, err := toConfiguration(&jsonForms)
 	test.IsNil(t, err)
-	test.IsEqualInt(t,output.Authentication.Method,authentication.Internal)
-	test.IsEqualString(t,output.Authentication.Username,"admin")
-	test.IsNotEqualString(t,output.Authentication.Password,"adminadmin")
-	test.IsNotEqualString(t,output.Authentication.Password,"")
-	test.IsEqualString(t,output.RedirectUrl,"https://github.com/Forceu/Gokapi/")
+	test.IsEqualInt(t, output.Authentication.Method, authentication.Internal)
+	test.IsEqualString(t, cloudConfig.Aws.KeyId, "testapi")
+	test.IsEqualString(t, output.Authentication.Username, "admin")
+	test.IsNotEqualString(t, output.Authentication.Password, "adminadmin")
+	test.IsNotEqualString(t, output.Authentication.Password, "")
+	test.IsEqualString(t, output.RedirectUrl, "https://github.com/Forceu/Gokapi/")
 
 }
 

@@ -7,11 +7,13 @@ import (
 	"Gokapi/internal/environment"
 	"Gokapi/internal/helper"
 	"Gokapi/internal/models"
+	"Gokapi/internal/webserver/authentication"
 	"context"
 	"embed"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html/template"
 	"io"
 	"io/fs"
 	"log"
@@ -26,26 +28,78 @@ import (
 // This contains JS files, CSS, images etc for the setup
 //go:embed static
 var webserverDirEmb embed.FS
-var srv http.Server
 
-// TODO Validation client side (eg url trailing slash, portnumber)
+// templateFolderEmbedded is the embedded version of the "templates" folder
+// This contains templates that Gokapi uses for creating the HTML output
+//go:embed templates
+var templateFolderEmbedded embed.FS
+
+var srv http.Server
+var isInitialSetup = true
+var username string
+var password string
+
+// TODO more validation client side, change extUrl on port change / https
 
 func RunIfFirstStart() {
 	if !configuration.Exists() {
+		isInitialSetup = true
 		startSetupWebserver()
+	}
+}
+
+func RunConfigModification() {
+	isInitialSetup = false
+	username = helper.GenerateRandomString(6)
+	password = helper.GenerateRandomString(10)
+	fmt.Println()
+	fmt.Println("###################################################################")
+	fmt.Println("Use the following credentials for modifying the configuration:")
+	fmt.Println("Username: " + username)
+	fmt.Println("Password: " + password)
+	fmt.Println("###################################################################")
+	fmt.Println()
+	startSetupWebserver()
+}
+
+func basicAuth(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// No auth required on initial setup
+		if isInitialSetup {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		enteredUser, enteredPw, ok := r.BasicAuth()
+		if ok {
+			usernameMatch := authentication.IsEqualStringConstantTime(enteredUser, username)
+			passwordMatch := authentication.IsEqualStringConstantTime(enteredPw, password)
+			if usernameMatch && passwordMatch {
+				next.ServeHTTP(w, r)
+				return
+			}
+		}
+		time.Sleep(time.Second)
+		w.Header().Set("WWW-Authenticate", `Basic realm="restricted", charset="UTF-8"`)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 	}
 }
 
 func startSetupWebserver() {
 	port := environment.GetPort()
 	webserverDir, _ := fs.Sub(webserverDirEmb, "static")
-	http.Handle("/setup/", http.FileServer(http.FS(webserverDir)))
-	http.HandleFunc("/setup/setupResult", handleResult)
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", handleShowMaintenance)
+	mux.Handle("/setup/", http.FileServer(http.FS(webserverDir)))
+	mux.HandleFunc("/setup/start", basicAuth(handleShowSetup))
+	mux.HandleFunc("/setup/setupResult", basicAuth(handleResult))
 
 	srv = http.Server{
 		Addr:         ":" + port,
 		ReadTimeout:  2 * time.Minute,
 		WriteTimeout: 2 * time.Minute,
+		Handler:      mux,
 	}
 	fmt.Println("Please open http://" + resolveHostIp() + ":" + port + "/setup to setup Gokapi.")
 	// always returns error. ErrServerClosed on graceful close
@@ -110,7 +164,7 @@ func getFormValueInt(formObjects *[]jsonFormObject, key string) (int, error) {
 	return result, nil
 }
 
-func toConfiguration(formObjects *[]jsonFormObject) (models.Configuration, error) {
+func toConfiguration(formObjects *[]jsonFormObject) (models.Configuration, *cloudconfig.CloudConfig, error) {
 	var err error
 	parsedEnv := environment.New()
 
@@ -135,25 +189,31 @@ func toConfiguration(formObjects *[]jsonFormObject) (models.Configuration, error
 
 	err = parseBasicAuthSettings(&result, formObjects)
 	if err != nil {
-		return models.Configuration{}, err
+		return models.Configuration{}, nil, err
 	}
 
 	err = parseOAuthSettings(&result, formObjects)
 	if err != nil {
-		return models.Configuration{}, err
+		return models.Configuration{}, nil, err
 	}
 
 	err = parseHeaderAuthSettings(&result, formObjects)
 	if err != nil {
-		return models.Configuration{}, err
+		return models.Configuration{}, nil, err
 	}
 
 	err = parseServerSettings(&result, formObjects)
 	if err != nil {
-		return models.Configuration{}, err
+		return models.Configuration{}, nil, err
 	}
 
-	return result, nil
+	var cloudSettings *cloudconfig.CloudConfig
+	cloudSettings, err = parseCloudSettings(formObjects)
+	if err != nil {
+		return models.Configuration{}, nil, err
+	}
+
+	return result, cloudSettings, nil
 }
 
 func parseBasicAuthSettings(result *models.Configuration, formObjects *[]jsonFormObject) error {
@@ -163,11 +223,15 @@ func parseBasicAuthSettings(result *models.Configuration, formObjects *[]jsonFor
 		return err
 	}
 
-	result.Authentication.Password, err = getFormValueString(formObjects, "auth_pw")
+	pw, err := getFormValueString(formObjects, "auth_pw")
 	if err != nil {
 		return err
 	}
-	result.Authentication.Password = configuration.HashPasswordCustomSalt(result.Authentication.Password, result.Authentication.SaltAdmin)
+	// Password is not displayed in reconf setup, but a placeholder "unc". If this is submitted as a password, the
+	// old password is kept
+	if isInitialSetup || pw != "unc" {
+		result.Authentication.Password = configuration.HashPasswordCustomSalt(pw, result.Authentication.SaltAdmin)
+	}
 	return nil
 }
 
@@ -192,7 +256,7 @@ func parseOAuthSettings(result *models.Configuration, formObjects *[]jsonFormObj
 	if err != nil {
 		return err
 	}
-	result.Authentication.OauthUsers = strings.Split(oauthAllowedUsers, ";")
+	result.Authentication.OauthUsers = splitAndTrim(oauthAllowedUsers)
 	return nil
 }
 
@@ -207,8 +271,7 @@ func parseHeaderAuthSettings(result *models.Configuration, formObjects *[]jsonFo
 	if err != nil {
 		return err
 	}
-	result.Authentication.HeaderUsers = strings.Split(headerAllowedUsers, ";")
-
+	result.Authentication.HeaderUsers = splitAndTrim(headerAllowedUsers)
 	return nil
 }
 
@@ -218,6 +281,7 @@ func parseServerSettings(result *models.Configuration, formObjects *[]jsonFormOb
 	if err != nil {
 		return err
 	}
+	port = verifyPortNumber(port)
 	bindLocalhost, err := getFormValueBool(formObjects, "localhost_sel")
 	if err != nil {
 		return err
@@ -246,49 +310,46 @@ func parseServerSettings(result *models.Configuration, formObjects *[]jsonFormOb
 		return err
 	}
 
-	useCloud, err := getFormValueString(formObjects, "storage_sel")
-	if err != nil {
-		return err
-	}
-	if useCloud == "cloud" {
-		err = writeCloudConfig(formObjects, result)
-		if err != nil {
-			return err
-		}
-	}
+	result.ServerUrl = addTrailingSlash(result.ServerUrl)
 	return nil
 }
 
-func writeCloudConfig(formObjects *[]jsonFormObject, config *models.Configuration) error {
+func parseCloudSettings(formObjects *[]jsonFormObject) (*cloudconfig.CloudConfig, error) {
+	useCloud, err := getFormValueString(formObjects, "storage_sel")
+	if err != nil {
+		return nil, err
+	}
+	if useCloud == "cloud" {
+		return getCloudConfig(formObjects)
+	} else {
+		return nil, nil
+	}
+}
+
+func getCloudConfig(formObjects *[]jsonFormObject) (*cloudconfig.CloudConfig, error) {
 	var err error
 	awsConfig := cloudconfig.CloudConfig{}
 	awsConfig.Aws.Bucket, err = getFormValueString(formObjects, "s3_bucket")
 	if err != nil {
-		return err
+		return nil, err
 	}
 	awsConfig.Aws.Region, err = getFormValueString(formObjects, "s3_region")
 	if err != nil {
-		return err
+		return nil, err
 	}
 	awsConfig.Aws.KeyId, err = getFormValueString(formObjects, "s3_api")
 	if err != nil {
-		return err
+		return nil, err
 	}
 	awsConfig.Aws.KeySecret, err = getFormValueString(formObjects, "s3_secret")
 	if err != nil {
-		return err
+		return nil, err
 	}
 	awsConfig.Aws.Endpoint, err = getFormValueString(formObjects, "s3_endpoint")
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	err = cloudconfig.Write(awsConfig)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return &awsConfig, nil
 }
 
 func inputToJsonForm(r *http.Request) ([]jsonFormObject, error) {
@@ -301,6 +362,65 @@ func inputToJsonForm(r *http.Request) ([]jsonFormObject, error) {
 	return setupResult, nil
 }
 
+func splitAndTrim(input string) []string {
+	arr := strings.Split(input, ";")
+	for i := range arr {
+		arr[i] = strings.TrimSpace(arr[i])
+	}
+	return arr
+}
+
+type setupView struct {
+	IsInitialSetup bool
+	LocalhostOnly  bool
+	Port           int
+	OAuthUsers     string
+	HeaderUsers    string
+	Auth           models.AuthenticationConfig
+	Settings       models.Configuration
+	CloudSettings  cloudconfig.CloudConfig
+}
+
+func (v *setupView) loadFromConfig() {
+	v.IsInitialSetup = isInitialSetup
+	if isInitialSetup {
+		return
+	}
+	configuration.Load()
+	settings := configuration.GetServerSettingsReadOnly()
+	v.Settings = *settings
+	v.Auth = settings.Authentication
+	v.CloudSettings, _ = cloudconfig.Load()
+	v.OAuthUsers = strings.Join(settings.Authentication.OauthUsers, ";")
+	v.HeaderUsers = strings.Join(settings.Authentication.HeaderUsers, ";")
+
+	if strings.Contains(settings.Port, "localhost") || strings.Contains(settings.Port, "127.0.0.1") {
+		v.LocalhostOnly = true
+	}
+	portArray := strings.SplitAfter(settings.Port, ":")
+	port, err := strconv.Atoi(portArray[len(portArray)-1])
+	if err == nil {
+		v.Port = port
+	} else {
+		v.Port = environment.DefaultPort
+	}
+	configuration.ReleaseReadOnly()
+}
+
+// Handling of /start
+func handleShowSetup(w http.ResponseWriter, r *http.Request) {
+	templateFolder, err := template.ParseFS(templateFolderEmbedded, "templates/*.tmpl")
+	helper.Check(err)
+	view := setupView{}
+	view.loadFromConfig()
+	err = templateFolder.ExecuteTemplate(w, "setup", view)
+	helper.Check(err)
+}
+
+func handleShowMaintenance(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("Server is in maintenance mode, please try again in a few minutes."))
+}
+
 // Handling of /setupResult
 func handleResult(w http.ResponseWriter, r *http.Request) {
 	setupResult, err := inputToJsonForm(r)
@@ -309,12 +429,12 @@ func handleResult(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newConfig, err := toConfiguration(&setupResult)
+	newConfig, cloudSettings, err := toConfiguration(&setupResult)
 	if err != nil {
 		outputError(w, err)
 		return
 	}
-	configuration.LoadFromSetup(newConfig)
+	configuration.LoadFromSetup(newConfig, cloudSettings, isInitialSetup)
 	w.WriteHeader(200)
 	w.Write([]byte("{ \"result\": \"OK\"}"))
 	go func() {
@@ -326,4 +446,19 @@ func handleResult(w http.ResponseWriter, r *http.Request) {
 func outputError(w http.ResponseWriter, err error) {
 	w.WriteHeader(500)
 	w.Write([]byte("{ \"result\": \"Error\", \"error\": \"" + err.Error() + "\"}"))
+}
+
+// Adds a / character to the end of an URL if it does not exist
+func addTrailingSlash(url string) string {
+	if !strings.HasSuffix(url, "/") {
+		return url + "/"
+	}
+	return url
+}
+
+func verifyPortNumber(port int) int {
+	if port < 0 || port > 65535 {
+		return environment.DefaultPort
+	}
+	return port
 }

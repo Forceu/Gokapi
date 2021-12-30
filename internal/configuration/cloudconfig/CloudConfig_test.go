@@ -81,3 +81,12 @@ func TestWrite(t *testing.T) {
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, newConfig.Aws == config.Aws, true)
 }
+
+func TestDelete(t *testing.T) {
+	test.FileExists(t, "test/cloudconfig.yml")
+	err := Delete()
+	test.IsNil(t, err)
+	test.FileDoesNotExist(t, "test/cloudconfig.yml")
+	_, result := loadFromFile("test/cloudconfig.yml")
+	test.IsEqualBool(t, result, false)
+}

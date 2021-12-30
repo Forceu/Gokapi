@@ -4,9 +4,9 @@ package models
 type AwsConfig struct {
 	Bucket    string `yaml:"Bucket"`
 	Region    string `yaml:"Region"`
-	Endpoint  string `yaml:"Endpoint"`
 	KeyId     string `yaml:"KeyId"`
 	KeySecret string `yaml:"KeySecret"`
+	Endpoint  string `yaml:"Endpoint"`
 }
 
 // IsAllProvided returns true if all required variables have been set for using AWS S3 / Backblaze

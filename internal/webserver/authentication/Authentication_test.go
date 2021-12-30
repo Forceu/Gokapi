@@ -91,8 +91,8 @@ func TestIsLogoutAvailable(t *testing.T) {
 }
 
 func TestEqualString(t *testing.T) {
-	test.IsEqualBool(t, isEqualStringConstantTime("yes", "no"), false)
-	test.IsEqualBool(t, isEqualStringConstantTime("yes", "yes"), true)
+	test.IsEqualBool(t, IsEqualStringConstantTime("yes", "no"), false)
+	test.IsEqualBool(t, IsEqualStringConstantTime("yes", "yes"), true)
 }
 
 func TestGetMethod(t *testing.T) {

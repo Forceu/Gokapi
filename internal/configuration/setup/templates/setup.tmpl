@@ -1,0 +1,595 @@
+{{define "setup"}}<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>Gokapi Setup</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<link href="./bootstrap/bootstrap.min.css" rel="stylesheet" />
+		<link href="./src/bootstrap-wizard.css" rel="stylesheet" />
+		<link href="./chosen/chosen.css" rel="stylesheet" />
+		<style>
+			.wizard-modal p {
+				margin: 0 0 10px;
+				padding: 0;
+			}
+
+			#wizard-ns-detail-servers, .wizard-additional-servers {
+				font-size: 12px;
+				margin-top: 10px;
+				margin-left: 15px;
+			}
+			#wizard-ns-detail-servers > li, .wizard-additional-servers li {
+				line-height: 20px;
+				list-style-type: none;
+			}
+			#wizard-ns-detail-servers > li > img {
+				padding-right: 5px;
+			}
+
+			.wizard-modal .chzn-container .chzn-results {
+				max-height: 150px;
+			}
+			.wizard-addl-subsection {
+				margin-bottom: 40px;
+			}
+			.create-server-agent-key {
+				margin-left: 15px; 
+				width: 90%;
+			}
+		</style>
+		<!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+		<!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+		<!--[if lt IE 9]>
+		<script src="js/html5shiv-3.7.0.js"></script>
+		<script src="js/respond-1.3.0.min.js"></script>
+		<![endif]-->
+	</head>
+	<body style="padding:30px;">
+
+		
+
+		<div class="wizard" id="satellite-wizard" data-title="Gokapi Setup">
+
+
+
+			<!-- Step 0 Welcome -->
+			<div class="wizard-card wizard-card-overlay" data-cardname="Welcome">
+				<h3>Welcome</h3>
+
+				<div class="wizard-input-section">
+				
+{{ if .IsInitialSetup }}
+					<p>
+						Thank you for choosing Gokapi! This setup will guide you through the Gokapi installation. For further information please refer to the <a href="https://gokapi.readthedocs.io/en/stable/" title="Gokapi Documentation" target="_blank">documentation</a>.
+					</p>
+{{ else }}
+					<p>
+						You can now change the Gokapi configuration. For further information please refer to the <a href="https://gokapi.readthedocs.io/en/stable/" title="Gokapi Documentation" target="_blank">documentation</a>.
+					</p>
+{{end}}
+
+				</div>
+			</div>
+			
+			
+			
+			<!-- Step 1 Webserver -->
+			<div class="wizard-card wizard-card-overlay" data-cardname="webserver1">
+				<h3>Webserver 1/2</h3>
+
+				<div class="wizard-input-section">
+						<p>
+					Make webserver only accessable on this machine (bind to localhost)
+					</p>
+
+					<select name="localhost_sel" id="localhost_sel"  style="width:350px;" class="select form-control">	
+							<option value="0" selected>No</option>
+							<option value="1">Yes</option>
+
+					</select><br><br>
+						
+					<p>	
+					Use SSL (a self-signed certificate will be generated that can be replaced)
+					</p>
+
+					<select name="ssl_sel" id="ssl_sel" style="width:350px;" class="select form-control">
+							<option value="0" selected>No</option>
+							<option value="1">Yes</option>
+
+					</select>
+
+				</div>
+			</div>
+			
+			<!-- Step 2 Webserver 2 -->
+			<div class="wizard-card wizard-card-overlay" data-cardname="webserver2">
+				<h3>Webserver 2/2</h3>
+
+				<div class="wizard-input-section">
+				<p>
+					Webserver port
+					</p>
+
+						<div class="col-sm-8">
+							<input type="number" class="form-control" id="port" name="port" value="53842" min="1" max="65535" placeholder="Port number">
+						</div><br><br><br>
+						
+					<p>
+					Public facing URL
+					</p>
+
+						<div class="col-sm-8">
+							<input type="text" class="form-control" id="url" name="url" value="http://127.0.0.1:53842/" onfocusout="extUrlChanged(this)" placeholder="Public URL">
+						</div><br><br><br>
+						
+					<p>
+					Redirection URL for the index
+					</p>
+
+						<div class="col-sm-8">
+							<input type="text" class="form-control" id="url_redirection" name="url_redirection" value="https://github.com/Forceu/Gokapi/" placeholder="Redirection URL">
+						</div>
+						
+						
+					
+
+				</div>
+			</div>
+			
+			
+
+
+			<!-- Step 3 Auth -->
+			<div class="wizard-card wizard-card-overlay" data-cardname="authentication">
+				<h3>Authentication</h3>
+
+				<div class="wizard-input-section">
+					<p>
+						Please select the method for logging in to the admin panel
+					</p>
+
+					<select name="authentication_sel" id="authentication_sel" style="width:350px;" class="select form-control" onchange="authSelectionChanged(this.value);">
+						<optgroup label="Standalone">
+							<option value="0" selected>Username / Password</option>
+							<option value="1" >OAuth2 OpenID Connect</option>
+						</optgroup>
+
+						<optgroup label="Reverse Proxy">
+							<option value="2">Header Authentication</option>
+							<option value="3">Access Restriction</option>
+						</optgroup>
+
+					</select>
+
+				</div>
+			</div>
+
+			<!-- Step 4 Credentials PW -->
+			<div class="wizard-card wizard-card-overlay" data-cardname="credentials">
+				<h3>Credentials</h3>
+
+
+				<div class="wizard-input-section">
+					<p>
+						Please enter a username and password for the admin user
+					</p>
+
+					<div class="wizard-input-section">
+						<div class="form-group">
+							<div class="col-sm-8">
+								<input type="text" class="form-control" id="auth_username" name="auth_username" placeholder="Username" data-min="3" required data-validate="validateMinLength">
+							</div><br><br>
+							<div class="col-sm-8">
+								<input type="password" autocomplete="new-password" class="form-control" id="auth_pw" name="auth_pw" placeholder="Password" data-min="8" required data-validate="validatePassword">
+							</div><br><br>
+							<div class="col-sm-8">
+								<input type="password" autocomplete="new-password" class="form-control" id="auth_pw2" name="auth_pw2" placeholder="Password (repeat)" data-min="8" required>
+							</div>
+						</div>
+					</div>
+
+
+				</div>
+			</div>
+			
+			<!-- Step 4 Credentials Oauth -->
+			<div class="wizard-card wizard-card-overlay" data-cardname="credentials-oauth">
+				<h3>Credentials</h3>
+
+
+					<div class="wizard-input-section">
+					<p>
+						Please enter the OIDC client configuration. Add the allowed users to the list below (seperated by semicolon) or leave it blank if access is granted to all authenticated users.<br>
+					</p>
+
+					<div class="wizard-input-section">
+						<div class="form-group">
+					<p>
+					Provider URL
+					</p>
+
+							<div class="col-sm-8">
+								<input type="text" class="form-control" id="oauth_provider" name="oauth_provider" placeholder="Provider URL" data-min="1" required data-validate="validateMinLength">
+							</div><br><br>
+					<p>
+					Client ID
+					</p>
+
+							<div class="col-sm-8">
+								<input type="text" class="form-control" id="oauth_id" name="oauth_id" placeholder="Client ID" data-min="1" required data-validate="validateMinLength">
+							</div><br><br>
+					<p>
+					Client Secret
+					</p>
+
+							<div class="col-sm-8">
+								<input type="text" class="form-control" id="oauth_secret" name="oauth_secret" placeholder="Client Secret" data-min="1" required data-validate="validateMinLength">
+							</div><br><br>
+							
+					<p>
+					Authorised users
+					</p>
+
+							<div class="col-sm-8">
+								<input type="text" class="form-control" id="oauth_header_users" name="oauth_header_users" placeholder="Authorised users">
+							</div><br><br><br>
+{{ if .IsInitialSetup }}
+							<p><span style="font-weight:bold">Redirection URL: </span><span id="oauth_redir">http://127.0.0.1:53842/oauth-callback</span></p><br>
+{{ else }}
+							<p><span style="font-weight:bold">Redirection URL: </span><span id="oauth_redir">{{ .Settings.ServerUrl }}oauth-callback</span></p><br>
+{{ end }}
+						</div>
+					</div>
+
+
+				</div>
+			</div>
+			
+			<!-- Step 4 Credentials Header -->
+			<div class="wizard-card wizard-card-overlay" data-cardname="credentials-header">
+				<h3>Credentials</h3>
+
+
+				<div class="wizard-input-section">
+					<p>
+						Enter the key of the header that will be provided from your reverse proxy containing the username.<br>Add the allowed users to the list below (seperated by semicolon) or leave it blank if access is granted to all authenticated users.<br><br>
+					</p>
+
+					<div class="wizard-input-section">
+						<div class="form-group">
+					<p>
+					Header Key
+					</p>
+							<div class="col-sm-8">
+								<input type="text" class="form-control" id="auth_headerkey" name="auth_headerkey" required placeholder="Header Key" data-validate="validateServerLabel">
+							</div><br><br>
+							
+					<p>
+					Authorised users
+					</p>
+							<div class="col-sm-8">
+								<input type="text" class="form-control" id="auth_header_users" name="auth_header_users" placeholder="Authorised users">
+							</div>
+						</div>
+					</div>
+
+
+				</div>
+			</div>
+			<!-- Step 4 Credentials Disbabled -->
+			<div class="wizard-card wizard-card-overlay" data-cardname="credentials-disabled">
+				<h3>Credentials</h3>
+
+
+				<div class="wizard-input-section">
+					<p>
+						<span style="color:#FF0000;">Warning:</span> This setting will disable authentication completely! You will need to secure the following URLs with your reverse proxy:
+						
+						<ul>
+						  <li>/admin</li>
+						  <li>/apiDelete</li>
+						  <li>/apiKeys</li>
+						  <li>/apiNew</li>
+						  <li>/delete</li>
+						  <li>/upload</li>
+						</ul>
+
+						Only proceed if you know what you are doing!
+					</p>
+
+				</div>
+			</div>
+
+
+
+			<!-- Step 5 Storage -->
+			<div class="wizard-card wizard-card-overlay" data-cardname="storage">
+				<h3>Storage</h3>
+
+				<div class="wizard-input-section">
+					<p>
+						Select if you want to store files locally or on an S3 compatible cloud infrastructure
+					</p>
+
+					<select name="storage_sel" id="storage_sel" style="width:350px;" class="select form-control" onchange="storageSelectionChanged(this.selectedIndex);">
+							<option value="local" selected>Local Storage</option>
+							<option value="cloud">Cloud Storage</option>
+
+					</select>
+
+				</div>
+			</div>
+			
+			
+			<!-- Step 6 S3 Credentials -->
+			<div class="wizard-card wizard-card-overlay" data-cardname="s3credentials">
+				<h3>S3 Credentials</h3>
+
+				<div class="wizard-input-section">
+						<p>
+						Bucket Name
+						</p>
+						<div class="col-sm-8">
+							<input type="text" class="form-control" id="s3_bucket" name="s3_bucket" placeholder="Bucket Name" required data-validate="validateServerLabel">
+						</div><br><br>
+						<p>
+						Region Name
+						</p>
+						<div class="col-sm-8">
+							<input type="text" class="form-control" id="s3_region" name="s3_region" placeholder="Region Name" required data-validate="validateServerLabel">
+						</div><br><br>
+						<p>
+						API Key
+						</p>
+						<div class="col-sm-8">
+							<input type="text" class="form-control" id="s3_api" name="s3_api" placeholder="API Key" required data-validate="validateServerLabel">
+						</div><br><br><p>
+						API Key Secret
+						</p>
+						<div class="col-sm-8">
+							<input type="text" class="form-control" id="s3_secret" name="s3_secret" placeholder="API Key Secret" required data-validate="validateServerLabel">
+						</div><br><br><p>
+						Endpoint
+						</p>
+						<div class="col-sm-8">
+							<input type="text" class="form-control" id="s3_endpoint" name="s3_endpoint" placeholder="Endpoint (leave blank if AWS S3)">
+						</div>
+
+				</div>
+			</div>
+			
+
+
+
+
+			<!-- Step 7 Finish -->
+			
+			<div class="wizard-card">
+				<h3>Finish</h3>
+
+				<div class="wizard-input-section">
+					<p>Gokapi has been fully set up. Click on Submit to save the configuration.
+					</p>
+
+				</div>
+				<div class="wizard-error">
+					<div class="alert alert-error">
+						<strong>There was a problem</strong> with your submission.
+						Please correct the errors and re-submit.
+					</div>
+				</div>
+	
+				<div class="wizard-failure">
+					<div class="alert alert-error">
+						There was a problem submitting the configuration.<br><br>The following error was raised: <span style="font-weight:bold" id="errormessage"></span><br><br>The server responded with: <span style="font-weight:bold" id="errormessage_response"></span>
+					</div>
+				</div>
+	
+				<div class="wizard-success">
+					<div class="alert alert-success">
+						<span class="create-server-name"></span>Gokapi has been set up <strong>successfully.</strong>
+					</div>
+	
+					<a class="btn btn-success im-done">Continue</a>
+				</div>
+			</div>
+		</div>
+
+		<script src="./js/jquery-2.0.3.min.js"></script>
+		<script src="./chosen/chosen.jquery.js"></script>
+		<script src="./js/bootstrap.min.js" ></script>
+		<script src="./js/prettify.js"></script>
+		<script src="./src/bootstrap-wizard.js"></script>
+		<script>
+		var wizard;
+			$(document).ready(function() {
+				wizard = $('#satellite-wizard').wizard({
+					keyboard : false,
+					contentHeight : 500,
+					contentWidth : 800,
+					showClose : false,
+					submitUrl: "./setupResult",
+					backdrop: 'static'
+				});
+				
+				
+				
+				wizard.el.find(".wizard-success .im-done").click(function() {
+					window.location.href = $("#url").val()+"admin";
+				});
+			
+			
+				wizard.cards["credentials-oauth"].disable(true);
+				wizard.cards["credentials-header"].disable(true);
+				wizard.cards["credentials-disabled"].disable(true);
+				wizard.cards["s3credentials"].disable(true);
+				
+					
+{{ if not .IsInitialSetup }}
+	{{ if .LocalhostOnly }}
+				document.getElementById("localhost_sel").selectedIndex = 1;
+	{{ end }}
+	{{ if .Settings.UseSsl }}
+				document.getElementById("ssl_sel").selectedIndex = 1;
+	{{ end }}
+				document.getElementById("port").value = "{{ .Port }}";
+				document.getElementById("url").value = "{{ .Settings.ServerUrl }}";
+				document.getElementById("url_redirection").value = "{{ .Settings.RedirectUrl }}";
+				document.getElementById("authentication_sel").value = "{{ .Auth.Method }}";
+				authSelectionChanged("{{ .Auth.Method }}")
+				
+				switch ({{ .Auth.Method }}) {
+				  case 0:
+				    document.getElementById("auth_username").value = "{{ .Auth.Username }}";
+				    document.getElementById("auth_pw").value = "unc";
+				    document.getElementById("auth_pw2").value = "unc";
+				    break;
+				  case 1:
+				    document.getElementById("oauth_provider").value = "{{ .Auth.OauthProvider }}";
+				    document.getElementById("oauth_id").value = "{{ .Auth.OAuthClientId }}";
+				    document.getElementById("oauth_secret").value = "{{ .Auth.OAuthClientSecret }}";
+				    document.getElementById("oauth_header_users").value = "{{ .OAuthUsers }}";
+				    break;
+				  case 2:
+				    document.getElementById("auth_headerkey").value = "{{ .Auth.HeaderKey }}";
+				    document.getElementById("auth_header_users").value = "{{ .HeaderUsers }}";
+				    break;
+				}
+
+	{{ if .CloudSettings.Aws.Bucket }}				
+				document.getElementById("storage_sel").value = "cloud";
+				storageSelectionChanged(1);
+				document.getElementById("s3_bucket").value = "{{ .CloudSettings.Aws.Bucket }}";
+				document.getElementById("s3_region").value =  "{{ .CloudSettings.Aws.Region }}";
+				document.getElementById("s3_api").value = "{{ .CloudSettings.Aws.KeyId }}";
+				document.getElementById("s3_secret").value =  "{{ .CloudSettings.Aws.KeySecret }}";
+				document.getElementById("s3_endpoint").value =  "{{ .CloudSettings.Aws.Endpoint }}";
+	{{ end }}
+				
+				
+{{ end }}
+
+
+				wizard.on("submit", function(wizard) {
+					
+					 $.ajax({
+						type: "POST",
+						url: wizard.args.submitUrl,
+						data: JSON.stringify(wizard.serializeArray()),
+    						contentType: "application/json; charset=utf-8",
+						dataType: "json"
+					    }).done(function(response) {
+						wizard.submitSuccess();
+						wizard.hideButtons();
+						wizard.updateProgressBar(0);
+					    }).fail(function(xhr, textStatus, errorThrown) {
+					     $('#errormessage').text(errorThrown);
+					     $('#errormessage_response').text(xhr.responseText);
+						wizard.submitFailure();
+						wizard.hideButtons();
+					    });
+			
+				});
+
+
+			});
+			
+
+			function validateServerLabel(el) {
+				var name = el.val();
+				var retValue = {};
+
+				if (name == "") {
+					retValue.status = false;
+					retValue.msg = "Please enter a value";
+				} else {
+					retValue.status = true;
+				}
+
+				return retValue;
+			};
+			
+			function validateMinLength(el) {
+				var value = el.val();
+				var retValue = {};
+				
+				if (value.length < el[0].dataset.min) {
+					retValue.status = false;
+					retValue.msg = "Needs to be at least "+el[0].dataset.min+" characters long";
+				} else {
+					retValue.status = true;
+				}
+
+				return retValue;
+			}
+			function validatePassword(el) {
+{{ if not .IsInitialSetup }}
+				if (el.val() == "unc")
+					return true;
+{{end}}
+				let minLenghtStatus = validateMinLength(el);
+				if (minLenghtStatus.status==false)
+					return minLenghtStatus;
+					
+				var value = el.val();
+				var retValue = {};
+
+				if (el.val() != $('#auth_pw2').val()) {
+					retValue.status = false;
+					retValue.msg = "Passwords do not match";
+				} else {
+					retValue.status = true;
+				}
+
+				return retValue;
+			}
+
+			function storageSelectionChanged(index) {
+				let card = wizard.cards["s3credentials"];
+				if (index==0) 
+				  card.disable(true);
+				 else 
+				if (index==1) 
+				  card.enable();
+				}
+
+				$(function() {
+					wizard.show();
+				});
+				
+			function extUrlChanged(el) {
+				var lastChar = el.value.substr(-1); 
+				if (lastChar != '/') 
+					el.value = (el.value + '/') 
+					
+				document.getElementById("oauth_redir").innerHTML = el.value + "oauth-callback";
+					
+			}
+				
+				
+			function authSelectionChanged(value) {
+				wizard.cards["credentials"].disable(true);
+				wizard.cards["credentials-oauth"].disable(true);
+				wizard.cards["credentials-header"].disable(true);
+				wizard.cards["credentials-disabled"].disable(true);
+				switch (value) {
+					  case '0':
+						wizard.cards["credentials"].enable();
+					    break;
+					  case '1':
+						wizard.cards["credentials-oauth"].enable();
+					    break;
+					  case '2':
+						wizard.cards["credentials-header"].enable();
+					    break;
+					  case '3':
+						wizard.cards["credentials-disabled"].enable();
+					    break;
+				}
+
+			}
+			
+		</script>
+	</body>
+</html>
+{{ end }}

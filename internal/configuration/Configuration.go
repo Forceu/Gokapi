@@ -5,6 +5,7 @@ Loading and saving of the persistent configuration
 */
 
 import (
+	"Gokapi/internal/configuration/cloudconfig"
 	"Gokapi/internal/configuration/configUpgrade"
 	"Gokapi/internal/environment"
 	"Gokapi/internal/helper"
@@ -16,9 +17,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strconv"
 	"sync"
-	"unicode/utf8"
 )
 
 // Min length of admin password in characters
@@ -109,35 +108,32 @@ func save() {
 	}
 }
 
-func LoadFromSetup(config models.Configuration) {
+func LoadFromSetup(config models.Configuration, cloudConfig *cloudconfig.CloudConfig, isInitialConfig bool) {
 	Environment = environment.New()
+	if !isInitialConfig {
+		Load()
+		config.DefaultDownloads = serverSettings.DefaultDownloads
+		config.DefaultExpiry = serverSettings.DefaultExpiry
+		config.DefaultPassword = serverSettings.DefaultPassword
+		config.Files = serverSettings.Files
+		config.Hotlinks = serverSettings.Hotlinks
+		config.ApiKeys = serverSettings.ApiKeys
+	}
+
 	serverSettings = config
-	save()
-}
-
-// Asks for password or loads it from env and returns input as string if valid
-func askForPassword() string {
-	fmt.Print("Password: ")
-	password1 := helper.ReadPassword()
-	if utf8.RuneCountInString(password1) < minLengthPassword {
-		fmt.Println("\nPassword needs to be at least " + strconv.Itoa(minLengthPassword) + " characters long")
-		return askForPassword()
+	if cloudConfig != nil {
+		err := cloudconfig.Write(*cloudConfig)
+		if err != nil {
+			fmt.Println("Error writing cloud configuration:", err)
+			osExit(1)
+		}
+	} else {
+		err := cloudconfig.Delete()
+		if err != nil {
+			fmt.Println("Error deleting cloud configuration:", err)
+			osExit(1)
+		}
 	}
-	fmt.Print("\nPassword (repeat): ")
-	password2 := helper.ReadPassword()
-	if password1 != password2 {
-		fmt.Println("\nPasswords dont match")
-		return askForPassword()
-	}
-	fmt.Println()
-	return password1
-}
-
-// DisplayPasswordReset shows a password prompt in the CLI and saves the new password
-func DisplayPasswordReset() {
-	serverSettings.Authentication.Password = HashPassword(askForPassword(), false)
-	// Log out all sessions
-	serverSettings.Sessions = make(map[string]models.Session)
 	save()
 }
 

@@ -45,6 +45,17 @@ func Write(config CloudConfig) error {
 	return nil
 }
 
+func Delete() error {
+	_, _, _, awsConfigPath := environment.GetConfigPaths()
+	if helper.FileExists(awsConfigPath) {
+		err := os.Remove(awsConfigPath)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func loadFromEnv(env *environment.Environment) CloudConfig {
 	return CloudConfig{Aws: models.AwsConfig{
 		Bucket:    env.AwsBucket,

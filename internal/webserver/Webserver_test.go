@@ -176,7 +176,7 @@ func TestForgotPw(t *testing.T) {
 	t.Parallel()
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://localhost:53843/forgotpw",
-		RequiredContent: []string{"--reset-pw"},
+		RequiredContent: []string{"--reconfigure"},
 		IsHtml:          true,
 	})
 }
