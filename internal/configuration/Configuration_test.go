@@ -4,7 +4,9 @@
 package configuration
 
 import (
+	"Gokapi/internal/configuration/cloudconfig"
 	"Gokapi/internal/configuration/configUpgrade"
+	"Gokapi/internal/models"
 	"Gokapi/internal/test"
 	"Gokapi/internal/test/testconfiguration"
 	"os"
@@ -89,4 +91,39 @@ func TestHashPasswordCustomSalt(t *testing.T) {
 	test.IsEqualString(t, HashPasswordCustomSalt("test", "salt"), "f438229716cab43569496f3a3630b3727524b81b")
 	defer test.ExpectPanic(t)
 	HashPasswordCustomSalt("1234", "")
+}
+
+func TestLoadFromSetup(t *testing.T) {
+	newConfig := models.Configuration{
+		Authentication: models.AuthenticationConfig{},
+		Port:           "localhost:123",
+		ServerUrl:      "serverurl",
+		RedirectUrl:    "redirect",
+		ConfigVersion:  configUpgrade.CurrentConfigVersion,
+		LengthId:       10,
+		DataDir:        "test",
+		MaxMemory:      10,
+		UseSsl:         true,
+		MaxFileSizeMB:  199,
+	}
+	newCloudConfig := cloudconfig.CloudConfig{Aws: models.AwsConfig{
+		Bucket:    "bucket",
+		Region:    "region",
+		KeyId:     "keyid",
+		KeySecret: "secret",
+		Endpoint:  "",
+	}}
+
+	testconfiguration.WriteCloudConfigFile(true)
+	LoadFromSetup(newConfig, nil, false)
+	test.FileDoesNotExist(t, "test/cloudconfig.yml")
+	test.IsEqualBool(t, serverSettings.Files != nil, true)
+	test.IsEqualString(t, serverSettings.RedirectUrl, "redirect")
+
+	LoadFromSetup(newConfig, &newCloudConfig, true)
+	test.FileExists(t, "test/cloudconfig.yml")
+	config, ok := cloudconfig.Load()
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualString(t, config.Aws.KeyId, "keyid")
+	test.IsEqualString(t, serverSettings.ServerUrl, "serverurl")
 }

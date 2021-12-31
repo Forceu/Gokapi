@@ -80,6 +80,19 @@ Initial Setup
 During the first start, a new configuration file will be created and you will be asked for several inputs.
 
 
+
+Webserver
+""""""""""""""
+
+The following configuration can be set:
+
+-  **Bind to localhost** Only allow the server to be accessed from the machine it is running on. Select this if you are running Gokapi behind a reverse proxy or for testing purposes
+-  **Use SSL** Generates a self-signed SSL certificate (which can be replaced with a valid one). Select this if you are not running Gokapi behind a reverse proxy
+-  **Webserver Port** Set the port that Gokapi can be accessed on
+-  **Public Facing URL** Enter the URL where users from an external network can use to reach Gokapi. The URL will be used for generating download links
+-  **Redirection URL**  By default Gokapi redirects to this URL instead of showing a generic page if no download link was passed
+
+
 Authentication
 """"""""""""""
 
@@ -183,14 +196,9 @@ The following data needs to be provided:
 +-----------+-----------------------------------------------+-----------------------+-----------------------------------+
 
 
+************************
+Changing Configuration
+************************
 
-Webserver
-""""""""""""""
+To change any settings set in the initial setup (e.g. your password or storage location), run Gokapi with the parameter ``--reconfigure`` and follow the instructions. A random username and password will be generated and displayed in the programm output to access the configuration webpage, as all entered information can be read in plain text (except the user password).
 
-The following configuration can be set:
-
--  **Bind to localhost** Only allow the server to be accessed from the machine it is running on. Select this if you are running Gokapi behind a reverse proxy or for testing purposes
--  **Use SSL** Generates a self-signed SSL certificate (which can be replaced with a valid one). Select this if you are not running Gokapi behind a reverse proxy
--  **Webserver Port** Set the port that Gokapi can be accessed on
--  **Public Facing URL** Enter the URL where users from an external network can use to reach Gokapi. The URL will be used for generating download links
--  **Redirection URL**  By default Gokapi redirects to this URL instead of showing a generic page if no download link was passed
