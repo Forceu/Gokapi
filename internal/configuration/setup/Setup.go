@@ -39,8 +39,6 @@ var isInitialSetup = true
 var username string
 var password string
 
-// TODO more validation client side, change extUrl on port change / https
-
 func RunIfFirstStart() {
 	if !configuration.Exists() {
 		isInitialSetup = true
@@ -121,7 +119,7 @@ func resolveHostIp() string {
 			return ip
 		}
 	}
-	return "[your server IP]"
+	return "127.0.0.1"
 }
 
 type jsonFormObject struct {

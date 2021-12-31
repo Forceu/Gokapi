@@ -78,26 +78,27 @@
 				<h3>Webserver 1/2</h3>
 
 				<div class="wizard-input-section">
-						<p>
-					Make webserver only accessable on this machine (bind to localhost)
+					<div class="form-group">
+
+					<p>
+						Make webserver only accessable on this machine (bind to localhost)
 					</p>
+						<select name="localhost_sel" id="localhost_sel"  style="width:350px;" class="select form-control">	
+								<option value="0" selected>No</option>
+								<option value="1">Yes</option>
 
-					<select name="localhost_sel" id="localhost_sel"  style="width:350px;" class="select form-control">	
-							<option value="0" selected>No</option>
-							<option value="1">Yes</option>
+						</select><br><br>
+							
+						<p>	
+						Use SSL (a self-signed certificate will be generated that can be replaced)
+						</p>
 
-					</select><br><br>
-						
-					<p>	
-					Use SSL (a self-signed certificate will be generated that can be replaced)
-					</p>
+						<select name="ssl_sel" id="ssl_sel" style="width:350px;" onChange="urlParamChanged()" class="select form-control">
+								<option value="0" selected>No</option>
+								<option value="1">Yes</option>
 
-					<select name="ssl_sel" id="ssl_sel" style="width:350px;" class="select form-control">
-							<option value="0" selected>No</option>
-							<option value="1">Yes</option>
-
-					</select>
-
+						</select>
+					</div>
 				</div>
 			</div>
 			
@@ -106,33 +107,31 @@
 				<h3>Webserver 2/2</h3>
 
 				<div class="wizard-input-section">
-				<p>
-					Webserver port
-					</p>
-
-						<div class="col-sm-8">
-							<input type="number" class="form-control" id="port" name="port" value="53842" min="1" max="65535" placeholder="Port number">
-						</div><br><br><br>
-						
+					<div class="form-group">
 					<p>
-					Public facing URL
-					</p>
+						Webserver port
+						</p>
 
-						<div class="col-sm-8">
-							<input type="text" class="form-control" id="url" name="url" value="http://127.0.0.1:53842/" onfocusout="extUrlChanged(this)" placeholder="Public URL">
-						</div><br><br><br>
-						
-					<p>
-					Redirection URL for the index
-					</p>
+							<div class="col-sm-8">
+								<input type="number" class="form-control" id="port" name="port" value="53842" min="1" max="65535" placeholder="Port number" data-min="1" data-validate="validateMinLength" required onChange="urlParamChanged()">
+							</div><br><br><br>
+							
+						<p>
+						Public facing URL
+						</p>
 
-						<div class="col-sm-8">
-							<input type="text" class="form-control" id="url_redirection" name="url_redirection" value="https://github.com/Forceu/Gokapi/" placeholder="Redirection URL">
+							<div class="col-sm-8">
+								<input type="text" class="form-control" id="url" name="url" value="http://127.0.0.1:53842/" onfocusout="extUrlChanged(this)" placeholder="Public URL" data-min="8" required data-validate="validateUrl">
+							</div><br><br><br>
+							
+						<p>
+						Redirection URL for the index
+						</p>
+
+							<div class="col-sm-8">
+								<input type="text" class="form-control" id="url_redirection" name="url_redirection" value="https://github.com/Forceu/Gokapi/" placeholder="Redirection URL" required data-min="1" data-validate="validateMinLength">
+							</div>
 						</div>
-						
-						
-					
-
 				</div>
 			</div>
 			
@@ -144,23 +143,25 @@
 				<h3>Authentication</h3>
 
 				<div class="wizard-input-section">
+					<div class="form-group">
 					<p>
 						Please select the method for logging in to the admin panel
 					</p>
 
-					<select name="authentication_sel" id="authentication_sel" style="width:350px;" class="select form-control" onchange="authSelectionChanged(this.value);">
-						<optgroup label="Standalone">
-							<option value="0" selected>Username / Password</option>
-							<option value="1" >OAuth2 OpenID Connect</option>
-						</optgroup>
 
-						<optgroup label="Reverse Proxy">
-							<option value="2">Header Authentication</option>
-							<option value="3">Access Restriction</option>
-						</optgroup>
+						<select name="authentication_sel" id="authentication_sel" style="width:350px;" class="select form-control" onchange="authSelectionChanged(this.value);">
+							<optgroup label="Standalone">
+								<option value="0" selected>Username / Password</option>
+								<option value="1" >OAuth2 OpenID Connect</option>
+							</optgroup>
 
-					</select>
+							<optgroup label="Reverse Proxy">
+								<option value="2">Header Authentication</option>
+								<option value="3">Access Restriction</option>
+							</optgroup>
 
+						</select>
+					</div>
 				</div>
 			</div>
 
@@ -170,12 +171,11 @@
 
 
 				<div class="wizard-input-section">
+						<div class="form-group">
 					<p>
 						Please enter a username and password for the admin user
 					</p>
 
-					<div class="wizard-input-section">
-						<div class="form-group">
 							<div class="col-sm-8">
 								<input type="text" class="form-control" id="auth_username" name="auth_username" placeholder="Username" data-min="3" required data-validate="validateMinLength">
 							</div><br><br>
@@ -184,7 +184,6 @@
 							</div><br><br>
 							<div class="col-sm-8">
 								<input type="password" autocomplete="new-password" class="form-control" id="auth_pw2" name="auth_pw2" placeholder="Password (repeat)" data-min="8" required>
-							</div>
 						</div>
 					</div>
 
@@ -198,12 +197,11 @@
 
 
 					<div class="wizard-input-section">
+						<div class="form-group">
 					<p>
 						Please enter the OIDC client configuration. Add the allowed users to the list below (seperated by semicolon) or leave it blank if access is granted to all authenticated users.<br>
 					</p>
 
-					<div class="wizard-input-section">
-						<div class="form-group">
 					<p>
 					Provider URL
 					</p>
@@ -238,9 +236,7 @@
 {{ else }}
 							<p><span style="font-weight:bold">Redirection URL: </span><span id="oauth_redir">{{ .Settings.ServerUrl }}oauth-callback</span></p><br>
 {{ end }}
-						</div>
 					</div>
-
 
 				</div>
 			</div>
@@ -251,17 +247,16 @@
 
 
 				<div class="wizard-input-section">
+						<div class="form-group">
 					<p>
 						Enter the key of the header that will be provided from your reverse proxy containing the username.<br>Add the allowed users to the list below (seperated by semicolon) or leave it blank if access is granted to all authenticated users.<br><br>
 					</p>
 
-					<div class="wizard-input-section">
-						<div class="form-group">
 					<p>
 					Header Key
 					</p>
 							<div class="col-sm-8">
-								<input type="text" class="form-control" id="auth_headerkey" name="auth_headerkey" required placeholder="Header Key" data-validate="validateServerLabel">
+								<input type="text" class="form-control" id="auth_headerkey" name="auth_headerkey" required placeholder="Header Key" data-validate="validateMinLength">
 							</div><br><br>
 							
 					<p>
@@ -270,10 +265,7 @@
 							<div class="col-sm-8">
 								<input type="text" class="form-control" id="auth_header_users" name="auth_header_users" placeholder="Authorised users">
 							</div>
-						</div>
 					</div>
-
-
 				</div>
 			</div>
 			<!-- Step 4 Credentials Disbabled -->
@@ -326,35 +318,37 @@
 				<h3>S3 Credentials</h3>
 
 				<div class="wizard-input-section">
-						<p>
-						Bucket Name
-						</p>
-						<div class="col-sm-8">
-							<input type="text" class="form-control" id="s3_bucket" name="s3_bucket" placeholder="Bucket Name" required data-validate="validateServerLabel">
-						</div><br><br>
-						<p>
-						Region Name
-						</p>
-						<div class="col-sm-8">
-							<input type="text" class="form-control" id="s3_region" name="s3_region" placeholder="Region Name" required data-validate="validateServerLabel">
-						</div><br><br>
-						<p>
-						API Key
-						</p>
-						<div class="col-sm-8">
-							<input type="text" class="form-control" id="s3_api" name="s3_api" placeholder="API Key" required data-validate="validateServerLabel">
-						</div><br><br><p>
-						API Key Secret
-						</p>
-						<div class="col-sm-8">
-							<input type="text" class="form-control" id="s3_secret" name="s3_secret" placeholder="API Key Secret" required data-validate="validateServerLabel">
-						</div><br><br><p>
-						Endpoint
-						</p>
-						<div class="col-sm-8">
-							<input type="text" class="form-control" id="s3_endpoint" name="s3_endpoint" placeholder="Endpoint (leave blank if AWS S3)">
+				
+					<div class="form-group">
+							<p>
+							Bucket Name
+							</p>
+							<div class="col-sm-8">
+								<input type="text" class="form-control" id="s3_bucket" name="s3_bucket" placeholder="Bucket Name" data-min="1" data-validate="validateMinLength">
+							</div><br><br>
+							<p>
+							Region Name
+							</p>
+							<div class="col-sm-8">
+								<input type="text" class="form-control" id="s3_region" name="s3_region" placeholder="Region Name" required data-min="1" data-validate="validateMinLength">
+							</div><br><br>
+							<p>
+							API Key
+							</p>
+							<div class="col-sm-8">
+								<input type="text" class="form-control" id="s3_api" name="s3_api" placeholder="API Key" required data-min="1" data-validate="validateMinLength">
+							</div><br><br><p>
+							API Key Secret
+							</p>
+							<div class="col-sm-8">
+								<input type="text" class="form-control" id="s3_secret" name="s3_secret" placeholder="API Key Secret" required data-min="1" data-validate="validateMinLength">
+							</div><br><br><p>
+							Endpoint
+							</p>
+							<div class="col-sm-8">
+								<input type="text" class="form-control" id="s3_endpoint" name="s3_endpoint" placeholder="Endpoint (leave blank if AWS S3)">
+							</div>
 						</div>
-
 				</div>
 			</div>
 			
@@ -494,24 +488,16 @@
 
 			});
 			
-
-			function validateServerLabel(el) {
-				var name = el.val();
-				var retValue = {};
-
-				if (name == "") {
-					retValue.status = false;
-					retValue.msg = "Please enter a value";
-				} else {
-					retValue.status = true;
-				}
-
-				return retValue;
-			};
 			
 			function validateMinLength(el) {
-				var value = el.val();
-				var retValue = {};
+				let value = el.val();
+				let retValue = {};
+				
+				if (value.length == 0) {
+					retValue.status = false;
+					retValue.msg = "Please enter a value";
+					return retValue;
+				}
 				
 				if (value.length < el[0].dataset.min) {
 					retValue.status = false;
@@ -522,19 +508,38 @@
 
 				return retValue;
 			}
+			
+			function validateUrl(el) {
+				let value = el.val();
+				let retValue = {};
+				
+				if (!value.startsWith("http://") && !value.startsWith("https://")) {
+					retValue.status = false;
+					retValue.msg = "URL must start with http:// or https://";
+					return retValue;
+				}
+				let minLenghtStatus = validateMinLength(el);
+				if (minLenghtStatus.status == false)
+					return minLenghtStatus;
+					
+				retValue.status = true;
+				return retValue;
+			}
+			
+			
 			function validatePassword(el) {
 {{ if not .IsInitialSetup }}
-				if (el.val() == "unc")
+				let value = el.val();
+				if (value == "unc")
 					return true;
 {{end}}
 				let minLenghtStatus = validateMinLength(el);
-				if (minLenghtStatus.status==false)
+				if (minLenghtStatus.status == false)
 					return minLenghtStatus;
 					
-				var value = el.val();
-				var retValue = {};
+				let retValue = {};
 
-				if (el.val() != $('#auth_pw2').val()) {
+				if (value != $('#auth_pw2').val()) {
 					retValue.status = false;
 					retValue.msg = "Passwords do not match";
 				} else {
@@ -558,12 +563,34 @@
 				});
 				
 			function extUrlChanged(el) {
-				var lastChar = el.value.substr(-1); 
+				let lastChar = el.value.substr(-1); 
 				if (lastChar != '/') 
 					el.value = (el.value + '/') 
 					
 				document.getElementById("oauth_redir").innerHTML = el.value + "oauth-callback";
-					
+			}
+			
+{{ if .IsInitialSetup }}
+			var previousPort = "53842";
+{{ else }}
+			var previousPort = "{{ .Port }}";
+{{ end }}
+			
+			
+			function urlParamChanged() {
+				let ssl = document.getElementById("ssl_sel").value;
+				let url = document.getElementById("url").value;
+				let port = document.getElementById("port").value;
+				let defaultNoSsl = "http://127.0.0.1:" + previousPort + "/";
+				let defaultSsl = "https://127.0.0.1:" + previousPort + "/";
+				
+				if (url == defaultNoSsl || url == defaultSsl) {
+					if (ssl == "0")
+						document.getElementById("url").value = "http://127.0.0.1:" + port + "/";
+					else
+						document.getElementById("url").value = "https://127.0.0.1:" + port + "/";
+				}
+				previousPort = port;
 			}
 				
 				
