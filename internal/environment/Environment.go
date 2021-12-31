@@ -4,46 +4,56 @@ import (
 	"os"
 	"reflect"
 	"strconv"
-	"strings"
 )
 
-// IsTrue is a placeholder for yes
-const IsTrue = "yes"
-
-// IsFalse is a placeholder for no
-const IsFalse = "no"
+// DefaultPort for the webserver
+const DefaultPort = 53842
 
 // Environment is a struct containing available env variables
 type Environment struct {
-	ConfigDir            string
-	ConfigFile           string
-	ConfigPath           string
-	DataDir              string
-	AdminName            string
-	AdminPassword        string
-	WebserverPort        string
-	WebserverLocalhost   string
-	ExternalUrl          string
-	RedirectUrl          string
-	SaltAdmin            string
-	SaltFiles            string
-	UseSsl               string
-	AwsBucket            string
-	AwsRegion            string
-	AwsKeyId             string
-	AwsKeySecret         string
-	AwsEndpoint          string
-	DisableLogin         string
-	LoginHeaderKey       string
-	LoginHeaderForceUser string
-	LengthId             int
-	MaxMemory            int
-	MaxFileSize          int
+	ConfigDir     string
+	ConfigFile    string
+	ConfigPath    string
+	DataDir       string
+	WebserverPort string
+	LengthId      int
+	MaxMemory     int
+	MaxFileSize   int
+	AwsBucket     string
+	AwsRegion     string
+	AwsKeyId      string
+	AwsKeySecret  string
+	AwsEndpoint   string
 }
 
-// ToBool checks if a string output by the environment package is equal true or false
-func ToBool(input string) bool {
-	return input == IsTrue
+var defaultValues = defaultsEnvironment{
+	CONFIG_DIR:           "config",
+	CONFIG_FILE:          "config.json",
+	DATA_DIR:             "data",
+	PORT:                 strconv.Itoa(DefaultPort),
+	LENGTH_ID:            15,
+	MAX_MEMORY_UPLOAD_MB: 20,
+	MAX_FILESIZE:         102400, // 100GB
+}
+
+// New parses the env variables
+func New() Environment {
+	configPath, configDir, configFile, _ := GetConfigPaths()
+	return Environment{
+		ConfigDir:     configDir,
+		ConfigFile:    configFile,
+		ConfigPath:    configPath,
+		WebserverPort: GetPort(),
+		DataDir:       envString("DATA_DIR"),
+		LengthId:      envInt("LENGTH_ID", 5),
+		MaxMemory:     envInt("MAX_MEMORY_UPLOAD_MB", 5),
+		MaxFileSize:   envInt("MAX_FILESIZE", 1),
+		AwsBucket:     envString("AWS_BUCKET"),
+		AwsRegion:     envString("AWS_REGION"),
+		AwsKeyId:      envString("AWS_KEY"),
+		AwsKeySecret:  envString("AWS_KEY_SECRET"),
+		AwsEndpoint:   envString("AWS_ENDPOINT"),
+	}
 }
 
 // IsAwsProvided returns true if all required env variables have been set for using AWS S3 / Backblaze
@@ -54,49 +64,6 @@ func (e *Environment) IsAwsProvided() bool {
 		e.AwsKeySecret != ""
 }
 
-var defaultValues = defaultsEnvironment{
-	CONFIG_DIR:           "config",
-	CONFIG_FILE:          "config.json",
-	DATA_DIR:             "data",
-	LENGTH_ID:            15,
-	MAX_MEMORY_UPLOAD_MB: 20,
-	MAX_FILESIZE:         102400, // 100GB
-}
-
-// New parses the env variables
-func New() Environment {
-	configDir := envString("CONFIG_DIR")
-	configFile := envString("CONFIG_FILE")
-	configPath := configDir + "/" + configFile
-
-	return Environment{
-		ConfigDir:            configDir,
-		ConfigFile:           configFile,
-		ConfigPath:           configPath,
-		DataDir:              envString("DATA_DIR"),
-		AdminName:            envString("USERNAME"),
-		AdminPassword:        envString("PASSWORD"),
-		WebserverPort:        envString("PORT"),
-		ExternalUrl:          envString("EXTERNAL_URL"),
-		RedirectUrl:          envString("REDIRECT_URL"),
-		SaltAdmin:            envString("SALT_ADMIN"),
-		SaltFiles:            envString("SALT_FILES"),
-		WebserverLocalhost:   envBool("LOCALHOST"),
-		LengthId:             envInt("LENGTH_ID", 5),
-		MaxMemory:            envInt("MAX_MEMORY_UPLOAD_MB", 5),
-		UseSsl:               envBool("USE_SSL"),
-		AwsBucket:            envString("AWS_BUCKET"),
-		AwsRegion:            envString("AWS_REGION"),
-		AwsKeyId:             envString("AWS_KEY"),
-		AwsKeySecret:         envString("AWS_KEY_SECRET"),
-		AwsEndpoint:          envString("AWS_ENDPOINT"),
-		MaxFileSize:          envInt("MAX_FILESIZE", 1),
-		DisableLogin:         envBool("DISABLE_LOGIN"),
-		LoginHeaderKey:       envString("LOGIN_HEADER_KEY"),
-		LoginHeaderForceUser: envBool("LOGIN_HEADER_FORCE_USER"),
-	}
-}
-
 // Looks up an environment variable or returns an empty string
 func envString(key string) string {
 	val, ok := os.LookupEnv("GOKAPI_" + key)
@@ -104,22 +71,6 @@ func envString(key string) string {
 		return defaultValues.getString(key)
 	}
 	return val
-}
-
-// Looks up a boolean environment variable, returns either IsFalse or IsTrue
-func envBool(key string) string {
-	val, ok := os.LookupEnv("GOKAPI_" + key)
-	if !ok {
-		return ""
-	}
-	valLower := strings.ToLower(val)
-	if valLower == "true" || valLower == "yes" {
-		return IsTrue
-	}
-	if valLower == "false" || valLower == "no" {
-		return IsFalse
-	}
-	return ""
 }
 
 // Looks up an environment variable or returns an empty string
@@ -137,6 +88,18 @@ func envInt(key string, minValue int) int {
 	}
 	return intVal
 
+}
+
+func GetConfigPaths() (string, string, string, string) {
+	configDir := envString("CONFIG_DIR")
+	configFile := envString("CONFIG_FILE")
+	configPath := configDir + "/" + configFile
+	awsConfigPAth := configDir + "/cloudconfig.yml"
+	return configPath, configDir, configFile, awsConfigPAth
+}
+
+func GetPort() string {
+	return envString("PORT")
 }
 
 // Gets the env variable or default value as string
@@ -161,8 +124,7 @@ type defaultsEnvironment struct {
 	CONFIG_DIR           string
 	CONFIG_FILE          string
 	DATA_DIR             string
-	SALT_ADMIN           string
-	SALT_FILES           string
+	PORT                 string
 	LENGTH_ID            int
 	MAX_MEMORY_UPLOAD_MB int
 	MAX_FILESIZE         int

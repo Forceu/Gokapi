@@ -1,9 +1,0 @@
-##
-## Example AWS S3 config. Modify this file and save it to config/cloudconfig.yml
-##
-aws:
-  Bucket: "gokapi"
-  Region: "eu-central-1"
-  Endpoint: ""
-  KeyId: "keyname"
-  KeySecret: "secret"

@@ -7,21 +7,11 @@
 		    <h3 class="card-title">Forgot password</h3>
 		    <br>
 		    <p class="card-text">
-			Please restart the server with the argument <code>--reset-pw</code> in order to change the password.
+			Please restart the server with the argument <code>--reconfigure</code> in order to change the password.
 		    </p>
 		  </div>
 		</div>
 	    </div>
    	 </div>
-<script>
-function submitForm(){
-	document.getElementById("username").disabled = true;
-	document.getElementById("password").disabled = true;
-	document.getElementById("uname_hidden").value = document.getElementById("username").value;
-	document.getElementById("pw_hidden").value = document.getElementById("password").value;
-	document.getElementById("submitbutton").disabled = true;
-	return true;
-}
-</script>
 {{ template "footer" }}
 {{end}}

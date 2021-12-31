@@ -43,6 +43,7 @@ func (t *MockTest) WantNoFail() {
 
 func (t *MockTest) Check() {
 	if wantFail != isFailed {
+		t.reference.Helper()
 		t.reference.Error("Test failed")
 	}
 }
@@ -221,4 +222,29 @@ func TestOsExit(t *testing.T) {
 	mockT.WantFail()
 	osExit(1)
 	mockT.Check()
+}
+
+func TestExpectPanic(t *testing.T) {
+	mockT := MockTest{reference: t}
+	mockT.WantFail()
+	ExpectPanic(mockT)
+	mockT.Check()
+	err := errors.New("test")
+	defer ExpectPanic(mockT)
+	panic(err)
+}
+
+func TestGetRecorder(t *testing.T) {
+	_, r := GetRecorder("GET", "/", []Cookie{{
+		Name:  "test",
+		Value: "testvalue",
+	}}, []Header{{
+		Name:  "testheader",
+		Value: "testheadervalue",
+	}}, nil)
+
+	cookie, err := r.Cookie("test")
+	IsNil(t, err)
+	IsEqualString(t, cookie.Value, "testvalue")
+	IsEqualString(t, r.Header.Get("testheader"), "testheadervalue")
 }

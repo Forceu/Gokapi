@@ -1,0 +1,17 @@
+{{define "error_auth"}}
+{{template "header" .}}
+ 
+      <div class="row">
+        <div class="col">
+		<div class="card" style="width: 18rem;">
+		  <div class="card-body">
+		    <h2 class="card-title">Unauthorised user</h2>
+		    <br>
+		    <p class="card-text">Login with OAuth provider was sucessful, however this user is not authorised.</p><br><br>
+		    <a href="./login" class="card-link">Log in as different user</a>
+		  </div>
+		</div>
+	    </div>
+    </div>
+{{template "footer"}}    
+{{end}}

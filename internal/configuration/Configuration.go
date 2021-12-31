@@ -5,6 +5,8 @@ Loading and saving of the persistent configuration
 */
 
 import (
+	"Gokapi/internal/configuration/cloudconfig"
+	"Gokapi/internal/configuration/configUpgrade"
 	"Gokapi/internal/environment"
 	"Gokapi/internal/helper"
 	log "Gokapi/internal/logging"
@@ -12,78 +14,44 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
-	"strconv"
-	"strings"
 	"sync"
-	"unicode/utf8"
 )
-
-// Default port that the program runs on
-const defaultPort = "53842"
 
 // Min length of admin password in characters
 const minLengthPassword = 6
-
-// Min length of admin username in characters
-const minLengthUsername = 3
 
 // Environment is an object containing the environment variables
 var Environment environment.Environment
 
 // ServerSettings is an object containing the server configuration
-var serverSettings Configuration
-
-// Version of the configuration structure. Used for upgrading
-const currentConfigVersion = 9
+var serverSettings models.Configuration
 
 // For locking this object to prevent race conditions
 var mutex sync.RWMutex
 
-// Configuration is a struct that contains the global configuration
-type Configuration struct {
-	Port                     string                           `json:"Port"`
-	AdminName                string                           `json:"AdminName"`
-	AdminPassword            string                           `json:"AdminPassword"`
-	ServerUrl                string                           `json:"ServerUrl"`
-	DefaultDownloads         int                              `json:"DefaultDownloads"`
-	DefaultExpiry            int                              `json:"DefaultExpiry"`
-	DefaultPassword          string                           `json:"DefaultPassword"`
-	RedirectUrl              string                           `json:"RedirectUrl"`
-	Sessions                 map[string]models.Session        `json:"Sessions"`
-	Files                    map[string]models.File           `json:"Files"`
-	Hotlinks                 map[string]models.Hotlink        `json:"Hotlinks"`
-	DownloadStatus           map[string]models.DownloadStatus `json:"DownloadStatus"`
-	ApiKeys                  map[string]models.ApiKey         `json:"ApiKeys"`
-	ConfigVersion            int                              `json:"ConfigVersion"`
-	SaltAdmin                string                           `json:"SaltAdmin"`
-	SaltFiles                string                           `json:"SaltFiles"`
-	LengthId                 int                              `json:"LengthId"`
-	DataDir                  string                           `json:"DataDir"`
-	MaxMemory                int                              `json:"MaxMemory"`
-	UseSsl                   bool                             `json:"UseSsl"`
-	MaxFileSizeMB            int                              `json:"MaxFileSizeMB"`
-	DisableLogin             bool                             `json:"DisableLogin"`
-	LoginHeaderKey           string                           `json:"LoginHeaderKey"`
-	LoginHeaderForceUsername bool                             `json:"LoginHeaderForceUsername"`
+func Exists() bool {
+	configPath, _, _, _ := environment.GetConfigPaths()
+	return helper.FileExists(configPath)
 }
 
 // Load loads the configuration or creates the folder structure and a default configuration
 func Load() {
 	Environment = environment.New()
 	helper.CreateDir(Environment.ConfigDir)
-	if !helper.FileExists(Environment.ConfigPath) {
-		generateDefaultConfig()
-	}
+	// No check if file exists, as this was checked earlier
 	file, err := os.Open(Environment.ConfigPath)
 	helper.Check(err)
-	defer file.Close()
 	decoder := json.NewDecoder(file)
-	serverSettings = Configuration{}
+	serverSettings = models.Configuration{}
 	err = decoder.Decode(&serverSettings)
 	helper.Check(err)
-	updateConfig()
+	file.Close()
+	if configUpgrade.DoUpgrade(&serverSettings, &Environment) {
+		save()
+	}
 	serverSettings.MaxMemory = Environment.MaxMemory
 	helper.CreateDir(serverSettings.DataDir)
 	log.Init(Environment.ConfigDir)
@@ -107,14 +75,14 @@ func Release() {
 
 // GetServerSettings locks the settings returns a pointer to the configuration for Read/Write access
 // Release needs to be called when finished with the operation!
-func GetServerSettings() *Configuration {
+func GetServerSettings() *models.Configuration {
 	mutex.Lock()
 	return &serverSettings
 }
 
 // GetServerSettingsReadOnly locks the settings for read-only access and returns a copy of the configuration
 // ReleaseReadOnly needs to be called when finished with the operation!
-func GetServerSettingsReadOnly() *Configuration {
+func GetServerSettingsReadOnly() *models.Configuration {
 	mutex.RLock()
 	return &serverSettings
 }
@@ -122,106 +90,6 @@ func GetServerSettingsReadOnly() *Configuration {
 // ReleaseReadOnly unlocks the configuration opened for read-only access
 func ReleaseReadOnly() {
 	mutex.RUnlock()
-}
-
-// Upgrades the ServerSettings if saved with a previous version
-func updateConfig() {
-	// < v1.1.2
-	if serverSettings.ConfigVersion < 3 {
-		serverSettings.SaltAdmin = "eefwkjqweduiotbrkl##$2342brerlk2321"
-		serverSettings.SaltFiles = "P1UI5sRNDwuBgOvOYhNsmucZ2pqo4KEvOoqqbpdu"
-		serverSettings.LengthId = 15
-		serverSettings.DataDir = Environment.DataDir
-	}
-	// < v1.1.3
-	if serverSettings.ConfigVersion < 4 {
-		serverSettings.Hotlinks = make(map[string]models.Hotlink)
-	}
-	// < v1.1.4
-	if serverSettings.ConfigVersion < 5 {
-		serverSettings.LengthId = 15
-		serverSettings.DownloadStatus = make(map[string]models.DownloadStatus)
-		for _, file := range serverSettings.Files {
-			file.ContentType = "application/octet-stream"
-			serverSettings.Files[file.Id] = file
-		}
-	}
-	// < v1.2.0
-	if serverSettings.ConfigVersion < 6 {
-		serverSettings.ApiKeys = make(map[string]models.ApiKey)
-	}
-	// < v1.3.0
-	if serverSettings.ConfigVersion < 7 {
-		if Environment.UseSsl == environment.IsTrue {
-			serverSettings.UseSsl = true
-		}
-	}
-	// < v1.3.1
-	if serverSettings.ConfigVersion < 8 {
-		serverSettings.MaxFileSizeMB = Environment.MaxFileSize
-	}
-	// < v1.3.2
-	if serverSettings.ConfigVersion < 9 {
-		serverSettings.DisableLogin = environment.ToBool(Environment.DisableLogin)
-		serverSettings.LoginHeaderForceUsername = environment.ToBool(Environment.LoginHeaderForceUser)
-		serverSettings.LoginHeaderKey = Environment.LoginHeaderKey
-	}
-
-	if serverSettings.ConfigVersion < currentConfigVersion {
-		fmt.Println("Successfully upgraded database")
-		serverSettings.ConfigVersion = currentConfigVersion
-		save()
-	}
-}
-
-// Creates a default configuration and asks for items like username/password etc.
-func generateDefaultConfig() {
-	fmt.Println("First start, creating new admin account")
-	saltAdmin := Environment.SaltAdmin
-	if saltAdmin == "" {
-		saltAdmin = helper.GenerateRandomString(30)
-	}
-	serverSettings = Configuration{
-		SaltAdmin: saltAdmin,
-	}
-	username := askForUsername(1)
-	password := askForPassword()
-	port := askForPort()
-	url := askForUrl(port)
-	redirect := askForRedirect()
-	localOnly := askForLocalOnly()
-	bindAddress := "127.0.0.1:" + port
-	if localOnly == environment.IsFalse {
-		bindAddress = ":" + port
-	}
-	useSsl := askForSsl()
-	saltFiles := Environment.SaltFiles
-	if saltFiles == "" {
-		saltFiles = helper.GenerateRandomString(30)
-	}
-
-	serverSettings = Configuration{
-		Port:             bindAddress,
-		AdminName:        username,
-		AdminPassword:    HashPassword(password, false),
-		ServerUrl:        url,
-		DefaultDownloads: 1,
-		DefaultExpiry:    14,
-		RedirectUrl:      redirect,
-		Files:            make(map[string]models.File),
-		Sessions:         make(map[string]models.Session),
-		Hotlinks:         make(map[string]models.Hotlink),
-		ApiKeys:          make(map[string]models.ApiKey),
-		DownloadStatus:   make(map[string]models.DownloadStatus),
-		ConfigVersion:    currentConfigVersion,
-		SaltAdmin:        saltAdmin,
-		SaltFiles:        saltFiles,
-		DataDir:          Environment.DataDir,
-		LengthId:         Environment.LengthId,
-		UseSsl:           useSsl,
-		MaxFileSizeMB:    Environment.MaxFileSize,
-	}
-	save()
 }
 
 // Save the configuration as a json file
@@ -240,203 +108,33 @@ func save() {
 	}
 }
 
-// Asks for username or loads it from env and returns input as string if valid
-func askForUsername(try int) string {
-	if try > 5 {
-		fmt.Println("Too many invalid entries! If you are running the setup with Docker, make sure to start the container with the -it flag.")
-		osExit(1)
-		// Return needs to be called, if osExit is replaced turing testing
-		return ""
+func LoadFromSetup(config models.Configuration, cloudConfig *cloudconfig.CloudConfig, isInitialConfig bool) {
+	Environment = environment.New()
+	if !isInitialConfig {
+		Load()
+		config.DefaultDownloads = serverSettings.DefaultDownloads
+		config.DefaultExpiry = serverSettings.DefaultExpiry
+		config.DefaultPassword = serverSettings.DefaultPassword
+		config.Files = serverSettings.Files
+		config.Hotlinks = serverSettings.Hotlinks
+		config.ApiKeys = serverSettings.ApiKeys
 	}
-	fmt.Print("Username: ")
-	envUsername := Environment.AdminName
-	if envUsername != "" {
-		fmt.Println(envUsername)
-		return envUsername
-	}
-	username := helper.ReadLine()
-	if utf8.RuneCountInString(username) >= minLengthUsername {
-		return username
-	}
-	fmt.Println("Username needs to be at least " + strconv.Itoa(minLengthUsername) + " characters long")
-	return askForUsername(try + 1)
-}
 
-// Asks for password or loads it from env and returns input as string if valid
-func askForPassword() string {
-	fmt.Print("Password: ")
-	envPassword := Environment.AdminPassword
-	if envPassword != "" {
-		fmt.Println("*******************")
-		if utf8.RuneCountInString(envPassword) < minLengthPassword {
-			fmt.Println("\nPassword needs to be at least " + strconv.Itoa(minLengthPassword) + " characters long")
+	serverSettings = config
+	if cloudConfig != nil {
+		err := cloudconfig.Write(*cloudConfig)
+		if err != nil {
+			fmt.Println("Error writing cloud configuration:", err)
 			osExit(1)
 		}
-		return envPassword
-	}
-	password1 := helper.ReadPassword()
-	if utf8.RuneCountInString(password1) < minLengthPassword {
-		fmt.Println("\nPassword needs to be at least " + strconv.Itoa(minLengthPassword) + " characters long")
-		return askForPassword()
-	}
-	fmt.Print("\nPassword (repeat): ")
-	password2 := helper.ReadPassword()
-	if password1 != password2 {
-		fmt.Println("\nPasswords dont match")
-		return askForPassword()
-	}
-	fmt.Println()
-	return password1
-}
-
-// Asks if the server shall be bound to 127.0.0.1 or loads it from env and returns result as bool
-// Always returns environment.IsFalse for Docker environment
-func askForLocalOnly() string {
-	if environment.IsDocker != "false" {
-		return environment.IsFalse
-	}
-	fmt.Print("Bind port to localhost only? [Y/n]: ")
-	envLocalhost := Environment.WebserverLocalhost
-	if envLocalhost != "" {
-		fmt.Println(envLocalhost)
-		return envLocalhost
-	}
-	input := strings.ToLower(helper.ReadLine())
-	if input == "n" || input == "no" {
-		return environment.IsFalse
-	}
-	return environment.IsTrue
-}
-
-// Asks if the server shall use SSL instead of plain text HTTP
-func askForSsl() bool {
-	fmt.Print("Use SSL? [y/N]: ")
-	useSsl := Environment.UseSsl
-	if useSsl != "" {
-		fmt.Println(useSsl)
-		return useSsl == environment.IsTrue
-	}
-	input := strings.ToLower(helper.ReadLine())
-	if input == "y" || input == "yes" {
-		return true
-	}
-	return false
-}
-
-// Asks for server port or loads it from env and returns input as string if valid
-func askForPort() string {
-	fmt.Print("Server Port [" + defaultPort + "]: ")
-	envPort := Environment.WebserverPort
-	if envPort != "" {
-		fmt.Println(envPort)
-		return envPort
-	}
-	port := helper.ReadLine()
-	if port == "" {
-		return defaultPort
-	}
-	if !isValidPortNumber(port) {
-		return askForPort()
-	}
-	return port
-}
-
-// Asks for server URL or loads it from env and returns input as string if valid
-func askForUrl(port string) string {
-	fmt.Print("External Server URL [http://127.0.0.1:" + port + "/]: ")
-	envUrl := Environment.ExternalUrl
-	if envUrl != "" {
-		fmt.Println(envUrl)
-		if !isValidUrl(envUrl) {
+	} else {
+		err := cloudconfig.Delete()
+		if err != nil {
+			fmt.Println("Error deleting cloud configuration:", err)
 			osExit(1)
 		}
-		return addTrailingSlash(envUrl)
 	}
-	url := helper.ReadLine()
-	if url == "" {
-		return "http://127.0.0.1:" + port + "/"
-	}
-	if !isValidUrl(url) {
-		return askForUrl(port)
-	}
-	return addTrailingSlash(url)
-}
-
-// Asks for redirect URL or loads it from env and returns input as string if valid
-func askForRedirect() string {
-	fmt.Print("URL that the index gets redirected to [https://github.com/Forceu/Gokapi/]: ")
-	envRedirect := Environment.RedirectUrl
-	if envRedirect != "" {
-		fmt.Println(envRedirect)
-		if !isValidUrl(envRedirect) {
-			osExit(1)
-		}
-		return envRedirect
-	}
-	url := helper.ReadLine()
-	if url == "" {
-		return "https://github.com/Forceu/Gokapi/"
-	}
-	if !isValidUrl(url) {
-		return askForRedirect()
-	}
-	return url
-}
-
-// Returns true if URL starts with http:// or https://
-func isValidUrl(url string) bool {
-	if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
-		fmt.Println("URL needs to start with http:// or https://")
-		return false
-	}
-	postfix := strings.Replace(url, "http://", "", -1)
-	postfix = strings.Replace(postfix, "https://", "", -1)
-	return len(postfix) > 0
-}
-
-// Checks if the string is a valid port number
-func isValidPortNumber(input string) bool {
-	port, err := strconv.Atoi(input)
-	if err != nil {
-		fmt.Println("Input needs to be a number")
-		return false
-	}
-	if port < 0 || port > 65353 {
-		fmt.Println("Port needs to be between 0-65353")
-		return false
-	}
-	return true
-}
-
-// Adds a / character to the end of an URL if it does not exist
-func addTrailingSlash(url string) string {
-	if !strings.HasSuffix(url, "/") {
-		return url + "/"
-	}
-	return url
-}
-
-// DisplayPasswordReset shows a password prompt in the CLI and saves the new password
-func DisplayPasswordReset() {
-	serverSettings.AdminPassword = HashPassword(askForPassword(), false)
-	// Log out all sessions
-	serverSettings.Sessions = make(map[string]models.Session)
 	save()
-}
-
-// HashPassword hashes a string with SHA256 and a salt
-func HashPassword(password string, useFileSalt bool) string {
-	if password == "" {
-		return ""
-	}
-	salt := serverSettings.SaltAdmin
-	if useFileSalt {
-		salt = serverSettings.SaltFiles
-	}
-	bytes := []byte(password + salt)
-	hash := sha1.New()
-	hash.Write(bytes)
-	return hex.EncodeToString(hash.Sum(nil))
 }
 
 // GetLengthId returns the length of the file IDs to be generated
@@ -444,12 +142,25 @@ func GetLengthId() int {
 	return serverSettings.LengthId
 }
 
-func IsLoginDisabled() bool {
-	return serverSettings.DisableLogin
+// HashPassword hashes a string with SHA256 and a salt
+func HashPassword(password string, useFileSalt bool) string {
+	if useFileSalt {
+		return HashPasswordCustomSalt(password, serverSettings.Authentication.SaltFiles)
+	}
+	return HashPasswordCustomSalt(password, serverSettings.Authentication.SaltAdmin)
 }
 
-func IsLogoutAvailable() bool {
-	return !serverSettings.DisableLogin && serverSettings.LoginHeaderKey == ""
+func HashPasswordCustomSalt(password, salt string) string {
+	if password == "" {
+		return ""
+	}
+	if salt == "" {
+		panic(errors.New("no salt provided"))
+	}
+	bytes := []byte(password + salt)
+	hash := sha1.New()
+	hash.Write(bytes)
+	return hex.EncodeToString(hash.Sum(nil))
 }
 
 var osExit = os.Exit

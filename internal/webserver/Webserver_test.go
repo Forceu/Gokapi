@@ -7,7 +7,10 @@ import (
 	"Gokapi/internal/configuration"
 	"Gokapi/internal/test"
 	"Gokapi/internal/test/testconfiguration"
+	"Gokapi/internal/webserver/authentication"
+	"errors"
 	"html/template"
+	"io"
 	"io/fs"
 	"os"
 	"strings"
@@ -173,7 +176,7 @@ func TestForgotPw(t *testing.T) {
 	t.Parallel()
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://localhost:53843/forgotpw",
-		RequiredContent: []string{"--reset-pw"},
+		RequiredContent: []string{"--reconfigure"},
 		IsHtml:          true,
 	})
 }
@@ -579,7 +582,8 @@ func TestDisableLogin(t *testing.T) {
 		}},
 	})
 	settings := configuration.GetServerSettings()
-	settings.DisableLogin = true
+	settings.Authentication.Method = authentication.Disabled
+	authentication.Init(settings.Authentication)
 	configuration.Release()
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://localhost:53843/admin",
@@ -591,6 +595,17 @@ func TestDisableLogin(t *testing.T) {
 		}},
 	})
 	settings = configuration.GetServerSettings()
-	settings.DisableLogin = false
+	settings.Authentication.Method = authentication.Internal
+	authentication.Init(settings.Authentication)
 	configuration.Release()
+}
+
+func TestResponseError(t *testing.T) {
+	w, _ := test.GetRecorder("GET", "/", nil, nil, nil)
+	err := errors.New("testerror")
+	defer test.ExpectPanic(t)
+	responseError(w, err)
+	output, err := io.ReadAll(w.Result().Body)
+	test.IsNil(t, err)
+	test.IsEqualString(t, string(output), "{\"Result\":\"error\",\"ErrorMessage\":\""+err.Error()+"\"}")
 }

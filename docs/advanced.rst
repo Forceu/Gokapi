@@ -56,51 +56,24 @@ For Windows environments, you need to run ``setx`` first, e.g.:
 Available environment variables
 ==================================
 
-General
---------
 
-
-+----------------------+------------------------------------------------------------------------------------------+-------------+-----------------------------------+-------------------------------+
-| Name                 | Action                                                                                   | Persistent* | Default                           | Required for unattended setup |
-+----------------------+------------------------------------------------------------------------------------------+-------------+-----------------------------------+-------------------------------+
-| GOKAPI_CONFIG_DIR    | Sets the directory for the config file                                                   | No          | config                            | No                            |
-+----------------------+------------------------------------------------------------------------------------------+-------------+-----------------------------------+-------------------------------+
-| GOKAPI_CONFIG_FILE   | Sets the name of the config file                                                         | No          | config.json                       | No                            |
-+----------------------+------------------------------------------------------------------------------------------+-------------+-----------------------------------+-------------------------------+
-| GOKAPI_DATA_DIR      | Sets the directory for the data                                                          | Yes         | data                              | No                            |
-+----------------------+------------------------------------------------------------------------------------------+-------------+-----------------------------------+-------------------------------+
-| GOKAPI_USERNAME      | Sets the admin username                                                                  | Yes         | unset                             | Yes                           |
-+----------------------+------------------------------------------------------------------------------------------+-------------+-----------------------------------+-------------------------------+
-| GOKAPI_PASSWORD      | Sets the admin password                                                                  | Yes         | unset                             | Yes                           |
-+----------------------+------------------------------------------------------------------------------------------+-------------+-----------------------------------+-------------------------------+
-| GOKAPI_PORT          | Sets the server port                                                                     | Yes         | 53842                             | Yes                           |
-+----------------------+------------------------------------------------------------------------------------------+-------------+-----------------------------------+-------------------------------+
-| GOKAPI_EXTERNAL_URL  | Sets the external URL where Gokapi can be reached                                        | Yes         | unset                             | Yes                           |
-+----------------------+------------------------------------------------------------------------------------------+-------------+-----------------------------------+-------------------------------+
-| GOKAPI_REDIRECT_URL  | Sets the external URL where Gokapi will redirect to the index page is accesses           | Yes         | unset                             | Yes                           |
-+----------------------+------------------------------------------------------------------------------------------+-------------+-----------------------------------+-------------------------------+
-| GOKAPI_LOCALHOST     | Bind server to localhost. Expects true/false/yes/no, always false for Docker images      | Yes         | false for Docker, otherwise unset | Yes                           |
-+----------------------+------------------------------------------------------------------------------------------+-------------+-----------------------------------+-------------------------------+
-| GOKAPI_SALT_FILES    | Sets the salt for the file password hashes                                               | Yes         | random salt                       | Yes                           |
-+----------------------+------------------------------------------------------------------------------------------+-------------+-----------------------------------+-------------------------------+
-| GOKAPI_USE_SSL       | Serve all content through HTTPS and generate certificates. Expects true/false/yes/no     | Yes         | unset                             | Yes                           |
-+----------------------+------------------------------------------------------------------------------------------+-------------+-----------------------------------+-------------------------------+
-| GOKAPI_SALT_ADMIN    | Sets the salt for the admin password hash                                                | Yes         | random salt                       | No                            |
-+----------------------+------------------------------------------------------------------------------------------+-------------+-----------------------------------+-------------------------------+
-| GOKAPI_SALT_FILES    | Sets the salt for the file password hashes                                               | Yes         | random salt                       | No                            |
-+----------------------+------------------------------------------------------------------------------------------+-------------+-----------------------------------+-------------------------------+
-| GOKAPI_LENGTH_ID     | Sets the length of the download IDs. Value needs to be 5 or more                         | Yes         | 15                                | No                            |
-+----------------------+------------------------------------------------------------------------------------------+-------------+-----------------------------------+-------------------------------+
-| GOKAPI_MAX_FILESIZE  | Sets the maximum allowed file size in MB                                                 | Yes         | 102400 (100GB)                    | No                            |
-+----------------------+------------------------------------------------------------------------------------------+-------------+-----------------------------------+-------------------------------+
-| GOKAPI_DISABLE_LOGIN | Disables login for admin menu. DO NOT USE unless you have a 3rd party authentication! ** | Yes         | false                             | No                            |
-+----------------------+------------------------------------------------------------------------------------------+-------------+-----------------------------------+-------------------------------+
++---------------------+------------------------------------------------------------------+-------------+----------------+
+| Name                | Action                                                           | Persistent* | Default        |
++=====================+==================================================================+=============+================+
+| GOKAPI_CONFIG_DIR   | Sets the directory for the config file                           | No          | config         |
++---------------------+------------------------------------------------------------------+-------------+----------------+
+| GOKAPI_CONFIG_FILE  | Sets the name of the config file                                 | No          | config.json    |
++---------------------+------------------------------------------------------------------+-------------+----------------+
+| GOKAPI_DATA_DIR     | Sets the directory for the data                                  | Yes         | data           |
++---------------------+------------------------------------------------------------------+-------------+----------------+
+| GOKAPI_LENGTH_ID    | Sets the length of the download IDs. Value needs to be 5 or more | Yes         | 15             |
++---------------------+------------------------------------------------------------------+-------------+----------------+
+| GOKAPI_MAX_FILESIZE | Sets the maximum allowed file size in MB                         | Yes         | 102400 (100GB) |
++---------------------+------------------------------------------------------------------+-------------+----------------+
 
 \* Variables that are persistent must be submitted during the first start when Gokapi creates a new config file. They can be omitted afterwards. Non-persistent variables need to be set on every start.
-\*\* Refer to :ref:`extauth` 
 
-Cloudstorage
--------------
+
 
 All values that are described in :ref:`cloudstorage` can be passed as environment variables as well. No values are persistent, therefore need to be set on every start.
 
@@ -118,24 +91,8 @@ All values that are described in :ref:`cloudstorage` can be passed as environmen
 | GOKAPI_AWS_ENDPOINT   | Sets the endpoint       |
 +-----------------------+-------------------------+
 
-.. _extauth:
 
-********************************
-External Authentication
-********************************
 
-In order to use external authentication (eg. services like Authelia or Authentik), set the environment variable ``GOKAPI_DISABLE_LOGIN`` to ``true`` on the first start. **Warning:** This will diasable authentication for the admin menu, which can be dangerous if not set up correctly!
-
-**Refer to the documention of your reverse proxy on how to protect the following URLs:**
-
- * ``/admin``
- * ``/apiDelete``
- * ``/apiKeys`` 
- * ``/apiNew``
- * ``/delete``
- * ``/upload``
-
-.. _api:
 
 ********************************
 API
