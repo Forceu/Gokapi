@@ -27,18 +27,21 @@ type Environment struct {
 }
 
 var defaultValues = defaultsEnvironment{
-	CONFIG_DIR:           "config",
-	CONFIG_FILE:          "config.json",
-	DATA_DIR:             "data",
-	PORT:                 strconv.Itoa(DefaultPort),
-	LENGTH_ID:            15,
-	MAX_MEMORY_UPLOAD_MB: 20,
-	MAX_FILESIZE:         102400, // 100GB
+	CONFIG_DIR:        "config",
+	CONFIG_FILE:       "config.json",
+	DATA_DIR:          "data",
+	PORT:              strconv.Itoa(DefaultPort),
+	LENGTH_ID:         15,
+	MAX_MEMORY_UPLOAD: 40,
+	MAX_FILESIZE:      102400, // 100GB
 }
 
 // New parses the env variables
 func New() Environment {
 	configPath, configDir, configFile, _ := GetConfigPaths()
+	if IsDocker == "true" && os.Getenv("TMPDIR") == "" {
+		os.Setenv("TMPDIR", envString("DATA_DIR"))
+	}
 	return Environment{
 		ConfigDir:     configDir,
 		ConfigFile:    configFile,
@@ -46,7 +49,7 @@ func New() Environment {
 		WebserverPort: GetPort(),
 		DataDir:       envString("DATA_DIR"),
 		LengthId:      envInt("LENGTH_ID", 5),
-		MaxMemory:     envInt("MAX_MEMORY_UPLOAD_MB", 5),
+		MaxMemory:     envInt("MAX_MEMORY_UPLOAD", 5),
 		MaxFileSize:   envInt("MAX_FILESIZE", 1),
 		AwsBucket:     envString("AWS_BUCKET"),
 		AwsRegion:     envString("AWS_REGION"),
@@ -121,11 +124,11 @@ func (structPointer *defaultsEnvironment) getInt(name string) int {
 }
 
 type defaultsEnvironment struct {
-	CONFIG_DIR           string
-	CONFIG_FILE          string
-	DATA_DIR             string
-	PORT                 string
-	LENGTH_ID            int
-	MAX_MEMORY_UPLOAD_MB int
-	MAX_FILESIZE         int
+	CONFIG_DIR        string
+	CONFIG_FILE       string
+	DATA_DIR          string
+	PORT              string
+	LENGTH_ID         int
+	MAX_MEMORY_UPLOAD int
+	MAX_FILESIZE      int
 }

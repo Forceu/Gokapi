@@ -9,6 +9,22 @@ import (
 	"testing"
 )
 
+
+func TestTempDir(t *testing.T) {
+	test.IsEqualString(t,os.Getenv("TMPDIR"),"")
+	New()
+	test.IsEqualString(t,os.Getenv("TMPDIR"),"")
+	IsDocker = "true"
+	New()
+	test.IsEqualString(t,os.Getenv("TMPDIR"),"data")
+	os.Setenv("TMPDIR","test")
+	New()
+	test.IsEqualString(t,os.Getenv("TMPDIR"),"test")
+	os.Unsetenv("TMPDIR")
+	IsDocker="false"
+}
+
+
 func TestEnvLoad(t *testing.T) {
 	os.Setenv("GOKAPI_CONFIG_DIR", "test")
 	os.Setenv("GOKAPI_CONFIG_FILE", "test2")
@@ -28,6 +44,7 @@ func TestEnvLoad(t *testing.T) {
 	env = New()
 	test.IsEqualInt(t, env.LengthId, -1)
 }
+
 
 func TestIsAwsProvided(t *testing.T) {
 	os.Unsetenv("GOKAPI_AWS_BUCKET")

@@ -117,7 +117,7 @@ func generateHash(fileContent io.Reader, fileHeader *multipart.FileHeader, uploa
 	helper.Check(err)
 	_, err = tempFile.Seek(0, io.SeekStart)
 	helper.Check(err)
-	// Instead of returning a reference to the file as the 3rd result, one could use reflections. However that would be more expensive.
+	// Instead of returning a reference to the file as the 3rd result, one could use reflections. However, that would be more expensive.
 	return tempFile, hash.Sum(nil), tempFile
 }
 

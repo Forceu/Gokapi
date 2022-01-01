@@ -34,9 +34,9 @@ func Process(w http.ResponseWriter, r *http.Request, isWeb bool, maxMemory int) 
 	}
 	defer file.Close()
 	_, err = io.WriteString(w, result.ToJsonResult(config.ExternalUrl))
-	if err != nil {
-		helper.Check(err)
-	}
+	helper.Check(err)
+	err = r.MultipartForm.RemoveAll()
+	helper.Check(err)
 	return nil
 }
 

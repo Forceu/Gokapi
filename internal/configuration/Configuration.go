@@ -40,7 +40,6 @@ func Exists() bool {
 // Load loads the configuration or creates the folder structure and a default configuration
 func Load() {
 	Environment = environment.New()
-	helper.CreateDir(Environment.ConfigDir)
 	// No check if file exists, as this was checked earlier
 	file, err := os.Open(Environment.ConfigPath)
 	helper.Check(err)
@@ -110,6 +109,7 @@ func save() {
 
 func LoadFromSetup(config models.Configuration, cloudConfig *cloudconfig.CloudConfig, isInitialConfig bool) {
 	Environment = environment.New()
+	helper.CreateDir(Environment.ConfigDir)
 	if !isInitialConfig {
 		Load()
 		config.DefaultDownloads = serverSettings.DefaultDownloads
