@@ -4,6 +4,7 @@ go 1.17
 
 require (
 	github.com/aws/aws-sdk-go v1.42.22
+	github.com/caarlos0/env/v6 v6.9.1
 	github.com/johannesboyne/gofakes3 v0.0.0-20210415062230-4b6b67a85d38
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211

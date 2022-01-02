@@ -84,7 +84,7 @@ func basicAuth(next http.HandlerFunc) http.HandlerFunc {
 }
 
 func startSetupWebserver() {
-	port := environment.GetPort()
+	port := strconv.Itoa(environment.New().WebserverPort)
 	webserverDir, _ := fs.Sub(webserverDirEmb, "static")
 
 	mux := http.NewServeMux()

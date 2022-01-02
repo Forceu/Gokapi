@@ -96,14 +96,14 @@ func save() {
 	file, err := os.OpenFile(Environment.ConfigPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		fmt.Println("Error reading configuration:", err)
-		osExit(1)
+		os.Exit(1)
 	}
 	defer file.Close()
 	encoder := json.NewEncoder(file)
 	err = encoder.Encode(&serverSettings)
 	if err != nil {
 		fmt.Println("Error writing configuration:", err)
-		osExit(1)
+		os.Exit(1)
 	}
 }
 
@@ -125,13 +125,13 @@ func LoadFromSetup(config models.Configuration, cloudConfig *cloudconfig.CloudCo
 		err := cloudconfig.Write(*cloudConfig)
 		if err != nil {
 			fmt.Println("Error writing cloud configuration:", err)
-			osExit(1)
+			os.Exit(1)
 		}
 	} else {
 		err := cloudconfig.Delete()
 		if err != nil {
 			fmt.Println("Error deleting cloud configuration:", err)
-			osExit(1)
+			os.Exit(1)
 		}
 	}
 	save()
@@ -162,5 +162,3 @@ func HashPasswordCustomSalt(password, salt string) string {
 	hash.Write(bytes)
 	return hex.EncodeToString(hash.Sum(nil))
 }
-
-var osExit = os.Exit

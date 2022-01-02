@@ -1,9 +1,11 @@
 package environment
 
 import (
+	"Gokapi/internal/helper"
+	"fmt"
 	"os"
-	"reflect"
-	"strconv"
+
+	envParser "github.com/caarlos0/env/v6"
 )
 
 // DefaultPort for the webserver
@@ -11,52 +13,47 @@ const DefaultPort = 53842
 
 // Environment is a struct containing available env variables
 type Environment struct {
-	ConfigDir     string
-	ConfigFile    string
+	ConfigDir     string `env:"CONFIG_DIR" envDefault:"config"`
+	ConfigFile    string `env:"CONFIG_FILE" envDefault:"config.json"`
+	DataDir       string `env:"DATA_DIR" envDefault:"data"`
+	WebserverPort int    `env:"PORT" envDefault:"53842"`
+	LengthId      int    `env:"LENGTH_ID" envDefault:"15"`
+	MaxMemory     int    `env:"MAX_MEMORY_UPLOAD" envDefault:"40"`
+	MaxFileSize   int    `env:"MAX_FILESIZE" envDefault:"102400"` // 102400==100GB
+	AwsBucket     string `env:"AWS_BUCKET"`
+	AwsRegion     string `env:"AWS_REGION"`
+	AwsKeyId      string `env:"AWS_KEY"`
+	AwsKeySecret  string `env:"AWS_KEY_SECRET"`
+	AwsEndpoint   string `env:"AWS_ENDPOINT"`
 	ConfigPath    string
-	DataDir       string
-	WebserverPort string
-	LengthId      int
-	MaxMemory     int
-	MaxFileSize   int
-	AwsBucket     string
-	AwsRegion     string
-	AwsKeyId      string
-	AwsKeySecret  string
-	AwsEndpoint   string
-}
-
-var defaultValues = defaultsEnvironment{
-	CONFIG_DIR:        "config",
-	CONFIG_FILE:       "config.json",
-	DATA_DIR:          "data",
-	PORT:              strconv.Itoa(DefaultPort),
-	LENGTH_ID:         15,
-	MAX_MEMORY_UPLOAD: 40,
-	MAX_FILESIZE:      102400, // 100GB
 }
 
 // New parses the env variables
 func New() Environment {
-	configPath, configDir, configFile, _ := GetConfigPaths()
+	result := Environment{WebserverPort: DefaultPort}
+	err := envParser.Parse(&result, envParser.Options{
+		Prefix: "GOKAPI_",
+	})
+	if err != nil {
+		fmt.Println("Error parsing env variables:", err)
+		osExit(1)
+		return Environment{}
+	}
+	helper.Check(err)
+	result.ConfigPath = result.ConfigDir + "/" + result.ConfigFile
 	if IsDocker == "true" && os.Getenv("TMPDIR") == "" {
-		os.Setenv("TMPDIR", envString("DATA_DIR"))
+		os.Setenv("TMPDIR", result.DataDir)
 	}
-	return Environment{
-		ConfigDir:     configDir,
-		ConfigFile:    configFile,
-		ConfigPath:    configPath,
-		WebserverPort: GetPort(),
-		DataDir:       envString("DATA_DIR"),
-		LengthId:      envInt("LENGTH_ID", 5),
-		MaxMemory:     envInt("MAX_MEMORY_UPLOAD", 5),
-		MaxFileSize:   envInt("MAX_FILESIZE", 1),
-		AwsBucket:     envString("AWS_BUCKET"),
-		AwsRegion:     envString("AWS_REGION"),
-		AwsKeyId:      envString("AWS_KEY"),
-		AwsKeySecret:  envString("AWS_KEY_SECRET"),
-		AwsEndpoint:   envString("AWS_ENDPOINT"),
+	if result.LengthId < 5 {
+		result.LengthId = 5
 	}
+	if result.MaxMemory < 5 {
+		result.MaxMemory = 5
+	}
+	if result.MaxFileSize < 1 {
+		result.MaxFileSize = 5
+	}
+	return result
 }
 
 // IsAwsProvided returns true if all required env variables have been set for using AWS S3 / Backblaze
@@ -67,68 +64,10 @@ func (e *Environment) IsAwsProvided() bool {
 		e.AwsKeySecret != ""
 }
 
-// Looks up an environment variable or returns an empty string
-func envString(key string) string {
-	val, ok := os.LookupEnv("GOKAPI_" + key)
-	if !ok {
-		return defaultValues.getString(key)
-	}
-	return val
-}
-
-// Looks up an environment variable or returns an empty string
-func envInt(key string, minValue int) int {
-	val, ok := os.LookupEnv("GOKAPI_" + key)
-	if !ok {
-		return defaultValues.getInt(key)
-	}
-	intVal, err := strconv.Atoi(val)
-	if err != nil {
-		return -1
-	}
-	if intVal < minValue {
-		return minValue
-	}
-	return intVal
-
-}
-
 func GetConfigPaths() (string, string, string, string) {
-	configDir := envString("CONFIG_DIR")
-	configFile := envString("CONFIG_FILE")
-	configPath := configDir + "/" + configFile
-	awsConfigPAth := configDir + "/cloudconfig.yml"
-	return configPath, configDir, configFile, awsConfigPAth
+	env := New()
+	awsConfigPAth := env.ConfigDir + "/cloudconfig.yml"
+	return env.ConfigPath, env.ConfigDir, env.ConfigFile, awsConfigPAth
 }
 
-func GetPort() string {
-	return envString("PORT")
-}
-
-// Gets the env variable or default value as string
-func (structPointer *defaultsEnvironment) getString(name string) string {
-	field := reflect.ValueOf(structPointer).Elem().FieldByName(name)
-	if field.IsValid() {
-		return field.String()
-	}
-	return ""
-}
-
-// Gets the env variable or default value as int
-func (structPointer *defaultsEnvironment) getInt(name string) int {
-	field := reflect.ValueOf(structPointer).Elem().FieldByName(name)
-	if field.IsValid() {
-		return int(field.Int())
-	}
-	return -1
-}
-
-type defaultsEnvironment struct {
-	CONFIG_DIR        string
-	CONFIG_FILE       string
-	DATA_DIR          string
-	PORT              string
-	LENGTH_ID         int
-	MAX_MEMORY_UPLOAD int
-	MAX_FILESIZE      int
-}
+var osExit = os.Exit
