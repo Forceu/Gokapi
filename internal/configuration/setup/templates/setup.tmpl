@@ -4,7 +4,7 @@
 		<title>Gokapi Setup</title>
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<link href="./bootstrap/bootstrap.min.css" rel="stylesheet" />
+		<link href="./bootstrap/bootstrap.css" rel="stylesheet" />
 		<link href="./src/bootstrap-wizard.css" rel="stylesheet" />
 		<link href="./chosen/chosen.css" rel="stylesheet" />
 		<style>
@@ -80,19 +80,14 @@
 				<div class="wizard-input-section">
 					<div class="form-group">
 
-					<p>
-						Make webserver only accessable on this machine (bind to localhost)
-					</p>
+							  <label for="localhost_sel">Make webserver only accessable on this machine (bind to localhost)</label>
 						<select name="localhost_sel" id="localhost_sel"  style="width:350px;" class="select form-control">	
 								<option value="0" selected>No</option>
 								<option value="1">Yes</option>
 
 						</select><br><br>
 							
-						<p>	
-						Use SSL (a self-signed certificate will be generated that can be replaced)
-						</p>
-
+							  <label for="ssl_sel">Use SSL (a self-signed certificate will be generated that can be replaced)</label>
 						<select name="ssl_sel" id="ssl_sel" style="width:350px;" onChange="urlParamChanged()" class="select form-control">
 								<option value="0" selected>No</option>
 								<option value="1">Yes</option>
@@ -108,27 +103,20 @@
 
 				<div class="wizard-input-section">
 					<div class="form-group">
-					<p>
-						Webserver port
-						</p>
-
 							<div class="col-sm-8">
+							  <label for="port">Port:</label>
 								<input type="number" class="form-control" id="port" name="port" value="53842" min="1" max="65535" placeholder="Port number" data-min="1" data-validate="validateMinLength" required onChange="urlParamChanged()">
 							</div><br><br><br>
 							
-						<p>
-						Public facing URL
-						</p>
 
 							<div class="col-sm-8">
+							  <label for="url">Public facing URL:</label>
 								<input type="text" class="form-control" id="url" name="url" value="http://127.0.0.1:53842/" onfocusout="extUrlChanged(this)" placeholder="Public URL" data-min="8" required data-validate="validateUrl">
 							</div><br><br><br>
 							
-						<p>
-						Redirection URL for the index
-						</p>
 
 							<div class="col-sm-8">
+							  <label for="url_redirection">Redirection URL for the index:</label>
 								<input type="text" class="form-control" id="url_redirection" name="url_redirection" value="https://github.com/Forceu/Gokapi/" placeholder="Redirection URL" required data-min="1" data-validate="validateMinLength">
 							</div>
 						</div>
@@ -202,40 +190,35 @@
 						Please enter the OIDC client configuration. Add the allowed users to the list below (seperated by semicolon) or leave it blank if access is granted to all authenticated users.<br>
 					</p>
 
-					<p>
-					Provider URL
-					</p>
-
 							<div class="col-sm-8">
+							  <label for="oauth_provider">Provider URL:</label>
 								<input type="text" class="form-control" id="oauth_provider" name="oauth_provider" placeholder="Provider URL" data-min="1" required data-validate="validateMinLength">
-							</div><br><br>
-					<p>
-					Client ID
-					</p>
+							</div>
 
 							<div class="col-sm-8">
+							  <label for="oauth_id">Client ID:</label>
 								<input type="text" class="form-control" id="oauth_id" name="oauth_id" placeholder="Client ID" data-min="1" required data-validate="validateMinLength">
-							</div><br><br>
-					<p>
-					Client Secret
-					</p>
+							</div>
 
 							<div class="col-sm-8">
+							  <label for="oauth_secret">Client Secret:</label>
 								<input type="text" class="form-control" id="oauth_secret" name="oauth_secret" placeholder="Client Secret" data-min="1" required data-validate="validateMinLength">
-							</div><br><br>
+							</div>
 							
-					<p>
-					Authorised users
-					</p>
-
 							<div class="col-sm-8">
+							  <label for="oauth_header_users">Authorised users:</label>
 								<input type="text" class="form-control" id="oauth_header_users" name="oauth_header_users" placeholder="Authorised users">
-							</div><br><br><br>
+							</div>
+							
+							<div class="col-sm-8">
+							  <label for="oauth_redir">Redirection URL:</label>
 {{ if .IsInitialSetup }}
-							<p><span style="font-weight:bold">Redirection URL: </span><span id="oauth_redir">http://127.0.0.1:53842/oauth-callback</span></p><br>
+								<input type="text" class="form-control" id="oauth_redir" name="oauth_redir" disabled value="http://127.0.0.1:53842/oauth-callback">
 {{ else }}
-							<p><span style="font-weight:bold">Redirection URL: </span><span id="oauth_redir">{{ .Settings.ServerUrl }}oauth-callback</span></p><br>
+								<input type="text" class="form-control" id="oauth_redir" name="oauth_redir" disabled value="{{ .Settings.ServerUrl }}oauth-callback">
 {{ end }}
+							</div>
+
 					</div>
 
 				</div>
@@ -252,17 +235,13 @@
 						Enter the key of the header that will be provided from your reverse proxy containing the username.<br>Add the allowed users to the list below (seperated by semicolon) or leave it blank if access is granted to all authenticated users.<br><br>
 					</p>
 
-					<p>
-					Header Key
-					</p>
 							<div class="col-sm-8">
+							  <label for="auth_headerkey">Header Key:</label>
 								<input type="text" class="form-control" id="auth_headerkey" name="auth_headerkey" required placeholder="Header Key" data-validate="validateMinLength">
 							</div><br><br>
 							
-					<p>
-					Authorised users
-					</p>
 							<div class="col-sm-8">
+							  <label for="auth_header_users">Authorised users:</label>
 								<input type="text" class="form-control" id="auth_header_users" name="auth_header_users" placeholder="Authorised users">
 							</div>
 					</div>
@@ -320,32 +299,25 @@
 				<div class="wizard-input-section">
 				
 					<div class="form-group">
-							<p>
-							Bucket Name
-							</p>
 							<div class="col-sm-8">
+							  <label for="s3_bucket">Bucket Name:</label>
 								<input type="text" class="form-control" id="s3_bucket" name="s3_bucket" placeholder="Bucket Name" data-min="1" data-validate="validateMinLength">
 							</div><br><br>
-							<p>
-							Region Name
-							</p>
 							<div class="col-sm-8">
+							  <label for="s3_region">Region Name:</label>
 								<input type="text" class="form-control" id="s3_region" name="s3_region" placeholder="Region Name" required data-min="1" data-validate="validateMinLength">
 							</div><br><br>
-							<p>
-							API Key
-							</p>
 							<div class="col-sm-8">
+							  <label for="s3_api">API Key:</label>
 								<input type="text" class="form-control" id="s3_api" name="s3_api" placeholder="API Key" required data-min="1" data-validate="validateMinLength">
-							</div><br><br><p>
-							API Key Secret
-							</p>
+							</div><br><br>
+							
 							<div class="col-sm-8">
+							  <label for="s3_secret">API Key Secret:</label>
 								<input type="text" class="form-control" id="s3_secret" name="s3_secret" placeholder="API Key Secret" required data-min="1" data-validate="validateMinLength">
-							</div><br><br><p>
-							Endpoint
-							</p>
+							</div><br><br>
 							<div class="col-sm-8">
+							  <label for="s3_endpoint">Endpoint:</label>
 								<input type="text" class="form-control" id="s3_endpoint" name="s3_endpoint" placeholder="Endpoint (leave blank if AWS S3)">
 							</div>
 						</div>
@@ -391,7 +363,7 @@
 
 		<script src="./js/jquery-2.0.3.min.js"></script>
 		<script src="./chosen/chosen.jquery.js"></script>
-		<script src="./js/bootstrap.min.js" ></script>
+		<script src="./js/bootstrap.js" ></script>
 		<script src="./js/prettify.js"></script>
 		<script src="./src/bootstrap-wizard.js"></script>
 		<script>
@@ -528,8 +500,8 @@
 			
 			
 			function validatePassword(el) {
-{{ if not .IsInitialSetup }}
 				let value = el.val();
+{{ if not .IsInitialSetup }}
 				if (value == "unc")
 					return true;
 {{end}}
@@ -567,7 +539,7 @@
 				if (lastChar != '/') 
 					el.value = (el.value + '/') 
 					
-				document.getElementById("oauth_redir").innerHTML = el.value + "oauth-callback";
+				document.getElementById("oauth_redir").value = el.value + "oauth-callback";
 			}
 			
 {{ if .IsInitialSetup }}
