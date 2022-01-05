@@ -156,7 +156,7 @@ func TestHttpPageResult(t *testing.T) {
 
 func TestHttpPostRequest(t *testing.T) {
 	os.WriteFile("testfile", []byte("Testbytes"), 0777)
-	HttpPostRequest(t, HttpTestConfig{
+	HttpPostUploadRequest(t, HttpTestConfig{
 		Url:             "http://127.0.0.1:9999/test",
 		UploadFileName:  "testfile",
 		UploadFieldName: "file",
@@ -169,14 +169,14 @@ func TestHttpPostRequest(t *testing.T) {
 	})
 	mockT := MockTest{reference: t}
 	mockT.WantFail()
-	HttpPostRequest(mockT, HttpTestConfig{
+	HttpPostUploadRequest(mockT, HttpTestConfig{
 		Url:             "http://127.0.0.1:9999/test",
 		UploadFileName:  "testfile",
 		UploadFieldName: "file",
 		ExcludedContent: []string{"TestContent"}},
 	)
 	mockT.WantFail()
-	HttpPostRequest(mockT, HttpTestConfig{
+	HttpPostUploadRequest(mockT, HttpTestConfig{
 		Url:             "http://127.0.0.1:9999/test",
 		UploadFileName:  "testfile",
 		UploadFieldName: "file",
@@ -247,4 +247,17 @@ func TestGetRecorder(t *testing.T) {
 	IsNil(t, err)
 	IsEqualString(t, cookie.Value, "testvalue")
 	IsEqualString(t, r.Header.Get("testheader"), "testheadervalue")
+}
+
+func TestCompletesWithinTime(t *testing.T) {
+	mockT := MockTest{reference: t}
+	mockT.WantFail()
+	CompletesWithinTime(mockT, delay100ms, 50*time.Millisecond)
+	mockT.WantNoFail()
+	CompletesWithinTime(mockT, delay100ms, 150*time.Millisecond)
+	mockT.Check()
+}
+
+func delay100ms() {
+	time.Sleep(100 * time.Millisecond)
 }

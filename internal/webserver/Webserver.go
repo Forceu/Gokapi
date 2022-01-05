@@ -74,13 +74,13 @@ func Start() {
 		imageExpiredPicture, err = fs.ReadFile(staticFolderEmbedded, "web/"+expiredFile)
 		helper.Check(err)
 	}
-	http.HandleFunc("/admin", showAdminMenu)
+	http.HandleFunc("/admin", requireLogin(showAdminMenu, false))
 	http.HandleFunc("/api/", processApi)
-	http.HandleFunc("/apiDelete", deleteApiKey)
-	http.HandleFunc("/apiKeys", showApiAdmin)
-	http.HandleFunc("/apiNew", newApiKey)
+	http.HandleFunc("/apiDelete", requireLogin(deleteApiKey, false))
+	http.HandleFunc("/apiKeys", requireLogin(showApiAdmin, false))
+	http.HandleFunc("/apiNew", requireLogin(newApiKey, false))
 	http.HandleFunc("/d", showDownload)
-	http.HandleFunc("/delete", deleteFile)
+	http.HandleFunc("/delete", requireLogin(deleteFile, false))
 	http.HandleFunc("/downloadFile", downloadFile)
 	http.HandleFunc("/error", showError)
 	http.HandleFunc("/forgotpw", forgotPassword)
@@ -88,7 +88,7 @@ func Start() {
 	http.HandleFunc("/index", showIndex)
 	http.HandleFunc("/login", showLogin)
 	http.HandleFunc("/logout", doLogout)
-	http.HandleFunc("/upload", uploadFile)
+	http.HandleFunc("/upload", requireLogin(uploadFile, true))
 	http.HandleFunc("/error-auth", showErrorAuth)
 	if settings.Authentication.Method == authentication.OAuth2 {
 		oauth.Init(settings.ServerUrl, settings.Authentication)
@@ -172,30 +172,18 @@ func forgotPassword(w http.ResponseWriter, r *http.Request) {
 // Handling of /api
 // If user is authenticated, this menu lists all uploads and enables uploading new files
 func showApiAdmin(w http.ResponseWriter, r *http.Request) {
-	addNoCacheHeader(w)
-	if !isAuthenticatedOrRedirect(w, r, false) {
-		return
-	}
 	err := templateFolder.ExecuteTemplate(w, "api", (&UploadView{}).convertGlobalConfig(false))
 	helper.Check(err)
 }
 
 // Handling of /apiNew
 func newApiKey(w http.ResponseWriter, r *http.Request) {
-	addNoCacheHeader(w)
-	if !isAuthenticatedOrRedirect(w, r, false) {
-		return
-	}
 	api.NewKey()
 	redirect(w, "apiKeys")
 }
 
 // Handling of /apiDelete
 func deleteApiKey(w http.ResponseWriter, r *http.Request) {
-	addNoCacheHeader(w)
-	if !isAuthenticatedOrRedirect(w, r, false) {
-		return
-	}
 	keys, ok := r.URL.Query()["id"]
 	if ok {
 		api.DeleteKey(keys[0])
@@ -309,10 +297,6 @@ func showHotlink(w http.ResponseWriter, r *http.Request) {
 // Handling of /delete
 // User needs to be admin. Deletes the requested file
 func deleteFile(w http.ResponseWriter, r *http.Request) {
-	addNoCacheHeader(w)
-	if !isAuthenticatedOrRedirect(w, r, false) {
-		return
-	}
 	keyId := queryUrl(w, r, "admin")
 	if keyId == "" {
 		return
@@ -336,10 +320,6 @@ func queryUrl(w http.ResponseWriter, r *http.Request, redirectUrl string) string
 // Handling of /admin
 // If user is authenticated, this menu lists all uploads and enables uploading new files
 func showAdminMenu(w http.ResponseWriter, r *http.Request) {
-	addNoCacheHeader(w)
-	if !isAuthenticatedOrRedirect(w, r, false) {
-		return
-	}
 	err := templateFolder.ExecuteTemplate(w, "admin", (&UploadView{}).convertGlobalConfig(true))
 	helper.Check(err)
 }
@@ -422,11 +402,7 @@ func (u *UploadView) convertGlobalConfig(isMainView bool) *UploadView {
 // If the user is authenticated, this parses the uploaded file from the Multipart Form and
 // adds it to the system.
 func uploadFile(w http.ResponseWriter, r *http.Request) {
-	addNoCacheHeader(w)
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	if !isAuthenticatedOrRedirect(w, r, true) {
-		return
-	}
 	err := fileupload.Process(w, r, true, webserverMaxMemory)
 	responseError(w, err)
 }
@@ -457,18 +433,20 @@ func downloadFile(w http.ResponseWriter, r *http.Request) {
 	storage.ServeFile(savedFile, w, r, true)
 }
 
-// Checks if the user is logged in as an admin. Redirects to login page if not authenticated
-func isAuthenticatedOrRedirect(w http.ResponseWriter, r *http.Request, isUpload bool) bool {
-	if authentication.IsAuthenticated(w, r) {
-		return true
+func requireLogin(next http.HandlerFunc, isUpload bool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		addNoCacheHeader(w)
+		if authentication.IsAuthenticated(w, r) {
+			next.ServeHTTP(w, r)
+			return
+		}
+		if isUpload {
+			_, err := io.WriteString(w, "{\"Result\":\"error\",\"ErrorMessage\":\"Not authenticated\"}")
+			helper.Check(err)
+			return
+		}
+		redirect(w, "login")
 	}
-	if isUpload {
-		_, err := io.WriteString(w, "{\"Result\":\"error\",\"ErrorMessage\":\"Not authenticated\"}")
-		helper.Check(err)
-		return false
-	}
-	redirect(w, "login")
-	return false
 }
 
 // Write a cookie if the user has entered a correct password for a password-protected file

@@ -71,12 +71,76 @@ func TestStaticDirs(t *testing.T) {
 	})
 }
 func TestLogin(t *testing.T) {
-	t.Parallel()
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://localhost:53843/login",
 		RequiredContent: []string{"id=\"uname_hidden\""},
 		IsHtml:          true,
 	})
+	config := test.HttpTestConfig{
+		Url:             "http://localhost:53843/login",
+		ExcludedContent: []string{"\"Refresh\" content=\"0; URL=./admin\""},
+		RequiredContent: []string{"id=\"uname_hidden\"", "Incorrect username or password"},
+		IsHtml:          true,
+		Method:          "POST",
+		PostValues: []test.PostBody{
+			{
+				Key:   "username",
+				Value: "invalid",
+			}, {
+				Key:   "password",
+				Value: "invalid",
+			},
+		},
+		ResultCode: 200,
+	}
+	test.HttpPostRequest(t, config)
+	config.PostValues = []test.PostBody{
+		{
+			Key:   "username",
+			Value: "test",
+		}, {
+			Key:   "password",
+			Value: "invalid",
+		},
+	}
+	test.HttpPostRequest(t, config)
+
+	settings := configuration.GetServerSettings()
+	settings.Authentication.Method = authentication.OAuth2
+	authentication.Init(settings.Authentication)
+	configuration.Release()
+	config.RequiredContent = []string{"\"Refresh\" content=\"0; URL=./oauth-login\""}
+	config.PostValues = []test.PostBody{}
+	test.HttpPageResult(t, config)
+	settings.Authentication.Method = authentication.Internal
+	authentication.Init(settings.Authentication)
+
+	buf := config.RequiredContent
+	config.RequiredContent = config.ExcludedContent
+	config.ExcludedContent = buf
+	config.PostValues = []test.PostBody{
+		{
+			Key:   "username",
+			Value: "test",
+		}, {
+			Key:   "password",
+			Value: "testtest",
+		},
+	}
+	cookies := test.HttpPostRequest(t, config)
+	var session string
+	for _, cookie := range cookies {
+		if cookie.Name == "session_token" {
+			session = cookie.Value
+		}
+	}
+	test.IsNotEqualString(t, session, "")
+	config.Cookies = []test.Cookie{{
+		Name:  "session_token",
+		Value: session,
+	}}
+	test.HttpPageResult(t, config)
+
 }
 func TestAdminNoAuth(t *testing.T) {
 	t.Parallel()
@@ -392,7 +456,7 @@ func TestDeleteFileInvalidKey(t *testing.T) {
 
 func TestPostUploadNoAuth(t *testing.T) {
 	t.Parallel()
-	test.HttpPostRequest(t, test.HttpTestConfig{
+	test.HttpPostUploadRequest(t, test.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/upload",
 		UploadFileName:  "test/fileupload.jpg",
 		UploadFieldName: "file",
@@ -401,7 +465,7 @@ func TestPostUploadNoAuth(t *testing.T) {
 }
 
 func TestPostUpload(t *testing.T) {
-	test.HttpPostRequest(t, test.HttpTestConfig{
+	test.HttpPostUploadRequest(t, test.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/upload",
 		UploadFileName:  "test/fileupload.jpg",
 		UploadFieldName: "file",
@@ -608,4 +672,13 @@ func TestResponseError(t *testing.T) {
 	output, err := io.ReadAll(w.Result().Body)
 	test.IsNil(t, err)
 	test.IsEqualString(t, string(output), "{\"Result\":\"error\",\"ErrorMessage\":\""+err.Error()+"\"}")
+}
+
+func TestShowErrorAuth(t *testing.T) {
+	t.Parallel()
+	test.HttpPageResult(t, test.HttpTestConfig{
+		Url:             "http://localhost:53843/error-auth",
+		RequiredContent: []string{"Log in as different user"},
+		IsHtml:          true,
+	})
 }

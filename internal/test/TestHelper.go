@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type MockT interface {
@@ -145,6 +146,21 @@ func StartMockInputStdin(input string) *os.File {
 	return stdin
 }
 
+func CompletesWithinTime(t MockT, function func(), d time.Duration) {
+	t.Helper()
+	c := make(chan bool, 1)
+	go func() {
+		function()
+		c <- true
+	}()
+	select {
+	case res := <-c:
+		IsEqualBool(t, res, true)
+	case <-time.After(d):
+		t.Errorf("Timeout of function")
+	}
+}
+
 // StopMockInputStdin needs to be called after StartMockInputStdin
 func StopMockInputStdin(stdin *os.File) {
 	os.Stdin = stdin
@@ -177,13 +193,45 @@ func HttpPageResult(t MockT, config HttpTestConfig) []*http.Cookie {
 	resp, err := client.Do(req)
 	IsNil(t, err)
 
-	if resp.StatusCode != config.ResultCode {
-		t.Errorf("Status %d != %d", config.ResultCode, resp.StatusCode)
+	checkResponse(t, resp, config)
+	return resp.Cookies()
+}
+
+// HttpPageResultJson tests if a http server is outputting the correct result
+func HttpPageResultJson(t MockT, config HttpTestConfig) []*http.Cookie {
+	t.Helper()
+	config.init(t)
+	client := &http.Client{}
+
+	req, err := http.NewRequest(config.Method, config.Url, config.Body)
+	IsNil(t, err)
+
+	for _, cookie := range config.Cookies {
+		req.Header.Set("Cookie", cookie.toString())
 	}
-	content, err := ioutil.ReadAll(resp.Body)
+	for _, header := range config.Headers {
+		req.Header.Set(header.Name, header.Value)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := client.Do(req)
+	IsNil(t, err)
+
+	checkResponse(t, resp, config)
+
+	return resp.Cookies()
+}
+
+func checkResponse(t MockT, response *http.Response, config HttpTestConfig) {
+	t.Helper()
+	if response.StatusCode != config.ResultCode {
+		t.Errorf("Status %d != %d", config.ResultCode, response.StatusCode)
+	}
+
+	content, err := ioutil.ReadAll(response.Body)
 	IsNil(t, err)
 	if config.IsHtml && !bytes.Contains(content, []byte("</html>")) {
-		t.Errorf(config.Url + ": Incorrect response")
+		t.Errorf(config.Url + ": Incorrect response, no HTML tag")
 	}
 	for _, requiredString := range config.RequiredContent {
 		if !bytes.Contains(content, []byte(requiredString)) {
@@ -195,8 +243,8 @@ func HttpPageResult(t MockT, config HttpTestConfig) []*http.Cookie {
 			t.Errorf(config.Url + ": Incorrect response. Got:\n" + string(content))
 		}
 	}
-	resp.Body.Close()
-	return resp.Cookies()
+	err = response.Body.Close()
+	IsNil(t, err)
 }
 
 // HttpTestConfig is a struct for http test init
@@ -212,6 +260,7 @@ type HttpTestConfig struct {
 	UploadFileName  string
 	UploadFieldName string
 	ResultCode      int
+	Body            io.Reader
 }
 
 func (c *HttpTestConfig) init(t MockT) {
@@ -249,9 +298,10 @@ type PostBody struct {
 	Value string
 }
 
-// HttpPostRequest sends a post request
-func HttpPostRequest(t MockT, config HttpTestConfig) {
+// HttpPostUploadRequest sends a post request with a file upload
+func HttpPostUploadRequest(t MockT, config HttpTestConfig) {
 	t.Helper()
+	config.init(t)
 	file, err := os.Open(config.UploadFileName)
 	IsNil(t, err)
 	defer file.Close()
@@ -275,19 +325,24 @@ func HttpPostRequest(t MockT, config HttpTestConfig) {
 	IsNil(t, err)
 	defer response.Body.Close()
 
-	content, err := ioutil.ReadAll(response.Body)
+	checkResponse(t, response, config)
+}
+
+// HttpPostRequest sends a post request
+func HttpPostRequest(t MockT, config HttpTestConfig) []*http.Cookie {
+	t.Helper()
+	config.init(t)
+
+	data := url.Values{}
+	for _, dataField := range config.PostValues {
+		data.Add(dataField.Key, dataField.Value)
+	}
+
+	response, err := http.PostForm(config.Url, data)
 	IsNil(t, err)
 
-	for _, requiredString := range config.RequiredContent {
-		if !bytes.Contains(content, []byte(requiredString)) {
-			t.Errorf(config.Url + ": Incorrect response. Got:\n" + string(content))
-		}
-	}
-	for _, excludedString := range config.ExcludedContent {
-		if bytes.Contains(content, []byte(excludedString)) {
-			t.Errorf(config.Url + ": Incorrect response. Got:\n" + string(content))
-		}
-	}
+	checkResponse(t, response, config)
+	return response.Cookies()
 }
 
 func GetRecorder(method, target string, cookies []Cookie, headers []Header, body io.Reader) (*httptest.ResponseRecorder, *http.Request) {

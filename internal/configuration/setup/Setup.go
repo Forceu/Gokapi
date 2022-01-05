@@ -109,7 +109,7 @@ func startSetupWebserver() {
 func resolveHostIp() string {
 	netInterfaceAddresses, err := net.InterfaceAddrs()
 	if err != nil {
-		return "[your server IP]"
+		return "127.0.0.1"
 	}
 
 	for _, netInterfaceAddress := range netInterfaceAddresses {
@@ -362,10 +362,14 @@ func inputToJsonForm(r *http.Request) ([]jsonFormObject, error) {
 
 func splitAndTrim(input string) []string {
 	arr := strings.Split(input, ";")
+	var result []string
 	for i := range arr {
 		arr[i] = strings.TrimSpace(arr[i])
+		if arr[i] != "" {
+			result = append(result, arr[i])
+		}
 	}
-	return arr
+	return result
 }
 
 type setupView struct {
