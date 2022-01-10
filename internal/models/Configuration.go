@@ -20,4 +20,5 @@ type Configuration struct {
 	MaxMemory        int                       `json:"MaxMemory"`
 	UseSsl           bool                      `json:"UseSsl"`
 	MaxFileSizeMB    int                       `json:"MaxFileSizeMB"`
+	Encryption       bool
 }

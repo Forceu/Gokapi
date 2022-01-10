@@ -51,9 +51,13 @@ func Load() {
 	if configUpgrade.DoUpgrade(&serverSettings, &Environment) {
 		save()
 	}
-	serverSettings.MaxMemory = Environment.MaxMemory
+	envMaxMem := os.Getenv("GOKAPI_MAX_MEMORY_UPLOAD")
+	if envMaxMem != "" {
+		serverSettings.MaxMemory = Environment.MaxMemory
+	}
 	helper.CreateDir(serverSettings.DataDir)
 	log.Init(Environment.ConfigDir)
+	serverSettings.Encryption = true // TODO
 }
 
 // Lock locks configuration to prevent race conditions (blocking)

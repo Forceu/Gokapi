@@ -7,6 +7,7 @@ Serving and processing uploaded files
 import (
 	"Gokapi/internal/configuration"
 	"Gokapi/internal/configuration/downloadstatus"
+	"Gokapi/internal/encryption"
 	"Gokapi/internal/helper"
 	"Gokapi/internal/logging"
 	"Gokapi/internal/models"
@@ -39,7 +40,7 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 		return models.File{}, errors.New("upload limit exceeded")
 	}
 	var hasBeenRenamed bool
-	reader, hash, tempFile := generateHash(fileContent, fileHeader, uploadRequest)
+	reader, hash, tempFile := generateHash(fileContent, fileHeader, uploadRequest, settings.Encryption)
 	defer deleteTempFile(tempFile, &hasBeenRenamed)
 	file := models.File{
 		Id:                 id,
@@ -102,21 +103,39 @@ func deleteTempFile(file *os.File, hasBeenRenamed *bool) {
 
 // Generates the SHA1 hash of an uploaded file and returns a reader for the file, the hash and if a temporary file was created the
 // reference to that file.
-func generateHash(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequest models.UploadRequest) (io.Reader, []byte, *os.File) {
+func generateHash(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequest models.UploadRequest, encrypt bool) (io.Reader, []byte, *os.File) {
 	hash := sha1.New()
 	if fileHeader.Size <= int64(uploadRequest.MaxMemory)*1024*1024 {
 		content, err := ioutil.ReadAll(fileContent)
 		helper.Check(err)
 		hash.Write(content)
-		return bytes.NewReader(content), hash.Sum(nil), nil
+		if encrypt {
+			encContent := new(bytes.Buffer)
+			encryption.Encrypt(bytes.NewReader(content), encContent)
+			return bytes.NewReader(encContent.Bytes()), hash.Sum(nil), nil
+
+		} else {
+			return bytes.NewReader(content), hash.Sum(nil), nil
+		}
 	}
 	tempFile, err := os.CreateTemp(uploadRequest.DataDir, "upload")
 	helper.Check(err)
-	multiWriter := io.MultiWriter(tempFile, hash)
+	var multiWriter io.Writer
+
+	multiWriter = io.MultiWriter(tempFile, hash)
 	_, err = io.Copy(multiWriter, fileContent)
 	helper.Check(err)
 	_, err = tempFile.Seek(0, io.SeekStart)
 	helper.Check(err)
+
+	if encrypt {
+		tempFileEnc, err := os.CreateTemp(uploadRequest.DataDir, "upload")
+		helper.Check(err)
+		encryption.Encrypt(tempFile, tempFileEnc)
+		err = os.Remove(tempFile.Name())
+		helper.Check(err)
+		tempFile = tempFileEnc
+	}
 	// Instead of returning a reference to the file as the 3rd result, one could use reflections. However, that would be more expensive.
 	return tempFile, hash.Sum(nil), tempFile
 }
@@ -189,10 +208,17 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 		} else {
 			w.Header().Set("Content-Disposition", "inline; filename=\""+file.Name+"\"")
 		}
-		w.Header().Set("Content-Length", strconv.FormatInt(size, 10))
 		w.Header().Set("Content-Type", file.ContentType)
 		statusId := downloadstatus.SetDownload(file)
-		http.ServeContent(w, r, file.Name, time.Now(), storageData)
+		if settings.Encryption {
+			w.Header().Set("Accept-Ranges", "bytes")
+			w.Header().Set("Last-Modified", time.Now().UTC().Format(http.TimeFormat))
+			w.WriteHeader(200)
+			encryption.Decrypt(storageData, w)
+		} else {
+			w.Header().Set("Content-Length", strconv.FormatInt(size, 10))
+			http.ServeContent(w, r, file.Name, time.Now(), storageData)
+		}
 		downloadstatus.SetComplete(statusId)
 	} else {
 		// If file is stored on AWS

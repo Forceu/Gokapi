@@ -8,6 +8,7 @@ import (
 	"Gokapi/internal/configuration"
 	"Gokapi/internal/configuration/cloudconfig"
 	"Gokapi/internal/configuration/setup"
+	"Gokapi/internal/encryption"
 	"Gokapi/internal/environment"
 	"Gokapi/internal/helper"
 	"Gokapi/internal/logging"
@@ -38,6 +39,7 @@ func main() {
 	fmt.Println("Gokapi v" + Version + " starting")
 	setup.RunIfFirstStart()
 	configuration.Load()
+	encryption.Init("testpw") // TODO change
 	settings := configuration.GetServerSettingsReadOnly()
 	authentication.Init(settings.Authentication)
 	configuration.ReleaseReadOnly()
