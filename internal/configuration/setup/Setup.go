@@ -7,6 +7,7 @@ import (
 	"Gokapi/internal/environment"
 	"Gokapi/internal/helper"
 	"Gokapi/internal/models"
+	"Gokapi/internal/storage/cloudstorage/aws"
 	"Gokapi/internal/webserver/authentication"
 	"context"
 	"embed"
@@ -374,8 +375,9 @@ func splitAndTrim(input string) []string {
 
 type setupView struct {
 	IsInitialSetup bool
-	LocalhostOnly  bool
-	Port           int
+	LocalhostOnly bool
+	HasAwsFeature bool
+	Port          int
 	OAuthUsers     string
 	HeaderUsers    string
 	Auth           models.AuthenticationConfig
@@ -390,6 +392,7 @@ func (v *setupView) loadFromConfig() {
 	}
 	configuration.Load()
 	settings := configuration.GetServerSettingsReadOnly()
+	v.HasAwsFeature = aws.IsIncludedInBuild
 	v.Settings = *settings
 	v.Auth = settings.Authentication
 	v.CloudSettings, _ = cloudconfig.Load()

@@ -284,9 +284,13 @@
 
 					<select name="storage_sel" id="storage_sel" style="width:350px;" class="select form-control" onchange="storageSelectionChanged(this.selectedIndex);">
 							<option value="local" selected>Local Storage</option>
-							<option value="cloud">Cloud Storage</option>
+							<option value="cloud" {{ if not .HasAwsFeature }} disabled {{ end }} >Cloud Storage</option>
 
 					</select>
+					
+{{ if not .HasAwsFeature }}
+					<p><br><br><i>This build has been compiled without AWS support, therefore cloud storage is not available.</i></p>
+{{ end }}					
 
 				</div>
 			</div>
