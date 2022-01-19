@@ -215,7 +215,7 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 	failedLogin := false
 	if pw != "" && user != "" {
 		if authentication.IsCorrectUsernameAndPassword(user, pw) {
-			sessionmanager.CreateSession(w, nil)
+			sessionmanager.CreateSession(w)
 			redirect(w, "admin")
 			return
 		}

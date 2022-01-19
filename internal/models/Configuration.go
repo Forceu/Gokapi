@@ -12,7 +12,6 @@ type Configuration struct {
 	MaxMemory        int                       `json:"MaxMemory"`
 	UseSsl           bool                      `json:"UseSsl"`
 	MaxFileSizeMB    int                       `json:"MaxFileSizeMB"`
-	Sessions         map[string]Session        `json:"Sessions"`
 	Files            map[string]File           `json:"Files"`
 	Hotlinks         map[string]Hotlink        `json:"Hotlinks"`
 	DownloadStatus   map[string]DownloadStatus `json:"DownloadStatus"`
