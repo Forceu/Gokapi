@@ -7,6 +7,7 @@ Main routine
 import (
 	"Gokapi/internal/configuration"
 	"Gokapi/internal/configuration/cloudconfig"
+	"Gokapi/internal/configuration/dataStorage"
 	"Gokapi/internal/configuration/setup"
 	"Gokapi/internal/environment"
 	"Gokapi/internal/helper"
@@ -20,14 +21,16 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 )
 
 // Version is the current version in readable form.
 // The go generate call below needs to be modified as well
-const Version = "1.5.0"
+const Version = "1.6.0"
 
-//go:generate sh "../../build/setVersionTemplate.sh" "1.5.0"
+//go:generate sh "../../build/setVersionTemplate.sh" "1.6.0"
 
 // Main routine that is called on startup
 func main() {
@@ -52,7 +55,19 @@ func main() {
 	}
 	go storage.CleanUp(true)
 	logging.AddString("Gokapi started")
-	webserver.Start()
+	go webserver.Start()
+
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	<-c
+	cleanup()
+	os.Exit(0)
+}
+
+func cleanup() {
+	fmt.Println("Shutting down...")
+	// webserver.Stop() TODO
+	dataStorage.Close()
 }
 
 // Checks for command line arguments that have to be parsed before loading the configuration

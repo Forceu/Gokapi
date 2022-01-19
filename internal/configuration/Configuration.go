@@ -7,6 +7,7 @@ Loading and saving of the persistent configuration
 import (
 	"Gokapi/internal/configuration/cloudconfig"
 	"Gokapi/internal/configuration/configUpgrade"
+	"Gokapi/internal/configuration/dataStorage"
 	"Gokapi/internal/environment"
 	"Gokapi/internal/helper"
 	log "Gokapi/internal/logging"
@@ -56,12 +57,21 @@ func Load() {
 		serverSettings.MaxMemory = Environment.MaxMemory
 	}
 	helper.CreateDir(serverSettings.DataDir)
+	dataStorage.Init(Environment.FileDbPath)
+	loadUploadDefaults()
 	log.Init(Environment.ConfigDir)
 }
 
 // Lock locks configuration to prevent race conditions (blocking)
 func Lock() {
 	mutex.Lock()
+}
+
+func loadUploadDefaults() {
+	downloads, expiry, password := dataStorage.GetUploadDefaults()
+	serverSettings.DefaultDownloads = downloads
+	serverSettings.DefaultExpiry = expiry
+	serverSettings.DefaultPassword = password
 }
 
 // ReleaseAndSave unlocks and saves the configuration

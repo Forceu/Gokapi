@@ -2,6 +2,7 @@ package fileupload
 
 import (
 	"Gokapi/internal/configuration"
+	"Gokapi/internal/configuration/dataStorage"
 	"Gokapi/internal/helper"
 	"Gokapi/internal/models"
 	"Gokapi/internal/storage"
@@ -57,6 +58,7 @@ func parseConfig(values formOrHeader, setNewDefaults bool) models.UploadRequest 
 		settings.DefaultExpiry = expiryDaysInt
 		settings.DefaultDownloads = allowedDownloadsInt
 		settings.DefaultPassword = password
+		dataStorage.SaveUploadDefaults(allowedDownloadsInt,expiryDaysInt,password)
 	}
 	externalUrl := settings.ServerUrl
 	dataDir := settings.DataDir
