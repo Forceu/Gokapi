@@ -7,11 +7,11 @@ Serving and processing uploaded files
 import (
 	"Gokapi/internal/configuration"
 	"Gokapi/internal/configuration/dataStorage"
-	"Gokapi/internal/configuration/downloadstatus"
 	"Gokapi/internal/helper"
 	"Gokapi/internal/logging"
 	"Gokapi/internal/models"
 	"Gokapi/internal/storage/cloudstorage/aws"
+	"Gokapi/internal/webserver/downloadstatus"
 	"bytes"
 	"crypto/sha1"
 	"encoding/hex"

@@ -13,5 +13,3 @@ type Configuration struct {
 	UseSsl         bool                 `json:"UseSsl"`
 	MaxFileSizeMB  int                  `json:"MaxFileSizeMB"`
 }
-
-// migrate: hotlinks, apikeys, files

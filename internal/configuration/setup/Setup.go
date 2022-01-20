@@ -431,7 +431,7 @@ func handleResult(w http.ResponseWriter, r *http.Request) {
 		outputError(w, err)
 		return
 	}
-	configuration.LoadFromSetup(newConfig, cloudSettings, isInitialSetup)
+	configuration.LoadFromSetup(newConfig, cloudSettings)
 	w.WriteHeader(200)
 	w.Write([]byte("{ \"result\": \"OK\"}"))
 	go func() {

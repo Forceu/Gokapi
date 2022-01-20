@@ -8,11 +8,11 @@ import (
 	"Gokapi/internal/configuration/cloudconfig"
 	"Gokapi/internal/configuration/configUpgrade"
 	"Gokapi/internal/configuration/dataStorage"
-	"Gokapi/internal/configuration/downloadstatus"
 	"Gokapi/internal/environment"
 	"Gokapi/internal/helper"
 	log "Gokapi/internal/logging"
 	"Gokapi/internal/models"
+	"Gokapi/internal/webserver/downloadstatus"
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
@@ -46,6 +46,7 @@ func Load() {
 	err = decoder.Decode(&serverSettings)
 	helper.Check(err)
 	file.Close()
+	dataStorage.Init(Environment.FileDbPath)
 	if configUpgrade.DoUpgrade(&serverSettings, &Environment) {
 		save()
 	}
@@ -54,7 +55,6 @@ func Load() {
 		serverSettings.MaxMemory = Environment.MaxMemory
 	}
 	helper.CreateDir(serverSettings.DataDir)
-	dataStorage.Init(Environment.FileDbPath)
 	downloadstatus.Init()
 	log.Init(Environment.ConfigDir)
 }
@@ -80,13 +80,9 @@ func save() {
 	}
 }
 
-func LoadFromSetup(config models.Configuration, cloudConfig *cloudconfig.CloudConfig, isInitialConfig bool) {
+func LoadFromSetup(config models.Configuration, cloudConfig *cloudconfig.CloudConfig) {
 	Environment = environment.New()
 	helper.CreateDir(Environment.ConfigDir)
-	if !isInitialConfig {
-		Load()
-		// TODO
-	}
 
 	serverSettings = config
 	if cloudConfig != nil {
