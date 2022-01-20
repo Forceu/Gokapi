@@ -18,7 +18,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"sync"
 )
 
 // Min length of admin password in characters
@@ -29,9 +28,6 @@ var Environment environment.Environment
 
 // ServerSettings is an object containing the server configuration
 var serverSettings models.Configuration
-
-// For locking this object to prevent race conditions
-var mutex sync.RWMutex
 
 func Exists() bool {
 	configPath, _, _, _ := environment.GetConfigPaths()
@@ -58,50 +54,12 @@ func Load() {
 	}
 	helper.CreateDir(serverSettings.DataDir)
 	dataStorage.Init(Environment.FileDbPath)
-	loadUploadDefaults()
 	log.Init(Environment.ConfigDir)
 }
 
-// Lock locks configuration to prevent race conditions (blocking)
-func Lock() {
-	mutex.Lock()
-}
-
-func loadUploadDefaults() {
-	downloads, expiry, password := dataStorage.GetUploadDefaults()
-	serverSettings.DefaultDownloads = downloads
-	serverSettings.DefaultExpiry = expiry
-	serverSettings.DefaultPassword = password
-}
-
-// ReleaseAndSave unlocks and saves the configuration
-func ReleaseAndSave() {
-	save()
-	mutex.Unlock()
-}
-
-// Release unlocks the configuration
-func Release() {
-	mutex.Unlock()
-}
-
-// GetServerSettings locks the settings returns a pointer to the configuration for Read/Write access
-// Release needs to be called when finished with the operation!
-func GetServerSettings() *models.Configuration {
-	mutex.Lock()
+// Get returns a pointer to the server configuration
+func Get() *models.Configuration {
 	return &serverSettings
-}
-
-// GetServerSettingsReadOnly locks the settings for read-only access and returns a copy of the configuration
-// ReleaseReadOnly needs to be called when finished with the operation!
-func GetServerSettingsReadOnly() *models.Configuration {
-	mutex.RLock()
-	return &serverSettings
-}
-
-// ReleaseReadOnly unlocks the configuration opened for read-only access
-func ReleaseReadOnly() {
-	mutex.RUnlock()
 }
 
 // Save the configuration as a json file
@@ -125,9 +83,7 @@ func LoadFromSetup(config models.Configuration, cloudConfig *cloudconfig.CloudCo
 	helper.CreateDir(Environment.ConfigDir)
 	if !isInitialConfig {
 		Load()
-		config.DefaultDownloads = serverSettings.DefaultDownloads
-		config.DefaultExpiry = serverSettings.DefaultExpiry
-		config.DefaultPassword = serverSettings.DefaultPassword
+		// TODO
 	}
 
 	serverSettings = config

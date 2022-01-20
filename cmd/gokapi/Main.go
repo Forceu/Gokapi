@@ -41,10 +41,8 @@ func main() {
 	fmt.Println("Gokapi v" + Version + " starting")
 	setup.RunIfFirstStart()
 	configuration.Load()
-	settings := configuration.GetServerSettingsReadOnly()
-	authentication.Init(settings.Authentication)
-	configuration.ReleaseReadOnly()
-	reonfigureServer(passedFlags)
+	authentication.Init(configuration.Get().Authentication)
+	reconfigureServer(passedFlags)
 	createSsl(passedFlags)
 
 	cConfig, ok := cloudconfig.Load()
@@ -97,7 +95,7 @@ func parseFlags() flags {
 }
 
 // Checks for command line arguments that have to be parsed after loading the configuration
-func reonfigureServer(passedFlags flags) {
+func reconfigureServer(passedFlags flags) {
 	if passedFlags.reconfigure {
 		setup.RunConfigModification()
 	}
@@ -105,9 +103,7 @@ func reonfigureServer(passedFlags flags) {
 
 func createSsl(passedFlags flags) {
 	if passedFlags.createSsl {
-		settings := configuration.GetServerSettingsReadOnly()
-		ssl.GenerateIfInvalidCert(settings.ServerUrl, true)
-		configuration.ReleaseReadOnly()
+		ssl.GenerateIfInvalidCert(configuration.Get().ServerUrl, true)
 	}
 }
 

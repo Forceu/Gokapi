@@ -33,10 +33,7 @@ import (
 // it into the global configuration.
 func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequest models.UploadRequest) (models.File, error) {
 	id := helper.GenerateRandomString(configuration.GetLengthId())
-	settings := configuration.GetServerSettingsReadOnly()
-	maxSize := settings.MaxFileSizeMB
-	configuration.ReleaseReadOnly()
-	if fileHeader.Size > int64(maxSize)*1024*1024 {
+	if fileHeader.Size > int64(configuration.Get().MaxFileSizeMB)*1024*1024 {
 		return models.File{}, errors.New("upload limit exceeded")
 	}
 	var hasBeenRenamed bool
@@ -57,8 +54,8 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 	if aws.IsAvailable() {
 		aws.AddBucketName(&file)
 	}
-	filename := settings.DataDir + "/" + file.SHA256
-	dataDir := settings.DataDir
+	filename := configuration.Get().DataDir + "/" + file.SHA256
+	dataDir := configuration.Get().DataDir
 	if aws.IsAvailable() {
 		aws.AddBucketName(&file)
 		_, err := aws.Upload(reader, file)
@@ -147,9 +144,7 @@ func GetFile(id string) (models.File, bool) {
 	if file.ExpireAt < time.Now().Unix() || file.DownloadsRemaining < 1 {
 		return emptyResult, false
 	}
-	settings := configuration.GetServerSettingsReadOnly()
-	defer configuration.ReleaseReadOnly()
-	if !FileExists(file, settings.DataDir) {
+	if !FileExists(file, configuration.Get().DataDir) {
 		return emptyResult, false
 	}
 	return file, true
@@ -172,15 +167,11 @@ func GetFileByHotlink(id string) (models.File, bool) {
 // ServeFile subtracts a download allowance and serves the file to the browser
 func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDownload bool) {
 	file.DownloadsRemaining = file.DownloadsRemaining - 1
-	settings := configuration.GetServerSettingsReadOnly()
-	dataStorage.SaveMetaData(file)
-	dataDir := settings.DataDir
-	configuration.ReleaseReadOnly()
 	logging.AddDownload(&file, r)
 
 	// If file is not stored on AWS
 	if file.AwsBucket == "" {
-		storageData, size := getFileHandler(file, dataDir)
+		storageData, size := getFileHandler(file, configuration.Get().DataDir)
 		defer storageData.Close()
 		if forceDownload {
 			w.Header().Set("Content-Disposition", "attachment; filename=\""+file.Name+"\"")
@@ -229,9 +220,8 @@ func FileExists(file models.File, dataDir string) bool {
 func CleanUp(periodic bool) {
 	timeNow := time.Now().Unix()
 	wasItemDeleted := false
-	settings := configuration.GetServerSettings()
 	for key, element := range dataStorage.GetAllFiles() {
-		fileExists := FileExists(element, settings.DataDir)
+		fileExists := FileExists(element, configuration.Get().DataDir)
 		if (element.ExpireAt < timeNow || element.DownloadsRemaining < 1 || !fileExists) && !downloadstatus.IsCurrentlyDownloading(element) {
 			deleteFile := true
 			for _, secondLoopElement := range dataStorage.GetAllFiles() {
@@ -240,7 +230,7 @@ func CleanUp(periodic bool) {
 				}
 			}
 			if deleteFile && fileExists {
-				deleteSource(element, settings.DataDir)
+				deleteSource(element, configuration.Get().DataDir)
 			}
 			if element.HotlinkId != "" {
 				dataStorage.DeleteHotlink(element.HotlinkId)
@@ -250,10 +240,7 @@ func CleanUp(periodic bool) {
 		}
 	}
 	if wasItemDeleted {
-		configuration.ReleaseAndSave()
 		CleanUp(false)
-	} else {
-		configuration.Release()
 	}
 	if periodic {
 		time.Sleep(time.Hour)

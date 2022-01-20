@@ -50,18 +50,8 @@ var imageExpiredPicture []byte
 
 const expiredFile = "static/expired.png"
 
-var (
-	webserverRedirectUrl string
-	webserverMaxMemory   int
-)
-
 // Start the webserver on the port set in the config
 func Start() {
-	settings := configuration.GetServerSettingsReadOnly()
-	configuration.ReleaseReadOnly()
-	webserverRedirectUrl = settings.RedirectUrl
-	webserverMaxMemory = settings.MaxMemory
-
 	initTemplates(templateFolderEmbedded)
 	webserverDir, _ := fs.Sub(staticFolderEmbedded, "web/static")
 	var err error
@@ -91,28 +81,28 @@ func Start() {
 	http.HandleFunc("/logout", doLogout)
 	http.HandleFunc("/upload", requireLogin(uploadFile, true))
 	http.HandleFunc("/error-auth", showErrorAuth)
-	if settings.Authentication.Method == authentication.OAuth2 {
-		oauth.Init(settings.ServerUrl, settings.Authentication)
+	if configuration.Get().Authentication.Method == authentication.OAuth2 {
+		oauth.Init(configuration.Get().ServerUrl, configuration.Get().Authentication)
 		http.HandleFunc("/oauth-login", oauth.HandlerLogin)
 		http.HandleFunc("/oauth-callback", oauth.HandlerCallback)
 	}
 
-	fmt.Println("Binding webserver to " + settings.Port)
+	fmt.Println("Binding webserver to " + configuration.Get().Port)
 	srv := &http.Server{
-		Addr:         settings.Port,
+		Addr:         configuration.Get().Port,
 		ReadTimeout:  timeOutWebserver,
 		WriteTimeout: timeOutWebserver,
 	}
-	infoMessage := "Webserver can be accessed at " + settings.ServerUrl + "admin"
-	if strings.Contains(settings.ServerUrl, "127.0.0.1") {
-		if settings.UseSsl {
+	infoMessage := "Webserver can be accessed at " + configuration.Get().ServerUrl + "admin"
+	if strings.Contains(configuration.Get().ServerUrl, "127.0.0.1") {
+		if configuration.Get().UseSsl {
 			infoMessage = strings.Replace(infoMessage, "http://", "https://", 1)
 		} else {
 			infoMessage = strings.Replace(infoMessage, "https://", "http://", 1)
 		}
 	}
-	if settings.UseSsl {
-		ssl.GenerateIfInvalidCert(settings.ServerUrl, false)
+	if configuration.Get().UseSsl {
+		ssl.GenerateIfInvalidCert(configuration.Get().ServerUrl, false)
 		fmt.Println(infoMessage)
 		log.Fatal(srv.ListenAndServeTLS(ssl.GetCertificateLocations()))
 	} else {
@@ -148,7 +138,7 @@ func doLogout(w http.ResponseWriter, r *http.Request) {
 
 // Handling of /index and redirecting to globalConfig.RedirectUrl
 func showIndex(w http.ResponseWriter, r *http.Request) {
-	err := templateFolder.ExecuteTemplate(w, "index", genericView{RedirectUrl: webserverRedirectUrl})
+	err := templateFolder.ExecuteTemplate(w, "index", genericView{RedirectUrl: configuration.Get().RedirectUrl})
 	helper.Check(err)
 }
 
@@ -194,7 +184,7 @@ func deleteApiKey(w http.ResponseWriter, r *http.Request) {
 
 // Handling of /api/
 func processApi(w http.ResponseWriter, r *http.Request) {
-	api.Process(w, r, webserverMaxMemory)
+	api.Process(w, r, configuration.Get().MaxMemory)
 }
 
 // Handling of /login
@@ -356,7 +346,6 @@ type UploadView struct {
 func (u *UploadView) convertGlobalConfig(isMainView bool) *UploadView {
 	var result []models.File
 	var resultApi []models.ApiKey
-	settings := configuration.GetServerSettingsReadOnly()
 	if isMainView {
 		for _, element := range dataStorage.GetAllFiles() {
 			result = append(result, element)
@@ -383,19 +372,16 @@ func (u *UploadView) convertGlobalConfig(isMainView bool) *UploadView {
 			return resultApi[i].LastUsed > resultApi[j].LastUsed
 		})
 	}
-	u.Url = settings.ServerUrl + "d?id="
-	u.HotlinkUrl = settings.ServerUrl + "hotlink/"
-	u.DefaultPassword = settings.DefaultPassword
+	u.Url = configuration.Get().ServerUrl + "d?id="
+	u.HotlinkUrl = configuration.Get().ServerUrl + "hotlink/"
 	u.Items = result
-	u.DefaultExpiry = settings.DefaultExpiry
 	u.ApiKeys = resultApi
-	u.DefaultDownloads = settings.DefaultDownloads
 	u.TimeNow = time.Now().Unix()
 	u.IsAdminView = true
 	u.IsMainView = isMainView
-	u.MaxFileSize = settings.MaxFileSizeMB
+	u.MaxFileSize = configuration.Get().MaxFileSizeMB
 	u.IsLogoutAvailable = authentication.IsLogoutAvailable()
-	configuration.ReleaseReadOnly()
+	u.DefaultDownloads, u.DefaultExpiry, u.DefaultPassword = dataStorage.GetUploadDefaults()
 	return u
 }
 
@@ -404,7 +390,7 @@ func (u *UploadView) convertGlobalConfig(isMainView bool) *UploadView {
 // adds it to the system.
 func uploadFile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	err := fileupload.Process(w, r, true, webserverMaxMemory)
+	err := fileupload.Process(w, r, true, configuration.Get().MaxMemory)
 	responseError(w, err)
 }
 
