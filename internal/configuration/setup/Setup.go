@@ -168,18 +168,11 @@ func toConfiguration(formObjects *[]jsonFormObject) (models.Configuration, *clou
 	parsedEnv := environment.New()
 
 	result := models.Configuration{
-		DefaultDownloads: 1,
-		DefaultExpiry:    14,
-		MaxFileSizeMB:    parsedEnv.MaxFileSize,
-		LengthId:         parsedEnv.LengthId,
-		MaxMemory:        parsedEnv.MaxMemory,
-		DataDir:          parsedEnv.DataDir,
-		Sessions:         make(map[string]models.Session),
-		Files:            make(map[string]models.File),
-		Hotlinks:         make(map[string]models.Hotlink),
-		DownloadStatus:   make(map[string]models.DownloadStatus),
-		ApiKeys:          make(map[string]models.ApiKey),
-		ConfigVersion:    configUpgrade.CurrentConfigVersion,
+		MaxFileSizeMB: parsedEnv.MaxFileSize,
+		LengthId:      parsedEnv.LengthId,
+		MaxMemory:     parsedEnv.MaxMemory,
+		DataDir:       parsedEnv.DataDir,
+		ConfigVersion: configUpgrade.CurrentConfigVersion,
 		Authentication: models.AuthenticationConfig{
 			SaltAdmin: helper.GenerateRandomString(30),
 			SaltFiles: helper.GenerateRandomString(30),
@@ -375,9 +368,9 @@ func splitAndTrim(input string) []string {
 
 type setupView struct {
 	IsInitialSetup bool
-	LocalhostOnly bool
-	HasAwsFeature bool
-	Port          int
+	LocalhostOnly  bool
+	HasAwsFeature  bool
+	Port           int
 	OAuthUsers     string
 	HeaderUsers    string
 	Auth           models.AuthenticationConfig
@@ -391,7 +384,7 @@ func (v *setupView) loadFromConfig() {
 		return
 	}
 	configuration.Load()
-	settings := configuration.GetServerSettingsReadOnly()
+	settings := configuration.Get()
 	v.HasAwsFeature = aws.IsIncludedInBuild
 	v.Settings = *settings
 	v.Auth = settings.Authentication
@@ -409,7 +402,6 @@ func (v *setupView) loadFromConfig() {
 	} else {
 		v.Port = environment.DefaultPort
 	}
-	configuration.ReleaseReadOnly()
 }
 
 // Handling of /start

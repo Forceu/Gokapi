@@ -11,7 +11,6 @@ import (
 	"Gokapi/internal/test/testconfiguration"
 	"os"
 	"testing"
-	"time"
 )
 
 func TestMain(m *testing.M) {
@@ -31,55 +30,10 @@ func TestLoad(t *testing.T) {
 	test.IsEqualString(t, serverSettings.Authentication.Password, "10340aece68aa4fb14507ae45b05506026f276cf")
 	test.IsEqualString(t, HashPassword("testtest", false), "10340aece68aa4fb14507ae45b05506026f276cf")
 	test.IsEqualBool(t, serverSettings.UseSsl, false)
-	test.IsEqualInt(t, GetLengthId(), 20)
-	settings := GetServerSettings()
-	Release()
-	test.IsEqualInt(t, settings.LengthId, 20)
+	test.IsEqualInt(t, serverSettings.LengthId, 20)
+	test.IsEqualInt(t, Get().LengthId, 20)
 }
 
-func TestMutexSession(t *testing.T) {
-	finished := make(chan bool)
-	oldValue := serverSettings.ConfigVersion
-	go func() {
-		time.Sleep(100 * time.Millisecond)
-		Lock()
-		test.IsEqualInt(t, serverSettings.ConfigVersion, -9)
-		serverSettings.ConfigVersion = oldValue
-		ReleaseAndSave()
-		test.IsEqualInt(t, serverSettings.ConfigVersion, oldValue)
-		finished <- true
-	}()
-	Lock()
-	serverSettings.ConfigVersion = -9
-	time.Sleep(150 * time.Millisecond)
-	test.IsEqualInt(t, serverSettings.ConfigVersion, -9)
-	Release()
-	<-finished
-	GetServerSettingsReadOnly()
-	ReleaseReadOnly()
-}
-
-func TestUpgradeDb(t *testing.T) {
-	testconfiguration.WriteUpgradeConfigFileV0()
-	os.Setenv("GOKAPI_USE_SSL", "true")
-	os.Setenv("GOKAPI_MAX_FILESIZE", "5")
-	Load()
-	test.IsEqualString(t, serverSettings.Authentication.SaltAdmin, "eefwkjqweduiotbrkl##$2342brerlk2321")
-	test.IsEqualString(t, serverSettings.Authentication.SaltFiles, "P1UI5sRNDwuBgOvOYhNsmucZ2pqo4KEvOoqqbpdu")
-	test.IsEqualString(t, serverSettings.DataDir, Environment.DataDir)
-	test.IsEqualInt(t, serverSettings.LengthId, 15)
-	test.IsEqualBool(t, serverSettings.Hotlinks == nil, false)
-	test.IsEqualBool(t, serverSettings.Sessions == nil, false)
-	test.IsEqualBool(t, serverSettings.DownloadStatus == nil, false)
-	test.IsEqualString(t, serverSettings.Files["MgXJLe4XLfpXcL12ec4i"].ContentType, "application/octet-stream")
-	test.IsEqualInt(t, serverSettings.ConfigVersion, configUpgrade.CurrentConfigVersion)
-	test.IsEqualBool(t, serverSettings.UseSsl, false)
-	test.IsEqualInt(t, serverSettings.MaxFileSizeMB, 5)
-	os.Unsetenv("GOKAPI_USE_SSL")
-	os.Unsetenv("GOKAPI_MAX_FILESIZE")
-	testconfiguration.Create(false)
-	Load()
-}
 func TestHashPassword(t *testing.T) {
 	test.IsEqualString(t, HashPassword("123", false), "423b63a68c68bd7e07b14590927c1e9a473fe035")
 	test.IsEqualString(t, HashPassword("", false), "")
@@ -117,10 +71,9 @@ func TestLoadFromSetup(t *testing.T) {
 	testconfiguration.WriteCloudConfigFile(true)
 	LoadFromSetup(newConfig, nil, false)
 	test.FileDoesNotExist(t, "test/cloudconfig.yml")
-	test.IsEqualBool(t, serverSettings.Files != nil, true)
 	test.IsEqualString(t, serverSettings.RedirectUrl, "redirect")
 
-	LoadFromSetup(newConfig, &newCloudConfig, true)
+	LoadFromSetup(newConfig, &newCloudConfig, false)
 	test.FileExists(t, "test/cloudconfig.yml")
 	config, ok := cloudconfig.Load()
 	test.IsEqualBool(t, ok, true)

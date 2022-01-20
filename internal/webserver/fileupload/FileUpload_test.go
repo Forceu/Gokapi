@@ -5,6 +5,7 @@ package fileupload
 
 import (
 	"Gokapi/internal/configuration"
+	"Gokapi/internal/configuration/dataStorage"
 	"Gokapi/internal/models"
 	"Gokapi/internal/test"
 	"Gokapi/internal/test/testconfiguration"
@@ -28,22 +29,22 @@ func TestMain(m *testing.M) {
 }
 
 func TestParseConfig(t *testing.T) {
-	settings := configuration.GetServerSettings()
-	configuration.Release()
 	data := testData{
 		allowedDownloads: "9",
 		expiryDays:       "5",
 		password:         "123",
 	}
 	config := parseConfig(data, false)
+	downloads, _, _ := dataStorage.GetUploadDefaults()
 	test.IsEqualInt(t, config.AllowedDownloads, 9)
 	test.IsEqualString(t, config.Password, "123")
 	test.IsEqualInt(t, config.Expiry, 5)
-	test.IsEqualInt(t, settings.DefaultDownloads, 3)
+
+	test.IsEqualInt(t, downloads, 3)
 	config = parseConfig(data, true)
-	test.IsEqualInt(t, settings.DefaultDownloads, 9)
-	settings.DefaultDownloads = 3
-	settings.DefaultExpiry = 20
+	downloads, _, _ = dataStorage.GetUploadDefaults()
+	test.IsEqualInt(t, downloads, 9)
+	dataStorage.SaveUploadDefaults(3, 20, "")
 	data.allowedDownloads = ""
 	data.expiryDays = "invalid"
 	config = parseConfig(data, false)

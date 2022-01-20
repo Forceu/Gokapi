@@ -1,16 +1,18 @@
 package configUpgrade
 
 import (
+	"Gokapi/internal/configuration/dataStorage"
 	"Gokapi/internal/environment"
 	"Gokapi/internal/helper"
 	"Gokapi/internal/models"
 	"encoding/json"
 	"fmt"
 	"os"
+	"time"
 )
 
 // CurrentConfigVersion is the version of the configuration structure. Used for upgrading
-const CurrentConfigVersion = 10
+const CurrentConfigVersion = 11
 
 func DoUpgrade(settings *models.Configuration, env *environment.Environment) bool {
 	if settings.ConfigVersion < CurrentConfigVersion {
@@ -24,29 +26,12 @@ func DoUpgrade(settings *models.Configuration, env *environment.Environment) boo
 
 // Upgrades the settings if saved with a previous version
 func updateConfig(settings *models.Configuration, env *environment.Environment) {
-	// < v1.1.2
-	if settings.ConfigVersion < 3 {
-		settings.Authentication.SaltAdmin = "eefwkjqweduiotbrkl##$2342brerlk2321"
-		settings.Authentication.SaltFiles = "P1UI5sRNDwuBgOvOYhNsmucZ2pqo4KEvOoqqbpdu"
-		settings.LengthId = 15
-		settings.DataDir = env.DataDir
-	}
-	// < v1.1.3
-	if settings.ConfigVersion < 4 {
-		settings.Hotlinks = make(map[string]models.Hotlink)
-	}
-	// < v1.1.4
-	if settings.ConfigVersion < 5 {
-		settings.LengthId = 15
-		settings.DownloadStatus = make(map[string]models.DownloadStatus)
-		for _, file := range settings.Files {
-			file.ContentType = "application/octet-stream"
-			settings.Files[file.Id] = file
-		}
-	}
+
 	// < v1.2.0
 	if settings.ConfigVersion < 6 {
-		settings.ApiKeys = make(map[string]models.ApiKey)
+		fmt.Println("Please update to version 1.2 before running this version,")
+		osExit(1)
+		return
 	}
 	// < v1.3.0
 	if settings.ConfigVersion < 7 {
@@ -56,12 +41,12 @@ func updateConfig(settings *models.Configuration, env *environment.Environment) 
 	if settings.ConfigVersion < 8 {
 		settings.MaxFileSizeMB = env.MaxFileSize
 	}
-	// < v1.5.0
+	// < v1.5.0-dev
 	if settings.ConfigVersion < 10 {
 		settings.Authentication.Method = 0 // authentication.AuthenticationInternal
 		settings.Authentication.HeaderUsers = []string{}
 		settings.Authentication.OauthUsers = []string{}
-		legacyConfig := loadLegacyConfig(env)
+		legacyConfig := loadLegacyConfigPreAuth(env)
 		settings.Authentication.Username = legacyConfig.AdminName
 		settings.Authentication.Password = legacyConfig.AdminPassword
 		if legacyConfig.SaltAdmin != "" {
@@ -71,24 +56,73 @@ func updateConfig(settings *models.Configuration, env *environment.Environment) 
 			settings.Authentication.SaltFiles = legacyConfig.SaltFiles
 		}
 	}
+	// < v1.5.0
+	if settings.ConfigVersion < 11 {
+		legacyConfig := loadLegacyConfigPreDb(env)
+		dataStorage.SaveUploadDefaults(legacyConfig.DefaultDownloads, legacyConfig.DefaultExpiry, legacyConfig.DefaultPassword)
+
+		for _, hotlink := range legacyConfig.Hotlinks {
+			dataStorage.SaveHotlink(hotlink.Id, models.File{Id: hotlink.FileId})
+		}
+		for _, apikey := range legacyConfig.ApiKeys {
+			dataStorage.SaveApiKey(apikey, false)
+		}
+		for _, file := range legacyConfig.Files {
+			dataStorage.SaveMetaData(file)
+		}
+		for key, session := range legacyConfig.Sessions {
+			dataStorage.SaveSession(key, session, 48*time.Hour)
+		}
+	}
 }
 
-func loadLegacyConfig(env *environment.Environment) configurationLegacy {
+func loadLegacyConfigPreAuth(env *environment.Environment) configurationLegacyPreAuth {
 	file, err := os.Open(env.ConfigPath)
 	defer file.Close()
 	helper.Check(err)
 	decoder := json.NewDecoder(file)
 
-	result := configurationLegacy{}
+	result := configurationLegacyPreAuth{}
 	err = decoder.Decode(&result)
 	helper.Check(err)
 	return result
 }
 
-// configurationLegacy is a struct that contains missing values for the global configuration when loading  pre v1.5 format
-type configurationLegacy struct {
+func loadLegacyConfigPreDb(env *environment.Environment) configurationLegacyPreDb {
+	file, err := os.Open(env.ConfigPath)
+	defer file.Close()
+	helper.Check(err)
+	decoder := json.NewDecoder(file)
+
+	result := configurationLegacyPreDb{}
+	err = decoder.Decode(&result)
+	helper.Check(err)
+	return result
+}
+
+// configurationLegacyPreAuth is a struct that contains missing values for the global configuration when loading  pre v1.5-dev format
+type configurationLegacyPreAuth struct {
 	AdminName     string `json:"AdminName"`
 	AdminPassword string `json:"AdminPassword"`
 	SaltAdmin     string `json:"SaltAdmin"`
 	SaltFiles     string `json:"SaltFiles"`
 }
+
+// configurationLegacyPreAuth is a struct that contains missing values for the global configuration when loading  pre v1.5 format
+type configurationLegacyPreDb struct {
+	DefaultDownloads int                       `json:"DefaultDownloads"`
+	DefaultExpiry    int                       `json:"DefaultExpiry"`
+	DefaultPassword  string                    `json:"DefaultPassword"`
+	Files            map[string]models.File    `json:"Files"`
+	Hotlinks         map[string]Hotlink        `json:"Hotlinks"`
+	ApiKeys          map[string]models.ApiKey  `json:"ApiKeys"`
+	Sessions         map[string]models.Session `json:"Sessions"`
+}
+
+// Hotlink is a legacy struct containing hotlink ids
+type Hotlink struct {
+	Id     string `json:"Id"`
+	FileId string `json:"FileId"`
+}
+
+var osExit = os.Exit

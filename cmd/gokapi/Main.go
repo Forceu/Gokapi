@@ -7,6 +7,7 @@ Main routine
 import (
 	"Gokapi/internal/configuration"
 	"Gokapi/internal/configuration/cloudconfig"
+	"Gokapi/internal/configuration/dataStorage"
 	"Gokapi/internal/configuration/setup"
 	"Gokapi/internal/environment"
 	"Gokapi/internal/helper"
@@ -20,6 +21,8 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 )
 
@@ -38,10 +41,8 @@ func main() {
 	fmt.Println("Gokapi v" + Version + " starting")
 	setup.RunIfFirstStart()
 	configuration.Load()
-	settings := configuration.GetServerSettingsReadOnly()
-	authentication.Init(settings.Authentication)
-	configuration.ReleaseReadOnly()
-	reonfigureServer(passedFlags)
+	authentication.Init(configuration.Get().Authentication)
+	reconfigureServer(passedFlags)
 	createSsl(passedFlags)
 
 	cConfig, ok := cloudconfig.Load()
@@ -52,7 +53,19 @@ func main() {
 	}
 	go storage.CleanUp(true)
 	logging.AddString("Gokapi started")
-	webserver.Start()
+	go webserver.Start()
+
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	<-c
+	cleanup()
+	os.Exit(0)
+}
+
+func cleanup() {
+	fmt.Println("Shutting down...")
+	// webserver.Stop() TODO
+	dataStorage.Close()
 }
 
 // Checks for command line arguments that have to be parsed before loading the configuration
@@ -82,7 +95,7 @@ func parseFlags() flags {
 }
 
 // Checks for command line arguments that have to be parsed after loading the configuration
-func reonfigureServer(passedFlags flags) {
+func reconfigureServer(passedFlags flags) {
 	if passedFlags.reconfigure {
 		setup.RunConfigModification()
 	}
@@ -90,9 +103,7 @@ func reonfigureServer(passedFlags flags) {
 
 func createSsl(passedFlags flags) {
 	if passedFlags.createSsl {
-		settings := configuration.GetServerSettingsReadOnly()
-		ssl.GenerateIfInvalidCert(settings.ServerUrl, true)
-		configuration.ReleaseReadOnly()
+		ssl.GenerateIfInvalidCert(configuration.Get().ServerUrl, true)
 	}
 }
 

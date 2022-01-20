@@ -37,7 +37,7 @@ func TestShowVersion(t *testing.T) {
 }
 
 func TestNoResetPw(t *testing.T) {
-	reonfigureServer(flags{})
+	reconfigureServer(flags{})
 }
 
 func TestCreateSsl(t *testing.T) {
