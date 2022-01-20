@@ -13,10 +13,11 @@ type Configuration struct {
 	UseSsl           bool                      `json:"UseSsl"`
 	MaxFileSizeMB    int                       `json:"MaxFileSizeMB"`
 	Files            map[string]File           `json:"Files"`
-	Hotlinks         map[string]Hotlink        `json:"Hotlinks"`
 	DownloadStatus   map[string]DownloadStatus `json:"DownloadStatus"`
 	ApiKeys          map[string]ApiKey         `json:"ApiKeys"`
 	DefaultDownloads int
 	DefaultExpiry    int
 	DefaultPassword  string
 }
+
+// migrate: hotlinks

@@ -6,6 +6,7 @@ Serving and processing uploaded files
 
 import (
 	"Gokapi/internal/configuration"
+	"Gokapi/internal/configuration/dataStorage"
 	"Gokapi/internal/configuration/downloadstatus"
 	"Gokapi/internal/helper"
 	"Gokapi/internal/logging"
@@ -131,12 +132,7 @@ func addHotlink(file *models.File) {
 	}
 	link := helper.GenerateRandomString(40) + extension
 	file.HotlinkId = link
-	settings := configuration.GetServerSettings()
-	settings.Hotlinks[link] = models.Hotlink{
-		Id:     link,
-		FileId: file.Id,
-	}
-	configuration.Release()
+	dataStorage.SaveHotlink(link, *file)
 }
 
 // GetFile gets the file by id. Returns (empty File, false) if invalid / expired file
@@ -165,10 +161,11 @@ func GetFileByHotlink(id string) (models.File, bool) {
 	if id == "" {
 		return emptyResult, false
 	}
-	settings := configuration.GetServerSettingsReadOnly()
-	hotlink := settings.Hotlinks[id]
-	configuration.ReleaseReadOnly()
-	return GetFile(hotlink.FileId)
+	fileId, ok := dataStorage.GetHotlink(id)
+	if !ok {
+		return emptyResult, false
+	}
+	return GetFile(fileId)
 }
 
 // ServeFile subtracts a download allowance and serves the file to the browser
@@ -246,7 +243,7 @@ func CleanUp(periodic bool) {
 				deleteSource(element, settings.DataDir)
 			}
 			if element.HotlinkId != "" {
-				delete(settings.Hotlinks, element.HotlinkId)
+				dataStorage.DeleteHotlink(element.HotlinkId)
 			}
 			delete(settings.Files, key)
 			wasItemDeleted = true

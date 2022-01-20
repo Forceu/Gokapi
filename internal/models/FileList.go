@@ -36,12 +36,6 @@ func (f *File) ToJsonResult(serverUrl string) string {
 	return string(bytes)
 }
 
-// Hotlink is a struct containing hotlink ids
-type Hotlink struct {
-	Id     string `json:"Id"`
-	FileId string `json:"FileId"`
-}
-
 // Result is the struct used for the result after an upload
 // swagger:model UploadResult
 type Result struct {

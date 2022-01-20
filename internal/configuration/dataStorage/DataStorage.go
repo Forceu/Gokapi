@@ -16,6 +16,7 @@ import (
 
 const prefixFile = "file:id:"
 const prefixSessions = "session:id:"
+const prefixHotlink = "hotlink:id:"
 const idDefaultDownloads = "default:downloads"
 const idDefaultExpiry = "default:expiry"
 const idDefaultPassword = "default:password"
@@ -23,33 +24,49 @@ const idDefaultPassword = "default:password"
 var database *bitcask.Bitcask
 
 func Init(dbPath string) {
-	db, err := bitcask.Open(dbPath)
+	db, err := bitcask.Open(dbPath, bitcask.WithMaxKeySize(256))
 	if err != nil {
 		log.Fatal(err)
 	}
 	database = db
 }
 
+func GetHotlink(id string) (string, bool) {
+	value, ok := getValue(prefixHotlink + id)
+	if !ok {
+		return "", false
+	}
+	return string(value), true
+}
+
+func SaveHotlink(id string, file models.File) {
+	err := database.PutWithTTL([]byte(prefixHotlink+id), []byte(file.Id), expiryToDuration(file))
+	helper.Check(err)
+}
+
+func expiryToDuration(file models.File) time.Duration {
+	return time.Until(time.Unix(file.ExpireAt, 0))
+}
+
+func DeleteHotlink(id string) {
+	deleteKey(prefixHotlink + id)
+}
+
 func GetSession(id string) (models.Session, bool) {
 	result := models.Session{}
-	if !database.Has([]byte(prefixSessions + id)) {
+	value, ok := getValue(prefixSessions + id)
+	if !ok {
 		return result, false
 	}
-	value, err := database.Get([]byte(prefixSessions + id))
-	helper.Check(err)
 	buf := bytes.NewBuffer(value)
 	dec := gob.NewDecoder(buf)
-	err = dec.Decode(&result)
+	err := dec.Decode(&result)
 	helper.Check(err)
 	return result, true
 }
 
 func DeleteSession(id string) {
-	if !database.Has([]byte(prefixSessions + id)) {
-		return
-	}
-	err := database.Delete([]byte(prefixSessions + id))
-	helper.Check(err)
+	deleteKey(prefixSessions + id)
 }
 
 func SaveSession(id string, session models.Session, expiry time.Duration) {
@@ -58,6 +75,8 @@ func SaveSession(id string, session models.Session, expiry time.Duration) {
 	err := enc.Encode(session)
 	helper.Check(err)
 	err = database.PutWithTTL([]byte(prefixSessions+id), buf.Bytes(), expiry)
+	helper.Check(err)
+	err = database.Sync()
 	helper.Check(err)
 }
 
@@ -78,33 +97,30 @@ func GetAllFiles() map[string]models.File {
 
 func GetMetaDataById(id string) (models.File, bool) {
 	result := models.File{}
-	if database.Has([]byte(prefixFile + id)) {
+	value, ok := getValue(prefixFile + id)
+	if !ok {
 		return result, false
 	}
-	value, err := database.Get([]byte(prefixFile + id))
-	helper.Check(err)
 	buf := bytes.NewBuffer(value)
 	dec := gob.NewDecoder(buf)
-	err = dec.Decode(&result)
+	err := dec.Decode(&result)
 	helper.Check(err)
 	return result, true
 }
 
-func SaveMetaData(file models.File, expiry time.Duration) {
+func SaveMetaData(file models.File) {
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
 	err := enc.Encode(file)
 	helper.Check(err)
-	err = database.PutWithTTL([]byte(prefixFile+file.Id), buf.Bytes(), expiry)
+	err = database.PutWithTTL([]byte(prefixFile+file.Id), buf.Bytes(), expiryToDuration(file))
+	helper.Check(err)
+	err = database.Sync()
 	helper.Check(err)
 }
 
 func DeleteMetaData(file models.File) {
-	if !database.Has([]byte(prefixFile + file.Id)) {
-		return
-	}
-	err := database.Delete([]byte(prefixFile + file.Id))
-	helper.Check(err)
+	deleteKey(prefixFile + file.Id)
 }
 
 func GetUploadDefaults() (int, int, string) {
@@ -136,6 +152,8 @@ func SaveUploadDefaults(downloads, expiry int, password string) {
 	helper.Check(err)
 	err = database.Put([]byte(idDefaultPassword), []byte(password))
 	helper.Check(err)
+	err = database.Sync()
+	helper.Check(err)
 }
 
 func Close() {
@@ -158,4 +176,25 @@ func byteToInt(intByte []byte) int {
 	err := binary.Read(bytes.NewBuffer(intByte), binary.LittleEndian, &result)
 	helper.Check(err)
 	return int(result)
+}
+
+func deleteKey(id string) {
+	if !database.Has([]byte(id)) {
+		return
+	}
+	err := database.Delete([]byte(id))
+	helper.Check(err)
+	err = database.Sync()
+	helper.Check(err)
+}
+
+func getValue(id string) ([]byte, bool) {
+	value, err := database.Get([]byte(id))
+	if err == nil {
+		return value, true
+	}
+	if err == bitcask.ErrEmptyKey || err == bitcask.ErrKeyExpired || err == bitcask.ErrKeyNotFound {
+		return nil, false
+	}
+	panic(err)
 }

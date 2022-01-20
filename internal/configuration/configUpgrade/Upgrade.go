@@ -24,29 +24,11 @@ func DoUpgrade(settings *models.Configuration, env *environment.Environment) boo
 
 // Upgrades the settings if saved with a previous version
 func updateConfig(settings *models.Configuration, env *environment.Environment) {
-	// < v1.1.2
-	if settings.ConfigVersion < 3 {
-		settings.Authentication.SaltAdmin = "eefwkjqweduiotbrkl##$2342brerlk2321"
-		settings.Authentication.SaltFiles = "P1UI5sRNDwuBgOvOYhNsmucZ2pqo4KEvOoqqbpdu"
-		settings.LengthId = 15
-		settings.DataDir = env.DataDir
-	}
-	// < v1.1.3
-	if settings.ConfigVersion < 4 {
-		settings.Hotlinks = make(map[string]models.Hotlink)
-	}
-	// < v1.1.4
-	if settings.ConfigVersion < 5 {
-		settings.LengthId = 15
-		settings.DownloadStatus = make(map[string]models.DownloadStatus)
-		for _, file := range settings.Files {
-			file.ContentType = "application/octet-stream"
-			settings.Files[file.Id] = file
-		}
-	}
+
 	// < v1.2.0
 	if settings.ConfigVersion < 6 {
-		settings.ApiKeys = make(map[string]models.ApiKey)
+		fmt.Println("Please update to version 1.2 before running this version,")
+		os.Exit(1)
 	}
 	// < v1.3.0
 	if settings.ConfigVersion < 7 {

@@ -175,7 +175,6 @@ func toConfiguration(formObjects *[]jsonFormObject) (models.Configuration, *clou
 		MaxMemory:        parsedEnv.MaxMemory,
 		DataDir:          parsedEnv.DataDir,
 		Files:            make(map[string]models.File),
-		Hotlinks:         make(map[string]models.Hotlink),
 		DownloadStatus:   make(map[string]models.DownloadStatus),
 		ApiKeys:          make(map[string]models.ApiKey),
 		ConfigVersion:    configUpgrade.CurrentConfigVersion,

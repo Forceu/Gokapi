@@ -53,7 +53,7 @@ func useSession(w http.ResponseWriter, id string, session models.Session) bool {
 // CreateSession creates a new session - called after login with correct username / password
 // If sessions parameter is nil, it will be loaded from config
 func CreateSession(w http.ResponseWriter) {
-	sessionString := helper.GenerateRandomString(50)
+	sessionString := helper.GenerateRandomString(60)
 	dataStorage.SaveSession(sessionString, models.Session{
 		RenewAt:    time.Now().Add(time.Hour).Unix(),
 		ValidUntil: time.Now().Add(cookieLifeAdmin).Unix(),
