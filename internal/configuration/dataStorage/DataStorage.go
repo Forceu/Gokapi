@@ -26,7 +26,7 @@ var database *bitcask.Bitcask
 func Init(dbPath string) {
 	if database == nil {
 		// TODO check that parameters do not exceed 64 byte
-		db, err := bitcask.Open(dbPath, bitcask.WithMaxKeySize(64))
+		db, err := bitcask.Open(dbPath, bitcask.WithMaxKeySize(128))
 		if err != nil {
 			log.Fatal(err)
 		}
