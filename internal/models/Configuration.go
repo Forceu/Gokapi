@@ -14,10 +14,9 @@ type Configuration struct {
 	MaxFileSizeMB    int                       `json:"MaxFileSizeMB"`
 	Files            map[string]File           `json:"Files"`
 	DownloadStatus   map[string]DownloadStatus `json:"DownloadStatus"`
-	ApiKeys          map[string]ApiKey         `json:"ApiKeys"`
 	DefaultDownloads int
 	DefaultExpiry    int
 	DefaultPassword  string
 }
 
-// migrate: hotlinks
+// migrate: hotlinks, apikeys

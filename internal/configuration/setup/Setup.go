@@ -176,7 +176,6 @@ func toConfiguration(formObjects *[]jsonFormObject) (models.Configuration, *clou
 		DataDir:          parsedEnv.DataDir,
 		Files:            make(map[string]models.File),
 		DownloadStatus:   make(map[string]models.DownloadStatus),
-		ApiKeys:          make(map[string]models.ApiKey),
 		ConfigVersion:    configUpgrade.CurrentConfigVersion,
 		Authentication: models.AuthenticationConfig{
 			SaltAdmin: helper.GenerateRandomString(30),

@@ -14,6 +14,7 @@ import (
 	"time"
 )
 
+const prefixApiKey = "apikey:id:"
 const prefixFile = "file:id:"
 const prefixSessions = "session:id:"
 const prefixHotlink = "hotlink:id:"
@@ -44,12 +45,57 @@ func SaveHotlink(id string, file models.File) {
 	helper.Check(err)
 }
 
-func expiryToDuration(file models.File) time.Duration {
-	return time.Until(time.Unix(file.ExpireAt, 0))
-}
-
 func DeleteHotlink(id string) {
 	deleteKey(prefixHotlink + id)
+}
+
+func GetAllApiKeys() map[string]models.ApiKey {
+	result := make(map[string]models.ApiKey)
+	err := database.Scan([]byte(prefixApiKey), func(key []byte) error {
+		apikeyID := strings.Replace(string(key), prefixApiKey, "", 1)
+		apiKey, ok := GetApiKey(apikeyID)
+		if !ok {
+			return errors.New("getall: key does not exist")
+		}
+		result[apiKey.Id] = apiKey
+		return nil
+	})
+	helper.Check(err)
+	return result
+}
+
+func GetApiKey(id string) (models.ApiKey, bool) {
+	result := models.ApiKey{}
+	value, ok := getValue(prefixApiKey + id)
+	if !ok {
+		return result, false
+	}
+	buf := bytes.NewBuffer(value)
+	dec := gob.NewDecoder(buf)
+	err := dec.Decode(&result)
+	helper.Check(err)
+	return result, true
+}
+
+func SaveApiKey(apikey models.ApiKey, updateTimeOnly bool) {
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+	err := enc.Encode(apikey)
+	helper.Check(err)
+	err = database.Put([]byte(prefixApiKey+apikey.Id), buf.Bytes())
+	helper.Check(err)
+	if !updateTimeOnly {
+		err = database.Sync()
+		helper.Check(err)
+	}
+}
+
+func DeleteApiKey(id string) {
+	deleteKey(prefixApiKey + id)
+}
+
+func expiryToDuration(file models.File) time.Duration {
+	return time.Until(time.Unix(file.ExpireAt, 0))
 }
 
 func GetSession(id string) (models.Session, bool) {

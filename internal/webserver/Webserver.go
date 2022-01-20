@@ -6,6 +6,7 @@ Handling of webserver and requests / uploads
 
 import (
 	"Gokapi/internal/configuration"
+	"Gokapi/internal/configuration/dataStorage"
 	"Gokapi/internal/helper"
 	"Gokapi/internal/models"
 	"Gokapi/internal/storage"
@@ -367,7 +368,7 @@ func (u *UploadView) convertGlobalConfig(isMainView bool) *UploadView {
 			return result[i].ExpireAt > result[j].ExpireAt
 		})
 	} else {
-		for _, element := range settings.ApiKeys {
+		for _, element := range dataStorage.GetAllApiKeys() {
 			if element.LastUsed == 0 {
 				element.LastUsedString = "Never"
 			} else {

@@ -2,6 +2,7 @@ package api
 
 import (
 	"Gokapi/internal/configuration"
+	"Gokapi/internal/configuration/dataStorage"
 	"Gokapi/internal/helper"
 	"Gokapi/internal/models"
 	"Gokapi/internal/storage"
@@ -43,22 +44,18 @@ func DeleteKey(id string) bool {
 	if !IsValidApiKey(id, false) {
 		return false
 	}
-	settings := configuration.GetServerSettings()
-	delete(settings.ApiKeys, id)
-	configuration.ReleaseAndSave()
+	dataStorage.DeleteApiKey(id)
 	return true
 }
 
 // NewKey generates a new API key
 func NewKey() string {
-	settings := configuration.GetServerSettings()
 	newKey := models.ApiKey{
 		Id:           helper.GenerateRandomString(30),
 		FriendlyName: "Unnamed key",
 		LastUsed:     0,
 	}
-	settings.ApiKeys[newKey.Id] = newKey
-	configuration.ReleaseAndSave()
+	dataStorage.SaveApiKey(newKey, false)
 	return newKey.Id
 }
 
@@ -70,14 +67,14 @@ func changeFriendlyName(w http.ResponseWriter, request apiRequest) {
 	if request.friendlyName == "" {
 		request.friendlyName = "Unnamed key"
 	}
-	settings := configuration.GetServerSettings()
-	key := settings.ApiKeys[request.apiKeyToModify]
+	key, ok := dataStorage.GetApiKey(request.apiKeyToModify)
+	if !ok {
+		sendError(w, http.StatusInternalServerError, "Could not modify API key")
+		return
+	}
 	if key.FriendlyName != request.friendlyName {
 		key.FriendlyName = request.friendlyName
-		settings.ApiKeys[request.apiKeyToModify] = key
-		configuration.ReleaseAndSave()
-	} else {
-		configuration.Release()
+		dataStorage.SaveApiKey(key, false)
 	}
 	sendOk(w)
 }
@@ -156,13 +153,11 @@ func IsValidApiKey(key string, modifyTime bool) bool {
 	if key == "" {
 		return false
 	}
-	settings := configuration.GetServerSettings()
-	defer configuration.Release()
-	savedKey, ok := settings.ApiKeys[key]
+	savedKey, ok := dataStorage.GetApiKey(key)
 	if ok && savedKey.Id != "" {
 		if modifyTime {
 			savedKey.LastUsed = time.Now().Unix()
-			settings.ApiKeys[key] = savedKey
+			dataStorage.SaveApiKey(savedKey, true)
 		}
 		return true
 	}
