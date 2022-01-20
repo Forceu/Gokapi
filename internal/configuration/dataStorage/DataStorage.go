@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/gob"
-	"errors"
 	"fmt"
 	"git.mills.io/prologic/bitcask"
 	"log"
@@ -26,6 +25,7 @@ var database *bitcask.Bitcask
 
 func Init(dbPath string) {
 	if database == nil {
+		// TODO reduce size and limit file names for upload
 		db, err := bitcask.Open(dbPath, bitcask.WithMaxKeySize(256))
 		if err != nil {
 			log.Fatal(err)
@@ -53,16 +53,20 @@ func DeleteHotlink(id string) {
 
 func GetAllApiKeys() map[string]models.ApiKey {
 	result := make(map[string]models.ApiKey)
+	var keys []string
 	err := database.Scan([]byte(prefixApiKey), func(key []byte) error {
 		apikeyID := strings.Replace(string(key), prefixApiKey, "", 1)
-		apiKey, ok := GetApiKey(apikeyID)
-		if !ok {
-			return errors.New("getall: key does not exist")
-		}
-		result[apiKey.Id] = apiKey
+		keys = append(keys, apikeyID)
 		return nil
 	})
 	helper.Check(err)
+
+	for _, key := range keys {
+		apiKey, ok := GetApiKey(key)
+		if ok {
+			result[apiKey.Id] = apiKey
+		}
+	}
 	return result
 }
 
@@ -117,9 +121,8 @@ func DeleteSession(id string) {
 	deleteKey(prefixSessions + id)
 }
 func DeleteAllSessions() {
-	err := database.Scan([]byte(prefixSessions), func(key []byte) error {
-		deleteKey(string(key))
-		return nil
+	err := database.SiftScan([]byte(prefixSessions), func(key []byte) (bool, error) {
+		return true, nil
 	})
 	helper.Check(err)
 }
@@ -137,16 +140,22 @@ func SaveSession(id string, session models.Session, expiry time.Duration) {
 
 func GetAllFiles() map[string]models.File {
 	result := make(map[string]models.File)
+	var keys []string
 	err := database.Scan([]byte(prefixFile), func(key []byte) error {
 		fileId := strings.Replace(string(key), prefixFile, "", 1)
-		file, ok := GetMetaDataById(fileId)
-		if !ok {
-			return errors.New("getall: key does not exist")
-		}
-		result[file.Id] = file
+		keys = append(keys, fileId)
 		return nil
 	})
+
 	helper.Check(err)
+
+	for _, key := range keys {
+		file, ok := GetMetaDataById(key)
+		if ok {
+			result[file.Id] = file
+		}
+	}
+
 	return result
 }
 
