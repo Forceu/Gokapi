@@ -1,7 +1,6 @@
 package api
 
 import (
-	"Gokapi/internal/configuration"
 	"Gokapi/internal/configuration/dataStorage"
 	"Gokapi/internal/helper"
 	"Gokapi/internal/models"
@@ -91,13 +90,11 @@ func deleteFile(w http.ResponseWriter, request apiRequest) {
 func list(w http.ResponseWriter) {
 	var validFiles []models.File
 	sendOk(w)
-	settings := configuration.GetServerSettingsReadOnly()
-	for _, element := range settings.Files {
+	for _, element := range dataStorage.GetAllFiles() {
 		if element.ExpireAt > time.Now().Unix() && element.DownloadsRemaining > 0 {
 			validFiles = append(validFiles, element)
 		}
 	}
-	configuration.ReleaseReadOnly()
 	result, err := json.Marshal(validFiles)
 	helper.Check(err)
 	_, _ = w.Write(result)

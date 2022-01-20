@@ -57,11 +57,8 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 	if aws.IsAvailable() {
 		aws.AddBucketName(&file)
 	}
-	settings = configuration.GetServerSettings()
 	filename := settings.DataDir + "/" + file.SHA256
 	dataDir := settings.DataDir
-	settings.Files[id] = file
-	configuration.ReleaseAndSave()
 	if aws.IsAvailable() {
 		aws.AddBucketName(&file)
 		_, err := aws.Upload(reader, file)
@@ -89,6 +86,7 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 			return models.File{}, err
 		}
 	}
+	dataStorage.SaveMetaData(file)
 	return file, nil
 }
 
@@ -142,12 +140,15 @@ func GetFile(id string) (models.File, bool) {
 	if id == "" {
 		return emptyResult, false
 	}
-	settings := configuration.GetServerSettingsReadOnly()
-	defer configuration.ReleaseReadOnly()
-	file := settings.Files[id]
+	file, ok := dataStorage.GetMetaDataById(id)
+	if !ok {
+		return emptyResult, false
+	}
 	if file.ExpireAt < time.Now().Unix() || file.DownloadsRemaining < 1 {
 		return emptyResult, false
 	}
+	settings := configuration.GetServerSettingsReadOnly()
+	defer configuration.ReleaseReadOnly()
 	if !FileExists(file, settings.DataDir) {
 		return emptyResult, false
 	}
@@ -171,10 +172,10 @@ func GetFileByHotlink(id string) (models.File, bool) {
 // ServeFile subtracts a download allowance and serves the file to the browser
 func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDownload bool) {
 	file.DownloadsRemaining = file.DownloadsRemaining - 1
-	settings := configuration.GetServerSettings()
-	settings.Files[file.Id] = file
+	settings := configuration.GetServerSettingsReadOnly()
+	dataStorage.SaveMetaData(file)
 	dataDir := settings.DataDir
-	configuration.Release()
+	configuration.ReleaseReadOnly()
 	logging.AddDownload(&file, r)
 
 	// If file is not stored on AWS
@@ -229,11 +230,11 @@ func CleanUp(periodic bool) {
 	timeNow := time.Now().Unix()
 	wasItemDeleted := false
 	settings := configuration.GetServerSettings()
-	for key, element := range settings.Files {
+	for key, element := range dataStorage.GetAllFiles() {
 		fileExists := FileExists(element, settings.DataDir)
 		if (element.ExpireAt < timeNow || element.DownloadsRemaining < 1 || !fileExists) && !downloadstatus.IsCurrentlyDownloading(element) {
 			deleteFile := true
-			for _, secondLoopElement := range settings.Files {
+			for _, secondLoopElement := range dataStorage.GetAllFiles() {
 				if element.Id != secondLoopElement.Id && element.SHA256 == secondLoopElement.SHA256 {
 					deleteFile = false
 				}
@@ -244,7 +245,7 @@ func CleanUp(periodic bool) {
 			if element.HotlinkId != "" {
 				dataStorage.DeleteHotlink(element.HotlinkId)
 			}
-			delete(settings.Files, key)
+			dataStorage.DeleteMetaData(key)
 			wasItemDeleted = true
 		}
 	}
@@ -279,20 +280,17 @@ func DeleteFile(keyId string) bool {
 	if keyId == "" {
 		return false
 	}
-	settings := configuration.GetServerSettings()
-	item, ok := settings.Files[keyId]
+	item, ok := dataStorage.GetMetaDataById(keyId)
 	if !ok {
-		configuration.Release()
 		return false
 	}
 	item.ExpireAt = 0
-	settings.Files[keyId] = item
+	dataStorage.SaveMetaData(item)
 	for statusId, fileId := range dataStorage.GetAllDownloadStatus() {
 		if fileId == item.Id {
 			dataStorage.DeleteDownloadStatus(statusId)
 		}
 	}
-	configuration.Release()
 	CleanUp(false)
 	return true
 }

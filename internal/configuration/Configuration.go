@@ -128,7 +128,6 @@ func LoadFromSetup(config models.Configuration, cloudConfig *cloudconfig.CloudCo
 		config.DefaultDownloads = serverSettings.DefaultDownloads
 		config.DefaultExpiry = serverSettings.DefaultExpiry
 		config.DefaultPassword = serverSettings.DefaultPassword
-		config.Files = serverSettings.Files
 	}
 
 	serverSettings = config

@@ -192,14 +192,14 @@ func SaveMetaData(file models.File) {
 	enc := gob.NewEncoder(&buf)
 	err := enc.Encode(file)
 	helper.Check(err)
-	err = database.PutWithTTL([]byte(prefixFile+file.Id), buf.Bytes(), expiryToDuration(file))
+	err = database.Put([]byte(prefixFile+file.Id), buf.Bytes())
 	helper.Check(err)
 	err = database.Sync()
 	helper.Check(err)
 }
 
-func DeleteMetaData(file models.File) {
-	deleteKey(prefixFile + file.Id)
+func DeleteMetaData(id string) {
+	deleteKey(prefixFile + id)
 }
 
 func GetUploadDefaults() (int, int, string) {
