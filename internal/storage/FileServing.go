@@ -226,13 +226,12 @@ func FileExists(file models.File, dataDir string) bool {
 // Will be called periodically or after a file has been manually deleted in the admin view.
 // If parameter periodic is true, this function is recursive and calls itself every hour.
 func CleanUp(periodic bool) {
-	downloadstatus.Clean()
 	timeNow := time.Now().Unix()
 	wasItemDeleted := false
 	settings := configuration.GetServerSettings()
 	for key, element := range settings.Files {
 		fileExists := FileExists(element, settings.DataDir)
-		if (element.ExpireAt < timeNow || element.DownloadsRemaining < 1 || !fileExists) && !downloadstatus.IsCurrentlyDownloading(element, settings) {
+		if (element.ExpireAt < timeNow || element.DownloadsRemaining < 1 || !fileExists) && !downloadstatus.IsCurrentlyDownloading(element) {
 			deleteFile := true
 			for _, secondLoopElement := range settings.Files {
 				if element.Id != secondLoopElement.Id && element.SHA256 == secondLoopElement.SHA256 {
@@ -288,10 +287,9 @@ func DeleteFile(keyId string) bool {
 	}
 	item.ExpireAt = 0
 	settings.Files[keyId] = item
-	for _, status := range settings.DownloadStatus {
-		if status.FileId == item.Id {
-			status.ExpireAt = 0
-			settings.DownloadStatus[status.Id] = status
+	for statusId, fileId := range dataStorage.GetAllDownloadStatus() {
+		if fileId == item.Id {
+			dataStorage.DeleteDownloadStatus(statusId)
 		}
 	}
 	configuration.Release()

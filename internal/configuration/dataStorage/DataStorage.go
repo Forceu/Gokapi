@@ -15,9 +15,10 @@ import (
 )
 
 const prefixApiKey = "apikey:id:"
+const prefixDownloadStatus = "download:id:"
 const prefixFile = "file:id:"
-const prefixSessions = "session:id:"
 const prefixHotlink = "hotlink:id:"
+const prefixSessions = "session:id:"
 const idDefaultDownloads = "default:downloads"
 const idDefaultExpiry = "default:expiry"
 const idDefaultPassword = "default:password"
@@ -30,6 +31,38 @@ func Init(dbPath string) {
 		log.Fatal(err)
 	}
 	database = db
+}
+
+func GetDownloadStatus(id string) (string, bool) {
+	value, ok := getValue(prefixDownloadStatus + id)
+	if !ok {
+		return "", false
+	}
+	return string(value), true
+}
+
+func SaveDownloadStatus(id, fileId string) {
+	err := database.PutWithTTL([]byte(prefixDownloadStatus+id), []byte(fileId), 24*time.Hour)
+	helper.Check(err)
+}
+
+func DeleteDownloadStatus(id string) {
+	deleteKey(prefixDownloadStatus + id)
+}
+
+func GetAllDownloadStatus() map[string]string {
+	result := make(map[string]string)
+	err := database.Scan([]byte(prefixDownloadStatus), func(key []byte) error {
+		downloadId := strings.Replace(string(key), prefixDownloadStatus, "", 1)
+		fileId, ok := GetDownloadStatus(downloadId)
+		if !ok {
+			return errors.New("getall: key does not exist")
+		}
+		result[downloadId] = fileId
+		return nil
+	})
+	helper.Check(err)
+	return result
 }
 
 func GetHotlink(id string) (string, bool) {

@@ -13,7 +13,6 @@ type Configuration struct {
 	UseSsl           bool                      `json:"UseSsl"`
 	MaxFileSizeMB    int                       `json:"MaxFileSizeMB"`
 	Files            map[string]File           `json:"Files"`
-	DownloadStatus   map[string]DownloadStatus `json:"DownloadStatus"`
 	DefaultDownloads int
 	DefaultExpiry    int
 	DefaultPassword  string

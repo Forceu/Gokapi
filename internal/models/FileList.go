@@ -44,10 +44,3 @@ type Result struct {
 	Url        string `json:"Url"`
 	HotlinkUrl string `json:"HotlinkUrl"`
 }
-
-// DownloadStatus contains current downloads, so they do not get removed during cleanup
-type DownloadStatus struct {
-	Id       string
-	FileId   string
-	ExpireAt int64
-}
