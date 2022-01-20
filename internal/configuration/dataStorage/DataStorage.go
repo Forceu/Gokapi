@@ -114,6 +114,13 @@ func GetSession(id string) (models.Session, bool) {
 func DeleteSession(id string) {
 	deleteKey(prefixSessions + id)
 }
+func DeleteAllSessions() {
+	err := database.Scan([]byte(prefixSessions), func(key []byte) error {
+		deleteKey(string(key))
+		return nil
+	})
+	helper.Check(err)
+}
 
 func SaveSession(id string, session models.Session, expiry time.Duration) {
 	var buf bytes.Buffer

@@ -13,11 +13,13 @@ import (
 	log "Gokapi/internal/logging"
 	"Gokapi/internal/models"
 	"Gokapi/internal/webserver/downloadstatus"
+	"bytes"
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 )
 
@@ -72,17 +74,26 @@ func save() {
 		os.Exit(1)
 	}
 	defer file.Close()
-	encoder := json.NewEncoder(file)
-	err = encoder.Encode(&serverSettings)
+
+	configJson, err := json.MarshalIndent(serverSettings, "", "  ")
+	if err != nil {
+		fmt.Println("Error encoding configuration:", err)
+		os.Exit(1)
+	}
+	_, err = io.Copy(file, bytes.NewReader(configJson))
 	if err != nil {
 		fmt.Println("Error writing configuration:", err)
 		os.Exit(1)
 	}
 }
 
-func LoadFromSetup(config models.Configuration, cloudConfig *cloudconfig.CloudConfig) {
+func LoadFromSetup(config models.Configuration, cloudConfig *cloudconfig.CloudConfig, isInitialSetup bool) {
 	Environment = environment.New()
 	helper.CreateDir(Environment.ConfigDir)
+	if !isInitialSetup {
+		Load()
+		dataStorage.DeleteAllSessions()
+	}
 
 	serverSettings = config
 	if cloudConfig != nil {
