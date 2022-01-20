@@ -93,7 +93,7 @@ func Start() {
 		ReadTimeout:  timeOutWebserver,
 		WriteTimeout: timeOutWebserver,
 	}
-	infoMessage := "Webserver can be accessed at " + configuration.Get().ServerUrl + "admin"
+	infoMessage := "Webserver can be accessed at " + configuration.Get().ServerUrl + "admin\nPress CTRL+C to stop Gokapi"
 	if strings.Contains(configuration.Get().ServerUrl, "127.0.0.1") {
 		if configuration.Get().UseSsl {
 			infoMessage = strings.Replace(infoMessage, "http://", "https://", 1)
@@ -300,7 +300,7 @@ func deleteFile(w http.ResponseWriter, r *http.Request) {
 // Stops for 500ms to limit brute forcing if invalid key and redirects to redirectUrl
 func queryUrl(w http.ResponseWriter, r *http.Request, redirectUrl string) string {
 	keys, ok := r.URL.Query()["id"]
-	if !ok || len(keys[0]) < configuration.GetLengthId() {
+	if !ok || len(keys[0]) < configuration.Get().LengthId {
 		time.Sleep(500 * time.Millisecond)
 		redirect(w, redirectUrl)
 		return ""

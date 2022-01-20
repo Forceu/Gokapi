@@ -103,11 +103,6 @@ func LoadFromSetup(config models.Configuration, cloudConfig *cloudconfig.CloudCo
 	save()
 }
 
-// GetLengthId returns the length of the file IDs to be generated
-func GetLengthId() int {
-	return serverSettings.LengthId
-}
-
 // HashPassword hashes a string with SHA256 and a salt
 func HashPassword(password string, useFileSalt bool) string {
 	if useFileSalt {

@@ -5,6 +5,7 @@ package api
 
 import (
 	"Gokapi/internal/configuration"
+	"Gokapi/internal/configuration/dataStorage"
 	"Gokapi/internal/models"
 	"Gokapi/internal/test"
 	"Gokapi/internal/test/testconfiguration"
@@ -33,31 +34,34 @@ var newKeyId string
 
 func TestNewKey(t *testing.T) {
 	newKeyId = NewKey()
-	settings := configuration.GetServerSettings()
-	configuration.Release()
-	test.IsEqualString(t, settings.ApiKeys[newKeyId].FriendlyName, "Unnamed key")
+	key, ok := dataStorage.GetApiKey(newKeyId)
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualString(t, key.FriendlyName, "Unnamed key")
 }
 
 func TestDeleteKey(t *testing.T) {
-	settings := configuration.GetServerSettings()
-	configuration.Release()
-	test.IsEqualString(t, settings.ApiKeys[newKeyId].FriendlyName, "Unnamed key")
+	key, ok := dataStorage.GetApiKey(newKeyId)
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualString(t, key.FriendlyName, "Unnamed key")
 	result := DeleteKey(newKeyId)
-	test.IsEqualString(t, settings.ApiKeys[newKeyId].FriendlyName, "")
 	test.IsEqualBool(t, result, true)
+	_, ok = dataStorage.GetApiKey(newKeyId)
+	test.IsEqualBool(t, ok, false)
 	result = DeleteKey("invalid")
 	test.IsEqualBool(t, result, false)
 }
 
 func TestIsValidApiKey(t *testing.T) {
-	settings := configuration.GetServerSettings()
-	configuration.Release()
 	test.IsEqualBool(t, IsValidApiKey("", false), false)
 	test.IsEqualBool(t, IsValidApiKey("invalid", false), false)
 	test.IsEqualBool(t, IsValidApiKey("validkey", false), true)
-	test.IsEqualBool(t, settings.ApiKeys["validkey"].LastUsed == 0, true)
+	key, ok := dataStorage.GetApiKey("validkey")
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualBool(t, key.LastUsed == 0, true)
 	test.IsEqualBool(t, IsValidApiKey("validkey", true), true)
-	test.IsEqualBool(t, settings.ApiKeys["validkey"].LastUsed == 0, false)
+	key, ok = dataStorage.GetApiKey("validkey")
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualBool(t, key.LastUsed == 0, false)
 }
 
 func TestProcess(t *testing.T) {
@@ -85,18 +89,14 @@ func TestAuthDisabledLogin(t *testing.T) {
 	w, r := test.GetRecorder("GET", "/api/auth/friendlyname", nil, nil, nil)
 	Process(w, r, maxMemory)
 	test.ResponseBodyContains(t, w, "{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}")
-	settings := configuration.GetServerSettings()
-	settings.Authentication.Method = authentication.Disabled
-	configuration.Release()
+	configuration.Get().Authentication.Method = authentication.Disabled
 	w, r = test.GetRecorder("GET", "/api/auth/friendlyname", nil, nil, nil)
 	Process(w, r, maxMemory)
 	test.ResponseBodyContains(t, w, "{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}")
-	settings.Authentication.Method = authentication.Internal
+	configuration.Get().Authentication.Method = authentication.Internal
 }
 
 func TestChangeFriendlyName(t *testing.T) {
-	settings := configuration.GetServerSettings()
-	configuration.Release()
 	w, r := test.GetRecorder("GET", "/api/auth/friendlyname", nil, []test.Header{{
 		Name:  "apikey",
 		Value: "validkey",
@@ -108,22 +108,25 @@ func TestChangeFriendlyName(t *testing.T) {
 		Name: "apiKeyToModify", Value: "validkey"}}, nil)
 	Process(w, r, maxMemory)
 	test.IsEqualInt(t, w.Code, 200)
-	test.IsEqualString(t, settings.ApiKeys["validkey"].FriendlyName, "Unnamed key")
+
+	key, ok := dataStorage.GetApiKey("validkey")
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualString(t, key.FriendlyName, "Unnamed key")
 	w, r = test.GetRecorder("GET", "/api/auth/friendlyname", nil, []test.Header{{
 		Name: "apikey", Value: "validkey"}, {
 		Name: "apiKeyToModify", Value: "validkey"}, {
 		Name: "friendlyName", Value: "NewName"}}, nil)
 	Process(w, r, maxMemory)
 	test.IsEqualInt(t, w.Code, 200)
-	test.IsEqualString(t, settings.ApiKeys["validkey"].FriendlyName, "NewName")
+	key, ok = dataStorage.GetApiKey("validkey")
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualString(t, key.FriendlyName, "NewName")
 	w = httptest.NewRecorder()
 	Process(w, r, maxMemory)
 	test.IsEqualInt(t, w.Code, 200)
 }
 
 func TestDeleteFile(t *testing.T) {
-	settings := configuration.GetServerSettings()
-	configuration.Release()
 	w, r := test.GetRecorder("GET", "/api/files/delete", nil, []test.Header{{
 		Name:  "apikey",
 		Value: "validkey",
@@ -140,7 +143,9 @@ func TestDeleteFile(t *testing.T) {
 	}, nil)
 	Process(w, r, maxMemory)
 	test.ResponseBodyContains(t, w, "Invalid id provided.")
-	test.IsEqualString(t, settings.Files["jpLXGJKigM4hjtA6T6sN2"].Id, "jpLXGJKigM4hjtA6T6sN2")
+	file, ok := dataStorage.GetMetaDataById("jpLXGJKigM4hjtA6T6sN2")
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualString(t, file.Id, "jpLXGJKigM4hjtA6T6sN2")
 	w, r = test.GetRecorder("GET", "/api/files/delete", nil, []test.Header{{
 		Name:  "apikey",
 		Value: "validkey",
@@ -151,7 +156,8 @@ func TestDeleteFile(t *testing.T) {
 	}, nil)
 	Process(w, r, maxMemory)
 	test.IsEqualInt(t, w.Code, 200)
-	test.IsEqualString(t, settings.Files["jpLXGJKigM4hjtA6T6sN2"].Id, "")
+	_, ok = dataStorage.GetMetaDataById("jpLXGJKigM4hjtA6T6sN2")
+	test.IsEqualBool(t, ok, false)
 }
 
 func TestUpload(t *testing.T) {

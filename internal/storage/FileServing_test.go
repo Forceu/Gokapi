@@ -6,6 +6,7 @@ package storage
 import (
 	"Gokapi/internal/configuration"
 	"Gokapi/internal/configuration/cloudconfig"
+	"Gokapi/internal/configuration/dataStorage"
 	"Gokapi/internal/models"
 	"Gokapi/internal/storage/cloudstorage/aws"
 	"Gokapi/internal/test"
@@ -73,10 +74,9 @@ func TestAddHotlink(t *testing.T) {
 	test.IsEqualInt(t, len(file.HotlinkId), 44)
 	lastCharacters := file.HotlinkId[len(file.HotlinkId)-4:]
 	test.IsEqualBool(t, lastCharacters == ".jpg", true)
-	settings := configuration.GetServerSettings()
-	test.IsEqualString(t, settings.Hotlinks[file.HotlinkId].FileId, "testId")
-	test.IsEqualString(t, settings.Hotlinks[file.HotlinkId].Id, file.HotlinkId)
-	configuration.Release()
+	link, ok := dataStorage.GetHotlink(file.HotlinkId)
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualString(t, link, "testId")
 }
 
 func TestNewFile(t *testing.T) {
@@ -142,7 +142,7 @@ func TestNewFile(t *testing.T) {
 	bigFile.Close()
 	os.Remove("bigfile")
 
-	createBigFile("bigfile", 30)
+	createBigFile("bigfile", 50)
 	bigFile, _ = os.Open("bigfile")
 	mimeHeader = make(textproto.MIMEHeader)
 	mimeHeader.Set("Content-Disposition", "form-data; name=\"file\"; filename=\"bigfile\"")
@@ -150,7 +150,7 @@ func TestNewFile(t *testing.T) {
 	header = multipart.FileHeader{
 		Filename: "bigfile",
 		Header:   mimeHeader,
-		Size:     int64(30) * 1024 * 1024,
+		Size:     int64(50) * 1024 * 1024,
 	}
 	request = models.UploadRequest{
 		AllowedDownloads: 1,
@@ -228,69 +228,78 @@ func TestServeFile(t *testing.T) {
 }
 
 func TestCleanUp(t *testing.T) {
-	settings := configuration.GetServerSettings()
-	configuration.Release()
-	test.IsEqualString(t, settings.Files["cleanuptest123456789"].Name, "cleanup")
-	test.IsEqualString(t, settings.Files["Wzol7LyY2QVczXynJtVo"].Name, "smallfile2")
-	test.IsEqualString(t, settings.Files["e4TjE7CokWK0giiLNxDL"].Name, "smallfile2")
-	test.IsEqualString(t, settings.Files["wefffewhtrhhtrhtrhtr"].Name, "smallfile3")
-	test.IsEqualString(t, settings.Files["n1tSTAGj8zan9KaT4u6p"].Name, "picture.jpg")
-	test.IsEqualString(t, settings.Files["deletedfile123456789"].Name, "DeletedFile")
+	files := dataStorage.GetAllFiles()
+	test.IsEqualString(t, files["cleanuptest123456789"].Name, "cleanup")
+	test.IsEqualString(t, files["Wzol7LyY2QVczXynJtVo"].Name, "smallfile2")
+	test.IsEqualString(t, files["e4TjE7CokWK0giiLNxDL"].Name, "smallfile2")
+	test.IsEqualString(t, files["wefffewhtrhhtrhtrhtr"].Name, "smallfile3")
+	test.IsEqualString(t, files["n1tSTAGj8zan9KaT4u6p"].Name, "picture.jpg")
+	test.IsEqualString(t, files["deletedfile123456789"].Name, "DeletedFile")
 	test.FileExists(t, "test/data/2341354656543213246465465465432456898794")
 
 	CleanUp(false)
-	test.IsEqualString(t, settings.Files["cleanuptest123456789"].Name, "cleanup")
+	files = dataStorage.GetAllFiles()
+	test.IsEqualString(t, files["cleanuptest123456789"].Name, "cleanup")
 	test.FileExists(t, "test/data/2341354656543213246465465465432456898794")
-	test.IsEqualString(t, settings.Files["deletedfile123456789"].Name, "")
-	test.IsEqualString(t, settings.Files["Wzol7LyY2QVczXynJtVo"].Name, "smallfile2")
-	test.IsEqualString(t, settings.Files["e4TjE7CokWK0giiLNxDL"].Name, "smallfile2")
-	test.IsEqualString(t, settings.Files["wefffewhtrhhtrhtrhtr"].Name, "smallfile3")
-	test.IsEqualString(t, settings.Files["n1tSTAGj8zan9KaT4u6p"].Name, "picture.jpg")
+	test.IsEqualString(t, files["deletedfile123456789"].Name, "")
+	test.IsEqualString(t, files["Wzol7LyY2QVczXynJtVo"].Name, "smallfile2")
+	test.IsEqualString(t, files["e4TjE7CokWK0giiLNxDL"].Name, "smallfile2")
+	test.IsEqualString(t, files["wefffewhtrhhtrhtrhtr"].Name, "smallfile3")
+	test.IsEqualString(t, files["n1tSTAGj8zan9KaT4u6p"].Name, "picture.jpg")
 
 	file, _ := GetFile("n1tSTAGj8zan9KaT4u6p")
 	file.DownloadsRemaining = 0
-	settings.Files["n1tSTAGj8zan9KaT4u6p"] = file
+	dataStorage.SaveMetaData(file)
+	files = dataStorage.GetAllFiles()
 
 	CleanUp(false)
+	files = dataStorage.GetAllFiles()
 	test.FileDoesNotExist(t, "test/data/a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd0")
-	test.IsEqualString(t, settings.Files["n1tSTAGj8zan9KaT4u6p"].Name, "")
-	test.IsEqualString(t, settings.Files["deletedfile123456789"].Name, "")
-	test.IsEqualString(t, settings.Files["Wzol7LyY2QVczXynJtVo"].Name, "smallfile2")
-	test.IsEqualString(t, settings.Files["e4TjE7CokWK0giiLNxDL"].Name, "smallfile2")
-	test.IsEqualString(t, settings.Files["wefffewhtrhhtrhtrhtr"].Name, "smallfile3")
+	test.IsEqualString(t, files["n1tSTAGj8zan9KaT4u6p"].Name, "")
+	test.IsEqualString(t, files["deletedfile123456789"].Name, "")
+	test.IsEqualString(t, files["Wzol7LyY2QVczXynJtVo"].Name, "smallfile2")
+	test.IsEqualString(t, files["e4TjE7CokWK0giiLNxDL"].Name, "smallfile2")
+	test.IsEqualString(t, files["wefffewhtrhhtrhtrhtr"].Name, "smallfile3")
 
 	file, _ = GetFile("Wzol7LyY2QVczXynJtVo")
 	file.DownloadsRemaining = 0
-	settings.Files["Wzol7LyY2QVczXynJtVo"] = file
+	dataStorage.SaveMetaData(file)
 
 	CleanUp(false)
+	files = dataStorage.GetAllFiles()
 	test.FileExists(t, "test/data/e017693e4a04a59d0b0f400fe98177fe7ee13cf7")
-	test.IsEqualString(t, settings.Files["Wzol7LyY2QVczXynJtVo"].Name, "")
-	test.IsEqualString(t, settings.Files["n1tSTAGj8zan9KaT4u6p"].Name, "")
-	test.IsEqualString(t, settings.Files["deletedfile123456789"].Name, "")
-	test.IsEqualString(t, settings.Files["e4TjE7CokWK0giiLNxDL"].Name, "smallfile2")
-	test.IsEqualString(t, settings.Files["wefffewhtrhhtrhtrhtr"].Name, "smallfile3")
+	test.IsEqualString(t, files["Wzol7LyY2QVczXynJtVo"].Name, "")
+	test.IsEqualString(t, files["n1tSTAGj8zan9KaT4u6p"].Name, "")
+	test.IsEqualString(t, files["deletedfile123456789"].Name, "")
+	test.IsEqualString(t, files["e4TjE7CokWK0giiLNxDL"].Name, "smallfile2")
+	test.IsEqualString(t, files["wefffewhtrhhtrhtrhtr"].Name, "smallfile3")
 
 	file, _ = GetFile("e4TjE7CokWK0giiLNxDL")
 	file.DownloadsRemaining = 0
-	settings.Files["e4TjE7CokWK0giiLNxDL"] = file
+	dataStorage.SaveMetaData(file)
 	file, _ = GetFile("wefffewhtrhhtrhtrhtr")
 	file.DownloadsRemaining = 0
-	settings.Files["wefffewhtrhhtrhtrhtr"] = file
+	dataStorage.SaveMetaData(file)
 
 	CleanUp(false)
+	files = dataStorage.GetAllFiles()
 	test.FileDoesNotExist(t, "test/data/e017693e4a04a59d0b0f400fe98177fe7ee13cf7")
-	test.IsEqualString(t, settings.Files["Wzol7LyY2QVczXynJtVo"].Name, "")
-	test.IsEqualString(t, settings.Files["n1tSTAGj8zan9KaT4u6p"].Name, "")
-	test.IsEqualString(t, settings.Files["deletedfile123456789"].Name, "")
-	test.IsEqualString(t, settings.Files["e4TjE7CokWK0giiLNxDL"].Name, "")
-	test.IsEqualString(t, settings.Files["wefffewhtrhhtrhtrhtr"].Name, "")
+	test.IsEqualString(t, files["Wzol7LyY2QVczXynJtVo"].Name, "")
+	test.IsEqualString(t, files["n1tSTAGj8zan9KaT4u6p"].Name, "")
+	test.IsEqualString(t, files["deletedfile123456789"].Name, "")
+	test.IsEqualString(t, files["e4TjE7CokWK0giiLNxDL"].Name, "")
+	test.IsEqualString(t, files["wefffewhtrhhtrhtrhtr"].Name, "")
 
-	test.IsEqualString(t, settings.Files["cleanuptest123456789"].Name, "cleanup")
+	test.IsEqualString(t, files["cleanuptest123456789"].Name, "cleanup")
 	test.FileExists(t, "test/data/2341354656543213246465465465432456898794")
-	settings.DownloadStatus = make(map[string]models.DownloadStatus)
+
+	// TODO delete all download status
+	for key,_ := range dataStorage.GetAllDownloadStatus() {
+		dataStorage.DeleteDownloadStatus(key)
+	}
 	CleanUp(false)
-	test.IsEqualString(t, settings.Files["cleanuptest123456789"].Name, "")
+	files = dataStorage.GetAllFiles()
+	test.IsEqualString(t, files["cleanuptest123456789"].Name, "")
 	test.FileDoesNotExist(t, "test/data/2341354656543213246465465465432456898794")
 
 	if aws.IsIncludedInBuild {
@@ -299,7 +308,7 @@ func TestCleanUp(t *testing.T) {
 		test.IsEqualBool(t, ok, true)
 		ok = aws.Init(config.Aws)
 		test.IsEqualBool(t, ok, true)
-		test.IsEqualString(t, settings.Files["awsTest1234567890123"].Name, "Aws Test File")
+		test.IsEqualString(t, files["awsTest1234567890123"].Name, "Aws Test File")
 		testconfiguration.DisableS3()
 	}
 }
@@ -307,13 +316,13 @@ func TestCleanUp(t *testing.T) {
 func TestDeleteFile(t *testing.T) {
 	testconfiguration.Create(true)
 	configuration.Load()
-	settings := configuration.GetServerSettings()
-	configuration.Release()
-	test.IsEqualString(t, settings.Files["n1tSTAGj8zan9KaT4u6p"].Name, "picture.jpg")
+	files := dataStorage.GetAllFiles()
+	test.IsEqualString(t, files["n1tSTAGj8zan9KaT4u6p"].Name, "picture.jpg")
 	test.FileExists(t, "test/data/a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd0")
 	result := DeleteFile("n1tSTAGj8zan9KaT4u6p")
 	test.IsEqualBool(t, result, true)
-	test.IsEqualString(t, settings.Files["n1tSTAGj8zan9KaT4u6p"].Name, "")
+	files = dataStorage.GetAllFiles()
+	test.IsEqualString(t, files["n1tSTAGj8zan9KaT4u6p"].Name, "")
 	test.FileDoesNotExist(t, "test/data/a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd0")
 	result = DeleteFile("invalid")
 	test.IsEqualBool(t, result, false)
@@ -333,8 +342,9 @@ func TestDeleteFile(t *testing.T) {
 			SHA256:    "x341354656543213246465465465432456898794",
 			AwsBucket: "gokapi-test",
 		}
-		settings.Files["awsTest1234567890123"] = awsFile
-		result, err := aws.FileExists(settings.Files["awsTest1234567890123"])
+		dataStorage.SaveMetaData(awsFile)
+		files = dataStorage.GetAllFiles()
+		result, err := aws.FileExists(files["awsTest1234567890123"])
 		test.IsEqualBool(t, result, true)
 		test.IsNil(t, err)
 		DeleteFile("awsTest1234567890123")

@@ -237,7 +237,11 @@ func SaveUploadDefaults(downloads, expiry int, password string) {
 
 func Close() {
 	if database != nil {
-		err := database.Close()
+		err := database.Sync()
+		if err != nil {
+			fmt.Println(err)
+		}
+		err = database.Close()
 		if err != nil {
 			fmt.Println(err)
 		}

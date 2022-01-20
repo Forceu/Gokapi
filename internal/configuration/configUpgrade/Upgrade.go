@@ -10,7 +10,7 @@ import (
 )
 
 // CurrentConfigVersion is the version of the configuration structure. Used for upgrading
-const CurrentConfigVersion = 10
+const CurrentConfigVersion = 11
 
 func DoUpgrade(settings *models.Configuration, env *environment.Environment) bool {
 	if settings.ConfigVersion < CurrentConfigVersion {
@@ -38,7 +38,7 @@ func updateConfig(settings *models.Configuration, env *environment.Environment) 
 	if settings.ConfigVersion < 8 {
 		settings.MaxFileSizeMB = env.MaxFileSize
 	}
-	// < v1.5.0
+	// < v1.5.0-dev
 	if settings.ConfigVersion < 10 {
 		settings.Authentication.Method = 0 // authentication.AuthenticationInternal
 		settings.Authentication.HeaderUsers = []string{}
@@ -52,6 +52,10 @@ func updateConfig(settings *models.Configuration, env *environment.Environment) 
 		if legacyConfig.SaltFiles != "" {
 			settings.Authentication.SaltFiles = legacyConfig.SaltFiles
 		}
+	}
+	// < v1.5.0
+	if settings.ConfigVersion < 11 {
+		// TODO
 	}
 }
 

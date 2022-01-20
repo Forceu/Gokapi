@@ -32,7 +32,7 @@ import (
 // already exists, it is deduplicated. This function gathers information about the file, creates an ID and saves
 // it into the global configuration.
 func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequest models.UploadRequest) (models.File, error) {
-	id := helper.GenerateRandomString(configuration.GetLengthId())
+	id := helper.GenerateRandomString(configuration.Get().LengthId)
 	if fileHeader.Size > int64(configuration.Get().MaxFileSizeMB)*1024*1024 {
 		return models.File{}, errors.New("upload limit exceeded")
 	}

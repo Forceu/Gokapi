@@ -11,7 +11,6 @@ import (
 	"Gokapi/internal/test/testconfiguration"
 	"os"
 	"testing"
-	"time"
 )
 
 func TestMain(m *testing.M) {
@@ -31,33 +30,10 @@ func TestLoad(t *testing.T) {
 	test.IsEqualString(t, serverSettings.Authentication.Password, "10340aece68aa4fb14507ae45b05506026f276cf")
 	test.IsEqualString(t, HashPassword("testtest", false), "10340aece68aa4fb14507ae45b05506026f276cf")
 	test.IsEqualBool(t, serverSettings.UseSsl, false)
-	test.IsEqualInt(t, GetLengthId(), 20)
-	settings := GetServerSettings()
-	Release()
-	test.IsEqualInt(t, settings.LengthId, 20)
+	test.IsEqualInt(t,serverSettings.LengthId, 20)
+	test.IsEqualInt(t, Get().LengthId, 20)
 }
 
-func TestMutexSession(t *testing.T) {
-	finished := make(chan bool)
-	oldValue := serverSettings.ConfigVersion
-	go func() {
-		time.Sleep(100 * time.Millisecond)
-		Lock()
-		test.IsEqualInt(t, serverSettings.ConfigVersion, -9)
-		serverSettings.ConfigVersion = oldValue
-		ReleaseAndSave()
-		test.IsEqualInt(t, serverSettings.ConfigVersion, oldValue)
-		finished <- true
-	}()
-	Lock()
-	serverSettings.ConfigVersion = -9
-	time.Sleep(150 * time.Millisecond)
-	test.IsEqualInt(t, serverSettings.ConfigVersion, -9)
-	Release()
-	<-finished
-	GetServerSettingsReadOnly()
-	ReleaseReadOnly()
-}
 
 func TestUpgradeDb(t *testing.T) {
 	testconfiguration.WriteUpgradeConfigFileV0()
