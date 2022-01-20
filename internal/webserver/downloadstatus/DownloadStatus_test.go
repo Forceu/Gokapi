@@ -69,3 +69,7 @@ func TestClean(t *testing.T) {
 	Clean()
 	test.IsEqualInt(t, len(status), 0)
 }
+
+func TestGetAll(t *testing.T) {
+	test.IsEqualInt(t, len(GetAll()), len(status))
+}
