@@ -10,15 +10,10 @@ import (
 )
 
 var oldConfigFile = models.Configuration{
-	Authentication:   models.AuthenticationConfig{},
-	Port:             "127.0.0.1:53844",
-	ServerUrl:        "https://gokapi.url/",
-	DefaultDownloads: 1,
-	DefaultExpiry:    14,
-	DefaultPassword:  "123",
-	RedirectUrl:      "https://github.com/Forceu/Gokapi/",
-	Sessions:         make(map[string]models.Session),
-	Files:            make(map[string]models.File),
+	Authentication: models.AuthenticationConfig{},
+	Port:           "127.0.0.1:53844",
+	ServerUrl:      "https://gokapi.url/",
+	RedirectUrl:    "https://github.com/Forceu/Gokapi/",
 }
 
 func TestMain(m *testing.M) {
@@ -31,9 +26,6 @@ func TestMain(m *testing.M) {
 func TestUpgradeDb(t *testing.T) {
 	testconfiguration.WriteUpgradeConfigFileV0()
 	os.Setenv("GOKAPI_MAX_FILESIZE", "5")
-	oldConfigFile.Files["MgXJLe4XLfpXcL12ec4i"] = models.File{
-		Id: "MgXJLe4XLfpXcL12ec4i",
-	}
 
 	env := environment.New()
 	bufferConfig := oldConfigFile
@@ -49,10 +41,6 @@ func TestUpgradeDb(t *testing.T) {
 	test.IsEqualString(t, firstUpgrade.Authentication.SaltFiles, "P1UI5sRNDwuBgOvOYhNsmucZ2pqo4KEvOoqqbpdu")
 	test.IsEqualString(t, firstUpgrade.DataDir, env.DataDir)
 	test.IsEqualInt(t, firstUpgrade.LengthId, 15)
-	test.IsEqualBool(t, firstUpgrade.Hotlinks == nil, false)
-	test.IsEqualBool(t, firstUpgrade.Sessions == nil, false)
-	test.IsEqualBool(t, firstUpgrade.DownloadStatus == nil, false)
-	test.IsEqualString(t, firstUpgrade.Files["MgXJLe4XLfpXcL12ec4i"].ContentType, "application/octet-stream")
 	test.IsEqualInt(t, firstUpgrade.ConfigVersion, CurrentConfigVersion)
 	test.IsEqualInt(t, firstUpgrade.MaxFileSizeMB, 5)
 	test.IsEqualInt(t, firstUpgrade.Authentication.Method, 0)

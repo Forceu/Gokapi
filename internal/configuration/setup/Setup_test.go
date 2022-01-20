@@ -46,24 +46,16 @@ func TestInputToJson(t *testing.T) {
 }
 
 var config = models.Configuration{
-	Authentication:   models.AuthenticationConfig{},
-	Port:             "",
-	ServerUrl:        "",
-	DefaultDownloads: 0,
-	DefaultExpiry:    0,
-	DefaultPassword:  "",
-	RedirectUrl:      "",
-	Sessions:         nil,
-	Files:            nil,
-	Hotlinks:         nil,
-	DownloadStatus:   nil,
-	ApiKeys:          nil,
-	ConfigVersion:    0,
-	LengthId:         0,
-	DataDir:          "",
-	MaxMemory:        0,
-	UseSsl:           false,
-	MaxFileSizeMB:    0,
+	Authentication: models.AuthenticationConfig{},
+	Port:           "",
+	ServerUrl:      "",
+	RedirectUrl:    "",
+	ConfigVersion:  0,
+	LengthId:       0,
+	DataDir:        "",
+	MaxMemory:      0,
+	UseSsl:         false,
+	MaxFileSizeMB:  0,
 }
 
 func TestToConfiguration(t *testing.T) {
@@ -211,8 +203,7 @@ func TestIntegration(t *testing.T) {
 
 	time.Sleep(2 * time.Second)
 	test.FileExists(t, "test/config.json")
-	settings := configuration.GetServerSettingsReadOnly()
-	configuration.ReleaseReadOnly()
+	settings := configuration.Get()
 	test.IsEqualInt(t, settings.Authentication.Method, 0)
 	test.IsEqualString(t, settings.Authentication.Username, "admin")
 	test.IsEqualString(t, settings.Authentication.OauthProvider, "")
@@ -284,8 +275,7 @@ func TestIntegration(t *testing.T) {
 
 	time.Sleep(2 * time.Second)
 	test.FileExists(t, "test/config.json")
-	settings = configuration.GetServerSettingsReadOnly()
-	configuration.ReleaseReadOnly()
+	settings = configuration.Get()
 	test.IsEqualInt(t, settings.Authentication.Method, 2)
 	test.IsEqualString(t, settings.Authentication.Username, "")
 	test.IsEqualString(t, settings.Authentication.OauthProvider, "")

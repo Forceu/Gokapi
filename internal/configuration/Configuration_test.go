@@ -30,10 +30,9 @@ func TestLoad(t *testing.T) {
 	test.IsEqualString(t, serverSettings.Authentication.Password, "10340aece68aa4fb14507ae45b05506026f276cf")
 	test.IsEqualString(t, HashPassword("testtest", false), "10340aece68aa4fb14507ae45b05506026f276cf")
 	test.IsEqualBool(t, serverSettings.UseSsl, false)
-	test.IsEqualInt(t,serverSettings.LengthId, 20)
+	test.IsEqualInt(t, serverSettings.LengthId, 20)
 	test.IsEqualInt(t, Get().LengthId, 20)
 }
-
 
 func TestUpgradeDb(t *testing.T) {
 	testconfiguration.WriteUpgradeConfigFileV0()
@@ -44,16 +43,13 @@ func TestUpgradeDb(t *testing.T) {
 	test.IsEqualString(t, serverSettings.Authentication.SaltFiles, "P1UI5sRNDwuBgOvOYhNsmucZ2pqo4KEvOoqqbpdu")
 	test.IsEqualString(t, serverSettings.DataDir, Environment.DataDir)
 	test.IsEqualInt(t, serverSettings.LengthId, 15)
-	test.IsEqualBool(t, serverSettings.Hotlinks == nil, false)
-	test.IsEqualBool(t, serverSettings.Sessions == nil, false)
-	test.IsEqualBool(t, serverSettings.DownloadStatus == nil, false)
-	test.IsEqualString(t, serverSettings.Files["MgXJLe4XLfpXcL12ec4i"].ContentType, "application/octet-stream")
 	test.IsEqualInt(t, serverSettings.ConfigVersion, configUpgrade.CurrentConfigVersion)
 	test.IsEqualBool(t, serverSettings.UseSsl, false)
 	test.IsEqualInt(t, serverSettings.MaxFileSizeMB, 5)
 	os.Unsetenv("GOKAPI_USE_SSL")
 	os.Unsetenv("GOKAPI_MAX_FILESIZE")
 	testconfiguration.Create(false)
+	// TODO write tests for db migrationF
 	Load()
 }
 func TestHashPassword(t *testing.T) {
@@ -93,7 +89,6 @@ func TestLoadFromSetup(t *testing.T) {
 	testconfiguration.WriteCloudConfigFile(true)
 	LoadFromSetup(newConfig, nil)
 	test.FileDoesNotExist(t, "test/cloudconfig.yml")
-	test.IsEqualBool(t, serverSettings.Files != nil, true)
 	test.IsEqualString(t, serverSettings.RedirectUrl, "redirect")
 
 	LoadFromSetup(newConfig, &newCloudConfig)
