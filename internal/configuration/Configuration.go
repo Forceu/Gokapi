@@ -8,6 +8,7 @@ import (
 	"Gokapi/internal/configuration/cloudconfig"
 	"Gokapi/internal/configuration/configUpgrade"
 	"Gokapi/internal/configuration/dataStorage"
+	"Gokapi/internal/configuration/downloadstatus"
 	"Gokapi/internal/environment"
 	"Gokapi/internal/helper"
 	log "Gokapi/internal/logging"
@@ -54,6 +55,7 @@ func Load() {
 	}
 	helper.CreateDir(serverSettings.DataDir)
 	dataStorage.Init(Environment.FileDbPath)
+	downloadstatus.Init()
 	log.Init(Environment.ConfigDir)
 }
 

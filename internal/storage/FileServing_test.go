@@ -7,6 +7,7 @@ import (
 	"Gokapi/internal/configuration"
 	"Gokapi/internal/configuration/cloudconfig"
 	"Gokapi/internal/configuration/dataStorage"
+	"Gokapi/internal/configuration/downloadstatus"
 	"Gokapi/internal/models"
 	"Gokapi/internal/storage/cloudstorage/aws"
 	"Gokapi/internal/test"
@@ -293,10 +294,8 @@ func TestCleanUp(t *testing.T) {
 	test.IsEqualString(t, files["cleanuptest123456789"].Name, "cleanup")
 	test.FileExists(t, "test/data/2341354656543213246465465465432456898794")
 
-	// TODO delete all download status
-	for key,_ := range dataStorage.GetAllDownloadStatus() {
-		dataStorage.DeleteDownloadStatus(key)
-	}
+
+	downloadstatus.Init()
 	CleanUp(false)
 	files = dataStorage.GetAllFiles()
 	test.IsEqualString(t, files["cleanuptest123456789"].Name, "")

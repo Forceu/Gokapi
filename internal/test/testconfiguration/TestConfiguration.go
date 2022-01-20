@@ -37,7 +37,6 @@ func Create(initFiles bool) {
 	dataStorage.SaveUploadDefaults(3, 20, "123")
 	writeTestFiles()
 	dataStorage.SaveHotlink("PhSs6mFtf8O5YGlLMfNw9rYXx9XRNkzCnJZpQBi7inunv3Z4A.jpg", models.File{Id: "n1tSTAGj8zan9KaT4u6p"})
-	dataStorage.SaveDownloadStatus("teststatus", "n1tSTAGj8zan9KaT4u6p")
 	writeApiKeyys()
 	dataStorage.Close()
 
