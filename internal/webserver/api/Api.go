@@ -90,7 +90,7 @@ func deleteFile(w http.ResponseWriter, request apiRequest) {
 func list(w http.ResponseWriter) {
 	var validFiles []models.File
 	sendOk(w)
-	for _, element := range dataStorage.GetAllFiles() {
+	for _, element := range dataStorage.GetAllMetadata() {
 		if element.ExpireAt > time.Now().Unix() && element.DownloadsRemaining > 0 {
 			validFiles = append(validFiles, element)
 		}

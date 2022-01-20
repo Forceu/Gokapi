@@ -230,7 +230,7 @@ func TestServeFile(t *testing.T) {
 }
 
 func TestCleanUp(t *testing.T) {
-	files := dataStorage.GetAllFiles()
+	files := dataStorage.GetAllMetadata()
 	downloadstatus.Init()
 	downloadstatus.SetDownload(files["cleanuptest123456789"])
 
@@ -243,7 +243,7 @@ func TestCleanUp(t *testing.T) {
 	test.FileExists(t, "test/data/2341354656543213246465465465432456898794")
 
 	CleanUp(false)
-	files = dataStorage.GetAllFiles()
+	files = dataStorage.GetAllMetadata()
 	test.IsEqualString(t, files["cleanuptest123456789"].Name, "cleanup")
 	test.FileExists(t, "test/data/2341354656543213246465465465432456898794")
 	test.IsEqualString(t, files["deletedfile123456789"].Name, "")
@@ -255,10 +255,10 @@ func TestCleanUp(t *testing.T) {
 	file, _ := GetFile("n1tSTAGj8zan9KaT4u6p")
 	file.DownloadsRemaining = 0
 	dataStorage.SaveMetaData(file)
-	files = dataStorage.GetAllFiles()
+	files = dataStorage.GetAllMetadata()
 
 	CleanUp(false)
-	files = dataStorage.GetAllFiles()
+	files = dataStorage.GetAllMetadata()
 	test.FileDoesNotExist(t, "test/data/a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd0")
 	test.IsEqualString(t, files["n1tSTAGj8zan9KaT4u6p"].Name, "")
 	test.IsEqualString(t, files["deletedfile123456789"].Name, "")
@@ -271,7 +271,7 @@ func TestCleanUp(t *testing.T) {
 	dataStorage.SaveMetaData(file)
 
 	CleanUp(false)
-	files = dataStorage.GetAllFiles()
+	files = dataStorage.GetAllMetadata()
 	test.FileExists(t, "test/data/e017693e4a04a59d0b0f400fe98177fe7ee13cf7")
 	test.IsEqualString(t, files["Wzol7LyY2QVczXynJtVo"].Name, "")
 	test.IsEqualString(t, files["n1tSTAGj8zan9KaT4u6p"].Name, "")
@@ -287,7 +287,7 @@ func TestCleanUp(t *testing.T) {
 	dataStorage.SaveMetaData(file)
 
 	CleanUp(false)
-	files = dataStorage.GetAllFiles()
+	files = dataStorage.GetAllMetadata()
 	test.FileDoesNotExist(t, "test/data/e017693e4a04a59d0b0f400fe98177fe7ee13cf7")
 	test.IsEqualString(t, files["Wzol7LyY2QVczXynJtVo"].Name, "")
 	test.IsEqualString(t, files["n1tSTAGj8zan9KaT4u6p"].Name, "")
@@ -300,7 +300,7 @@ func TestCleanUp(t *testing.T) {
 
 	downloadstatus.Init()
 	CleanUp(false)
-	files = dataStorage.GetAllFiles()
+	files = dataStorage.GetAllMetadata()
 	test.IsEqualString(t, files["cleanuptest123456789"].Name, "")
 	test.FileDoesNotExist(t, "test/data/2341354656543213246465465465432456898794")
 
@@ -318,12 +318,12 @@ func TestCleanUp(t *testing.T) {
 func TestDeleteFile(t *testing.T) {
 	testconfiguration.Create(true)
 	configuration.Load()
-	files := dataStorage.GetAllFiles()
+	files := dataStorage.GetAllMetadata()
 	test.IsEqualString(t, files["n1tSTAGj8zan9KaT4u6p"].Name, "picture.jpg")
 	test.FileExists(t, "test/data/a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd0")
 	result := DeleteFile("n1tSTAGj8zan9KaT4u6p")
 	test.IsEqualBool(t, result, true)
-	files = dataStorage.GetAllFiles()
+	files = dataStorage.GetAllMetadata()
 	test.IsEqualString(t, files["n1tSTAGj8zan9KaT4u6p"].Name, "")
 	test.FileDoesNotExist(t, "test/data/a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd0")
 	result = DeleteFile("invalid")
@@ -345,7 +345,7 @@ func TestDeleteFile(t *testing.T) {
 			AwsBucket: "gokapi-test",
 		}
 		dataStorage.SaveMetaData(awsFile)
-		files = dataStorage.GetAllFiles()
+		files = dataStorage.GetAllMetadata()
 		result, err := aws.FileExists(files["awsTest1234567890123"])
 		test.IsEqualBool(t, result, true)
 		test.IsNil(t, err)

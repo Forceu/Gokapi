@@ -347,7 +347,7 @@ func (u *UploadView) convertGlobalConfig(isMainView bool) *UploadView {
 	var result []models.File
 	var resultApi []models.ApiKey
 	if isMainView {
-		for _, element := range dataStorage.GetAllFiles() {
+		for _, element := range dataStorage.GetAllMetadata() {
 			result = append(result, element)
 		}
 		sort.Slice(result[:], func(i, j int) bool {

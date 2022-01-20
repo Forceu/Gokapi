@@ -219,14 +219,15 @@ func FileExists(file models.File, dataDir string) bool {
 // Will be called periodically or after a file has been manually deleted in the admin view.
 // If parameter periodic is true, this function is recursive and calls itself every hour.
 func CleanUp(periodic bool) {
+	dataStorage.RunGc()
 	downloadstatus.Clean()
 	timeNow := time.Now().Unix()
 	wasItemDeleted := false
-	for key, element := range dataStorage.GetAllFiles() {
+	for key, element := range dataStorage.GetAllMetadata() {
 		fileExists := FileExists(element, configuration.Get().DataDir)
 		if (element.ExpireAt < timeNow || element.DownloadsRemaining < 1 || !fileExists) && !downloadstatus.IsCurrentlyDownloading(element) {
 			deleteFile := true
-			for _, secondLoopElement := range dataStorage.GetAllFiles() {
+			for _, secondLoopElement := range dataStorage.GetAllMetadata() {
 				if element.Id != secondLoopElement.Id && element.SHA256 == secondLoopElement.SHA256 {
 					deleteFile = false
 				}

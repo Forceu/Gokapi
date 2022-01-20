@@ -25,14 +25,81 @@ var database *bitcask.Bitcask
 
 func Init(dbPath string) {
 	if database == nil {
-		// TODO reduce size and limit file names for upload
-		db, err := bitcask.Open(dbPath, bitcask.WithMaxKeySize(256))
+		// TODO check that parameters do not exceed 64 byte
+		db, err := bitcask.Open(dbPath, bitcask.WithMaxKeySize(64))
 		if err != nil {
 			log.Fatal(err)
 		}
 		database = db
 	}
 }
+
+func Close() {
+	if database != nil {
+		err := database.Sync()
+		if err != nil {
+			fmt.Println(err)
+		}
+		err = database.Close()
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
+	database = nil
+}
+
+// ## File Metadata ##
+
+func GetAllMetadata() map[string]models.File {
+	result := make(map[string]models.File)
+	var keys []string
+	err := database.Scan([]byte(prefixFile), func(key []byte) error {
+		fileId := strings.Replace(string(key), prefixFile, "", 1)
+		keys = append(keys, fileId)
+		return nil
+	})
+
+	helper.Check(err)
+
+	for _, key := range keys {
+		file, ok := GetMetaDataById(key)
+		if ok {
+			result[file.Id] = file
+		}
+	}
+
+	return result
+}
+
+func GetMetaDataById(id string) (models.File, bool) {
+	result := models.File{}
+	value, ok := getValue(prefixFile + id)
+	if !ok {
+		return result, false
+	}
+	buf := bytes.NewBuffer(value)
+	dec := gob.NewDecoder(buf)
+	err := dec.Decode(&result)
+	helper.Check(err)
+	return result, true
+}
+
+func SaveMetaData(file models.File) {
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+	err := enc.Encode(file)
+	helper.Check(err)
+	err = database.Put([]byte(prefixFile+file.Id), buf.Bytes())
+	helper.Check(err)
+	err = database.Sync()
+	helper.Check(err)
+}
+
+func DeleteMetaData(id string) {
+	deleteKey(prefixFile + id)
+}
+
+// ## Hotlinks ##
 
 func GetHotlink(id string) (string, bool) {
 	value, ok := getValue(prefixHotlink + id)
@@ -45,11 +112,15 @@ func GetHotlink(id string) (string, bool) {
 func SaveHotlink(id string, file models.File) {
 	err := database.PutWithTTL([]byte(prefixHotlink+id), []byte(file.Id), expiryToDuration(file))
 	helper.Check(err)
+	err = database.Sync()
+	helper.Check(err)
 }
 
 func DeleteHotlink(id string) {
 	deleteKey(prefixHotlink + id)
 }
+
+// ## API Keys ##
 
 func GetAllApiKeys() map[string]models.ApiKey {
 	result := make(map[string]models.ApiKey)
@@ -100,9 +171,7 @@ func DeleteApiKey(id string) {
 	deleteKey(prefixApiKey + id)
 }
 
-func expiryToDuration(file models.File) time.Duration {
-	return time.Until(time.Unix(file.ExpireAt, 0))
-}
+// ## Sessions ##
 
 func GetSession(id string) (models.Session, bool) {
 	result := models.Session{}
@@ -138,54 +207,7 @@ func SaveSession(id string, session models.Session, expiry time.Duration) {
 	helper.Check(err)
 }
 
-func GetAllFiles() map[string]models.File {
-	result := make(map[string]models.File)
-	var keys []string
-	err := database.Scan([]byte(prefixFile), func(key []byte) error {
-		fileId := strings.Replace(string(key), prefixFile, "", 1)
-		keys = append(keys, fileId)
-		return nil
-	})
-
-	helper.Check(err)
-
-	for _, key := range keys {
-		file, ok := GetMetaDataById(key)
-		if ok {
-			result[file.Id] = file
-		}
-	}
-
-	return result
-}
-
-func GetMetaDataById(id string) (models.File, bool) {
-	result := models.File{}
-	value, ok := getValue(prefixFile + id)
-	if !ok {
-		return result, false
-	}
-	buf := bytes.NewBuffer(value)
-	dec := gob.NewDecoder(buf)
-	err := dec.Decode(&result)
-	helper.Check(err)
-	return result, true
-}
-
-func SaveMetaData(file models.File) {
-	var buf bytes.Buffer
-	enc := gob.NewEncoder(&buf)
-	err := enc.Encode(file)
-	helper.Check(err)
-	err = database.Put([]byte(prefixFile+file.Id), buf.Bytes())
-	helper.Check(err)
-	err = database.Sync()
-	helper.Check(err)
-}
-
-func DeleteMetaData(id string) {
-	deleteKey(prefixFile + id)
-}
+// ## Upload Defaults ##
 
 func GetUploadDefaults() (int, int, string) {
 	downloads := 1
@@ -220,31 +242,20 @@ func SaveUploadDefaults(downloads, expiry int, password string) {
 	helper.Check(err)
 }
 
-func Close() {
-	if database != nil {
-		err := database.Sync()
-		if err != nil {
-			fmt.Println(err)
-		}
-		err = database.Close()
-		if err != nil {
-			fmt.Println(err)
-		}
-	}
-	database = nil
+func RunGc() {
+	err := database.RunGC()
+	helper.Check(err)
 }
 
 func intToByte(integer int) []byte {
-	result := make([]byte, 4)
-	binary.LittleEndian.PutUint32(result, uint32(integer))
-	return result
+	buf := make([]byte, binary.MaxVarintLen32)
+	n := binary.PutVarint(buf, int64(integer))
+	return buf[:n]
 }
 
 func byteToInt(intByte []byte) int {
-	var result uint32
-	err := binary.Read(bytes.NewBuffer(intByte), binary.LittleEndian, &result)
-	helper.Check(err)
-	return int(result)
+	integer, _ := binary.Varint(intByte)
+	return int(integer)
 }
 
 func deleteKey(id string) {
@@ -266,4 +277,8 @@ func getValue(id string) ([]byte, bool) {
 		return nil, false
 	}
 	panic(err)
+}
+
+func expiryToDuration(file models.File) time.Duration {
+	return time.Until(time.Unix(file.ExpireAt, 0))
 }
