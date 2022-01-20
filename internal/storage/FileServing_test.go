@@ -20,6 +20,7 @@ import (
 	"net/textproto"
 	"os"
 	"testing"
+	"time"
 )
 
 func TestMain(m *testing.M) {
@@ -58,8 +59,8 @@ func TestGetFileByHotlink(t *testing.T) {
 	test.IsEqualBool(t, result, false)
 	_, result = GetFileByHotlink("")
 	test.IsEqualBool(t, result, false)
-	file, result := GetFileByHotlink("PhSs6mFtf8O5YGlLMfNw9rYXx9XRNkzCnJZpQBi7inunv3Z4A.jpg")
-	test.IsEqualBool(t, result, true)
+	file, ok := GetFileByHotlink("PhSs6mFtf8O5YGlLMfNw9rYXx9XRNkzCnJZpQBi7inunv3Z4A.jpg")
+	test.IsEqualBool(t, ok, true)
 	test.IsEqualString(t, file.Id, "n1tSTAGj8zan9KaT4u6p")
 	test.IsEqualString(t, file.Name, "picture.jpg")
 	test.IsEqualString(t, file.Size, "4 B")
@@ -67,10 +68,10 @@ func TestGetFileByHotlink(t *testing.T) {
 }
 
 func TestAddHotlink(t *testing.T) {
-	file := models.File{Name: "test.dat", Id: "testIdE"}
+	file := models.File{Name: "test.dat", Id: "testId"}
 	addHotlink(&file)
 	test.IsEqualString(t, file.HotlinkId, "")
-	file = models.File{Name: "test.jpg", Id: "testId"}
+	file = models.File{Name: "test.jpg", Id: "testId", ExpireAt: time.Now().Add(time.Hour).Unix()}
 	addHotlink(&file)
 	test.IsEqualInt(t, len(file.HotlinkId), 44)
 	lastCharacters := file.HotlinkId[len(file.HotlinkId)-4:]
@@ -230,6 +231,9 @@ func TestServeFile(t *testing.T) {
 
 func TestCleanUp(t *testing.T) {
 	files := dataStorage.GetAllFiles()
+	downloadstatus.Init()
+	downloadstatus.SetDownload(files["cleanuptest123456789"])
+
 	test.IsEqualString(t, files["cleanuptest123456789"].Name, "cleanup")
 	test.IsEqualString(t, files["Wzol7LyY2QVczXynJtVo"].Name, "smallfile2")
 	test.IsEqualString(t, files["e4TjE7CokWK0giiLNxDL"].Name, "smallfile2")
@@ -293,7 +297,6 @@ func TestCleanUp(t *testing.T) {
 
 	test.IsEqualString(t, files["cleanuptest123456789"].Name, "cleanup")
 	test.FileExists(t, "test/data/2341354656543213246465465465432456898794")
-
 
 	downloadstatus.Init()
 	CleanUp(false)

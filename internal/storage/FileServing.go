@@ -167,12 +167,13 @@ func GetFileByHotlink(id string) (models.File, bool) {
 // ServeFile subtracts a download allowance and serves the file to the browser
 func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDownload bool) {
 	file.DownloadsRemaining = file.DownloadsRemaining - 1
+	dataStorage.SaveMetaData(file)
 	logging.AddDownload(&file, r)
 
 	// If file is not stored on AWS
 	if file.AwsBucket == "" {
-		storageData, size := getFileHandler(file, configuration.Get().DataDir)
-		defer storageData.Close()
+		fileData, size := getFileHandler(file, configuration.Get().DataDir)
+		defer fileData.Close()
 		if forceDownload {
 			w.Header().Set("Content-Disposition", "attachment; filename=\""+file.Name+"\"")
 		} else {
@@ -181,7 +182,7 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 		w.Header().Set("Content-Length", strconv.FormatInt(size, 10))
 		w.Header().Set("Content-Type", file.ContentType)
 		statusId := downloadstatus.SetDownload(file)
-		http.ServeContent(w, r, file.Name, time.Now(), storageData)
+		http.ServeContent(w, r, file.Name, time.Now(), fileData)
 		downloadstatus.SetComplete(statusId)
 	} else {
 		// If file is stored on AWS

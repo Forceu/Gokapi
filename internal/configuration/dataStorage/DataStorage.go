@@ -25,11 +25,13 @@ const idDefaultPassword = "default:password"
 var database *bitcask.Bitcask
 
 func Init(dbPath string) {
-	db, err := bitcask.Open(dbPath, bitcask.WithMaxKeySize(256))
-	if err != nil {
-		log.Fatal(err)
+	if database == nil {
+		db, err := bitcask.Open(dbPath, bitcask.WithMaxKeySize(256))
+		if err != nil {
+			log.Fatal(err)
+		}
+		database = db
 	}
-	database = db
 }
 
 func GetHotlink(id string) (string, bool) {
@@ -220,6 +222,7 @@ func Close() {
 			fmt.Println(err)
 		}
 	}
+	database = nil
 }
 
 func intToByte(integer int) []byte {

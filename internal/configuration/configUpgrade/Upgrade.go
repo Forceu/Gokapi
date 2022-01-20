@@ -30,7 +30,8 @@ func updateConfig(settings *models.Configuration, env *environment.Environment) 
 	// < v1.2.0
 	if settings.ConfigVersion < 6 {
 		fmt.Println("Please update to version 1.2 before running this version,")
-		os.Exit(1)
+		osExit(1)
+		return
 	}
 	// < v1.3.0
 	if settings.ConfigVersion < 7 {
@@ -123,3 +124,5 @@ type Hotlink struct {
 	Id     string `json:"Id"`
 	FileId string `json:"FileId"`
 }
+
+var osExit = os.Exit

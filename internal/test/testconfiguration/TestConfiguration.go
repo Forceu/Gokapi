@@ -36,7 +36,7 @@ func Create(initFiles bool) {
 	writeTestSessions()
 	dataStorage.SaveUploadDefaults(3, 20, "123")
 	writeTestFiles()
-	dataStorage.SaveHotlink("PhSs6mFtf8O5YGlLMfNw9rYXx9XRNkzCnJZpQBi7inunv3Z4A.jpg", models.File{Id: "n1tSTAGj8zan9KaT4u6p"})
+	dataStorage.SaveHotlink("PhSs6mFtf8O5YGlLMfNw9rYXx9XRNkzCnJZpQBi7inunv3Z4A.jpg", models.File{Id: "n1tSTAGj8zan9KaT4u6p", ExpireAt: time.Now().Add(time.Hour).Unix()})
 	writeApiKeyys()
 	dataStorage.Close()
 
@@ -273,18 +273,28 @@ func writeTestFiles() {
 }
 
 var configTestFile = []byte(`{
+"Authentication": {
+    "Method": 0,
+    "SaltAdmin": "LW6fW4Pjv8GtdWVLSZD66gYEev6NAaXxOVBw7C",
+    "SaltFiles": "lL5wMTtnVCn5TPbpRaSe4vAQodWW0hgk00WCZE",
+    "Username": "test",
+    "Password": "10340aece68aa4fb14507ae45b05506026f276cf",
+    "HeaderKey": "",
+    "OauthProvider": "",
+    "OAuthClientId": "",
+    "OAuthClientSecret": "",
+    "HeaderUsers": null,
+    "OauthUsers": null
+  },
    "Port":"127.0.0.1:53843",
-   "AdminName":"test",
-   "AdminPassword":"10340aece68aa4fb14507ae45b05506026f276cf",
-   "ServerUrl":"http://127.0.0.1:53843/",
-   "RedirectUrl":"https://test.com/",
-   "ConfigVersion":8,
-   "SaltAdmin":"LW6fW4Pjv8GtdWVLSZD66gYEev6NAaXxOVBw7C",
-   "SaltFiles":"lL5wMTtnVCn5TPbpRaSe4vAQodWW0hgk00WCZE",
-   "LengthId":20,
-   "DataDir":"test/data",
-   "UseSsl":false,
-   "MaxFileSizeMB":25
+  "ServerUrl": "http://127.0.0.1:53843/",
+  "RedirectUrl": "https://test.com/",
+  "ConfigVersion": 11,
+  "LengthId": 20,
+  "DataDir": "test/data",
+  "MaxMemory": 40,
+  "UseSsl": false,
+  "MaxFileSizeMB": 25
 }`)
 var configTestFileV8 = []byte(`{
    "Port":"127.0.0.1:53843",
@@ -480,45 +490,7 @@ var configUpgradeTestFile = []byte(`{
    "DefaultDownloads":1,
    "DefaultExpiry":14,
    "DefaultPassword":"123",
-   "RedirectUrl":"https://github.com/Forceu/Gokapi/",
-   "Sessions":{
-      "y0t-OQGF5UPFHyFOLab38SNjrc_a4xdIHTsZclkLpxuSwwTzS_qEETsinkgVIdWNMnQjhcaZtgCoJdpu":{
-         "RenewAt":1619774155,
-         "ValidUntil":1622362555
-      }
-   },
-   "Files":{
-      "MgXJLe4XLfpXcL12ec4i":{
-         "Id":"MgXJLe4XLfpXcL12ec4i",
-         "Name":"gokapi-linux_amd64",
-         "Size":"10.2 MB",
-         "SHA256":"b08f5989e1c6d57b45fffe39a8edc5da715799b7",
-         "ExpireAt":1620980170,
-         "ExpireAtString":"2021-05-14 10:16",
-         "DownloadsRemaining":1,
-         "PasswordHash":"e143a1801faba4c5c6fdc2e823127c988940f72e"
-      },
-      "doLN1pgbb945DfhGottx":{
-         "Id":"doLN1pgbb945DfhGottx",
-         "Name":"config.json",
-         "Size":"945 B",
-         "SHA256":"d2d6fd5fbf4a4bb1b1ae2f19130dd75b5adc0a0b",
-         "ExpireAt":1620980181,
-         "ExpireAtString":"2021-05-14 10:16",
-         "DownloadsRemaining":1,
-         "PasswordHash":"e143a1801faba4c5c6fdc2e823127c988940f72e"
-      },
-      "q06tcBco9gdJTf_pZ8xf":{
-         "Id":"q06tcBco9gdJTf_pZ8xf",
-         "Name":"gokapi-linux_amd64",
-         "Size":"10.2 MB",
-         "SHA256":"b08f5989e1c6d57b45fffe39a8edc5da715799b7",
-         "ExpireAt":1620980160,
-         "ExpireAtString":"2021-05-14 10:16",
-         "DownloadsRemaining":1,
-         "PasswordHash":""
-      }
-   }
+   "RedirectUrl":"https://github.com/Forceu/Gokapi/"
 }`)
 
 var sslCertValid = []byte(`-----BEGIN CERTIFICATE-----
