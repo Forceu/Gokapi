@@ -66,7 +66,7 @@ func isUserInArray(userEntered string, strArray []string) bool {
 func CheckOauthUser(userInfo *oidc.UserInfo, w http.ResponseWriter) {
 	if isValidOauthUser(userInfo.Email) {
 		// TODO revoke session if oauth is not valid any more
-		sessionmanager.CreateSession(w, nil)
+		sessionmanager.CreateSession(w)
 		redirect(w, "admin")
 		return
 	}

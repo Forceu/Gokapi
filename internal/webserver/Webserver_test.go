@@ -5,6 +5,7 @@ package webserver
 
 import (
 	"Gokapi/internal/configuration"
+	"Gokapi/internal/configuration/dataStorage"
 	"Gokapi/internal/test"
 	"Gokapi/internal/test/testconfiguration"
 	"Gokapi/internal/webserver/authentication"
@@ -55,13 +56,11 @@ func TestIndexRedirect(t *testing.T) {
 }
 func TestIndexFile(t *testing.T) {
 	t.Parallel()
-	settings := configuration.GetServerSettings()
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://localhost:53843/index",
-		RequiredContent: []string{settings.RedirectUrl},
+		RequiredContent: []string{configuration.Get().RedirectUrl},
 		IsHtml:          true,
 	})
-	configuration.Release()
 }
 func TestStaticDirs(t *testing.T) {
 	t.Parallel()
@@ -105,15 +104,13 @@ func TestLogin(t *testing.T) {
 	}
 	test.HttpPostRequest(t, config)
 
-	settings := configuration.GetServerSettings()
-	settings.Authentication.Method = authentication.OAuth2
-	authentication.Init(settings.Authentication)
-	configuration.Release()
+	configuration.Get().Authentication.Method = authentication.OAuth2
+	authentication.Init(configuration.Get().Authentication)
 	config.RequiredContent = []string{"\"Refresh\" content=\"0; URL=./oauth-login\""}
 	config.PostValues = []test.PostBody{}
 	test.HttpPageResult(t, config)
-	settings.Authentication.Method = authentication.Internal
-	authentication.Init(settings.Authentication)
+	configuration.Get().Authentication.Method = authentication.Internal
+	authentication.Init(configuration.Get().Authentication)
 
 	buf := config.RequiredContent
 	config.RequiredContent = config.ExcludedContent
@@ -518,9 +515,7 @@ func TestApiPageNotAuthorized(t *testing.T) {
 
 func TestNewApiKey(t *testing.T) {
 	// Authorised
-	settings := configuration.GetServerSettings()
-	amountKeys := len(settings.ApiKeys)
-	configuration.Release()
+	amountKeys := len(dataStorage.GetAllApiKeys())
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/apiNew",
 		IsHtml:          true,
@@ -531,9 +526,7 @@ func TestNewApiKey(t *testing.T) {
 			Value: "validsession",
 		}},
 	})
-	settings = configuration.GetServerSettings()
-	amountKeysAfter := len(settings.ApiKeys)
-	configuration.Release()
+	amountKeysAfter := len(dataStorage.GetAllApiKeys())
 	test.IsEqualInt(t, amountKeysAfter, amountKeys+1)
 	test.IsEqualInt(t, amountKeysAfter, 5)
 
@@ -549,18 +542,14 @@ func TestNewApiKey(t *testing.T) {
 			Value: "invalid",
 		}},
 	})
-	settings = configuration.GetServerSettings()
-	amountKeysAfter = len(settings.ApiKeys)
-	configuration.Release()
+	amountKeysAfter = len(dataStorage.GetAllApiKeys())
 	test.IsEqualInt(t, amountKeysAfter, amountKeys)
 	test.IsEqualInt(t, amountKeysAfter, 5)
 }
 
 func TestDeleteApiKey(t *testing.T) {
 	// Not authorised
-	settings := configuration.GetServerSettings()
-	amountKeys := len(settings.ApiKeys)
-	configuration.Release()
+	amountKeys := len(dataStorage.GetAllApiKeys())
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/apiDelete?id=jiREglQJW0bOqJakfjdVfe8T1EM8n8",
 		IsHtml:          true,
@@ -571,10 +560,10 @@ func TestDeleteApiKey(t *testing.T) {
 			Value: "invalid",
 		}},
 	})
-	settings = configuration.GetServerSettings()
-	amountKeysAfter := len(settings.ApiKeys)
-	test.IsEqualString(t, settings.ApiKeys["jiREglQJW0bOqJakfjdVfe8T1EM8n8"].Id, "jiREglQJW0bOqJakfjdVfe8T1EM8n8")
-	configuration.Release()
+	amountKeysAfter := len(dataStorage.GetAllApiKeys())
+	key, ok := dataStorage.GetApiKey("jiREglQJW0bOqJakfjdVfe8T1EM8n8")
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualString(t, key.Id, "jiREglQJW0bOqJakfjdVfe8T1EM8n8")
 	test.IsEqualInt(t, amountKeysAfter, amountKeys)
 	test.IsEqualInt(t, amountKeysAfter, 5)
 
@@ -589,10 +578,9 @@ func TestDeleteApiKey(t *testing.T) {
 			Value: "validsession",
 		}},
 	})
-	settings = configuration.GetServerSettings()
-	amountKeysAfter = len(settings.ApiKeys)
-	test.IsEmpty(t, settings.ApiKeys["jiREglQJW0bOqJakfjdVfe8T1EM8n8"].Id)
-	configuration.Release()
+	amountKeysAfter = len(dataStorage.GetAllApiKeys())
+	_, ok = dataStorage.GetApiKey("jiREglQJW0bOqJakfjdVfe8T1EM8n8")
+	test.IsEqualBool(t, ok, false)
 	test.IsEqualInt(t, amountKeysAfter, amountKeys-1)
 	test.IsEqualInt(t, amountKeysAfter, 4)
 }
@@ -645,10 +633,8 @@ func TestDisableLogin(t *testing.T) {
 			Value: "invalid",
 		}},
 	})
-	settings := configuration.GetServerSettings()
-	settings.Authentication.Method = authentication.Disabled
-	authentication.Init(settings.Authentication)
-	configuration.Release()
+	configuration.Get().Authentication.Method = authentication.Disabled
+	authentication.Init(configuration.Get().Authentication)
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://localhost:53843/admin",
 		RequiredContent: []string{"Downloads remaining"},
@@ -658,10 +644,8 @@ func TestDisableLogin(t *testing.T) {
 			Value: "invalid",
 		}},
 	})
-	settings = configuration.GetServerSettings()
-	settings.Authentication.Method = authentication.Internal
-	authentication.Init(settings.Authentication)
-	configuration.Release()
+	configuration.Get().Authentication.Method = authentication.Internal
+	authentication.Init(configuration.Get().Authentication)
 }
 
 func TestResponseError(t *testing.T) {

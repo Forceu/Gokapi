@@ -4,6 +4,8 @@
 package testconfiguration
 
 import (
+	"Gokapi/internal/configuration/dataStorage"
+	"Gokapi/internal/models"
 	"Gokapi/internal/storage/cloudstorage/aws"
 	"bytes"
 	"fmt"
@@ -11,6 +13,7 @@ import (
 	"github.com/johannesboyne/gofakes3/backend/s3mem"
 	"net/http/httptest"
 	"os"
+	"time"
 )
 
 const (
@@ -29,6 +32,14 @@ func SetDirEnv() {
 func Create(initFiles bool) {
 	SetDirEnv()
 	os.WriteFile(configFile, configTestFile, 0777)
+	dataStorage.Init("./test/filestorage.db")
+	writeTestSessions()
+	dataStorage.SaveUploadDefaults(3, 20, "123")
+	writeTestFiles()
+	dataStorage.SaveHotlink("PhSs6mFtf8O5YGlLMfNw9rYXx9XRNkzCnJZpQBi7inunv3Z4A.jpg", models.File{Id: "n1tSTAGj8zan9KaT4u6p", ExpireAt: time.Now().Add(time.Hour).Unix()})
+	writeApiKeyys()
+	dataStorage.Close()
+
 	if initFiles {
 		os.Mkdir("test/data", 0777)
 		os.WriteFile("test/data/a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd0", []byte("123"), 0777)
@@ -44,6 +55,7 @@ func WriteUpgradeConfigFileV0() {
 	os.Mkdir(dataDir, 0777)
 	os.WriteFile(configFile, configUpgradeTestFile, 0777)
 }
+
 // WriteUpgradeConfigFileV8 writes a Gokapi v1.3 config file
 func WriteUpgradeConfigFileV8() {
 	os.Mkdir(dataDir, 0777)
@@ -123,190 +135,166 @@ func DisableS3() {
 	os.Unsetenv("AWS_SECRET_ACCESS_KEY")
 }
 
+func writeTestSessions() {
+	dataStorage.SaveSession("validsession", models.Session{
+		RenewAt:    2147483645,
+		ValidUntil: 2147483646,
+	}, 1*time.Hour)
+	dataStorage.SaveSession("logoutsession", models.Session{
+		RenewAt:    2147483645,
+		ValidUntil: 2147483646,
+	}, 1*time.Hour)
+	dataStorage.SaveSession("needsRenewal", models.Session{
+		RenewAt:    0,
+		ValidUntil: 2147483646,
+	}, 1*time.Hour)
+	dataStorage.SaveSession("expiredsession", models.Session{
+		RenewAt:    0,
+		ValidUntil: 0,
+	}, 1*time.Hour)
+}
+
+func writeApiKeyys() {
+	dataStorage.SaveApiKey(models.ApiKey{
+		Id:           "validkey",
+		FriendlyName: "First Key",
+	}, false)
+	dataStorage.SaveApiKey(models.ApiKey{
+		Id:             "GAh1IhXDvYnqfYLazWBqMB9HSFmNPO",
+		FriendlyName:   "Second Key",
+		LastUsed:       1620671580,
+		LastUsedString: "used",
+	}, false)
+	dataStorage.SaveApiKey(models.ApiKey{
+		Id:           "jiREglQJW0bOqJakfjdVfe8T1EM8n8",
+		FriendlyName: "Unnamed Key",
+	}, false)
+	dataStorage.SaveApiKey(models.ApiKey{
+		Id:           "okeCMWqhVMZSpt5c1qpCWhKvJJPifb",
+		FriendlyName: "Unnamed Key",
+	}, false)
+}
+
+func writeTestFiles() {
+	dataStorage.SaveMetaData(models.File{
+		Id:                 "Wzol7LyY2QVczXynJtVo",
+		Name:               "smallfile2",
+		Size:               "8 B",
+		SHA256:             "e017693e4a04a59d0b0f400fe98177fe7ee13cf7",
+		ExpireAt:           2147483646,
+		ExpireAtString:     "2021-05-04 15:19",
+		DownloadsRemaining: 1,
+		ContentType:        "text/html",
+	})
+	dataStorage.SaveMetaData(models.File{
+		Id:                 "e4TjE7CokWK0giiLNxDL",
+		Name:               "smallfile2",
+		Size:               "8 B",
+		SHA256:             "e017693e4a04a59d0b0f400fe98177fe7ee13cf7",
+		ExpireAt:           2147483645,
+		ExpireAtString:     "2021-05-04 15:19",
+		DownloadsRemaining: 2,
+		ContentType:        "text/html",
+	})
+	dataStorage.SaveMetaData(models.File{
+		Id:                 "wefffewhtrhhtrhtrhtr",
+		Name:               "smallfile3",
+		Size:               "8 B",
+		SHA256:             "e017693e4a04a59d0b0f400fe98177fe7ee13cf7",
+		ExpireAt:           2147483645,
+		ExpireAtString:     "2021-05-04 15:19",
+		DownloadsRemaining: 1,
+		ContentType:        "text/html",
+	})
+	dataStorage.SaveMetaData(models.File{
+		Id:                 "deletedfile123456789",
+		Name:               "DeletedFile",
+		Size:               "8 B",
+		SHA256:             "invalid",
+		ExpireAt:           2147483645,
+		ExpireAtString:     "2021-05-04 15:19",
+		DownloadsRemaining: 2,
+		ContentType:        "text/html",
+	})
+	dataStorage.SaveMetaData(models.File{
+		Id:                 "jpLXGJKigM4hjtA6T6sN",
+		Name:               "smallfile",
+		Size:               "7 B",
+		SHA256:             "c4f9375f9834b4e7f0a528cc65c055702bf5f24a",
+		ExpireAt:           2147483646,
+		ExpireAtString:     "2021-05-04 15:18",
+		DownloadsRemaining: 1,
+		ContentType:        "text/html",
+		PasswordHash:       "7b30508aa9b233ab4b8a11b2af5816bdb58ca3e7",
+	})
+	dataStorage.SaveMetaData(models.File{
+		Id:                 "jpLXGJKigM4hjtA6T6sN2",
+		Name:               "smallfile",
+		Size:               "7 B",
+		SHA256:             "c4f9375f9834b4e7f0a528cc65c055702bf5f24a",
+		ExpireAt:           2147483646,
+		ExpireAtString:     "2021-05-04 15:18",
+		DownloadsRemaining: 1,
+		ContentType:        "text/html",
+		PasswordHash:       "7b30508aa9b233ab4b8a11b2af5816bdb58ca3e7",
+	})
+	dataStorage.SaveMetaData(models.File{
+		Id:                 "n1tSTAGj8zan9KaT4u6p",
+		Name:               "picture.jpg",
+		Size:               "4 B",
+		SHA256:             "a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd0",
+		ExpireAt:           2147483646,
+		ExpireAtString:     "2021-05-04 15:19",
+		DownloadsRemaining: 1,
+		ContentType:        "text/html",
+		HotlinkId:          "PhSs6mFtf8O5YGlLMfNw9rYXx9XRNkzCnJZpQBi7inunv3Z4A.jpg",
+	})
+	dataStorage.SaveMetaData(models.File{
+		Id:                 "cleanuptest123456789",
+		Name:               "cleanup",
+		Size:               "4 B",
+		SHA256:             "2341354656543213246465465465432456898794",
+		ExpireAt:           2147483646,
+		ExpireAtString:     "2021-05-04 15:19",
+		DownloadsRemaining: 0,
+		ContentType:        "text/html",
+	})
+	dataStorage.SaveMetaData(models.File{
+		Id:                 "awsTest1234567890123",
+		Name:               "Aws Test File",
+		Size:               "20 MB",
+		SHA256:             "x341354656543213246465465465432456898794",
+		ExpireAt:           2147483646,
+		ExpireAtString:     "2021-05-04 15:19",
+		DownloadsRemaining: 4,
+		ContentType:        "application/octet-stream",
+		AwsBucket:          "gokapi-test",
+	})
+}
+
 var configTestFile = []byte(`{
+"Authentication": {
+    "Method": 0,
+    "SaltAdmin": "LW6fW4Pjv8GtdWVLSZD66gYEev6NAaXxOVBw7C",
+    "SaltFiles": "lL5wMTtnVCn5TPbpRaSe4vAQodWW0hgk00WCZE",
+    "Username": "test",
+    "Password": "10340aece68aa4fb14507ae45b05506026f276cf",
+    "HeaderKey": "",
+    "OauthProvider": "",
+    "OAuthClientId": "",
+    "OAuthClientSecret": "",
+    "HeaderUsers": null,
+    "OauthUsers": null
+  },
    "Port":"127.0.0.1:53843",
-   "AdminName":"test",
-   "AdminPassword":"10340aece68aa4fb14507ae45b05506026f276cf",
-   "ServerUrl":"http://127.0.0.1:53843/",
-   "DefaultDownloads":3,
-   "DefaultExpiry":20,
-   "DefaultPassword":"123",
-   "RedirectUrl":"https://test.com/",
-   "Sessions":{
-      "validsession":{
-         "RenewAt":2147483645,
-         "ValidUntil":2147483646
-      },
-      "logoutsession":{
-         "RenewAt":2147483645,
-         "ValidUntil":2147483646
-      },
-      "needsRenewal":{
-         "RenewAt":0,
-         "ValidUntil":2147483646
-      },
-      "expiredsession":{
-         "RenewAt":0,
-         "ValidUntil":0
-      }
-   },
-   "Files":{
-      "Wzol7LyY2QVczXynJtVo":{
-         "Id":"Wzol7LyY2QVczXynJtVo",
-         "Name":"smallfile2",
-         "Size":"8 B",
-         "SHA256":"e017693e4a04a59d0b0f400fe98177fe7ee13cf7",
-         "ExpireAt":2147483646,
-         "ExpireAtString":"2021-05-04 15:19",
-         "DownloadsRemaining":1,
-         "PasswordHash":"",
-         "ContentType":"text/html",
-         "HotlinkId":""
-      },
-      "e4TjE7CokWK0giiLNxDL":{
-         "Id":"e4TjE7CokWK0giiLNxDL",
-         "Name":"smallfile2",
-         "Size":"8 B",
-         "SHA256":"e017693e4a04a59d0b0f400fe98177fe7ee13cf7",
-         "ExpireAt":2147483645,
-         "ExpireAtString":"2021-05-04 15:19",
-         "DownloadsRemaining":2,
-         "PasswordHash":"",
-         "ContentType":"text/html",
-         "HotlinkId":""
-      },
-      "wefffewhtrhhtrhtrhtr":{
-         "Id":"wefffewhtrhhtrhtrhtr",
-         "Name":"smallfile3",
-         "Size":"8 B",
-         "SHA256":"e017693e4a04a59d0b0f400fe98177fe7ee13cf7",
-         "ExpireAt":2147483645,
-         "ExpireAtString":"2021-05-04 15:19",
-         "DownloadsRemaining":1,
-         "PasswordHash":"",
-         "ContentType":"text/html",
-         "HotlinkId":""
-      },
-      "deletedfile123456789":{
-         "Id":"deletedfile123456789",
-         "Name":"DeletedFile",
-         "Size":"8 B",
-         "SHA256":"invalid",
-         "ExpireAt":2147483645,
-         "ExpireAtString":"2021-05-04 15:19",
-         "DownloadsRemaining":2,
-         "PasswordHash":"",
-         "ContentType":"text/html",
-         "HotlinkId":""
-      },
-      "jpLXGJKigM4hjtA6T6sN":{
-         "Id":"jpLXGJKigM4hjtA6T6sN",
-         "Name":"smallfile",
-         "Size":"7 B",
-         "SHA256":"c4f9375f9834b4e7f0a528cc65c055702bf5f24a",
-         "ExpireAt":2147483646,
-         "ExpireAtString":"2021-05-04 15:18",
-         "DownloadsRemaining":1,
-         "ContentType":"text/html",
-         "PasswordHash":"7b30508aa9b233ab4b8a11b2af5816bdb58ca3e7",
-         "HotlinkId":""
-      },
-      "jpLXGJKigM4hjtA6T6sN2":{
-         "Id":"jpLXGJKigM4hjtA6T6sN2",
-         "Name":"smallfile",
-         "Size":"7 B",
-         "SHA256":"c4f9375f9834b4e7f0a528cc65c055702bf5f24a",
-         "ExpireAt":2147483646,
-         "ExpireAtString":"2021-05-04 15:18",
-         "DownloadsRemaining":1,
-         "ContentType":"text/html",
-         "PasswordHash":"7b30508aa9b233ab4b8a11b2af5816bdb58ca3e7",
-         "HotlinkId":""
-      },
-      "n1tSTAGj8zan9KaT4u6p":{
-         "Id":"n1tSTAGj8zan9KaT4u6p",
-         "Name":"picture.jpg",
-         "Size":"4 B",
-         "SHA256":"a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd0",
-         "ExpireAt":2147483646,
-         "ExpireAtString":"2021-05-04 15:19",
-         "DownloadsRemaining":1,
-         "PasswordHash":"",
-         "ContentType":"text/html",
-         "HotlinkId":"PhSs6mFtf8O5YGlLMfNw9rYXx9XRNkzCnJZpQBi7inunv3Z4A.jpg"
-      },
-      "cleanuptest123456789":{
-         "Id":"cleanuptest123456789",
-         "Name":"cleanup",
-         "Size":"4 B",
-         "SHA256":"2341354656543213246465465465432456898794",
-         "ExpireAt":2147483646,
-         "ExpireAtString":"2021-05-04 15:19",
-         "DownloadsRemaining":0,
-         "PasswordHash":"",
-         "ContentType":"text/html",
-         "HotlinkId":""
-      },
-      "awsTest1234567890123":{
-         "Id":"awsTest1234567890123",
-         "Name":"Aws Test File",
-         "Size":"20 MB",
-         "SHA256":"x341354656543213246465465465432456898794",
-         "ExpireAt":2147483646,
-         "ExpireAtString":"2021-05-04 15:19",
-         "DownloadsRemaining":4,
-         "PasswordHash":"",
-         "ContentType":"application/octet-stream",
-         "AwsBucket":"gokapi-test",
-         "HotlinkId":""
-      }
-   },
-   "Hotlinks":{
-      "PhSs6mFtf8O5YGlLMfNw9rYXx9XRNkzCnJZpQBi7inunv3Z4A.jpg":{
-         "Id":"PhSs6mFtf8O5YGlLMfNw9rYXx9XRNkzCnJZpQBi7inunv3Z4A.jpg",
-         "FileId":"n1tSTAGj8zan9KaT4u6p"
-      }
-   },
-   "DownloadStatus":{
-      "69JCbLVxx2KxfvB6FYkrDn3oCU7BWT":{
-         "Id":"69JCbLVxx2KxfvB6FYkrDn3oCU7BWT",
-         "FileId":"cleanuptest123456789",
-         "ExpireAt":2147483646
-      }
-   },
-   "ApiKeys":{
-      "validkey":{
-         "Id":"validkey",
-         "FriendlyName":"First Key",
-         "LastUsed":0,
-         "LastUsedString":""
-      },
-      "GAh1IhXDvYnqfYLazWBqMB9HSFmNPO":{
-         "Id":"GAh1IhXDvYnqfYLazWBqMB9HSFmNPO",
-         "FriendlyName":"Second Key",
-         "LastUsed":1620671580,
-         "LastUsedString":"used"
-      },
-      "jiREglQJW0bOqJakfjdVfe8T1EM8n8":{
-         "Id":"jiREglQJW0bOqJakfjdVfe8T1EM8n8",
-         "FriendlyName":"Unnamed Key",
-         "LastUsed":0,
-         "LastUsedString":""
-      },
-      "okeCMWqhVMZSpt5c1qpCWhKvJJPifb":{
-         "Id":"okeCMWqhVMZSpt5c1qpCWhKvJJPifb",
-         "FriendlyName":"Unnamed Key",
-         "LastUsed":0,
-         "LastUsedString":""
-      }
-   },
-   "ConfigVersion":8,
-   "SaltAdmin":"LW6fW4Pjv8GtdWVLSZD66gYEev6NAaXxOVBw7C",
-   "SaltFiles":"lL5wMTtnVCn5TPbpRaSe4vAQodWW0hgk00WCZE",
-   "LengthId":20,
-   "DataDir":"test/data",
-   "UseSsl":false,
-   "MaxFileSizeMB":25
+  "ServerUrl": "http://127.0.0.1:53843/",
+  "RedirectUrl": "https://test.com/",
+  "ConfigVersion": 11,
+  "LengthId": 20,
+  "DataDir": "test/data",
+  "MaxMemory": 40,
+  "UseSsl": false,
+  "MaxFileSizeMB": 25
 }`)
 var configTestFileV8 = []byte(`{
    "Port":"127.0.0.1:53843",
@@ -502,45 +490,7 @@ var configUpgradeTestFile = []byte(`{
    "DefaultDownloads":1,
    "DefaultExpiry":14,
    "DefaultPassword":"123",
-   "RedirectUrl":"https://github.com/Forceu/Gokapi/",
-   "Sessions":{
-      "y0t-OQGF5UPFHyFOLab38SNjrc_a4xdIHTsZclkLpxuSwwTzS_qEETsinkgVIdWNMnQjhcaZtgCoJdpu":{
-         "RenewAt":1619774155,
-         "ValidUntil":1622362555
-      }
-   },
-   "Files":{
-      "MgXJLe4XLfpXcL12ec4i":{
-         "Id":"MgXJLe4XLfpXcL12ec4i",
-         "Name":"gokapi-linux_amd64",
-         "Size":"10.2 MB",
-         "SHA256":"b08f5989e1c6d57b45fffe39a8edc5da715799b7",
-         "ExpireAt":1620980170,
-         "ExpireAtString":"2021-05-14 10:16",
-         "DownloadsRemaining":1,
-         "PasswordHash":"e143a1801faba4c5c6fdc2e823127c988940f72e"
-      },
-      "doLN1pgbb945DfhGottx":{
-         "Id":"doLN1pgbb945DfhGottx",
-         "Name":"config.json",
-         "Size":"945 B",
-         "SHA256":"d2d6fd5fbf4a4bb1b1ae2f19130dd75b5adc0a0b",
-         "ExpireAt":1620980181,
-         "ExpireAtString":"2021-05-14 10:16",
-         "DownloadsRemaining":1,
-         "PasswordHash":"e143a1801faba4c5c6fdc2e823127c988940f72e"
-      },
-      "q06tcBco9gdJTf_pZ8xf":{
-         "Id":"q06tcBco9gdJTf_pZ8xf",
-         "Name":"gokapi-linux_amd64",
-         "Size":"10.2 MB",
-         "SHA256":"b08f5989e1c6d57b45fffe39a8edc5da715799b7",
-         "ExpireAt":1620980160,
-         "ExpireAtString":"2021-05-14 10:16",
-         "DownloadsRemaining":1,
-         "PasswordHash":""
-      }
-   }
+   "RedirectUrl":"https://github.com/Forceu/Gokapi/"
 }`)
 
 var sslCertValid = []byte(`-----BEGIN CERTIFICATE-----

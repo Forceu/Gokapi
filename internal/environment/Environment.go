@@ -26,6 +26,8 @@ type Environment struct {
 	AwsKeySecret  string `env:"AWS_KEY_SECRET"`
 	AwsEndpoint   string `env:"AWS_ENDPOINT"`
 	ConfigPath    string
+	FileDbPath    string
+	FileDb        string `env:"FILE_DB" envDefault:"filestorage.db"`
 }
 
 // New parses the env variables
@@ -41,6 +43,7 @@ func New() Environment {
 	}
 	helper.Check(err)
 	result.ConfigPath = result.ConfigDir + "/" + result.ConfigFile
+	result.FileDbPath = result.DataDir + "/" + result.FileDb
 	if IsDocker == "true" && os.Getenv("TMPDIR") == "" {
 		os.Setenv("TMPDIR", result.DataDir)
 	}

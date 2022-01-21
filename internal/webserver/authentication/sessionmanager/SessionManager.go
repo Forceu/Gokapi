@@ -5,14 +5,14 @@ Manages the sessions for the admin user or to access password-protected files
 */
 
 import (
-	"Gokapi/internal/configuration"
+	"Gokapi/internal/configuration/dataStorage"
 	"Gokapi/internal/helper"
 	"Gokapi/internal/models"
 	"net/http"
 	"time"
 )
 
-// TODO add username to check for revokkation
+// TODO add username to check for revocation
 
 // If no login occurred during this time, the admin session will be deleted. Default 30 days
 const cookieLifeAdmin = 30 * 24 * time.Hour
@@ -25,11 +25,9 @@ func IsValidSession(w http.ResponseWriter, r *http.Request) bool {
 	if err == nil {
 		sessionString := cookie.Value
 		if sessionString != "" {
-			settings := configuration.GetServerSettings()
-			defer configuration.Release()
-			_, ok := (settings.Sessions)[sessionString]
+			session, ok := dataStorage.GetSession(sessionString)
 			if ok {
-				return useSession(w, sessionString, &settings.Sessions)
+				return useSession(w, sessionString, session)
 			}
 		}
 	}
@@ -40,32 +38,26 @@ func IsValidSession(w http.ResponseWriter, r *http.Request) bool {
 // if it has // been used for more than an hour to limit session hijacking
 // Returns true if session is still valid
 // Returns false if session is invalid (and deletes it)
-func useSession(w http.ResponseWriter, sessionString string, sessions *map[string]models.Session) bool {
-	session := (*sessions)[sessionString]
+func useSession(w http.ResponseWriter, id string, session models.Session) bool {
 	if session.ValidUntil < time.Now().Unix() {
-		delete(*sessions, sessionString)
+		dataStorage.DeleteSession(id)
 		return false
 	}
 	if session.RenewAt < time.Now().Unix() {
-		CreateSession(w, sessions)
-		delete(*sessions, sessionString)
+		CreateSession(w)
+		dataStorage.DeleteSession(id)
 	}
 	return true
 }
 
 // CreateSession creates a new session - called after login with correct username / password
 // If sessions parameter is nil, it will be loaded from config
-func CreateSession(w http.ResponseWriter, sessions *map[string]models.Session) {
-	if sessions == nil {
-		settings := configuration.GetServerSettings()
-		sessions = &settings.Sessions
-		defer configuration.ReleaseAndSave()
-	}
+func CreateSession(w http.ResponseWriter) {
 	sessionString := helper.GenerateRandomString(60)
-	(*sessions)[sessionString] = models.Session{
+	dataStorage.SaveSession(sessionString, models.Session{
 		RenewAt:    time.Now().Add(time.Hour).Unix(),
 		ValidUntil: time.Now().Add(cookieLifeAdmin).Unix(),
-	}
+	}, cookieLifeAdmin)
 	writeSessionCookie(w, sessionString, time.Now().Add(cookieLifeAdmin))
 }
 
@@ -73,9 +65,7 @@ func CreateSession(w http.ResponseWriter, sessions *map[string]models.Session) {
 func LogoutSession(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("session_token")
 	if err == nil {
-		settings := configuration.GetServerSettings()
-		delete(settings.Sessions, cookie.Value)
-		configuration.ReleaseAndSave()
+		dataStorage.DeleteSession(cookie.Value)
 	}
 	writeSessionCookie(w, "", time.Now())
 }

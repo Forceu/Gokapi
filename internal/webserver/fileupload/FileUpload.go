@@ -2,6 +2,7 @@ package fileupload
 
 import (
 	"Gokapi/internal/configuration"
+	"Gokapi/internal/configuration/dataStorage"
 	"Gokapi/internal/helper"
 	"Gokapi/internal/models"
 	"Gokapi/internal/storage"
@@ -45,31 +46,27 @@ func parseConfig(values formOrHeader, setNewDefaults bool) models.UploadRequest 
 	expiryDays := values.Get("expiryDays")
 	password := values.Get("password")
 	allowedDownloadsInt, err := strconv.Atoi(allowedDownloads)
-	settings := configuration.GetServerSettings()
 	if err != nil {
-		allowedDownloadsInt = settings.DefaultDownloads
+		previous, _, _ := dataStorage.GetUploadDefaults()
+		allowedDownloadsInt = previous
 	}
 	expiryDaysInt, err := strconv.Atoi(expiryDays)
 	if err != nil {
-		expiryDaysInt = settings.DefaultExpiry
+		_, previous, _ := dataStorage.GetUploadDefaults()
+		expiryDaysInt = previous
 	}
 	if setNewDefaults {
-		settings.DefaultExpiry = expiryDaysInt
-		settings.DefaultDownloads = allowedDownloadsInt
-		settings.DefaultPassword = password
+		dataStorage.SaveUploadDefaults(allowedDownloadsInt, expiryDaysInt, password)
 	}
-	externalUrl := settings.ServerUrl
-	dataDir := settings.DataDir
-	maxMemory := settings.MaxMemory
-	configuration.Release()
+	settings := configuration.Get()
 	return models.UploadRequest{
 		AllowedDownloads: allowedDownloadsInt,
 		Expiry:           expiryDaysInt,
 		ExpiryTimestamp:  time.Now().Add(time.Duration(expiryDaysInt) * time.Hour * 24).Unix(),
 		Password:         password,
-		ExternalUrl:      externalUrl,
-		MaxMemory:        maxMemory,
-		DataDir:          dataDir,
+		ExternalUrl:      settings.ServerUrl,
+		MaxMemory:        settings.MaxMemory,
+		DataDir:          settings.DataDir,
 	}
 }
 

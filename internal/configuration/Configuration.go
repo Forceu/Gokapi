@@ -7,17 +7,20 @@ Loading and saving of the persistent configuration
 import (
 	"Gokapi/internal/configuration/cloudconfig"
 	"Gokapi/internal/configuration/configUpgrade"
+	"Gokapi/internal/configuration/dataStorage"
 	"Gokapi/internal/environment"
 	"Gokapi/internal/helper"
 	log "Gokapi/internal/logging"
 	"Gokapi/internal/models"
+	"Gokapi/internal/webserver/downloadstatus"
+	"bytes"
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
-	"sync"
 )
 
 // Min length of admin password in characters
@@ -28,9 +31,6 @@ var Environment environment.Environment
 
 // ServerSettings is an object containing the server configuration
 var serverSettings models.Configuration
-
-// For locking this object to prevent race conditions
-var mutex sync.RWMutex
 
 func Exists() bool {
 	configPath, _, _, _ := environment.GetConfigPaths()
@@ -48,6 +48,7 @@ func Load() {
 	err = decoder.Decode(&serverSettings)
 	helper.Check(err)
 	file.Close()
+	dataStorage.Init(Environment.FileDbPath)
 	if configUpgrade.DoUpgrade(&serverSettings, &Environment) {
 		save()
 	}
@@ -56,43 +57,14 @@ func Load() {
 		serverSettings.MaxMemory = Environment.MaxMemory
 	}
 	helper.CreateDir(serverSettings.DataDir)
+	downloadstatus.Init()
 	log.Init(Environment.ConfigDir)
 	serverSettings.Encryption = true // TODO
 }
 
-// Lock locks configuration to prevent race conditions (blocking)
-func Lock() {
-	mutex.Lock()
-}
-
-// ReleaseAndSave unlocks and saves the configuration
-func ReleaseAndSave() {
-	save()
-	mutex.Unlock()
-}
-
-// Release unlocks the configuration
-func Release() {
-	mutex.Unlock()
-}
-
-// GetServerSettings locks the settings returns a pointer to the configuration for Read/Write access
-// Release needs to be called when finished with the operation!
-func GetServerSettings() *models.Configuration {
-	mutex.Lock()
+// Get returns a pointer to the server configuration
+func Get() *models.Configuration {
 	return &serverSettings
-}
-
-// GetServerSettingsReadOnly locks the settings for read-only access and returns a copy of the configuration
-// ReleaseReadOnly needs to be called when finished with the operation!
-func GetServerSettingsReadOnly() *models.Configuration {
-	mutex.RLock()
-	return &serverSettings
-}
-
-// ReleaseReadOnly unlocks the configuration opened for read-only access
-func ReleaseReadOnly() {
-	mutex.RUnlock()
 }
 
 // Save the configuration as a json file
@@ -103,25 +75,25 @@ func save() {
 		os.Exit(1)
 	}
 	defer file.Close()
-	encoder := json.NewEncoder(file)
-	err = encoder.Encode(&serverSettings)
+
+	configJson, err := json.MarshalIndent(serverSettings, "", "  ")
+	if err != nil {
+		fmt.Println("Error encoding configuration:", err)
+		os.Exit(1)
+	}
+	_, err = io.Copy(file, bytes.NewReader(configJson))
 	if err != nil {
 		fmt.Println("Error writing configuration:", err)
 		os.Exit(1)
 	}
 }
 
-func LoadFromSetup(config models.Configuration, cloudConfig *cloudconfig.CloudConfig, isInitialConfig bool) {
+func LoadFromSetup(config models.Configuration, cloudConfig *cloudconfig.CloudConfig, isInitialSetup bool) {
 	Environment = environment.New()
 	helper.CreateDir(Environment.ConfigDir)
-	if !isInitialConfig {
+	if !isInitialSetup {
 		Load()
-		config.DefaultDownloads = serverSettings.DefaultDownloads
-		config.DefaultExpiry = serverSettings.DefaultExpiry
-		config.DefaultPassword = serverSettings.DefaultPassword
-		config.Files = serverSettings.Files
-		config.Hotlinks = serverSettings.Hotlinks
-		config.ApiKeys = serverSettings.ApiKeys
+		dataStorage.DeleteAllSessions()
 	}
 
 	serverSettings = config
@@ -139,11 +111,6 @@ func LoadFromSetup(config models.Configuration, cloudConfig *cloudconfig.CloudCo
 		}
 	}
 	save()
-}
-
-// GetLengthId returns the length of the file IDs to be generated
-func GetLengthId() int {
-	return serverSettings.LengthId
 }
 
 // HashPassword hashes a string with SHA256 and a salt

@@ -1,6 +1,7 @@
 package configUpgrade
 
 import (
+	"Gokapi/internal/configuration/dataStorage"
 	"Gokapi/internal/environment"
 	"Gokapi/internal/models"
 	"Gokapi/internal/test"
@@ -10,15 +11,10 @@ import (
 )
 
 var oldConfigFile = models.Configuration{
-	Authentication:   models.AuthenticationConfig{},
-	Port:             "127.0.0.1:53844",
-	ServerUrl:        "https://gokapi.url/",
-	DefaultDownloads: 1,
-	DefaultExpiry:    14,
-	DefaultPassword:  "123",
-	RedirectUrl:      "https://github.com/Forceu/Gokapi/",
-	Sessions:         make(map[string]models.Session),
-	Files:            make(map[string]models.File),
+	Authentication: models.AuthenticationConfig{},
+	Port:           "127.0.0.1:53844",
+	ServerUrl:      "https://gokapi.url/",
+	RedirectUrl:    "https://github.com/Forceu/Gokapi/",
 }
 
 func TestMain(m *testing.M) {
@@ -31,43 +27,24 @@ func TestMain(m *testing.M) {
 func TestUpgradeDb(t *testing.T) {
 	testconfiguration.WriteUpgradeConfigFileV0()
 	os.Setenv("GOKAPI_MAX_FILESIZE", "5")
-	oldConfigFile.Files["MgXJLe4XLfpXcL12ec4i"] = models.File{
-		Id: "MgXJLe4XLfpXcL12ec4i",
-	}
 
 	env := environment.New()
 	bufferConfig := oldConfigFile
-	upgradeDone := DoUpgrade(&bufferConfig, &env)
-	test.IsEqualBool(t, upgradeDone, true)
-	upgradeDone = DoUpgrade(&bufferConfig, &env)
-	test.IsEqualBool(t, upgradeDone, false)
-	firstUpgrade := oldConfigFile
-	upgradeDone = DoUpgrade(&firstUpgrade, &env)
-	test.IsEqualBool(t, upgradeDone, true)
-
-	test.IsEqualString(t, firstUpgrade.Authentication.SaltAdmin, "eefwkjqweduiotbrkl##$2342brerlk2321")
-	test.IsEqualString(t, firstUpgrade.Authentication.SaltFiles, "P1UI5sRNDwuBgOvOYhNsmucZ2pqo4KEvOoqqbpdu")
-	test.IsEqualString(t, firstUpgrade.DataDir, env.DataDir)
-	test.IsEqualInt(t, firstUpgrade.LengthId, 15)
-	test.IsEqualBool(t, firstUpgrade.Hotlinks == nil, false)
-	test.IsEqualBool(t, firstUpgrade.Sessions == nil, false)
-	test.IsEqualBool(t, firstUpgrade.DownloadStatus == nil, false)
-	test.IsEqualString(t, firstUpgrade.Files["MgXJLe4XLfpXcL12ec4i"].ContentType, "application/octet-stream")
-	test.IsEqualInt(t, firstUpgrade.ConfigVersion, CurrentConfigVersion)
-	test.IsEqualInt(t, firstUpgrade.MaxFileSizeMB, 5)
-	test.IsEqualInt(t, firstUpgrade.Authentication.Method, 0)
-	test.IsEqualBool(t, firstUpgrade.Authentication.HeaderUsers == nil, false)
-	test.IsEqualBool(t, firstUpgrade.Authentication.OauthUsers == nil, false)
-	test.IsEqualString(t, firstUpgrade.Authentication.Username, "admin")
-	test.IsEqualString(t, firstUpgrade.Authentication.Password, "7450c2403ab85f0e8d5436818b66b99fdd287ac6")
+	wasExit := false
+	osExit = func(code int) {
+		wasExit = true
+	}
+	_ = DoUpgrade(&bufferConfig, &env)
+	test.IsEqualBool(t, wasExit, true)
 
 	oldConfigFile.ConfigVersion = 8
+	dataStorage.Init("./test/filestorage.db")
 	testconfiguration.WriteUpgradeConfigFileV8()
-	upgradeDone = DoUpgrade(&oldConfigFile, &env)
+	upgradeDone := DoUpgrade(&oldConfigFile, &env)
 	test.IsEqualBool(t, upgradeDone, true)
 	test.IsEqualString(t, oldConfigFile.Authentication.SaltAdmin, "LW6fW4Pjv8GtdWVLSZD66gYEev6NAaXxOVBw7C")
 	test.IsEqualString(t, oldConfigFile.Authentication.SaltFiles, "lL5wMTtnVCn5TPbpRaSe4vAQodWW0hgk00WCZE")
-
+	// TODO write further tests
 	os.Unsetenv("GOKAPI_MAX_FILESIZE")
 
 }
