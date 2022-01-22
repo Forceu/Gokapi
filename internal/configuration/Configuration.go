@@ -58,7 +58,7 @@ func Load() {
 	}
 	helper.CreateDir(serverSettings.DataDir)
 	downloadstatus.Init()
-	log.Init(Environment.ConfigDir)
+	log.Init(Environment.DataDir)
 }
 
 // Get returns a pointer to the server configuration
