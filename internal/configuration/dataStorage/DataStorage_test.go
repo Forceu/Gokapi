@@ -1,7 +1,6 @@
 package dataStorage
 
 import (
-	"Gokapi/internal/environment"
 	"Gokapi/internal/models"
 	"Gokapi/internal/test"
 	"os"
@@ -19,17 +18,17 @@ func TestMain(m *testing.M) {
 }
 
 func TestInit(t *testing.T) {
-	Init(environment.New().FileDbPath)
+	Init("./test/filestorage.db")
 	test.IsEqualBool(t, database != nil, true)
 	// Test that second init doesn't raise an error
-	Init(environment.New().FileDbPath)
+	Init("./test/filestorage.db")
 }
 
 func TestClose(t *testing.T) {
 	test.IsEqualBool(t, database != nil, true)
 	Close()
 	test.IsEqualBool(t, database == nil, true)
-	Init(environment.New().FileDbPath)
+	Init("./test/filestorage.db")
 }
 
 func TestMetaData(t *testing.T) {
