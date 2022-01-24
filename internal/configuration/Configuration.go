@@ -58,8 +58,9 @@ func Load() {
 	}
 	helper.CreateDir(serverSettings.DataDir)
 	downloadstatus.Init()
-	log.Init(Environment.ConfigDir)
+	log.Init(Environment.DataDir)
 	serverSettings.Encryption = true // TODO
+	log.Init(Environment.DataDir)
 }
 
 // Get returns a pointer to the server configuration
@@ -76,12 +77,7 @@ func save() {
 	}
 	defer file.Close()
 
-	configJson, err := json.MarshalIndent(serverSettings, "", "  ")
-	if err != nil {
-		fmt.Println("Error encoding configuration:", err)
-		os.Exit(1)
-	}
-	_, err = io.Copy(file, bytes.NewReader(configJson))
+	_, err = io.Copy(file, bytes.NewReader(serverSettings.ToJson()))
 	if err != nil {
 		fmt.Println("Error writing configuration:", err)
 		os.Exit(1)

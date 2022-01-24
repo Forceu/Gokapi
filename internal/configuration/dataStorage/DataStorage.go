@@ -21,17 +21,29 @@ const idDefaultDownloads = "default:downloads"
 const idDefaultExpiry = "default:expiry"
 const idDefaultPassword = "default:password"
 
+const maxKeySize = 96
+
 var database *bitcask.Bitcask
 
 func Init(dbPath string) {
 	if database == nil {
-		// TODO check that parameters do not exceed 64 byte
-		db, err := bitcask.Open(dbPath, bitcask.WithMaxKeySize(128))
+		db, err := bitcask.Open(dbPath, bitcask.WithMaxKeySize(maxKeySize))
 		if err != nil {
 			log.Fatal(err)
 		}
 		database = db
 	}
+}
+
+func GetLengthAvailable() int {
+	maxLength := 0
+	for _, key := range []string{prefixApiKey, prefixFile, prefixHotlink, prefixSessions, idDefaultDownloads, idDefaultExpiry, idDefaultPassword} {
+		length := len(key)
+		if length > maxLength {
+			maxLength = length
+		}
+	}
+	return maxKeySize - maxLength
 }
 
 func Close() {

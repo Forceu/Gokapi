@@ -1,5 +1,10 @@
 package models
 
+import (
+	"encoding/json"
+	"log"
+)
+
 // Configuration is a struct that contains the global configuration
 type Configuration struct {
 	Authentication AuthenticationConfig `json:"Authentication"`
@@ -13,4 +18,22 @@ type Configuration struct {
 	UseSsl         bool                 `json:"UseSsl"`
 	MaxFileSizeMB  int                  `json:"MaxFileSizeMB"`
 	Encryption       bool
+}
+
+// ToJson returns an idented JSon representation
+func (c Configuration) ToJson() []byte {
+	result, err := json.MarshalIndent(c, "", "  ")
+	if err != nil {
+		log.Fatal("Error encoding configuration:", err)
+	}
+	return result
+}
+
+// ToString returns the object as an unidented Json string used for test units
+func (c Configuration) ToString() string {
+	result, err := json.Marshal(c)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return string(result)
 }
