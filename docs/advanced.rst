@@ -99,6 +99,7 @@ All values that are described in :ref:`cloudstorage` can be passed as environmen
 +-----------------------+-------------------------+
 
 
+.. _api:
 
 
 ********************************
@@ -139,7 +140,7 @@ Customising
 
 By default, all files are included in the executable. If you want to change the layout (e.g. add your company logo or change the app name etc.), follow these steps:
 
-1. Clone this repository
+1. Download the source code for the Gokapi version you are using. It is either attached to the specific release  `on Github <https://github.com/Forceu/Gokapi/releases>`_ or you can clone the repository and checkout the tag for the specific version.
 2. Copy either the folder ``static``, ``templates`` or both from the ``internal/webserver/web`` folder to the directory where the executable is located
 3. Make changes to the folders. ``static`` contains images, CSS files and JavaScript. ``templates`` contains the HTML code.
 4. Restart the server. If the folders exist, the server will use the local files instead of the embedded files
