@@ -58,7 +58,6 @@ func Load() {
 	}
 	helper.CreateDir(serverSettings.DataDir)
 	downloadstatus.Init()
-	log.Init(Environment.DataDir)
 	serverSettings.Encryption = true // TODO
 	log.Init(Environment.DataDir)
 }
