@@ -75,12 +75,7 @@ func save() {
 	}
 	defer file.Close()
 
-	configJson, err := json.MarshalIndent(serverSettings, "", "  ")
-	if err != nil {
-		fmt.Println("Error encoding configuration:", err)
-		os.Exit(1)
-	}
-	_, err = io.Copy(file, bytes.NewReader(configJson))
+	_, err = io.Copy(file, bytes.NewReader(serverSettings.ToJson()))
 	if err != nil {
 		fmt.Println("Error writing configuration:", err)
 		os.Exit(1)
