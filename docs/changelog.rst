@@ -82,6 +82,7 @@ Upgrading to 1.5
 * After the upgrade the config file can be read-only
 * Initial setup has to be done through a web interface now, setting Gokapi up through env variables is not possible anymore
 * If you would like to use new features like a different authentication method, please run Gokapi with the paramter ``--reconfigure`` to open the setup  
+* If you set the length of the file ID to 80 or more, you need to delete all files before running this update
 
 Upgrading to 1.3
 ^^^^^^^^^^^^^^^^^^

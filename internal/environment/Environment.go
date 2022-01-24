@@ -1,11 +1,12 @@
 package environment
 
 import (
+	"Gokapi/internal/configuration/dataStorage"
 	"Gokapi/internal/helper"
 	"fmt"
-	"os"
-
 	envParser "github.com/caarlos0/env/v6"
+	"os"
+	"strconv"
 )
 
 // DefaultPort for the webserver
@@ -49,6 +50,10 @@ func New() Environment {
 	}
 	if result.LengthId < 5 {
 		result.LengthId = 5
+	}
+	if result.LengthId > dataStorage.GetLengthAvailable() {
+		result.LengthId = dataStorage.GetLengthAvailable()
+		fmt.Println("Reduced ID length to " + strconv.Itoa(dataStorage.GetLengthAvailable()) + " due to database constraints")
 	}
 	if result.MaxMemory < 5 {
 		result.MaxMemory = 5
