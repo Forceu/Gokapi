@@ -5,14 +5,14 @@ Loading and saving of the persistent configuration
 */
 
 import (
-	"Gokapi/internal/configuration/cloudconfig"
-	"Gokapi/internal/configuration/configUpgrade"
-	"Gokapi/internal/configuration/dataStorage"
-	"Gokapi/internal/environment"
-	"Gokapi/internal/helper"
-	log "Gokapi/internal/logging"
-	"Gokapi/internal/models"
-	"Gokapi/internal/webserver/downloadstatus"
+	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
+	"github.com/forceu/gokapi/internal/configuration/configUpgrade"
+	"github.com/forceu/gokapi/internal/configuration/dataStorage"
+	"github.com/forceu/gokapi/internal/environment"
+	"github.com/forceu/gokapi/internal/helper"
+	log "github.com/forceu/gokapi/internal/logging"
+	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/webserver/downloadstatus"
 	"bytes"
 	"crypto/sha1"
 	"encoding/hex"

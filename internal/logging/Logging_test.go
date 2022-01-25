@@ -4,9 +4,9 @@
 package logging
 
 import (
-	"Gokapi/internal/models"
-	"Gokapi/internal/test"
-	"Gokapi/internal/test/testconfiguration"
+	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/test"
+	"github.com/forceu/gokapi/internal/test/testconfiguration"
 	"fmt"
 	"io/ioutil"
 	"net/http/httptest"

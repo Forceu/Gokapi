@@ -1,8 +1,8 @@
 package dataStorage
 
 import (
-	"Gokapi/internal/helper"
-	"Gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/models"
 	"bytes"
 	"encoding/binary"
 	"encoding/gob"

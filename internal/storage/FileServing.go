@@ -5,13 +5,13 @@ Serving and processing uploaded files
 */
 
 import (
-	"Gokapi/internal/configuration"
-	"Gokapi/internal/configuration/dataStorage"
-	"Gokapi/internal/helper"
-	"Gokapi/internal/logging"
-	"Gokapi/internal/models"
-	"Gokapi/internal/storage/cloudstorage/aws"
-	"Gokapi/internal/webserver/downloadstatus"
+	"github.com/forceu/gokapi/internal/configuration"
+	"github.com/forceu/gokapi/internal/configuration/dataStorage"
+	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/logging"
+	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/storage/cloudstorage/aws"
+	"github.com/forceu/gokapi/internal/webserver/downloadstatus"
 	"bytes"
 	"crypto/sha1"
 	"encoding/hex"

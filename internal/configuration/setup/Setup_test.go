@@ -1,13 +1,13 @@
 package setup
 
 import (
-	"Gokapi/internal/configuration"
-	"Gokapi/internal/configuration/cloudconfig"
-	"Gokapi/internal/environment"
-	"Gokapi/internal/models"
-	"Gokapi/internal/test"
-	"Gokapi/internal/test/testconfiguration"
-	"Gokapi/internal/webserver/authentication"
+	"github.com/forceu/gokapi/internal/configuration"
+	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
+	"github.com/forceu/gokapi/internal/environment"
+	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/test"
+	"github.com/forceu/gokapi/internal/test/testconfiguration"
+	"github.com/forceu/gokapi/internal/webserver/authentication"
 	"bytes"
 	"context"
 	"errors"

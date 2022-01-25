@@ -4,11 +4,11 @@
 package configuration
 
 import (
-	"Gokapi/internal/configuration/cloudconfig"
-	"Gokapi/internal/configuration/configUpgrade"
-	"Gokapi/internal/models"
-	"Gokapi/internal/test"
-	"Gokapi/internal/test/testconfiguration"
+	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
+	"github.com/forceu/gokapi/internal/configuration/configUpgrade"
+	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/test"
+	"github.com/forceu/gokapi/internal/test/testconfiguration"
 	"os"
 	"testing"
 )

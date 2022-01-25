@@ -4,7 +4,7 @@
 package aws
 
 import (
-	"Gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/models"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"

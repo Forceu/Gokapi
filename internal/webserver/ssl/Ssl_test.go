@@ -4,8 +4,8 @@
 package ssl
 
 import (
-	"Gokapi/internal/test"
-	"Gokapi/internal/test/testconfiguration"
+	"github.com/forceu/gokapi/internal/test"
+	"github.com/forceu/gokapi/internal/test/testconfiguration"
 	"os"
 	"testing"
 	"time"

@@ -4,9 +4,9 @@
 package testconfiguration
 
 import (
-	"Gokapi/internal/configuration/dataStorage"
-	"Gokapi/internal/models"
-	"Gokapi/internal/storage/cloudstorage/aws"
+	"github.com/forceu/gokapi/internal/configuration/dataStorage"
+	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/storage/cloudstorage/aws"
 	"bytes"
 	"fmt"
 	"github.com/johannesboyne/gofakes3"

@@ -1,14 +1,14 @@
 package setup
 
 import (
-	"Gokapi/internal/configuration"
-	"Gokapi/internal/configuration/cloudconfig"
-	"Gokapi/internal/configuration/configUpgrade"
-	"Gokapi/internal/environment"
-	"Gokapi/internal/helper"
-	"Gokapi/internal/models"
-	"Gokapi/internal/storage/cloudstorage/aws"
-	"Gokapi/internal/webserver/authentication"
+	"github.com/forceu/gokapi/internal/configuration"
+	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
+	"github.com/forceu/gokapi/internal/configuration/configUpgrade"
+	"github.com/forceu/gokapi/internal/environment"
+	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/storage/cloudstorage/aws"
+	"github.com/forceu/gokapi/internal/webserver/authentication"
 	"context"
 	"embed"
 	"encoding/json"

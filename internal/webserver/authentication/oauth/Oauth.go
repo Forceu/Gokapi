@@ -1,9 +1,9 @@
 package oauth
 
 import (
-	"Gokapi/internal/helper"
-	"Gokapi/internal/models"
-	"Gokapi/internal/webserver/authentication"
+	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/webserver/authentication"
 	"context"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"golang.org/x/oauth2"

@@ -1,10 +1,10 @@
 package authentication
 
 import (
-	"Gokapi/internal/configuration"
-	"Gokapi/internal/models"
-	"Gokapi/internal/test"
-	"Gokapi/internal/test/testconfiguration"
+	"github.com/forceu/gokapi/internal/configuration"
+	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/test"
+	"github.com/forceu/gokapi/internal/test/testconfiguration"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"io"
 	"net/http/httptest"

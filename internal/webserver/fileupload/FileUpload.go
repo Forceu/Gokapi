@@ -1,11 +1,11 @@
 package fileupload
 
 import (
-	"Gokapi/internal/configuration"
-	"Gokapi/internal/configuration/dataStorage"
-	"Gokapi/internal/helper"
-	"Gokapi/internal/models"
-	"Gokapi/internal/storage"
+	"github.com/forceu/gokapi/internal/configuration"
+	"github.com/forceu/gokapi/internal/configuration/dataStorage"
+	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/storage"
 	"io"
 	"net/http"
 	"strconv"

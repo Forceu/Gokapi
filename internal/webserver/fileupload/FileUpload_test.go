@@ -4,11 +4,11 @@
 package fileupload
 
 import (
-	"Gokapi/internal/configuration"
-	"Gokapi/internal/configuration/dataStorage"
-	"Gokapi/internal/models"
-	"Gokapi/internal/test"
-	"Gokapi/internal/test/testconfiguration"
+	"github.com/forceu/gokapi/internal/configuration"
+	"github.com/forceu/gokapi/internal/configuration/dataStorage"
+	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/test"
+	"github.com/forceu/gokapi/internal/test/testconfiguration"
 	"bytes"
 	"encoding/json"
 	"io"

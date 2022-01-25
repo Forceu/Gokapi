@@ -1,8 +1,8 @@
 package dataStorage
 
 import (
-	"Gokapi/internal/models"
-	"Gokapi/internal/test"
+	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/test"
 	"os"
 	"testing"
 	"time"

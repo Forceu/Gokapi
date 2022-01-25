@@ -5,9 +5,9 @@ Manages the sessions for the admin user or to access password-protected files
 */
 
 import (
-	"Gokapi/internal/configuration/dataStorage"
-	"Gokapi/internal/helper"
-	"Gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/configuration/dataStorage"
+	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/models"
 	"net/http"
 	"time"
 )

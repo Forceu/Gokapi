@@ -1,12 +1,12 @@
 package api
 
 import (
-	"Gokapi/internal/configuration/dataStorage"
-	"Gokapi/internal/helper"
-	"Gokapi/internal/models"
-	"Gokapi/internal/storage"
-	"Gokapi/internal/webserver/authentication/sessionmanager"
-	"Gokapi/internal/webserver/fileupload"
+	"github.com/forceu/gokapi/internal/configuration/dataStorage"
+	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/storage"
+	"github.com/forceu/gokapi/internal/webserver/authentication/sessionmanager"
+	"github.com/forceu/gokapi/internal/webserver/fileupload"
 	"encoding/json"
 	"net/http"
 	"strings"

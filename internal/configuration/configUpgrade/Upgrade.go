@@ -1,10 +1,10 @@
 package configUpgrade
 
 import (
-	"Gokapi/internal/configuration/dataStorage"
-	"Gokapi/internal/environment"
-	"Gokapi/internal/helper"
-	"Gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/configuration/dataStorage"
+	"github.com/forceu/gokapi/internal/environment"
+	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/models"
 	"encoding/json"
 	"fmt"
 	"os"

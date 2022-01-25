@@ -1,8 +1,8 @@
 package environment
 
 import (
-	"Gokapi/internal/configuration/dataStorage"
-	"Gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/configuration/dataStorage"
+	"github.com/forceu/gokapi/internal/helper"
 	"fmt"
 	envParser "github.com/caarlos0/env/v6"
 	"os"

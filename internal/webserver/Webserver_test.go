@@ -4,11 +4,11 @@
 package webserver
 
 import (
-	"Gokapi/internal/configuration"
-	"Gokapi/internal/configuration/dataStorage"
-	"Gokapi/internal/test"
-	"Gokapi/internal/test/testconfiguration"
-	"Gokapi/internal/webserver/authentication"
+	"github.com/forceu/gokapi/internal/configuration"
+	"github.com/forceu/gokapi/internal/configuration/dataStorage"
+	"github.com/forceu/gokapi/internal/test"
+	"github.com/forceu/gokapi/internal/test/testconfiguration"
+	"github.com/forceu/gokapi/internal/webserver/authentication"
 	"errors"
 	"html/template"
 	"io"
