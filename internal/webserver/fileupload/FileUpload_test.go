@@ -4,13 +4,13 @@
 package fileupload
 
 import (
+	"bytes"
+	"encoding/json"
 	"github.com/forceu/gokapi/internal/configuration"
-	"github.com/forceu/gokapi/internal/configuration/dataStorage"
+	"github.com/forceu/gokapi/internal/configuration/datastorage"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/test"
 	"github.com/forceu/gokapi/internal/test/testconfiguration"
-	"bytes"
-	"encoding/json"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -35,16 +35,16 @@ func TestParseConfig(t *testing.T) {
 		password:         "123",
 	}
 	config := parseConfig(data, false)
-	downloads, _, _ := dataStorage.GetUploadDefaults()
+	downloads, _, _ := datastorage.GetUploadDefaults()
 	test.IsEqualInt(t, config.AllowedDownloads, 9)
 	test.IsEqualString(t, config.Password, "123")
 	test.IsEqualInt(t, config.Expiry, 5)
 
 	test.IsEqualInt(t, downloads, 3)
 	config = parseConfig(data, true)
-	downloads, _, _ = dataStorage.GetUploadDefaults()
+	downloads, _, _ = datastorage.GetUploadDefaults()
 	test.IsEqualInt(t, downloads, 9)
-	dataStorage.SaveUploadDefaults(3, 20, "")
+	datastorage.SaveUploadDefaults(3, 20, "")
 	data.allowedDownloads = ""
 	data.expiryDays = "invalid"
 	config = parseConfig(data, false)

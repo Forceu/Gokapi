@@ -4,7 +4,6 @@
 package aws
 
 import (
-	"github.com/forceu/gokapi/internal/models"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -12,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/forceu/gokapi/internal/models"
 	"io"
 	"net/http"
 	"time"

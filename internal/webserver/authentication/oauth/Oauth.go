@@ -1,11 +1,11 @@
 package oauth
 
 import (
+	"context"
+	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/webserver/authentication"
-	"context"
-	"github.com/coreos/go-oidc/v3/oidc"
 	"golang.org/x/oauth2"
 	"log"
 	"net/http"
@@ -16,6 +16,7 @@ var config oauth2.Config
 var ctx context.Context
 var provider *oidc.Provider
 
+// Init starts the oauth connection
 func Init(baseUrl string, credentials models.AuthenticationConfig) {
 	var err error
 	ctx = context.Background()
@@ -33,12 +34,14 @@ func Init(baseUrl string, credentials models.AuthenticationConfig) {
 	}
 }
 
+// HandlerLogin is a handler for showing the login screen
 func HandlerLogin(w http.ResponseWriter, r *http.Request) {
 	state := helper.GenerateRandomString(16)
 	setCallbackCookie(w, state)
 	http.Redirect(w, r, config.AuthCodeURL(state)+"&prompt=select_account", http.StatusFound)
 }
 
+// HandlerCallback is a handler for processing the oauth callback
 func HandlerCallback(w http.ResponseWriter, r *http.Request) {
 	state, err := r.Cookie(authentication.CookieOauth)
 	if err != nil {

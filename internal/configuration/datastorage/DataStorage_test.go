@@ -1,4 +1,4 @@
-package dataStorage
+package datastorage
 
 import (
 	"github.com/forceu/gokapi/internal/models"
@@ -175,6 +175,6 @@ func TestRunGc(t *testing.T) {
 	database.PutWithTTL([]byte("test"), []byte("value"), 500*time.Millisecond)
 	test.IsEqualInt(t, database.Len(), items+1)
 	time.Sleep(501 * time.Millisecond)
-	RunGc()
+	RunGarbageCollection()
 	test.IsEqualInt(t, database.Len(), items)
 }

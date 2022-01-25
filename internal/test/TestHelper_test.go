@@ -4,8 +4,8 @@
 package test
 
 import (
-	"github.com/forceu/gokapi/internal/helper"
 	"errors"
+	"github.com/forceu/gokapi/internal/helper"
 	"io"
 	"log"
 	"net/http"

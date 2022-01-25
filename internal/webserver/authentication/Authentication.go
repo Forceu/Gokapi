@@ -1,29 +1,39 @@
 package authentication
 
 import (
+	"crypto/subtle"
+	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/webserver/authentication/sessionmanager"
-	"crypto/subtle"
-	"github.com/coreos/go-oidc/v3/oidc"
 	"io"
 	"net/http"
 	"strings"
 )
 
+// CookieOauth is the cookie name used for login
 const CookieOauth = "state"
 
+// Internal authentication method uses a user / password combination handled by Gokapi
 const Internal = 0
+
+// OAuth2 authentication retrieves the users email with Open Connect ID
 const OAuth2 = 1
+
+// Header authentication relies on a header from a reverse proxy to parse the user name
 const Header = 2
+
+// Disabled authentication ignores all internal authentication procedures. A reverse proxy needs to restrict access
 const Disabled = 3
 
 var authSettings models.AuthenticationConfig
 
+// Init needs to be called first to process the authentication configuration
 func Init(config models.AuthenticationConfig) {
 	authSettings = config
 }
 
+// IsAuthenticated returns true if the user provides a valid authentication
 func IsAuthenticated(w http.ResponseWriter, r *http.Request) bool {
 	switch authSettings.Method {
 	case Internal:
@@ -63,6 +73,7 @@ func isUserInArray(userEntered string, strArray []string) bool {
 	return false
 }
 
+// CheckOauthUser checks if the user is allowed to use the Gokapi instance
 func CheckOauthUser(userInfo *oidc.UserInfo, w http.ResponseWriter) {
 	if isValidOauthUser(userInfo.Email) {
 		// TODO revoke session if oauth is not valid any more
@@ -106,10 +117,7 @@ func redirect(w http.ResponseWriter, url string) {
 	_, _ = io.WriteString(w, "<html><head><meta http-equiv=\"Refresh\" content=\"0; URL=./"+url+"\"></head></html>")
 }
 
-func GetMethod() int {
-	return authSettings.Method
-}
-
+// Logout logs the user out and removes the session
 func Logout(w http.ResponseWriter, r *http.Request) {
 	if authSettings.Method == Internal || authSettings.Method == OAuth2 {
 		sessionmanager.LogoutSession(w, r)
@@ -117,6 +125,7 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	redirect(w, "login")
 }
 
+// IsLogoutAvailable returns true if a logout button should be shown with the current form of authentication
 func IsLogoutAvailable() bool {
 	return authSettings.Method == Internal || authSettings.Method == OAuth2
 }

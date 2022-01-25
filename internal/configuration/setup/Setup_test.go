@@ -1,6 +1,9 @@
 package setup
 
 import (
+	"bytes"
+	"context"
+	"errors"
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
 	"github.com/forceu/gokapi/internal/environment"
@@ -8,9 +11,6 @@ import (
 	"github.com/forceu/gokapi/internal/test"
 	"github.com/forceu/gokapi/internal/test/testconfiguration"
 	"github.com/forceu/gokapi/internal/webserver/authentication"
-	"bytes"
-	"context"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -143,7 +143,7 @@ func TestRunConfigModification(t *testing.T) {
 	username = ""
 	password = ""
 	go func() {
-		time.Sleep(1 * time.Second)
+		time.Sleep(2 * time.Second)
 		test.HttpPageResult(t, test.HttpTestConfig{
 			Url:             "http://localhost:53842/setup/start",
 			IsHtml:          false,
@@ -164,7 +164,7 @@ func TestIntegration(t *testing.T) {
 	testconfiguration.Delete()
 	test.FileDoesNotExist(t, "test/config.json")
 	go RunIfFirstStart()
-	time.Sleep(1 * time.Second)
+	time.Sleep(2 * time.Second)
 
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://localhost:53842/admin",
@@ -229,7 +229,7 @@ func TestIntegration(t *testing.T) {
 	test.FileExists(t, "test/cloudconfig.yml")
 
 	go RunConfigModification()
-	time.Sleep(1 * time.Second)
+	time.Sleep(2 * time.Second)
 
 	username = "test"
 	password = "testpw"
@@ -273,7 +273,7 @@ func TestIntegration(t *testing.T) {
 		Body:            strings.NewReader(testInputHeaderAuth),
 	})
 
-	time.Sleep(1 * time.Second)
+	time.Sleep(2 * time.Second)
 	test.FileExists(t, "test/config.json")
 	settings = configuration.Get()
 	test.IsEqualInt(t, settings.Authentication.Method, 2)
@@ -301,7 +301,7 @@ func TestIntegration(t *testing.T) {
 	test.FileDoesNotExist(t, "test/cloudconfig.yml")
 
 	go RunConfigModification()
-	time.Sleep(1 * time.Second)
+	time.Sleep(2 * time.Second)
 	username = "test"
 	password = "testpw"
 
@@ -316,7 +316,7 @@ func TestIntegration(t *testing.T) {
 		Body:            strings.NewReader(testInputOauth),
 	})
 
-	time.Sleep(1 * time.Second)
+	time.Sleep(2 * time.Second)
 
 	test.IsEqualString(t, settings.Authentication.OauthProvider, "provider")
 	test.IsEqualString(t, settings.Authentication.OAuthClientId, "id")

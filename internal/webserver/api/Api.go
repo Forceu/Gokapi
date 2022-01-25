@@ -1,13 +1,13 @@
 package api
 
 import (
-	"github.com/forceu/gokapi/internal/configuration/dataStorage"
+	"encoding/json"
+	"github.com/forceu/gokapi/internal/configuration/datastorage"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
 	"github.com/forceu/gokapi/internal/webserver/authentication/sessionmanager"
 	"github.com/forceu/gokapi/internal/webserver/fileupload"
-	"encoding/json"
 	"net/http"
 	"strings"
 	"time"
@@ -43,7 +43,7 @@ func DeleteKey(id string) bool {
 	if !IsValidApiKey(id, false) {
 		return false
 	}
-	dataStorage.DeleteApiKey(id)
+	datastorage.DeleteApiKey(id)
 	return true
 }
 
@@ -54,7 +54,7 @@ func NewKey() string {
 		FriendlyName: "Unnamed key",
 		LastUsed:     0,
 	}
-	dataStorage.SaveApiKey(newKey, false)
+	datastorage.SaveApiKey(newKey, false)
 	return newKey.Id
 }
 
@@ -66,14 +66,14 @@ func changeFriendlyName(w http.ResponseWriter, request apiRequest) {
 	if request.friendlyName == "" {
 		request.friendlyName = "Unnamed key"
 	}
-	key, ok := dataStorage.GetApiKey(request.apiKeyToModify)
+	key, ok := datastorage.GetApiKey(request.apiKeyToModify)
 	if !ok {
 		sendError(w, http.StatusInternalServerError, "Could not modify API key")
 		return
 	}
 	if key.FriendlyName != request.friendlyName {
 		key.FriendlyName = request.friendlyName
-		dataStorage.SaveApiKey(key, false)
+		datastorage.SaveApiKey(key, false)
 	}
 	sendOk(w)
 }
@@ -90,7 +90,7 @@ func deleteFile(w http.ResponseWriter, request apiRequest) {
 func list(w http.ResponseWriter) {
 	var validFiles []models.File
 	sendOk(w)
-	for _, element := range dataStorage.GetAllMetadata() {
+	for _, element := range datastorage.GetAllMetadata() {
 		if element.ExpireAt > time.Now().Unix() && element.DownloadsRemaining > 0 {
 			validFiles = append(validFiles, element)
 		}
@@ -146,15 +146,17 @@ func parseRequest(r *http.Request) apiRequest {
 	}
 }
 
+// IsValidApiKey checks if the API key provides is valid. If modifyTime is true, it also automatically updates
+// the lastUsed timestamp
 func IsValidApiKey(key string, modifyTime bool) bool {
 	if key == "" {
 		return false
 	}
-	savedKey, ok := dataStorage.GetApiKey(key)
+	savedKey, ok := datastorage.GetApiKey(key)
 	if ok && savedKey.Id != "" {
 		if modifyTime {
 			savedKey.LastUsed = time.Now().Unix()
-			dataStorage.SaveApiKey(savedKey, true)
+			datastorage.SaveApiKey(savedKey, true)
 		}
 		return true
 	}

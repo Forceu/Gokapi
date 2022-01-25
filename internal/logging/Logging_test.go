@@ -4,10 +4,10 @@
 package logging
 
 import (
+	"fmt"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/test"
 	"github.com/forceu/gokapi/internal/test/testconfiguration"
-	"fmt"
 	"io/ioutil"
 	"net/http/httptest"
 	"os"

@@ -5,20 +5,20 @@ Loading and saving of the persistent configuration
 */
 
 import (
-	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
-	"github.com/forceu/gokapi/internal/configuration/configUpgrade"
-	"github.com/forceu/gokapi/internal/configuration/dataStorage"
-	"github.com/forceu/gokapi/internal/environment"
-	"github.com/forceu/gokapi/internal/helper"
-	log "github.com/forceu/gokapi/internal/logging"
-	"github.com/forceu/gokapi/internal/models"
-	"github.com/forceu/gokapi/internal/webserver/downloadstatus"
 	"bytes"
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
+	"github.com/forceu/gokapi/internal/configuration/configupgrade"
+	"github.com/forceu/gokapi/internal/configuration/datastorage"
+	"github.com/forceu/gokapi/internal/environment"
+	"github.com/forceu/gokapi/internal/helper"
+	log "github.com/forceu/gokapi/internal/logging"
+	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/webserver/downloadstatus"
 	"io"
 	"os"
 )
@@ -32,6 +32,7 @@ var Environment environment.Environment
 // ServerSettings is an object containing the server configuration
 var serverSettings models.Configuration
 
+// Exists returns true if configuration files are present
 func Exists() bool {
 	configPath, _, _, _ := environment.GetConfigPaths()
 	return helper.FileExists(configPath)
@@ -48,8 +49,8 @@ func Load() {
 	err = decoder.Decode(&serverSettings)
 	helper.Check(err)
 	file.Close()
-	dataStorage.Init(Environment.FileDbPath)
-	if configUpgrade.DoUpgrade(&serverSettings, &Environment) {
+	datastorage.Init(Environment.FileDbPath)
+	if configupgrade.DoUpgrade(&serverSettings, &Environment) {
 		save()
 	}
 	envMaxMem := os.Getenv("GOKAPI_MAX_MEMORY_UPLOAD")
@@ -82,12 +83,14 @@ func save() {
 	}
 }
 
+// LoadFromSetup creates a new configuration file after a user completed the setup. If cloudConfig is not nil, a new
+// cloud config file is created. If it is nil an existing cloud config file will be deleted.
 func LoadFromSetup(config models.Configuration, cloudConfig *cloudconfig.CloudConfig, isInitialSetup bool) {
 	Environment = environment.New()
 	helper.CreateDir(Environment.ConfigDir)
 	if !isInitialSetup {
 		Load()
-		dataStorage.DeleteAllSessions()
+		datastorage.DeleteAllSessions()
 	}
 
 	serverSettings = config
@@ -107,7 +110,7 @@ func LoadFromSetup(config models.Configuration, cloudConfig *cloudconfig.CloudCo
 	save()
 }
 
-// HashPassword hashes a string with SHA256 and a salt
+// HashPassword hashes a string with SHA256 the file salt or admin user salt
 func HashPassword(password string, useFileSalt bool) string {
 	if useFileSalt {
 		return HashPasswordCustomSalt(password, serverSettings.Authentication.SaltFiles)
@@ -115,6 +118,7 @@ func HashPassword(password string, useFileSalt bool) string {
 	return HashPasswordCustomSalt(password, serverSettings.Authentication.SaltAdmin)
 }
 
+// HashPasswordCustomSalt hashes a password with SHA256 and the provided salt
 func HashPasswordCustomSalt(password, salt string) string {
 	if password == "" {
 		return ""

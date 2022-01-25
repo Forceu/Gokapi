@@ -1,9 +1,9 @@
 package logging
 
 import (
+	"fmt"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
-	"fmt"
 	"net"
 	"net/http"
 	"os"

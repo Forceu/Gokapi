@@ -5,9 +5,11 @@ Main routine
 */
 
 import (
+	"flag"
+	"fmt"
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
-	"github.com/forceu/gokapi/internal/configuration/dataStorage"
+	"github.com/forceu/gokapi/internal/configuration/datastorage"
 	"github.com/forceu/gokapi/internal/configuration/setup"
 	"github.com/forceu/gokapi/internal/environment"
 	"github.com/forceu/gokapi/internal/helper"
@@ -17,8 +19,6 @@ import (
 	"github.com/forceu/gokapi/internal/webserver"
 	"github.com/forceu/gokapi/internal/webserver/authentication"
 	"github.com/forceu/gokapi/internal/webserver/ssl"
-	"flag"
-	"fmt"
 	"math/rand"
 	"os"
 	"os/signal"
@@ -65,7 +65,7 @@ func main() {
 func cleanup() {
 	fmt.Println("Shutting down...")
 	// webserver.Stop() TODO
-	dataStorage.Close()
+	datastorage.Close()
 }
 
 // Checks for command line arguments that have to be parsed before loading the configuration

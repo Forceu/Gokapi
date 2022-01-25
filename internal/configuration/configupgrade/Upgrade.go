@@ -1,12 +1,12 @@
-package configUpgrade
+package configupgrade
 
 import (
-	"github.com/forceu/gokapi/internal/configuration/dataStorage"
+	"encoding/json"
+	"fmt"
+	"github.com/forceu/gokapi/internal/configuration/datastorage"
 	"github.com/forceu/gokapi/internal/environment"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
-	"encoding/json"
-	"fmt"
 	"os"
 	"time"
 )
@@ -14,6 +14,7 @@ import (
 // CurrentConfigVersion is the version of the configuration structure. Used for upgrading
 const CurrentConfigVersion = 11
 
+// DoUpgrade checks if an old version is present and updates it to the current version if required
 func DoUpgrade(settings *models.Configuration, env *environment.Environment) bool {
 	if settings.ConfigVersion < CurrentConfigVersion {
 		updateConfig(settings, env)
@@ -59,19 +60,19 @@ func updateConfig(settings *models.Configuration, env *environment.Environment) 
 	// < v1.5.0
 	if settings.ConfigVersion < 11 {
 		legacyConfig := loadLegacyConfigPreDb(env)
-		dataStorage.SaveUploadDefaults(legacyConfig.DefaultDownloads, legacyConfig.DefaultExpiry, legacyConfig.DefaultPassword)
+		datastorage.SaveUploadDefaults(legacyConfig.DefaultDownloads, legacyConfig.DefaultExpiry, legacyConfig.DefaultPassword)
 
 		for _, hotlink := range legacyConfig.Hotlinks {
-			dataStorage.SaveHotlink(hotlink.Id, models.File{Id: hotlink.FileId})
+			datastorage.SaveHotlink(hotlink.Id, models.File{Id: hotlink.FileId})
 		}
 		for _, apikey := range legacyConfig.ApiKeys {
-			dataStorage.SaveApiKey(apikey, false)
+			datastorage.SaveApiKey(apikey, false)
 		}
 		for _, file := range legacyConfig.Files {
-			dataStorage.SaveMetaData(file)
+			datastorage.SaveMetaData(file)
 		}
 		for key, session := range legacyConfig.Sessions {
-			dataStorage.SaveSession(key, session, 48*time.Hour)
+			datastorage.SaveSession(key, session, 48*time.Hour)
 		}
 	}
 }

@@ -1,5 +1,6 @@
 package models
 
+// AuthenticationConfig holds configuration on how to authenticate to Gokapi admin menu
 type AuthenticationConfig struct {
 	Method            int      `json:"Method"`
 	SaltAdmin         string   `json:"SaltAdmin"`
