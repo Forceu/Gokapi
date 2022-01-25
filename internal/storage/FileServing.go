@@ -71,6 +71,7 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 			err = os.Rename(tempFile.Name(), dataDir+"/"+file.SHA256)
 			helper.Check(err)
 			hasBeenRenamed = true
+			datastorage.SaveMetaData(file)
 			return file, nil
 		}
 		destinationFile, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
