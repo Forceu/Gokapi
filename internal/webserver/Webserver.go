@@ -5,19 +5,19 @@ Handling of webserver and requests / uploads
 */
 
 import (
-	"Gokapi/internal/configuration"
-	"Gokapi/internal/configuration/dataStorage"
-	"Gokapi/internal/helper"
-	"Gokapi/internal/models"
-	"Gokapi/internal/storage"
-	"Gokapi/internal/webserver/api"
-	"Gokapi/internal/webserver/authentication"
-	"Gokapi/internal/webserver/authentication/oauth"
-	"Gokapi/internal/webserver/authentication/sessionmanager"
-	"Gokapi/internal/webserver/fileupload"
-	"Gokapi/internal/webserver/ssl"
 	"embed"
 	"fmt"
+	"github.com/forceu/gokapi/internal/configuration"
+	"github.com/forceu/gokapi/internal/configuration/datastorage"
+	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/storage"
+	"github.com/forceu/gokapi/internal/webserver/api"
+	"github.com/forceu/gokapi/internal/webserver/authentication"
+	"github.com/forceu/gokapi/internal/webserver/authentication/oauth"
+	"github.com/forceu/gokapi/internal/webserver/authentication/sessionmanager"
+	"github.com/forceu/gokapi/internal/webserver/fileupload"
+	"github.com/forceu/gokapi/internal/webserver/ssl"
 	"html/template"
 	"io"
 	"io/fs"
@@ -195,7 +195,7 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 		redirect(w, "admin")
 		return
 	}
-	if authentication.GetMethod() == authentication.OAuth2 {
+	if configuration.Get().Authentication.Method == authentication.OAuth2 {
 		redirect(w, "oauth-login")
 		return
 	}
@@ -347,7 +347,7 @@ func (u *UploadView) convertGlobalConfig(isMainView bool) *UploadView {
 	var result []models.File
 	var resultApi []models.ApiKey
 	if isMainView {
-		for _, element := range dataStorage.GetAllMetadata() {
+		for _, element := range datastorage.GetAllMetadata() {
 			result = append(result, element)
 		}
 		sort.Slice(result[:], func(i, j int) bool {
@@ -357,7 +357,7 @@ func (u *UploadView) convertGlobalConfig(isMainView bool) *UploadView {
 			return result[i].ExpireAt > result[j].ExpireAt
 		})
 	} else {
-		for _, element := range dataStorage.GetAllApiKeys() {
+		for _, element := range datastorage.GetAllApiKeys() {
 			if element.LastUsed == 0 {
 				element.LastUsedString = "Never"
 			} else {
@@ -381,7 +381,7 @@ func (u *UploadView) convertGlobalConfig(isMainView bool) *UploadView {
 	u.IsMainView = isMainView
 	u.MaxFileSize = configuration.Get().MaxFileSizeMB
 	u.IsLogoutAvailable = authentication.IsLogoutAvailable()
-	u.DefaultDownloads, u.DefaultExpiry, u.DefaultPassword = dataStorage.GetUploadDefaults()
+	u.DefaultDownloads, u.DefaultExpiry, u.DefaultPassword = datastorage.GetUploadDefaults()
 	return u
 }
 

@@ -4,8 +4,8 @@
 package helper
 
 import (
-	"Gokapi/internal/test"
 	"errors"
+	"github.com/forceu/gokapi/internal/test"
 	"io/ioutil"
 	"os"
 	"testing"

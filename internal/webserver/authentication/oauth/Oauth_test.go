@@ -1,8 +1,8 @@
 package oauth
 
 import (
-	"Gokapi/internal/test"
-	"Gokapi/internal/webserver/authentication"
+	"github.com/forceu/gokapi/internal/test"
+	"github.com/forceu/gokapi/internal/webserver/authentication"
 	"testing"
 )
 

@@ -4,7 +4,7 @@
 package environment
 
 import (
-	"Gokapi/internal/test"
+	"github.com/forceu/gokapi/internal/test"
 	"os"
 	"testing"
 )

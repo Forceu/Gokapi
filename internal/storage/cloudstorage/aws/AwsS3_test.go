@@ -4,9 +4,9 @@
 package aws
 
 import (
-	"Gokapi/internal/configuration/cloudconfig"
-	"Gokapi/internal/models"
-	"Gokapi/internal/test"
+	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
+	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/test"
 	"github.com/johannesboyne/gofakes3"
 	"github.com/johannesboyne/gofakes3/backend/s3mem"
 	"net/http/httptest"

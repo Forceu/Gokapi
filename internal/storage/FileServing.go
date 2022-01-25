@@ -5,14 +5,14 @@ Serving and processing uploaded files
 */
 
 import (
-	"Gokapi/internal/configuration"
-	"Gokapi/internal/encryption"
-	"Gokapi/internal/configuration/dataStorage"
-	"Gokapi/internal/helper"
-	"Gokapi/internal/logging"
-	"Gokapi/internal/models"
-	"Gokapi/internal/storage/cloudstorage/aws"
-	"Gokapi/internal/webserver/downloadstatus"
+	"github.com/forceu/gokapi/internal/encryption"
+	"github.com/forceu/gokapi/internal/configuration"
+	"github.com/forceu/gokapi/internal/configuration/datastorage"
+	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/logging"
+	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/storage/cloudstorage/aws"
+	"github.com/forceu/gokapi/internal/webserver/downloadstatus"
 	"bytes"
 	"crypto/sha1"
 	"encoding/hex"
@@ -84,7 +84,7 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 			return models.File{}, err
 		}
 	}
-	dataStorage.SaveMetaData(file)
+	datastorage.SaveMetaData(file)
 	return file, nil
 }
 
@@ -146,7 +146,7 @@ func addHotlink(file *models.File) {
 	}
 	link := helper.GenerateRandomString(40) + extension
 	file.HotlinkId = link
-	dataStorage.SaveHotlink(link, *file)
+	datastorage.SaveHotlink(*file)
 }
 
 // GetFile gets the file by id. Returns (empty File, false) if invalid / expired file
@@ -156,7 +156,7 @@ func GetFile(id string) (models.File, bool) {
 	if id == "" {
 		return emptyResult, false
 	}
-	file, ok := dataStorage.GetMetaDataById(id)
+	file, ok := datastorage.GetMetaDataById(id)
 	if !ok {
 		return emptyResult, false
 	}
@@ -176,7 +176,7 @@ func GetFileByHotlink(id string) (models.File, bool) {
 	if id == "" {
 		return emptyResult, false
 	}
-	fileId, ok := dataStorage.GetHotlink(id)
+	fileId, ok := datastorage.GetHotlink(id)
 	if !ok {
 		return emptyResult, false
 	}
@@ -186,7 +186,7 @@ func GetFileByHotlink(id string) (models.File, bool) {
 // ServeFile subtracts a download allowance and serves the file to the browser
 func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDownload bool) {
 	file.DownloadsRemaining = file.DownloadsRemaining - 1
-	dataStorage.SaveMetaData(file)
+	datastorage.SaveMetaData(file)
 	logging.AddDownload(&file, r)
 
 	// If file is not stored on AWS
@@ -245,15 +245,15 @@ func FileExists(file models.File, dataDir string) bool {
 // Will be called periodically or after a file has been manually deleted in the admin view.
 // If parameter periodic is true, this function is recursive and calls itself every hour.
 func CleanUp(periodic bool) {
-	dataStorage.RunGc()
+	datastorage.RunGarbageCollection()
 	downloadstatus.Clean()
 	timeNow := time.Now().Unix()
 	wasItemDeleted := false
-	for key, element := range dataStorage.GetAllMetadata() {
+	for key, element := range datastorage.GetAllMetadata() {
 		fileExists := FileExists(element, configuration.Get().DataDir)
 		if (element.ExpireAt < timeNow || element.DownloadsRemaining < 1 || !fileExists) && !downloadstatus.IsCurrentlyDownloading(element) {
 			deleteFile := true
-			for _, secondLoopElement := range dataStorage.GetAllMetadata() {
+			for _, secondLoopElement := range datastorage.GetAllMetadata() {
 				if element.Id != secondLoopElement.Id && element.SHA256 == secondLoopElement.SHA256 {
 					deleteFile = false
 				}
@@ -262,9 +262,9 @@ func CleanUp(periodic bool) {
 				deleteSource(element, configuration.Get().DataDir)
 			}
 			if element.HotlinkId != "" {
-				dataStorage.DeleteHotlink(element.HotlinkId)
+				datastorage.DeleteHotlink(element.HotlinkId)
 			}
-			dataStorage.DeleteMetaData(key)
+			datastorage.DeleteMetaData(key)
 			wasItemDeleted = true
 		}
 	}
@@ -296,12 +296,12 @@ func DeleteFile(keyId string) bool {
 	if keyId == "" {
 		return false
 	}
-	item, ok := dataStorage.GetMetaDataById(keyId)
+	item, ok := datastorage.GetMetaDataById(keyId)
 	if !ok {
 		return false
 	}
 	item.ExpireAt = 0
-	dataStorage.SaveMetaData(item)
+	datastorage.SaveMetaData(item)
 	for _, status := range downloadstatus.GetAll() {
 		if status.FileId == item.Id {
 			downloadstatus.SetComplete(status.Id)

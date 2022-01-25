@@ -4,7 +4,7 @@
 package models
 
 import (
-	"Gokapi/internal/test"
+	"github.com/forceu/gokapi/internal/test"
 	"testing"
 )
 

@@ -1,8 +1,6 @@
 package ssl
 
 import (
-	"Gokapi/internal/environment"
-	"Gokapi/internal/helper"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -12,6 +10,8 @@ import (
 	"encoding/hex"
 	"encoding/pem"
 	"fmt"
+	"github.com/forceu/gokapi/internal/environment"
+	"github.com/forceu/gokapi/internal/helper"
 	"io"
 	"math"
 	"math/big"

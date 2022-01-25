@@ -1,10 +1,10 @@
 package cloudconfig
 
 import (
-	"Gokapi/internal/environment"
-	"Gokapi/internal/helper"
-	"Gokapi/internal/models"
 	"fmt"
+	"github.com/forceu/gokapi/internal/environment"
+	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/models"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
@@ -28,6 +28,7 @@ func Load() (CloudConfig, bool) {
 	return CloudConfig{}, false
 }
 
+// Write saves the cloudconfig file to the set config path
 func Write(config CloudConfig) error {
 	_, configDir, _, awsConfigPath := environment.GetConfigPaths()
 	helper.CreateDir(configDir)
@@ -45,6 +46,7 @@ func Write(config CloudConfig) error {
 	return nil
 }
 
+// Delete removes the cloud config file from the set config path
 func Delete() error {
 	_, _, _, awsConfigPath := environment.GetConfigPaths()
 	if helper.FileExists(awsConfigPath) {

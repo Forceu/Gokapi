@@ -4,9 +4,9 @@
 package aws
 
 import (
-	"Gokapi/internal/models"
 	"bytes"
 	"errors"
+	"github.com/forceu/gokapi/internal/models"
 	"io"
 	"net/http"
 	"os"

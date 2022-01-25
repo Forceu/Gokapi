@@ -5,9 +5,9 @@ Manages the sessions for the admin user or to access password-protected files
 */
 
 import (
-	"Gokapi/internal/configuration/dataStorage"
-	"Gokapi/internal/helper"
-	"Gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/configuration/datastorage"
+	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/models"
 	"net/http"
 	"time"
 )
@@ -25,7 +25,7 @@ func IsValidSession(w http.ResponseWriter, r *http.Request) bool {
 	if err == nil {
 		sessionString := cookie.Value
 		if sessionString != "" {
-			session, ok := dataStorage.GetSession(sessionString)
+			session, ok := datastorage.GetSession(sessionString)
 			if ok {
 				return useSession(w, sessionString, session)
 			}
@@ -40,12 +40,12 @@ func IsValidSession(w http.ResponseWriter, r *http.Request) bool {
 // Returns false if session is invalid (and deletes it)
 func useSession(w http.ResponseWriter, id string, session models.Session) bool {
 	if session.ValidUntil < time.Now().Unix() {
-		dataStorage.DeleteSession(id)
+		datastorage.DeleteSession(id)
 		return false
 	}
 	if session.RenewAt < time.Now().Unix() {
 		CreateSession(w)
-		dataStorage.DeleteSession(id)
+		datastorage.DeleteSession(id)
 	}
 	return true
 }
@@ -54,7 +54,7 @@ func useSession(w http.ResponseWriter, id string, session models.Session) bool {
 // If sessions parameter is nil, it will be loaded from config
 func CreateSession(w http.ResponseWriter) {
 	sessionString := helper.GenerateRandomString(60)
-	dataStorage.SaveSession(sessionString, models.Session{
+	datastorage.SaveSession(sessionString, models.Session{
 		RenewAt:    time.Now().Add(time.Hour).Unix(),
 		ValidUntil: time.Now().Add(cookieLifeAdmin).Unix(),
 	}, cookieLifeAdmin)
@@ -65,7 +65,7 @@ func CreateSession(w http.ResponseWriter) {
 func LogoutSession(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("session_token")
 	if err == nil {
-		dataStorage.DeleteSession(cookie.Value)
+		datastorage.DeleteSession(cookie.Value)
 	}
 	writeSessionCookie(w, "", time.Now())
 }

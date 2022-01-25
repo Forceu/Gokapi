@@ -4,9 +4,9 @@
 package testconfiguration
 
 import (
-	"Gokapi/internal/helper"
-	"Gokapi/internal/storage/cloudstorage/aws"
-	"Gokapi/internal/test"
+	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/storage/cloudstorage/aws"
+	"github.com/forceu/gokapi/internal/test"
 	"os"
 	"testing"
 )

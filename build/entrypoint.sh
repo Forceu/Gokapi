@@ -17,7 +17,7 @@ for target in $targets; do
 		fi
 
 		echo "----> Building Gokapi ($tag) for $target"
-		GOOS=$os GOARCH=$arch CGO_ENABLED=0 go build -tags $tag -ldflags="-s -w -X 'Gokapi/internal/environment.Builder=Github Release Builder' -X 'Gokapi/internal/environment.BuildTime=$(date)'" -o $output Gokapi/cmd/gokapi
+		GOOS=$os GOARCH=$arch CGO_ENABLED=0 go build -tags $tag -ldflags="-s -w -X 'github.com/forceu/gokapi/internal/environment.Builder=Github Release Builder' -X 'github.com/forceu/gokapi/internal/environment.BuildTime=$(date)'" -o $output github.com/forceu/gokapi/cmd/gokapi
 		zip -j $output.zip $output >/dev/null
 		rm $output
 	done

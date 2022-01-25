@@ -1,13 +1,13 @@
-package dataStorage
+package datastorage
 
 import (
-	"Gokapi/internal/helper"
-	"Gokapi/internal/models"
 	"bytes"
 	"encoding/binary"
 	"encoding/gob"
 	"fmt"
 	"git.mills.io/prologic/bitcask"
+	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/models"
 	"log"
 	"strings"
 	"time"
@@ -25,6 +25,7 @@ const maxKeySize = 96
 
 var database *bitcask.Bitcask
 
+// Init creates the database files and connects to it
 func Init(dbPath string) {
 	if database == nil {
 		db, err := bitcask.Open(dbPath, bitcask.WithMaxKeySize(maxKeySize))
@@ -35,6 +36,7 @@ func Init(dbPath string) {
 	}
 }
 
+// GetLengthAvailable returns the maximum length for a key name
 func GetLengthAvailable() int {
 	maxLength := 0
 	for _, key := range []string{prefixApiKey, prefixFile, prefixHotlink, prefixSessions, idDefaultDownloads, idDefaultExpiry, idDefaultPassword} {
@@ -46,6 +48,7 @@ func GetLengthAvailable() int {
 	return maxKeySize - maxLength
 }
 
+// Close syncs the database to the filesystem and closes it
 func Close() {
 	if database != nil {
 		err := database.Sync()
@@ -62,6 +65,7 @@ func Close() {
 
 // ## File Metadata ##
 
+// GetAllMetadata returns a map of all available files
 func GetAllMetadata() map[string]models.File {
 	result := make(map[string]models.File)
 	var keys []string
@@ -83,6 +87,7 @@ func GetAllMetadata() map[string]models.File {
 	return result
 }
 
+// GetMetaDataById returns a models.File,true from the ID passed or false if the id is not valid
 func GetMetaDataById(id string) (models.File, bool) {
 	result := models.File{}
 	value, ok := getValue(prefixFile + id)
@@ -96,6 +101,7 @@ func GetMetaDataById(id string) (models.File, bool) {
 	return result, true
 }
 
+// SaveMetaData stores the metadata of a file to the disk
 func SaveMetaData(file models.File) {
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
@@ -107,12 +113,14 @@ func SaveMetaData(file models.File) {
 	helper.Check(err)
 }
 
+// DeleteMetaData deletes information about a file
 func DeleteMetaData(id string) {
 	deleteKey(prefixFile + id)
 }
 
 // ## Hotlinks ##
 
+// GetHotlink returns the id of the file associated or false if not found
 func GetHotlink(id string) (string, bool) {
 	value, ok := getValue(prefixHotlink + id)
 	if !ok {
@@ -121,19 +129,22 @@ func GetHotlink(id string) (string, bool) {
 	return string(value), true
 }
 
-func SaveHotlink(id string, file models.File) {
-	err := database.PutWithTTL([]byte(prefixHotlink+id), []byte(file.Id), expiryToDuration(file))
+// SaveHotlink stores the hotlink associated with the file in the database
+func SaveHotlink(file models.File) {
+	err := database.PutWithTTL([]byte(prefixHotlink+file.HotlinkId), []byte(file.Id), expiryToDuration(file))
 	helper.Check(err)
 	err = database.Sync()
 	helper.Check(err)
 }
 
+// DeleteHotlink deletes a hotlink with the given ID
 func DeleteHotlink(id string) {
 	deleteKey(prefixHotlink + id)
 }
 
 // ## API Keys ##
 
+// GetAllApiKeys returns a map with all API keys
 func GetAllApiKeys() map[string]models.ApiKey {
 	result := make(map[string]models.ApiKey)
 	var keys []string
@@ -153,6 +164,7 @@ func GetAllApiKeys() map[string]models.ApiKey {
 	return result
 }
 
+// GetApiKey returns a models.ApiKey if valid or false if the ID is not valid
 func GetApiKey(id string) (models.ApiKey, bool) {
 	result := models.ApiKey{}
 	value, ok := getValue(prefixApiKey + id)
@@ -166,6 +178,7 @@ func GetApiKey(id string) (models.ApiKey, bool) {
 	return result, true
 }
 
+// SaveApiKey saves the API key to the database. If updateTimeOnly is true, the database might not be synced afterwards
 func SaveApiKey(apikey models.ApiKey, updateTimeOnly bool) {
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
@@ -179,12 +192,14 @@ func SaveApiKey(apikey models.ApiKey, updateTimeOnly bool) {
 	}
 }
 
+// DeleteApiKey deletes an API key with the given ID
 func DeleteApiKey(id string) {
 	deleteKey(prefixApiKey + id)
 }
 
 // ## Sessions ##
 
+// GetSession returns the session with the given ID or false if not a valid ID
 func GetSession(id string) (models.Session, bool) {
 	result := models.Session{}
 	value, ok := getValue(prefixSessions + id)
@@ -198,9 +213,12 @@ func GetSession(id string) (models.Session, bool) {
 	return result, true
 }
 
+// DeleteSession deletes a session with the given ID
 func DeleteSession(id string) {
 	deleteKey(prefixSessions + id)
 }
+
+// DeleteAllSessions logs all users out
 func DeleteAllSessions() {
 	err := database.SiftScan([]byte(prefixSessions), func(key []byte) (bool, error) {
 		return true, nil
@@ -208,6 +226,7 @@ func DeleteAllSessions() {
 	helper.Check(err)
 }
 
+// SaveSession stores the given session. After the expiry passed, it will be deleted automatically
 func SaveSession(id string, session models.Session, expiry time.Duration) {
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
@@ -221,6 +240,8 @@ func SaveSession(id string, session models.Session, expiry time.Duration) {
 
 // ## Upload Defaults ##
 
+// GetUploadDefaults returns the last used setting for amount of downloads allowed, last expiry in days and
+// a password for the file
 func GetUploadDefaults() (int, int, string) {
 	downloads := 1
 	expiry := 14
@@ -243,6 +264,7 @@ func GetUploadDefaults() (int, int, string) {
 	return downloads, expiry, password
 }
 
+// SaveUploadDefaults saves the last used setting for an upload
 func SaveUploadDefaults(downloads, expiry int, password string) {
 	err := database.Put([]byte(idDefaultDownloads), intToByte(downloads))
 	helper.Check(err)
@@ -254,7 +276,8 @@ func SaveUploadDefaults(downloads, expiry int, password string) {
 	helper.Check(err)
 }
 
-func RunGc() {
+// RunGarbageCollection runs the databases GC
+func RunGarbageCollection() {
 	err := database.RunGC()
 	helper.Check(err)
 }

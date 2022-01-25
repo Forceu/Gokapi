@@ -1,19 +1,19 @@
 package setup
 
 import (
-	"Gokapi/internal/configuration"
-	"Gokapi/internal/configuration/cloudconfig"
-	"Gokapi/internal/configuration/configUpgrade"
-	"Gokapi/internal/environment"
-	"Gokapi/internal/helper"
-	"Gokapi/internal/models"
-	"Gokapi/internal/storage/cloudstorage/aws"
-	"Gokapi/internal/webserver/authentication"
 	"context"
 	"embed"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/forceu/gokapi/internal/configuration"
+	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
+	"github.com/forceu/gokapi/internal/configuration/configupgrade"
+	"github.com/forceu/gokapi/internal/environment"
+	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/storage/cloudstorage/aws"
+	"github.com/forceu/gokapi/internal/webserver/authentication"
 	"html/template"
 	"io"
 	"io/fs"
@@ -40,6 +40,7 @@ var isInitialSetup = true
 var username string
 var password string
 
+// RunIfFirstStart checks if config files exist and if not start a blocking webserver for setup
 func RunIfFirstStart() {
 	if !configuration.Exists() {
 		isInitialSetup = true
@@ -47,6 +48,7 @@ func RunIfFirstStart() {
 	}
 }
 
+// RunConfigModification starts a blocking webserver for reconfiguration setup
 func RunConfigModification() {
 	isInitialSetup = false
 	username = helper.GenerateRandomString(6)
@@ -61,6 +63,7 @@ func RunConfigModification() {
 	startSetupWebserver()
 }
 
+// basicAuth adds authentication middleware used for reconfiguration setup
 func basicAuth(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// No auth required on initial setup
@@ -172,7 +175,7 @@ func toConfiguration(formObjects *[]jsonFormObject) (models.Configuration, *clou
 		LengthId:      parsedEnv.LengthId,
 		MaxMemory:     parsedEnv.MaxMemory,
 		DataDir:       parsedEnv.DataDir,
-		ConfigVersion: configUpgrade.CurrentConfigVersion,
+		ConfigVersion: configupgrade.CurrentConfigVersion,
 		Authentication: models.AuthenticationConfig{
 			SaltAdmin: helper.GenerateRandomString(30),
 			SaltFiles: helper.GenerateRandomString(30),
@@ -313,9 +316,8 @@ func parseCloudSettings(formObjects *[]jsonFormObject) (*cloudconfig.CloudConfig
 	}
 	if useCloud == "cloud" {
 		return getCloudConfig(formObjects)
-	} else {
-		return nil, nil
 	}
+	return nil, nil
 }
 
 func getCloudConfig(formObjects *[]jsonFormObject) (*cloudconfig.CloudConfig, error) {

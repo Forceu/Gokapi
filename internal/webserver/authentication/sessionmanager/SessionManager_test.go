@@ -4,9 +4,9 @@
 package sessionmanager
 
 import (
-	"Gokapi/internal/configuration"
-	"Gokapi/internal/test"
-	"Gokapi/internal/test/testconfiguration"
+	"github.com/forceu/gokapi/internal/configuration"
+	"github.com/forceu/gokapi/internal/test"
+	"github.com/forceu/gokapi/internal/test/testconfiguration"
 	"net/http"
 	"net/http/httptest"
 	"os"

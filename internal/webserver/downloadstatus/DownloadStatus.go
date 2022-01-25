@@ -1,13 +1,14 @@
 package downloadstatus
 
 import (
-	"Gokapi/internal/helper"
-	"Gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/models"
 	"time"
 )
 
 var status map[string]models.DownloadStatus
 
+// Init needs to be called first in order to initialise the array
 func Init() {
 	status = make(map[string]models.DownloadStatus)
 }
@@ -56,6 +57,7 @@ func IsCurrentlyDownloading(file models.File) bool {
 	return false
 }
 
+// GetAll returns all download states
 func GetAll() map[string]models.DownloadStatus {
 	return status
 }

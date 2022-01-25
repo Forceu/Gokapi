@@ -1,11 +1,11 @@
 package authentication
 
 import (
-	"Gokapi/internal/configuration"
-	"Gokapi/internal/models"
-	"Gokapi/internal/test"
-	"Gokapi/internal/test/testconfiguration"
 	"github.com/coreos/go-oidc/v3/oidc"
+	"github.com/forceu/gokapi/internal/configuration"
+	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/test"
+	"github.com/forceu/gokapi/internal/test/testconfiguration"
 	"io"
 	"net/http/httptest"
 	"os"
@@ -93,10 +93,6 @@ func TestIsLogoutAvailable(t *testing.T) {
 func TestEqualString(t *testing.T) {
 	test.IsEqualBool(t, IsEqualStringConstantTime("yes", "no"), false)
 	test.IsEqualBool(t, IsEqualStringConstantTime("yes", "yes"), true)
-}
-
-func TestGetMethod(t *testing.T) {
-	test.IsEqualInt(t, GetMethod(), Disabled)
 }
 
 func TestRedirect(t *testing.T) {

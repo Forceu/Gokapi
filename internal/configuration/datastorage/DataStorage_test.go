@@ -1,8 +1,8 @@
-package dataStorage
+package datastorage
 
 import (
-	"Gokapi/internal/models"
-	"Gokapi/internal/test"
+	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/test"
 	"os"
 	"testing"
 	"time"
@@ -54,7 +54,7 @@ func TestMetaData(t *testing.T) {
 }
 
 func TestHotlink(t *testing.T) {
-	SaveHotlink("testlink", models.File{Id: "testhfile", Name: "testh.txt", ExpireAt: time.Now().Add(time.Hour).Unix()})
+	SaveHotlink(models.File{Id: "testhfile", Name: "testh.txt", HotlinkId: "testlink", ExpireAt: time.Now().Add(time.Hour).Unix()})
 
 	hotlink, ok := GetHotlink("testlink")
 	test.IsEqualBool(t, ok, true)
@@ -175,6 +175,6 @@ func TestRunGc(t *testing.T) {
 	database.PutWithTTL([]byte("test"), []byte("value"), 500*time.Millisecond)
 	test.IsEqualInt(t, database.Len(), items+1)
 	time.Sleep(501 * time.Millisecond)
-	RunGc()
+	RunGarbageCollection()
 	test.IsEqualInt(t, database.Len(), items)
 }

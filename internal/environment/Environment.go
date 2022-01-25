@@ -1,10 +1,10 @@
 package environment
 
 import (
-	"Gokapi/internal/configuration/dataStorage"
-	"Gokapi/internal/helper"
 	"fmt"
 	envParser "github.com/caarlos0/env/v6"
+	"github.com/forceu/gokapi/internal/configuration/datastorage"
+	"github.com/forceu/gokapi/internal/helper"
 	"os"
 	"strconv"
 )
@@ -51,9 +51,9 @@ func New() Environment {
 	if result.LengthId < 5 {
 		result.LengthId = 5
 	}
-	if result.LengthId > dataStorage.GetLengthAvailable() {
-		result.LengthId = dataStorage.GetLengthAvailable()
-		fmt.Println("Reduced ID length to " + strconv.Itoa(dataStorage.GetLengthAvailable()) + " due to database constraints")
+	if result.LengthId > datastorage.GetLengthAvailable() {
+		result.LengthId = datastorage.GetLengthAvailable()
+		fmt.Println("Reduced ID length to " + strconv.Itoa(datastorage.GetLengthAvailable()) + " due to database constraints")
 	}
 	if result.MaxMemory < 5 {
 		result.MaxMemory = 5
@@ -72,6 +72,8 @@ func (e *Environment) IsAwsProvided() bool {
 		e.AwsKeySecret != ""
 }
 
+// GetConfigPaths returns the config paths to config files and the directory containing the files. The following results are returned:
+// Path to config file, Path to directory containing config file, Name of config file, Path to AWS config file
 func GetConfigPaths() (string, string, string, string) {
 	env := New()
 	awsConfigPAth := env.ConfigDir + "/cloudconfig.yml"

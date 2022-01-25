@@ -4,11 +4,11 @@
 package configuration
 
 import (
-	"Gokapi/internal/configuration/cloudconfig"
-	"Gokapi/internal/configuration/configUpgrade"
-	"Gokapi/internal/models"
-	"Gokapi/internal/test"
-	"Gokapi/internal/test/testconfiguration"
+	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
+	"github.com/forceu/gokapi/internal/configuration/configupgrade"
+	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/test"
+	"github.com/forceu/gokapi/internal/test/testconfiguration"
 	"os"
 	"testing"
 )
@@ -53,7 +53,7 @@ func TestLoadFromSetup(t *testing.T) {
 		Port:           "localhost:123",
 		ServerUrl:      "serverurl",
 		RedirectUrl:    "redirect",
-		ConfigVersion:  configUpgrade.CurrentConfigVersion,
+		ConfigVersion:  configupgrade.CurrentConfigVersion,
 		LengthId:       10,
 		DataDir:        "test",
 		MaxMemory:      10,
