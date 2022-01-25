@@ -62,6 +62,7 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 		if err != nil {
 			return models.File{}, err
 		}
+		datastorage.SaveMetaData(file)
 		return file, nil
 	}
 	if !helper.FileExists(dataDir + "/" + file.SHA256) {
