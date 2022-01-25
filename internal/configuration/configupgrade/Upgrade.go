@@ -63,7 +63,7 @@ func updateConfig(settings *models.Configuration, env *environment.Environment) 
 		datastorage.SaveUploadDefaults(legacyConfig.DefaultDownloads, legacyConfig.DefaultExpiry, legacyConfig.DefaultPassword)
 
 		for _, hotlink := range legacyConfig.Hotlinks {
-			datastorage.SaveHotlink(hotlink.Id, models.File{Id: hotlink.FileId})
+			datastorage.SaveHotlink(models.File{Id: hotlink.FileId, HotlinkId: hotlink.Id})
 		}
 		for _, apikey := range legacyConfig.ApiKeys {
 			datastorage.SaveApiKey(apikey, false)

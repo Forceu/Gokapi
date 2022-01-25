@@ -36,7 +36,7 @@ func Create(initFiles bool) {
 	writeTestSessions()
 	datastorage.SaveUploadDefaults(3, 20, "123")
 	writeTestFiles()
-	datastorage.SaveHotlink("PhSs6mFtf8O5YGlLMfNw9rYXx9XRNkzCnJZpQBi7inunv3Z4A.jpg", models.File{Id: "n1tSTAGj8zan9KaT4u6p", ExpireAt: time.Now().Add(time.Hour).Unix()})
+	datastorage.SaveHotlink(models.File{Id: "n1tSTAGj8zan9KaT4u6p", HotlinkId: "PhSs6mFtf8O5YGlLMfNw9rYXx9XRNkzCnJZpQBi7inunv3Z4A.jpg", ExpireAt: time.Now().Add(time.Hour).Unix()})
 	writeApiKeyys()
 	datastorage.Close()
 

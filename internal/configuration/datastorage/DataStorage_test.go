@@ -54,7 +54,7 @@ func TestMetaData(t *testing.T) {
 }
 
 func TestHotlink(t *testing.T) {
-	SaveHotlink("testlink", models.File{Id: "testhfile", Name: "testh.txt", ExpireAt: time.Now().Add(time.Hour).Unix()})
+	SaveHotlink(models.File{Id: "testhfile", Name: "testh.txt", HotlinkId: "testlink", ExpireAt: time.Now().Add(time.Hour).Unix()})
 
 	hotlink, ok := GetHotlink("testlink")
 	test.IsEqualBool(t, ok, true)
