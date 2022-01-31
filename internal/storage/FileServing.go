@@ -5,19 +5,19 @@ Serving and processing uploaded files
 */
 
 import (
-	"github.com/forceu/gokapi/internal/encryption"
-	"github.com/forceu/gokapi/internal/configuration"
-	"github.com/forceu/gokapi/internal/configuration/datastorage"
-	"github.com/forceu/gokapi/internal/helper"
-	"github.com/forceu/gokapi/internal/logging"
-	"github.com/forceu/gokapi/internal/models"
-	"github.com/forceu/gokapi/internal/storage/cloudstorage/aws"
-	"github.com/forceu/gokapi/internal/webserver/downloadstatus"
 	"bytes"
 	"crypto/sha1"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/forceu/gokapi/internal/configuration"
+	"github.com/forceu/gokapi/internal/configuration/datastorage"
+	"github.com/forceu/gokapi/internal/encryption"
+	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/logging"
+	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/storage/cloudstorage/aws"
+	"github.com/forceu/gokapi/internal/webserver/downloadstatus"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
@@ -33,15 +33,16 @@ import (
 // already exists, it is deduplicated. This function gathers information about the file, creates an ID and saves
 // it into the global configuration.
 func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequest models.UploadRequest) (models.File, error) {
-	id := helper.GenerateRandomString(configuration.Get().LengthId)
 	if fileHeader.Size > int64(configuration.Get().MaxFileSizeMB)*1024*1024 {
 		return models.File{}, errors.New("upload limit exceeded")
 	}
 	var hasBeenRenamed bool
-	reader, hash, tempFile := generateHash(fileContent, fileHeader, uploadRequest, settings.Encryption)
+	reader, hash, tempFile, encInfo := generateHash(fileContent, fileHeader, uploadRequest, configuration.Get().Encryption)
 	defer deleteTempFile(tempFile, &hasBeenRenamed)
+	id := helper.GenerateRandomString(configuration.Get().LengthId)
 	file := models.File{
 		Id:                 id,
+		Encryption:         encInfo,
 		Name:               fileHeader.Filename,
 		SHA256:             hex.EncodeToString(hash),
 		Size:               helper.ByteCountSI(fileHeader.Size),
@@ -63,15 +64,30 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 		if err != nil {
 			return models.File{}, err
 		}
+		datastorage.SaveMetaData(file)
 		return file, nil
 	}
-	if !helper.FileExists(dataDir + "/" + file.SHA256) {
+
+	fileWithHashExists := helper.FileExists(dataDir + "/" + file.SHA256)
+	if fileWithHashExists {
+		previousEncryption, ok := getEncInfoFromExistingFile(file.SHA256)
+		if !ok && configuration.Get().Encryption {
+			err := os.Remove(dataDir + "/" + file.SHA256)
+			helper.Check(err)
+			fileWithHashExists = false
+		} else {
+			file.Encryption = previousEncryption
+		}
+	}
+
+	if !fileWithHashExists {
 		if tempFile != nil {
 			err := tempFile.Close()
 			helper.Check(err)
 			err = os.Rename(tempFile.Name(), dataDir+"/"+file.SHA256)
 			helper.Check(err)
 			hasBeenRenamed = true
+			datastorage.SaveMetaData(file)
 			return file, nil
 		}
 		destinationFile, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
@@ -88,6 +104,19 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 	return file, nil
 }
 
+func getEncInfoFromExistingFile(hash string) (models.EncryptionInfo, bool) {
+	if !configuration.Get().Encryption {
+		return models.EncryptionInfo{}, true
+	}
+	allFiles := datastorage.GetAllMetadata()
+	for _, existingFile := range allFiles {
+		if existingFile.SHA256 == hash {
+			return existingFile.Encryption, true
+		}
+	}
+	return models.EncryptionInfo{}, false
+}
+
 func deleteTempFile(file *os.File, hasBeenRenamed *bool) {
 	if file != nil && !*hasBeenRenamed {
 		err := file.Close()
@@ -99,19 +128,20 @@ func deleteTempFile(file *os.File, hasBeenRenamed *bool) {
 
 // Generates the SHA1 hash of an uploaded file and returns a reader for the file, the hash and if a temporary file was created the
 // reference to that file.
-func generateHash(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequest models.UploadRequest, encrypt bool) (io.Reader, []byte, *os.File) {
+func generateHash(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequest models.UploadRequest, encrypt bool) (io.Reader, []byte, *os.File, models.EncryptionInfo) {
 	hash := sha1.New()
+	encInfo := models.EncryptionInfo{}
 	if fileHeader.Size <= int64(uploadRequest.MaxMemory)*1024*1024 {
 		content, err := ioutil.ReadAll(fileContent)
 		helper.Check(err)
 		hash.Write(content)
 		if encrypt {
 			encContent := new(bytes.Buffer)
-			encryption.Encrypt(bytes.NewReader(content), encContent)
-			return bytes.NewReader(encContent.Bytes()), hash.Sum(nil), nil
-
+			err = encryption.Encrypt(&encInfo, bytes.NewReader(content), encContent)
+			helper.Check(err)
+			return bytes.NewReader(encContent.Bytes()), hash.Sum(nil), nil, encInfo
 		} else {
-			return bytes.NewReader(content), hash.Sum(nil), nil
+			return bytes.NewReader(content), hash.Sum(nil), nil, encInfo
 		}
 	}
 	tempFile, err := os.CreateTemp(uploadRequest.DataDir, "upload")
@@ -127,13 +157,13 @@ func generateHash(fileContent io.Reader, fileHeader *multipart.FileHeader, uploa
 	if encrypt {
 		tempFileEnc, err := os.CreateTemp(uploadRequest.DataDir, "upload")
 		helper.Check(err)
-		encryption.Encrypt(tempFile, tempFileEnc)
+		encryption.Encrypt(&encInfo, tempFile, tempFileEnc)
 		err = os.Remove(tempFile.Name())
 		helper.Check(err)
 		tempFile = tempFileEnc
 	}
 	// Instead of returning a reference to the file as the 3rd result, one could use reflections. However, that would be more expensive.
-	return tempFile, hash.Sum(nil), tempFile
+	return tempFile, hash.Sum(nil), tempFile, encInfo
 }
 
 var imageFileExtensions = []string{".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg"}
@@ -200,11 +230,15 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 		}
 		w.Header().Set("Content-Type", file.ContentType)
 		statusId := downloadstatus.SetDownload(file)
-		if settings.Encryption {
+		if file.Encryption.IsEncrypted {
 			w.Header().Set("Accept-Ranges", "bytes")
 			w.Header().Set("Last-Modified", time.Now().UTC().Format(http.TimeFormat))
 			w.WriteHeader(200)
-			encryption.Decrypt(storageData, w)
+			err := encryption.Decrypt(file.Encryption, fileData, w)
+			if err != nil {
+				w.Write([]byte("Error decrypting file"))
+				panic(err)
+			}
 		} else {
 			w.Header().Set("Content-Length", strconv.FormatInt(size, 10))
 			http.ServeContent(w, r, file.Name, time.Now(), fileData)
@@ -245,7 +279,6 @@ func FileExists(file models.File, dataDir string) bool {
 // Will be called periodically or after a file has been manually deleted in the admin view.
 // If parameter periodic is true, this function is recursive and calls itself every hour.
 func CleanUp(periodic bool) {
-	datastorage.RunGarbageCollection()
 	downloadstatus.Clean()
 	timeNow := time.Now().Unix()
 	wasItemDeleted := false
@@ -254,7 +287,7 @@ func CleanUp(periodic bool) {
 		if (element.ExpireAt < timeNow || element.DownloadsRemaining < 1 || !fileExists) && !downloadstatus.IsCurrentlyDownloading(element) {
 			deleteFile := true
 			for _, secondLoopElement := range datastorage.GetAllMetadata() {
-				if element.Id != secondLoopElement.Id && element.SHA256 == secondLoopElement.SHA256 {
+				if (element.Id != secondLoopElement.Id) && (element.SHA256 == secondLoopElement.SHA256) {
 					deleteFile = false
 				}
 			}
@@ -275,6 +308,7 @@ func CleanUp(periodic bool) {
 		time.Sleep(time.Hour)
 		go CleanUp(periodic)
 	}
+	datastorage.RunGarbageCollection()
 }
 
 func deleteSource(file models.File, dataDir string) {

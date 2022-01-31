@@ -5,11 +5,13 @@ Main routine
 */
 
 import (
-	"github.com/forceu/gokapi/internal/encryption"
+	"flag"
+	"fmt"
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
 	"github.com/forceu/gokapi/internal/configuration/datastorage"
 	"github.com/forceu/gokapi/internal/configuration/setup"
+	"github.com/forceu/gokapi/internal/encryption"
 	"github.com/forceu/gokapi/internal/environment"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/logging"
@@ -18,8 +20,6 @@ import (
 	"github.com/forceu/gokapi/internal/webserver"
 	"github.com/forceu/gokapi/internal/webserver/authentication"
 	"github.com/forceu/gokapi/internal/webserver/ssl"
-	"flag"
-	"fmt"
 	"math/rand"
 	"os"
 	"os/signal"
