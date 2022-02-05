@@ -63,7 +63,7 @@ func Encrypt(encInfo *models.EncryptionInfo, input io.Reader, output io.Writer) 
 	return err
 }
 
-func Decrypt(encInfo models.EncryptionInfo, input io.Reader, output io.Writer) error {
+func DecryptReader(encInfo models.EncryptionInfo, input io.Reader, output io.Writer) error {
 	key, err := getCipherFromFile(encInfo)
 	if err != nil {
 		return err
@@ -73,6 +73,15 @@ func Decrypt(encInfo models.EncryptionInfo, input io.Reader, output io.Writer) e
 	reader := stream.DecryptReader(input, nonce, nil)
 	_, err = io.Copy(output, reader)
 	return err
+}
+func GetDecryptWriter(encInfo models.EncryptionInfo, input io.Writer) (io.Writer, error) {
+	key, err := getCipherFromFile(encInfo)
+	if err != nil {
+		return nil, err
+	}
+	stream := getStream(key)
+	nonce := make([]byte, stream.NonceSize()) // Nonce is not used
+	return stream.DecryptWriter(input, nonce, nil), nil
 }
 
 func generateNewFileKey(encInfo *models.EncryptionInfo) ([]byte, error) {

@@ -7,11 +7,20 @@
 		  <div class="card-body">
 		    <h4 class="card-title">{{ .Name }}</h4>
 		    <p class="card-text">Filesize: {{ .Size }}</p>
-		    <a href="./downloadFile?id={{ .Id }}" class="card-link">Download</a>
+		    <a onclick="disableAfterClick(this);" download href="./downloadFile?id={{ .Id }}" class="card-link">Download</a>
 		  </div>
 		</div>
 	    </div>
     </div>
+
+<script> 
+   function disableAfterClick(link) {
+     link.onclick = function(event) {
+        event.preventDefault();
+     }
+     link.outerHTML = "";
+   }   
+</script>
 
 {{template "footer"}}    
 {{end}}

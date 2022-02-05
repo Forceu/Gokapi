@@ -219,38 +219,54 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 	datastorage.SaveMetaData(file)
 	logging.AddDownload(&file, r)
 
-	// If file is not stored on AWS
-	if file.AwsBucket == "" {
-		fileData, size := getFileHandler(file, configuration.Get().DataDir)
-		defer fileData.Close()
-		if forceDownload {
-			w.Header().Set("Content-Disposition", "attachment; filename=\""+file.Name+"\"")
-		} else {
-			w.Header().Set("Content-Disposition", "inline; filename=\""+file.Name+"\"")
-		}
-		w.Header().Set("Content-Type", file.ContentType)
+	// If file is stored on AWS
+	if file.AwsBucket != "" {
+		// We are not setting a download complete status if unencrypted, as there is no reliable way to
+		// confirm that the file has been completely downloaded. It expires automatically after 24 hours.
 		statusId := downloadstatus.SetDownload(file)
-		if file.Encryption.IsEncrypted {
-			w.Header().Set("Accept-Ranges", "bytes")
-			w.Header().Set("Last-Modified", time.Now().UTC().Format(http.TimeFormat))
-			w.WriteHeader(200)
-			err := encryption.Decrypt(file.Encryption, fileData, w)
-			if err != nil {
-				w.Write([]byte("Error decrypting file"))
-				panic(err)
-			}
+		if file.Encryption.IsEncrypted == false {
+			err := aws.RedirectToDownload(w, r, file, forceDownload)
+			helper.Check(err)
+			return
 		} else {
-			w.Header().Set("Content-Length", strconv.FormatInt(size, 10))
-			http.ServeContent(w, r, file.Name, time.Now(), fileData)
+			// writeDownloadHeaders(file, w, forceDownload)
+			// writer, err := encryption.GetDecryptWriter(file.Encryption, w)
+			// if err != nil {
+			// 	w.Write([]byte("Error decrypting file"))
+			// 	panic(err)
+			// }
+			// aws.Download(writer, file)
+			downloadstatus.SetComplete(statusId)
 		}
-		downloadstatus.SetComplete(statusId)
+	}
+	fileData, size := getFileHandler(file, configuration.Get().DataDir)
+	statusId := downloadstatus.SetDownload(file)
+	writeDownloadHeaders(file, w, forceDownload)
+	if file.Encryption.IsEncrypted {
+		err := encryption.DecryptReader(file.Encryption, fileData, w)
+		if err != nil {
+			w.Write([]byte("Error decrypting file"))
+			panic(err)
+		}
 	} else {
-		// If file is stored on AWS
-		downloadstatus.SetDownload(file)
-		err := aws.RedirectToDownload(w, r, file, forceDownload)
-		helper.Check(err)
-		// We are not setting a download complete status, as there is no reliable way to confirm that the
-		// file has been completely downloaded. It expires automatically after 24 hours.
+		w.Header().Set("Content-Length", strconv.FormatInt(size, 10))
+		http.ServeContent(w, r, file.Name, time.Now(), fileData)
+	}
+	downloadstatus.SetComplete(statusId)
+}
+
+func writeDownloadHeaders(file models.File, w http.ResponseWriter, forceDownload bool) {
+	if forceDownload {
+		w.Header().Set("Content-Disposition", "attachment; filename=\""+file.Name+"\"")
+	} else {
+		w.Header().Set("Content-Disposition", "inline; filename=\""+file.Name+"\"")
+	}
+	w.Header().Set("Content-Type", file.ContentType)
+
+	if file.Encryption.IsEncrypted {
+		w.Header().Set("Accept-Ranges", "bytes")
+		w.Header().Set("Last-Modified", time.Now().UTC().Format(http.TimeFormat))
+		w.WriteHeader(200)
 	}
 }
 
