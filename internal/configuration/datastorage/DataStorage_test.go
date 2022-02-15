@@ -149,16 +149,26 @@ func TestSession(t *testing.T) {
 }
 
 func TestUploadDefaults(t *testing.T) {
-	downloads, expiry, password := GetUploadDefaults()
-	test.IsEqualInt(t, downloads, 1)
-	test.IsEqualInt(t, expiry, 14)
-	test.IsEqualString(t, password, "")
+	defaults := GetUploadDefaults()
+	test.IsEqualInt(t, defaults.Downloads, 1)
+	test.IsEqualInt(t, defaults.TimeExpiry, 14)
+	test.IsEqualString(t, defaults.Password, "")
+	test.IsEqualBool(t, defaults.UnlimitedDownload, false)
+	test.IsEqualBool(t, defaults.UnlimitedTime, false)
 
-	SaveUploadDefaults(20, 30, "abcd")
-	downloads, expiry, password = GetUploadDefaults()
-	test.IsEqualInt(t, downloads, 20)
-	test.IsEqualInt(t, expiry, 30)
-	test.IsEqualString(t, password, "abcd")
+	SaveUploadDefaults(models.LastUploadValues{
+		Downloads:         20,
+		TimeExpiry:        30,
+		Password:          "abcd",
+		UnlimitedDownload: true,
+		UnlimitedTime:     true,
+	})
+	defaults = GetUploadDefaults()
+	test.IsEqualInt(t, defaults.Downloads, 20)
+	test.IsEqualInt(t, defaults.TimeExpiry, 30)
+	test.IsEqualString(t, defaults.Password, "abcd")
+	test.IsEqualBool(t, defaults.UnlimitedDownload, true)
+	test.IsEqualBool(t, defaults.UnlimitedTime, true)
 }
 
 func TestBinaryConversion(t *testing.T) {

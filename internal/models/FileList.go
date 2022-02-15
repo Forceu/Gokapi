@@ -18,6 +18,8 @@ type File struct {
 	HotlinkId          string `json:"HotlinkId"`
 	ContentType        string `json:"ContentType"`
 	AwsBucket          string `json:"AwsBucket"`
+	UnlimitedDownloads bool   `json:"UnlimitedDownloads"`
+	UnlimitedTime      bool   `json:"UnlimitedTime"`
 }
 
 // ToJsonResult converts the file info to a json String used for returning a result for an upload

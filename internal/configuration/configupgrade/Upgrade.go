@@ -60,7 +60,12 @@ func updateConfig(settings *models.Configuration, env *environment.Environment) 
 	// < v1.5.0
 	if settings.ConfigVersion < 11 {
 		legacyConfig := loadLegacyConfigPreDb(env)
-		datastorage.SaveUploadDefaults(legacyConfig.DefaultDownloads, legacyConfig.DefaultExpiry, legacyConfig.DefaultPassword)
+		uploadValues := models.LastUploadValues{
+			Downloads:  legacyConfig.DefaultDownloads,
+			TimeExpiry: legacyConfig.DefaultExpiry,
+			Password:   legacyConfig.DefaultPassword,
+		}
+		datastorage.SaveUploadDefaults(uploadValues)
 
 		for _, hotlink := range legacyConfig.Hotlinks {
 			datastorage.SaveHotlink(models.File{Id: hotlink.FileId, HotlinkId: hotlink.Id})

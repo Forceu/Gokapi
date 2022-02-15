@@ -19,6 +19,14 @@ type Configuration struct {
 	MaxFileSizeMB  int                  `json:"MaxFileSizeMB"`
 }
 
+type LastUploadValues struct {
+	Downloads         int
+	TimeExpiry        int
+	Password          string
+	UnlimitedDownload bool
+	UnlimitedTime     bool
+}
+
 // ToJson returns an idented JSon representation
 func (c Configuration) ToJson() []byte {
 	result, err := json.MarshalIndent(c, "", "  ")

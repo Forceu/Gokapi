@@ -14,18 +14,21 @@
 		<div class="container-md">
 		  <div class="row">
 			  <div class="form-group col">
+				<input class="form-check-input" type="checkbox" name="enableDownloadLimit" id="enableDownloadLimit" onchange="checkBoxChanged(this, 'allowedDownloads')" value="" aria-label="Enable Download Limit" {{ if not .DefaultUnlimitedDownload }} checked {{ end }}>
 	     			<label class="control-label small" for="allowedDownloads">Allowed downloads</label>
-				<input type="number" class="form-control admin-input" value="{{ .DefaultDownloads }}" name="allowedDownloads" id="allowedDownloads" min="1"/>
+				<input type="number" class="form-control admin-input" value="{{ .DefaultDownloads }}" name="allowedDownloads" id="allowedDownloads" min="1"  {{ if .DefaultUnlimitedDownload }} disabled {{ end }}/>
 			 </div>
   			 <div class="break"></div>
 	   		 <div class="form-group col">
+				<input class="form-check-input" type="checkbox" name="enableTimeLimit" id="enableTimeLimit" onchange="checkBoxChanged(this, 'expiryDays')" value="" aria-label="Enable Time Limit"  {{ if not .DefaultUnlimitedTime }} checked {{ end }}>
 	     			<label class="control-label  small" for="expiryDays">Expiry in days</label>
-				<input type="number" class="form-control admin-input" value="{{ .DefaultExpiry }}" name="expiryDays" id="expiryDays" min="1"/>
+				<input type="number" class="form-control admin-input" value="{{ .DefaultExpiry }}" name="expiryDays" id="expiryDays" min="1"  {{ if .DefaultUnlimitedTime }} disabled {{ end }}/>
 			 </div>
   			 <div class="break"></div>
 	    		 <div class="form-group col">
+				<input class="form-check-input" type="checkbox" name="enablePassword" id="enablePassword" onchange="checkBoxChanged(this, 'password')" value="" aria-label="Enable Password Protection" {{ if ne .DefaultPassword "" }} checked {{ end }}>
 	     			<label class="control-label  small" for="password">Password</label>
-				<input class="form-control admin-input" value="{{ .DefaultPassword }}" name="password" id="password" placeholder="None"/>
+				<input class="form-control admin-input" value="{{ .DefaultPassword }}" name="password" id="password" placeholder="None" {{ if eq .DefaultPassword "" }} disabled {{ end }}/>
 			  </div>
 		  </div>
 		</div>
@@ -49,8 +52,16 @@
 					<tr>
 						<td scope="col">{{ .Name }}</td>
 						<td scope="col">{{ .Size }}</td>
+{{ if .UnlimitedDownloads }}
+						<td scope="col">Unlimited</td>
+{{ else }}
 						<td scope="col">{{ .DownloadsRemaining }}</td>
+{{ end }}
+{{ if .UnlimitedTime }}
+						<td scope="col">Unlimited</td>
+{{ else }}
 						<td scope="col">{{ .ExpireAtString }}</td>
+{{ end }}
 						<td scope="col"><a target="_blank" href="{{ $.Url }}{{ .Id }}">{{ $.Url }}{{ .Id }}</a>{{ if ne .PasswordHash "" }} &#128274;{{ end }}</td>
 						<td scope="col"><button type="button" data-clipboard-text="{{ $.Url }}{{ .Id }}" class="copyurl btn btn-outline-light btn-sm">Copy URL</button> 
 {{ if ne .HotlinkId "" }}
@@ -70,7 +81,7 @@
 	    </div>
    	 </div>
 
-	<script src="./js/admin.js?v=6"></script>
+	<script src="./js/admin.js?v=7"></script>
 	<script>
 		Dropzone.options.uploaddropzone["maxFilesize"] = {{ .MaxFileSize }};
 	</script>

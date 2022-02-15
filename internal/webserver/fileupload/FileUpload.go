@@ -47,26 +47,39 @@ func parseConfig(values formOrHeader, setNewDefaults bool) models.UploadRequest 
 	password := values.Get("password")
 	allowedDownloadsInt, err := strconv.Atoi(allowedDownloads)
 	if err != nil {
-		previous, _, _ := datastorage.GetUploadDefaults()
-		allowedDownloadsInt = previous
+		previousValues := datastorage.GetUploadDefaults()
+		allowedDownloadsInt = previousValues.Downloads
 	}
 	expiryDaysInt, err := strconv.Atoi(expiryDays)
 	if err != nil {
-		_, previous, _ := datastorage.GetUploadDefaults()
-		expiryDaysInt = previous
+		previousValues := datastorage.GetUploadDefaults()
+		expiryDaysInt = previousValues.TimeExpiry
 	}
+
+	unlimitedDownload := values.Get("isUnlimitedDownload") == "true"
+	unlimitedTime := values.Get("isUnlimitedTime") == "true"
+
 	if setNewDefaults {
-		datastorage.SaveUploadDefaults(allowedDownloadsInt, expiryDaysInt, password)
+		values := models.LastUploadValues{
+			Downloads:         allowedDownloadsInt,
+			TimeExpiry:        expiryDaysInt,
+			Password:          password,
+			UnlimitedDownload: unlimitedDownload,
+			UnlimitedTime:     unlimitedTime,
+		}
+		datastorage.SaveUploadDefaults(values)
 	}
 	settings := configuration.Get()
 	return models.UploadRequest{
-		AllowedDownloads: allowedDownloadsInt,
-		Expiry:           expiryDaysInt,
-		ExpiryTimestamp:  time.Now().Add(time.Duration(expiryDaysInt) * time.Hour * 24).Unix(),
-		Password:         password,
-		ExternalUrl:      settings.ServerUrl,
-		MaxMemory:        settings.MaxMemory,
-		DataDir:          settings.DataDir,
+		AllowedDownloads:  allowedDownloadsInt,
+		Expiry:            expiryDaysInt,
+		ExpiryTimestamp:   time.Now().Add(time.Duration(expiryDaysInt) * time.Hour * 24).Unix(),
+		Password:          password,
+		ExternalUrl:       settings.ServerUrl,
+		MaxMemory:         settings.MaxMemory,
+		DataDir:           settings.DataDir,
+		UnlimitedTime:     unlimitedTime,
+		UnlimitedDownload: unlimitedDownload,
 	}
 }
 

@@ -18,6 +18,8 @@ Dropzone.options.uploaddropzone = {
                 formData.append("allowedDownloads", document.getElementById("allowedDownloads").value);
                 formData.append("expiryDays", document.getElementById("expiryDays").value);
                 formData.append("password", document.getElementById("password").value);
+                formData.append("isUnlimitedDownload", !document.getElementById("enableDownloadLimit").checked);
+                formData.append("isUnlimitedTime", !document.getElementById("enableTimeLimit").checked);
         });
     },
 };
@@ -32,6 +34,16 @@ document.onpaste = function(event){
   }
 }
 
+
+function checkBoxChanged(checkBox, correspondingInput) {
+  let disable = !checkBox.checked;
+  
+  if (disable) {
+  	 document.getElementById(correspondingInput).setAttribute("disabled", "");
+  } else {
+  	document.getElementById(correspondingInput).removeAttribute("disabled");
+  }
+}
 
 function parseData(data) {
     if (!data) return {"Result":"error"};
@@ -64,8 +76,16 @@ function addRow(jsonText) {
   }
   cell1.innerText = item.Name;
   cell2.innerText = item.Size;
-  cell3.innerText = item.DownloadsRemaining;
-  cell4.innerText = item.ExpireAtString;
+  if (item.UnlimitedDownloads) {
+  	cell3.innerText = "Unlimited";
+  } else {
+  	cell3.innerText = item.DownloadsRemaining;
+  }
+  if (item.UnlimitedTime) {
+  	cell4.innerText = "Unlimited";
+  } else {
+  	cell4.innerText = item.ExpireAtString;
+  }
   cell5.innerHTML = '<a  target="_blank" style="color: inherit" href="'+jsonObject.Url+item.Id+'">'+jsonObject.Url+item.Id+'</a>'+lockIcon;
 
   let buttons = "<button type=\"button\" data-clipboard-text=\""+jsonObject.Url+item.Id+"\" class=\"copyurl btn btn-outline-light btn-sm\">Copy URL</button> ";
