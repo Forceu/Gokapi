@@ -326,19 +326,21 @@ type DownloadView struct {
 
 // UploadView contains parameters for the admin menu template
 type UploadView struct {
-	Items             []models.File
-	ApiKeys           []models.ApiKey
-	Url               string
-	HotlinkUrl        string
-	TimeNow           int64
-	DefaultDownloads  int
-	DefaultExpiry     int
-	DefaultPassword   string
-	IsAdminView       bool
-	IsMainView        bool
-	IsApiView         bool
-	MaxFileSize       int
-	IsLogoutAvailable bool
+	Items                    []models.File
+	ApiKeys                  []models.ApiKey
+	Url                      string
+	HotlinkUrl               string
+	TimeNow                  int64
+	IsAdminView              bool
+	IsMainView               bool
+	IsApiView                bool
+	MaxFileSize              int
+	IsLogoutAvailable        bool
+	DefaultDownloads         int
+	DefaultExpiry            int
+	DefaultPassword          string
+	DefaultUnlimitedDownload bool
+	DefaultUnlimitedTime     bool
 }
 
 // Converts the globalConfig variable to an UploadView struct to pass the infos to
@@ -381,7 +383,12 @@ func (u *UploadView) convertGlobalConfig(isMainView bool) *UploadView {
 	u.IsMainView = isMainView
 	u.MaxFileSize = configuration.Get().MaxFileSizeMB
 	u.IsLogoutAvailable = authentication.IsLogoutAvailable()
-	u.DefaultDownloads, u.DefaultExpiry, u.DefaultPassword = datastorage.GetUploadDefaults()
+	defaultValues := datastorage.GetUploadDefaults()
+	u.DefaultDownloads = defaultValues.Downloads
+	u.DefaultExpiry = defaultValues.TimeExpiry
+	u.DefaultPassword = defaultValues.Password
+	u.DefaultUnlimitedDownload = defaultValues.UnlimitedDownload
+	u.DefaultUnlimitedTime = defaultValues.UnlimitedTime
 	return u
 }
 

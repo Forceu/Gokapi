@@ -19,7 +19,10 @@ type File struct {
 	ContentType        string         `json:"ContentType"`
 	AwsBucket          string         `json:"AwsBucket"`
 	Encryption         EncryptionInfo `json:"Encryption"`
+	UnlimitedDownloads bool           `json:"UnlimitedDownloads"`
+	UnlimitedTime      bool           `json:"UnlimitedTime"`
 }
+
 
 type EncryptionInfo struct {
 	IsEncrypted   bool   `json:"IsEncrypted"`

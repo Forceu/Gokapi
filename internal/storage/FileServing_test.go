@@ -112,7 +112,23 @@ func TestNewFile(t *testing.T) {
 	test.IsEqualInt(t, retrievedFile.DownloadsRemaining, 1)
 	test.IsEqualInt(t, len(retrievedFile.Id), 20)
 	test.IsEqualInt(t, int(retrievedFile.ExpireAt), 2147483600)
+	test.IsEqualBool(t, file.UnlimitedTime, false)
+	test.IsEqualBool(t, file.UnlimitedDownloads, false)
 	idNewFile = file.Id
+
+	request.UnlimitedDownload = true
+	file, err = NewFile(bytes.NewReader(content), &header, request)
+	test.IsEqualBool(t, file.UnlimitedTime, false)
+	test.IsEqualBool(t, file.UnlimitedDownloads, true)
+	request.UnlimitedDownload = false
+	request.UnlimitedTime = true
+	file, err = NewFile(bytes.NewReader(content), &header, request)
+	test.IsEqualBool(t, file.UnlimitedTime, true)
+	test.IsEqualBool(t, file.UnlimitedDownloads, false)
+	request.UnlimitedDownload = true
+	file, err = NewFile(bytes.NewReader(content), &header, request)
+	test.IsEqualBool(t, file.UnlimitedTime, true)
+	test.IsEqualBool(t, file.UnlimitedDownloads, true)
 
 	createBigFile("bigfile", 20)
 	bigFile, _ := os.Open("bigfile")
@@ -249,6 +265,8 @@ func TestCleanUp(t *testing.T) {
 	test.IsEqualString(t, files["wefffewhtrhhtrhtrhtr"].Name, "smallfile3")
 	test.IsEqualString(t, files["n1tSTAGj8zan9KaT4u6p"].Name, "picture.jpg")
 	test.IsEqualString(t, files["deletedfile123456789"].Name, "DeletedFile")
+	test.IsEqualString(t, files["unlimitedDownload"].Name, "unlimitedDownload")
+	test.IsEqualString(t, files["unlimitedTime"].Name, "unlimitedTime")
 	test.FileExists(t, "test/data/2341354656543213246465465465432456898794")
 
 	CleanUp(false)
@@ -259,6 +277,8 @@ func TestCleanUp(t *testing.T) {
 	test.IsEqualString(t, files["Wzol7LyY2QVczXynJtVo"].Name, "smallfile2")
 	test.IsEqualString(t, files["e4TjE7CokWK0giiLNxDL"].Name, "smallfile2")
 	test.IsEqualString(t, files["wefffewhtrhhtrhtrhtr"].Name, "smallfile3")
+	test.IsEqualString(t, files["unlimitedDownload"].Name, "unlimitedDownload")
+	test.IsEqualString(t, files["unlimitedTime"].Name, "unlimitedTime")
 	test.IsEqualString(t, files["n1tSTAGj8zan9KaT4u6p"].Name, "picture.jpg")
 
 	file, _ := GetFile("n1tSTAGj8zan9KaT4u6p")

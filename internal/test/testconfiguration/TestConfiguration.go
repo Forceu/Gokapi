@@ -34,7 +34,13 @@ func Create(initFiles bool) {
 	os.WriteFile(configFile, configTestFile, 0777)
 	datastorage.Init("./test/filestorage.db")
 	writeTestSessions()
-	datastorage.SaveUploadDefaults(3, 20, "123")
+	datastorage.SaveUploadDefaults(models.LastUploadValues{
+		Downloads:         3,
+		TimeExpiry:        20,
+		Password:          "123",
+		UnlimitedDownload: false,
+		UnlimitedTime:     false,
+	})
 	writeTestFiles()
 	datastorage.SaveHotlink(models.File{Id: "n1tSTAGj8zan9KaT4u6p", HotlinkId: "PhSs6mFtf8O5YGlLMfNw9rYXx9XRNkzCnJZpQBi7inunv3Z4A.jpg", ExpireAt: time.Now().Add(time.Hour).Unix()})
 	writeApiKeyys()
@@ -46,6 +52,7 @@ func Create(initFiles bool) {
 		os.WriteFile("test/data/c4f9375f9834b4e7f0a528cc65c055702bf5f24a", []byte("456"), 0777)
 		os.WriteFile("test/data/e017693e4a04a59d0b0f400fe98177fe7ee13cf7", []byte("789"), 0777)
 		os.WriteFile("test/data/2341354656543213246465465465432456898794", []byte("abc"), 0777)
+		os.WriteFile("test/data/unlimtedtest", []byte("def"), 0777)
 		os.WriteFile("test/fileupload.jpg", []byte("abc"), 0777)
 	}
 }
@@ -269,6 +276,28 @@ func writeTestFiles() {
 		DownloadsRemaining: 4,
 		ContentType:        "application/octet-stream",
 		AwsBucket:          "gokapi-test",
+	})
+	datastorage.SaveMetaData(models.File{
+		Id:                 "unlimitedDownload",
+		Name:               "unlimitedDownload",
+		Size:               "8 B",
+		SHA256:             "unlimtedtest",
+		ExpireAt:           2147483646,
+		ExpireAtString:     "2021-05-04 15:19",
+		DownloadsRemaining: 0,
+		ContentType:        "text/html",
+		UnlimitedDownloads: true,
+	})
+	datastorage.SaveMetaData(models.File{
+		Id:                 "unlimitedTime",
+		Name:               "unlimitedTime",
+		Size:               "8 B",
+		SHA256:             "unlimtedtest",
+		ExpireAt:           0,
+		ExpireAtString:     "2021-05-04 15:19",
+		DownloadsRemaining: 1,
+		ContentType:        "text/html",
+		UnlimitedTime:      true,
 	})
 }
 

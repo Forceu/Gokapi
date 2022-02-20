@@ -35,16 +35,16 @@ func TestParseConfig(t *testing.T) {
 		password:         "123",
 	}
 	config := parseConfig(data, false)
-	downloads, _, _ := datastorage.GetUploadDefaults()
+	defaults := datastorage.GetUploadDefaults()
 	test.IsEqualInt(t, config.AllowedDownloads, 9)
 	test.IsEqualString(t, config.Password, "123")
 	test.IsEqualInt(t, config.Expiry, 5)
 
-	test.IsEqualInt(t, downloads, 3)
+	test.IsEqualInt(t, defaults.Downloads, 3)
 	config = parseConfig(data, true)
-	downloads, _, _ = datastorage.GetUploadDefaults()
-	test.IsEqualInt(t, downloads, 9)
-	datastorage.SaveUploadDefaults(3, 20, "")
+	defaults = datastorage.GetUploadDefaults()
+	test.IsEqualInt(t, defaults.Downloads, 9)
+	datastorage.SaveUploadDefaults(models.LastUploadValues{Downloads: 3, TimeExpiry: 20})
 	data.allowedDownloads = ""
 	data.expiryDays = "invalid"
 	config = parseConfig(data, false)

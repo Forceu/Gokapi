@@ -17,9 +17,7 @@ const prefixApiKey = "apikey:id:"
 const prefixFile = "file:id:"
 const prefixHotlink = "hotlink:id:"
 const prefixSessions = "session:id:"
-const idDefaultDownloads = "default:downloads"
-const idDefaultExpiry = "default:expiry"
-const idDefaultPassword = "default:password"
+const idLastUploadConfig = "default:lastupload"
 
 const maxKeySize = 96
 
@@ -39,7 +37,7 @@ func Init(dbPath string) {
 // GetLengthAvailable returns the maximum length for a key name
 func GetLengthAvailable() int {
 	maxLength := 0
-	for _, key := range []string{prefixApiKey, prefixFile, prefixHotlink, prefixSessions, idDefaultDownloads, idDefaultExpiry, idDefaultPassword} {
+	for _, key := range []string{prefixApiKey, prefixFile, prefixHotlink, prefixSessions, idLastUploadConfig} {
 		length := len(key)
 		if length > maxLength {
 			maxLength = length
@@ -242,37 +240,34 @@ func SaveSession(id string, session models.Session, expiry time.Duration) {
 
 // GetUploadDefaults returns the last used setting for amount of downloads allowed, last expiry in days and
 // a password for the file
-func GetUploadDefaults() (int, int, string) {
-	downloads := 1
-	expiry := 14
-	password := ""
-	if database.Has([]byte(idDefaultDownloads)) {
-		bufByte, err := database.Get([]byte(idDefaultDownloads))
-		helper.Check(err)
-		downloads = byteToInt(bufByte)
+func GetUploadDefaults() models.LastUploadValues {
+	defaultValues := models.LastUploadValues{
+		Downloads:         1,
+		TimeExpiry:        14,
+		Password:          "",
+		UnlimitedDownload: false,
+		UnlimitedTime:     false,
 	}
-	if database.Has([]byte(idDefaultExpiry)) {
-		bufByte, err := database.Get([]byte(idDefaultExpiry))
+	result := models.LastUploadValues{}
+	if database.Has([]byte(idLastUploadConfig)) {
+		value, err := database.Get([]byte(idLastUploadConfig))
 		helper.Check(err)
-		expiry = byteToInt(bufByte)
-	}
-	if database.Has([]byte(idDefaultPassword)) {
-		buf, err := database.Get([]byte(idDefaultPassword))
+		buf := bytes.NewBuffer(value)
+		dec := gob.NewDecoder(buf)
+		err = dec.Decode(&result)
 		helper.Check(err)
-		password = string(buf)
+		return result
 	}
-	return downloads, expiry, password
+	return defaultValues
 }
 
 // SaveUploadDefaults saves the last used setting for an upload
-func SaveUploadDefaults(downloads, expiry int, password string) {
-	err := database.Put([]byte(idDefaultDownloads), intToByte(downloads))
+func SaveUploadDefaults(values models.LastUploadValues) {
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+	err := enc.Encode(values)
 	helper.Check(err)
-	err = database.Put([]byte(idDefaultExpiry), intToByte(expiry))
-	helper.Check(err)
-	err = database.Put([]byte(idDefaultPassword), []byte(password))
-	helper.Check(err)
-	err = database.Sync()
+	err = database.Put([]byte(idLastUploadConfig), buf.Bytes())
 	helper.Check(err)
 }
 

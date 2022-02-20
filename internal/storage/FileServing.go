@@ -51,6 +51,8 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 		DownloadsRemaining: uploadRequest.AllowedDownloads,
 		PasswordHash:       configuration.HashPassword(uploadRequest.Password, true),
 		ContentType:        fileHeader.Header.Get("Content-Type"),
+		UnlimitedTime:      uploadRequest.UnlimitedTime,
+		UnlimitedDownloads: uploadRequest.UnlimitedDownload,
 	}
 	addHotlink(&file)
 	if aws.IsAvailable() {
@@ -190,7 +192,7 @@ func GetFile(id string) (models.File, bool) {
 	if !ok {
 		return emptyResult, false
 	}
-	if file.ExpireAt < time.Now().Unix() || file.DownloadsRemaining < 1 {
+	if isExpiredFile(file, time.Now().Unix()) {
 		return emptyResult, false
 	}
 	if !FileExists(file, configuration.Get().DataDir) {
@@ -300,7 +302,7 @@ func CleanUp(periodic bool) {
 	wasItemDeleted := false
 	for key, element := range datastorage.GetAllMetadata() {
 		fileExists := FileExists(element, configuration.Get().DataDir)
-		if (element.ExpireAt < timeNow || element.DownloadsRemaining < 1 || !fileExists) && !downloadstatus.IsCurrentlyDownloading(element) {
+		if !fileExists || isExpiredFileWithoutDownload(element, timeNow) {
 			deleteFile := true
 			for _, secondLoopElement := range datastorage.GetAllMetadata() {
 				if (element.Id != secondLoopElement.Id) && (element.SHA256 == secondLoopElement.SHA256) {
@@ -325,6 +327,18 @@ func CleanUp(periodic bool) {
 		go CleanUp(periodic)
 	}
 	datastorage.RunGarbageCollection()
+}
+
+func isExpiredFile(file models.File, timeNow int64) bool {
+	return (file.ExpireAt < timeNow && !file.UnlimitedTime) ||
+		(file.DownloadsRemaining < 1 && !file.UnlimitedDownloads)
+}
+
+func isExpiredFileWithoutDownload(file models.File, timeNow int64) bool {
+	if downloadstatus.IsCurrentlyDownloading(file) {
+		return false
+	}
+	return isExpiredFile(file, timeNow)
 }
 
 func deleteSource(file models.File, dataDir string) {
