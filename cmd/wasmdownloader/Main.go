@@ -1,73 +1,167 @@
 package main
 
+// includes code from Alessandro Segala (ItalyPaleAle)
+// https://withblue.ink/2020/10/03/go-webassembly-http-requests-and-promises.html
+
 import (
 	"errors"
 	"github.com/forceu/gokapi/internal/encryption"
-	"github.com/forceu/gokapi/internal/models"
+	"io"
 	"net/http"
-	"os"
-	"strconv"
 	"syscall/js"
 )
 
-const version = "1.0"
-
 // Main routine that is called on startup
 func main() {
-	// Export a "Gokapi" global object that contains our functions
-	js.Global().Set("GokapiTest", js.FuncOf(Test))
+	js.Global().Set("GokapiEncrypt", js.FuncOf(Encrypt))
+	js.Global().Set("GokapiDecrypt", js.FuncOf(Decrypt))
+	println("WASM module loaded")
 	// Prevent the function from returning, which is required in a wasm module
 	select {}
 }
 
-func Test(this js.Value, args []js.Value) interface{} {
-	message := args[0].String() // get the parameters
-	println(message)
-	return nil
-}
-
 func Decrypt(this js.Value, args []js.Value) interface{} {
-
-	key := bytesFromJs(args[0])
-	if len(key) != 32 {
-		return jsError("Invalid cipher provided")
+	key, url, err := getParams(args)
+	if err != nil {
+		return jsError(err.Error())
 	}
-	encryption.InitWithCipher(key)
-
-	req := args[1]
-
-	// Ensure req is a Request object
-	requestConstructor := js.Global().Get("Request")
-	if req.Type() != js.TypeObject || !req.InstanceOf(requestConstructor) {
-		return jsError("Invalid type for req argument")
-	}
-	// URL for the request
-	reqUrlVal := req.Get("url")
-	if reqUrlVal.Type() != js.TypeString {
-		return jsError("Empty or invalid URL from the request")
-	}
-	var reqUrlStr = reqUrlVal.String()
-
-	// Return a Promise
-	// This is because HTTP request needs to be made in a separate goroutine: https://github.com/golang/go/issues/41310
-
-	return nil
+	return encryptDecrypt(key, url, false)
 }
 
 func Encrypt(this js.Value, args []js.Value) interface{} {
-	resp, err := http.Get("test")
-	defer resp.Body.Close()
+	key, url, err := getParams(args)
 	if err != nil {
-		return err
+		return jsError(err.Error())
 	}
-	// Check server response
-	if resp.StatusCode != http.StatusOK {
-		return errors.New("bad status: " + strconv.Itoa(resp.StatusCode))
-	}
+	return encryptDecrypt(key, url, true)
+}
 
-	out, err := os.Create("output.txt")
-	encryption.DecryptReader(models.EncryptionInfo{}, resp.Body, out)
-	return nil
+func encryptDecrypt(key []byte, url string, doEncrypt bool) interface{} {
+
+	// Handler for the Promise
+	// We need to return a Promise because HTTP requests are blocking in Go
+	handler := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		resolve := args[0]
+		reject := args[1]
+
+		// Run this code asynchronously
+		go func() {
+			// Make the HTTP request
+			res, err := http.DefaultClient.Get(url)
+			if err != nil {
+				// Handle errors: reject the Promise if we have an error
+				errorConstructor := js.Global().Get("Error")
+				errorObject := errorConstructor.New(err.Error())
+				reject.Invoke(errorObject)
+				return
+			}
+			// We're not calling res.Body.Close() here, because we are reading it asynchronously
+
+			// Create the "underlyingSource" object for the ReadableStream constructor
+			// See: https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream/ReadableStream
+			underlyingSource := map[string]interface{}{
+				// start method
+				"start": js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+					// The first and only arg is the controller object
+					controller := args[0]
+
+					// Process the stream in yet another background goroutine,
+					// because we can't block on a goroutine invoked by JS in Wasm
+					// that is dealing with HTTP requests
+					go func() {
+						// Close the response body at the end of this method
+						defer res.Body.Close()
+						var reader io.Reader
+						if doEncrypt {
+							reader, err = encryption.GetEncryptReader(key, res.Body)
+						} else {
+							reader, err = encryption.GetDecryptReader(key, res.Body)
+						}
+						reader = res.Body
+						if err != nil {
+							// Tell the controller we have an error
+							errorConstructor := js.Global().Get("Error")
+							errorObject := errorConstructor.New(err.Error())
+							controller.Call("error", errorObject)
+							return
+						}
+						// Read the entire stream and pass it to JavaScript
+						for {
+							// Read up to 16KB at a time
+							buf := make([]byte, 16384)
+							n, err := reader.Read(buf)
+							if err != nil && err != io.EOF {
+								// Tell the controller we have an error
+								// We're ignoring "EOF" however, which means the stream was done
+								errorConstructor := js.Global().Get("Error")
+								errorObject := errorConstructor.New(err.Error())
+								controller.Call("error", errorObject)
+								return
+							}
+							if n > 0 {
+								// If we read anything, send it to JavaScript using the "enqueue" method on the controller
+								// We need to convert it to a Uint8Array first
+								arrayConstructor := js.Global().Get("Uint8Array")
+								dataJS := arrayConstructor.New(n)
+								js.CopyBytesToJS(dataJS, buf[0:n])
+								controller.Call("enqueue", dataJS)
+							}
+							if err == io.EOF {
+								// Stream is done, so call the "close" method on the controller
+								controller.Call("close")
+								return
+							}
+						}
+					}()
+
+					return nil
+				}),
+				// cancel method
+				"cancel": js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+					// If the request is canceled, just close the body
+					res.Body.Close()
+
+					return nil
+				}),
+			}
+
+			// Create a ReadableStream object from the underlyingSource object
+			readableStreamConstructor := js.Global().Get("ReadableStream")
+			readableStream := readableStreamConstructor.New(underlyingSource)
+
+			// Create the init argument for the Response constructor
+			// This allows us to pass a custom status code (and optionally headers and more)
+			// See: https://developer.mozilla.org/en-US/docs/Web/API/Response/Response
+			responseInitObj := map[string]interface{}{
+				"status":     http.StatusOK,
+				"statusText": http.StatusText(http.StatusOK),
+			}
+
+			// Create a Response object with the stream inside
+			responseConstructor := js.Global().Get("Response")
+			response := responseConstructor.New(readableStream, responseInitObj)
+
+			// Resolve the Promise
+			resolve.Invoke(response)
+		}()
+
+		// The handler of a Promise doesn't return any value
+		return nil
+	})
+
+	// Create and return the Promise object
+	// The Promise will resolve with a Response object
+	promiseConstructor := js.Global().Get("Promise")
+	return promiseConstructor.New(handler)
+}
+
+func getParams(args []js.Value) ([]byte, string, error) {
+	key := bytesFromJs(args[0])
+	if len(key) != 32 {
+		return nil, "", errors.New("invalid cipher provided")
+	}
+	url := args[1].String()
+	return key, url, nil
 }
 
 // Wraps a message into a JavaScript object of type error
@@ -82,12 +176,4 @@ func bytesFromJs(arg js.Value) []byte {
 	out := make([]byte, arg.Length())
 	js.CopyBytesToGo(out, arg)
 	return out
-}
-
-// Returns a js.Value from a byte slice
-func jsFromBytes(data []byte) js.Value {
-	arrayConstructor := js.Global().Get("Uint8Array")
-	result := arrayConstructor.New(len(data))
-	js.CopyBytesToJS(result, data)
-	return result
 }

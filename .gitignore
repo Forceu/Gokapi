@@ -5,3 +5,4 @@ Gokapi
 build/*.zip
 gokapi
 docs/_build
+wasmServer
