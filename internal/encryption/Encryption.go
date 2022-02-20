@@ -5,7 +5,6 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"errors"
-	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/secure-io/sio-go"
 	"golang.org/x/crypto/scrypt"
@@ -18,19 +17,27 @@ var encryptedKey, ramCipher []byte
 const blockSize = 32
 const nonceSize = 12
 
-func Init(pw string) {
+func InitWithPassword(pw, salt string) {
 	if pw == "" {
-		configuration.Get().Encryption = false
-		return
+		panic(errors.New("empty password provided"))
 	}
-	configuration.Get().Encryption = true
-	salt := configuration.Get().Authentication.SaltFiles
+
 	cipherKey, err := scrypt.Key([]byte(pw), []byte(salt), 1048576, 8, 1, blockSize)
 	pw = ""
 	if err != nil {
 		cipherKey = []byte{}
 		log.Fatal(err)
 	}
+	storeMasterKey(cipherKey)
+}
+
+func InitWithCipher(cipherKey []byte) {
+	storeMasterKey(cipherKey)
+	cipherKey = []byte{}
+}
+
+func storeMasterKey(cipherKey []byte) {
+	var err error
 	ramCipher, err = getRandomData(blockSize)
 	if err != nil {
 		log.Fatal(err)
