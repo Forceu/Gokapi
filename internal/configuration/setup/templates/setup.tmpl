@@ -72,7 +72,6 @@
 			</div>
 			
 			
-			
 			<!-- Step 1 Webserver -->
 			<div class="wizard-card wizard-card-overlay" data-cardname="webserver1">
 				<h3>Webserver 1/2</h3>
@@ -329,10 +328,111 @@
 			</div>
 			
 
+<!-- Step 7 Encryption -->
+			<div class="wizard-card wizard-card-overlay" data-cardname="s3credentials">
+				<h3>Encryption</h3>
+
+				<div class="wizard-input-section">
+					<p>
+						Select what level of encryption you would like
+					</p>
+
+					<select name="encrypt_sel" id="encrypt_sel" style="width:350px;" class="select form-control" onchange="encryptionSelectionChanged(this.selectedIndex);">
+							<option value="0" selected>Level 0 - No encryption</option>
+							<option value="1" >Level 1 - Local encryption / Key locally</option>
+							<option value="2" >Level 1 - Local encryption / Key on startup</option>
+							<option value="3" >Level 2 - Full encryption / Key locally</option>
+							<option value="4" >Level 2 - Full encryption / Key on startup</option>
+							<option value="5" disabled>Level 3 - End-To-End encryption (not implemented yet)</option>
+					</select>
+					
+					<div id="encinfo0">
+					<p><br><br><b>Level 0 - No encryption</b>
+					<ul>
+					  <li>All files are stored in plain text on the local or remote server</li>
+					  <li>Uses the least ressources</li>
+					  <li>Supports hotlinks to images</li>
+					  <li>Supports download progress bar</li>
+					  <li>Gokapi starts without user input</li>
+					</ul></p>
+					</div>
+					
+					<div id="encinfo1">
+					<p><br><br><b>Level 1 - Local Key</b>
+					<ul>
+					  <li>Local files are encrypted, remote files (S3) are stored in plain text</li>
+					  <li>Decryption is done server-side</li>
+					  <li>Supports hotlinks to images</li>
+					  <li>Does not support download progress bar</li>
+					  <li>Gokapi starts without user input</li>
+					  <li>Warning: Password can be read with access to Gokapi configuration</li>
+					  <li>Warning: Encryption has not been audited.</li>
+					</ul></p>
+					</div>
+					
+					<div id="encinfo2">
+					<p><br><br><b>Level 1 - User Input</b>
+					<ul>
+					  <li>Local files are encrypted, remote files (S3) are stored in plain text</li>
+					  <li>Decryption is done server-side</li>
+					  <li>Supports hotlinks to images</li>
+					  <li>Does not support download progress bar</li>
+					  <li>Password cannot be read with access to Gokapi configuration</li>
+					  <li>Warning: Gokapi requires user input to start</li>
+					  <li>Warning: Encryption has not been audited.</li>
+					</ul></p>
+					</div>
+					
+					<div id="encinfo3">
+					<p><br><br><b>Level 2 - Local Key</b>
+					<ul>
+					  <li>All files are encrypted</li>
+					  <li>Decryption for local files is done server-side</li>
+					  <li>Decryption for remote files (S3) is done client-side, requires 2MB file to load on first visit</li>
+					  <li>Only supports hotlinks to images saved locally</li>
+					  <li>Does not support download progress bar</li>
+					  <li>Gokapi starts without user input</li>
+					  <li>Warning: Password can be read with access to Gokapi configuration</li>
+					  <li>Warning: Encryption has not been audited.</li>
+					</ul></p>
+					</div>
+					
+					<div id="encinfo4">
+					<p><br><br><b>Level 2 - User Input</b>
+					<ul>
+					  <li>All files are encrypted</li>
+					  <li>Decryption for local files is done server-side</li>
+					  <li>Decryption for remote files (S3) is done client-side, requires 2MB file to load on first visit</li>
+					  <li>Only supports hotlinks to images saved locally</li>
+					  <li>Does not support download progress bar</li>
+					  <li>Password cannot be read with access to Gokapi configuration</li>
+					  <li>Warning: Gokapi requires user input to start</li>
+					  <li>Warning: Encryption has not been audited.</li>
+					</ul></p>
+					</div>
+					
+					
+					<div id="encinfo5">
+					<p><br><br><b>Level 3 - NOT IMPLEMENTED YET</b>
+					<ul>
+					  <li>All files are encrypted end-to-end</li>
+					  <li>Encryption and decryption is done client-side and requires 2MB file to load on first visit</li>
+					  <li>Does not support hotlinks to images</li>
+					  <li>Does not support download progress bar</li>
+					  <li>Gokapi starts without user input</li>
+					  <li>Password cannot be read with access to Gokapi configuration</li>
+					  <li>Warning: Encryption has not been audited.</li>
+					</ul></p>
+					</div>
+					
+				</div>
+			</div>
+			
+			
 
 
 
-			<!-- Step 7 Finish -->
+			<!-- Step 8 Finish -->
 			
 			<div class="wizard-card">
 				<h3>Finish</h3>
@@ -537,6 +637,16 @@
 				$(function() {
 					wizard.show();
 				});
+				
+			function encryptionSelectionChanged(index) {
+				for (let i = 0; i < 6; i++) {
+				 	document.getElementById("encinfo"+i).style.display = "none";
+				}
+				document.getElementById("encinfo"+index).style.display = "block";
+			}
+			
+			
+			encryptionSelectionChanged(0);
 				
 			function extUrlChanged(el) {
 				let lastChar = el.value.substr(-1); 

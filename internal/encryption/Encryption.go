@@ -4,7 +4,10 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
+	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/secure-io/sio-go"
 	"golang.org/x/crypto/scrypt"
@@ -12,26 +15,78 @@ import (
 	"log"
 )
 
+const NoEncryption = 0
+const LocalEncryptionStored = 1
+const LocalEncryptionInput = 2
+const FullEncryptionStored = 3
+const FullEncryptionInput = 4
+const EndToEndEncryption = 5
+
 var encryptedKey, ramCipher []byte
 
 const blockSize = 32
 const nonceSize = 12
 
-func InitWithPassword(pw, salt string) {
-	if pw == "" {
-		panic(errors.New("empty password provided"))
+func Init(config models.Configuration) {
+	switch config.EncryptionLevel {
+	case NoEncryption:
+		return
+	case LocalEncryptionStored:
+		fallthrough
+	case FullEncryptionStored:
+		initWithCipher(config.EncryptionCipher)
+	case LocalEncryptionInput:
+		fallthrough
+	case FullEncryptionInput:
+		initWithPassword(config.EncryptionSalt, config.EncryptionChecksum, config.EncryptionChecksumSalt)
+	case EndToEndEncryption:
+		// TODO
+	}
+}
+
+func initWithPassword(saltPw, expectedChecksum, saltChecksum string) {
+	if saltPw == "" || saltChecksum == "" {
+		log.Fatal("Empty salt provided. Please rerun setup with --reconfigure")
 	}
 
+	pw := helper.ReadPassword()
+	if pw == "" {
+		log.Fatal("Empty password provided")
+	}
+
+	checkSum := PasswordChecksum(pw, saltChecksum)
+	if checkSum != expectedChecksum {
+		pw = ""
+		log.Fatal("Incorrect password provided")
+	}
+
+	cipherKey, err := scrypt.Key([]byte(pw), []byte(saltPw), 1048576, 8, 1, blockSize)
+	pw = ""
+	if err != nil {
+		cipherKey = []byte{}
+		log.Fatal(err)
+	}
+
+	storeMasterKey(cipherKey)
+}
+
+func PasswordChecksum(pw, salt string) string {
 	cipherKey, err := scrypt.Key([]byte(pw), []byte(salt), 1048576, 8, 1, blockSize)
 	pw = ""
 	if err != nil {
 		cipherKey = []byte{}
 		log.Fatal(err)
 	}
-	storeMasterKey(cipherKey)
+
+	hasher := sha256.New()
+	hasher.Write(cipherKey)
+	return hex.EncodeToString(hasher.Sum(nil))
 }
 
-func InitWithCipher(cipherKey []byte) {
+func initWithCipher(cipherKey []byte) {
+	if len(cipherKey) != 32 {
+		log.Fatal("Invalid cipher provided. Please rerun setup with --reconfigure")
+	}
 	storeMasterKey(cipherKey)
 	cipherKey = []byte{}
 }

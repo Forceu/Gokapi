@@ -7,17 +7,21 @@ import (
 
 // Configuration is a struct that contains the global configuration
 type Configuration struct {
-	Authentication AuthenticationConfig `json:"Authentication"`
-	Port           string               `json:"Port"`
-	ServerUrl      string               `json:"ServerUrl"`
-	RedirectUrl    string               `json:"RedirectUrl"`
-	ConfigVersion  int                  `json:"ConfigVersion"`
-	LengthId       int                  `json:"LengthId"`
-	DataDir        string               `json:"DataDir"`
-	MaxMemory      int                  `json:"MaxMemory"`
-	UseSsl         bool                 `json:"UseSsl"`
-	MaxFileSizeMB  int                  `json:"MaxFileSizeMB"`
-	Encryption       bool
+	Authentication         AuthenticationConfig `json:"Authentication"`
+	Port                   string               `json:"Port"`
+	ServerUrl              string               `json:"ServerUrl"`
+	RedirectUrl            string               `json:"RedirectUrl"`
+	ConfigVersion          int                  `json:"ConfigVersion"`
+	LengthId               int                  `json:"LengthId"`
+	DataDir                string               `json:"DataDir"`
+	MaxMemory              int                  `json:"MaxMemory"`
+	UseSsl                 bool                 `json:"UseSsl"`
+	MaxFileSizeMB          int                  `json:"MaxFileSizeMB"`
+	EncryptionLevel        int                  `json:"EncryptionLevel"`
+	EncryptionCipher       []byte               `json:"EncryptionCipher"`
+	EncryptionSalt         string               `json:"EncryptionSalt"`
+	EncryptionChecksum     string               `json:"EncryptionChecksum"`
+	EncryptionChecksumSalt string               `json:"EncryptionChecksumSalt"`
 }
 
 type LastUploadValues struct {

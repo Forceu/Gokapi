@@ -44,10 +44,7 @@ func main() {
 	fmt.Println("Gokapi v" + Version + " starting")
 	setup.RunIfFirstStart()
 	configuration.Load()
-	encryption.InitWithPassword("testpw", configuration.Get().Authentication.SaltFiles) // TODO change
-	if true {
-		configuration.Get().Encryption = true // TODO change
-	}
+	encryption.Init(*configuration.Get())
 	authentication.Init(configuration.Get().Authentication)
 	reconfigureServer(passedFlags)
 	createSsl(passedFlags)
