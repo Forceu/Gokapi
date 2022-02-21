@@ -22,5 +22,56 @@
    }   
 </script>
 
+{{ if .ClientSideDecryption }}
+		<script src="./js/streamsaver.js"></script>
+		<script src="./js/wasm_exec.js"></script>
+		
+		
+		<script>
+			const go = new Go(); // Defined in wasm_exec.js
+			const WASM_URL = 'main.wasm';
+
+			var wasm;
+
+			if ('instantiateStreaming' in WebAssembly) {
+				WebAssembly.instantiateStreaming(fetch(WASM_URL), go.importObject).then(function (obj) {
+					wasm = obj.instance;
+					go.run(wasm);
+				})
+			} else {
+				fetch(WASM_URL).then(resp =>
+					resp.arrayBuffer()
+				).then(bytes =>
+					WebAssembly.instantiate(bytes, go.importObject).then(function (obj) {
+						wasm = obj.instance;
+						go.run(wasm);
+					})
+				)
+			}
+			
+			
+			async function Download(url, filename, cipher) {
+			    try {
+				const response = await GokapiDecrypt( new Uint8Array(32), url)
+				const readableStream = response.body
+				const reader = response.body.getReader()
+				const fileStream = streamSaver.createWriteStream(filename)
+				     
+				
+				  window.writer = fileStream.getWriter()
+
+				  const pump = () => reader.read()
+				    .then(res => res.done
+				      ? writer.close()
+				      : writer.write(res.value).then(pump))
+
+				  pump()
+			    } catch (err) {
+				console.error('Caught exception', err)
+			    }
+			}
+		</script>
+{{ end }}
+
 {{template "footer"}}    
 {{end}}

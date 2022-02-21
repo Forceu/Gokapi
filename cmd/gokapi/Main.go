@@ -32,6 +32,8 @@ import (
 const Version = "1.5.0"
 
 //go:generate sh "../../build/setVersionTemplate.sh" "1.5.0"
+//go:generate sh -c "cp \"$(go env GOROOT)/misc/wasm/wasm_exec.js\" ../../internal/webserver/web/static/js/ && echo Copied wasm_exec.js"
+//go:generate sh -c "GOOS=js GOARCH=wasm go build -o ../../internal/webserver/web/main.wasm github.com/forceu/gokapi/cmd/wasmdownloader && echo Compiled WASM module"
 
 // Main routine that is called on startup
 func main() {

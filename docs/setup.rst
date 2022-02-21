@@ -29,6 +29,7 @@ Create a new folder and in this folder execute
 ::
 
  git clone https://github.com/Forceu/Gokapi.git .
+ go generate ./...
  go build Gokapi/cmd/gokapi
 
 This will compile the source code and create an executable from the latest code.

@@ -6,3 +6,5 @@ build/*.zip
 gokapi
 docs/_build
 wasmServer
+internal/webserver/web/main.wasm
+internal/webserver/web/static/js/wasm_exec.js
