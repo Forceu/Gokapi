@@ -256,7 +256,7 @@ func TestServeFile(t *testing.T) {
 
 func TestCleanUp(t *testing.T) {
 	files := datastorage.GetAllMetadata()
-	downloadstatus.Init()
+	downloadstatus.DeleteAll()
 	downloadstatus.SetDownload(files["cleanuptest123456789"])
 
 	test.IsEqualString(t, files["cleanuptest123456789"].Name, "cleanup")
@@ -327,7 +327,7 @@ func TestCleanUp(t *testing.T) {
 	test.IsEqualString(t, files["cleanuptest123456789"].Name, "cleanup")
 	test.FileExists(t, "test/data/2341354656543213246465465465432456898794")
 
-	downloadstatus.Init()
+	downloadstatus.DeleteAll()
 	CleanUp(false)
 	files = datastorage.GetAllMetadata()
 	test.IsEqualString(t, files["cleanuptest123456789"].Name, "")

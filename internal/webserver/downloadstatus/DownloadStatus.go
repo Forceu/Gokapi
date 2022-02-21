@@ -56,3 +56,7 @@ func IsCurrentlyDownloading(file models.File) bool {
 func GetAll() map[string]models.DownloadStatus {
 	return status
 }
+
+func DeleteAll() {
+	status = make(map[string]models.DownloadStatus)
+}

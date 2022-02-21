@@ -20,15 +20,20 @@ var testConfig = Configuration{
 		HeaderUsers:       nil,
 		OauthUsers:        nil,
 	},
-	Port:          ":12345",
-	ServerUrl:     "https://testserver.com/",
-	RedirectUrl:   "https://test.com",
-	ConfigVersion: 11,
-	LengthId:      5,
-	DataDir:       "test",
-	MaxMemory:     50,
-	UseSsl:        true,
-	MaxFileSizeMB: 20,
+	Port:                   ":12345",
+	ServerUrl:              "https://testserver.com/",
+	RedirectUrl:            "https://test.com",
+	ConfigVersion:          11,
+	LengthId:               5,
+	DataDir:                "test",
+	MaxMemory:              50,
+	UseSsl:                 true,
+	MaxFileSizeMB:          20,
+	EncryptionLevel:        0,
+	EncryptionCipher:       []byte{0x00},
+	EncryptionSalt:         "encsalt",
+	EncryptionChecksum:     "encsum",
+	EncryptionChecksumSalt: "encsumsalt",
 }
 
 func TestConfiguration_ToJson(t *testing.T) {
@@ -39,4 +44,4 @@ func TestConfiguration_ToString(t *testing.T) {
 	test.IsEqualString(t, testConfig.ToString(), exptectedUnidentedOutput)
 }
 
-const exptectedUnidentedOutput = "{\"Authentication\":{\"Method\":0,\"SaltAdmin\":\"saltadmin\",\"SaltFiles\":\"saltfiles\",\"Username\":\"admin\",\"Password\":\"adminpwhashed\",\"HeaderKey\":\"\",\"OauthProvider\":\"\",\"OAuthClientId\":\"\",\"OAuthClientSecret\":\"\",\"HeaderUsers\":null,\"OauthUsers\":null},\"Port\":\":12345\",\"ServerUrl\":\"https://testserver.com/\",\"RedirectUrl\":\"https://test.com\",\"ConfigVersion\":11,\"LengthId\":5,\"DataDir\":\"test\",\"MaxMemory\":50,\"UseSsl\":true,\"MaxFileSizeMB\":20}"
+const exptectedUnidentedOutput = `{"Authentication":{"Method":0,"SaltAdmin":"saltadmin","SaltFiles":"saltfiles","Username":"admin","Password":"adminpwhashed","HeaderKey":"","OauthProvider":"","OAuthClientId":"","OAuthClientSecret":"","HeaderUsers":null,"OauthUsers":null},"Port":":12345","ServerUrl":"https://testserver.com/","RedirectUrl":"https://test.com","ConfigVersion":11,"LengthId":5,"DataDir":"test","MaxMemory":50,"UseSsl":true,"MaxFileSizeMB":20,"EncryptionLevel":0,"EncryptionCipher":"AA==","EncryptionSalt":"encsalt","EncryptionChecksum":"encsum","EncryptionChecksumSalt":"encsumsalt"}`
