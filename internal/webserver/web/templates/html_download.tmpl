@@ -6,11 +6,16 @@
 		<div class="card" style="width: 18rem;">
 		  <div class="card-body">
 		    <h4 class="card-title">{{ .Name }}</h4>
-		    <p class="card-text">Filesize: {{ .Size }}</p>
+		    <p class="card-text">Filesize: {{ .Size }}</p><br>
 {{ if .ClientSideDecryption }}
-		    <a id="downloadlink" onclick="this.outerHTML = ''; Download();" href="#" class="card-link">Download</a>
+		   <button id="downloadbutton" class="btn btn-light" type="button" disabled onclick="Download(this);">
+		  	<span id="wasmspinner" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+		  	Loading...
+		  </button>
 {{  else }}
-		    <a onclick="disableAfterClick(this);" download href="./downloadFile?id={{ .Id }}" class="card-link">Download</a>
+		   <button class="btn btn-light" type="button" onclick="Download(this);">
+		  	Download
+		  </button>
 {{ end }}
 		  </div>
 		</div>
@@ -33,6 +38,9 @@
 				WebAssembly.instantiateStreaming(fetch(WASM_URL), go.importObject).then(function (obj) {
 					wasm = obj.instance;
 					go.run(wasm);
+					document.getElementById("wasmspinner").style.display = "none";
+					document.getElementById("downloadbutton").disabled = false;
+					document.getElementById("downloadbutton").innerHTML = "Download";
 				})
 			} else {
 				fetch(WASM_URL).then(resp =>
@@ -46,7 +54,7 @@
 			}
 			
 			
-			async function Download() {
+			async function DownloadEncrypted() {
 			    try {
 				const response = await GokapiDecrypt({{ .Cipher }}, "./downloadFile?id={{ .Id }}")
 				const readableStream = response.body
@@ -66,17 +74,21 @@
 				console.error('Caught exception', err)
 			    }
 			}
+			
+			
+		   function Download(button) {
+		   	button.disabled = true;
+		   	DownloadEncrypted()
+		   }   
 		</script>
 {{ else }}
 
 		<script> 
-		   function disableAfterClick(link) {
-		     link.onclick = function(event) {
-			event.preventDefault();
-		     }
-		     link.outerHTML = "";
+		   function Download(button) {
+		     button.disabled = true;
+		     location.href = "./downloadFile?id={{ .Id }}";
 		   }   
-</script>
+		</script>
 {{ end }}
 
 {{template "footer"}}    
