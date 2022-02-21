@@ -37,7 +37,7 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 		return models.File{}, errors.New("upload limit exceeded")
 	}
 	var hasBeenRenamed bool
-	reader, hash, tempFile, encInfo := generateHash(fileContent, fileHeader, uploadRequest, configuration.Get().Encryption)
+	reader, hash, tempFile, encInfo := generateHash(fileContent, fileHeader, uploadRequest, configuration.Get().EncryptionLevel)
 	defer deleteTempFile(tempFile, &hasBeenRenamed)
 	id := helper.GenerateRandomString(configuration.Get().LengthId)
 	file := models.File{
@@ -72,8 +72,9 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 
 	fileWithHashExists := helper.FileExists(dataDir + "/" + file.SHA256)
 	if fileWithHashExists {
+		encryptionLevel := configuration.Get().EncryptionLevel
 		previousEncryption, ok := getEncInfoFromExistingFile(file.SHA256)
-		if !ok && configuration.Get().Encryption {
+		if !ok && encryptionLevel != encryption.NoEncryption && encryptionLevel != encryption.EndToEndEncryption {
 			err := os.Remove(dataDir + "/" + file.SHA256)
 			helper.Check(err)
 			fileWithHashExists = false
@@ -107,7 +108,8 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 }
 
 func getEncInfoFromExistingFile(hash string) (models.EncryptionInfo, bool) {
-	if !configuration.Get().Encryption {
+	encryptionLevel := configuration.Get().EncryptionLevel
+	if encryptionLevel == encryption.NoEncryption || encryptionLevel == encryption.EndToEndEncryption {
 		return models.EncryptionInfo{}, true
 	}
 	allFiles := datastorage.GetAllMetadata()
@@ -130,14 +132,14 @@ func deleteTempFile(file *os.File, hasBeenRenamed *bool) {
 
 // Generates the SHA1 hash of an uploaded file and returns a reader for the file, the hash and if a temporary file was created the
 // reference to that file.
-func generateHash(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequest models.UploadRequest, encrypt bool) (io.Reader, []byte, *os.File, models.EncryptionInfo) {
+func generateHash(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequest models.UploadRequest, encryptionLevel int) (io.Reader, []byte, *os.File, models.EncryptionInfo) {
 	hash := sha1.New()
 	encInfo := models.EncryptionInfo{}
 	if fileHeader.Size <= int64(uploadRequest.MaxMemory)*1024*1024 {
 		content, err := ioutil.ReadAll(fileContent)
 		helper.Check(err)
 		hash.Write(content)
-		if encrypt {
+		if encryptionLevel != encryption.NoEncryption && encryptionLevel != encryption.EndToEndEncryption {
 			encContent := new(bytes.Buffer)
 			err = encryption.Encrypt(&encInfo, bytes.NewReader(content), encContent)
 			helper.Check(err)
@@ -156,7 +158,7 @@ func generateHash(fileContent io.Reader, fileHeader *multipart.FileHeader, uploa
 	_, err = tempFile.Seek(0, io.SeekStart)
 	helper.Check(err)
 
-	if encrypt {
+	if encryptionLevel != encryption.NoEncryption && encryptionLevel != encryption.EndToEndEncryption {
 		tempFileEnc, err := os.CreateTemp(uploadRequest.DataDir, "upload")
 		helper.Check(err)
 		encryption.Encrypt(&encInfo, tempFile, tempFileEnc)
