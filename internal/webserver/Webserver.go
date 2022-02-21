@@ -6,10 +6,12 @@ Handling of webserver and requests / uploads
 
 import (
 	"embed"
+	"encoding/base64"
 	"fmt"
 	"github.com/NYTimes/gziphandler"
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/datastorage"
+	"github.com/forceu/gokapi/internal/encryption"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
@@ -257,11 +259,17 @@ func showDownload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	view := DownloadView{
-		Name:                 file.Name,
-		Size:                 file.Size,
-		Id:                   file.Id,
-		IsFailedLogin:        false,
-		ClientSideDecryption: true, // TODO
+		Name:          file.Name,
+		Size:          file.Size,
+		Id:            file.Id,
+		IsFailedLogin: false,
+	}
+
+	if storage.RequiresClientDecryption(file) {
+		view.ClientSideDecryption = true
+		cipher, err := encryption.GetCipherFromFile(file.Encryption)
+		helper.Check(err)
+		view.Cipher = base64.StdEncoding.EncodeToString(cipher)
 	}
 
 	if file.PasswordHash != "" {
@@ -340,6 +348,7 @@ type DownloadView struct {
 	IsFailedLogin        bool
 	IsAdminView          bool
 	ClientSideDecryption bool
+	Cipher               string
 }
 
 // UploadView contains parameters for the admin menu template

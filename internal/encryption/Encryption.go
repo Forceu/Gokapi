@@ -71,7 +71,7 @@ func Encrypt(encInfo *models.EncryptionInfo, input io.Reader, output io.Writer) 
 }
 
 func DecryptReader(encInfo models.EncryptionInfo, input io.Reader, output io.Writer) error {
-	key, err := getCipherFromFile(encInfo)
+	key, err := GetCipherFromFile(encInfo)
 	if err != nil {
 		return err
 	}
@@ -118,7 +118,7 @@ func generateNewFileKey(encInfo *models.EncryptionInfo) ([]byte, error) {
 	return encryptionKey, nil
 }
 
-func getCipherFromFile(encInfo models.EncryptionInfo) ([]byte, error) {
+func GetCipherFromFile(encInfo models.EncryptionInfo) ([]byte, error) {
 	cipherFile, err := fileCipherDecrypt(encInfo.DecryptionKey, encInfo.Nonce)
 	if err != nil {
 		return []byte{}, err

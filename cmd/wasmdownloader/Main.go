@@ -4,6 +4,7 @@ package main
 // https://withblue.ink/2020/10/03/go-webassembly-http-requests-and-promises.html
 
 import (
+	"encoding/base64"
 	"errors"
 	"github.com/forceu/gokapi/internal/encryption"
 	"io"
@@ -77,7 +78,6 @@ func encryptDecrypt(key []byte, url string, doEncrypt bool) interface{} {
 						} else {
 							reader, err = encryption.GetDecryptReader(key, res.Body)
 						}
-						reader = res.Body
 						if err != nil {
 							// Tell the controller we have an error
 							errorConstructor := js.Global().Get("Error")
@@ -156,7 +156,11 @@ func encryptDecrypt(key []byte, url string, doEncrypt bool) interface{} {
 }
 
 func getParams(args []js.Value) ([]byte, string, error) {
-	key := bytesFromJs(args[0])
+	keyBase64 := args[0].String()
+	key, err := base64.StdEncoding.DecodeString(keyBase64)
+	if err != nil {
+		return nil, "", errors.New("invalid base64 provided")
+	}
 	if len(key) != 32 {
 		return nil, "", errors.New("invalid cipher provided")
 	}

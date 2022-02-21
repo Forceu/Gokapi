@@ -50,12 +50,12 @@
 			}
 			
 			
-			async function Download(url, filename, cipher) {
+			async function Download() {
 			    try {
-				const response = await GokapiDecrypt( new Uint8Array(32), url)
+				const response = await GokapiDecrypt({{ .Cipher }}, "./downloadFile?id={{ .Id }}")
 				const readableStream = response.body
 				const reader = response.body.getReader()
-				const fileStream = streamSaver.createWriteStream(filename)
+				const fileStream = streamSaver.createWriteStream({{ .Name }})
 				     
 				
 				  window.writer = fileStream.getWriter()

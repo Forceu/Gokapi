@@ -4,6 +4,7 @@ go 1.17
 
 require (
 	git.mills.io/prologic/bitcask v1.0.2
+	github.com/NYTimes/gziphandler v1.1.1
 	github.com/aws/aws-sdk-go v1.42.22
 	github.com/caarlos0/env/v6 v6.9.1
 	github.com/johannesboyne/gofakes3 v0.0.0-20210415062230-4b6b67a85d38

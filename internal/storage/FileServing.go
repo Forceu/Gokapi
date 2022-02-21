@@ -215,6 +215,14 @@ func GetFileByHotlink(id string) (models.File, bool) {
 	return GetFile(fileId)
 }
 
+func RequiresClientDecryption(file models.File) bool {
+	if !file.Encryption.IsEncrypted {
+		return false
+	}
+	return true // TODO
+	// return file.AwsBucket != ""
+}
+
 // ServeFile subtracts a download allowance and serves the file to the browser
 func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDownload bool) {
 	file.DownloadsRemaining = file.DownloadsRemaining - 1
@@ -223,28 +231,17 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 
 	// If file is stored on AWS
 	if file.AwsBucket != "" {
-		// We are not setting a download complete status if unencrypted, as there is no reliable way to
+		// We are not setting a download complete status as there is no reliable way to
 		// confirm that the file has been completely downloaded. It expires automatically after 24 hours.
-		statusId := downloadstatus.SetDownload(file)
-		if file.Encryption.IsEncrypted == false {
-			err := aws.RedirectToDownload(w, r, file, forceDownload)
-			helper.Check(err)
-			return
-		} else {
-			// writeDownloadHeaders(file, w, forceDownload)
-			// writer, err := encryption.GetDecryptWriter(file.Encryption, w)
-			// if err != nil {
-			// 	w.Write([]byte("Error decrypting file"))
-			// 	panic(err)
-			// }
-			// aws.Download(writer, file)
-			downloadstatus.SetComplete(statusId)
-		}
+		downloadstatus.SetDownload(file)
+		err := aws.RedirectToDownload(w, r, file, forceDownload)
+		helper.Check(err)
+		return
 	}
 	fileData, size := getFileHandler(file, configuration.Get().DataDir)
 	statusId := downloadstatus.SetDownload(file)
 	writeDownloadHeaders(file, w, forceDownload)
-	if file.Encryption.IsEncrypted {
+	if file.Encryption.IsEncrypted && !RequiresClientDecryption(file) {
 		err := encryption.DecryptReader(file.Encryption, fileData, w)
 		if err != nil {
 			w.Write([]byte("Error decrypting file"))
