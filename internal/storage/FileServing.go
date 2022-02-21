@@ -54,10 +54,10 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 		UnlimitedTime:      uploadRequest.UnlimitedTime,
 		UnlimitedDownloads: uploadRequest.UnlimitedDownload,
 	}
-	addHotlink(&file)
 	if aws.IsAvailable() {
 		aws.AddBucketName(&file)
 	}
+	addHotlink(&file)
 	filename := configuration.Get().DataDir + "/" + file.SHA256
 	dataDir := configuration.Get().DataDir
 	if aws.IsAvailable() {
@@ -172,6 +172,9 @@ var imageFileExtensions = []string{".jpg", ".jpeg", ".png", ".gif", ".webp", ".b
 
 // If file is an image, create link for hotlinking
 func addHotlink(file *models.File) {
+	if RequiresClientDecryption(*file) {
+		return
+	}
 	extension := strings.ToLower(filepath.Ext(file.Name))
 	if !helper.IsInArray(imageFileExtensions, extension) {
 		return
@@ -219,8 +222,7 @@ func RequiresClientDecryption(file models.File) bool {
 	if !file.Encryption.IsEncrypted {
 		return false
 	}
-	return true // TODO
-	// return file.AwsBucket != ""
+	return file.AwsBucket != ""
 }
 
 // ServeFile subtracts a download allowance and serves the file to the browser
@@ -265,7 +267,6 @@ func writeDownloadHeaders(file models.File, w http.ResponseWriter, forceDownload
 	if file.Encryption.IsEncrypted {
 		w.Header().Set("Accept-Ranges", "bytes")
 		w.Header().Set("Last-Modified", time.Now().UTC().Format(http.TimeFormat))
-		w.WriteHeader(200)
 	}
 }
 
