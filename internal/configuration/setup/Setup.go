@@ -69,7 +69,7 @@ func RunConfigModification() {
 func basicAuth(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// No auth required on initial setup
-		if isInitialSetup || true { // TODO
+		if isInitialSetup {
 			next.ServeHTTP(w, r)
 			return
 		}
