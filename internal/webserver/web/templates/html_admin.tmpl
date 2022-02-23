@@ -47,8 +47,8 @@
 				</thead>
 				<tbody id="downloadtable">
 {{ range .Items }}
-{{ if gt .ExpireAt $.TimeNow }}
-{{ if gt .DownloadsRemaining 0 }}
+{{ if  or (gt .ExpireAt $.TimeNow) (.UnlimitedTime) }}
+{{ if or (gt .DownloadsRemaining 0) (.UnlimitedDownloads) }}
 					<tr>
 						<td scope="col">{{ .Name }}</td>
 						<td scope="col">{{ .Size }}</td>
