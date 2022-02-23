@@ -328,14 +328,18 @@
 			</div>
 			
 
-<!-- Step 7 Encryption -->
-			<div class="wizard-card wizard-card-overlay" data-cardname="s3credentials">
+			<!-- Step 7 Encryption -->
+			<div class="wizard-card wizard-card-overlay" data-cardname="encryption">
 				<h3>Encryption</h3>
 
 				<div class="wizard-input-section">
-					<p>
-						Select what level of encryption you would like
-					</p>
+					
+{{ if not .IsInitialSetup }}
+				<p>
+					<span style="color:red"><b>Warning:</b> Changing the encryption level will delete all existing encrypted files! Other existing files will remain unencrypted.
+				</p><br>
+{{ end }}
+					
 
 					<select name="encrypt_sel" id="encrypt_sel" style="width:350px;" class="select form-control" onchange="encryptionSelectionChanged(this.selectedIndex);">
 							<option value="0" selected>Level 0 - No encryption</option>
@@ -365,8 +369,8 @@
 					  <li>Supports hotlinks to images</li>
 					  <li>Does not support download progress bar</li>
 					  <li>Gokapi starts without user input</li>
-					  <li>Warning: Password can be read with access to Gokapi configuration</li>
-					  <li>Warning: Encryption has not been audited.</li>
+					  <li><b>Warning:</b> Password can be read with access to Gokapi configuration</li>
+					  <li><b>Warning:</b> Encryption has not been audited.</li>
 					</ul></p>
 					</div>
 					
@@ -378,8 +382,8 @@
 					  <li>Supports hotlinks to images</li>
 					  <li>Does not support download progress bar</li>
 					  <li>Password cannot be read with access to Gokapi configuration</li>
-					  <li>Warning: Gokapi requires user input to start</li>
-					  <li>Warning: Encryption has not been audited.</li>
+					  <li><b>Warning:</b> Gokapi requires user input to start</li>
+					  <li><b>Warning:</b> Encryption has not been audited.</li>
 					</ul></p>
 					</div>
 					
@@ -392,8 +396,8 @@
 					  <li>Only supports hotlinks to images saved locally</li>
 					  <li>Does not support download progress bar</li>
 					  <li>Gokapi starts without user input</li>
-					  <li>Warning: Password can be read with access to Gokapi configuration</li>
-					  <li>Warning: Encryption has not been audited.</li>
+					  <li><b>Warning:</b> Password can be read with access to Gokapi configuration</li>
+					  <li><b>Warning:</b> Encryption has not been audited.</li>
 					</ul></p>
 					</div>
 					
@@ -406,8 +410,8 @@
 					  <li>Only supports hotlinks to images saved locally</li>
 					  <li>Does not support download progress bar</li>
 					  <li>Password cannot be read with access to Gokapi configuration</li>
-					  <li>Warning: Gokapi requires user input to start</li>
-					  <li>Warning: Encryption has not been audited.</li>
+					  <li><b>Warning:</b> Gokapi requires user input to start</li>
+					  <li><b>Warning:</b> Encryption has not been audited.</li>
 					</ul></p>
 					</div>
 					
@@ -421,10 +425,10 @@
 					  <li>Does not support download progress bar</li>
 					  <li>Gokapi starts without user input</li>
 					  <li>Password cannot be read with access to Gokapi configuration</li>
-					  <li>Warning: Encryption has not been audited.</li>
+					  <li><b>Warning:</b> Encryption has not been audited.</li>
 					</ul></p>
 					</div>
-					
+
 				</div>
 			</div>
 			
@@ -645,8 +649,13 @@
 				document.getElementById("encinfo"+index).style.display = "block";
 			}
 			
-			
+
+{{ if .IsInitialSetup }}			
 			encryptionSelectionChanged(0);
+{{ else }}
+			document.getElementById("encrypt_sel").value={{.EncryptionLevel}};
+			encryptionSelectionChanged({{.EncryptionLevel}});
+{{ end }}
 				
 			function extUrlChanged(el) {
 				let lastChar = el.value.substr(-1); 

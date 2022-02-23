@@ -44,9 +44,9 @@ func main() {
 	fmt.Println("Gokapi v" + Version + " starting")
 	setup.RunIfFirstStart()
 	configuration.Load()
+	reconfigureServer(passedFlags)
 	encryption.Init(*configuration.Get())
 	authentication.Init(configuration.Get().Authentication)
-	reconfigureServer(passedFlags)
 	createSsl(passedFlags)
 
 	cConfig, ok := cloudconfig.Load()

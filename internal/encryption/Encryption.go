@@ -7,12 +7,14 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/secure-io/sio-go"
 	"golang.org/x/crypto/scrypt"
 	"io"
 	"log"
+	"time"
 )
 
 const NoEncryption = 0
@@ -28,17 +30,17 @@ const blockSize = 32
 const nonceSize = 12
 
 func Init(config models.Configuration) {
-	switch config.EncryptionLevel {
+	switch config.Encryption.Level {
 	case NoEncryption:
 		return
 	case LocalEncryptionStored:
 		fallthrough
 	case FullEncryptionStored:
-		initWithCipher(config.EncryptionCipher)
+		initWithCipher(config.Encryption.Cipher)
 	case LocalEncryptionInput:
 		fallthrough
 	case FullEncryptionInput:
-		initWithPassword(config.EncryptionSalt, config.EncryptionChecksum, config.EncryptionChecksumSalt)
+		initWithPassword(config.Encryption.Salt, config.Encryption.Checksum, config.Encryption.ChecksumSalt)
 	case EndToEndEncryption:
 		// TODO
 	}
@@ -48,18 +50,7 @@ func initWithPassword(saltPw, expectedChecksum, saltChecksum string) {
 	if saltPw == "" || saltChecksum == "" {
 		log.Fatal("Empty salt provided. Please rerun setup with --reconfigure")
 	}
-
-	pw := helper.ReadPassword()
-	if pw == "" {
-		log.Fatal("Empty password provided")
-	}
-
-	checkSum := PasswordChecksum(pw, saltChecksum)
-	if checkSum != expectedChecksum {
-		pw = ""
-		log.Fatal("Incorrect password provided")
-	}
-
+	pw := readAndCheckPassword(expectedChecksum, saltChecksum)
 	cipherKey, err := scrypt.Key([]byte(pw), []byte(saltPw), 1048576, 8, 1, blockSize)
 	pw = ""
 	if err != nil {
@@ -68,6 +59,35 @@ func initWithPassword(saltPw, expectedChecksum, saltChecksum string) {
 	}
 
 	storeMasterKey(cipherKey)
+}
+
+func readAndCheckPassword(expectedChecksum, saltChecksum string) string {
+	fmt.Println("Please enter encryption password:")
+	pw := helper.ReadPassword()
+	if pw == "" {
+		log.Fatal("Empty password provided")
+	}
+	fmt.Print("Checking password")
+
+	checksumFinished := false
+	go func() {
+		for !checksumFinished {
+			fmt.Print(".")
+			time.Sleep(time.Second)
+		}
+	}()
+
+	checkSum := PasswordChecksum(pw, saltChecksum)
+	checksumFinished = true
+
+	if checkSum != expectedChecksum {
+		pw = ""
+		fmt.Println("FAIL")
+		log.Fatal("Incorrect password provided")
+	}
+
+	fmt.Println("OK")
+	return pw
 }
 
 func PasswordChecksum(pw, salt string) string {
@@ -229,4 +249,8 @@ func getRandomData(size int) ([]byte, error) {
 		return []byte{}, errors.New("incorrect size written")
 	}
 	return data, nil
+}
+
+func GetRandomCipher() ([]byte, error) {
+	return getRandomData(blockSize)
 }

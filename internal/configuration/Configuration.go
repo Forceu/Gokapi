@@ -106,6 +106,7 @@ func LoadFromSetup(config models.Configuration, cloudConfig *cloudconfig.CloudCo
 		}
 	}
 	save()
+	Load()
 }
 
 // HashPassword hashes a string with SHA256 the file salt or admin user salt

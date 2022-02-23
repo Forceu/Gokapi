@@ -90,8 +90,8 @@ func encryptDecrypt(key []byte, url string, doEncrypt bool) interface{} {
 						}
 						// Read the entire stream and pass it to JavaScript
 						for {
-							// Read up to 16KB at a time
-							buf := make([]byte, 16384)
+							// Read up to 1MB at a time
+							buf := make([]byte, 1048576)
 							n, err := reader.Read(buf)
 							if err != nil && err != io.EOF {
 								// Tell the controller we have an error

@@ -24,6 +24,7 @@
 
 
 {{ if .ClientSideDecryption }}
+		<script src="./js/polyfill.min.js"></script>
 		<script src="./js/streamsaver.js"></script>
 		<script src="./js/wasm_exec.js"></script>
 		
@@ -59,7 +60,7 @@
 				const response = await GokapiDecrypt({{ .Cipher }}, "./downloadFile?id={{ .Id }}")
 				const readableStream = response.body
 				const reader = response.body.getReader()
-				const fileStream = streamSaver.createWriteStream({{ .Name }})
+				const fileStream = streamSaver.createWriteStream({{.Name }})
 				     
 				
 				  window.writer = fileStream.getWriter()

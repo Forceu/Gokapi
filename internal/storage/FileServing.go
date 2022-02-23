@@ -37,7 +37,7 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 		return models.File{}, errors.New("upload limit exceeded")
 	}
 	var hasBeenRenamed bool
-	reader, hash, tempFile, encInfo := generateHash(fileContent, fileHeader, uploadRequest, configuration.Get().EncryptionLevel)
+	reader, hash, tempFile, encInfo := generateHash(fileContent, fileHeader, uploadRequest, configuration.Get().Encryption.Level)
 	defer deleteTempFile(tempFile, &hasBeenRenamed)
 	id := helper.GenerateRandomString(configuration.Get().LengthId)
 	file := models.File{
@@ -72,7 +72,7 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 
 	fileWithHashExists := helper.FileExists(dataDir + "/" + file.SHA256)
 	if fileWithHashExists {
-		encryptionLevel := configuration.Get().EncryptionLevel
+		encryptionLevel := configuration.Get().Encryption.Level
 		previousEncryption, ok := getEncInfoFromExistingFile(file.SHA256)
 		if !ok && encryptionLevel != encryption.NoEncryption && encryptionLevel != encryption.EndToEndEncryption {
 			err := os.Remove(dataDir + "/" + file.SHA256)
@@ -108,7 +108,7 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 }
 
 func getEncInfoFromExistingFile(hash string) (models.EncryptionInfo, bool) {
-	encryptionLevel := configuration.Get().EncryptionLevel
+	encryptionLevel := configuration.Get().Encryption.Level
 	if encryptionLevel == encryption.NoEncryption || encryptionLevel == encryption.EndToEndEncryption {
 		return models.EncryptionInfo{}, true
 	}
@@ -127,6 +127,15 @@ func deleteTempFile(file *os.File, hasBeenRenamed *bool) {
 		helper.Check(err)
 		err = os.Remove(file.Name())
 		helper.Check(err)
+	}
+}
+
+func DeleteAllEncrypted() {
+	files := datastorage.GetAllMetadata()
+	for _, file := range files {
+		if file.Encryption.IsEncrypted {
+			DeleteFile(file.Id)
+		}
 	}
 }
 
