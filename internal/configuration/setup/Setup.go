@@ -42,6 +42,8 @@ var isInitialSetup = true
 var username string
 var password string
 
+var serverStarted = false
+
 // RunIfFirstStart checks if config files exist and if not start a blocking webserver for setup
 func RunIfFirstStart() {
 	if !configuration.Exists() {
@@ -106,10 +108,15 @@ func startSetupWebserver() {
 		Handler:      mux,
 	}
 	fmt.Println("Please open http://" + resolveHostIp() + ":" + port + "/setup to setup Gokapi.")
+	go func() {
+		time.Sleep(time.Second)
+		serverStarted = true
+	}()
 	// always returns error. ErrServerClosed on graceful close
 	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
 		log.Fatalf("ListenAndServe(): %v", err)
 	}
+	serverStarted = false
 }
 
 func resolveHostIp() string {

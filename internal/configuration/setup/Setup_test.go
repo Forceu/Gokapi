@@ -142,8 +142,11 @@ func TestRunConfigModification(t *testing.T) {
 	testconfiguration.Create(false)
 	username = ""
 	password = ""
+	finish := make(chan bool)
 	go func() {
-		time.Sleep(2 * time.Second)
+		for !serverStarted {
+			time.Sleep(100 * time.Millisecond)
+		}
 		test.HttpPageResult(t, test.HttpTestConfig{
 			Url:             "http://localhost:53842/setup/start",
 			IsHtml:          false,
@@ -153,18 +156,22 @@ func TestRunConfigModification(t *testing.T) {
 		})
 		time.Sleep(1 * time.Second)
 		srv.Shutdown(context.Background())
+		finish <- true
 	}()
 	RunConfigModification()
 	isInitialSetup = true
 	test.IsEqualInt(t, len(username), 6)
 	test.IsEqualInt(t, len(password), 10)
+	<-finish
 }
 
 func TestIntegration(t *testing.T) {
 	testconfiguration.Delete()
 	test.FileDoesNotExist(t, "test/config.json")
 	go RunIfFirstStart()
-	time.Sleep(2 * time.Second)
+	for !serverStarted {
+		time.Sleep(100 * time.Millisecond)
+	}
 
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://localhost:53842/admin",
@@ -201,7 +208,9 @@ func TestIntegration(t *testing.T) {
 		Body:            strings.NewReader(testInputInternalAuth),
 	})
 
-	time.Sleep(1 * time.Second)
+	for serverStarted {
+		time.Sleep(100 * time.Millisecond)
+	}
 	test.FileExists(t, "test/config.json")
 	settings := configuration.Get()
 	test.IsEqualInt(t, settings.Authentication.Method, 0)
@@ -229,7 +238,9 @@ func TestIntegration(t *testing.T) {
 	test.FileExists(t, "test/cloudconfig.yml")
 
 	go RunConfigModification()
-	time.Sleep(2 * time.Second)
+	for !serverStarted {
+		time.Sleep(100 * time.Millisecond)
+	}
 
 	username = "test"
 	password = "testpw"
@@ -273,7 +284,9 @@ func TestIntegration(t *testing.T) {
 		Body:            strings.NewReader(testInputHeaderAuth),
 	})
 
-	time.Sleep(2 * time.Second)
+	for serverStarted {
+		time.Sleep(100 * time.Millisecond)
+	}
 	test.FileExists(t, "test/config.json")
 	settings = configuration.Get()
 	test.IsEqualInt(t, settings.Authentication.Method, 2)
@@ -301,7 +314,9 @@ func TestIntegration(t *testing.T) {
 	test.FileDoesNotExist(t, "test/cloudconfig.yml")
 
 	go RunConfigModification()
-	time.Sleep(2 * time.Second)
+	for !serverStarted {
+		time.Sleep(100 * time.Millisecond)
+	}
 	username = "test"
 	password = "testpw"
 
@@ -316,7 +331,9 @@ func TestIntegration(t *testing.T) {
 		Body:            strings.NewReader(testInputOauth),
 	})
 
-	time.Sleep(2 * time.Second)
+	for serverStarted {
+		time.Sleep(100 * time.Millisecond)
+	}
 
 	test.IsEqualString(t, settings.Authentication.OauthProvider, "provider")
 	test.IsEqualString(t, settings.Authentication.OAuthClientId, "id")
