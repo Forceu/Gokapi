@@ -392,9 +392,17 @@ func parseEncryptionAndDelete(result *models.Configuration, formObjects *[]jsonF
 	if encLevel == encryption.LocalEncryptionInput || encLevel == encryption.FullEncryptionInput {
 		result.Encryption.Salt = helper.GenerateRandomString(30)
 		result.Encryption.ChecksumSalt = helper.GenerateRandomString(30)
-		// TODO enter password
-		pw := "testpw"
-		result.Encryption.Checksum = encryption.PasswordChecksum(pw, result.Encryption.ChecksumSalt)
+		masterPw, err := getFormValueString(formObjects, "enc_pw")
+		if err != nil {
+			return err
+		}
+		if len(masterPw) < 6 && (!isInitialSetup && masterPw != "unc") {
+			return errors.New("password is less than 6 characters long")
+		}
+		if !isInitialSetup && masterPw != "unc" {
+			storage.DeleteAllEncrypted()
+		}
+		result.Encryption.Checksum = encryption.PasswordChecksum(masterPw, result.Encryption.ChecksumSalt)
 	}
 
 	result.Encryption.Level = encLevel

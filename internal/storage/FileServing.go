@@ -134,7 +134,7 @@ func DeleteAllEncrypted() {
 	files := datastorage.GetAllMetadata()
 	for _, file := range files {
 		if file.Encryption.IsEncrypted {
-			DeleteFile(file.Id)
+			DeleteFile(file.Id, false)
 		}
 	}
 }
@@ -365,7 +365,7 @@ func deleteSource(file models.File, dataDir string) {
 
 // DeleteFile is called when an admin requests deletion of a file
 // Returns true if file was deleted or false if ID did not exist
-func DeleteFile(keyId string) bool {
+func DeleteFile(keyId string, deleteSource bool) bool {
 	if keyId == "" {
 		return false
 	}
@@ -380,6 +380,8 @@ func DeleteFile(keyId string) bool {
 			downloadstatus.SetComplete(status.Id)
 		}
 	}
-	CleanUp(false)
+	if deleteSource {
+		CleanUp(false)
+	}
 	return true
 }

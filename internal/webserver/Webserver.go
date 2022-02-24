@@ -317,7 +317,7 @@ func deleteFile(w http.ResponseWriter, r *http.Request) {
 	if keyId == "" {
 		return
 	}
-	storage.DeleteFile(keyId)
+	storage.DeleteFile(keyId, true)
 	redirect(w, "admin")
 }
 

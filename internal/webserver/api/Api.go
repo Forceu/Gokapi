@@ -79,7 +79,7 @@ func changeFriendlyName(w http.ResponseWriter, request apiRequest) {
 }
 
 func deleteFile(w http.ResponseWriter, request apiRequest) {
-	ok := storage.DeleteFile(request.fileId)
+	ok := storage.DeleteFile(request.fileId, true)
 	if ok {
 		sendOk(w)
 	} else {

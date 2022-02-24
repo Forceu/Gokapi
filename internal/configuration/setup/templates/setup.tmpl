@@ -330,9 +330,10 @@
 
 			<!-- Step 7 Encryption -->
 			<div class="wizard-card wizard-card-overlay" data-cardname="encryption">
-				<h3>Encryption</h3>
+				<h3>Encryption Level</h3>
 
 				<div class="wizard-input-section">
+						<div class="form-group">
 					
 {{ if not .IsInitialSetup }}
 				<p>
@@ -341,13 +342,13 @@
 {{ end }}
 					
 
-					<select name="encrypt_sel" id="encrypt_sel" style="width:350px;" class="select form-control" onchange="encryptionSelectionChanged(this.selectedIndex);">
+					<select name="encrypt_sel" id="encrypt_sel" style="width:350px;" class="select form-control" onchange="encryptionSelectionChanged(this.selectedIndex, false);">
 							<option value="0" selected>Level 0 - No encryption</option>
 							<option value="1" >Level 1 - Local encryption / Key locally</option>
 							<option value="2" >Level 1 - Local encryption / Key on startup</option>
 							<option value="3" >Level 2 - Full encryption / Key locally</option>
 							<option value="4" >Level 2 - Full encryption / Key on startup</option>
-							<option value="5" disabled>Level 3 - End-To-End encryption (not implemented yet)</option>
+							<!-- <option value="5" disabled>Level 3 - End-To-End encryption (not implemented yet)</option> -->
 					</select>
 					
 					<div id="encinfo0">
@@ -432,13 +433,44 @@
 					</div>
 
 				</div>
+				</div>
+			</div>
+			
+
+			<!-- Step 8 Encryption PW -->
+			<div class="wizard-card wizard-card-overlay" data-cardname="encryptionpw">
+				<h3>Encryption Master Password</h3>
+
+				<div class="wizard-input-section">
+						<div class="form-group">
+					
+{{ if not .IsInitialSetup }}
+				<p>
+					<span style="color:red"><b>Warning:</b> Changing the encryption password will delete all existing encrypted files! Other existing files will remain unencrypted.</span>
+				</p><br>
+{{ end }}
+					
+				<p>
+					Please enter the master password for encryption. It has to be entered on the commandline every time Gokapi is started.
+				</p><br>
+
+					
+							<div class="col-sm-8">
+								<input type="password" autocomplete="new-password" class="form-control" id="enc_pw" name="enc_pw" placeholder="Password" data-min="8" required data-validate="validatePassword2" value="{{ if not .IsInitialSetup }}unc{{end}}">
+							</div><br><br>
+							<div class="col-sm-8">
+								<input type="password" autocomplete="new-password" class="form-control" id="enc_pw2" name="enc_pw2" placeholder="Password (repeat)" data-min="8" required value="{{ if not .IsInitialSetup }}unc{{end}}">
+						</div>
+		
+					</div>
+				</div>
 			</div>
 			
 			
 
 
 
-			<!-- Step 8 Finish -->
+			<!-- Step 9 Finish -->
 			
 			<div class="wizard-card">
 				<h3>Finish</h3>
@@ -499,6 +531,7 @@
 				wizard.cards["credentials-header"].disable(true);
 				wizard.cards["credentials-disabled"].disable(true);
 				wizard.cards["s3credentials"].disable(true);
+				wizard.cards["encryptionpw"].disable(true);
 				
 					
 {{ if not .IsInitialSetup }}
@@ -631,33 +664,59 @@
 				return retValue;
 			}
 
+			function validatePassword2(el) {
+				let value = el.val();
+{{ if not .IsInitialSetup }}
+				if (value == "unc")
+					return true;
+{{end}}
+				let minLenghtStatus = validateMinLength(el);
+				if (minLenghtStatus.status == false)
+					return minLenghtStatus;
+					
+				let retValue = {};
+
+				if (value != $('#enc_pw2').val()) {
+					retValue.status = false;
+					retValue.msg = "Passwords do not match";
+				} else {
+					retValue.status = true;
+				}
+
+				return retValue;
+			}
+
 			function storageSelectionChanged(index) {
 				let card = wizard.cards["s3credentials"];
 				if (index==0) 
-				  card.disable(true);
-				 else 
-				if (index==1) 
-				  card.enable();
-				}
+					card.disable(true);
+				else if (index==1) 
+					card.enable();
+			}
 
-				$(function() {
-					wizard.show();
-				});
-				
-			function encryptionSelectionChanged(index) {
+			$(function() {
+				wizard.show();
+
+{{ if .IsInitialSetup }}			
+				encryptionSelectionChanged(0, true);
+{{ else }}
+				document.getElementById("encrypt_sel").value={{.EncryptionLevel}};
+				encryptionSelectionChanged({{.EncryptionLevel}}, true);
+{{ end }}
+			});
+			
+			function encryptionSelectionChanged(index, initial) {
 				for (let i = 0; i < 6; i++) {
 				 	document.getElementById("encinfo"+i).style.display = "none";
 				}
 				document.getElementById("encinfo"+index).style.display = "block";
+				if (index==2 || index==4) 
+					wizard.cards["encryptionpw"].enable();
+				else
+					wizard.cards["encryptionpw"].disable(true);
 			}
 			
 
-{{ if .IsInitialSetup }}			
-			encryptionSelectionChanged(0);
-{{ else }}
-			document.getElementById("encrypt_sel").value={{.EncryptionLevel}};
-			encryptionSelectionChanged({{.EncryptionLevel}});
-{{ end }}
 				
 			function extUrlChanged(el) {
 				let lastChar = el.value.substr(-1); 
