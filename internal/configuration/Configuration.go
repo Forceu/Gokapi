@@ -18,7 +18,6 @@ import (
 	"github.com/forceu/gokapi/internal/helper"
 	log "github.com/forceu/gokapi/internal/logging"
 	"github.com/forceu/gokapi/internal/models"
-	"github.com/forceu/gokapi/internal/webserver/downloadstatus"
 	"io"
 	"os"
 )
@@ -58,7 +57,6 @@ func Load() {
 		serverSettings.MaxMemory = Environment.MaxMemory
 	}
 	helper.CreateDir(serverSettings.DataDir)
-	downloadstatus.Init()
 	log.Init(Environment.DataDir)
 }
 
@@ -108,6 +106,7 @@ func LoadFromSetup(config models.Configuration, cloudConfig *cloudconfig.CloudCo
 		}
 	}
 	save()
+	Load()
 }
 
 // HashPassword hashes a string with SHA256 the file salt or admin user salt

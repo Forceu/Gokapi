@@ -72,7 +72,6 @@
 			</div>
 			
 			
-			
 			<!-- Step 1 Webserver -->
 			<div class="wizard-card wizard-card-overlay" data-cardname="webserver1">
 				<h3>Webserver 1/2</h3>
@@ -329,10 +328,149 @@
 			</div>
 			
 
+			<!-- Step 7 Encryption -->
+			<div class="wizard-card wizard-card-overlay" data-cardname="encryption">
+				<h3>Encryption Level</h3>
+
+				<div class="wizard-input-section">
+						<div class="form-group">
+					
+{{ if not .IsInitialSetup }}
+				<p>
+					<span style="color:red"><b>Warning:</b> Changing the encryption level will delete all existing encrypted files! Other existing files will remain unencrypted.
+				</p><br>
+{{ end }}
+					
+
+					<select name="encrypt_sel" id="encrypt_sel" style="width:350px;" class="select form-control" onchange="encryptionSelectionChanged(this.selectedIndex, false);">
+							<option value="0" selected>Level 0 - No encryption</option>
+							<option value="1" >Level 1 - Local encryption / Key locally</option>
+							<option value="2" >Level 1 - Local encryption / Key on startup</option>
+							<option value="3" >Level 2 - Full encryption / Key locally</option>
+							<option value="4" >Level 2 - Full encryption / Key on startup</option>
+							<!-- <option value="5" disabled>Level 3 - End-To-End encryption (not implemented yet)</option> -->
+					</select>
+					
+					<div id="encinfo0">
+					<p><br><br><b>Level 0 - No encryption</b>
+					<ul>
+					  <li>All files are stored in plain text on the local or remote server</li>
+					  <li>Uses the least ressources</li>
+					  <li>Supports hotlinks to images</li>
+					  <li>Supports download progress bar</li>
+					  <li>Gokapi starts without user input</li>
+					</ul></p>
+					</div>
+					
+					<div id="encinfo1">
+					<p><br><br><b>Level 1 - Local Key</b>
+					<ul>
+					  <li>Local files are encrypted, remote files (S3) are stored in plain text</li>
+					  <li>Decryption is done server-side</li>
+					  <li>Supports hotlinks to images</li>
+					  <li>Does not support download progress bar</li>
+					  <li>Gokapi starts without user input</li>
+					  <li><b>Warning:</b> Password can be read with access to Gokapi configuration</li>
+					  <li><b>Warning:</b> Encryption has not been audited.</li>
+					</ul></p>
+					</div>
+					
+					<div id="encinfo2">
+					<p><br><br><b>Level 1 - User Input</b>
+					<ul>
+					  <li>Local files are encrypted, remote files (S3) are stored in plain text</li>
+					  <li>Decryption is done server-side</li>
+					  <li>Supports hotlinks to images</li>
+					  <li>Does not support download progress bar</li>
+					  <li>Password cannot be read with access to Gokapi configuration</li>
+					  <li><b>Warning:</b> Gokapi requires user input to start</li>
+					  <li><b>Warning:</b> Encryption has not been audited.</li>
+					</ul></p>
+					</div>
+					
+					<div id="encinfo3">
+					<p><br><br><b>Level 2 - Local Key</b>
+					<ul>
+					  <li>All files are encrypted</li>
+					  <li>Decryption for local files is done server-side</li>
+					  <li>Decryption for remote files (S3) is done client-side, requires 2MB file to load on first visit</li>
+					  <li>Only supports hotlinks to images saved locally</li>
+					  <li>Does not support download progress bar</li>
+					  <li>Gokapi starts without user input</li>
+					  <li><b>Important:</b> For remote storage, CORS settings for the bucket need to allow access from the Gokapi URL</li>
+					  <li><b>Warning:</b> Password can be read with access to Gokapi configuration</li>
+					  <li><b>Warning:</b> Encryption has not been audited.</li>
+					</ul></p>
+					</div>
+					
+					<div id="encinfo4">
+					<p><br><br><b>Level 2 - User Input</b>
+					<ul>
+					  <li>All files are encrypted</li>
+					  <li>Decryption for local files is done server-side</li>
+					  <li>Decryption for remote files (S3) is done client-side, requires 2MB file to load on first visit</li>
+					  <li>Only supports hotlinks to images saved locally</li>
+					  <li>Does not support download progress bar</li>
+					  <li>Password cannot be read with access to Gokapi configuration</li>
+					  <li><b>Important:</b> For remote storage, CORS settings for the bucket need to allow access from the Gokapi URL</li>
+					  <li><b>Warning:</b> Gokapi requires user input to start</li>
+					  <li><b>Warning:</b> Encryption has not been audited.</li>
+					</ul></p>
+					</div>
+					
+					
+					<div id="encinfo5">
+					<p><br><br><b>Level 3 - NOT IMPLEMENTED YET</b>
+					<ul>
+					  <li>All files are encrypted end-to-end</li>
+					  <li>Encryption and decryption is done client-side and requires 2MB file to load on first visit</li>
+					  <li>Does not support hotlinks to images</li>
+					  <li>Does not support download progress bar</li>
+					  <li>Gokapi starts without user input</li>
+					  <li>Password cannot be read with access to Gokapi configuration</li>
+					  <li><b>Warning:</b> Encryption has not been audited.</li>
+					</ul></p>
+					</div>
+
+				</div>
+				</div>
+			</div>
+			
+
+			<!-- Step 8 Encryption PW -->
+			<div class="wizard-card wizard-card-overlay" data-cardname="encryptionpw">
+				<h3>Encryption Master Password</h3>
+
+				<div class="wizard-input-section">
+						<div class="form-group">
+					
+{{ if not .IsInitialSetup }}
+				<p>
+					<span style="color:red"><b>Warning:</b> Changing the encryption password will delete all existing encrypted files! Other existing files will remain unencrypted.</span>
+				</p><br>
+{{ end }}
+					
+				<p>
+					Please enter the master password for encryption. It has to be entered on the commandline every time Gokapi is started.
+				</p><br>
+
+					
+							<div class="col-sm-8">
+								<input type="password" autocomplete="new-password" class="form-control" id="enc_pw" name="enc_pw" placeholder="Password" data-min="8" required data-validate="validatePassword2" value="{{ if not .IsInitialSetup }}unc{{end}}">
+							</div><br><br>
+							<div class="col-sm-8">
+								<input type="password" autocomplete="new-password" class="form-control" id="enc_pw2" name="enc_pw2" placeholder="Password (repeat)" data-min="8" required value="{{ if not .IsInitialSetup }}unc{{end}}">
+						</div>
+		
+					</div>
+				</div>
+			</div>
+			
+			
 
 
 
-			<!-- Step 7 Finish -->
+			<!-- Step 9 Finish -->
 			
 			<div class="wizard-card">
 				<h3>Finish</h3>
@@ -393,6 +531,7 @@
 				wizard.cards["credentials-header"].disable(true);
 				wizard.cards["credentials-disabled"].disable(true);
 				wizard.cards["s3credentials"].disable(true);
+				wizard.cards["encryptionpw"].disable(true);
 				
 					
 {{ if not .IsInitialSetup }}
@@ -449,9 +588,11 @@
     						contentType: "application/json; charset=utf-8",
 						dataType: "json"
 					    }).done(function(response) {
-						wizard.submitSuccess();
-						wizard.hideButtons();
-						wizard.updateProgressBar(0);
+						setTimeout(() => {
+							wizard.submitSuccess();
+							wizard.hideButtons();
+							wizard.updateProgressBar(0);
+						}, 1500);
 					    }).fail(function(xhr, textStatus, errorThrown) {
 					     $('#errormessage').text(errorThrown);
 					     $('#errormessage_response').text(xhr.responseText);
@@ -525,18 +666,59 @@
 				return retValue;
 			}
 
+			function validatePassword2(el) {
+				let value = el.val();
+{{ if not .IsInitialSetup }}
+				if (value == "unc")
+					return true;
+{{end}}
+				let minLenghtStatus = validateMinLength(el);
+				if (minLenghtStatus.status == false)
+					return minLenghtStatus;
+					
+				let retValue = {};
+
+				if (value != $('#enc_pw2').val()) {
+					retValue.status = false;
+					retValue.msg = "Passwords do not match";
+				} else {
+					retValue.status = true;
+				}
+
+				return retValue;
+			}
+
 			function storageSelectionChanged(index) {
 				let card = wizard.cards["s3credentials"];
 				if (index==0) 
-				  card.disable(true);
-				 else 
-				if (index==1) 
-				  card.enable();
-				}
+					card.disable(true);
+				else if (index==1) 
+					card.enable();
+			}
 
-				$(function() {
-					wizard.show();
-				});
+			$(function() {
+				wizard.show();
+
+{{ if .IsInitialSetup }}			
+				encryptionSelectionChanged(0, true);
+{{ else }}
+				document.getElementById("encrypt_sel").value={{.EncryptionLevel}};
+				encryptionSelectionChanged({{.EncryptionLevel}}, true);
+{{ end }}
+			});
+			
+			function encryptionSelectionChanged(index, initial) {
+				for (let i = 0; i < 6; i++) {
+				 	document.getElementById("encinfo"+i).style.display = "none";
+				}
+				document.getElementById("encinfo"+index).style.display = "block";
+				if (index==2 || index==4) 
+					wizard.cards["encryptionpw"].enable();
+				else
+					wizard.cards["encryptionpw"].disable(true);
+			}
+			
+
 				
 			function extUrlChanged(el) {
 				let lastChar = el.value.substr(-1); 
@@ -591,6 +773,7 @@
 				}
 
 			}
+
 			
 		</script>
 	</body>

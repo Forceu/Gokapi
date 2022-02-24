@@ -27,7 +27,7 @@ type MockT interface {
 func IsEqualString(t MockT, got, want string) {
 	t.Helper()
 	if got != want {
-		t.Errorf("Assertion failed, got: %s, want: %s.", got, want)
+		t.Errorf("Assertion failed, GOT: %s, WANT: %s.", got, want)
 	}
 }
 

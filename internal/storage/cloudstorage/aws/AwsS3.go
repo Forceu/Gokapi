@@ -85,7 +85,7 @@ func Upload(input io.Reader, file models.File) (string, error) {
 	return result.Location, nil
 }
 
-// Download downloads a file from AWS, only used for testing
+// Download downloads a file from AWS, used for encrypted files and testing
 func Download(writer io.WriterAt, file models.File) (int64, error) {
 	sess := createSession()
 	downloader := s3manager.NewDownloader(sess)

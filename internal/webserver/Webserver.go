@@ -6,9 +6,12 @@ Handling of webserver and requests / uploads
 
 import (
 	"embed"
+	"encoding/base64"
 	"fmt"
+	"github.com/NYTimes/gziphandler"
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/datastorage"
+	"github.com/forceu/gokapi/internal/encryption"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
@@ -40,6 +43,11 @@ var staticFolderEmbedded embed.FS
 // This contains templates that Gokapi uses for creating the HTML output
 //go:embed web/templates
 var templateFolderEmbedded embed.FS
+
+// wasmFile is the compiled binary of the wasm downloader
+// Will be generated with go generate ./...
+//go:embed web/main.wasm
+var wasmFile embed.FS
 
 const timeOutWebserver = 12 * time.Hour
 
@@ -81,6 +89,7 @@ func Start() {
 	http.HandleFunc("/logout", doLogout)
 	http.HandleFunc("/upload", requireLogin(uploadFile, true))
 	http.HandleFunc("/error-auth", showErrorAuth)
+	http.Handle("/main.wasm", gziphandler.GzipHandler(http.HandlerFunc(serveWasm)))
 	if configuration.Get().Authentication.Method == authentication.OAuth2 {
 		oauth.Init(configuration.Get().ServerUrl, configuration.Get().Authentication)
 		http.HandleFunc("/oauth-login", oauth.HandlerLogin)
@@ -129,6 +138,15 @@ func initTemplates(templateFolderEmbedded embed.FS) {
 // Sends a redirect HTTP output to the client. Variable url is used to redirect to ./url
 func redirect(w http.ResponseWriter, url string) {
 	_, _ = io.WriteString(w, "<html><head><meta http-equiv=\"Refresh\" content=\"0; URL=./"+url+"\"></head></html>")
+}
+
+// Handling of /main.wasm
+func serveWasm(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Cache-Control", "public, max-age=100800") // 2 days
+	w.Header().Set("content-type", "application/wasm")
+	file, err := wasmFile.ReadFile("web/main.wasm")
+	helper.Check(err)
+	w.Write(file)
 }
 
 // Handling of /logout
@@ -247,6 +265,13 @@ func showDownload(w http.ResponseWriter, r *http.Request) {
 		IsFailedLogin: false,
 	}
 
+	if storage.RequiresClientDecryption(file) {
+		view.ClientSideDecryption = true
+		cipher, err := encryption.GetCipherFromFile(file.Encryption)
+		helper.Check(err)
+		view.Cipher = base64.StdEncoding.EncodeToString(cipher)
+	}
+
 	if file.PasswordHash != "" {
 		r.ParseForm()
 		enteredPassword := r.Form.Get("password")
@@ -292,7 +317,7 @@ func deleteFile(w http.ResponseWriter, r *http.Request) {
 	if keyId == "" {
 		return
 	}
-	storage.DeleteFile(keyId)
+	storage.DeleteFile(keyId, true)
 	redirect(w, "admin")
 }
 
@@ -317,11 +342,13 @@ func showAdminMenu(w http.ResponseWriter, r *http.Request) {
 
 // DownloadView contains parameters for the download template
 type DownloadView struct {
-	Name          string
-	Size          string
-	Id            string
-	IsFailedLogin bool
-	IsAdminView   bool
+	Name                 string
+	Size                 string
+	Id                   string
+	IsFailedLogin        bool
+	IsAdminView          bool
+	ClientSideDecryption bool
+	Cipher               string
 }
 
 // UploadView contains parameters for the admin menu template

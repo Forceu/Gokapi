@@ -11,6 +11,7 @@ import (
 	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
 	"github.com/forceu/gokapi/internal/configuration/datastorage"
 	"github.com/forceu/gokapi/internal/configuration/setup"
+	"github.com/forceu/gokapi/internal/encryption"
 	"github.com/forceu/gokapi/internal/environment"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/logging"
@@ -28,9 +29,11 @@ import (
 
 // Version is the current version in readable form.
 // The go generate call below needs to be modified as well
-const Version = "1.5.0"
+const Version = "1.5.0-beta1"
 
-//go:generate sh "../../build/setVersionTemplate.sh" "1.5.0"
+//go:generate sh "../../build/setVersionTemplate.sh" "1.5.0-beta1"
+//go:generate sh -c "cp \"$(go env GOROOT)/misc/wasm/wasm_exec.js\" ../../internal/webserver/web/static/js/ && echo Copied wasm_exec.js"
+//go:generate sh -c "GOOS=js GOARCH=wasm go build -o ../../internal/webserver/web/main.wasm github.com/forceu/gokapi/cmd/wasmdownloader && echo Compiled WASM module"
 
 // Main routine that is called on startup
 func main() {
@@ -41,8 +44,9 @@ func main() {
 	fmt.Println("Gokapi v" + Version + " starting")
 	setup.RunIfFirstStart()
 	configuration.Load()
-	authentication.Init(configuration.Get().Authentication)
 	reconfigureServer(passedFlags)
+	encryption.Init(*configuration.Get())
+	authentication.Init(configuration.Get().Authentication)
 	createSsl(passedFlags)
 
 	cConfig, ok := cloudconfig.Load()

@@ -47,31 +47,32 @@
 				</thead>
 				<tbody id="downloadtable">
 {{ range .Items }}
-{{ if  or (gt .ExpireAt $.TimeNow) (.UnlimitedTime) }}
-{{ if or (gt .DownloadsRemaining 0) (.UnlimitedDownloads) }}
+	{{ if  or (gt .ExpireAt $.TimeNow) (.UnlimitedTime) }}
+		{{ if or (gt .DownloadsRemaining 0) (.UnlimitedDownloads) }}
 					<tr>
 						<td scope="col">{{ .Name }}</td>
 						<td scope="col">{{ .Size }}</td>
-{{ if .UnlimitedDownloads }}
+			{{ if .UnlimitedDownloads }}
 						<td scope="col">Unlimited</td>
-{{ else }}
+			{{ else }}
 						<td scope="col">{{ .DownloadsRemaining }}</td>
-{{ end }}
-{{ if .UnlimitedTime }}
+			{{ end }}
+			{{ if .UnlimitedTime }}
 						<td scope="col">Unlimited</td>
-{{ else }}
+			{{ else }}
 						<td scope="col">{{ .ExpireAtString }}</td>
-{{ end }}
+			{{ end }}
 						<td scope="col"><a target="_blank" href="{{ $.Url }}{{ .Id }}">{{ $.Url }}{{ .Id }}</a>{{ if ne .PasswordHash "" }} &#128274;{{ end }}</td>
 						<td scope="col"><button type="button" data-clipboard-text="{{ $.Url }}{{ .Id }}" class="copyurl btn btn-outline-light btn-sm">Copy URL</button> 
-{{ if ne .HotlinkId "" }}
+			{{ if ne .HotlinkId "" }}
  						<button type="button" data-clipboard-text="{{ $.HotlinkUrl }}{{ .HotlinkId }}" class="copyurl btn btn-outline-light btn-sm">Copy Hotlink</button>
-{{ else }}
+			{{ else }}
  						<button type="button"class="copyurl btn btn-outline-light btn-sm disabled">Copy Hotlink</button>
-{{ end }}					 <button type="button" class="btn btn-outline-light btn-sm" onclick="window.location='./delete?id={{ .Id }}'">Delete</button></td>
+			{{ end }}
+						<button type="button" class="btn btn-outline-light btn-sm" onclick="window.location='./delete?id={{ .Id }}'">Delete</button></td>
 					</tr>
-{{ end }}
-{{ end }}
+		{{ end }}
+	{{ end }}
 {{ end }}
 				</tbody>
 			</table>

@@ -17,6 +17,15 @@ type Configuration struct {
 	MaxMemory      int                  `json:"MaxMemory"`
 	UseSsl         bool                 `json:"UseSsl"`
 	MaxFileSizeMB  int                  `json:"MaxFileSizeMB"`
+	Encryption     Encryption           `json:"Encryption"`
+}
+
+type Encryption struct {
+	Level        int
+	Cipher       []byte
+	Salt         string
+	Checksum     string
+	ChecksumSalt string
 }
 
 type LastUploadValues struct {

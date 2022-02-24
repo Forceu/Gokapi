@@ -142,8 +142,11 @@ func TestRunConfigModification(t *testing.T) {
 	testconfiguration.Create(false)
 	username = ""
 	password = ""
+	finish := make(chan bool)
 	go func() {
-		time.Sleep(2 * time.Second)
+		for !serverStarted {
+			time.Sleep(100 * time.Millisecond)
+		}
 		test.HttpPageResult(t, test.HttpTestConfig{
 			Url:             "http://localhost:53842/setup/start",
 			IsHtml:          false,
@@ -153,18 +156,22 @@ func TestRunConfigModification(t *testing.T) {
 		})
 		time.Sleep(1 * time.Second)
 		srv.Shutdown(context.Background())
+		finish <- true
 	}()
 	RunConfigModification()
 	isInitialSetup = true
 	test.IsEqualInt(t, len(username), 6)
 	test.IsEqualInt(t, len(password), 10)
+	<-finish
 }
 
 func TestIntegration(t *testing.T) {
 	testconfiguration.Delete()
 	test.FileDoesNotExist(t, "test/config.json")
 	go RunIfFirstStart()
-	time.Sleep(2 * time.Second)
+	for !serverStarted {
+		time.Sleep(100 * time.Millisecond)
+	}
 
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://localhost:53842/admin",
@@ -201,7 +208,9 @@ func TestIntegration(t *testing.T) {
 		Body:            strings.NewReader(testInputInternalAuth),
 	})
 
-	time.Sleep(1 * time.Second)
+	for serverStarted {
+		time.Sleep(100 * time.Millisecond)
+	}
 	test.FileExists(t, "test/config.json")
 	settings := configuration.Get()
 	test.IsEqualInt(t, settings.Authentication.Method, 0)
@@ -229,7 +238,9 @@ func TestIntegration(t *testing.T) {
 	test.FileExists(t, "test/cloudconfig.yml")
 
 	go RunConfigModification()
-	time.Sleep(2 * time.Second)
+	for !serverStarted {
+		time.Sleep(100 * time.Millisecond)
+	}
 
 	username = "test"
 	password = "testpw"
@@ -273,7 +284,9 @@ func TestIntegration(t *testing.T) {
 		Body:            strings.NewReader(testInputHeaderAuth),
 	})
 
-	time.Sleep(2 * time.Second)
+	for serverStarted {
+		time.Sleep(100 * time.Millisecond)
+	}
 	test.FileExists(t, "test/config.json")
 	settings = configuration.Get()
 	test.IsEqualInt(t, settings.Authentication.Method, 2)
@@ -301,7 +314,9 @@ func TestIntegration(t *testing.T) {
 	test.FileDoesNotExist(t, "test/cloudconfig.yml")
 
 	go RunConfigModification()
-	time.Sleep(2 * time.Second)
+	for !serverStarted {
+		time.Sleep(100 * time.Millisecond)
+	}
 	username = "test"
 	password = "testpw"
 
@@ -316,7 +331,9 @@ func TestIntegration(t *testing.T) {
 		Body:            strings.NewReader(testInputOauth),
 	})
 
-	time.Sleep(2 * time.Second)
+	for serverStarted {
+		time.Sleep(100 * time.Millisecond)
+	}
 
 	test.IsEqualString(t, settings.Authentication.OauthProvider, "provider")
 	test.IsEqualString(t, settings.Authentication.OAuthClientId, "id")
@@ -329,6 +346,6 @@ func TestIntegration(t *testing.T) {
 	}
 }
 
-var testInputInternalAuth = "[{\"name\":\"authentication_sel\",\"value\":\"0\"},{\"name\":\"auth_username\",\"value\":\"admin\"},{\"name\":\"auth_pw\",\"value\":\"adminadmin\"},{\"name\":\"auth_pw2\",\"value\":\"adminadmin\"},{\"name\":\"oauth_provider\",\"value\":\"\"},{\"name\":\"oauth_id\",\"value\":\"\"},{\"name\":\"oauth_secret\",\"value\":\"\"},{\"name\":\"oauth_header_users\",\"value\":\"\"},{\"name\":\"auth_headerkey\",\"value\":\"\"},{\"name\":\"auth_header_users\",\"value\":\"\"},{\"name\":\"storage_sel\",\"value\":\"cloud\"},{\"name\":\"s3_bucket\",\"value\":\"testbucket\"},{\"name\":\"s3_region\",\"value\":\"testregion\"},{\"name\":\"s3_api\",\"value\":\"testapi\"},{\"name\":\"s3_secret\",\"value\":\"testsecret\"},{\"name\":\"s3_endpoint\",\"value\":\"testendpoint\"},{\"name\":\"localhost_sel\",\"value\":\"1\"},{\"name\":\"ssl_sel\",\"value\":\"0\"},{\"name\":\"port\",\"value\":\"53842\"},{\"name\":\"url\",\"value\":\"http://127.0.0.1:53842/\"},{\"name\":\"url_redirection\",\"value\":\"https://github.com/Forceu/Gokapi/\"}]\n"
-var testInputHeaderAuth = "[{\"name\":\"authentication_sel\",\"value\":\"2\"},{\"name\":\"auth_username\",\"value\":\"\"},{\"name\":\"auth_pw\",\"value\":\"\"},{\"name\":\"auth_pw2\",\"value\":\"\"},{\"name\":\"oauth_provider\",\"value\":\"\"},{\"name\":\"oauth_id\",\"value\":\"\"},{\"name\":\"oauth_secret\",\"value\":\"\"},{\"name\":\"oauth_header_users\",\"value\":\"\"},{\"name\":\"auth_headerkey\",\"value\":\"testkey\"},{\"name\":\"auth_header_users\",\"value\":\"test1 ;test2\"},{\"name\":\"storage_sel\",\"value\":\"local\"},{\"name\":\"s3_bucket\",\"value\":\"\"},{\"name\":\"\",\"value\":\"\"},{\"name\":\"s3_api\",\"value\":\"\"},{\"name\":\"s3_secret\",\"value\":\"\"},{\"name\":\"s3_endpoint\",\"value\":\"\"},{\"name\":\"localhost_sel\",\"value\":\"0\"},{\"name\":\"ssl_sel\",\"value\":\"1\"},{\"name\":\"port\",\"value\":\"53842\"},{\"name\":\"url\",\"value\":\"http://127.0.0.1:53842/\"},{\"name\":\"url_redirection\",\"value\":\"https://test.com\"}]\n"
-var testInputOauth = "[{\"name\":\"authentication_sel\",\"value\":\"1\"},{\"name\":\"auth_username\",\"value\":\"\"},{\"name\":\"auth_pw\",\"value\":\"\"},{\"name\":\"auth_pw2\",\"value\":\"\"},{\"name\":\"oauth_provider\",\"value\":\"provider\"},{\"name\":\"oauth_id\",\"value\":\"id\"},{\"name\":\"oauth_secret\",\"value\":\"secret\"},{\"name\":\"oauth_header_users\",\"value\":\"oatest1; oatest2\"},{\"name\":\"auth_headerkey\",\"value\":\"testkey\"},{\"name\":\"auth_header_users\",\"value\":\"\"},{\"name\":\"storage_sel\",\"value\":\"local\"},{\"name\":\"s3_bucket\",\"value\":\"\"},{\"name\":\"\",\"value\":\"\"},{\"name\":\"s3_api\",\"value\":\"\"},{\"name\":\"s3_secret\",\"value\":\"\"},{\"name\":\"s3_endpoint\",\"value\":\"\"},{\"name\":\"localhost_sel\",\"value\":\"0\"},{\"name\":\"ssl_sel\",\"value\":\"1\"},{\"name\":\"port\",\"value\":\"53842\"},{\"name\":\"url\",\"value\":\"http://127.0.0.1:53842/\"},{\"name\":\"url_redirection\",\"value\":\"https://test.com\"}]\n"
+var testInputInternalAuth = "[{\"name\":\"authentication_sel\",\"value\":\"0\"},{\"name\":\"auth_username\",\"value\":\"admin\"},{\"name\":\"auth_pw\",\"value\":\"adminadmin\"},{\"name\":\"auth_pw2\",\"value\":\"adminadmin\"},{\"name\":\"oauth_provider\",\"value\":\"\"},{\"name\":\"oauth_id\",\"value\":\"\"},{\"name\":\"oauth_secret\",\"value\":\"\"},{\"name\":\"oauth_header_users\",\"value\":\"\"},{\"name\":\"auth_headerkey\",\"value\":\"\"},{\"name\":\"auth_header_users\",\"value\":\"\"},{\"name\":\"storage_sel\",\"value\":\"cloud\"},{\"name\":\"s3_bucket\",\"value\":\"testbucket\"},{\"name\":\"s3_region\",\"value\":\"testregion\"},{\"name\":\"s3_api\",\"value\":\"testapi\"},{\"name\":\"s3_secret\",\"value\":\"testsecret\"},{\"name\":\"s3_endpoint\",\"value\":\"testendpoint\"},{\"name\":\"localhost_sel\",\"value\":\"1\"},{\"name\":\"ssl_sel\",\"value\":\"0\"},{\"name\":\"port\",\"value\":\"53842\"},{\"name\":\"url\",\"value\":\"http://127.0.0.1:53842/\"},{\"name\":\"url_redirection\",\"value\":\"https://github.com/Forceu/Gokapi/\"},{\"name\":\"encrypt_sel\",\"value\":\"0\"}]\n"
+var testInputHeaderAuth = "[{\"name\":\"authentication_sel\",\"value\":\"2\"},{\"name\":\"auth_username\",\"value\":\"\"},{\"name\":\"auth_pw\",\"value\":\"\"},{\"name\":\"auth_pw2\",\"value\":\"\"},{\"name\":\"oauth_provider\",\"value\":\"\"},{\"name\":\"oauth_id\",\"value\":\"\"},{\"name\":\"oauth_secret\",\"value\":\"\"},{\"name\":\"oauth_header_users\",\"value\":\"\"},{\"name\":\"auth_headerkey\",\"value\":\"testkey\"},{\"name\":\"auth_header_users\",\"value\":\"test1 ;test2\"},{\"name\":\"storage_sel\",\"value\":\"local\"},{\"name\":\"s3_bucket\",\"value\":\"\"},{\"name\":\"\",\"value\":\"\"},{\"name\":\"s3_api\",\"value\":\"\"},{\"name\":\"s3_secret\",\"value\":\"\"},{\"name\":\"s3_endpoint\",\"value\":\"\"},{\"name\":\"localhost_sel\",\"value\":\"0\"},{\"name\":\"ssl_sel\",\"value\":\"1\"},{\"name\":\"port\",\"value\":\"53842\"},{\"name\":\"url\",\"value\":\"http://127.0.0.1:53842/\"},{\"name\":\"url_redirection\",\"value\":\"https://test.com\"},{\"name\":\"encrypt_sel\",\"value\":\"0\"}]\n"
+var testInputOauth = "[{\"name\":\"authentication_sel\",\"value\":\"1\"},{\"name\":\"auth_username\",\"value\":\"\"},{\"name\":\"auth_pw\",\"value\":\"\"},{\"name\":\"auth_pw2\",\"value\":\"\"},{\"name\":\"oauth_provider\",\"value\":\"provider\"},{\"name\":\"oauth_id\",\"value\":\"id\"},{\"name\":\"oauth_secret\",\"value\":\"secret\"},{\"name\":\"oauth_header_users\",\"value\":\"oatest1; oatest2\"},{\"name\":\"auth_headerkey\",\"value\":\"testkey\"},{\"name\":\"auth_header_users\",\"value\":\"\"},{\"name\":\"storage_sel\",\"value\":\"local\"},{\"name\":\"s3_bucket\",\"value\":\"\"},{\"name\":\"\",\"value\":\"\"},{\"name\":\"s3_api\",\"value\":\"\"},{\"name\":\"s3_secret\",\"value\":\"\"},{\"name\":\"s3_endpoint\",\"value\":\"\"},{\"name\":\"localhost_sel\",\"value\":\"0\"},{\"name\":\"ssl_sel\",\"value\":\"1\"},{\"name\":\"port\",\"value\":\"53842\"},{\"name\":\"url\",\"value\":\"http://127.0.0.1:53842/\"},{\"name\":\"url_redirection\",\"value\":\"https://test.com\"},{\"name\":\"encrypt_sel\",\"value\":\"0\"}]\n"

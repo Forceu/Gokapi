@@ -9,9 +9,11 @@ import (
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
 	"github.com/forceu/gokapi/internal/configuration/configupgrade"
+	"github.com/forceu/gokapi/internal/encryption"
 	"github.com/forceu/gokapi/internal/environment"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/storage"
 	"github.com/forceu/gokapi/internal/storage/cloudstorage/aws"
 	"github.com/forceu/gokapi/internal/webserver/authentication"
 	"html/template"
@@ -39,6 +41,8 @@ var srv http.Server
 var isInitialSetup = true
 var username string
 var password string
+
+var serverStarted = false
 
 // RunIfFirstStart checks if config files exist and if not start a blocking webserver for setup
 func RunIfFirstStart() {
@@ -104,10 +108,15 @@ func startSetupWebserver() {
 		Handler:      mux,
 	}
 	fmt.Println("Please open http://" + resolveHostIp() + ":" + port + "/setup to setup Gokapi.")
+	go func() {
+		time.Sleep(time.Second)
+		serverStarted = true
+	}()
 	// always returns error. ErrServerClosed on graceful close
 	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
 		log.Fatalf("ListenAndServe(): %v", err)
 	}
+	serverStarted = false
 }
 
 func resolveHostIp() string {
@@ -171,15 +180,19 @@ func toConfiguration(formObjects *[]jsonFormObject) (models.Configuration, *clou
 	parsedEnv := environment.New()
 
 	result := models.Configuration{
-		MaxFileSizeMB: parsedEnv.MaxFileSize,
-		LengthId:      parsedEnv.LengthId,
-		MaxMemory:     parsedEnv.MaxMemory,
-		DataDir:       parsedEnv.DataDir,
-		ConfigVersion: configupgrade.CurrentConfigVersion,
-		Authentication: models.AuthenticationConfig{
-			SaltAdmin: helper.GenerateRandomString(30),
-			SaltFiles: helper.GenerateRandomString(30),
-		},
+		MaxFileSizeMB:  parsedEnv.MaxFileSize,
+		LengthId:       parsedEnv.LengthId,
+		MaxMemory:      parsedEnv.MaxMemory,
+		DataDir:        parsedEnv.DataDir,
+		ConfigVersion:  configupgrade.CurrentConfigVersion,
+		Authentication: models.AuthenticationConfig{},
+	}
+
+	if isInitialSetup {
+		result.Authentication.SaltFiles = helper.GenerateRandomString(30)
+		result.Authentication.SaltAdmin = helper.GenerateRandomString(30)
+	} else {
+		result.Authentication = configuration.Get().Authentication
 	}
 
 	err = parseBasicAuthSettings(&result, formObjects)
@@ -198,6 +211,11 @@ func toConfiguration(formObjects *[]jsonFormObject) (models.Configuration, *clou
 	}
 
 	err = parseServerSettings(&result, formObjects)
+	if err != nil {
+		return models.Configuration{}, nil, err
+	}
+
+	err = parseEncryptionAndDelete(&result, formObjects)
 	if err != nil {
 		return models.Configuration{}, nil, err
 	}
@@ -225,6 +243,7 @@ func parseBasicAuthSettings(result *models.Configuration, formObjects *[]jsonFor
 	// Password is not displayed in reconf setup, but a placeholder "unc". If this is submitted as a password, the
 	// old password is kept
 	if isInitialSetup || pw != "unc" {
+		result.Authentication.SaltAdmin = helper.GenerateRandomString(30)
 		result.Authentication.Password = configuration.HashPasswordCustomSalt(pw, result.Authentication.SaltAdmin)
 	}
 	return nil
@@ -346,6 +365,57 @@ func getCloudConfig(formObjects *[]jsonFormObject) (*cloudconfig.CloudConfig, er
 	return &awsConfig, nil
 }
 
+func parseEncryptionAndDelete(result *models.Configuration, formObjects *[]jsonFormObject) error {
+	encLevelStr, err := getFormValueString(formObjects, "encrypt_sel")
+	if err != nil {
+		return err
+	}
+	encLevel, err := strconv.Atoi(encLevelStr)
+	if err != nil {
+		return err
+	}
+	if encLevel < encryption.NoEncryption || encLevel > encryption.EndToEndEncryption {
+		return errors.New("invalid encryption level selected")
+	}
+	if encLevel == encryption.EndToEndEncryption {
+		return errors.New("end to end encryption not implemented yet") // TODO
+	}
+	if !isInitialSetup {
+		previousLevel := configuration.Get().Encryption.Level
+		if previousLevel != encLevel {
+			storage.DeleteAllEncrypted()
+		}
+	}
+
+	result.Encryption = models.Encryption{}
+	if encLevel == encryption.LocalEncryptionStored || encLevel == encryption.FullEncryptionStored {
+		cipher, err := encryption.GetRandomCipher()
+		if err != nil {
+			return err
+		}
+		result.Encryption.Cipher = cipher
+	}
+
+	if encLevel == encryption.LocalEncryptionInput || encLevel == encryption.FullEncryptionInput {
+		result.Encryption.Salt = helper.GenerateRandomString(30)
+		result.Encryption.ChecksumSalt = helper.GenerateRandomString(30)
+		masterPw, err := getFormValueString(formObjects, "enc_pw")
+		if err != nil {
+			return err
+		}
+		if len(masterPw) < 6 && (!isInitialSetup && masterPw != "unc") {
+			return errors.New("password is less than 6 characters long")
+		}
+		if !isInitialSetup && masterPw != "unc" {
+			storage.DeleteAllEncrypted()
+		}
+		result.Encryption.Checksum = encryption.PasswordChecksum(masterPw, result.Encryption.ChecksumSalt)
+	}
+
+	result.Encryption.Level = encLevel
+	return nil
+}
+
 func inputToJsonForm(r *http.Request) ([]jsonFormObject, error) {
 	reader, _ := io.ReadAll(r.Body)
 	var setupResult []jsonFormObject
@@ -369,15 +439,16 @@ func splitAndTrim(input string) []string {
 }
 
 type setupView struct {
-	IsInitialSetup bool
-	LocalhostOnly  bool
-	HasAwsFeature  bool
-	Port           int
-	OAuthUsers     string
-	HeaderUsers    string
-	Auth           models.AuthenticationConfig
-	Settings       models.Configuration
-	CloudSettings  cloudconfig.CloudConfig
+	IsInitialSetup  bool
+	LocalhostOnly   bool
+	HasAwsFeature   bool
+	Port            int
+	OAuthUsers      string
+	HeaderUsers     string
+	Auth            models.AuthenticationConfig
+	Settings        models.Configuration
+	CloudSettings   cloudconfig.CloudConfig
+	EncryptionLevel int
 }
 
 func (v *setupView) loadFromConfig() {
@@ -393,6 +464,7 @@ func (v *setupView) loadFromConfig() {
 	v.CloudSettings, _ = cloudconfig.Load()
 	v.OAuthUsers = strings.Join(settings.Authentication.OauthUsers, ";")
 	v.HeaderUsers = strings.Join(settings.Authentication.HeaderUsers, ";")
+	v.EncryptionLevel = settings.Encryption.Level
 
 	if strings.Contains(settings.Port, "localhost") || strings.Contains(settings.Port, "127.0.0.1") {
 		v.LocalhostOnly = true
@@ -437,7 +509,7 @@ func handleResult(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(200)
 	w.Write([]byte("{ \"result\": \"OK\"}"))
 	go func() {
-		time.Sleep(1 * time.Second)
+		time.Sleep(1500 * time.Millisecond)
 		srv.Shutdown(context.Background())
 	}()
 }

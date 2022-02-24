@@ -24,7 +24,6 @@ func TestMain(m *testing.M) {
 		ExpireAtString:     "expire",
 		DownloadsRemaining: 1,
 	}
-	Init()
 	exitVal := m.Run()
 	os.Exit(exitVal)
 }

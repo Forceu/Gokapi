@@ -256,7 +256,7 @@ func TestServeFile(t *testing.T) {
 
 func TestCleanUp(t *testing.T) {
 	files := datastorage.GetAllMetadata()
-	downloadstatus.Init()
+	downloadstatus.DeleteAll()
 	downloadstatus.SetDownload(files["cleanuptest123456789"])
 
 	test.IsEqualString(t, files["cleanuptest123456789"].Name, "cleanup")
@@ -327,7 +327,7 @@ func TestCleanUp(t *testing.T) {
 	test.IsEqualString(t, files["cleanuptest123456789"].Name, "cleanup")
 	test.FileExists(t, "test/data/2341354656543213246465465465432456898794")
 
-	downloadstatus.Init()
+	downloadstatus.DeleteAll()
 	CleanUp(false)
 	files = datastorage.GetAllMetadata()
 	test.IsEqualString(t, files["cleanuptest123456789"].Name, "")
@@ -350,14 +350,14 @@ func TestDeleteFile(t *testing.T) {
 	files := datastorage.GetAllMetadata()
 	test.IsEqualString(t, files["n1tSTAGj8zan9KaT4u6p"].Name, "picture.jpg")
 	test.FileExists(t, "test/data/a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd0")
-	result := DeleteFile("n1tSTAGj8zan9KaT4u6p")
+	result := DeleteFile("n1tSTAGj8zan9KaT4u6p", true)
 	test.IsEqualBool(t, result, true)
 	files = datastorage.GetAllMetadata()
 	test.IsEqualString(t, files["n1tSTAGj8zan9KaT4u6p"].Name, "")
 	test.FileDoesNotExist(t, "test/data/a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd0")
-	result = DeleteFile("invalid")
+	result = DeleteFile("invalid", true)
 	test.IsEqualBool(t, result, false)
-	result = DeleteFile("")
+	result = DeleteFile("", true)
 	test.IsEqualBool(t, result, false)
 
 	if aws.IsIncludedInBuild {
@@ -378,7 +378,7 @@ func TestDeleteFile(t *testing.T) {
 		result, err := aws.FileExists(files["awsTest1234567890123"])
 		test.IsEqualBool(t, result, true)
 		test.IsNil(t, err)
-		DeleteFile("awsTest1234567890123")
+		DeleteFile("awsTest1234567890123", true)
 		result, err = aws.FileExists(awsFile)
 		test.IsEqualBool(t, result, false)
 		test.IsNil(t, err)

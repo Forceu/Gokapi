@@ -6,12 +6,7 @@ import (
 	"time"
 )
 
-var status map[string]models.DownloadStatus
-
-// Init needs to be called first in order to initialise the array
-func Init() {
-	status = make(map[string]models.DownloadStatus)
-}
+var status = make(map[string]models.DownloadStatus)
 
 // SetDownload creates a new DownloadStatus struct and returns its Id
 func SetDownload(file models.File) string {
@@ -60,4 +55,8 @@ func IsCurrentlyDownloading(file models.File) bool {
 // GetAll returns all download states
 func GetAll() map[string]models.DownloadStatus {
 	return status
+}
+
+func DeleteAll() {
+	status = make(map[string]models.DownloadStatus)
 }

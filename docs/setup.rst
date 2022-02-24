@@ -29,6 +29,7 @@ Create a new folder and in this folder execute
 ::
 
  git clone https://github.com/Forceu/Gokapi.git .
+ go generate ./...
  go build Gokapi/cmd/gokapi
 
 This will compile the source code and create an executable from the latest code.
@@ -176,7 +177,7 @@ Stores files remotely on an S3 compatible server, e.g. Amazon AWS S3 or Backblaz
 
 It is highly recommended to create a new bucket for Gokapi and set it to "private", so that no file can be downloaded externally. For each download request Gokapi will create a public URL that is only valid for a couple of seconds, so that the file can be downloaded from the external server directly instead of routing it through the local server.
 
-You then need to create an app key with read-/write-access to this bucket.
+You then need to create an app key with read-/write-access to this bucket. If you are planning to use the encryption feature, make sure to set the bucket's CORS rules to allow access from the Gokapi URL.
 
 The following data needs to be provided:
 

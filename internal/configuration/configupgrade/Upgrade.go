@@ -42,7 +42,7 @@ func updateConfig(settings *models.Configuration, env *environment.Environment) 
 	if settings.ConfigVersion < 8 {
 		settings.MaxFileSizeMB = env.MaxFileSize
 	}
-	// < v1.5.0-dev
+	// < v1.5.0-dev1
 	if settings.ConfigVersion < 10 {
 		settings.Authentication.Method = 0 // authentication.AuthenticationInternal
 		settings.Authentication.HeaderUsers = []string{}
@@ -57,7 +57,7 @@ func updateConfig(settings *models.Configuration, env *environment.Environment) 
 			settings.Authentication.SaltFiles = legacyConfig.SaltFiles
 		}
 	}
-	// < v1.5.0
+	// < v1.5.0-dev2
 	if settings.ConfigVersion < 11 {
 		legacyConfig := loadLegacyConfigPreDb(env)
 		uploadValues := models.LastUploadValues{
