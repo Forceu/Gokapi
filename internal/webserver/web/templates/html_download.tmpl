@@ -36,7 +36,7 @@
 		
 		<script>
 			const go = new Go(); // Defined in wasm_exec.js
-			const WASM_URL = 'main.wasm';
+			const WASM_URL = 'main.wasm?v=1';
 
 			var wasm;
 
@@ -66,19 +66,20 @@
 			
 			async function DownloadEncrypted() {
 			    try {
-				const response = await GokapiDecrypt({{ .Cipher }}, "./downloadFile?id={{ .Id }}")
-				const readableStream = response.body
-				const reader = response.body.getReader()
-				const fileStream = streamSaver.createWriteStream({{.Name }})
+				const response = await GokapiDecrypt({{ .Cipher }}, "./downloadFile?id={{ .Id }}");
+				const readableStream = response.body;
+				const reader = response.body.getReader();
+				streamSaver.mitm = 'https://bulling-it.de/gokapi/serviceworker.html';
+				const fileStream = streamSaver.createWriteStream({{.Name }});
 				     
-				  window.writer = fileStream.getWriter()
+				  window.writer = fileStream.getWriter();
 
 				  const pump = () => reader.read()
 				    .then(res => res.done
 				      ? writer.close()
 				      : writer.write(res.value).then(pump))
 
-				  pump()
+				  pump();
 			    } catch (err) {
 				displayError(err);
 			    }
@@ -94,7 +95,7 @@
 			
 		   function Download(button) {
 		   	button.disabled = true;
-		   	DownloadEncrypted()
+		   	DownloadEncrypted();
 		   }   
 		</script>
 {{ else }}

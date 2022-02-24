@@ -80,10 +80,6 @@ func updateConfig(settings *models.Configuration, env *environment.Environment) 
 			datastorage.SaveSession(key, session, 48*time.Hour)
 		}
 	}
-	// < v1.5.0
-	if settings.ConfigVersion < 12 {
-		// TODO
-	}
 }
 
 func loadLegacyConfigPreAuth(env *environment.Environment) configurationLegacyPreAuth {

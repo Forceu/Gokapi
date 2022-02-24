@@ -382,7 +382,7 @@ func parseEncryptionAndDelete(result *models.Configuration, formObjects *[]jsonF
 	}
 	if !isInitialSetup {
 		previousLevel := configuration.Get().Encryption.Level
-		if previousLevel != encLevel { // TODO or same level with different key
+		if previousLevel != encLevel {
 			storage.DeleteAllEncrypted()
 		}
 	}
