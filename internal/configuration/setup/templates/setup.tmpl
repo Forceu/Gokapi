@@ -588,9 +588,11 @@
     						contentType: "application/json; charset=utf-8",
 						dataType: "json"
 					    }).done(function(response) {
-						wizard.submitSuccess();
-						wizard.hideButtons();
-						wizard.updateProgressBar(0);
+						setTimeout(() => {
+							wizard.submitSuccess();
+							wizard.hideButtons();
+							wizard.updateProgressBar(0);
+						}, 1500);
 					    }).fail(function(xhr, textStatus, errorThrown) {
 					     $('#errormessage').text(errorThrown);
 					     $('#errormessage_response').text(xhr.responseText);
@@ -771,6 +773,7 @@
 				}
 
 			}
+
 			
 		</script>
 	</body>

@@ -502,7 +502,7 @@ func handleResult(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(200)
 	w.Write([]byte("{ \"result\": \"OK\"}"))
 	go func() {
-		time.Sleep(1 * time.Second)
+		time.Sleep(1500 * time.Millisecond)
 		srv.Shutdown(context.Background())
 	}()
 }
