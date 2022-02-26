@@ -224,6 +224,7 @@ func HttpPageResultJson(t MockT, config HttpTestConfig) []*http.Cookie {
 
 func checkResponse(t MockT, response *http.Response, config HttpTestConfig) {
 	t.Helper()
+	IsEqualBool(t, response == nil, false)
 	if response.StatusCode != config.ResultCode {
 		t.Errorf("Status %d != %d", config.ResultCode, response.StatusCode)
 	}

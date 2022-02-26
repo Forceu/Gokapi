@@ -159,9 +159,9 @@ func TestRunConfigModification(t *testing.T) {
 		finish <- true
 	}()
 	RunConfigModification()
-	isInitialSetup = true
 	test.IsEqualInt(t, len(username), 6)
 	test.IsEqualInt(t, len(password), 10)
+	isInitialSetup = true
 	<-finish
 }
 
