@@ -374,6 +374,7 @@ func DeleteFile(keyId string, deleteSource bool) bool {
 		return false
 	}
 	item.ExpireAt = 0
+	item.UnlimitedTime = false
 	datastorage.SaveMetaData(item)
 	for _, status := range downloadstatus.GetAll() {
 		if status.FileId == item.Id {
@@ -381,7 +382,7 @@ func DeleteFile(keyId string, deleteSource bool) bool {
 		}
 	}
 	if deleteSource {
-		CleanUp(false)
+		go CleanUp(false)
 	}
 	return true
 }
