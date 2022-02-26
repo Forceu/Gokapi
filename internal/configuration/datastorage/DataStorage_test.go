@@ -188,3 +188,7 @@ func TestRunGc(t *testing.T) {
 	RunGarbageCollection()
 	test.IsEqualInt(t, database.Len(), items)
 }
+
+func TestGetLengthAvailable(t *testing.T) {
+	test.IsEqualInt(t, GetLengthAvailable(), 85)
+}

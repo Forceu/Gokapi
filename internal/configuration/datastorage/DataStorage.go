@@ -13,10 +13,10 @@ import (
 	"time"
 )
 
-const prefixApiKey = "apikey:id:"
-const prefixFile = "file:id:"
+const prefixApiKey  = "apikey:id:"
+const prefixFile    = "file:id:"
 const prefixHotlink = "hotlink:id:"
-const prefixSessions = "session:id:"
+const prefixSessions= "session:id:"
 const idLastUploadConfig = "default:lastupload"
 
 const maxKeySize = 96
@@ -37,7 +37,7 @@ func Init(dbPath string) {
 // GetLengthAvailable returns the maximum length for a key name
 func GetLengthAvailable() int {
 	maxLength := 0
-	for _, key := range []string{prefixApiKey, prefixFile, prefixHotlink, prefixSessions, idLastUploadConfig} {
+	for _, key := range []string{prefixApiKey, prefixFile, prefixHotlink, prefixSessions} {
 		length := len(key)
 		if length > maxLength {
 			maxLength = length

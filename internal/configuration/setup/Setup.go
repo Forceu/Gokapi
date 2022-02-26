@@ -296,9 +296,12 @@ func parseServerSettings(result *models.Configuration, formObjects *[]jsonFormOb
 		return err
 	}
 	port = verifyPortNumber(port)
-	bindLocalhost, err := getFormValueBool(formObjects, "localhost_sel")
-	if err != nil {
-		return err
+	bindLocalhost := false
+	if !environment.IsDockerInstance() {
+		bindLocalhost, err = getFormValueBool(formObjects, "localhost_sel")
+		if err != nil {
+			return err
+		}
 	}
 	if bindLocalhost {
 		result.Port = "127.0.0.1:" + strconv.Itoa(port)
@@ -442,6 +445,7 @@ type setupView struct {
 	IsInitialSetup  bool
 	LocalhostOnly   bool
 	HasAwsFeature   bool
+	IsDocker        bool
 	Port            int
 	OAuthUsers      string
 	HeaderUsers     string
@@ -458,6 +462,7 @@ func (v *setupView) loadFromConfig() {
 	}
 	configuration.Load()
 	settings := configuration.Get()
+	v.IsDocker = environment.IsDockerInstance()
 	v.HasAwsFeature = aws.IsIncludedInBuild
 	v.Settings = *settings
 	v.Auth = settings.Authentication

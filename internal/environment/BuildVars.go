@@ -12,3 +12,7 @@ var BuildTime = "Dev Build"
 
 // Builder is the name of builder (auto-generated value)
 var Builder = "Manual Build"
+
+func IsDockerInstance() bool {
+	return IsDocker != "false"
+}

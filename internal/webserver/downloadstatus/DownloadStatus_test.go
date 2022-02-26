@@ -70,5 +70,14 @@ func TestClean(t *testing.T) {
 }
 
 func TestGetAll(t *testing.T) {
+	statusId = SetDownload(testFile)
 	test.IsEqualInt(t, len(GetAll()), len(status))
+}
+
+func TestDeleteAll(t *testing.T) {
+	statusId = SetDownload(testFile)
+	test.IsEqualBool(t, len(GetAll()) != 0, true)
+	DeleteAll()
+	test.IsEqualInt(t, len(GetAll()), 0)
+
 }

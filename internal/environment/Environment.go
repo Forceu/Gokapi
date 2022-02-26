@@ -45,7 +45,7 @@ func New() Environment {
 	helper.Check(err)
 	result.ConfigPath = result.ConfigDir + "/" + result.ConfigFile
 	result.FileDbPath = result.DataDir + "/" + result.FileDb
-	if IsDocker == "true" && os.Getenv("TMPDIR") == "" {
+	if IsDockerInstance() && os.Getenv("TMPDIR") == "" {
 		os.Setenv("TMPDIR", result.DataDir)
 	}
 	if result.LengthId < 5 {

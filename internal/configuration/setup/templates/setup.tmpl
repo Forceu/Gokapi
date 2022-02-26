@@ -66,7 +66,7 @@
 					<p>
 						You can now change the Gokapi configuration. For further information please refer to the <a href="https://gokapi.readthedocs.io/en/stable/" title="Gokapi Documentation" target="_blank">documentation</a>.
 					</p>
-{{end}}
+{{ end }}
 
 				</div>
 			</div>
@@ -80,9 +80,13 @@
 					<div class="form-group">
 
 							  <label for="localhost_sel">Make webserver only accessable on this machine (bind to localhost)</label>
-						<select name="localhost_sel" id="localhost_sel"  style="width:350px;" class="select form-control">	
+						<select name="localhost_sel" id="localhost_sel"  style="width:350px;" class="select form-control" {{ if .IsDocker }}disabled{{ end }}>	
+{{ if .IsDocker }}
+								<option value="0" selected>Not supported in Docker</option>
+{{ else }}
 								<option value="0" selected>No</option>
 								<option value="1">Yes</option>
+{{ end }}
 
 						</select><br><br>
 							
@@ -535,7 +539,7 @@
 				
 					
 {{ if not .IsInitialSetup }}
-	{{ if .LocalhostOnly }}
+	{{ if and (.LocalhostOnly) (not .IsDocker) }}
 				document.getElementById("localhost_sel").selectedIndex = 1;
 	{{ end }}
 	{{ if .Settings.UseSsl }}
