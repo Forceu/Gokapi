@@ -24,14 +24,26 @@ Dropzone.options.uploaddropzone = {
     },
 };
 
-document.onpaste = function(event){
-  var items = (event.clipboardData || event.originalEvent.clipboardData).items;
-  for (index in items) {
-    var item = items[index];
-    if (item.kind === 'file') {
-      dropzoneObject.addFile(item.getAsFile())
+document.onpaste = function(event) {
+    var items = (event.clipboardData || event.originalEvent.clipboardData).items;
+    for (index in items) {
+        var item = items[index];
+        if (item.kind === 'file') {
+            dropzoneObject.addFile(item.getAsFile());
+        }
+        if (item.kind === 'string') {
+            item.getAsString(function(s) {
+                let blob = new Blob([s], {
+                    type: 'text/plain'
+                });
+                let file = new File([blob], "Pasted Text.txt", {
+                    type: "text/plain",
+                    lastModified: new Date(0)
+                });
+                dropzoneObject.addFile(file);
+            });
+        }
     }
-  }
 }
 
 
@@ -42,6 +54,9 @@ function checkBoxChanged(checkBox, correspondingInput) {
   	 document.getElementById(correspondingInput).setAttribute("disabled", "");
   } else {
   	document.getElementById(correspondingInput).removeAttribute("disabled");
+  }
+  if (correspondingInput == "password" && disable) {
+  	document.getElementById("password").value = "";
   }
 }
 
