@@ -18,6 +18,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func TestMain(m *testing.M) {
@@ -156,6 +157,7 @@ func TestDeleteFile(t *testing.T) {
 	}, nil)
 	Process(w, r, maxMemory)
 	test.IsEqualInt(t, w.Code, 200)
+	time.Sleep(time.Second)
 	_, ok = datastorage.GetMetaDataById("jpLXGJKigM4hjtA6T6sN2")
 	test.IsEqualBool(t, ok, false)
 }
