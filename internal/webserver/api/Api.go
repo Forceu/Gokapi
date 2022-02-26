@@ -75,23 +75,20 @@ func changeFriendlyName(w http.ResponseWriter, request apiRequest) {
 		key.FriendlyName = request.friendlyName
 		datastorage.SaveApiKey(key, false)
 	}
-	sendOk(w)
 }
 
 func deleteFile(w http.ResponseWriter, request apiRequest) {
 	ok := storage.DeleteFile(request.fileId, true)
-	if ok {
-		sendOk(w)
-	} else {
+	if !ok {
 		sendError(w, http.StatusBadRequest, "Invalid id provided.")
 	}
 }
 
 func list(w http.ResponseWriter) {
 	var validFiles []models.File
-	sendOk(w)
+	timeNow := time.Now().Unix()
 	for _, element := range datastorage.GetAllMetadata() {
-		if element.ExpireAt > time.Now().Unix() && element.DownloadsRemaining > 0 {
+		if !storage.IsExpiredFile(element, timeNow) {
 			validFiles = append(validFiles, element)
 		}
 	}
@@ -106,7 +103,6 @@ func upload(w http.ResponseWriter, request apiRequest, maxMemory int) {
 		sendError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	sendOk(w)
 }
 
 func isAuthorisedForApi(w http.ResponseWriter, request apiRequest) bool {
@@ -120,10 +116,6 @@ func isAuthorisedForApi(w http.ResponseWriter, request apiRequest) bool {
 func sendError(w http.ResponseWriter, errorInt int, errorMessage string) {
 	w.WriteHeader(errorInt)
 	_, _ = w.Write([]byte("{\"Result\":\"error\",\"ErrorMessage\":\"" + errorMessage + "\"}"))
-}
-
-func sendOk(w http.ResponseWriter) {
-	w.WriteHeader(http.StatusOK)
 }
 
 type apiRequest struct {

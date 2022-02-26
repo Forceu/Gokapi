@@ -206,7 +206,7 @@ func GetFile(id string) (models.File, bool) {
 	if !ok {
 		return emptyResult, false
 	}
-	if isExpiredFile(file, time.Now().Unix()) {
+	if IsExpiredFile(file, time.Now().Unix()) {
 		return emptyResult, false
 	}
 	if !FileExists(file, configuration.Get().DataDir) {
@@ -338,7 +338,7 @@ func CleanUp(periodic bool) {
 	datastorage.RunGarbageCollection()
 }
 
-func isExpiredFile(file models.File, timeNow int64) bool {
+func IsExpiredFile(file models.File, timeNow int64) bool {
 	return (file.ExpireAt < timeNow && !file.UnlimitedTime) ||
 		(file.DownloadsRemaining < 1 && !file.UnlimitedDownloads)
 }
@@ -347,7 +347,7 @@ func isExpiredFileWithoutDownload(file models.File, timeNow int64) bool {
 	if downloadstatus.IsCurrentlyDownloading(file) {
 		return false
 	}
-	return isExpiredFile(file, timeNow)
+	return IsExpiredFile(file, timeNow)
 }
 
 func deleteSource(file models.File, dataDir string) {

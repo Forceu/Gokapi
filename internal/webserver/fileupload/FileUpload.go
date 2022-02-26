@@ -59,6 +59,13 @@ func parseConfig(values formOrHeader, setNewDefaults bool) models.UploadRequest 
 	unlimitedDownload := values.Get("isUnlimitedDownload") == "true"
 	unlimitedTime := values.Get("isUnlimitedTime") == "true"
 
+	if allowedDownloadsInt == 0 {
+		unlimitedDownload = true
+	}
+	if expiryDaysInt == 0 {
+		unlimitedTime = true
+	}
+
 	if setNewDefaults {
 		values := models.LastUploadValues{
 			Downloads:         allowedDownloadsInt,

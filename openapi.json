@@ -247,11 +247,11 @@
           },
           "allowedDownloads": {
             "type": "integer",
-            "description": "How many downloads are allowed. Last used value from web interface will be used if empty."
+            "description": "How many downloads are allowed. Last used value from web interface will be used if empty. Unlimited if 0 is passed."
           },
           "expiryDays": {
             "type": "integer",
-            "description": "How many days the file will be stored. Last used value from web interface will be used if empty."
+            "description": "How many days the file will be stored. Last used value from web interface will be used if empty. Unlimited if 0 is passed."
           },
           "password": {
             "type": "string",
