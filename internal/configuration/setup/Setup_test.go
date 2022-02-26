@@ -147,6 +147,7 @@ func TestRunConfigModification(t *testing.T) {
 		for !serverStarted {
 			time.Sleep(100 * time.Millisecond)
 		}
+		time.Sleep(500 * time.Millisecond)
 		test.HttpPageResult(t, test.HttpTestConfig{
 			Url:             "http://localhost:53842/setup/start",
 			IsHtml:          false,
@@ -159,9 +160,9 @@ func TestRunConfigModification(t *testing.T) {
 		finish <- true
 	}()
 	RunConfigModification()
-	isInitialSetup = true
 	test.IsEqualInt(t, len(username), 6)
 	test.IsEqualInt(t, len(password), 10)
+	isInitialSetup = true
 	<-finish
 }
 
