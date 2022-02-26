@@ -216,6 +216,7 @@ func HttpPageResultJson(t MockT, config HttpTestConfig) []*http.Cookie {
 
 	resp, err := client.Do(req)
 	IsNil(t, err)
+	defer resp.Body.Close()
 
 	checkResponse(t, resp, config)
 
@@ -224,7 +225,7 @@ func HttpPageResultJson(t MockT, config HttpTestConfig) []*http.Cookie {
 
 func checkResponse(t MockT, response *http.Response, config HttpTestConfig) {
 	t.Helper()
-	IsEqualBool(t, response == nil, false)
+	IsEqualBool(t, response != nil, true)
 	if response.StatusCode != config.ResultCode {
 		t.Errorf("Status %d != %d", config.ResultCode, response.StatusCode)
 	}
@@ -244,8 +245,6 @@ func checkResponse(t MockT, response *http.Response, config HttpTestConfig) {
 			t.Errorf(config.Url + ": Incorrect response. Got:\n" + string(content))
 		}
 	}
-	err = response.Body.Close()
-	IsNil(t, err)
 }
 
 // HttpTestConfig is a struct for http test init

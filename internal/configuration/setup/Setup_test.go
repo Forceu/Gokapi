@@ -147,6 +147,7 @@ func TestRunConfigModification(t *testing.T) {
 		for !serverStarted {
 			time.Sleep(100 * time.Millisecond)
 		}
+		time.Sleep(500 * time.Millisecond)
 		test.HttpPageResult(t, test.HttpTestConfig{
 			Url:             "http://localhost:53842/setup/start",
 			IsHtml:          false,
