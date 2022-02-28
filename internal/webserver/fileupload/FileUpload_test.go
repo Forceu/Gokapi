@@ -50,6 +50,13 @@ func TestParseConfig(t *testing.T) {
 	config = parseConfig(data, false)
 	test.IsEqualInt(t, config.AllowedDownloads, 3)
 	test.IsEqualInt(t, config.Expiry, 20)
+	test.IsEqualBool(t, config.UnlimitedTime, false)
+	test.IsEqualBool(t, config.UnlimitedDownload, false)
+	data.allowedDownloads = "0"
+	data.expiryDays = "0"
+	config = parseConfig(data, false)
+	test.IsEqualBool(t, config.UnlimitedTime, true)
+	test.IsEqualBool(t, config.UnlimitedDownload, true)
 }
 
 func TestProcess(t *testing.T) {
@@ -68,6 +75,8 @@ func TestProcess(t *testing.T) {
 	test.IsEqualString(t, result.FileInfo.Name, "testFile")
 	test.IsEqualString(t, result.FileInfo.SHA256, "17513aad503256b7fdc94d613aeb87b8338c433a")
 	test.IsEqualString(t, result.FileInfo.Size, "11 B")
+	test.IsEqualBool(t, result.FileInfo.UnlimitedTime, false)
+	test.IsEqualBool(t, result.FileInfo.UnlimitedDownloads, false)
 }
 
 func getRecorder() *http.Request {

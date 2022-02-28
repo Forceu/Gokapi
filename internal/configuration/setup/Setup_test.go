@@ -50,14 +50,13 @@ func TestInputToJson(t *testing.T) {
 }
 
 func TestMissingSetupValues(t *testing.T) {
-	input := createInputInternalAuth()
-	invalidInputs := input.getInvalid()
+	invalidInputs := createInvalidSetupValues()
 	for _, invalid := range invalidInputs {
 		r := httptest.NewRequest("POST", "/setup", strings.NewReader(invalid.toJson()))
 		setupResult, err := inputToJsonForm(r)
 		test.IsNil(t, err)
 		_, _, err = toConfiguration(&setupResult)
-		test.IsNotNil(t, err)
+		test.IsNotNilWithMessage(t, err, invalid.toJson())
 	}
 }
 
@@ -382,8 +381,8 @@ func TestIntegration(t *testing.T) {
 }
 
 type setupValues struct {
-	BindLocalhost        setupEntry `form:"localhost_sel" isInt:"true"`
-	UseSsl               setupEntry `form:"ssl_sel" isInt:"true"`
+	BindLocalhost        setupEntry `form:"localhost_sel" isBool:"true"`
+	UseSsl               setupEntry `form:"ssl_sel" isBool:"true"`
 	Port                 setupEntry `form:"port" isInt:"true"`
 	ExtUrl               setupEntry `form:"url"`
 	RedirectUrl          setupEntry `form:"url_redirection"`
@@ -435,22 +434,42 @@ func (s *setupValues) toJson() string {
 	return string(result)
 }
 
-func (s *setupValues) getInvalid() []setupValues {
+func createInvalidSetupValues() []setupValues {
 	var result []setupValues
+	input := createInputInternalAuth()
 	t := reflect.TypeOf(setupValues{})
 	for i := 0; i < t.NumField(); i++ {
-		invalidSetup := *s
+		invalidSetup := input
 		v := reflect.ValueOf(&invalidSetup)
 		v.Elem().Field(i).FieldByName("FormName").SetString("invalid")
 		result = append(result, invalidSetup)
-		
+
 		tag := t.Field(i).Tag.Get("isInt")
 		if tag == "true" {
-			invalidSetup = *s
+			invalidSetup = input
 			v.Elem().Field(i).FieldByName("Value").SetString("notInt")
 			result = append(result, invalidSetup)
 		}
+		tag = t.Field(i).Tag.Get("isBool")
+		if tag == "true" {
+			invalidSetup = input
+			v.Elem().Field(i).FieldByName("Value").SetString("2")
+			result = append(result, invalidSetup)
+		}
 	}
+
+	invalidSetup := input
+	invalidSetup.EncryptionLevel.Value = "-1"
+	result = append(result, invalidSetup)
+
+	invalidSetup = input
+	invalidSetup.EncryptionLevel.Value = "9"
+	result = append(result, invalidSetup)
+
+	invalidSetup = input
+	invalidSetup.AuthenticationMode.Value = "4"
+	result = append(result, invalidSetup)
+
 	return result
 }
 

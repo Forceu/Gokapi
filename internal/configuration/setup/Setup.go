@@ -327,6 +327,9 @@ func parseServerSettings(result *models.Configuration, formObjects *[]jsonFormOb
 	if err != nil {
 		return err
 	}
+	if result.Authentication.Method < 0 || result.Authentication.Method > 3 {
+		return errors.New("invalid authentication mode provided")
+	}
 
 	result.ServerUrl = addTrailingSlash(result.ServerUrl)
 	return nil

@@ -88,6 +88,14 @@ func IsNil(t MockT, got error) {
 	}
 }
 
+// IsNilWithMessage fails test if error not nil and name of test
+func IsNilWithMessage(t MockT, got error, testName string) {
+	t.Helper()
+	if got != nil {
+		t.Errorf("%s: Assertion failed, got: %s, want: nil.", testName, got.(error).Error())
+	}
+}
+
 // FileExists fails test a file does not exist
 func FileExists(t MockT, name string) {
 	t.Helper()
@@ -118,6 +126,14 @@ func IsNotNil(t MockT, got error) {
 	t.Helper()
 	if got == nil {
 		t.Errorf("Assertion failed, got: nil, want: not nil.")
+	}
+}
+
+// IsNotNilWithMessage fails test if error is nil and displays name of test
+func IsNotNilWithMessage(t MockT, got error, name string) {
+	t.Helper()
+	if got == nil {
+		t.Errorf("%s: Assertion failed, got: nil, want: not nil.", name)
 	}
 }
 
