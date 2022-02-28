@@ -46,5 +46,11 @@ func TestUpgradeDb(t *testing.T) {
 	test.IsEqualString(t, oldConfigFile.Authentication.SaltFiles, "lL5wMTtnVCn5TPbpRaSe4vAQodWW0hgk00WCZE")
 	// TODO write further tests
 	os.Unsetenv("GOKAPI_MAX_FILESIZE")
-
+	oldConfigFile.ConfigVersion = CurrentConfigVersion
+	upgradeDone = DoUpgrade(&oldConfigFile, &env)
+	test.IsEqualBool(t, upgradeDone, false)
+	oldConfigFile.ConfigVersion = 6
+	upgradeDone = DoUpgrade(&oldConfigFile, &env)
+	test.IsEqualBool(t, upgradeDone, true)
+	test.IsEqualBool(t, oldConfigFile.UseSsl, false)
 }

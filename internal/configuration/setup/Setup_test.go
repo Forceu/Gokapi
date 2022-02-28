@@ -3,6 +3,7 @@ package setup
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
@@ -11,9 +12,11 @@ import (
 	"github.com/forceu/gokapi/internal/test"
 	"github.com/forceu/gokapi/internal/test/testconfiguration"
 	"github.com/forceu/gokapi/internal/webserver/authentication"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -34,7 +37,8 @@ func TestInputToJson(t *testing.T) {
 	_, r := test.GetRecorder("POST", "/setupResult", nil, nil, bytes.NewBufferString("invalid"))
 	jsonForms, err = inputToJsonForm(r)
 	test.IsNotNil(t, err)
-	buf := bytes.NewBufferString(testInputInternalAuth)
+	setupValues := createInputInternalAuth()
+	buf := bytes.NewBufferString(setupValues.toJson())
 	_, r = test.GetRecorder("POST", "/setupResult", nil, nil, buf)
 	jsonForms, err = inputToJsonForm(r)
 	test.IsNil(t, err)
@@ -42,6 +46,18 @@ func TestInputToJson(t *testing.T) {
 		if item.Name == "auth_username" {
 			test.IsEqualString(t, item.Value, "admin")
 		}
+	}
+}
+
+func TestMissingSetupValues(t *testing.T) {
+	input := createInputInternalAuth()
+	invalidInputs := input.getInvalid()
+	for _, invalid := range invalidInputs {
+		r := httptest.NewRequest("POST", "/setup", strings.NewReader(invalid.toJson()))
+		setupResult, err := inputToJsonForm(r)
+		test.IsNil(t, err)
+		_, _, err = toConfiguration(&setupResult)
+		test.IsNotNil(t, err)
 	}
 }
 
@@ -199,6 +215,7 @@ func TestIntegration(t *testing.T) {
 		ResultCode:      500,
 	})
 
+	setupValues := createInputInternalAuth()
 	test.HttpPageResultJson(t, test.HttpTestConfig{
 		Url:             "http://localhost:53842/setup/setupResult",
 		RequiredContent: []string{"\"result\": \"OK\""},
@@ -206,11 +223,16 @@ func TestIntegration(t *testing.T) {
 		IsHtml:          false,
 		Method:          "POST",
 		ResultCode:      200,
-		Body:            strings.NewReader(testInputInternalAuth),
+		Body:            strings.NewReader(setupValues.toJson()),
 	})
 
+	counter := 0
 	for serverStarted {
 		time.Sleep(100 * time.Millisecond)
+		counter++
+		if counter > 100 {
+			t.Fatal("Unbroken loop")
+		}
 	}
 	test.FileExists(t, "test/config.json")
 	settings := configuration.Get()
@@ -246,6 +268,7 @@ func TestIntegration(t *testing.T) {
 	username = "test"
 	password = "testpw"
 
+	setupInput := createInputHeaderAuth()
 	test.HttpPageResultJson(t, test.HttpTestConfig{
 		Url:             "http://localhost:53842/setup/start",
 		RequiredContent: []string{"Unauthorized"},
@@ -253,7 +276,7 @@ func TestIntegration(t *testing.T) {
 		IsHtml:          false,
 		Method:          "POST",
 		ResultCode:      401,
-		Body:            strings.NewReader(testInputHeaderAuth),
+		Body:            strings.NewReader(setupInput.toJson()),
 	})
 	test.HttpPageResultJson(t, test.HttpTestConfig{
 		Url:             "http://localhost:53842/setup/start",
@@ -272,7 +295,7 @@ func TestIntegration(t *testing.T) {
 		IsHtml:          false,
 		Method:          "POST",
 		ResultCode:      401,
-		Body:            strings.NewReader(testInputHeaderAuth),
+		Body:            strings.NewReader(setupInput.toJson()),
 	})
 	test.HttpPageResultJson(t, test.HttpTestConfig{
 		Url:             "http://localhost:53842/setup/setupResult",
@@ -282,11 +305,16 @@ func TestIntegration(t *testing.T) {
 		Method:          "POST",
 		Headers:         []test.Header{{Name: "Authorization", Value: "Basic dGVzdDp0ZXN0cHc="}},
 		ResultCode:      200,
-		Body:            strings.NewReader(testInputHeaderAuth),
+		Body:            strings.NewReader(setupInput.toJson()),
 	})
 
+	counter = 0
 	for serverStarted {
 		time.Sleep(100 * time.Millisecond)
+		counter++
+		if counter > 100 {
+			t.Fatal("Unbroken loop")
+		}
 	}
 	test.FileExists(t, "test/config.json")
 	settings = configuration.Get()
@@ -321,6 +349,7 @@ func TestIntegration(t *testing.T) {
 	username = "test"
 	password = "testpw"
 
+	setupInput = createInputOAuth()
 	test.HttpPageResultJson(t, test.HttpTestConfig{
 		Url:             "http://localhost:53842/setup/setupResult",
 		RequiredContent: []string{"\"result\": \"OK\""},
@@ -329,11 +358,16 @@ func TestIntegration(t *testing.T) {
 		Method:          "POST",
 		Headers:         []test.Header{{Name: "Authorization", Value: "Basic dGVzdDp0ZXN0cHc="}},
 		ResultCode:      200,
-		Body:            strings.NewReader(testInputOauth),
+		Body:            strings.NewReader(setupInput.toJson()),
 	})
 
+	counter = 0
 	for serverStarted {
 		time.Sleep(100 * time.Millisecond)
+		counter++
+		if counter > 100 {
+			t.Fatal("Unbroken loop")
+		}
 	}
 
 	test.IsEqualString(t, settings.Authentication.OauthProvider, "provider")
@@ -347,6 +381,142 @@ func TestIntegration(t *testing.T) {
 	}
 }
 
-var testInputInternalAuth = "[{\"name\":\"authentication_sel\",\"value\":\"0\"},{\"name\":\"auth_username\",\"value\":\"admin\"},{\"name\":\"auth_pw\",\"value\":\"adminadmin\"},{\"name\":\"auth_pw2\",\"value\":\"adminadmin\"},{\"name\":\"oauth_provider\",\"value\":\"\"},{\"name\":\"oauth_id\",\"value\":\"\"},{\"name\":\"oauth_secret\",\"value\":\"\"},{\"name\":\"oauth_header_users\",\"value\":\"\"},{\"name\":\"auth_headerkey\",\"value\":\"\"},{\"name\":\"auth_header_users\",\"value\":\"\"},{\"name\":\"storage_sel\",\"value\":\"cloud\"},{\"name\":\"s3_bucket\",\"value\":\"testbucket\"},{\"name\":\"s3_region\",\"value\":\"testregion\"},{\"name\":\"s3_api\",\"value\":\"testapi\"},{\"name\":\"s3_secret\",\"value\":\"testsecret\"},{\"name\":\"s3_endpoint\",\"value\":\"testendpoint\"},{\"name\":\"localhost_sel\",\"value\":\"1\"},{\"name\":\"ssl_sel\",\"value\":\"0\"},{\"name\":\"port\",\"value\":\"53842\"},{\"name\":\"url\",\"value\":\"http://127.0.0.1:53842/\"},{\"name\":\"url_redirection\",\"value\":\"https://github.com/Forceu/Gokapi/\"},{\"name\":\"encrypt_sel\",\"value\":\"0\"}]\n"
-var testInputHeaderAuth = "[{\"name\":\"authentication_sel\",\"value\":\"2\"},{\"name\":\"auth_username\",\"value\":\"\"},{\"name\":\"auth_pw\",\"value\":\"\"},{\"name\":\"auth_pw2\",\"value\":\"\"},{\"name\":\"oauth_provider\",\"value\":\"\"},{\"name\":\"oauth_id\",\"value\":\"\"},{\"name\":\"oauth_secret\",\"value\":\"\"},{\"name\":\"oauth_header_users\",\"value\":\"\"},{\"name\":\"auth_headerkey\",\"value\":\"testkey\"},{\"name\":\"auth_header_users\",\"value\":\"test1 ;test2\"},{\"name\":\"storage_sel\",\"value\":\"local\"},{\"name\":\"s3_bucket\",\"value\":\"\"},{\"name\":\"\",\"value\":\"\"},{\"name\":\"s3_api\",\"value\":\"\"},{\"name\":\"s3_secret\",\"value\":\"\"},{\"name\":\"s3_endpoint\",\"value\":\"\"},{\"name\":\"localhost_sel\",\"value\":\"0\"},{\"name\":\"ssl_sel\",\"value\":\"1\"},{\"name\":\"port\",\"value\":\"53842\"},{\"name\":\"url\",\"value\":\"http://127.0.0.1:53842/\"},{\"name\":\"url_redirection\",\"value\":\"https://test.com\"},{\"name\":\"encrypt_sel\",\"value\":\"0\"}]\n"
-var testInputOauth = "[{\"name\":\"authentication_sel\",\"value\":\"1\"},{\"name\":\"auth_username\",\"value\":\"\"},{\"name\":\"auth_pw\",\"value\":\"\"},{\"name\":\"auth_pw2\",\"value\":\"\"},{\"name\":\"oauth_provider\",\"value\":\"provider\"},{\"name\":\"oauth_id\",\"value\":\"id\"},{\"name\":\"oauth_secret\",\"value\":\"secret\"},{\"name\":\"oauth_header_users\",\"value\":\"oatest1; oatest2\"},{\"name\":\"auth_headerkey\",\"value\":\"testkey\"},{\"name\":\"auth_header_users\",\"value\":\"\"},{\"name\":\"storage_sel\",\"value\":\"local\"},{\"name\":\"s3_bucket\",\"value\":\"\"},{\"name\":\"\",\"value\":\"\"},{\"name\":\"s3_api\",\"value\":\"\"},{\"name\":\"s3_secret\",\"value\":\"\"},{\"name\":\"s3_endpoint\",\"value\":\"\"},{\"name\":\"localhost_sel\",\"value\":\"0\"},{\"name\":\"ssl_sel\",\"value\":\"1\"},{\"name\":\"port\",\"value\":\"53842\"},{\"name\":\"url\",\"value\":\"http://127.0.0.1:53842/\"},{\"name\":\"url_redirection\",\"value\":\"https://test.com\"},{\"name\":\"encrypt_sel\",\"value\":\"0\"}]\n"
+type setupValues struct {
+	BindLocalhost        setupEntry `form:"localhost_sel" isInt:"true"`
+	UseSsl               setupEntry `form:"ssl_sel" isInt:"true"`
+	Port                 setupEntry `form:"port" isInt:"true"`
+	ExtUrl               setupEntry `form:"url"`
+	RedirectUrl          setupEntry `form:"url_redirection"`
+	AuthenticationMode   setupEntry `form:"authentication_sel" isInt:"true"`
+	AuthUsername         setupEntry `form:"auth_username"`
+	AuthPassword         setupEntry `form:"auth_pw"`
+	OAuthProvider        setupEntry `form:"oauth_provider"`
+	OAuthClientId        setupEntry `form:"oauth_id"`
+	OAuthClientSecret    setupEntry `form:"oauth_secret"`
+	OAuthAuthorisedUsers setupEntry `form:"oauth_header_users"`
+	AuthHeaderKey        setupEntry `form:"auth_headerkey"`
+	AuthHeaderUsers      setupEntry `form:"auth_header_users"`
+	StorageSelection     setupEntry `form:"storage_sel"`
+	S3Bucket             setupEntry `form:"s3_bucket"`
+	S3Region             setupEntry `form:"s3_region"`
+	S3ApiKey             setupEntry `form:"s3_api"`
+	S3ApiSecret          setupEntry `form:"s3_secret"`
+	S3Endpoint           setupEntry `form:"s3_endpoint"`
+	EncryptionLevel      setupEntry `form:"encrypt_sel" isInt:"true"`
+	EncryptionPassword   setupEntry `form:"enc_pw"`
+}
+
+func (s *setupValues) init() {
+	v := reflect.ValueOf(s)
+	t := reflect.TypeOf(setupValues{})
+	for i := 0; i < t.NumField(); i++ {
+		tag := t.Field(i).Tag.Get("form")
+		v.Elem().Field(i).FieldByName("FormName").SetString(tag)
+		v.Elem().Field(i).FieldByName("Enabled").SetBool(true)
+	}
+}
+
+func (s *setupValues) toJson() string {
+	var values []jsonFormObject
+
+	v := reflect.ValueOf(s)
+	t := reflect.TypeOf(setupValues{})
+	for i := 0; i < t.NumField(); i++ {
+		values = append(values, jsonFormObject{
+			Name:  v.Elem().Field(i).FieldByName("FormName").String(),
+			Value: v.Elem().Field(i).FieldByName("Value").String(),
+		})
+	}
+
+	result, err := json.Marshal(values)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return string(result)
+}
+
+func (s *setupValues) getInvalid() []setupValues {
+	var result []setupValues
+	t := reflect.TypeOf(setupValues{})
+	for i := 0; i < t.NumField(); i++ {
+		invalidSetup := *s
+		v := reflect.ValueOf(&invalidSetup)
+		v.Elem().Field(i).FieldByName("FormName").SetString("invalid")
+		result = append(result, invalidSetup)
+		
+		tag := t.Field(i).Tag.Get("isInt")
+		if tag == "true" {
+			invalidSetup = *s
+			v.Elem().Field(i).FieldByName("Value").SetString("notInt")
+			result = append(result, invalidSetup)
+		}
+	}
+	return result
+}
+
+type setupEntry struct {
+	FormName string
+	Enabled  bool
+	Value    string
+}
+
+func createInputInternalAuth() setupValues {
+	values := setupValues{}
+	values.init()
+
+	values.BindLocalhost.Value = "1"
+	values.UseSsl.Value = "0"
+	values.Port.Value = "53842"
+	values.ExtUrl.Value = "http://127.0.0.1:53842/"
+	values.RedirectUrl.Value = "https://github.com/Forceu/Gokapi/"
+	values.AuthenticationMode.Value = "0"
+	values.AuthUsername.Value = "admin"
+	values.AuthPassword.Value = "adminadmin"
+	values.StorageSelection.Value = "cloud"
+	values.S3Bucket.Value = "testbucket"
+	values.S3Region.Value = "testregion"
+	values.S3ApiKey.Value = "testapi"
+	values.S3ApiSecret.Value = "testsecret"
+	values.S3Endpoint.Value = "testendpoint"
+	values.EncryptionLevel.Value = "0"
+
+	return values
+}
+
+func createInputHeaderAuth() setupValues {
+	values := setupValues{}
+	values.init()
+
+	values.BindLocalhost.Value = "0"
+	values.UseSsl.Value = "1"
+	values.Port.Value = "53842"
+	values.ExtUrl.Value = "http://127.0.0.1:53842/"
+	values.RedirectUrl.Value = "https://test.com"
+	values.AuthenticationMode.Value = "2"
+	values.AuthHeaderKey.Value = "testkey"
+	values.AuthHeaderUsers.Value = "test1 ;test2"
+	values.StorageSelection.Value = "local"
+	values.EncryptionLevel.Value = "0"
+
+	return values
+}
+
+func createInputOAuth() setupValues {
+	values := setupValues{}
+	values.init()
+
+	values.BindLocalhost.Value = "0"
+	values.UseSsl.Value = "1"
+	values.Port.Value = "53842"
+	values.ExtUrl.Value = "http://127.0.0.1:53842/"
+	values.RedirectUrl.Value = "https://test.com"
+	values.AuthenticationMode.Value = "1"
+	values.OAuthProvider.Value = "provider"
+	values.OAuthClientId.Value = "id"
+	values.OAuthClientSecret.Value = "secret"
+	values.OAuthAuthorisedUsers.Value = "oatest1; oatest2"
+	values.StorageSelection.Value = "local"
+	values.EncryptionLevel.Value = "0"
+
+	return values
+}

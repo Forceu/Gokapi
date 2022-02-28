@@ -113,8 +113,9 @@ func startSetupWebserver() {
 		serverStarted = true
 	}()
 	// always returns error. ErrServerClosed on graceful close
-	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-		log.Fatalf("ListenAndServe(): %v", err)
+	err := srv.ListenAndServe()
+	if err != nil && err != http.ErrServerClosed {
+		log.Fatalf("Setup Webserver: %v", err)
 	}
 	serverStarted = false
 }
@@ -399,13 +400,13 @@ func parseEncryptionAndDelete(result *models.Configuration, formObjects *[]jsonF
 		result.Encryption.Cipher = cipher
 	}
 
+	masterPw, err := getFormValueString(formObjects, "enc_pw")
+	if err != nil {
+		return err
+	}
 	if encLevel == encryption.LocalEncryptionInput || encLevel == encryption.FullEncryptionInput {
 		result.Encryption.Salt = helper.GenerateRandomString(30)
 		result.Encryption.ChecksumSalt = helper.GenerateRandomString(30)
-		masterPw, err := getFormValueString(formObjects, "enc_pw")
-		if err != nil {
-			return err
-		}
 		if len(masterPw) < 6 && (!isInitialSetup && masterPw != "unc") {
 			return errors.New("password is less than 6 characters long")
 		}

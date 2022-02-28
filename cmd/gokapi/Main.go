@@ -62,13 +62,13 @@ func main() {
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	<-c
-	cleanup()
+	shutdown()
 	os.Exit(0)
 }
 
-func cleanup() {
+func shutdown() {
 	fmt.Println("Shutting down...")
-	// webserver.Stop() TODO
+	webserver.Shutdown()
 	datastorage.Close()
 }
 

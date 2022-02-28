@@ -32,6 +32,11 @@ func TestLoad(t *testing.T) {
 	test.IsEqualBool(t, serverSettings.UseSsl, false)
 	test.IsEqualInt(t, serverSettings.LengthId, 20)
 	test.IsEqualInt(t, Get().LengthId, 20)
+	os.Setenv("GOKAPI_MAX_MEMORY_UPLOAD", "80")
+	Load()
+	test.IsEqualInt(t, serverSettings.MaxMemory, 80)
+	os.Unsetenv("GOKAPI_MAX_MEMORY_UPLOAD")
+	Load()
 }
 
 func TestHashPassword(t *testing.T) {

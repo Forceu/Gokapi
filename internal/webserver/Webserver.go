@@ -5,6 +5,7 @@ Handling of webserver and requests / uploads
 */
 
 import (
+	"context"
 	"embed"
 	"encoding/base64"
 	"fmt"
@@ -58,49 +59,55 @@ var imageExpiredPicture []byte
 
 const expiredFile = "static/expired.png"
 
+var srv http.Server
+
 // Start the webserver on the port set in the config
 func Start() {
 	initTemplates(templateFolderEmbedded)
 	webserverDir, _ := fs.Sub(staticFolderEmbedded, "web/static")
 	var err error
+
+	mux := http.NewServeMux()
+
 	if helper.FolderExists("static") {
 		fmt.Println("Found folder 'static', using local folder instead of internal static folder")
-		http.Handle("/", http.FileServer(http.Dir("static")))
+		mux.Handle("/", http.FileServer(http.Dir("static")))
 		imageExpiredPicture, err = os.ReadFile(expiredFile)
 		helper.Check(err)
 	} else {
-		http.Handle("/", http.FileServer(http.FS(webserverDir)))
+		mux.Handle("/", http.FileServer(http.FS(webserverDir)))
 		imageExpiredPicture, err = fs.ReadFile(staticFolderEmbedded, "web/"+expiredFile)
 		helper.Check(err)
 	}
-	http.HandleFunc("/admin", requireLogin(showAdminMenu, false))
-	http.HandleFunc("/api/", processApi)
-	http.HandleFunc("/apiDelete", requireLogin(deleteApiKey, false))
-	http.HandleFunc("/apiKeys", requireLogin(showApiAdmin, false))
-	http.HandleFunc("/apiNew", requireLogin(newApiKey, false))
-	http.HandleFunc("/d", showDownload)
-	http.HandleFunc("/delete", requireLogin(deleteFile, false))
-	http.HandleFunc("/downloadFile", downloadFile)
-	http.HandleFunc("/error", showError)
-	http.HandleFunc("/forgotpw", forgotPassword)
-	http.HandleFunc("/hotlink/", showHotlink)
-	http.HandleFunc("/index", showIndex)
-	http.HandleFunc("/login", showLogin)
-	http.HandleFunc("/logout", doLogout)
-	http.HandleFunc("/upload", requireLogin(uploadFile, true))
-	http.HandleFunc("/error-auth", showErrorAuth)
-	http.Handle("/main.wasm", gziphandler.GzipHandler(http.HandlerFunc(serveWasm)))
+	mux.HandleFunc("/admin", requireLogin(showAdminMenu, false))
+	mux.HandleFunc("/api/", processApi)
+	mux.HandleFunc("/apiDelete", requireLogin(deleteApiKey, false))
+	mux.HandleFunc("/apiKeys", requireLogin(showApiAdmin, false))
+	mux.HandleFunc("/apiNew", requireLogin(newApiKey, false))
+	mux.HandleFunc("/d", showDownload)
+	mux.HandleFunc("/delete", requireLogin(deleteFile, false))
+	mux.HandleFunc("/downloadFile", downloadFile)
+	mux.HandleFunc("/error", showError)
+	mux.HandleFunc("/forgotpw", forgotPassword)
+	mux.HandleFunc("/hotlink/", showHotlink)
+	mux.HandleFunc("/index", showIndex)
+	mux.HandleFunc("/login", showLogin)
+	mux.HandleFunc("/logout", doLogout)
+	mux.HandleFunc("/upload", requireLogin(uploadFile, true))
+	mux.HandleFunc("/error-auth", showErrorAuth)
+	mux.Handle("/main.wasm", gziphandler.GzipHandler(http.HandlerFunc(serveWasm)))
 	if configuration.Get().Authentication.Method == authentication.OAuth2 {
 		oauth.Init(configuration.Get().ServerUrl, configuration.Get().Authentication)
-		http.HandleFunc("/oauth-login", oauth.HandlerLogin)
-		http.HandleFunc("/oauth-callback", oauth.HandlerCallback)
+		mux.HandleFunc("/oauth-login", oauth.HandlerLogin)
+		mux.HandleFunc("/oauth-callback", oauth.HandlerCallback)
 	}
 
 	fmt.Println("Binding webserver to " + configuration.Get().Port)
-	srv := &http.Server{
+	srv = http.Server{
 		Addr:         configuration.Get().Port,
 		ReadTimeout:  timeOutWebserver,
 		WriteTimeout: timeOutWebserver,
+		Handler:      mux,
 	}
 	infoMessage := "Webserver can be accessed at " + configuration.Get().ServerUrl + "admin\nPress CTRL+C to stop Gokapi"
 	if strings.Contains(configuration.Get().ServerUrl, "127.0.0.1") {
@@ -113,10 +120,23 @@ func Start() {
 	if configuration.Get().UseSsl {
 		ssl.GenerateIfInvalidCert(configuration.Get().ServerUrl, false)
 		fmt.Println(infoMessage)
-		log.Fatal(srv.ListenAndServeTLS(ssl.GetCertificateLocations()))
+		err = srv.ListenAndServeTLS(ssl.GetCertificateLocations())
+		if err != nil && err != http.ErrServerClosed {
+			log.Fatal(err)
+		}
 	} else {
 		fmt.Println(infoMessage)
-		log.Fatal(srv.ListenAndServe())
+		err = srv.ListenAndServe()
+		if err != nil && err != http.ErrServerClosed {
+			log.Fatal(err)
+		}
+	}
+}
+
+func Shutdown() {
+	err := srv.Shutdown(context.Background())
+	if err != nil {
+		log.Println(err)
 	}
 }
 
