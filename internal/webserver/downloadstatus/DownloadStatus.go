@@ -57,6 +57,7 @@ func GetAll() map[string]models.DownloadStatus {
 	return status
 }
 
+// DeleteAll removes all download status
 func DeleteAll() {
 	status = make(map[string]models.DownloadStatus)
 }

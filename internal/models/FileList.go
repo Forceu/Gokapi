@@ -23,7 +23,7 @@ type File struct {
 	UnlimitedTime      bool           `json:"UnlimitedTime"`
 }
 
-
+// EncryptionInfo holds information about the encryption used on the file
 type EncryptionInfo struct {
 	IsEncrypted   bool   `json:"IsEncrypted"`
 	DecryptionKey []byte `json:"DecryptionKey"`

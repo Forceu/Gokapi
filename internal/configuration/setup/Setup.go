@@ -373,19 +373,9 @@ func getCloudConfig(formObjects *[]jsonFormObject) (*cloudconfig.CloudConfig, er
 }
 
 func parseEncryptionAndDelete(result *models.Configuration, formObjects *[]jsonFormObject) error {
-	encLevelStr, err := getFormValueString(formObjects, "encrypt_sel")
+	encLevel, err := parseEncryptionLevel(formObjects)
 	if err != nil {
 		return err
-	}
-	encLevel, err := strconv.Atoi(encLevelStr)
-	if err != nil {
-		return err
-	}
-	if encLevel < encryption.NoEncryption || encLevel > encryption.EndToEndEncryption {
-		return errors.New("invalid encryption level selected")
-	}
-	if encLevel == encryption.EndToEndEncryption {
-		return errors.New("end to end encryption not implemented yet") // TODO
 	}
 	if !isInitialSetup {
 		previousLevel := configuration.Get().Encryption.Level
@@ -410,7 +400,7 @@ func parseEncryptionAndDelete(result *models.Configuration, formObjects *[]jsonF
 	if encLevel == encryption.LocalEncryptionInput || encLevel == encryption.FullEncryptionInput {
 		result.Encryption.Salt = helper.GenerateRandomString(30)
 		result.Encryption.ChecksumSalt = helper.GenerateRandomString(30)
-		if len(masterPw) < 6 && (!isInitialSetup && masterPw != "unc") {
+		if !isPwLongEnough(masterPw) {
 			return errors.New("password is less than 6 characters long")
 		}
 		if !isInitialSetup && masterPw != "unc" {
@@ -418,9 +408,35 @@ func parseEncryptionAndDelete(result *models.Configuration, formObjects *[]jsonF
 		}
 		result.Encryption.Checksum = encryption.PasswordChecksum(masterPw, result.Encryption.ChecksumSalt)
 	}
-
 	result.Encryption.Level = encLevel
 	return nil
+}
+
+func isPwLongEnough(pw string) bool {
+	const minLength = 6
+	if isInitialSetup || pw != "unc" {
+		return len(pw) >= minLength
+	}
+	return true
+}
+
+func parseEncryptionLevel(formObjects *[]jsonFormObject) (int, error) {
+	encLevelStr, err := getFormValueString(formObjects, "encrypt_sel")
+	if err != nil {
+		return 0, err
+	}
+	encLevel, err := strconv.Atoi(encLevelStr)
+	if err != nil {
+		return 0, err
+	}
+	if encLevel < encryption.NoEncryption || encLevel > encryption.EndToEndEncryption {
+		return 0, errors.New("invalid encryption level selected")
+	}
+
+	if encLevel == encryption.EndToEndEncryption {
+		return 0, errors.New("end to end encryption not implemented yet") // TODO
+	}
+	return encLevel, nil
 }
 
 func inputToJsonForm(r *http.Request) ([]jsonFormObject, error) {
@@ -528,7 +544,7 @@ func outputError(w http.ResponseWriter, err error) {
 	w.Write([]byte("{ \"result\": \"Error\", \"error\": \"" + err.Error() + "\"}"))
 }
 
-// Adds a / character to the end of an URL if it does not exist
+// Adds a / character to the end of a URL if it does not exist
 func addTrailingSlash(url string) string {
 	if !strings.HasSuffix(url, "/") {
 		return url + "/"

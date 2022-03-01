@@ -20,6 +20,7 @@ type Configuration struct {
 	Encryption     Encryption           `json:"Encryption"`
 }
 
+// Encryption hold information about the encryption used on this file
 type Encryption struct {
 	Level        int
 	Cipher       []byte
@@ -28,6 +29,7 @@ type Encryption struct {
 	ChecksumSalt string
 }
 
+// LastUploadValues is used to save the last used values for uploads in the database
 type LastUploadValues struct {
 	Downloads         int
 	TimeExpiry        int

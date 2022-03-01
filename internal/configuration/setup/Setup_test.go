@@ -7,6 +7,7 @@ import (
 	"errors"
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
+	"github.com/forceu/gokapi/internal/configuration/datastorage"
 	"github.com/forceu/gokapi/internal/environment"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/test"
@@ -26,7 +27,6 @@ var jsonForms []jsonFormObject
 
 func TestMain(m *testing.M) {
 	testconfiguration.SetDirEnv()
-	testconfiguration.Delete()
 	exitVal := m.Run()
 	testconfiguration.Delete()
 	os.Exit(exitVal)
@@ -52,12 +52,81 @@ func TestInputToJson(t *testing.T) {
 func TestMissingSetupValues(t *testing.T) {
 	invalidInputs := createInvalidSetupValues()
 	for _, invalid := range invalidInputs {
-		r := httptest.NewRequest("POST", "/setup", strings.NewReader(invalid.toJson()))
-		setupResult, err := inputToJsonForm(r)
+		formObjects, err := invalid.toFormObject()
 		test.IsNil(t, err)
-		_, _, err = toConfiguration(&setupResult)
+		_, _, err = toConfiguration(&formObjects)
 		test.IsNotNilWithMessage(t, err, invalid.toJson())
 	}
+}
+
+func TestEncryptionSetup(t *testing.T) {
+	input := createInputOAuth()
+	input.EncryptionLevel.Value = "1"
+	formObjects, err := input.toFormObject()
+	test.IsNil(t, err)
+	config, _, err = toConfiguration(&formObjects)
+	test.IsNil(t, err)
+	test.IsEqualInt(t, len(config.Encryption.Cipher), 32)
+	test.IsEqualString(t, config.Encryption.Checksum, "")
+
+	input.EncryptionLevel.Value = "2"
+	input.EncryptionPassword.Value = "testpw"
+	formObjects, err = input.toFormObject()
+	test.IsNil(t, err)
+	config, _, err = toConfiguration(&formObjects)
+	test.IsNil(t, err)
+	test.IsEqualString(t, string(config.Encryption.Cipher), "")
+	test.IsEqualInt(t, len(config.Encryption.Checksum), 64)
+
+	isInitialSetup = false
+
+	testconfiguration.Create(false)
+	configuration.Load()
+	configuration.Get().Encryption.Level = 3
+	id := testconfiguration.WriteEncryptedFile()
+	file, ok := datastorage.GetMetaDataById(id)
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualBool(t, file.UnlimitedTime, true)
+	formObjects, err = input.toFormObject()
+	test.IsNil(t, err)
+	config, _, err = toConfiguration(&formObjects)
+	test.IsNil(t, err)
+	file, ok = datastorage.GetMetaDataById(id)
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualBool(t, file.UnlimitedTime, false)
+
+	configuration.Get().Encryption.Level = 2
+	input.EncryptionPassword.Value = "unc"
+	id = testconfiguration.WriteEncryptedFile()
+	_, ok = datastorage.GetMetaDataById(id)
+	test.IsEqualBool(t, ok, true)
+	formObjects, err = input.toFormObject()
+	test.IsNil(t, err)
+	config, _, err = toConfiguration(&formObjects)
+	test.IsNil(t, err)
+	file, ok = datastorage.GetMetaDataById(id)
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualBool(t, file.UnlimitedTime, true)
+
+	_, ok = datastorage.GetMetaDataById(id)
+	test.IsEqualBool(t, ok, true)
+	configuration.Get().Encryption.Level = 2
+	input.EncryptionPassword.Value = "otherpw"
+	id = testconfiguration.WriteEncryptedFile()
+	_, ok = datastorage.GetMetaDataById(id)
+	test.IsEqualBool(t, ok, true)
+	formObjects, err = input.toFormObject()
+	test.IsNil(t, err)
+	config, _, err = toConfiguration(&formObjects)
+	test.IsNil(t, err)
+	file, ok = datastorage.GetMetaDataById(id)
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualBool(t, file.UnlimitedTime, false)
+
+	datastorage.Close()
+	testconfiguration.Delete()
+
+	isInitialSetup = true
 }
 
 var config = models.Configuration{
@@ -434,6 +503,28 @@ func (s *setupValues) toJson() string {
 	return string(result)
 }
 
+func (s *setupValues) toFormObject() ([]jsonFormObject, error) {
+	r := httptest.NewRequest("POST", "/setup", strings.NewReader(s.toJson()))
+	setupResult, err := inputToJsonForm(r)
+	if err != nil {
+		return nil, err
+	}
+	return setupResult, err
+}
+
+func TestIsPwLongEnough(t *testing.T) {
+	isInitialSetup = true
+	test.IsEqualBool(t, isPwLongEnough("unc"), false)
+	test.IsEqualBool(t, isPwLongEnough("12345"), false)
+	test.IsEqualBool(t, isPwLongEnough("123456"), true)
+	test.IsEqualBool(t, isPwLongEnough("1234567"), true)
+	isInitialSetup = false
+	test.IsEqualBool(t, isPwLongEnough("unc"), true)
+	test.IsEqualBool(t, isPwLongEnough("12345"), false)
+	test.IsEqualBool(t, isPwLongEnough("123456"), true)
+	test.IsEqualBool(t, isPwLongEnough("1234567"), true)
+}
+
 func createInvalidSetupValues() []setupValues {
 	var result []setupValues
 	input := createInputInternalAuth()
@@ -457,8 +548,11 @@ func createInvalidSetupValues() []setupValues {
 			result = append(result, invalidSetup)
 		}
 	}
-
 	invalidSetup := input
+	invalidSetup.AuthenticationMode.Value = "4"
+	result = append(result, invalidSetup)
+
+	invalidSetup = input
 	invalidSetup.EncryptionLevel.Value = "-1"
 	result = append(result, invalidSetup)
 
@@ -467,7 +561,12 @@ func createInvalidSetupValues() []setupValues {
 	result = append(result, invalidSetup)
 
 	invalidSetup = input
-	invalidSetup.AuthenticationMode.Value = "4"
+	invalidSetup.EncryptionLevel.Value = "5" // e2e not implemented yet
+	result = append(result, invalidSetup)
+
+	invalidSetup = input
+	invalidSetup.EncryptionLevel.Value = "4"
+	invalidSetup.EncryptionPassword.Value = "2shrt"
 	result = append(result, invalidSetup)
 
 	return result
@@ -521,21 +620,12 @@ func createInputHeaderAuth() setupValues {
 }
 
 func createInputOAuth() setupValues {
-	values := setupValues{}
-	values.init()
-
-	values.BindLocalhost.Value = "0"
-	values.UseSsl.Value = "1"
-	values.Port.Value = "53842"
-	values.ExtUrl.Value = "http://127.0.0.1:53842/"
-	values.RedirectUrl.Value = "https://test.com"
+	values := createInputHeaderAuth()
 	values.AuthenticationMode.Value = "1"
 	values.OAuthProvider.Value = "provider"
 	values.OAuthClientId.Value = "id"
 	values.OAuthClientSecret.Value = "secret"
 	values.OAuthAuthorisedUsers.Value = "oatest1; oatest2"
 	values.StorageSelection.Value = "local"
-	values.EncryptionLevel.Value = "0"
-
 	return values
 }

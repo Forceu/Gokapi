@@ -13,10 +13,10 @@ import (
 	"time"
 )
 
-const prefixApiKey  = "apikey:id:"
-const prefixFile    = "file:id:"
+const prefixApiKey = "apikey:id:"
+const prefixFile = "file:id:"
 const prefixHotlink = "hotlink:id:"
-const prefixSessions= "session:id:"
+const prefixSessions = "session:id:"
 const idLastUploadConfig = "default:lastupload"
 
 const maxKeySize = 96
@@ -65,6 +65,9 @@ func Close() {
 
 // GetAllMetadata returns a map of all available files
 func GetAllMetadata() map[string]models.File {
+	if database == nil {
+		panic("Database not loaded!")
+	}
 	result := make(map[string]models.File)
 	var keys []string
 	err := database.Scan([]byte(prefixFile), func(key []byte) error {

@@ -133,6 +133,7 @@ func Start() {
 	}
 }
 
+// Shutdown closes the webserver gracefully
 func Shutdown() {
 	err := srv.Shutdown(context.Background())
 	if err != nil {

@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/forceu/gokapi/internal/configuration/datastorage"
+	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage/cloudstorage/aws"
 	"github.com/johannesboyne/gofakes3"
@@ -55,6 +56,21 @@ func Create(initFiles bool) {
 		os.WriteFile("test/data/unlimtedtest", []byte("def"), 0777)
 		os.WriteFile("test/fileupload.jpg", []byte("abc"), 0777)
 	}
+}
+
+func WriteEncryptedFile() string {
+	name := helper.GenerateRandomString(10)
+	datastorage.SaveMetaData(models.File{
+		Id:     name,
+		Name:   name,
+		SHA256: name,
+		Encryption: models.EncryptionInfo{
+			IsEncrypted: true,
+		},
+		UnlimitedDownloads: true,
+		UnlimitedTime:      true,
+	})
+	return name
 }
 
 // WriteUpgradeConfigFileV0 writes a Gokapi v1.1.0 config file

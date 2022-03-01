@@ -130,6 +130,7 @@ func deleteTempFile(file *os.File, hasBeenRenamed *bool) {
 	}
 }
 
+// DeleteAllEncrypted marks all encrypted files for deletion on next cleanup
 func DeleteAllEncrypted() {
 	files := datastorage.GetAllMetadata()
 	for _, file := range files {
@@ -153,9 +154,8 @@ func generateHash(fileContent io.Reader, fileHeader *multipart.FileHeader, uploa
 			err = encryption.Encrypt(&encInfo, bytes.NewReader(content), encContent)
 			helper.Check(err)
 			return bytes.NewReader(encContent.Bytes()), hash.Sum(nil), nil, encInfo
-		} else {
-			return bytes.NewReader(content), hash.Sum(nil), nil, encInfo
 		}
+		return bytes.NewReader(content), hash.Sum(nil), nil, encInfo
 	}
 	tempFile, err := os.CreateTemp(uploadRequest.DataDir, "upload")
 	helper.Check(err)
@@ -229,6 +229,8 @@ func GetFileByHotlink(id string) (models.File, bool) {
 	return GetFile(fileId)
 }
 
+// RequiresClientDecryption checks if the file needs to be decrypted by the client
+// (if remote storage or end-to-end encryption)
 func RequiresClientDecryption(file models.File) bool {
 	if !file.Encryption.IsEncrypted {
 		return false
@@ -338,6 +340,8 @@ func CleanUp(periodic bool) {
 	datastorage.RunGarbageCollection()
 }
 
+// IsExpiredFile returns true if the file is expired, either due to download count
+// or if the provided timestamp is after the expiry timestamp
 func IsExpiredFile(file models.File, timeNow int64) bool {
 	return (file.ExpireAt < timeNow && !file.UnlimitedTime) ||
 		(file.DownloadsRemaining < 1 && !file.UnlimitedDownloads)

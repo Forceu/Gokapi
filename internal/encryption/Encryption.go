@@ -17,6 +17,7 @@ import (
 	"time"
 )
 
+// NoEncryption setup value is fo
 const NoEncryption = 0
 const LocalEncryptionStored = 1
 const LocalEncryptionInput = 2
@@ -29,6 +30,7 @@ var encryptedKey, ramCipher []byte
 const blockSize = 32
 const nonceSize = 12
 
+// Init needs to be called to load the master key into memory or ask the user for the password
 func Init(config models.Configuration) {
 	switch config.Encryption.Level {
 	case NoEncryption:
@@ -90,6 +92,7 @@ func readAndCheckPassword(expectedChecksum, saltChecksum string) string {
 	return pw
 }
 
+// PasswordChecksum creates a checksum which is used to check if the supplied password is correct
 func PasswordChecksum(pw, salt string) string {
 	cipherKey, err := scrypt.Key([]byte(pw), []byte(salt), 1048576, 8, 1, blockSize)
 	pw = ""
@@ -133,6 +136,7 @@ func getMasterCipher() []byte {
 	return key
 }
 
+// Encrypt encrypts a file
 func Encrypt(encInfo *models.EncryptionInfo, input io.Reader, output io.Writer) error {
 	key, err := generateNewFileKey(encInfo)
 	if err != nil {
@@ -145,6 +149,7 @@ func Encrypt(encInfo *models.EncryptionInfo, input io.Reader, output io.Writer) 
 	return err
 }
 
+// DecryptReader modifies a reader so it can decrypt encrypted files
 func DecryptReader(encInfo models.EncryptionInfo, input io.Reader, output io.Writer) error {
 	key, err := GetCipherFromFile(encInfo)
 	if err != nil {
@@ -156,18 +161,22 @@ func DecryptReader(encInfo models.EncryptionInfo, input io.Reader, output io.Wri
 	_, err = io.Copy(output, reader)
 	return err
 }
+
+// GetDecryptWriter returns a writer that can decrypt encrypted files
 func GetDecryptWriter(cipherKey []byte, input io.Writer) (io.Writer, error) {
 	stream := getStream(cipherKey)
 	nonce := make([]byte, stream.NonceSize()) // Nonce is not used
 	return stream.DecryptWriter(input, nonce, nil), nil
 }
 
+// GetDecryptReader returns a reader that can decrypt encrypted files
 func GetDecryptReader(cipherKey []byte, input io.Reader) (io.Reader, error) {
 	stream := getStream(cipherKey)
 	nonce := make([]byte, stream.NonceSize()) // Nonce is not used
 	return stream.DecryptReader(input, nonce, nil), nil
 }
 
+// GetEncryptReader returns a reader that can encrypt plain files
 func GetEncryptReader(cipherKey []byte, input io.Reader) (io.Reader, error) {
 	stream := getStream(cipherKey)
 	nonce := make([]byte, stream.NonceSize()) // Nonce is not used
@@ -193,6 +202,7 @@ func generateNewFileKey(encInfo *models.EncryptionInfo) ([]byte, error) {
 	return encryptionKey, nil
 }
 
+// GetCipherFromFile loads the cipher from a file model
 func GetCipherFromFile(encInfo models.EncryptionInfo) ([]byte, error) {
 	cipherFile, err := fileCipherDecrypt(encInfo.DecryptionKey, encInfo.Nonce)
 	if err != nil {
@@ -251,6 +261,7 @@ func getRandomData(size int) ([]byte, error) {
 	return data, nil
 }
 
+// GetRandomCipher a 32 byte long array with random data
 func GetRandomCipher() ([]byte, error) {
 	return getRandomData(blockSize)
 }
