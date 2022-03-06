@@ -72,7 +72,7 @@ To start the container, run the following command: ::
 
  docker run -v gokapi-data:/app/data -v gokapi-config:/app/config -p 127.0.0.1:53842:53842 f0rc3/gokapi:latest
 
-With the argument ``-p 127.0.0.1:53842:53842`` the service will only be accessible from the machine it is running on. In most usecases you will use a reverse proxy for SSL - if you want to make the service available to other computers in the network without a reverse proxy, replace the argument with ``-p 53842:53842``. Please note, unless you select SSL during the setup, the traffic will not be encrypted that way and data like passwords and transferred files can easily be read by 3rd parties!
+With the argument ``-p 127.0.0.1:53842:53842`` the service will only be accessible from the machine it is running on. In most usecases you will use a reverse proxy for SSL - if you want to make the service available to other computers in the network without a reverse proxy, replace the argument with ``-p 53842:53842``. Please note, unless you select SSL during the setup, the traffic will not be encrypted that way and data like passwords and transferred files can easily be read by third parties!
 
 
 Initial Setup
@@ -170,7 +170,7 @@ Stores files locally in the subdirectory ``data`` by default.
 .. _cloudstorage:
 
 Cloudstorage
-""""""""""""""
+*********************
 
 Stores files remotely on an S3 compatible server, e.g. Amazon AWS S3 or Backblaze B2. Please note that currently no native encryption is available for Gokapi, therefore all files will be stored in plain text on the cloud server.
 
@@ -196,6 +196,30 @@ The following data needs to be provided:
 | Endpoint  | Endpoint to use. Leave blank if using AWS S3. | only for Backblaze B2 | s3.eu-central-001.backblazeb2.com |
 +-----------+-----------------------------------------------+-----------------------+-----------------------------------+
 
+Encryption
+""""""""""""""
+
+*Warning: Encryption has not been audited.*
+
+There are two different encryption levels, level 1 encrypts only local files and level 2 encrypts local and files stored on cloud storage (e.g. AWS S3). Decryption of files on remote storage is done client-side, for which a 2MB library needs to be downloaded on first visit.
+
+There are some drawbacks of using encryption:
+
++------------------------------+---------------+--------------------+-------------------------+
+|                              | No Encryption | Level 1 Local      | Level 2 Full            |
++==============================+===============+====================+=========================+
+| File Encryption              | None          | Only local files   | Local and cloud storage |
++------------------------------+---------------+--------------------+-------------------------+
+| Hotlink Support              | Yes           | Yes                | Only local files        |
++------------------------------+---------------+--------------------+-------------------------+
+| Download Progress Indication | Yes           | Only cloud storage | No                      |
++------------------------------+---------------+--------------------+-------------------------+
+
+You can choose to store the key in the configuration file, which is preferred if access by other parties to your configuration file is unlikely.
+
+If you are concerned that the configuration file can be read, you can also choose to enter a master password on startup. This needs to be entered in the command line however and Gokapi will not be able to start without it.
+
+Please note: If you re-run the setup and enable encryption, unencrypted files will stay unencrypted. If you change any configuration related to encryption, all already encrypted files will be deleted.
 
 ************************
 Changing Configuration
