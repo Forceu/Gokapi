@@ -153,6 +153,7 @@ func generateHash(fileContent io.Reader, fileHeader *multipart.FileHeader, uploa
 			encContent := new(bytes.Buffer)
 			err = encryption.Encrypt(&encInfo, bytes.NewReader(content), encContent)
 			helper.Check(err)
+			hash.Write([]byte(configuration.Get().Authentication.SaltFiles))
 			return bytes.NewReader(encContent.Bytes()), hash.Sum(nil), nil, encInfo
 		}
 		return bytes.NewReader(content), hash.Sum(nil), nil, encInfo
@@ -173,6 +174,7 @@ func generateHash(fileContent io.Reader, fileHeader *multipart.FileHeader, uploa
 		encryption.Encrypt(&encInfo, tempFile, tempFileEnc)
 		err = os.Remove(tempFile.Name())
 		helper.Check(err)
+		hash.Write([]byte(configuration.Get().Authentication.SaltFiles))
 		tempFile = tempFileEnc
 	}
 	// Instead of returning a reference to the file as the 3rd result, one could use reflections. However, that would be more expensive.

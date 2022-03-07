@@ -363,6 +363,16 @@ func TestDeleteFile(t *testing.T) {
 	time.Sleep(time.Second)
 	test.IsEqualBool(t, result, false)
 
+	testfile := models.File{Id: "testfiledownload", DownloadsRemaining: 1, ExpireAt: 2147483646}
+	datastorage.SaveMetaData(testfile)
+	downloadstatus.SetDownload(testfile)
+	file, ok := datastorage.GetMetaDataById("testfiledownload")
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualBool(t, file.ExpireAt != 0, true)
+	DeleteFile(file.Id, false)
+	file, ok = datastorage.GetMetaDataById("testfiledownload")
+	test.IsEqualInt(t, int(file.ExpireAt), 0)
+
 	if aws.IsIncludedInBuild {
 		testconfiguration.EnableS3()
 		config, ok := cloudconfig.Load()
@@ -390,10 +400,63 @@ func TestDeleteFile(t *testing.T) {
 	}
 }
 
+func TestRequiresClientDecryption(t *testing.T) {
+	file := models.File{
+		Id:        "test",
+		AwsBucket: "bucket",
+		Encryption: models.EncryptionInfo{
+			IsEncrypted: true,
+		},
+	}
+	result := RequiresClientDecryption(file)
+	test.IsEqualBool(t, result, true)
+	file.Encryption.IsEncrypted = false
+	result = RequiresClientDecryption(file)
+	test.IsEqualBool(t, result, false)
+	file.AwsBucket = ""
+	result = RequiresClientDecryption(file)
+	test.IsEqualBool(t, result, false)
+	file.Encryption.IsEncrypted = true
+	result = RequiresClientDecryption(file)
+	test.IsEqualBool(t, result, false)
+
+}
+
 func createBigFile(name string, megabytes int64) {
 	size := megabytes * 1024 * 1024
 	file, _ := os.Create(name)
 	_, _ = file.Seek(size-1, 0)
 	_, _ = file.Write([]byte{0})
 	_ = file.Close()
+}
+
+func TestDeleteAllEncrypted(t *testing.T) {
+	file := models.File{
+		Id:            "testEncDelEnc",
+		UnlimitedTime: true,
+		Encryption: models.EncryptionInfo{
+			IsEncrypted: true,
+		},
+	}
+	datastorage.SaveMetaData(file)
+	file = models.File{
+		Id:            "testEncDelUn",
+		UnlimitedTime: true,
+		Encryption: models.EncryptionInfo{
+			IsEncrypted: false,
+		},
+	}
+	datastorage.SaveMetaData(file)
+	data, ok := datastorage.GetMetaDataById("testEncDelEnc")
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualBool(t, data.UnlimitedTime, true)
+	data, ok = datastorage.GetMetaDataById("testEncDelUn")
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualBool(t, data.UnlimitedTime, true)
+	DeleteAllEncrypted()
+	data, ok = datastorage.GetMetaDataById("testEncDelEnc")
+	test.IsEqualBool(t, data.UnlimitedTime, false)
+	data, ok = datastorage.GetMetaDataById("testEncDelUn")
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualBool(t, data.UnlimitedTime, true)
 }
