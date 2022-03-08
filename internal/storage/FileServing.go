@@ -336,8 +336,10 @@ func CleanUp(periodic bool) {
 		CleanUp(false)
 	}
 	if periodic {
-		time.Sleep(time.Hour)
-		go CleanUp(periodic)
+		go func() {
+			time.Sleep(time.Hour)
+			CleanUp(periodic)
+		}()
 	}
 	datastorage.RunGarbageCollection()
 }

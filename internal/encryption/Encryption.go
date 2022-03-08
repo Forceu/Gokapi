@@ -64,7 +64,6 @@ func initWithPassword(saltPw, expectedChecksum, saltChecksum string) {
 	}
 	pw := readAndCheckPassword(expectedChecksum, saltChecksum)
 	cipherKey, err := scrypt.Key([]byte(pw), []byte(saltPw), 1048576, 8, 1, blockSize)
-	pw = ""
 	if err != nil {
 		cipherKey = []byte{}
 		log.Fatal(err)
@@ -105,7 +104,6 @@ func readAndCheckPassword(expectedChecksum, saltChecksum string) string {
 // PasswordChecksum creates a checksum which is used to check if the supplied password is correct
 func PasswordChecksum(pw, salt string) string {
 	cipherKey, err := scrypt.Key([]byte(pw), []byte(salt), 1048576, 8, 1, blockSize)
-	pw = ""
 	if err != nil {
 		cipherKey = []byte{}
 		log.Fatal(err)
@@ -121,7 +119,6 @@ func initWithCipher(cipherKey []byte) {
 		log.Fatal("Invalid cipher provided. Please rerun setup with --reconfigure")
 	}
 	storeMasterKey(cipherKey)
-	cipherKey = []byte{}
 }
 
 func storeMasterKey(cipherKey []byte) {
@@ -131,7 +128,6 @@ func storeMasterKey(cipherKey []byte) {
 		log.Fatal(err)
 	}
 	encryptedKey, err = encryptDecryptText(cipherKey, ramCipher, make([]byte, nonceSize), true)
-	cipherKey = []byte{}
 	if err != nil {
 		log.Fatal(err)
 	}

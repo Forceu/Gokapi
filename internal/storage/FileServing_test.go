@@ -285,7 +285,15 @@ func TestNewFile(t *testing.T) {
 	test.IsEqualString(t, retrievedFile.SHA256, "c1c165c30d0def15ba2bc8f1bd243be13b8c8fe7")
 
 	bigFile.Close()
+	datastorage.DeleteMetaData(retrievedFile.Id)
+
+	bigFile, _ = os.Open("bigfile")
+	file, err = NewFile(bigFile, &header, request)
+	test.IsNil(t, err)
+	retrievedFile, ok = datastorage.GetMetaDataById(file.Id)
+	test.IsEqualBool(t, ok, true)
 	os.Remove("bigfile")
+
 	configuration.Get().Authentication.SaltFiles = previousSalt
 	configuration.Get().Encryption.Level = 0
 
@@ -462,6 +470,8 @@ func TestCleanUp(t *testing.T) {
 		test.IsEqualString(t, files["awsTest1234567890123"].Name, "Aws Test File")
 		testconfiguration.DisableS3()
 	}
+	// Doesn't really test anything
+	CleanUp(true)
 }
 
 func TestDeleteFile(t *testing.T) {

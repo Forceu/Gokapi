@@ -58,6 +58,7 @@ func Create(initFiles bool) {
 	}
 }
 
+// WriteEncryptedFile writes metadata for an encrypted file and returns the id
 func WriteEncryptedFile() string {
 	name := helper.GenerateRandomString(10)
 	datastorage.SaveMetaData(models.File{

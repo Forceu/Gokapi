@@ -37,6 +37,11 @@ func TestLoad(t *testing.T) {
 	test.IsEqualInt(t, serverSettings.MaxMemory, 80)
 	os.Unsetenv("GOKAPI_MAX_MEMORY_UPLOAD")
 	Load()
+	testconfiguration.WriteUpgradeConfigFileV8()
+	Load()
+	test.IsEqualInt(t, serverSettings.ConfigVersion, configupgrade.CurrentConfigVersion)
+	testconfiguration.Create(false)
+	Load()
 }
 
 func TestHashPassword(t *testing.T) {
