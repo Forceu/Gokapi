@@ -8,6 +8,7 @@ import (
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
 	"github.com/forceu/gokapi/internal/configuration/datastorage"
+	"github.com/forceu/gokapi/internal/encryption"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage/cloudstorage/aws"
 	"github.com/forceu/gokapi/internal/test"
@@ -79,9 +80,21 @@ func TestAddHotlink(t *testing.T) {
 	link, ok := datastorage.GetHotlink(file.HotlinkId)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualString(t, link, "testId")
+	file = models.File{Name: "test.jpg", Id: "testId", ExpireAt: time.Now().Add(time.Hour).Unix()}
+	file.Encryption.IsEncrypted = true
+	file.AwsBucket = "test"
+	addHotlink(&file)
+	test.IsEqualString(t, file.HotlinkId, "")
 }
 
-func TestNewFile(t *testing.T) {
+type testFile struct {
+	File    models.File
+	Request models.UploadRequest
+	Header  multipart.FileHeader
+	Content []byte
+}
+
+func createTestFile() (testFile, error) {
 	os.Setenv("TZ", "UTC")
 	content := []byte("This is a file for testing purposes")
 	mimeHeader := make(textproto.MIMEHeader)
@@ -100,6 +113,22 @@ func TestNewFile(t *testing.T) {
 		DataDir:          "test/data",
 	}
 	file, err := NewFile(bytes.NewReader(content), &header, request)
+	return testFile{
+		File:    file,
+		Request: request,
+		Header:  header,
+		Content: content,
+	}, err
+}
+
+func TestNewFile(t *testing.T) {
+
+	newFile, err := createTestFile()
+	file := newFile.File
+	request := newFile.Request
+	content := newFile.Content
+	header := newFile.Header
+
 	test.IsNil(t, err)
 	retrievedFile, ok := datastorage.GetMetaDataById(file.Id)
 	test.IsEqualBool(t, ok, true)
@@ -132,7 +161,7 @@ func TestNewFile(t *testing.T) {
 
 	createBigFile("bigfile", 20)
 	bigFile, _ := os.Open("bigfile")
-	mimeHeader = make(textproto.MIMEHeader)
+	mimeHeader := make(textproto.MIMEHeader)
 	mimeHeader.Set("Content-Disposition", "form-data; name=\"file\"; filename=\"bigfile\"")
 	mimeHeader.Set("Content-Type", "application/binary")
 	header = multipart.FileHeader{
@@ -189,6 +218,24 @@ func TestNewFile(t *testing.T) {
 	bigFile.Close()
 	os.Remove("bigfile")
 
+	configuration.Get().Encryption.Level = 1
+	previousSalt := configuration.Get().Authentication.SaltFiles
+	configuration.Get().Authentication.SaltFiles = "testsaltfiles"
+	cipher, err := encryption.GetRandomCipher()
+	test.IsNil(t, err)
+	encryption.Init(models.Configuration{Encryption: models.Encryption{
+		Level:  encryption.LocalEncryptionStored,
+		Cipher: cipher,
+	}})
+
+	newFile, err = createTestFile()
+	test.IsNil(t, err)
+	retrievedFile, ok = datastorage.GetMetaDataById(newFile.File.Id)
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualString(t, retrievedFile.SHA256, "5bbfa18805eb12c678cfd284c956718d57039e37")
+	configuration.Get().Authentication.SaltFiles = previousSalt
+	configuration.Get().Encryption.Level = 0
+
 	if aws.IsIncludedInBuild {
 		header = multipart.FileHeader{
 			Filename: "bigfile",
@@ -216,6 +263,7 @@ func TestNewFile(t *testing.T) {
 		test.IsEqualString(t, retrievedFile.Size, "20.0 MB")
 		testconfiguration.DisableS3()
 	}
+
 }
 
 func TestServeFile(t *testing.T) {
@@ -252,6 +300,25 @@ func TestServeFile(t *testing.T) {
 		}
 		testconfiguration.DisableS3()
 	}
+	newFile, err := createTestFile()
+	test.IsNotNil(t, err)
+	file = newFile.File
+	datastorage.SaveMetaData(file)
+	r = httptest.NewRequest("GET", "/upload", nil)
+	w = httptest.NewRecorder()
+	cipher, err := encryption.GetRandomCipher()
+	test.IsNil(t, err)
+	nonce, err := encryption.GetRandomNonce()
+	test.IsNil(t, err)
+	encryption.Init(models.Configuration{Encryption: models.Encryption{
+		Level:  encryption.LocalEncryptionStored,
+		Cipher: cipher,
+	}})
+	file.Encryption.IsEncrypted = true
+	file.Encryption.DecryptionKey = cipher
+	file.Encryption.Nonce = nonce
+	defer test.ExpectPanic(t)
+	ServeFile(file, w, r, true)
 }
 
 func TestCleanUp(t *testing.T) {
@@ -459,4 +526,19 @@ func TestDeleteAllEncrypted(t *testing.T) {
 	data, ok = datastorage.GetMetaDataById("testEncDelUn")
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, data.UnlimitedTime, true)
+}
+
+func TestWriteDownloadHeaders(t *testing.T) {
+	file := models.File{Name: "testname", ContentType: "testtype"}
+	w, _ := test.GetRecorder("GET", "/test", nil, nil, nil)
+	writeDownloadHeaders(file, w, true)
+	test.IsEqualString(t, w.Result().Header.Get("Content-Disposition"), "attachment; filename=\"testname\"")
+	w, _ = test.GetRecorder("GET", "/test", nil, nil, nil)
+	writeDownloadHeaders(file, w, false)
+	test.IsEqualString(t, w.Result().Header.Get("Content-Disposition"), "inline; filename=\"testname\"")
+	test.IsEqualString(t, w.Result().Header.Get("Content-Type"), "testtype")
+	file.Encryption.IsEncrypted = true
+	w, _ = test.GetRecorder("GET", "/test", nil, nil, nil)
+	writeDownloadHeaders(file, w, false)
+	test.IsEqualString(t, w.Result().Header.Get("Accept-Ranges"), "bytes")
 }

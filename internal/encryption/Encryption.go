@@ -17,12 +17,22 @@ import (
 	"time"
 )
 
-// NoEncryption setup value is fo
+// NoEncryption means all files are stored in plaintext
 const NoEncryption = 0
+
+// LocalEncryptionStored means remote files are stored in plaintext, cipher for local files is in plaintext
 const LocalEncryptionStored = 1
+
+// LocalEncryptionInput means remote files are stored in plaintext, password needs to be entered on startup
 const LocalEncryptionInput = 2
+
+// FullEncryptionStored means all files are encrypted, cipher for local files is in plaintext
 const FullEncryptionStored = 3
+
+// FullEncryptionInput means all files are encrypted, password needs to be entered on startup
 const FullEncryptionInput = 4
+
+// EndToEndEncryption means all files are encrypted and decrypted client-side
 const EndToEndEncryption = 5
 
 var encryptedKey, ramCipher []byte
@@ -264,4 +274,9 @@ func getRandomData(size int) ([]byte, error) {
 // GetRandomCipher a 32 byte long array with random data
 func GetRandomCipher() ([]byte, error) {
 	return getRandomData(blockSize)
+}
+
+// GetRandomNonce a 12 byte long array with random data
+func GetRandomNonce() ([]byte, error) {
+	return getRandomData(nonceSize)
 }

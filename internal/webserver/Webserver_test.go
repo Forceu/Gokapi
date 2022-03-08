@@ -11,7 +11,6 @@ import (
 	"github.com/forceu/gokapi/internal/test/testconfiguration"
 	"github.com/forceu/gokapi/internal/webserver/authentication"
 	"html/template"
-	"io"
 	"io/fs"
 	"os"
 	"strings"
@@ -653,9 +652,6 @@ func TestResponseError(t *testing.T) {
 	err := errors.New("testerror")
 	defer test.ExpectPanic(t)
 	responseError(w, err)
-	output, err := io.ReadAll(w.Result().Body)
-	test.IsNil(t, err)
-	test.IsEqualString(t, string(output), "{\"Result\":\"error\",\"ErrorMessage\":\""+err.Error()+"\"}")
 }
 
 func TestShowErrorAuth(t *testing.T) {
