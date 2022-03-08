@@ -9,20 +9,27 @@
 		    <br>
 		    <p class="card-text"><form action="./upload"
 			      class="dropzone"
-			      id="uploaddropzone"></form></p><br>
+			      id="uploaddropzone"></form>			
+		</p><br>
 
 		<div class="container-md">
 		  <div class="row">
 			  <div class="form-group col">
 				<input class="form-check-input" type="checkbox" name="enableDownloadLimit" id="enableDownloadLimit" onchange="checkBoxChanged(this, 'allowedDownloads')" value="" aria-label="Enable Download Limit" {{ if not .DefaultUnlimitedDownload }} checked {{ end }}>
-	     			<label class="control-label small" for="allowedDownloads">Allowed downloads</label>
-				<input type="number" class="form-control admin-input" value="{{ .DefaultDownloads }}" name="allowedDownloads" id="allowedDownloads" min="1"  {{ if .DefaultUnlimitedDownload }} disabled {{ end }}/>
+	     			<label class="control-label small" for="allowedDownloads">Limit Downloads</label>
+				<div class="input-group mb-3">
+					<input type="number" class="form-control admin-input" value="{{ .DefaultDownloads }}" name="allowedDownloads" id="allowedDownloads" min="1"  {{ if .DefaultUnlimitedDownload }} disabled {{ end }}  style="text-align: right;"/>
+	  				<span class="input-group-text">Downloads</span>
+				</div>
 			 </div>
   			 <div class="break"></div>
 	   		 <div class="form-group col">
 				<input class="form-check-input" type="checkbox" name="enableTimeLimit" id="enableTimeLimit" onchange="checkBoxChanged(this, 'expiryDays')" value="" aria-label="Enable Time Limit"  {{ if not .DefaultUnlimitedTime }} checked {{ end }}>
-	     			<label class="control-label  small" for="expiryDays">Expiry in days</label>
-				<input type="number" class="form-control admin-input" value="{{ .DefaultExpiry }}" name="expiryDays" id="expiryDays" min="1"  {{ if .DefaultUnlimitedTime }} disabled {{ end }}/>
+	     			<label class="control-label  small" for="expiryDays">Expiry</label>
+				<div class="input-group mb-3">
+					<input type="number" class="form-control admin-input" value="{{ .DefaultExpiry }}" name="expiryDays" id="expiryDays" min="1"  {{ if .DefaultUnlimitedTime }} disabled {{ end }} style="text-align: right;"/>
+	  				<span class="input-group-text">Days</span>
+				</div>
 			 </div>
   			 <div class="break"></div>
 	    		 <div class="form-group col">
@@ -85,6 +92,7 @@
 	<script src="./js/admin.js?v=8"></script>
 	<script>
 		Dropzone.options.uploaddropzone["maxFilesize"] = {{ .MaxFileSize }};
+		Dropzone.options.uploaddropzone["dictDefaultMessage"] = "Drop files, paste or click here to upload";
 	</script>
 
 

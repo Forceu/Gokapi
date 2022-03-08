@@ -38,10 +38,12 @@ func TestSetUpgradeConfigFileV8(t *testing.T) {
 }
 
 func TestWriteEncryptedFile(t *testing.T) {
+	datastorage.Init("./test/filestorage.db")
 	fileId := WriteEncryptedFile()
 	file, ok := datastorage.GetMetaDataById(fileId)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualString(t, file.Id, fileId)
+	datastorage.Close()
 }
 
 func TestEnableS3(t *testing.T) {
