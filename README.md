@@ -20,9 +20,10 @@ Identical files will be deduplicated. An API is available to interact with Gokap
 
 
 ## Screenshots
-Admin Menu![image](https://user-images.githubusercontent.com/1593467/117467861-62861480-af54-11eb-8823-a7b8e60d9017.png)
+Admin Menu ![screencapture-127-0-0-1-53842-admin-2022-03-08-18_45_01](https://user-images.githubusercontent.com/1593467/157296255-fa49ca73-0628-4c80-be97-d85dadd9b177.png)
 
-Download Link![image](https://user-images.githubusercontent.com/1593467/117467941-7893d500-af54-11eb-9930-6480160fa2e1.png)
+Download Link ![screencapture-127-0-0-1-53842-d-2022-03-08-18_45_25](https://user-images.githubusercontent.com/1593467/157296296-5431aab9-feab-4fb6-be69-05db7b3b0ed7.png)
+
 
 
 
