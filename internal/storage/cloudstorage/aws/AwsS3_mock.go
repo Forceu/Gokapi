@@ -49,6 +49,11 @@ func IsAvailable() bool {
 	return isCorrectLogin
 }
 
+// LogOut resets the credentials, only used for testing purposes
+func LogOut() {
+	isCorrectLogin = false
+}
+
 // AddBucketName adds the bucket name to the file to be stored
 func AddBucketName(file *models.File) {
 	file.AwsBucket = bucketName

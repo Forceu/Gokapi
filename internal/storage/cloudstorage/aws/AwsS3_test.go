@@ -132,3 +132,8 @@ func TestDeleteObject(t *testing.T) {
 	test.IsEqualBool(t, result, true)
 	test.IsNil(t, err)
 }
+func TestLogOut(t *testing.T) {
+	test.IsEqualBool(t, isCorrectLogin, true)
+	LogOut()
+	test.IsEqualBool(t, isCorrectLogin, false)
+}

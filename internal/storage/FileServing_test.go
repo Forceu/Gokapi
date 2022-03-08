@@ -52,7 +52,48 @@ func TestGetFile(t *testing.T) {
 	test.IsEqualInt(t, file.DownloadsRemaining, 1)
 	_, result = GetFile("deletedfile1234")
 	test.IsEqualBool(t, result, false)
+	_, result = GetFile("")
+	test.IsEqualBool(t, result, false)
+	file = models.File{
+		Id:                 "testget",
+		Name:               "testget",
+		SHA256:             "testget",
+		UnlimitedDownloads: true,
+		UnlimitedTime:      true,
+	}
+	datastorage.SaveMetaData(file)
+	_, result = GetFile(file.Id)
+	test.IsEqualBool(t, result, false)
 
+}
+
+func TestGetEncInfoFromExistingFile(t *testing.T) {
+	configuration.Get().Encryption.Level = 0
+	_, result := getEncInfoFromExistingFile("testhash")
+	test.IsEqualBool(t, result, true)
+	file := models.File{
+		Id:     "testhash",
+		Name:   "testhash",
+		SHA256: "testhash",
+		Encryption: models.EncryptionInfo{
+			IsEncrypted:   true,
+			DecryptionKey: nil,
+			Nonce:         nil,
+		},
+		UnlimitedDownloads: true,
+		UnlimitedTime:      true,
+	}
+	datastorage.SaveMetaData(file)
+	encinfo, result := getEncInfoFromExistingFile("testhash")
+	test.IsEqualBool(t, encinfo.IsEncrypted, false)
+	test.IsEqualBool(t, result, true)
+	configuration.Get().Encryption.Level = 1
+	encinfo, result = getEncInfoFromExistingFile("testhash")
+	test.IsEqualBool(t, result, true)
+	test.IsEqualBool(t, encinfo.IsEncrypted, true)
+	_, result = getEncInfoFromExistingFile("testhashinvalid")
+	test.IsEqualBool(t, result, false)
+	configuration.Get().Encryption.Level = 0
 }
 
 func TestGetFileByHotlink(t *testing.T) {
@@ -210,11 +251,10 @@ func TestNewFile(t *testing.T) {
 		MaxMemory:        10,
 		DataDir:          "test/data",
 	}
-	_, err = NewFile(bigFile, &header, request)
+	file, err = NewFile(bigFile, &header, request)
 	test.IsNotNil(t, err)
 	retrievedFile, ok = datastorage.GetMetaDataById(file.Id)
-	test.IsEqualBool(t, ok, true)
-	test.IsEqualString(t, retrievedFile.Name, "bigfile")
+	test.IsEqualBool(t, ok, false)
 	bigFile.Close()
 	os.Remove("bigfile")
 
@@ -233,6 +273,19 @@ func TestNewFile(t *testing.T) {
 	retrievedFile, ok = datastorage.GetMetaDataById(newFile.File.Id)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualString(t, retrievedFile.SHA256, "5bbfa18805eb12c678cfd284c956718d57039e37")
+
+	createBigFile("bigfile", 20)
+	header.Size = int64(20) * 1024 * 1024
+	bigFile, _ = os.Open("bigfile")
+	file, err = NewFile(bigFile, &header, request)
+	test.IsNil(t, err)
+	retrievedFile, ok = datastorage.GetMetaDataById(file.Id)
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualString(t, retrievedFile.Name, "bigfile")
+	test.IsEqualString(t, retrievedFile.SHA256, "c1c165c30d0def15ba2bc8f1bd243be13b8c8fe7")
+
+	bigFile.Close()
+	os.Remove("bigfile")
 	configuration.Get().Authentication.SaltFiles = previousSalt
 	configuration.Get().Encryption.Level = 0
 
@@ -301,7 +354,7 @@ func TestServeFile(t *testing.T) {
 		testconfiguration.DisableS3()
 	}
 	newFile, err := createTestFile()
-	test.IsNotNil(t, err)
+	test.IsNil(t, err)
 	file = newFile.File
 	datastorage.SaveMetaData(file)
 	r = httptest.NewRequest("GET", "/upload", nil)

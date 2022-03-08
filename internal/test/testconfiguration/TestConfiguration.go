@@ -149,6 +149,7 @@ func StartS3TestServer() *httptest.Server {
 
 // DisableS3 unsets env variables for mock S3
 func DisableS3() {
+	aws.LogOut()
 	if !aws.IsMockApi {
 		return
 	}
@@ -337,7 +338,7 @@ var configTestFile = []byte(`{
   "ConfigVersion": 11,
   "LengthId": 20,
   "DataDir": "test/data",
-  "MaxMemory": 40,
+  "MaxMemory": 10,
   "UseSsl": false,
   "MaxFileSizeMB": 25
 }`)

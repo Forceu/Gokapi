@@ -43,6 +43,10 @@ func Download(writer io.WriterAt, file models.File) (int64, error) {
 	return 0, errors.New(errorString)
 }
 
+// LogOut resets the credentials, only used for testing purposes
+func LogOut() {
+}
+
 // RedirectToDownload creates a presigned link that is valid for 15 seconds and redirects the
 // client to this url
 func RedirectToDownload(w http.ResponseWriter, r *http.Request, file models.File, forceDownload bool) error {
