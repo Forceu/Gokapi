@@ -477,13 +477,13 @@ type setupView struct {
 
 func (v *setupView) loadFromConfig() {
 	v.IsInitialSetup = isInitialSetup
+	v.IsDocker = environment.IsDockerInstance()
+	v.HasAwsFeature = aws.IsIncludedInBuild
 	if isInitialSetup {
 		return
 	}
 	configuration.Load()
 	settings := configuration.Get()
-	v.IsDocker = environment.IsDockerInstance()
-	v.HasAwsFeature = aws.IsIncludedInBuild
 	v.Settings = *settings
 	v.Auth = settings.Authentication
 	v.CloudSettings, _ = cloudconfig.Load()
