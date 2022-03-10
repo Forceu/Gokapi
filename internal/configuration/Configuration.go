@@ -20,6 +20,7 @@ import (
 	"github.com/forceu/gokapi/internal/models"
 	"io"
 	"os"
+	"strings"
 )
 
 // Min length of admin password in characters
@@ -30,6 +31,8 @@ var Environment environment.Environment
 
 // ServerSettings is an object containing the server configuration
 var serverSettings models.Configuration
+
+var usesHttps bool
 
 // Exists returns true if configuration files are present
 func Exists() bool {
@@ -58,6 +61,11 @@ func Load() {
 	}
 	helper.CreateDir(serverSettings.DataDir)
 	log.Init(Environment.DataDir)
+	usesHttps = strings.HasPrefix(strings.ToLower(serverSettings.ServerUrl), "https://")
+}
+
+func UsesHttps() bool {
+	return usesHttps
 }
 
 // Get returns a pointer to the server configuration

@@ -284,6 +284,7 @@ func showDownload(w http.ResponseWriter, r *http.Request) {
 		Size:          file.Size,
 		Id:            file.Id,
 		IsFailedLogin: false,
+		UsesHttps:     configuration.UsesHttps(),
 	}
 
 	if storage.RequiresClientDecryption(file) {
@@ -369,6 +370,7 @@ type DownloadView struct {
 	IsFailedLogin        bool
 	IsAdminView          bool
 	ClientSideDecryption bool
+	UsesHttps            bool
 	Cipher               string
 }
 
