@@ -20,6 +20,7 @@ import (
 	"github.com/forceu/gokapi/internal/webserver/downloadstatus"
 	"io"
 	"io/ioutil"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -37,7 +38,7 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 		return models.File{}, errors.New("upload limit exceeded")
 	}
 	var hasBeenRenamed bool
-	reader, hash, tempFile, encInfo := generateHash(fileContent, fileHeader, uploadRequest, configuration.Get().Encryption.Level)
+	reader, hash, tempFile, encInfo := generateHash(fileContent, fileHeader, uploadRequest)
 	defer deleteTempFile(tempFile, &hasBeenRenamed)
 	id := helper.GenerateRandomString(configuration.Get().LengthId)
 	file := models.File{
@@ -142,14 +143,14 @@ func DeleteAllEncrypted() {
 
 // Generates the SHA1 hash of an uploaded file and returns a reader for the file, the hash and if a temporary file was created the
 // reference to that file.
-func generateHash(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequest models.UploadRequest, encryptionLevel int) (io.Reader, []byte, *os.File, models.EncryptionInfo) {
+func generateHash(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequest models.UploadRequest) (io.Reader, []byte, *os.File, models.EncryptionInfo) {
 	hash := sha1.New()
 	encInfo := models.EncryptionInfo{}
 	if fileHeader.Size <= int64(uploadRequest.MaxMemory)*1024*1024 {
 		content, err := ioutil.ReadAll(fileContent)
 		helper.Check(err)
 		hash.Write(content)
-		if encryptionLevel != encryption.NoEncryption && encryptionLevel != encryption.EndToEndEncryption {
+		if isEncryptionRequested() {
 			encContent := new(bytes.Buffer)
 			err = encryption.Encrypt(&encInfo, bytes.NewReader(content), encContent)
 			helper.Check(err)
@@ -168,7 +169,7 @@ func generateHash(fileContent io.Reader, fileHeader *multipart.FileHeader, uploa
 	_, err = tempFile.Seek(0, io.SeekStart)
 	helper.Check(err)
 
-	if encryptionLevel != encryption.NoEncryption && encryptionLevel != encryption.EndToEndEncryption {
+	if isEncryptionRequested() {
 		tempFileEnc, err := os.CreateTemp(uploadRequest.DataDir, "upload")
 		helper.Check(err)
 		encryption.Encrypt(&encInfo, tempFile, tempFileEnc)
@@ -179,6 +180,24 @@ func generateHash(fileContent io.Reader, fileHeader *multipart.FileHeader, uploa
 	}
 	// Instead of returning a reference to the file as the 3rd result, one could use reflections. However, that would be more expensive.
 	return tempFile, hash.Sum(nil), tempFile, encInfo
+}
+
+func isEncryptionRequested() bool {
+	switch configuration.Get().Encryption.Level {
+	case encryption.NoEncryption:
+		return false
+	case encryption.LocalEncryptionStored:
+		fallthrough
+	case encryption.LocalEncryptionInput:
+		return !aws.IsAvailable()
+	case encryption.FullEncryptionStored:
+		fallthrough
+	case encryption.FullEncryptionInput:
+		return true
+	default:
+		log.Fatalln("Unknown encryption level requested")
+		return false
+	}
 }
 
 var imageFileExtensions = []string{".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg"}

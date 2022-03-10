@@ -64,6 +64,7 @@ func Load() {
 	usesHttps = strings.HasPrefix(strings.ToLower(serverSettings.ServerUrl), "https://")
 }
 
+// UsesHttps returns true if Gokapi URL is set to a secure URL
 func UsesHttps() bool {
 	return usesHttps
 }
