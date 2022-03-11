@@ -44,6 +44,8 @@ var password string
 
 var serverStarted = false
 
+const debugDisableAuth = false
+
 // RunIfFirstStart checks if config files exist and if not start a blocking webserver for setup
 func RunIfFirstStart() {
 	if !configuration.Exists() {
@@ -71,7 +73,7 @@ func RunConfigModification() {
 func basicAuth(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// No auth required on initial setup
-		if isInitialSetup {
+		if isInitialSetup || debugDisableAuth {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -332,6 +334,15 @@ func parseServerSettings(result *models.Configuration, formObjects *[]jsonFormOb
 	}
 
 	result.ServerUrl = addTrailingSlash(result.ServerUrl)
+
+	picturesAlwaysLocal, err := getFormValueString(formObjects, "storage_sel_image")
+	if err != nil {
+		return err
+	}
+	result.PicturesAlwaysLocal = picturesAlwaysLocal == "local"
+	fmt.Println(picturesAlwaysLocal)
+	fmt.Println(result.PicturesAlwaysLocal)
+
 	return nil
 }
 

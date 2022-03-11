@@ -56,7 +56,9 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 		UnlimitedDownloads: uploadRequest.UnlimitedDownload,
 	}
 	if aws.IsAvailable() {
-		aws.AddBucketName(&file)
+		if !configuration.Get().PicturesAlwaysLocal || !isPictureFile(file.Name) {
+			aws.AddBucketName(&file)
+		}
 	}
 	addHotlink(&file)
 	filename := configuration.Get().DataDir + "/" + file.SHA256
@@ -207,13 +209,21 @@ func addHotlink(file *models.File) {
 	if RequiresClientDecryption(*file) {
 		return
 	}
-	extension := strings.ToLower(filepath.Ext(file.Name))
-	if !helper.IsInArray(imageFileExtensions, extension) {
+	if !isPictureFile(file.Name) {
 		return
 	}
-	link := helper.GenerateRandomString(40) + extension
+	link := helper.GenerateRandomString(40) + getFileExtension(file.Name)
 	file.HotlinkId = link
 	datastorage.SaveHotlink(*file)
+}
+
+func getFileExtension(filename string) string {
+	return strings.ToLower(filepath.Ext(filename))
+}
+
+func isPictureFile(filename string) bool {
+	extension := getFileExtension(filename)
+	return helper.IsInArray(imageFileExtensions, extension)
 }
 
 // GetFile gets the file by id. Returns (empty File, false) if invalid / expired file

@@ -32,6 +32,10 @@ func TestMain(m *testing.M) {
 	os.Exit(exitVal)
 }
 
+func TestDebugNotSet(t *testing.T) {
+	test.IsEqualBool(t, debugDisableAuth, false)
+}
+
 func TestInputToJson(t *testing.T) {
 	var err error
 	_, r := test.GetRecorder("POST", "/setupResult", nil, nil, bytes.NewBufferString("invalid"))
@@ -404,6 +408,7 @@ func TestIntegration(t *testing.T) {
 	test.IsEqualBool(t, settings.UseSsl, true)
 	test.IsEqualString(t, settings.ServerUrl, "http://127.0.0.1:53842/")
 	test.IsEqualString(t, settings.RedirectUrl, "https://test.com")
+	test.IsEqualBool(t, settings.PicturesAlwaysLocal, false)
 	_, ok = cloudconfig.Load()
 	if os.Getenv("GOKAPI_AWS_BUCKET") == "" {
 		test.IsEqualBool(t, ok, false)
@@ -438,6 +443,7 @@ func TestIntegration(t *testing.T) {
 		}
 	}
 
+	test.IsEqualBool(t, settings.PicturesAlwaysLocal, true)
 	test.IsEqualString(t, settings.Authentication.OauthProvider, "provider")
 	test.IsEqualString(t, settings.Authentication.OAuthClientId, "id")
 	test.IsEqualString(t, settings.Authentication.OAuthClientSecret, "secret")
@@ -465,6 +471,7 @@ type setupValues struct {
 	AuthHeaderKey        setupEntry `form:"auth_headerkey"`
 	AuthHeaderUsers      setupEntry `form:"auth_header_users"`
 	StorageSelection     setupEntry `form:"storage_sel"`
+	PicturesAlwaysLocal  setupEntry `form:"storage_sel_image"`
 	S3Bucket             setupEntry `form:"s3_bucket"`
 	S3Region             setupEntry `form:"s3_region"`
 	S3ApiKey             setupEntry `form:"s3_api"`
@@ -597,6 +604,7 @@ func createInputInternalAuth() setupValues {
 	values.S3ApiSecret.Value = "testsecret"
 	values.S3Endpoint.Value = "testendpoint"
 	values.EncryptionLevel.Value = "0"
+	values.PicturesAlwaysLocal.Value = "nochange"
 
 	return values
 }
@@ -627,5 +635,6 @@ func createInputOAuth() setupValues {
 	values.OAuthClientSecret.Value = "secret"
 	values.OAuthAuthorisedUsers.Value = "oatest1; oatest2"
 	values.StorageSelection.Value = "local"
+	values.PicturesAlwaysLocal.Value = "local"
 	return values
 }

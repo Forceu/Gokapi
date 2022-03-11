@@ -293,7 +293,18 @@
 					
 {{ if not .HasAwsFeature }}
 					<p><br><br><i>This build has been compiled without AWS support, therefore cloud storage is not available.</i></p>
-{{ end }}					
+{{ else }}
+
+					<br><p>
+						Select if you want to store pictures always locally. Choose this if you want to use full encryption but still be able to have hotlink support.
+					</p>
+					<select name="storage_sel_image" id="storage_sel_image" style="width:350px;" class="select form-control">
+							<option value="nochange" selected>As above</option>
+							<option value="local">Always local Storage</option>
+
+					</select>
+{{ end }}
+					
 
 				</div>
 			</div>
