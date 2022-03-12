@@ -50,7 +50,12 @@ func IsAvailable() bool {
 	return isCorrectLogin
 }
 
-// LogOut resets the credentials, only used for testing purposes
+// IsValidLogin checks if a valid login was provided
+func IsValidLogin(config models.AwsConfig) (bool, error) {
+	return isValidCredentials(), nil
+}
+
+// LogOut resets the credentials
 func LogOut() {
 	isCorrectLogin = false
 }

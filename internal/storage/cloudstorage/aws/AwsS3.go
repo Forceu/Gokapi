@@ -31,7 +31,18 @@ const IsMockApi = false
 // Init reads the credentials for AWS. Returns true if valid
 func Init(config models.AwsConfig) bool {
 	awsConfig = config
-	return isValidLogin()
+	ok, err := IsValidLogin(config)
+	if err != nil {
+		fmt.Println("WARNING: AWS login not successful")
+		fmt.Println(err.Error())
+		isCorrectLogin = false
+		return false
+	}
+	if ok {
+		fmt.Println("AWS login successful")
+		isCorrectLogin = true
+	}
+	return ok
 }
 
 // AddBucketName adds the bucket name to the file to be stored
@@ -44,26 +55,25 @@ func IsAvailable() bool {
 	return isCorrectLogin
 }
 
-// LogOut resets the credentials, only used for testing purposes
+// LogOut resets the credentials
 func LogOut() {
 	awsConfig = models.AwsConfig{}
 	isCorrectLogin = false
 }
 
-func isValidLogin() bool {
-	if !awsConfig.IsAllProvided() {
-		return false
+// IsValidLogin checks if a valid login was provided
+func IsValidLogin(config models.AwsConfig) (bool, error) {
+	if !config.IsAllProvided() {
+		return false, nil
 	}
+	tempConfig := awsConfig
+	awsConfig = config
 	_, err := FileExists(models.File{AwsBucket: awsConfig.Bucket, SHA256: "invalid"})
+	awsConfig = tempConfig
 	if err != nil {
-		fmt.Println("WARNING: AWS login not successful")
-		fmt.Println(err.Error())
-		isCorrectLogin = false
-		return false
+		return false, err
 	}
-	fmt.Println("AWS login successful")
-	isCorrectLogin = true
-	return true
+	return true, nil
 }
 
 func createSession() *session.Session {
