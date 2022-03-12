@@ -48,13 +48,8 @@ func main() {
 	encryption.Init(*configuration.Get())
 	authentication.Init(configuration.Get().Authentication)
 	createSsl(passedFlags)
+	initCloudConfig()
 
-	cConfig, ok := cloudconfig.Load()
-	if ok && aws.Init(cConfig.Aws) {
-		fmt.Println("Saving new files to cloud storage")
-	} else {
-		fmt.Println("Saving new files to local storage")
-	}
 	go storage.CleanUp(true)
 	logging.AddString("Gokapi started")
 	go webserver.Start()
@@ -80,6 +75,26 @@ func showVersion(passedFlags flags) {
 		fmt.Println("Build Date: " + environment.BuildTime)
 		fmt.Println("Docker Version: " + environment.IsDocker)
 		osExit(0)
+	}
+}
+
+func initCloudConfig() {
+	cConfig, ok := cloudconfig.Load()
+	if ok && aws.Init(cConfig.Aws) {
+		fmt.Println("Saving new files to cloud storage")
+		encLevel := configuration.Get().Encryption.Level
+		if encLevel == encryption.FullEncryptionStored || encLevel == encryption.FullEncryptionInput {
+			ok, err := aws.IsCorsCorrectlySet(cConfig.Aws.Bucket, configuration.Get().ServerUrl)
+			if err != nil {
+				fmt.Println("Warning: Cannot check CORS settings. " + err.Error())
+			} else {
+				if !ok {
+					fmt.Println("Warning: CORS settings for bucket " + cConfig.Aws.Bucket + " might not be set correctly. Download might not be possible with encryption.")
+				}
+			}
+		}
+	} else {
+		fmt.Println("Saving new files to local storage")
 	}
 }
 

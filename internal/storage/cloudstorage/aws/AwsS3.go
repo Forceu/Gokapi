@@ -14,6 +14,7 @@ import (
 	"github.com/forceu/gokapi/internal/models"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -170,4 +171,33 @@ func DeleteObject(file models.File) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+// IsCorsCorrectlySet returns true if CORS rules allow download from Gokapi
+func IsCorsCorrectlySet(bucket, gokapiUrl string) (bool, error) {
+	sess := createSession()
+	svc := s3.New(sess)
+	input := &s3.GetBucketCorsInput{
+		Bucket: aws.String(bucket),
+	}
+	result, err := svc.GetBucketCors(input)
+	if err != nil {
+		aerr, ok := err.(awserr.Error)
+		if ok && aerr.Code() == "NoSuchCorsConfiguration" {
+			return false, nil
+		}
+		return false, err
+	}
+
+	for _, rule := range result.CORSRules {
+		for _, origin := range rule.AllowedOrigins {
+			if *origin == "*" {
+				return true, nil
+			}
+			if strings.HasPrefix(gokapiUrl, *origin) {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
 }
