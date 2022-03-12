@@ -391,12 +391,11 @@ func deleteSource(file models.File, dataDir string) {
 	var err error
 	if file.AwsBucket != "" {
 		_, err = aws.DeleteObject(file)
-		helper.Check(err)
 	} else {
 		err = os.Remove(dataDir + "/" + file.SHA256)
 	}
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("Warning, cannot delete file " + file.Id + ": " + err.Error())
 	}
 }
 
