@@ -62,3 +62,8 @@ func FileExists(file models.File) (bool, error) {
 func DeleteObject(file models.File) (bool, error) {
 	return false, errors.New(errorString)
 }
+
+// IsCorsCorrectlySet returns true if CORS rules allow download from Gokapi
+func IsCorsCorrectlySet(bucket, gokapiUrl string) (bool, error) {
+	return false, errors.New(errorString)
+}

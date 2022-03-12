@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 )
 
 var uploadedFiles []models.File
@@ -160,4 +161,22 @@ func DeleteObject(file models.File) (bool, error) {
 	uploadedFiles = buffer
 
 	return true, nil
+}
+
+// IsCorsCorrectlySet returns true if CORS rules allow download from Gokapi
+func IsCorsCorrectlySet(bucket, gokapiUrl string) (bool, error) {
+	switch bucket {
+	case "any":
+		return true, nil
+	case "none":
+		return false, nil
+	case "forbidden":
+		return false, errors.New("forbidden")
+	case "https":
+		return strings.HasPrefix(gokapiUrl, "https://"), nil
+	case "url":
+		return strings.HasPrefix(gokapiUrl, "http://test.com"), nil
+	default:
+		return false, errors.New("unknown")
+	}
 }
