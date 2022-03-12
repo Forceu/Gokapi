@@ -30,7 +30,7 @@ func IsAvailable() bool {
 
 // IsValidLogin checks if a valid login was provided
 func IsValidLogin(config models.AwsConfig) (bool, error) {
-	return "", errors.New(errorString)
+	return false, errors.New(errorString)
 }
 
 // AddBucketName adds the bucket name to the file to be stored
