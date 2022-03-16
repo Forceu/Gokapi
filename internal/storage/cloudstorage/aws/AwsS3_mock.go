@@ -1,5 +1,4 @@
 //go:build !noaws && awsmock
-// +build !noaws,awsmock
 
 package aws
 

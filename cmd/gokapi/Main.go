@@ -23,15 +23,16 @@ import (
 	"math/rand"
 	"os"
 	"os/signal"
+	"runtime/debug"
 	"syscall"
 	"time"
 )
 
 // Version is the current version in readable form.
 // The go generate call below needs to be modified as well
-const Version = "1.5.1"
+const Version = "1.5.2"
 
-//go:generate sh "../../build/setVersionTemplate.sh" "1.5.1"
+//go:generate sh "../../build/setVersionTemplate.sh" "1.5.2"
 //go:generate sh -c "cp \"$(go env GOROOT)/misc/wasm/wasm_exec.js\" ../../internal/webserver/web/static/js/ && echo Copied wasm_exec.js"
 //go:generate sh -c "GOOS=js GOARCH=wasm go build -o ../../internal/webserver/web/main.wasm github.com/forceu/gokapi/cmd/wasmdownloader && echo Compiled WASM module"
 
@@ -74,6 +75,12 @@ func showVersion(passedFlags flags) {
 		fmt.Println("Builder: " + environment.Builder)
 		fmt.Println("Build Date: " + environment.BuildTime)
 		fmt.Println("Docker Version: " + environment.IsDocker)
+		info, ok := debug.ReadBuildInfo()
+		if ok {
+			fmt.Println("Go Version: " + info.GoVersion)
+		} else {
+			fmt.Println("Go Version: unknown")
+		}
 		osExit(0)
 	}
 }

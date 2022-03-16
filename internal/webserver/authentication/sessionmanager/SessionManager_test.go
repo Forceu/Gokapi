@@ -1,6 +1,3 @@
-//go:build test
-// +build test
-
 package sessionmanager
 
 import (

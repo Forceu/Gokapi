@@ -1,5 +1,4 @@
 //go:build noaws
-// +build noaws
 
 package aws
 

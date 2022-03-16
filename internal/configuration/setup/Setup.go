@@ -341,9 +341,6 @@ func parseServerSettings(result *models.Configuration, formObjects *[]jsonFormOb
 		return err
 	}
 	result.PicturesAlwaysLocal = picturesAlwaysLocal == "local"
-	fmt.Println(picturesAlwaysLocal)
-	fmt.Println(result.PicturesAlwaysLocal)
-
 	return nil
 }
 

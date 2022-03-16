@@ -1,6 +1,6 @@
 module github.com/forceu/gokapi
 
-go 1.17
+go 1.18
 
 require (
 	git.mills.io/prologic/bitcask v1.0.2
