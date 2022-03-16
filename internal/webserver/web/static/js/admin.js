@@ -33,14 +33,18 @@ document.onpaste = function(event) {
         }
         if (item.kind === 'string') {
             item.getAsString(function(s) {
-                let blob = new Blob([s], {
-                    type: 'text/plain'
-                });
-                let file = new File([blob], "Pasted Text.txt", {
-                    type: "text/plain",
-                    lastModified: new Date(0)
-                });
-                dropzoneObject.addFile(file);
+               // If a picture was copied from a website, the origin information might be submitted, which is filtered with this regex out
+            	const pattern = /<img src="*.+"\/>/gi;
+            	if (pattern.test(s) === false) {
+		        let blob = new Blob([s], {
+		            type: 'text/plain'
+		        });
+		        let file = new File([blob], "Pasted Text.txt", {
+		            type: "text/plain",
+		            lastModified: new Date(0)
+		        });
+		        dropzoneObject.addFile(file);
+		}
             });
         }
     }
