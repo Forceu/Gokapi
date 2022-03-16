@@ -46,7 +46,7 @@ func GetLengthAvailable() int {
 	return maxKeySize - maxLength
 }
 
-// Close syncs the bitcaskDb to the filesystem and closes it
+// Close syncs the database to the filesystem and closes it
 func Close() {
 	if bitcaskDb != nil {
 		err := bitcaskDb.Sync()
@@ -179,7 +179,7 @@ func GetApiKey(id string) (models.ApiKey, bool) {
 	return result, true
 }
 
-// SaveApiKey saves the API key to the bitcaskDb. If updateTimeOnly is true, the bitcaskDb might not be synced afterwards
+// SaveApiKey saves the API key to the database. If updateTimeOnly is true, the database might not be synced afterwards
 func SaveApiKey(apikey models.ApiKey, updateTimeOnly bool) {
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
