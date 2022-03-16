@@ -34,7 +34,7 @@ document.onpaste = function(event) {
         if (item.kind === 'string') {
             item.getAsString(function(s) {
                // If a picture was copied from a website, the origin information might be submitted, which is filtered with this regex out
-            	const pattern = /<img src="*.+"\/>/gi;
+            	const pattern = /<img *.+>/gi;
             	if (pattern.test(s) === false) {
 		        let blob = new Blob([s], {
 		            type: 'text/plain'
