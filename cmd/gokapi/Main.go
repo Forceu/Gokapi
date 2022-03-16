@@ -72,6 +72,7 @@ func shutdown() {
 func showVersion(passedFlags flags) {
 	if passedFlags.showVersion {
 		fmt.Println("Gokapi v" + Version)
+		fmt.Println()
 		fmt.Println("Builder: " + environment.Builder)
 		fmt.Println("Build Date: " + environment.BuildTime)
 		fmt.Println("Docker Version: " + environment.IsDocker)
@@ -81,7 +82,37 @@ func showVersion(passedFlags flags) {
 		} else {
 			fmt.Println("Go Version: unknown")
 		}
+		parseBuildSettings(info.Settings)
 		osExit(0)
+	}
+}
+
+func parseBuildSettings(infos []debug.BuildSetting) {
+	lookups := make(map[string]string)
+	lookups["-tags"] = "Build Tags"
+	lookups["vcs.revision"] = "Git Commit"
+	lookups["vcs.time"] = "Git Commit Timestamp"
+	lookups["GOARCH"] = "Architecture"
+	lookups["GOOS"] = "Operating System"
+
+	for key, value := range lookups {
+		result := "Not found"
+		for _, buildSetting := range infos {
+			if buildSetting.Key == key {
+				result = buildSetting.Value
+				break
+			}
+		}
+		fmt.Println(value + ": " + result)
+	}
+
+	for _, info := range infos {
+		if info.Key == "vcs.modified" {
+			if info.Value == "true" {
+				fmt.Println("Code has been modified after last git commit")
+			}
+			break
+		}
 	}
 }
 
