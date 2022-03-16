@@ -5,7 +5,7 @@ package testconfiguration
 import (
 	"bytes"
 	"fmt"
-	"github.com/forceu/gokapi/internal/configuration/datastorage"
+	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage/cloudstorage/aws"
@@ -32,9 +32,9 @@ func SetDirEnv() {
 func Create(initFiles bool) {
 	SetDirEnv()
 	os.WriteFile(configFile, configTestFile, 0777)
-	datastorage.Init("./test/filestorage.db")
+	database.Init("./test/filestorage.db")
 	writeTestSessions()
-	datastorage.SaveUploadDefaults(models.LastUploadValues{
+	database.SaveUploadDefaults(models.LastUploadValues{
 		Downloads:         3,
 		TimeExpiry:        20,
 		Password:          "123",
@@ -42,9 +42,9 @@ func Create(initFiles bool) {
 		UnlimitedTime:     false,
 	})
 	writeTestFiles()
-	datastorage.SaveHotlink(models.File{Id: "n1tSTAGj8zan9KaT4u6p", HotlinkId: "PhSs6mFtf8O5YGlLMfNw9rYXx9XRNkzCnJZpQBi7inunv3Z4A.jpg", ExpireAt: time.Now().Add(time.Hour).Unix()})
+	database.SaveHotlink(models.File{Id: "n1tSTAGj8zan9KaT4u6p", HotlinkId: "PhSs6mFtf8O5YGlLMfNw9rYXx9XRNkzCnJZpQBi7inunv3Z4A.jpg", ExpireAt: time.Now().Add(time.Hour).Unix()})
 	writeApiKeyys()
-	datastorage.Close()
+	database.Close()
 
 	if initFiles {
 		os.Mkdir("test/data", 0777)
@@ -60,7 +60,7 @@ func Create(initFiles bool) {
 // WriteEncryptedFile writes metadata for an encrypted file and returns the id
 func WriteEncryptedFile() string {
 	name := helper.GenerateRandomString(10)
-	datastorage.SaveMetaData(models.File{
+	database.SaveMetaData(models.File{
 		Id:     name,
 		Name:   name,
 		SHA256: name,
@@ -160,47 +160,47 @@ func DisableS3() {
 }
 
 func writeTestSessions() {
-	datastorage.SaveSession("validsession", models.Session{
+	database.SaveSession("validsession", models.Session{
 		RenewAt:    2147483645,
 		ValidUntil: 2147483646,
 	}, 1*time.Hour)
-	datastorage.SaveSession("logoutsession", models.Session{
+	database.SaveSession("logoutsession", models.Session{
 		RenewAt:    2147483645,
 		ValidUntil: 2147483646,
 	}, 1*time.Hour)
-	datastorage.SaveSession("needsRenewal", models.Session{
+	database.SaveSession("needsRenewal", models.Session{
 		RenewAt:    0,
 		ValidUntil: 2147483646,
 	}, 1*time.Hour)
-	datastorage.SaveSession("expiredsession", models.Session{
+	database.SaveSession("expiredsession", models.Session{
 		RenewAt:    0,
 		ValidUntil: 0,
 	}, 1*time.Hour)
 }
 
 func writeApiKeyys() {
-	datastorage.SaveApiKey(models.ApiKey{
+	database.SaveApiKey(models.ApiKey{
 		Id:           "validkey",
 		FriendlyName: "First Key",
 	}, false)
-	datastorage.SaveApiKey(models.ApiKey{
+	database.SaveApiKey(models.ApiKey{
 		Id:             "GAh1IhXDvYnqfYLazWBqMB9HSFmNPO",
 		FriendlyName:   "Second Key",
 		LastUsed:       1620671580,
 		LastUsedString: "used",
 	}, false)
-	datastorage.SaveApiKey(models.ApiKey{
+	database.SaveApiKey(models.ApiKey{
 		Id:           "jiREglQJW0bOqJakfjdVfe8T1EM8n8",
 		FriendlyName: "Unnamed Key",
 	}, false)
-	datastorage.SaveApiKey(models.ApiKey{
+	database.SaveApiKey(models.ApiKey{
 		Id:           "okeCMWqhVMZSpt5c1qpCWhKvJJPifb",
 		FriendlyName: "Unnamed Key",
 	}, false)
 }
 
 func writeTestFiles() {
-	datastorage.SaveMetaData(models.File{
+	database.SaveMetaData(models.File{
 		Id:                 "Wzol7LyY2QVczXynJtVo",
 		Name:               "smallfile2",
 		Size:               "8 B",
@@ -210,7 +210,7 @@ func writeTestFiles() {
 		DownloadsRemaining: 1,
 		ContentType:        "text/html",
 	})
-	datastorage.SaveMetaData(models.File{
+	database.SaveMetaData(models.File{
 		Id:                 "e4TjE7CokWK0giiLNxDL",
 		Name:               "smallfile2",
 		Size:               "8 B",
@@ -220,7 +220,7 @@ func writeTestFiles() {
 		DownloadsRemaining: 2,
 		ContentType:        "text/html",
 	})
-	datastorage.SaveMetaData(models.File{
+	database.SaveMetaData(models.File{
 		Id:                 "wefffewhtrhhtrhtrhtr",
 		Name:               "smallfile3",
 		Size:               "8 B",
@@ -230,7 +230,7 @@ func writeTestFiles() {
 		DownloadsRemaining: 1,
 		ContentType:        "text/html",
 	})
-	datastorage.SaveMetaData(models.File{
+	database.SaveMetaData(models.File{
 		Id:                 "deletedfile123456789",
 		Name:               "DeletedFile",
 		Size:               "8 B",
@@ -240,7 +240,7 @@ func writeTestFiles() {
 		DownloadsRemaining: 2,
 		ContentType:        "text/html",
 	})
-	datastorage.SaveMetaData(models.File{
+	database.SaveMetaData(models.File{
 		Id:                 "jpLXGJKigM4hjtA6T6sN",
 		Name:               "smallfile",
 		Size:               "7 B",
@@ -251,7 +251,7 @@ func writeTestFiles() {
 		ContentType:        "text/html",
 		PasswordHash:       "7b30508aa9b233ab4b8a11b2af5816bdb58ca3e7",
 	})
-	datastorage.SaveMetaData(models.File{
+	database.SaveMetaData(models.File{
 		Id:                 "jpLXGJKigM4hjtA6T6sN2",
 		Name:               "smallfile",
 		Size:               "7 B",
@@ -262,7 +262,7 @@ func writeTestFiles() {
 		ContentType:        "text/html",
 		PasswordHash:       "7b30508aa9b233ab4b8a11b2af5816bdb58ca3e7",
 	})
-	datastorage.SaveMetaData(models.File{
+	database.SaveMetaData(models.File{
 		Id:                 "n1tSTAGj8zan9KaT4u6p",
 		Name:               "picture.jpg",
 		Size:               "4 B",
@@ -273,7 +273,7 @@ func writeTestFiles() {
 		ContentType:        "text/html",
 		HotlinkId:          "PhSs6mFtf8O5YGlLMfNw9rYXx9XRNkzCnJZpQBi7inunv3Z4A.jpg",
 	})
-	datastorage.SaveMetaData(models.File{
+	database.SaveMetaData(models.File{
 		Id:                 "cleanuptest123456789",
 		Name:               "cleanup",
 		Size:               "4 B",
@@ -283,7 +283,7 @@ func writeTestFiles() {
 		DownloadsRemaining: 0,
 		ContentType:        "text/html",
 	})
-	datastorage.SaveMetaData(models.File{
+	database.SaveMetaData(models.File{
 		Id:                 "awsTest1234567890123",
 		Name:               "Aws Test File",
 		Size:               "20 MB",
@@ -294,7 +294,7 @@ func writeTestFiles() {
 		ContentType:        "application/octet-stream",
 		AwsBucket:          "gokapi-test",
 	})
-	datastorage.SaveMetaData(models.File{
+	database.SaveMetaData(models.File{
 		Id:                 "unlimitedDownload",
 		Name:               "unlimitedDownload",
 		Size:               "8 B",
@@ -305,7 +305,7 @@ func writeTestFiles() {
 		ContentType:        "text/html",
 		UnlimitedDownloads: true,
 	})
-	datastorage.SaveMetaData(models.File{
+	database.SaveMetaData(models.File{
 		Id:                 "unlimitedTime",
 		Name:               "unlimitedTime",
 		Size:               "8 B",

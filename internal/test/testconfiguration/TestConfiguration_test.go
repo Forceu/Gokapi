@@ -3,7 +3,7 @@
 package testconfiguration
 
 import (
-	"github.com/forceu/gokapi/internal/configuration/datastorage"
+	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/storage/cloudstorage/aws"
 	"github.com/forceu/gokapi/internal/test"
@@ -37,12 +37,12 @@ func TestSetUpgradeConfigFileV8(t *testing.T) {
 }
 
 func TestWriteEncryptedFile(t *testing.T) {
-	datastorage.Init("./test/filestorage.db")
+	database.Init("./test/filestorage.db")
 	fileId := WriteEncryptedFile()
-	file, ok := datastorage.GetMetaDataById(fileId)
+	file, ok := database.GetMetaDataById(fileId)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualString(t, file.Id, fileId)
-	datastorage.Close()
+	database.Close()
 }
 
 func TestEnableS3(t *testing.T) {

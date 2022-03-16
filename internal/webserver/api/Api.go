@@ -2,7 +2,7 @@ package api
 
 import (
 	"encoding/json"
-	"github.com/forceu/gokapi/internal/configuration/datastorage"
+	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
@@ -43,7 +43,7 @@ func DeleteKey(id string) bool {
 	if !IsValidApiKey(id, false) {
 		return false
 	}
-	datastorage.DeleteApiKey(id)
+	database.DeleteApiKey(id)
 	return true
 }
 
@@ -54,7 +54,7 @@ func NewKey() string {
 		FriendlyName: "Unnamed key",
 		LastUsed:     0,
 	}
-	datastorage.SaveApiKey(newKey, false)
+	database.SaveApiKey(newKey, false)
 	return newKey.Id
 }
 
@@ -66,14 +66,14 @@ func changeFriendlyName(w http.ResponseWriter, request apiRequest) {
 	if request.friendlyName == "" {
 		request.friendlyName = "Unnamed key"
 	}
-	key, ok := datastorage.GetApiKey(request.apiKeyToModify)
+	key, ok := database.GetApiKey(request.apiKeyToModify)
 	if !ok {
 		sendError(w, http.StatusInternalServerError, "Could not modify API key")
 		return
 	}
 	if key.FriendlyName != request.friendlyName {
 		key.FriendlyName = request.friendlyName
-		datastorage.SaveApiKey(key, false)
+		database.SaveApiKey(key, false)
 	}
 }
 
@@ -87,7 +87,7 @@ func deleteFile(w http.ResponseWriter, request apiRequest) {
 func list(w http.ResponseWriter) {
 	var validFiles []models.File
 	timeNow := time.Now().Unix()
-	for _, element := range datastorage.GetAllMetadata() {
+	for _, element := range database.GetAllMetadata() {
 		if !storage.IsExpiredFile(element, timeNow) {
 			validFiles = append(validFiles, element)
 		}
@@ -144,11 +144,11 @@ func IsValidApiKey(key string, modifyTime bool) bool {
 	if key == "" {
 		return false
 	}
-	savedKey, ok := datastorage.GetApiKey(key)
+	savedKey, ok := database.GetApiKey(key)
 	if ok && savedKey.Id != "" {
 		if modifyTime {
 			savedKey.LastUsed = time.Now().Unix()
-			datastorage.SaveApiKey(savedKey, true)
+			database.SaveApiKey(savedKey, true)
 		}
 		return true
 	}

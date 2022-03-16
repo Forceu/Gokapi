@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"github.com/NYTimes/gziphandler"
 	"github.com/forceu/gokapi/internal/configuration"
-	"github.com/forceu/gokapi/internal/configuration/datastorage"
+	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/encryption"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
@@ -399,7 +399,7 @@ func (u *UploadView) convertGlobalConfig(isMainView bool) *UploadView {
 	var result []models.File
 	var resultApi []models.ApiKey
 	if isMainView {
-		for _, element := range datastorage.GetAllMetadata() {
+		for _, element := range database.GetAllMetadata() {
 			result = append(result, element)
 		}
 		sort.Slice(result[:], func(i, j int) bool {
@@ -409,7 +409,7 @@ func (u *UploadView) convertGlobalConfig(isMainView bool) *UploadView {
 			return result[i].ExpireAt > result[j].ExpireAt
 		})
 	} else {
-		for _, element := range datastorage.GetAllApiKeys() {
+		for _, element := range database.GetAllApiKeys() {
 			if element.LastUsed == 0 {
 				element.LastUsedString = "Never"
 			} else {
@@ -433,7 +433,7 @@ func (u *UploadView) convertGlobalConfig(isMainView bool) *UploadView {
 	u.IsMainView = isMainView
 	u.MaxFileSize = configuration.Get().MaxFileSizeMB
 	u.IsLogoutAvailable = authentication.IsLogoutAvailable()
-	defaultValues := datastorage.GetUploadDefaults()
+	defaultValues := database.GetUploadDefaults()
 	u.DefaultDownloads = defaultValues.Downloads
 	u.DefaultExpiry = defaultValues.TimeExpiry
 	u.DefaultPassword = defaultValues.Password

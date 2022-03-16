@@ -7,7 +7,7 @@ import (
 	"errors"
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
-	"github.com/forceu/gokapi/internal/configuration/datastorage"
+	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/environment"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/test"
@@ -88,46 +88,46 @@ func TestEncryptionSetup(t *testing.T) {
 	configuration.Load()
 	configuration.Get().Encryption.Level = 3
 	id := testconfiguration.WriteEncryptedFile()
-	file, ok := datastorage.GetMetaDataById(id)
+	file, ok := database.GetMetaDataById(id)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, file.UnlimitedTime, true)
 	formObjects, err = input.toFormObject()
 	test.IsNil(t, err)
 	config, _, err = toConfiguration(&formObjects)
 	test.IsNil(t, err)
-	file, ok = datastorage.GetMetaDataById(id)
+	file, ok = database.GetMetaDataById(id)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, file.UnlimitedTime, false)
 
 	configuration.Get().Encryption.Level = 2
 	input.EncryptionPassword.Value = "unc"
 	id = testconfiguration.WriteEncryptedFile()
-	_, ok = datastorage.GetMetaDataById(id)
+	_, ok = database.GetMetaDataById(id)
 	test.IsEqualBool(t, ok, true)
 	formObjects, err = input.toFormObject()
 	test.IsNil(t, err)
 	config, _, err = toConfiguration(&formObjects)
 	test.IsNil(t, err)
-	file, ok = datastorage.GetMetaDataById(id)
+	file, ok = database.GetMetaDataById(id)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, file.UnlimitedTime, true)
 
-	_, ok = datastorage.GetMetaDataById(id)
+	_, ok = database.GetMetaDataById(id)
 	test.IsEqualBool(t, ok, true)
 	configuration.Get().Encryption.Level = 2
 	input.EncryptionPassword.Value = "otherpw"
 	id = testconfiguration.WriteEncryptedFile()
-	_, ok = datastorage.GetMetaDataById(id)
+	_, ok = database.GetMetaDataById(id)
 	test.IsEqualBool(t, ok, true)
 	formObjects, err = input.toFormObject()
 	test.IsNil(t, err)
 	config, _, err = toConfiguration(&formObjects)
 	test.IsNil(t, err)
-	file, ok = datastorage.GetMetaDataById(id)
+	file, ok = database.GetMetaDataById(id)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, file.UnlimitedTime, false)
 
-	datastorage.Close()
+	database.Close()
 	testconfiguration.Delete()
 
 	isInitialSetup = true

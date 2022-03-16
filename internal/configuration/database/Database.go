@@ -1,4 +1,4 @@
-package datastorage
+package database
 
 import (
 	"bytes"
@@ -21,16 +21,16 @@ const idLastUploadConfig = "default:lastupload"
 
 const maxKeySize = 96
 
-var database *bitcask.Bitcask
+var bitcaskDb *bitcask.Bitcask
 
 // Init creates the database files and connects to it
 func Init(dbPath string) {
-	if database == nil {
+	if bitcaskDb == nil {
 		db, err := bitcask.Open(dbPath, bitcask.WithMaxKeySize(maxKeySize))
 		if err != nil {
 			log.Fatal(err)
 		}
-		database = db
+		bitcaskDb = db
 	}
 }
 
@@ -46,31 +46,31 @@ func GetLengthAvailable() int {
 	return maxKeySize - maxLength
 }
 
-// Close syncs the database to the filesystem and closes it
+// Close syncs the bitcaskDb to the filesystem and closes it
 func Close() {
-	if database != nil {
-		err := database.Sync()
+	if bitcaskDb != nil {
+		err := bitcaskDb.Sync()
 		if err != nil {
 			fmt.Println(err)
 		}
-		err = database.Close()
+		err = bitcaskDb.Close()
 		if err != nil {
 			fmt.Println(err)
 		}
 	}
-	database = nil
+	bitcaskDb = nil
 }
 
 // ## File Metadata ##
 
 // GetAllMetadata returns a map of all available files
 func GetAllMetadata() map[string]models.File {
-	if database == nil {
+	if bitcaskDb == nil {
 		panic("Database not loaded!")
 	}
 	result := make(map[string]models.File)
 	var keys []string
-	err := database.Scan([]byte(prefixFile), func(key []byte) error {
+	err := bitcaskDb.Scan([]byte(prefixFile), func(key []byte) error {
 		fileId := strings.Replace(string(key), prefixFile, "", 1)
 		keys = append(keys, fileId)
 		return nil
@@ -108,9 +108,9 @@ func SaveMetaData(file models.File) {
 	enc := gob.NewEncoder(&buf)
 	err := enc.Encode(file)
 	helper.Check(err)
-	err = database.Put([]byte(prefixFile+file.Id), buf.Bytes())
+	err = bitcaskDb.Put([]byte(prefixFile+file.Id), buf.Bytes())
 	helper.Check(err)
-	err = database.Sync()
+	err = bitcaskDb.Sync()
 	helper.Check(err)
 }
 
@@ -130,11 +130,11 @@ func GetHotlink(id string) (string, bool) {
 	return string(value), true
 }
 
-// SaveHotlink stores the hotlink associated with the file in the database
+// SaveHotlink stores the hotlink associated with the file in the bitcaskDb
 func SaveHotlink(file models.File) {
-	err := database.PutWithTTL([]byte(prefixHotlink+file.HotlinkId), []byte(file.Id), expiryToDuration(file))
+	err := bitcaskDb.PutWithTTL([]byte(prefixHotlink+file.HotlinkId), []byte(file.Id), expiryToDuration(file))
 	helper.Check(err)
-	err = database.Sync()
+	err = bitcaskDb.Sync()
 	helper.Check(err)
 }
 
@@ -149,7 +149,7 @@ func DeleteHotlink(id string) {
 func GetAllApiKeys() map[string]models.ApiKey {
 	result := make(map[string]models.ApiKey)
 	var keys []string
-	err := database.Scan([]byte(prefixApiKey), func(key []byte) error {
+	err := bitcaskDb.Scan([]byte(prefixApiKey), func(key []byte) error {
 		apikeyID := strings.Replace(string(key), prefixApiKey, "", 1)
 		keys = append(keys, apikeyID)
 		return nil
@@ -179,16 +179,16 @@ func GetApiKey(id string) (models.ApiKey, bool) {
 	return result, true
 }
 
-// SaveApiKey saves the API key to the database. If updateTimeOnly is true, the database might not be synced afterwards
+// SaveApiKey saves the API key to the bitcaskDb. If updateTimeOnly is true, the bitcaskDb might not be synced afterwards
 func SaveApiKey(apikey models.ApiKey, updateTimeOnly bool) {
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
 	err := enc.Encode(apikey)
 	helper.Check(err)
-	err = database.Put([]byte(prefixApiKey+apikey.Id), buf.Bytes())
+	err = bitcaskDb.Put([]byte(prefixApiKey+apikey.Id), buf.Bytes())
 	helper.Check(err)
 	if !updateTimeOnly {
-		err = database.Sync()
+		err = bitcaskDb.Sync()
 		helper.Check(err)
 	}
 }
@@ -221,7 +221,7 @@ func DeleteSession(id string) {
 
 // DeleteAllSessions logs all users out
 func DeleteAllSessions() {
-	err := database.SiftScan([]byte(prefixSessions), func(key []byte) (bool, error) {
+	err := bitcaskDb.SiftScan([]byte(prefixSessions), func(key []byte) (bool, error) {
 		return true, nil
 	})
 	helper.Check(err)
@@ -233,9 +233,9 @@ func SaveSession(id string, session models.Session, expiry time.Duration) {
 	enc := gob.NewEncoder(&buf)
 	err := enc.Encode(session)
 	helper.Check(err)
-	err = database.PutWithTTL([]byte(prefixSessions+id), buf.Bytes(), expiry)
+	err = bitcaskDb.PutWithTTL([]byte(prefixSessions+id), buf.Bytes(), expiry)
 	helper.Check(err)
-	err = database.Sync()
+	err = bitcaskDb.Sync()
 	helper.Check(err)
 }
 
@@ -252,8 +252,8 @@ func GetUploadDefaults() models.LastUploadValues {
 		UnlimitedTime:     false,
 	}
 	result := models.LastUploadValues{}
-	if database.Has([]byte(idLastUploadConfig)) {
-		value, err := database.Get([]byte(idLastUploadConfig))
+	if bitcaskDb.Has([]byte(idLastUploadConfig)) {
+		value, err := bitcaskDb.Get([]byte(idLastUploadConfig))
 		helper.Check(err)
 		buf := bytes.NewBuffer(value)
 		dec := gob.NewDecoder(buf)
@@ -270,13 +270,13 @@ func SaveUploadDefaults(values models.LastUploadValues) {
 	enc := gob.NewEncoder(&buf)
 	err := enc.Encode(values)
 	helper.Check(err)
-	err = database.Put([]byte(idLastUploadConfig), buf.Bytes())
+	err = bitcaskDb.Put([]byte(idLastUploadConfig), buf.Bytes())
 	helper.Check(err)
 }
 
 // RunGarbageCollection runs the databases GC
 func RunGarbageCollection() {
-	err := database.RunGC()
+	err := bitcaskDb.RunGC()
 	helper.Check(err)
 }
 
@@ -292,17 +292,17 @@ func byteToInt(intByte []byte) int {
 }
 
 func deleteKey(id string) {
-	if !database.Has([]byte(id)) {
+	if !bitcaskDb.Has([]byte(id)) {
 		return
 	}
-	err := database.Delete([]byte(id))
+	err := bitcaskDb.Delete([]byte(id))
 	helper.Check(err)
-	err = database.Sync()
+	err = bitcaskDb.Sync()
 	helper.Check(err)
 }
 
 func getValue(id string) ([]byte, bool) {
-	value, err := database.Get([]byte(id))
+	value, err := bitcaskDb.Get([]byte(id))
 	if err == nil {
 		return value, true
 	}

@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
-	"github.com/forceu/gokapi/internal/configuration/datastorage"
+	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/configuration/setup"
 	"github.com/forceu/gokapi/internal/encryption"
 	"github.com/forceu/gokapi/internal/environment"
@@ -65,7 +65,7 @@ func main() {
 func shutdown() {
 	fmt.Println("Shutting down...")
 	webserver.Shutdown()
-	datastorage.Close()
+	database.Close()
 }
 
 // Checks for command line arguments that have to be parsed before loading the configuration

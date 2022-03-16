@@ -1,4 +1,4 @@
-package datastorage
+package database
 
 import (
 	"github.com/forceu/gokapi/internal/models"
@@ -19,15 +19,15 @@ func TestMain(m *testing.M) {
 
 func TestInit(t *testing.T) {
 	Init("./test/filestorage.db")
-	test.IsEqualBool(t, database != nil, true)
+	test.IsEqualBool(t, bitcaskDb != nil, true)
 	// Test that second init doesn't raise an error
 	Init("./test/filestorage.db")
 }
 
 func TestClose(t *testing.T) {
-	test.IsEqualBool(t, database != nil, true)
+	test.IsEqualBool(t, bitcaskDb != nil, true)
 	Close()
-	test.IsEqualBool(t, database == nil, true)
+	test.IsEqualBool(t, bitcaskDb == nil, true)
 	Init("./test/filestorage.db")
 }
 
@@ -181,12 +181,12 @@ func TestBinaryConversion(t *testing.T) {
 }
 
 func TestRunGc(t *testing.T) {
-	items := database.Len()
-	database.PutWithTTL([]byte("test"), []byte("value"), 500*time.Millisecond)
-	test.IsEqualInt(t, database.Len(), items+1)
+	items := bitcaskDb.Len()
+	bitcaskDb.PutWithTTL([]byte("test"), []byte("value"), 500*time.Millisecond)
+	test.IsEqualInt(t, bitcaskDb.Len(), items+1)
 	time.Sleep(501 * time.Millisecond)
 	RunGarbageCollection()
-	test.IsEqualInt(t, database.Len(), items)
+	test.IsEqualInt(t, bitcaskDb.Len(), items)
 }
 
 func TestGetLengthAvailable(t *testing.T) {

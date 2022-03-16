@@ -1,7 +1,7 @@
 package configupgrade
 
 import (
-	"github.com/forceu/gokapi/internal/configuration/datastorage"
+	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/environment"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/test"
@@ -38,7 +38,7 @@ func TestUpgradeDb(t *testing.T) {
 	test.IsEqualBool(t, wasExit, true)
 
 	oldConfigFile.ConfigVersion = 8
-	datastorage.Init("./test/filestorage.db")
+	database.Init("./test/filestorage.db")
 	testconfiguration.WriteUpgradeConfigFileV8()
 	upgradeDone := DoUpgrade(&oldConfigFile, &env)
 	test.IsEqualBool(t, upgradeDone, true)

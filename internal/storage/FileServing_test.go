@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
-	"github.com/forceu/gokapi/internal/configuration/datastorage"
+	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/encryption"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage/cloudstorage/aws"
@@ -58,7 +58,7 @@ func TestGetFile(t *testing.T) {
 		UnlimitedDownloads: true,
 		UnlimitedTime:      true,
 	}
-	datastorage.SaveMetaData(file)
+	database.SaveMetaData(file)
 	_, result = GetFile(file.Id)
 	test.IsEqualBool(t, result, false)
 
@@ -80,7 +80,7 @@ func TestGetEncInfoFromExistingFile(t *testing.T) {
 		UnlimitedDownloads: true,
 		UnlimitedTime:      true,
 	}
-	datastorage.SaveMetaData(file)
+	database.SaveMetaData(file)
 	encinfo, result := getEncInfoFromExistingFile("testhash")
 	test.IsEqualBool(t, encinfo.IsEncrypted, false)
 	test.IsEqualBool(t, result, true)
@@ -115,7 +115,7 @@ func TestAddHotlink(t *testing.T) {
 	test.IsEqualInt(t, len(file.HotlinkId), 44)
 	lastCharacters := file.HotlinkId[len(file.HotlinkId)-4:]
 	test.IsEqualBool(t, lastCharacters == ".jpg", true)
-	link, ok := datastorage.GetHotlink(file.HotlinkId)
+	link, ok := database.GetHotlink(file.HotlinkId)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualString(t, link, "testId")
 	file = models.File{Name: "test.jpg", Id: "testId", ExpireAt: time.Now().Add(time.Hour).Unix()}
@@ -168,7 +168,7 @@ func TestNewFile(t *testing.T) {
 	header := newFile.Header
 
 	test.IsNil(t, err)
-	retrievedFile, ok := datastorage.GetMetaDataById(file.Id)
+	retrievedFile, ok := database.GetMetaDataById(file.Id)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualString(t, retrievedFile.Name, "test.dat")
 	test.IsEqualString(t, retrievedFile.SHA256, "f1474c19eff0fc8998fa6e1b1f7bf31793b103a6")
@@ -217,7 +217,7 @@ func TestNewFile(t *testing.T) {
 	// Also testing renaming of temp file
 	file, err = NewFile(bigFile, &header, request)
 	test.IsNil(t, err)
-	retrievedFile, ok = datastorage.GetMetaDataById(file.Id)
+	retrievedFile, ok = database.GetMetaDataById(file.Id)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualString(t, retrievedFile.Name, "bigfile")
 	test.IsEqualString(t, retrievedFile.SHA256, "9674344c90c2f0646f0b78026e127c9b86e3ad77")
@@ -250,7 +250,7 @@ func TestNewFile(t *testing.T) {
 	}
 	file, err = NewFile(bigFile, &header, request)
 	test.IsNotNil(t, err)
-	retrievedFile, ok = datastorage.GetMetaDataById(file.Id)
+	retrievedFile, ok = database.GetMetaDataById(file.Id)
 	test.IsEqualBool(t, ok, false)
 	bigFile.Close()
 	os.Remove("bigfile")
@@ -267,7 +267,7 @@ func TestNewFile(t *testing.T) {
 
 	newFile, err = createTestFile()
 	test.IsNil(t, err)
-	retrievedFile, ok = datastorage.GetMetaDataById(newFile.File.Id)
+	retrievedFile, ok = database.GetMetaDataById(newFile.File.Id)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualString(t, retrievedFile.SHA256, "5bbfa18805eb12c678cfd284c956718d57039e37")
 
@@ -276,18 +276,18 @@ func TestNewFile(t *testing.T) {
 	bigFile, _ = os.Open("bigfile")
 	file, err = NewFile(bigFile, &header, request)
 	test.IsNil(t, err)
-	retrievedFile, ok = datastorage.GetMetaDataById(file.Id)
+	retrievedFile, ok = database.GetMetaDataById(file.Id)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualString(t, retrievedFile.Name, "bigfile")
 	test.IsEqualString(t, retrievedFile.SHA256, "c1c165c30d0def15ba2bc8f1bd243be13b8c8fe7")
 
 	bigFile.Close()
-	datastorage.DeleteMetaData(retrievedFile.Id)
+	database.DeleteMetaData(retrievedFile.Id)
 
 	bigFile, _ = os.Open("bigfile")
 	file, err = NewFile(bigFile, &header, request)
 	test.IsNil(t, err)
-	retrievedFile, ok = datastorage.GetMetaDataById(file.Id)
+	retrievedFile, ok = database.GetMetaDataById(file.Id)
 	test.IsEqualBool(t, ok, true)
 	os.Remove("bigfile")
 
@@ -314,7 +314,7 @@ func TestNewFile(t *testing.T) {
 		test.IsEqualBool(t, ok, true)
 		file, err = NewFile(bytes.NewReader(content), &header, request)
 		test.IsNil(t, err)
-		retrievedFile, ok = datastorage.GetMetaDataById(file.Id)
+		retrievedFile, ok = database.GetMetaDataById(file.Id)
 		test.IsEqualBool(t, ok, true)
 		test.IsEqualString(t, retrievedFile.Name, "bigfile")
 		test.IsEqualString(t, retrievedFile.SHA256, "f1474c19eff0fc8998fa6e1b1f7bf31793b103a6")
@@ -361,7 +361,7 @@ func TestServeFile(t *testing.T) {
 	newFile, err := createTestFile()
 	test.IsNil(t, err)
 	file = newFile.File
-	datastorage.SaveMetaData(file)
+	database.SaveMetaData(file)
 	r = httptest.NewRequest("GET", "/upload", nil)
 	w = httptest.NewRecorder()
 	cipher, err := encryption.GetRandomCipher()
@@ -380,7 +380,7 @@ func TestServeFile(t *testing.T) {
 }
 
 func TestCleanUp(t *testing.T) {
-	files := datastorage.GetAllMetadata()
+	files := database.GetAllMetadata()
 	downloadstatus.DeleteAll()
 	downloadstatus.SetDownload(files["cleanuptest123456789"])
 
@@ -395,7 +395,7 @@ func TestCleanUp(t *testing.T) {
 	test.FileExists(t, "test/data/2341354656543213246465465465432456898794")
 
 	CleanUp(false)
-	files = datastorage.GetAllMetadata()
+	files = database.GetAllMetadata()
 	test.IsEqualString(t, files["cleanuptest123456789"].Name, "cleanup")
 	test.FileExists(t, "test/data/2341354656543213246465465465432456898794")
 	test.IsEqualString(t, files["deletedfile123456789"].Name, "")
@@ -408,11 +408,11 @@ func TestCleanUp(t *testing.T) {
 
 	file, _ := GetFile("n1tSTAGj8zan9KaT4u6p")
 	file.DownloadsRemaining = 0
-	datastorage.SaveMetaData(file)
-	files = datastorage.GetAllMetadata()
+	database.SaveMetaData(file)
+	files = database.GetAllMetadata()
 
 	CleanUp(false)
-	files = datastorage.GetAllMetadata()
+	files = database.GetAllMetadata()
 	test.FileDoesNotExist(t, "test/data/a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd0")
 	test.IsEqualString(t, files["n1tSTAGj8zan9KaT4u6p"].Name, "")
 	test.IsEqualString(t, files["deletedfile123456789"].Name, "")
@@ -422,10 +422,10 @@ func TestCleanUp(t *testing.T) {
 
 	file, _ = GetFile("Wzol7LyY2QVczXynJtVo")
 	file.DownloadsRemaining = 0
-	datastorage.SaveMetaData(file)
+	database.SaveMetaData(file)
 
 	CleanUp(false)
-	files = datastorage.GetAllMetadata()
+	files = database.GetAllMetadata()
 	test.FileExists(t, "test/data/e017693e4a04a59d0b0f400fe98177fe7ee13cf7")
 	test.IsEqualString(t, files["Wzol7LyY2QVczXynJtVo"].Name, "")
 	test.IsEqualString(t, files["n1tSTAGj8zan9KaT4u6p"].Name, "")
@@ -435,13 +435,13 @@ func TestCleanUp(t *testing.T) {
 
 	file, _ = GetFile("e4TjE7CokWK0giiLNxDL")
 	file.DownloadsRemaining = 0
-	datastorage.SaveMetaData(file)
+	database.SaveMetaData(file)
 	file, _ = GetFile("wefffewhtrhhtrhtrhtr")
 	file.DownloadsRemaining = 0
-	datastorage.SaveMetaData(file)
+	database.SaveMetaData(file)
 
 	CleanUp(false)
-	files = datastorage.GetAllMetadata()
+	files = database.GetAllMetadata()
 	test.FileDoesNotExist(t, "test/data/e017693e4a04a59d0b0f400fe98177fe7ee13cf7")
 	test.IsEqualString(t, files["Wzol7LyY2QVczXynJtVo"].Name, "")
 	test.IsEqualString(t, files["n1tSTAGj8zan9KaT4u6p"].Name, "")
@@ -454,7 +454,7 @@ func TestCleanUp(t *testing.T) {
 
 	downloadstatus.DeleteAll()
 	CleanUp(false)
-	files = datastorage.GetAllMetadata()
+	files = database.GetAllMetadata()
 	test.IsEqualString(t, files["cleanuptest123456789"].Name, "")
 	test.FileDoesNotExist(t, "test/data/2341354656543213246465465465432456898794")
 
@@ -474,13 +474,13 @@ func TestCleanUp(t *testing.T) {
 func TestDeleteFile(t *testing.T) {
 	testconfiguration.Create(true)
 	configuration.Load()
-	files := datastorage.GetAllMetadata()
+	files := database.GetAllMetadata()
 	test.IsEqualString(t, files["n1tSTAGj8zan9KaT4u6p"].Name, "picture.jpg")
 	test.FileExists(t, "test/data/a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd0")
 	result := DeleteFile("n1tSTAGj8zan9KaT4u6p", true)
 	time.Sleep(time.Second)
 	test.IsEqualBool(t, result, true)
-	files = datastorage.GetAllMetadata()
+	files = database.GetAllMetadata()
 	test.IsEqualString(t, files["n1tSTAGj8zan9KaT4u6p"].Name, "")
 	test.FileDoesNotExist(t, "test/data/a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd0")
 	result = DeleteFile("invalid", true)
@@ -491,13 +491,13 @@ func TestDeleteFile(t *testing.T) {
 	test.IsEqualBool(t, result, false)
 
 	testfile := models.File{Id: "testfiledownload", DownloadsRemaining: 1, ExpireAt: 2147483646}
-	datastorage.SaveMetaData(testfile)
+	database.SaveMetaData(testfile)
 	downloadstatus.SetDownload(testfile)
-	file, ok := datastorage.GetMetaDataById("testfiledownload")
+	file, ok := database.GetMetaDataById("testfiledownload")
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, file.ExpireAt != 0, true)
 	DeleteFile(file.Id, false)
-	file, ok = datastorage.GetMetaDataById("testfiledownload")
+	file, ok = database.GetMetaDataById("testfiledownload")
 	test.IsEqualInt(t, int(file.ExpireAt), 0)
 
 	if aws.IsIncludedInBuild {
@@ -513,8 +513,8 @@ func TestDeleteFile(t *testing.T) {
 			SHA256:    "x341354656543213246465465465432456898794",
 			AwsBucket: "gokapi-test",
 		}
-		datastorage.SaveMetaData(awsFile)
-		files = datastorage.GetAllMetadata()
+		database.SaveMetaData(awsFile)
+		files = database.GetAllMetadata()
 		result, err := aws.FileExists(files["awsTest1234567890123"])
 		test.IsEqualBool(t, result, true)
 		test.IsNil(t, err)
@@ -565,7 +565,7 @@ func TestDeleteAllEncrypted(t *testing.T) {
 			IsEncrypted: true,
 		},
 	}
-	datastorage.SaveMetaData(file)
+	database.SaveMetaData(file)
 	file = models.File{
 		Id:            "testEncDelUn",
 		UnlimitedTime: true,
@@ -573,17 +573,17 @@ func TestDeleteAllEncrypted(t *testing.T) {
 			IsEncrypted: false,
 		},
 	}
-	datastorage.SaveMetaData(file)
-	data, ok := datastorage.GetMetaDataById("testEncDelEnc")
+	database.SaveMetaData(file)
+	data, ok := database.GetMetaDataById("testEncDelEnc")
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, data.UnlimitedTime, true)
-	data, ok = datastorage.GetMetaDataById("testEncDelUn")
+	data, ok = database.GetMetaDataById("testEncDelUn")
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, data.UnlimitedTime, true)
 	DeleteAllEncrypted()
-	data, ok = datastorage.GetMetaDataById("testEncDelEnc")
+	data, ok = database.GetMetaDataById("testEncDelEnc")
 	test.IsEqualBool(t, data.UnlimitedTime, false)
-	data, ok = datastorage.GetMetaDataById("testEncDelUn")
+	data, ok = database.GetMetaDataById("testEncDelUn")
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, data.UnlimitedTime, true)
 }

@@ -5,7 +5,7 @@ Manages the sessions for the admin user or to access password-protected files
 */
 
 import (
-	"github.com/forceu/gokapi/internal/configuration/datastorage"
+	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"net/http"
@@ -25,7 +25,7 @@ func IsValidSession(w http.ResponseWriter, r *http.Request) bool {
 	if err == nil {
 		sessionString := cookie.Value
 		if sessionString != "" {
-			session, ok := datastorage.GetSession(sessionString)
+			session, ok := database.GetSession(sessionString)
 			if ok {
 				return useSession(w, sessionString, session)
 			}
@@ -40,12 +40,12 @@ func IsValidSession(w http.ResponseWriter, r *http.Request) bool {
 // Returns false if session is invalid (and deletes it)
 func useSession(w http.ResponseWriter, id string, session models.Session) bool {
 	if session.ValidUntil < time.Now().Unix() {
-		datastorage.DeleteSession(id)
+		database.DeleteSession(id)
 		return false
 	}
 	if session.RenewAt < time.Now().Unix() {
 		CreateSession(w)
-		datastorage.DeleteSession(id)
+		database.DeleteSession(id)
 	}
 	return true
 }
@@ -54,7 +54,7 @@ func useSession(w http.ResponseWriter, id string, session models.Session) bool {
 // If sessions parameter is nil, it will be loaded from config
 func CreateSession(w http.ResponseWriter) {
 	sessionString := helper.GenerateRandomString(60)
-	datastorage.SaveSession(sessionString, models.Session{
+	database.SaveSession(sessionString, models.Session{
 		RenewAt:    time.Now().Add(time.Hour).Unix(),
 		ValidUntil: time.Now().Add(cookieLifeAdmin).Unix(),
 	}, cookieLifeAdmin)
@@ -65,7 +65,7 @@ func CreateSession(w http.ResponseWriter) {
 func LogoutSession(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("session_token")
 	if err == nil {
-		datastorage.DeleteSession(cookie.Value)
+		database.DeleteSession(cookie.Value)
 	}
 	writeSessionCookie(w, "", time.Now())
 }

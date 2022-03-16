@@ -11,7 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/forceu/gokapi/internal/configuration"
-	"github.com/forceu/gokapi/internal/configuration/datastorage"
+	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/encryption"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/logging"
@@ -69,7 +69,7 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 		if err != nil {
 			return models.File{}, err
 		}
-		datastorage.SaveMetaData(file)
+		database.SaveMetaData(file)
 		return file, nil
 	}
 
@@ -93,7 +93,7 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 			err = os.Rename(tempFile.Name(), dataDir+"/"+file.SHA256)
 			helper.Check(err)
 			hasBeenRenamed = true
-			datastorage.SaveMetaData(file)
+			database.SaveMetaData(file)
 			return file, nil
 		}
 		destinationFile, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
@@ -106,7 +106,7 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 			return models.File{}, err
 		}
 	}
-	datastorage.SaveMetaData(file)
+	database.SaveMetaData(file)
 	return file, nil
 }
 
@@ -115,7 +115,7 @@ func getEncInfoFromExistingFile(hash string) (models.EncryptionInfo, bool) {
 	if encryptionLevel == encryption.NoEncryption || encryptionLevel == encryption.EndToEndEncryption {
 		return models.EncryptionInfo{}, true
 	}
-	allFiles := datastorage.GetAllMetadata()
+	allFiles := database.GetAllMetadata()
 	for _, existingFile := range allFiles {
 		if existingFile.SHA256 == hash {
 			return existingFile.Encryption, true
@@ -135,7 +135,7 @@ func deleteTempFile(file *os.File, hasBeenRenamed *bool) {
 
 // DeleteAllEncrypted marks all encrypted files for deletion on next cleanup
 func DeleteAllEncrypted() {
-	files := datastorage.GetAllMetadata()
+	files := database.GetAllMetadata()
 	for _, file := range files {
 		if file.Encryption.IsEncrypted {
 			DeleteFile(file.Id, false)
@@ -214,7 +214,7 @@ func addHotlink(file *models.File) {
 	}
 	link := helper.GenerateRandomString(40) + getFileExtension(file.Name)
 	file.HotlinkId = link
-	datastorage.SaveHotlink(*file)
+	database.SaveHotlink(*file)
 }
 
 func getFileExtension(filename string) string {
@@ -233,7 +233,7 @@ func GetFile(id string) (models.File, bool) {
 	if id == "" {
 		return emptyResult, false
 	}
-	file, ok := datastorage.GetMetaDataById(id)
+	file, ok := database.GetMetaDataById(id)
 	if !ok {
 		return emptyResult, false
 	}
@@ -253,7 +253,7 @@ func GetFileByHotlink(id string) (models.File, bool) {
 	if id == "" {
 		return emptyResult, false
 	}
-	fileId, ok := datastorage.GetHotlink(id)
+	fileId, ok := database.GetHotlink(id)
 	if !ok {
 		return emptyResult, false
 	}
@@ -272,7 +272,7 @@ func RequiresClientDecryption(file models.File) bool {
 // ServeFile subtracts a download allowance and serves the file to the browser
 func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDownload bool) {
 	file.DownloadsRemaining = file.DownloadsRemaining - 1
-	datastorage.SaveMetaData(file)
+	database.SaveMetaData(file)
 	logging.AddDownload(&file, r)
 
 	// If file is stored on AWS
@@ -342,11 +342,11 @@ func CleanUp(periodic bool) {
 	downloadstatus.Clean()
 	timeNow := time.Now().Unix()
 	wasItemDeleted := false
-	for key, element := range datastorage.GetAllMetadata() {
+	for key, element := range database.GetAllMetadata() {
 		fileExists := FileExists(element, configuration.Get().DataDir)
 		if !fileExists || isExpiredFileWithoutDownload(element, timeNow) {
 			deleteFile := true
-			for _, secondLoopElement := range datastorage.GetAllMetadata() {
+			for _, secondLoopElement := range database.GetAllMetadata() {
 				if (element.Id != secondLoopElement.Id) && (element.SHA256 == secondLoopElement.SHA256) {
 					deleteFile = false
 				}
@@ -355,9 +355,9 @@ func CleanUp(periodic bool) {
 				deleteSource(element, configuration.Get().DataDir)
 			}
 			if element.HotlinkId != "" {
-				datastorage.DeleteHotlink(element.HotlinkId)
+				database.DeleteHotlink(element.HotlinkId)
 			}
-			datastorage.DeleteMetaData(key)
+			database.DeleteMetaData(key)
 			wasItemDeleted = true
 		}
 	}
@@ -370,7 +370,7 @@ func CleanUp(periodic bool) {
 			CleanUp(periodic)
 		}()
 	}
-	datastorage.RunGarbageCollection()
+	database.RunGarbageCollection()
 }
 
 // IsExpiredFile returns true if the file is expired, either due to download count
@@ -405,13 +405,13 @@ func DeleteFile(keyId string, deleteSource bool) bool {
 	if keyId == "" {
 		return false
 	}
-	item, ok := datastorage.GetMetaDataById(keyId)
+	item, ok := database.GetMetaDataById(keyId)
 	if !ok {
 		return false
 	}
 	item.ExpireAt = 0
 	item.UnlimitedTime = false
-	datastorage.SaveMetaData(item)
+	database.SaveMetaData(item)
 	for _, status := range downloadstatus.GetAll() {
 		if status.FileId == item.Id {
 			downloadstatus.SetComplete(status.Id)

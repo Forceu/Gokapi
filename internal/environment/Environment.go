@@ -3,7 +3,7 @@ package environment
 import (
 	"fmt"
 	envParser "github.com/caarlos0/env/v6"
-	"github.com/forceu/gokapi/internal/configuration/datastorage"
+	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/helper"
 	"os"
 	"strconv"
@@ -51,9 +51,9 @@ func New() Environment {
 	if result.LengthId < 5 {
 		result.LengthId = 5
 	}
-	if result.LengthId > datastorage.GetLengthAvailable() {
-		result.LengthId = datastorage.GetLengthAvailable()
-		fmt.Println("Reduced ID length to " + strconv.Itoa(datastorage.GetLengthAvailable()) + " due to database constraints")
+	if result.LengthId > database.GetLengthAvailable() {
+		result.LengthId = database.GetLengthAvailable()
+		fmt.Println("Reduced ID length to " + strconv.Itoa(database.GetLengthAvailable()) + " due to database constraints")
 	}
 	if result.MaxMemory < 5 {
 		result.MaxMemory = 5

@@ -13,7 +13,7 @@ import (
 	"fmt"
 	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
 	"github.com/forceu/gokapi/internal/configuration/configupgrade"
-	"github.com/forceu/gokapi/internal/configuration/datastorage"
+	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/environment"
 	"github.com/forceu/gokapi/internal/helper"
 	log "github.com/forceu/gokapi/internal/logging"
@@ -51,7 +51,7 @@ func Load() {
 	err = decoder.Decode(&serverSettings)
 	helper.Check(err)
 	file.Close()
-	datastorage.Init(Environment.FileDbPath)
+	database.Init(Environment.FileDbPath)
 	if configupgrade.DoUpgrade(&serverSettings, &Environment) {
 		save()
 	}
@@ -97,7 +97,7 @@ func LoadFromSetup(config models.Configuration, cloudConfig *cloudconfig.CloudCo
 	helper.CreateDir(Environment.ConfigDir)
 	if !isInitialSetup {
 		Load()
-		datastorage.DeleteAllSessions()
+		database.DeleteAllSessions()
 	}
 
 	serverSettings = config

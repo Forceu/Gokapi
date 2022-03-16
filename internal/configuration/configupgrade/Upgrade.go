@@ -3,7 +3,7 @@ package configupgrade
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/forceu/gokapi/internal/configuration/datastorage"
+	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/environment"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
@@ -65,19 +65,19 @@ func updateConfig(settings *models.Configuration, env *environment.Environment) 
 			TimeExpiry: legacyConfig.DefaultExpiry,
 			Password:   legacyConfig.DefaultPassword,
 		}
-		datastorage.SaveUploadDefaults(uploadValues)
+		database.SaveUploadDefaults(uploadValues)
 
 		for _, hotlink := range legacyConfig.Hotlinks {
-			datastorage.SaveHotlink(models.File{Id: hotlink.FileId, HotlinkId: hotlink.Id})
+			database.SaveHotlink(models.File{Id: hotlink.FileId, HotlinkId: hotlink.Id})
 		}
 		for _, apikey := range legacyConfig.ApiKeys {
-			datastorage.SaveApiKey(apikey, false)
+			database.SaveApiKey(apikey, false)
 		}
 		for _, file := range legacyConfig.Files {
-			datastorage.SaveMetaData(file)
+			database.SaveMetaData(file)
 		}
 		for key, session := range legacyConfig.Sessions {
-			datastorage.SaveSession(key, session, 48*time.Hour)
+			database.SaveSession(key, session, 48*time.Hour)
 		}
 	}
 }

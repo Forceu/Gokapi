@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/forceu/gokapi/internal/configuration"
-	"github.com/forceu/gokapi/internal/configuration/datastorage"
+	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/test"
 	"github.com/forceu/gokapi/internal/test/testconfiguration"
@@ -32,16 +32,16 @@ func TestParseConfig(t *testing.T) {
 		password:         "123",
 	}
 	config := parseConfig(data, false)
-	defaults := datastorage.GetUploadDefaults()
+	defaults := database.GetUploadDefaults()
 	test.IsEqualInt(t, config.AllowedDownloads, 9)
 	test.IsEqualString(t, config.Password, "123")
 	test.IsEqualInt(t, config.Expiry, 5)
 
 	test.IsEqualInt(t, defaults.Downloads, 3)
 	config = parseConfig(data, true)
-	defaults = datastorage.GetUploadDefaults()
+	defaults = database.GetUploadDefaults()
 	test.IsEqualInt(t, defaults.Downloads, 9)
-	datastorage.SaveUploadDefaults(models.LastUploadValues{Downloads: 3, TimeExpiry: 20})
+	database.SaveUploadDefaults(models.LastUploadValues{Downloads: 3, TimeExpiry: 20})
 	data.allowedDownloads = ""
 	data.expiryDays = "invalid"
 	config = parseConfig(data, false)

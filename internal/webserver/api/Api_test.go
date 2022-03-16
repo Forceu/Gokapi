@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/forceu/gokapi/internal/configuration"
-	"github.com/forceu/gokapi/internal/configuration/datastorage"
+	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/test"
 	"github.com/forceu/gokapi/internal/test/testconfiguration"
@@ -32,18 +32,18 @@ var newKeyId string
 
 func TestNewKey(t *testing.T) {
 	newKeyId = NewKey()
-	key, ok := datastorage.GetApiKey(newKeyId)
+	key, ok := database.GetApiKey(newKeyId)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualString(t, key.FriendlyName, "Unnamed key")
 }
 
 func TestDeleteKey(t *testing.T) {
-	key, ok := datastorage.GetApiKey(newKeyId)
+	key, ok := database.GetApiKey(newKeyId)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualString(t, key.FriendlyName, "Unnamed key")
 	result := DeleteKey(newKeyId)
 	test.IsEqualBool(t, result, true)
-	_, ok = datastorage.GetApiKey(newKeyId)
+	_, ok = database.GetApiKey(newKeyId)
 	test.IsEqualBool(t, ok, false)
 	result = DeleteKey("invalid")
 	test.IsEqualBool(t, result, false)
@@ -53,11 +53,11 @@ func TestIsValidApiKey(t *testing.T) {
 	test.IsEqualBool(t, IsValidApiKey("", false), false)
 	test.IsEqualBool(t, IsValidApiKey("invalid", false), false)
 	test.IsEqualBool(t, IsValidApiKey("validkey", false), true)
-	key, ok := datastorage.GetApiKey("validkey")
+	key, ok := database.GetApiKey("validkey")
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, key.LastUsed == 0, true)
 	test.IsEqualBool(t, IsValidApiKey("validkey", true), true)
-	key, ok = datastorage.GetApiKey("validkey")
+	key, ok = database.GetApiKey("validkey")
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, key.LastUsed == 0, false)
 }
@@ -107,7 +107,7 @@ func TestChangeFriendlyName(t *testing.T) {
 	Process(w, r, maxMemory)
 	test.IsEqualInt(t, w.Code, 200)
 
-	key, ok := datastorage.GetApiKey("validkey")
+	key, ok := database.GetApiKey("validkey")
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualString(t, key.FriendlyName, "Unnamed key")
 	w, r = test.GetRecorder("GET", "/api/auth/friendlyname", nil, []test.Header{{
@@ -116,7 +116,7 @@ func TestChangeFriendlyName(t *testing.T) {
 		Name: "friendlyName", Value: "NewName"}}, nil)
 	Process(w, r, maxMemory)
 	test.IsEqualInt(t, w.Code, 200)
-	key, ok = datastorage.GetApiKey("validkey")
+	key, ok = database.GetApiKey("validkey")
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualString(t, key.FriendlyName, "NewName")
 	w = httptest.NewRecorder()
@@ -141,7 +141,7 @@ func TestDeleteFile(t *testing.T) {
 	}, nil)
 	Process(w, r, maxMemory)
 	test.ResponseBodyContains(t, w, "Invalid id provided.")
-	file, ok := datastorage.GetMetaDataById("jpLXGJKigM4hjtA6T6sN2")
+	file, ok := database.GetMetaDataById("jpLXGJKigM4hjtA6T6sN2")
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualString(t, file.Id, "jpLXGJKigM4hjtA6T6sN2")
 	w, r = test.GetRecorder("GET", "/api/files/delete", nil, []test.Header{{
@@ -155,7 +155,7 @@ func TestDeleteFile(t *testing.T) {
 	Process(w, r, maxMemory)
 	test.IsEqualInt(t, w.Code, 200)
 	time.Sleep(time.Second)
-	_, ok = datastorage.GetMetaDataById("jpLXGJKigM4hjtA6T6sN2")
+	_, ok = database.GetMetaDataById("jpLXGJKigM4hjtA6T6sN2")
 	test.IsEqualBool(t, ok, false)
 }
 

@@ -2,7 +2,7 @@ package fileupload
 
 import (
 	"github.com/forceu/gokapi/internal/configuration"
-	"github.com/forceu/gokapi/internal/configuration/datastorage"
+	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
@@ -47,12 +47,12 @@ func parseConfig(values formOrHeader, setNewDefaults bool) models.UploadRequest 
 	password := values.Get("password")
 	allowedDownloadsInt, err := strconv.Atoi(allowedDownloads)
 	if err != nil {
-		previousValues := datastorage.GetUploadDefaults()
+		previousValues := database.GetUploadDefaults()
 		allowedDownloadsInt = previousValues.Downloads
 	}
 	expiryDaysInt, err := strconv.Atoi(expiryDays)
 	if err != nil {
-		previousValues := datastorage.GetUploadDefaults()
+		previousValues := database.GetUploadDefaults()
 		expiryDaysInt = previousValues.TimeExpiry
 	}
 
@@ -74,7 +74,7 @@ func parseConfig(values formOrHeader, setNewDefaults bool) models.UploadRequest 
 			UnlimitedDownload: unlimitedDownload,
 			UnlimitedTime:     unlimitedTime,
 		}
-		datastorage.SaveUploadDefaults(values)
+		database.SaveUploadDefaults(values)
 	}
 	settings := configuration.Get()
 	return models.UploadRequest{
