@@ -53,13 +53,13 @@ document.onpaste = function(event) {
 
 function checkBoxChanged(checkBox, correspondingInput) {
   let disable = !checkBox.checked;
-  
+
   if (disable) {
   	 document.getElementById(correspondingInput).setAttribute("disabled", "");
   } else {
   	document.getElementById(correspondingInput).removeAttribute("disabled");
   }
-  if (correspondingInput == "password" && disable) {
+  if (correspondingInput === "password" && disable) {
   	document.getElementById("password").value = "";
   }
 }
@@ -74,7 +74,7 @@ function parseData(data) {
 
 function addRow(jsonText) {
   let jsonObject = parseData(jsonText);
-  if (jsonObject.Result != "OK") {
+  if (jsonObject.Result !== "OK") {
 	alert("Failed to upload file!");
 	location.reload();
 	return;
@@ -82,44 +82,48 @@ function addRow(jsonText) {
   let item = jsonObject.FileInfo;
   let table = document.getElementById("downloadtable");
   let row = table.insertRow(0);
-  let cell1 = row.insertCell(0);
-  let cell2 = row.insertCell(1);
-  let cell3 = row.insertCell(2);
-  let cell4 = row.insertCell(3);
-  let cell5 = row.insertCell(4);
-  let cell6 = row.insertCell(5);
+  let cellFilename = row.insertCell(0);
+  let cellFileSize = row.insertCell(1);
+  let cellRemainingDownloads = row.insertCell(2);
+  let cellStoredUntil = row.insertCell(3);
+  let cellDownloadCount = row.insertCell(4);
+  let cellUrl = row.insertCell(5);
+  let cellButtons = row.insertCell(6);
   let lockIcon = "";
-  
-  if (item.PasswordHash != "") {
+
+  if (item.PasswordHash !== "") {
 	lockIcon = " &#128274;";
   }
-  cell1.innerText = item.Name;
-  cell2.innerText = item.Size;
+  cellFilename.innerText = item.Name;
+  cellFileSize.innerText = item.Size;
   if (item.UnlimitedDownloads) {
-  	cell3.innerText = "Unlimited";
+  	cellRemainingDownloads.innerText = "Unlimited";
   } else {
-  	cell3.innerText = item.DownloadsRemaining;
+  	cellRemainingDownloads.innerText = item.DownloadsRemaining;
   }
   if (item.UnlimitedTime) {
-  	cell4.innerText = "Unlimited";
+  	cellStoredUntil.innerText = "Unlimited";
   } else {
-  	cell4.innerText = item.ExpireAtString;
+  	cellStoredUntil.innerText = item.ExpireAtString;
   }
-  cell5.innerHTML = '<a  target="_blank" style="color: inherit" href="'+jsonObject.Url+item.Id+'">'+jsonObject.Url+item.Id+'</a>'+lockIcon;
+  cellDownloadCount.innerHTML = '0';
+  cellUrl.innerHTML = '<a  target="_blank" style="color: inherit" href="'+jsonObject.Url+item.Id+'">'+jsonObject.Url+item.Id+'</a>'+lockIcon;
 
   let buttons = "<button type=\"button\" data-clipboard-text=\""+jsonObject.Url+item.Id+"\" class=\"copyurl btn btn-outline-light btn-sm\">Copy URL</button> ";
-  if (item.HotlinkId != "") {
+  if (item.HotlinkId !== "") {
 	buttons = buttons + '<button type="button" data-clipboard-text="'+jsonObject.HotlinkUrl+item.HotlinkId+'" class="copyurl btn btn-outline-light btn-sm">Copy Hotlink</button> ';
   } else {
 	buttons = buttons + '<button type="button"class="copyurl btn btn-outline-light btn-sm disabled">Copy Hotlink</button> ';
   }
   buttons = buttons + "<button type=\"button\" class=\"btn btn-outline-light btn-sm\" onclick=\"window.location='./delete?id="+item.Id+"'\">Delete</button>";
 
-  cell6.innerHTML = buttons;
-  cell1.style.backgroundColor="green"
-  cell2.style.backgroundColor="green"
-  cell3.style.backgroundColor="green"
-  cell4.style.backgroundColor="green"
-  cell5.style.backgroundColor="green"
-  cell6.style.backgroundColor="green"
+  cellButtons.innerHTML = buttons;
+  
+  cellFilename.style.backgroundColor="green"
+  cellFileSize.style.backgroundColor="green"
+  cellRemainingDownloads.style.backgroundColor="green"
+  cellStoredUntil.style.backgroundColor="green"
+  cellDownloadCount.style.backgroundColor="green"
+  cellUrl.style.backgroundColor="green"
+  cellButtons.style.backgroundColor="green"
 }

@@ -14,6 +14,7 @@ type File struct {
 	ExpireAt           int64          `json:"ExpireAt"`
 	ExpireAtString     string         `json:"ExpireAtString"`
 	DownloadsRemaining int            `json:"DownloadsRemaining"`
+	DownloadCount      int            `json:"DownloadCount"`
 	PasswordHash       string         `json:"PasswordHash"`
 	HotlinkId          string         `json:"HotlinkId"`
 	ContentType        string         `json:"ContentType"`

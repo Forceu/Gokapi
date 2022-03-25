@@ -272,6 +272,7 @@ func RequiresClientDecryption(file models.File) bool {
 // ServeFile subtracts a download allowance and serves the file to the browser
 func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDownload bool) {
 	file.DownloadsRemaining = file.DownloadsRemaining - 1
+	file.DownloadCount = file.DownloadCount + 1
 	database.SaveMetaData(file)
 	logging.AddDownload(&file, r)
 
@@ -366,8 +367,10 @@ func CleanUp(periodic bool) {
 	}
 	if periodic {
 		go func() {
-			time.Sleep(time.Hour)
-			CleanUp(periodic)
+			select {
+			case <-time.After(time.Hour):
+				CleanUp(periodic)
+			}
 		}()
 	}
 	database.RunGarbageCollection()

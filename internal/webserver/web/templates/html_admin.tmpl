@@ -48,6 +48,7 @@
 						<th scope="col">Size</th>
 						<th scope="col">Downloads remaining</th>
 						<th scope="col">Stored until</th>
+						<th scope="col">Downloads</th>
 						<th scope="col">URL</th>
 						<th scope="col">Actions</th>
 					</tr>
@@ -69,6 +70,7 @@
 			{{ else }}
 						<td scope="col">{{ .ExpireAtString }}</td>
 			{{ end }}
+						<td scope="col">{{ .DownloadCount }}</td>
 						<td scope="col"><a target="_blank" href="{{ $.Url }}{{ .Id }}">{{ $.Url }}{{ .Id }}</a>{{ if ne .PasswordHash "" }} &#128274;{{ end }}</td>
 						<td scope="col"><button type="button" data-clipboard-text="{{ $.Url }}{{ .Id }}" class="copyurl btn btn-outline-light btn-sm">Copy URL</button> 
 			{{ if ne .HotlinkId "" }}
@@ -89,7 +91,7 @@
 	    </div>
    	 </div>
 
-	<script src="./js/admin.js?v=9"></script>
+	<script src="./js/admin.js?v=10"></script>
 	<script>
 		Dropzone.options.uploaddropzone["maxFilesize"] = {{ .MaxFileSize }};
 		Dropzone.options.uploaddropzone["dictDefaultMessage"] = "Drop files, paste or click here to upload";
