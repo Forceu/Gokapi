@@ -41,7 +41,7 @@ Docker
 To download, run the following command, and replace YOURTAG with either *latest* (stable) or *latest-dev* (unstable).
 ::
 
-  docker pull f0rc3/barcodebuddy-docker:YOURTAG
+  docker pull f0rc3/gokapi:YOURTAG
 
 Most of the time, you will need the *latest* tag. 
 
