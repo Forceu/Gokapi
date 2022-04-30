@@ -63,8 +63,7 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 	addHotlink(&file)
 	filename := configuration.Get().DataDir + "/" + file.SHA256
 	dataDir := configuration.Get().DataDir
-	if aws.IsAvailable() {
-		aws.AddBucketName(&file)
+	if file.AwsBucket != "" {
 		_, err := aws.Upload(reader, file)
 		if err != nil {
 			return models.File{}, err
