@@ -517,7 +517,6 @@ func TestDeleteFile(t *testing.T) {
 		files = database.GetAllMetadata()
 		result, size, err := aws.FileExists(files["awsTest1234567890123"])
 		test.IsEqualBool(t, result, true)
-		test.IsEqualBool(t, size != 0, true)
 		test.IsNil(t, err)
 		DeleteFile("awsTest1234567890123", true)
 		time.Sleep(5 * time.Second)

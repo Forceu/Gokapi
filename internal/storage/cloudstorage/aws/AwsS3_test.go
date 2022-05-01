@@ -105,26 +105,26 @@ func TestRedirectToDownload(t *testing.T) {
 }
 
 func TestFileExists(t *testing.T) {
-	result, err := FileExists(invalidFile)
+	result, _, err := FileExists(invalidFile)
 	test.IsEqualBool(t, result, false)
 	test.IsNil(t, err)
-	result, _ = FileExists(invalidBucket)
+	result, _, _ = FileExists(invalidBucket)
 	test.IsEqualBool(t, result, false)
-	result, _ = FileExists(invalidAll)
+	result, _, _ = FileExists(invalidAll)
 	test.IsEqualBool(t, result, false)
-	result, err = FileExists(testFile)
+	result, _, err = FileExists(testFile)
 	test.IsEqualBool(t, result, true)
 	test.IsNil(t, err)
 }
 
 func TestDeleteObject(t *testing.T) {
-	result, err := FileExists(testFile)
+	result, _, err := FileExists(testFile)
 	test.IsEqualBool(t, result, true)
 	test.IsNil(t, err)
 	result, err = DeleteObject(testFile)
 	test.IsEqualBool(t, result, true)
 	test.IsNil(t, err)
-	result, err = FileExists(testFile)
+	result, _, err = FileExists(testFile)
 	test.IsEqualBool(t, result, false)
 	test.IsNil(t, err)
 	result, err = DeleteObject(invalidFile)
