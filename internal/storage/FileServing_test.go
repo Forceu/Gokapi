@@ -515,13 +515,15 @@ func TestDeleteFile(t *testing.T) {
 		}
 		database.SaveMetaData(awsFile)
 		files = database.GetAllMetadata()
-		result, err := aws.FileExists(files["awsTest1234567890123"])
+		result, size, err := aws.FileExists(files["awsTest1234567890123"])
 		test.IsEqualBool(t, result, true)
+		test.IsEqualBool(t, size != 0, true)
 		test.IsNil(t, err)
 		DeleteFile("awsTest1234567890123", true)
 		time.Sleep(5 * time.Second)
-		result, err = aws.FileExists(awsFile)
+		result, size, err = aws.FileExists(awsFile)
 		test.IsEqualBool(t, result, false)
+		test.IsEqualInt(t, int(size), 0)
 		test.IsNil(t, err)
 		testconfiguration.DisableS3()
 	}

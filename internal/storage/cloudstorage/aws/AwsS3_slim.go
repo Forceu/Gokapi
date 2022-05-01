@@ -58,8 +58,8 @@ func RedirectToDownload(w http.ResponseWriter, r *http.Request, file models.File
 }
 
 // FileExists returns true if the object is stored in S3
-func FileExists(file models.File) (bool, error) {
-	return true, errors.New(errorString)
+func FileExists(file models.File) (bool, int64, error) {
+	return true, 0, errors.New(errorString)
 }
 
 // DeleteObject deletes a file from S3

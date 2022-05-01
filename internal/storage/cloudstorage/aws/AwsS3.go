@@ -67,7 +67,7 @@ func IsValidLogin(config models.AwsConfig) (bool, error) {
 	}
 	tempConfig := awsConfig
 	awsConfig = config
-	_, err := FileExists(models.File{AwsBucket: awsConfig.Bucket, SHA256: "invalid"})
+	_, _, err := FileExists(models.File{AwsBucket: awsConfig.Bucket, SHA256: "invalid"})
 	awsConfig = tempConfig
 	if err != nil {
 		return false, err
@@ -145,11 +145,11 @@ func RedirectToDownload(w http.ResponseWriter, r *http.Request, file models.File
 }
 
 // FileExists returns true if the object is stored in S3
-func FileExists(file models.File) (bool, error) {
+func FileExists(file models.File) (bool, int64, error) {
 	sess := createSession()
 	svc := s3.New(sess)
 
-	_, err := svc.HeadObject(&s3.HeadObjectInput{
+	info, err := svc.HeadObject(&s3.HeadObjectInput{
 		Bucket: aws.String(file.AwsBucket),
 		Key:    aws.String(file.SHA256),
 	})
@@ -158,12 +158,12 @@ func FileExists(file models.File) (bool, error) {
 		aerr, ok := err.(awserr.Error)
 		if ok {
 			if aerr.Code() == "NotFound" {
-				return false, nil
+				return false, 0, nil
 			}
 		}
-		return false, err
+		return false, 0, err
 	}
-	return true, nil
+	return true, *info.ContentLength, nil
 }
 
 // DeleteObject deletes a file from S3

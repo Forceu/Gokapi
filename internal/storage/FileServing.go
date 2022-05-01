@@ -63,16 +63,23 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 	addHotlink(&file)
 	filename := configuration.Get().DataDir + "/" + file.SHA256
 	dataDir := configuration.Get().DataDir
+
 	if file.AwsBucket != "" {
-		_, err := aws.Upload(reader, file)
+		exists, size, err := aws.FileExists(file)
 		if err != nil {
 			return models.File{}, err
+		}
+		if !exists || (size == 0 && file.Size != "0 B") {
+			_, err = aws.Upload(reader, file)
+			if err != nil {
+				return models.File{}, err
+			}
 		}
 		database.SaveMetaData(file)
 		return file, nil
 	}
 
-	fileWithHashExists := helper.FileExists(dataDir + "/" + file.SHA256)
+	fileWithHashExists := FileExists(file, configuration.Get().DataDir)
 	if fileWithHashExists {
 		encryptionLevel := configuration.Get().Encryption.Level
 		previousEncryption, ok := getEncInfoFromExistingFile(file.SHA256)
@@ -325,7 +332,7 @@ func getFileHandler(file models.File, dataDir string) (*os.File, int64) {
 // FileExists checks if the file exists locally or in S3
 func FileExists(file models.File, dataDir string) bool {
 	if file.AwsBucket != "" {
-		result, err := aws.FileExists(file)
+		result, _, err := aws.FileExists(file)
 		if err != nil {
 			fmt.Println("Warning, cannot check file " + file.Id + ": " + err.Error())
 			return true
