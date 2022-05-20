@@ -3,6 +3,7 @@
 package main
 
 import (
+	"github.com/forceu/gokapi/internal/configuration/flagparser"
 	"github.com/forceu/gokapi/internal/test"
 	"github.com/forceu/gokapi/internal/test/testconfiguration"
 	"os"
@@ -18,31 +19,31 @@ func TestMain(m *testing.M) {
 
 func TestParseFlags(t *testing.T) {
 	os.Args = []string{"gokapi", "--version", "--reconfigure", "-create-ssl"}
-	flags := parseFlags()
-	test.IsEqualBool(t, flags.showVersion, true)
-	test.IsEqualBool(t, flags.reconfigure, true)
-	test.IsEqualBool(t, flags.createSsl, true)
+	flags := flagparser.ParseFlags()
+	test.IsEqualBool(t, flags.ShowVersion, true)
+	test.IsEqualBool(t, flags.Reconfigure, true)
+	test.IsEqualBool(t, flags.CreateSsl, true)
 	os.Args = []string{"gokapi", "--reconfigure", "-create-ssl"}
-	flags = parseFlags()
-	test.IsEqualBool(t, flags.showVersion, false)
-	test.IsEqualBool(t, flags.reconfigure, true)
-	test.IsEqualBool(t, flags.createSsl, true)
+	flags = flagparser.ParseFlags()
+	test.IsEqualBool(t, flags.ShowVersion, false)
+	test.IsEqualBool(t, flags.Reconfigure, true)
+	test.IsEqualBool(t, flags.CreateSsl, true)
 }
 
 func TestShowVersion(t *testing.T) {
-	showVersion(flags{})
+	showVersion(flagparser.MainFlags{})
 	osExit = test.ExitCode(t, 0)
-	showVersion(flags{showVersion: true})
+	showVersion(flagparser.MainFlags{ShowVersion: true})
 }
 
 func TestNoResetPw(t *testing.T) {
-	reconfigureServer(flags{})
+	reconfigureServer(flagparser.MainFlags{})
 }
 
 func TestCreateSsl(t *testing.T) {
 	test.FileDoesNotExist(t, "test/ssl.key")
-	createSsl(flags{})
+	createSsl(flagparser.MainFlags{})
 	test.FileDoesNotExist(t, "test/ssl.key")
-	createSsl(flags{createSsl: true})
+	createSsl(flagparser.MainFlags{CreateSsl: true})
 	test.FileExists(t, "test/ssl.key")
 }
