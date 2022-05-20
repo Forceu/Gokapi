@@ -4,6 +4,7 @@ import (
 	"fmt"
 	envParser "github.com/caarlos0/env/v6"
 	"github.com/forceu/gokapi/internal/configuration/database"
+	"github.com/forceu/gokapi/internal/configuration/flagparser"
 	"github.com/forceu/gokapi/internal/helper"
 	"os"
 	"strconv"
@@ -43,7 +44,22 @@ func New() Environment {
 		return Environment{}
 	}
 	helper.Check(err)
+
+	flags := flagparser.ParseFlags()
+	if flags.IsPortSet {
+		result.WebserverPort = flags.Port
+	}
+	if flags.IsConfigDirSet {
+		result.ConfigDir = flags.ConfigDir
+	}
+	if flags.IsDataDirSet {
+		result.DataDir = flags.DataDir
+	}
+
 	result.ConfigPath = result.ConfigDir + "/" + result.ConfigFile
+	if flags.IsConfigPathSet {
+		result.ConfigPath = flags.ConfigPath
+	}
 	result.FileDbPath = result.DataDir + "/" + result.FileDb
 	if IsDockerInstance() && os.Getenv("TMPDIR") == "" {
 		os.Setenv("TMPDIR", result.DataDir)
@@ -61,6 +77,7 @@ func New() Environment {
 	if result.MaxFileSize < 1 {
 		result.MaxFileSize = 5
 	}
+
 	return result
 }
 

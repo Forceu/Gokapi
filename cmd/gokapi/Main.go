@@ -5,15 +5,14 @@ Main routine
 */
 
 import (
-	"flag"
 	"fmt"
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
 	"github.com/forceu/gokapi/internal/configuration/database"
+	"github.com/forceu/gokapi/internal/configuration/flagparser"
 	"github.com/forceu/gokapi/internal/configuration/setup"
 	"github.com/forceu/gokapi/internal/encryption"
 	"github.com/forceu/gokapi/internal/environment"
-	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/logging"
 	"github.com/forceu/gokapi/internal/storage"
 	"github.com/forceu/gokapi/internal/storage/cloudstorage/aws"
@@ -38,7 +37,7 @@ const Version = "1.5.2"
 
 // Main routine that is called on startup
 func main() {
-	passedFlags := parseFlags()
+	passedFlags := flagparser.ParseFlags()
 	showVersion(passedFlags)
 	rand.Seed(time.Now().UnixNano())
 	fmt.Println(logo)
@@ -69,8 +68,8 @@ func shutdown() {
 }
 
 // Checks for command line arguments that have to be parsed before loading the configuration
-func showVersion(passedFlags flags) {
-	if passedFlags.showVersion {
+func showVersion(passedFlags flagparser.MainFlags) {
+	if passedFlags.ShowVersion {
 		fmt.Println("Gokapi v" + Version)
 		fmt.Println()
 		fmt.Println("Builder: " + environment.Builder)
@@ -136,38 +135,17 @@ func initCloudConfig() {
 	}
 }
 
-func parseFlags() flags {
-	passedFlags := flag.FlagSet{}
-	versionShortFlag := passedFlags.Bool("v", false, "Show version info")
-	versionLongFlag := passedFlags.Bool("version", false, "Show version info")
-	reconfigureFlag := passedFlags.Bool("reconfigure", false, "Runs setup again to change Gokapi configuration / passwords")
-	createSslFlag := passedFlags.Bool("create-ssl", false, "Creates a new SSL certificate valid for 365 days")
-	err := passedFlags.Parse(os.Args[1:])
-	helper.Check(err)
-	return flags{
-		showVersion: *versionShortFlag || *versionLongFlag,
-		reconfigure: *reconfigureFlag,
-		createSsl:   *createSslFlag,
-	}
-}
-
 // Checks for command line arguments that have to be parsed after loading the configuration
-func reconfigureServer(passedFlags flags) {
-	if passedFlags.reconfigure {
+func reconfigureServer(passedFlags flagparser.MainFlags) {
+	if passedFlags.Reconfigure {
 		setup.RunConfigModification()
 	}
 }
 
-func createSsl(passedFlags flags) {
-	if passedFlags.createSsl {
+func createSsl(passedFlags flagparser.MainFlags) {
+	if passedFlags.CreateSsl {
 		ssl.GenerateIfInvalidCert(configuration.Get().ServerUrl, true)
 	}
-}
-
-type flags struct {
-	showVersion bool
-	reconfigure bool
-	createSsl   bool
 }
 
 var osExit = os.Exit
