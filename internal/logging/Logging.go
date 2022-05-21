@@ -32,7 +32,7 @@ func AddDownload(file *models.File, r *http.Request) {
 
 func writeToFile(text string) {
 	mutex.Lock()
-	file, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	file, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 	helper.Check(err)
 	defer file.Close()
 	defer mutex.Unlock()

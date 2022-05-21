@@ -13,7 +13,7 @@ func ParseFlags() MainFlags {
 
 	// Is disabled during testing, as otherwise it will raise an error if called in the test's init() function,
 	// which replaces the arguments
-	if disableParsing {
+	if DisableParsing {
 		return MainFlags{}
 	}
 

@@ -82,9 +82,9 @@ func getDomain(extUrl string) string {
 func generateCertificates(externalUrl string) {
 	fmt.Println("Generating new SSL certificate")
 	certificate, key := GetCertificateLocations()
-	fileCert, err := os.OpenFile(certificate, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0700)
+	fileCert, err := os.OpenFile(certificate, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0600)
 	helper.Check(err)
-	fileKey, err := os.OpenFile(key, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0700)
+	fileKey, err := os.OpenFile(key, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0600)
 	helper.Check(err)
 	defer fileCert.Close()
 	defer fileKey.Close()
