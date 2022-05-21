@@ -8,7 +8,14 @@ import (
 
 // ParseFlags reads the passed program arguments
 func ParseFlags() MainFlags {
+
 	var aliases []alias
+
+	// Is disabled during testing, as otherwise it will raise an error if called in the test's init() function,
+	// which replaces the arguments
+	if disableParsing {
+		return MainFlags{}
+	}
 
 	passedFlags := flag.FlagSet{}
 	versionFlagLong := passedFlags.Bool("version", false, "Show version info")

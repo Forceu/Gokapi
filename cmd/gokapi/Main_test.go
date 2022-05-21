@@ -3,7 +3,7 @@
 package main
 
 import (
-	"github.com/forceu/gokapi/internal/configuration/flagparser"
+	"github.com/forceu/gokapi/internal/environment/flagparser"
 	"github.com/forceu/gokapi/internal/test"
 	"github.com/forceu/gokapi/internal/test/testconfiguration"
 	"os"
@@ -15,19 +15,6 @@ func TestMain(m *testing.M) {
 	exitVal := m.Run()
 	testconfiguration.Delete()
 	os.Exit(exitVal)
-}
-
-func TestParseFlags(t *testing.T) {
-	os.Args = []string{"gokapi", "--version", "--reconfigure", "-create-ssl"}
-	flags := flagparser.ParseFlags()
-	test.IsEqualBool(t, flags.ShowVersion, true)
-	test.IsEqualBool(t, flags.Reconfigure, true)
-	test.IsEqualBool(t, flags.CreateSsl, true)
-	os.Args = []string{"gokapi", "--reconfigure", "-create-ssl"}
-	flags = flagparser.ParseFlags()
-	test.IsEqualBool(t, flags.ShowVersion, false)
-	test.IsEqualBool(t, flags.Reconfigure, true)
-	test.IsEqualBool(t, flags.CreateSsl, true)
 }
 
 func TestShowVersion(t *testing.T) {

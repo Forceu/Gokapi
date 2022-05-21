@@ -4,7 +4,7 @@ import (
 	"fmt"
 	envParser "github.com/caarlos0/env/v6"
 	"github.com/forceu/gokapi/internal/configuration/database"
-	"github.com/forceu/gokapi/internal/configuration/flagparser"
+	"github.com/forceu/gokapi/internal/environment/flagparser"
 	"github.com/forceu/gokapi/internal/helper"
 	"os"
 	"strconv"
