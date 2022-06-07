@@ -324,7 +324,7 @@ func showHotlink(w http.ResponseWriter, r *http.Request) {
 	hotlinkId := strings.Replace(r.URL.Path, "/hotlink/", "", 1)
 	file, ok := storage.GetFileByHotlink(hotlinkId)
 	if !ok {
-		w.Header().Set("Content-Type", r.Header.Get("Content-Type"))
+		w.Header().Set("Content-Type", "image/png")
 		_, err := w.Write(imageExpiredPicture)
 		helper.Check(err)
 		return
