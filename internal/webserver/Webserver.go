@@ -380,6 +380,7 @@ type UploadView struct {
 	ApiKeys                  []models.ApiKey
 	Url                      string
 	HotlinkUrl               string
+	GenericHotlinkUrl        string
 	TimeNow                  int64
 	IsAdminView              bool
 	IsMainView               bool
@@ -426,6 +427,7 @@ func (u *UploadView) convertGlobalConfig(isMainView bool) *UploadView {
 	}
 	u.Url = configuration.Get().ServerUrl + "d?id="
 	u.HotlinkUrl = configuration.Get().ServerUrl + "hotlink/"
+	u.GenericHotlinkUrl = configuration.Get().ServerUrl + "downloadFile?id="
 	u.Items = result
 	u.ApiKeys = resultApi
 	u.TimeNow = time.Now().Unix()

@@ -76,7 +76,11 @@
 			{{ if ne .HotlinkId "" }}
  						<button type="button" data-clipboard-text="{{ $.HotlinkUrl }}{{ .HotlinkId }}" class="copyurl btn btn-outline-light btn-sm">Copy Hotlink</button>
 			{{ else }}
- 						<button type="button"class="copyurl btn btn-outline-light btn-sm disabled">Copy Hotlink</button>
+				{{ if and (not .RequiresClientSideDecryption) (eq .PasswordHash "") }}
+	 						<button type="button" data-clipboard-text="{{ $.GenericHotlinkUrl }}{{ .Id }}" class="copyurl btn btn-outline-light btn-sm">Copy Hotlink</button>
+				{{ else }}
+ 							<button type="button"class="copyurl btn btn-outline-light btn-sm disabled">Copy Hotlink</button>
+				{{ end }}
 			{{ end }}
 						<button type="button" class="btn btn-outline-light btn-sm" onclick="window.location='./delete?id={{ .Id }}'">Delete</button></td>
 					</tr>
@@ -91,7 +95,7 @@
 	    </div>
    	 </div>
 
-	<script src="./js/admin.js?v=10"></script>
+	<script src="./js/admin.js?v=11"></script>
 	<script>
 		Dropzone.options.uploaddropzone["maxFilesize"] = {{ .MaxFileSize }};
 		Dropzone.options.uploaddropzone["dictDefaultMessage"] = "Drop files, paste or click here to upload";
