@@ -23,7 +23,7 @@ Stable version
 Unstable version
 """""""""""""""""
 
-Only recommended if you have expierence with the command line. Go 1.16+ needs to be installed.
+Only recommended if you have expierence with the command line. Go 1.18+ needs to be installed.
 
 Create a new folder and in this folder execute 
 ::
@@ -78,7 +78,7 @@ With the argument ``-p 127.0.0.1:53842:53842`` the service will only be accessib
 Initial Setup
 ^^^^^^^^^^^^^^^
 
-During the first start, a new configuration file will be created and you will be asked for several inputs.
+During the first start, a new configuration file will be created and you will be asked for several inputs. With your webbrowser open ``http://localhost:53842/setup`` (or the appropriate URL) and follow the setup.
 
 
 
@@ -88,7 +88,7 @@ Webserver
 The following configuration can be set:
 
 -  **Bind to localhost** Only allow the server to be accessed from the machine it is running on. Select this if you are running Gokapi behind a reverse proxy or for testing purposes
--  **Use SSL** Generates a self-signed SSL certificate (which can be replaced with a valid one). Select this if you are not running Gokapi behind a reverse proxy
+-  **Use SSL** Generates a self-signed SSL certificate (which can be replaced with a valid one). Select this if you are not running Gokapi behind a reverse proxy. Please note: Gokapi needs to be restarted in order to renew a certificate.
 -  **Webserver Port** Set the port that Gokapi can be accessed on
 -  **Public Facing URL** Enter the URL where users from an external network can use to reach Gokapi. The URL will be used for generating download links
 -  **Redirection URL**  By default Gokapi redirects to this URL instead of showing a generic page if no download link was passed
@@ -124,7 +124,7 @@ Use this to authenticate with an OIDC server, eg. Google, Github or an internal 
 |               | Separate users with a semicolon or leave blank to allow any authenticated user  |                                             |
 +---------------+---------------------------------------------------------------------------------+---------------------------------------------+
 
-When creating an OIDC client on the server, you will need to provide a **redirection URL**. Enter http(s)://[gokapi URL]/oauth-callback
+When creating an OIDC client on the server, you will need to provide a **redirection URL**. Enter ``http[s]://[gokapi URL]/oauth-callback``
 
 You can find a guide on how to create an OIDC client with Github at `Setting up GitHub OAuth 2.0 <https://docs.readme.com/docs/setting-up-github-oauth>`_ and a guide for Google at `Setting up OAuth 2.0 <https://support.google.com/cloud/answer/6158849>`_.
 
@@ -134,7 +134,7 @@ Header Authentication
 
 Only use this if you are running Gokapi behind a reverse proxy that is capable of authenticating users, e.g. by using Authelia or Authentik.
 
-Enter the key of the header that returns the username. For Authelia this would be ``Remote-User`` and for Authentik `` X-authentik-username``.
+Enter the key of the header that returns the username. For Authelia this would be ``Remote-User`` and for Authentik ``X-authentik-username``.
 Separate users with a semicolon or leave blank to allow any authenticated user, e.g. ``gokapiuser@gmail.com;companyadmin@gmail.com``
 
 
@@ -152,14 +152,14 @@ This option disables Gokapis internal authentication completely, except for API 
 - ``/delete``
 - ``/upload``
 
-**Warning:** This option has potential to be dangerous, only proceed if you know what you are doing!
+**Warning:** This option has potential to be *very* dangerous, only proceed if you know what you are doing!
 
 
 
 Storage
 """"""""""""""
 
-Here you can choose where uploaded files shall be stored
+Here you can choose where uploaded files shall be stored. Use the option to always store image files to the local storage, if you want to use encryption for cloudstorage, but require hotlink support. 
 
 Local Storage
 *********************
@@ -172,7 +172,7 @@ Stores files locally in the subdirectory ``data`` by default.
 Cloudstorage
 *********************
 
-Stores files remotely on an S3 compatible server, e.g. Amazon AWS S3 or Backblaze B2. Please note that currently no native encryption is available for Gokapi, therefore all files will be stored in plain text on the cloud server.
+Stores files remotely on an S3 compatible server, e.g. Amazon AWS S3 or Backblaze B2. Please note that files will be stored in plain-text, if no encryption is selected later on.
 
 
 It is highly recommended to create a new bucket for Gokapi and set it to "private", so that no file can be downloaded externally. For each download request Gokapi will create a public URL that is only valid for a couple of seconds, so that the file can be downloaded from the external server directly instead of routing it through the local server.

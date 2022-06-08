@@ -407,7 +407,7 @@ function TestAWS(button) {
 					<ul>
 					  <li>All files are stored in plain text on the local or remote server</li>
 					  <li>Uses the least ressources</li>
-					  <li>Supports hotlinks to images</li>
+					  <li>Supports hotlinks to files</li>
 					  <li>Supports download progress bar</li>
 					  <li>Gokapi starts without user input</li>
 					</ul></p>
@@ -418,7 +418,7 @@ function TestAWS(button) {
 					<ul>
 					  <li>Local files are encrypted, remote files (S3) are stored in plain text</li>
 					  <li>Decryption is done server-side</li>
-					  <li>Supports hotlinks to images</li>
+					  <li>Supports hotlinks to files</li>
 					  <li>Does not support download progress bar</li>
 					  <li>Gokapi starts without user input</li>
 					  <li><b>Warning:</b> Password can be read with access to Gokapi configuration</li>
@@ -431,10 +431,10 @@ function TestAWS(button) {
 					<ul>
 					  <li>Local files are encrypted, remote files (S3) are stored in plain text</li>
 					  <li>Decryption is done server-side</li>
-					  <li>Supports hotlinks to images</li>
+					  <li>Supports hotlinks to files</li>
 					  <li>Does not support download progress bar</li>
 					  <li>Password cannot be read with access to Gokapi configuration</li>
-					  <li><b>Warning:</b> Gokapi requires user input to start</li>
+					  <li><span style="color:red"><b>Warning:</b></span> Gokapi requires user input to start</li>
 					  <li><b>Warning:</b> Encryption has not been audited.</li>
 					</ul></p>
 					</div>
@@ -445,7 +445,7 @@ function TestAWS(button) {
 					  <li>All files are encrypted</li>
 					  <li>Decryption for local files is done server-side</li>
 					  <li>Decryption for remote files (S3) is done client-side, requires 2MB file to load on first visit</li>
-					  <li>Only supports hotlinks to images saved locally</li>
+					  <li>Only supports hotlinks to files saved locally</li>
 					  <li>Does not support download progress bar</li>
 					  <li>Gokapi starts without user input</li>
 					  <li><b>Important:</b> For remote storage, CORS settings for the bucket need to allow access from the Gokapi URL</li>
@@ -460,11 +460,11 @@ function TestAWS(button) {
 					  <li>All files are encrypted</li>
 					  <li>Decryption for local files is done server-side</li>
 					  <li>Decryption for remote files (S3) is done client-side, requires 2MB file to load on first visit</li>
-					  <li>Only supports hotlinks to images saved locally</li>
+					  <li>Only supports hotlinks to files saved locally</li>
 					  <li>Does not support download progress bar</li>
 					  <li>Password cannot be read with access to Gokapi configuration</li>
 					  <li><b>Important:</b> For remote storage, CORS settings for the bucket need to allow access from the Gokapi URL</li>
-					  <li><b>Warning:</b> Gokapi requires user input to start</li>
+					  <li><span style="color:red"><b>Warning:</b></span> Gokapi requires user input to start</li>
 					  <li><b>Warning:</b> Encryption has not been audited.</li>
 					</ul></p>
 					</div>
@@ -475,7 +475,7 @@ function TestAWS(button) {
 					<ul>
 					  <li>All files are encrypted end-to-end</li>
 					  <li>Encryption and decryption is done client-side and requires 2MB file to load on first visit</li>
-					  <li>Does not support hotlinks to images</li>
+					  <li>Does not support hotlinks to files</li>
 					  <li>Does not support download progress bar</li>
 					  <li>Gokapi starts without user input</li>
 					  <li>Password cannot be read with access to Gokapi configuration</li>

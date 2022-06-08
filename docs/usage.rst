@@ -31,7 +31,7 @@ Sharing files
 
 Once you uploaded an file, you will see the options *Copy URL* and *Copy Hotlink*. By clicking on *Copy URL*, you copy the URL for the Download page to your clipboard. A user can then download the file from that page.
 
-If you uploaded an image, you can also use the *Copy Hotlink* button. The hotlink URL is a direct link to the image and can for example be posted on a forum or on a website. Each view counts as a download. Although Gokapi sets a Header to explicitly disallow caching, some browsers or external caches may still cache the image if they are not complient.
+If a file does not require client-side decryption, you can also use the *Copy Hotlink* button. The hotlink URL is a direct link to the file and can for example be posted as an image on a forum or on a website. Each view counts as a download. Although Gokapi sets a Header to explicitly disallow caching, some browsers or external caches may still cache the image if they are not complient.
 
 
 File deletion
