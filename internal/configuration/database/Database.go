@@ -132,7 +132,14 @@ func GetHotlink(id string) (string, bool) {
 
 // SaveHotlink stores the hotlink associated with the file in the bitcaskDb
 func SaveHotlink(file models.File) {
-	err := bitcaskDb.PutWithTTL([]byte(prefixHotlink+file.HotlinkId), []byte(file.Id), expiryToDuration(file))
+	var err error
+
+	if file.UnlimitedTime {
+		err = bitcaskDb.Put([]byte(prefixHotlink+file.HotlinkId), []byte(file.Id))
+	} else {
+		err = bitcaskDb.PutWithTTL([]byte(prefixHotlink+file.HotlinkId), []byte(file.Id), expiryToDuration(file))
+	}
+
 	helper.Check(err)
 	err = bitcaskDb.Sync()
 	helper.Check(err)
