@@ -7,6 +7,7 @@ require (
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/aws/aws-sdk-go v1.42.22
 	github.com/caarlos0/env/v6 v6.9.1
+	github.com/jinzhu/copier v0.3.5
 	github.com/johannesboyne/gofakes3 v0.0.0-20210415062230-4b6b67a85d38
 	github.com/secure-io/sio-go v0.3.1
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad

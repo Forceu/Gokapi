@@ -9,6 +9,7 @@ import (
 	"github.com/forceu/gokapi/internal/webserver/authentication/sessionmanager"
 	"github.com/forceu/gokapi/internal/webserver/fileupload"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -31,6 +32,8 @@ func Process(w http.ResponseWriter, r *http.Request, maxMemory int) {
 		upload(w, request, maxMemory)
 	case "/files/delete":
 		deleteFile(w, request)
+	case "/files/duplicate":
+		duplicateFile(w, request)
 	case "/auth/friendlyname":
 		changeFriendlyName(w, request)
 	default:
@@ -103,6 +106,80 @@ func upload(w http.ResponseWriter, request apiRequest, maxMemory int) {
 		sendError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+}
+
+func duplicateFile(w http.ResponseWriter, request apiRequest) {
+
+	err := request.request.ParseForm()
+	if err != nil {
+		sendError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	file, ok := storage.GetFile(request.request.Form.Get("id"))
+	if !ok {
+		sendError(w, http.StatusBadRequest, "Invalid id provided.")
+		return
+	}
+	uploadRequest, paramsToChange, err := apiRequestToUploadRequest(request.request)
+	if err != nil {
+		sendError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	newFile, err := storage.DuplicateFile(file, paramsToChange, uploadRequest)
+	if err != nil {
+		sendError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	result, err := json.Marshal(newFile)
+	helper.Check(err)
+	_, _ = w.Write(result)
+}
+
+func apiRequestToUploadRequest(request *http.Request) (models.UploadRequest, int, error) {
+	paramsToChange := 0
+	allowedDownloads := 0
+	daysExpiry := 0
+	unlimitedTime := false
+	unlimitedDownloads := false
+	password := ""
+	var err error
+
+	if request.Form.Get("allowedDownloads") != "" {
+		paramsToChange = paramsToChange | storage.PARAM_DOWNLOADS
+		allowedDownloads, err = strconv.Atoi(request.Form.Get("allowedDownloads"))
+		if err != nil {
+			return models.UploadRequest{}, 0, err
+		}
+		if allowedDownloads == 0 {
+			unlimitedDownloads = true
+		}
+	}
+
+	if request.Form.Get("expiryDays") != "" {
+		paramsToChange = paramsToChange | storage.PARAM_EXPIRY
+		daysExpiry, err = strconv.Atoi(request.Form.Get("expiryDays"))
+		if err != nil {
+			return models.UploadRequest{}, 0, err
+		}
+		if daysExpiry == 0 {
+			unlimitedTime = true
+		}
+	}
+
+	if strings.ToLower(request.Form.Get("originalPassword")) != "true" {
+		paramsToChange = paramsToChange | storage.PARAM_PASSWORD
+		password = request.Form.Get("password")
+	}
+
+	return models.UploadRequest{
+		AllowedDownloads:  allowedDownloads,
+		Expiry:            daysExpiry,
+		UnlimitedTime:     unlimitedTime,
+		UnlimitedDownload: unlimitedDownloads,
+		Password:          password,
+		ExpiryTimestamp:   time.Now().Add(time.Duration(daysExpiry) * time.Hour * 24).Unix(),
+	}, paramsToChange, nil
 }
 
 func isAuthorisedForApi(w http.ResponseWriter, request apiRequest) bool {

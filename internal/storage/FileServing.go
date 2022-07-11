@@ -18,6 +18,7 @@ import (
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage/cloudstorage/aws"
 	"github.com/forceu/gokapi/internal/webserver/downloadstatus"
+	"github.com/jinzhu/copier"
 	"io"
 	"io/ioutil"
 	"log"
@@ -40,7 +41,7 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 	var hasBeenRenamed bool
 	reader, hash, tempFile, encInfo := generateHash(fileContent, fileHeader, uploadRequest)
 	defer deleteTempFile(tempFile, &hasBeenRenamed)
-	id := helper.GenerateRandomString(configuration.Get().LengthId)
+	id := createNewId()
 	file := models.File{
 		Id:                 id,
 		Encryption:         encInfo,
@@ -50,10 +51,10 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 		ExpireAt:           uploadRequest.ExpiryTimestamp,
 		ExpireAtString:     time.Unix(uploadRequest.ExpiryTimestamp, 0).Format("2006-01-02 15:04"),
 		DownloadsRemaining: uploadRequest.AllowedDownloads,
-		PasswordHash:       configuration.HashPassword(uploadRequest.Password, true),
-		ContentType:        fileHeader.Header.Get("Content-Type"),
 		UnlimitedTime:      uploadRequest.UnlimitedTime,
 		UnlimitedDownloads: uploadRequest.UnlimitedDownload,
+		PasswordHash:       configuration.HashPassword(uploadRequest.Password, true),
+		ContentType:        fileHeader.Header.Get("Content-Type"),
 	}
 	if aws.IsAvailable() {
 		if !configuration.Get().PicturesAlwaysLocal || !isPictureFile(file.Name) {
@@ -116,6 +117,10 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 	return file, nil
 }
 
+func createNewId() string {
+	return helper.GenerateRandomString(configuration.Get().LengthId)
+}
+
 func getEncInfoFromExistingFile(hash string) (models.EncryptionInfo, bool) {
 	encryptionLevel := configuration.Get().Encryption.Level
 	if encryptionLevel == encryption.NoEncryption || encryptionLevel == encryption.EndToEndEncryption {
@@ -137,6 +142,37 @@ func deleteTempFile(file *os.File, hasBeenRenamed *bool) {
 		err = os.Remove(file.Name())
 		helper.Check(err)
 	}
+}
+
+const (
+	PARAM_EXPIRY int = 1 << iota
+	PARAM_DOWNLOADS
+	PARAM_PASSWORD
+)
+
+// DuplicateFile creates a copy of an existing file with new parameters
+func DuplicateFile(file models.File, parametersToChange int, fileParameters models.UploadRequest) (models.File, error) {
+	var newFile models.File
+	err := copier.Copy(&newFile, &file)
+	if err != nil {
+		return models.File{}, err
+	}
+	newFile.Id = createNewId()
+	newFile.DownloadCount = 0
+	if parametersToChange&PARAM_EXPIRY != 0 {
+		newFile.ExpireAt = fileParameters.ExpiryTimestamp
+		newFile.ExpireAtString = time.Unix(fileParameters.ExpiryTimestamp, 0).Format("2006-01-02 15:04")
+		newFile.UnlimitedTime = fileParameters.UnlimitedDownload
+	}
+	if parametersToChange&PARAM_DOWNLOADS != 0 {
+		newFile.DownloadsRemaining = fileParameters.AllowedDownloads
+		newFile.UnlimitedDownloads = fileParameters.UnlimitedDownload
+	}
+	if parametersToChange&PARAM_PASSWORD != 0 {
+		newFile.PasswordHash = configuration.HashPassword(fileParameters.Password, true)
+	}
+	database.SaveMetaData(newFile)
+	return newFile, nil
 }
 
 // DeleteAllEncrypted marks all encrypted files for deletion on next cleanup

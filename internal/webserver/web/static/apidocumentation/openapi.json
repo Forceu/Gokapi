@@ -94,6 +94,44 @@
         }
       }
     },
+    "/files/duplicate": {
+      "post": {
+        "tags": [
+          "files"
+        ],
+        "summary": "Duplicates an existing file",
+        "description": "This API call duplicates an existing file with new parameters",
+        "operationId": "duplicate",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/duplicate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Operation successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Invalid API key provided or not logged in as admin"
+          }
+        }
+      }
+    },
     "/files/delete": {
       "delete": {
         "tags": [
@@ -258,7 +296,34 @@
             "description": "Password for this file to be set. No password will be used if empty"
           }
         }
-      }
+      },"duplicate": {
+        "required": [
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "ID of file to be duplicated",
+          },
+          "allowedDownloads": {
+            "type": "integer",
+            "description": "How many downloads are allowed. Original value from web interface will be used if empty. Unlimited if 0 is passed."
+          },
+          "expiryDays": {
+            "type": "integer",
+            "description": "How many days the file will be stored. Original value from web interface will be used if empty. Unlimited if 0 is passed."
+          },
+          "password": {
+            "type": "string",
+            "description": "Password for this file to be set. No password will be used if empty-"
+          },
+          "originalPassword": {
+            "type": "boolean",
+            "description": "Set to true to use original password. Field \"password\" will be ignored if set."
+          }
+        }
+    }
     },
     "securitySchemes": {
       "apikey": {
