@@ -321,6 +321,101 @@ func TestNewFile(t *testing.T) {
 		test.IsEqualString(t, retrievedFile.Size, "20.0 MB")
 		testconfiguration.DisableS3()
 	}
+}
+
+func TestDuplicateFile(t *testing.T) {
+
+	tempFile, err := createTestFile()
+	file := tempFile.File
+	test.IsNil(t, err)
+	retrievedFile, ok := database.GetMetaDataById(file.Id)
+	test.IsEqualBool(t, ok, true)
+	retrievedFile.DownloadCount = 5
+	database.SaveMetaData(retrievedFile)
+
+	newFile, err := DuplicateFile(retrievedFile, 0, models.UploadRequest{})
+	test.IsNil(t, err)
+	test.IsEqualInt(t, newFile.DownloadCount, 0)
+	test.IsEqualInt(t, newFile.DownloadsRemaining, 1)
+	test.IsEqualInt64(t, newFile.ExpireAt, 2147483600)
+	test.IsEqualString(t, newFile.PasswordHash, "")
+	test.IsEqualBool(t, newFile.UnlimitedDownloads, false)
+	test.IsEqualBool(t, newFile.UnlimitedTime, false)
+
+	uploadRequest := models.UploadRequest{
+		AllowedDownloads:  5,
+		Expiry:            5,
+		ExpiryTimestamp:   200000,
+		Password:          "1234",
+		UnlimitedDownload: true,
+		UnlimitedTime:     true,
+	}
+
+	newFile, err = DuplicateFile(retrievedFile, 0, uploadRequest)
+	test.IsNil(t, err)
+	test.IsEqualInt(t, newFile.DownloadCount, 0)
+	test.IsEqualInt(t, newFile.DownloadsRemaining, 1)
+	test.IsEqualInt64(t, newFile.ExpireAt, 2147483600)
+	test.IsEqualString(t, newFile.PasswordHash, "")
+	test.IsEqualBool(t, newFile.UnlimitedDownloads, false)
+	test.IsEqualBool(t, newFile.UnlimitedTime, false)
+
+	newFile, err = DuplicateFile(retrievedFile, ParamExpiry, uploadRequest)
+	test.IsNil(t, err)
+	test.IsEqualInt(t, newFile.DownloadCount, 0)
+	test.IsEqualInt(t, newFile.DownloadsRemaining, 1)
+	test.IsEqualInt64(t, newFile.ExpireAt, 200000)
+	test.IsEqualString(t, newFile.PasswordHash, "")
+	test.IsEqualBool(t, newFile.UnlimitedDownloads, false)
+	test.IsEqualBool(t, newFile.UnlimitedTime, true)
+
+	newFile, err = DuplicateFile(retrievedFile, ParamDownloads, uploadRequest)
+	test.IsNil(t, err)
+	test.IsEqualInt(t, newFile.DownloadCount, 0)
+	test.IsEqualInt(t, newFile.DownloadsRemaining, 5)
+	test.IsEqualInt64(t, newFile.ExpireAt, 2147483600)
+	test.IsEqualString(t, newFile.PasswordHash, "")
+	test.IsEqualBool(t, newFile.UnlimitedDownloads, true)
+	test.IsEqualBool(t, newFile.UnlimitedTime, false)
+
+	newFile, err = DuplicateFile(retrievedFile, ParamPassword, uploadRequest)
+	test.IsNil(t, err)
+	test.IsEqualInt(t, newFile.DownloadCount, 0)
+	test.IsEqualInt(t, newFile.DownloadsRemaining, 1)
+	test.IsEqualInt64(t, newFile.ExpireAt, 2147483600)
+	test.IsNotEqualString(t, newFile.PasswordHash, "")
+	test.IsEqualBool(t, newFile.UnlimitedDownloads, false)
+	test.IsEqualBool(t, newFile.UnlimitedTime, false)
+
+	retrievedFile.PasswordHash = "ahash"
+	newFile, err = DuplicateFile(retrievedFile, 0, uploadRequest)
+	test.IsNil(t, err)
+	test.IsEqualInt(t, newFile.DownloadCount, 0)
+	test.IsEqualInt(t, newFile.DownloadsRemaining, 1)
+	test.IsEqualInt64(t, newFile.ExpireAt, 2147483600)
+	test.IsEqualString(t, newFile.PasswordHash, "ahash")
+	test.IsEqualBool(t, newFile.UnlimitedDownloads, false)
+	test.IsEqualBool(t, newFile.UnlimitedTime, false)
+
+	uploadRequest.Password = ""
+	newFile, err = DuplicateFile(retrievedFile, ParamPassword, uploadRequest)
+	test.IsNil(t, err)
+	test.IsEqualInt(t, newFile.DownloadCount, 0)
+	test.IsEqualInt(t, newFile.DownloadsRemaining, 1)
+	test.IsEqualInt64(t, newFile.ExpireAt, 2147483600)
+	test.IsEqualString(t, newFile.PasswordHash, "")
+	test.IsEqualBool(t, newFile.UnlimitedDownloads, false)
+	test.IsEqualBool(t, newFile.UnlimitedTime, false)
+
+	uploadRequest.Password = "123"
+	newFile, err = DuplicateFile(retrievedFile, ParamExpiry|ParamPassword|ParamDownloads, uploadRequest)
+	test.IsNil(t, err)
+	test.IsEqualInt(t, newFile.DownloadCount, 0)
+	test.IsEqualInt(t, newFile.DownloadsRemaining, 5)
+	test.IsEqualInt64(t, newFile.ExpireAt, 200000)
+	test.IsNotEqualString(t, newFile.PasswordHash, "")
+	test.IsEqualBool(t, newFile.UnlimitedDownloads, true)
+	test.IsEqualBool(t, newFile.UnlimitedTime, true)
 
 }
 

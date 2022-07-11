@@ -115,7 +115,6 @@ func duplicateFile(w http.ResponseWriter, request apiRequest) {
 		sendError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-
 	file, ok := storage.GetFile(request.request.Form.Get("id"))
 	if !ok {
 		sendError(w, http.StatusBadRequest, "Invalid id provided.")
@@ -146,7 +145,7 @@ func apiRequestToUploadRequest(request *http.Request) (models.UploadRequest, int
 	var err error
 
 	if request.Form.Get("allowedDownloads") != "" {
-		paramsToChange = paramsToChange | storage.PARAM_DOWNLOADS
+		paramsToChange = paramsToChange | storage.ParamDownloads
 		allowedDownloads, err = strconv.Atoi(request.Form.Get("allowedDownloads"))
 		if err != nil {
 			return models.UploadRequest{}, 0, err
@@ -157,7 +156,7 @@ func apiRequestToUploadRequest(request *http.Request) (models.UploadRequest, int
 	}
 
 	if request.Form.Get("expiryDays") != "" {
-		paramsToChange = paramsToChange | storage.PARAM_EXPIRY
+		paramsToChange = paramsToChange | storage.ParamExpiry
 		daysExpiry, err = strconv.Atoi(request.Form.Get("expiryDays"))
 		if err != nil {
 			return models.UploadRequest{}, 0, err
@@ -168,7 +167,7 @@ func apiRequestToUploadRequest(request *http.Request) (models.UploadRequest, int
 	}
 
 	if strings.ToLower(request.Form.Get("originalPassword")) != "true" {
-		paramsToChange = paramsToChange | storage.PARAM_PASSWORD
+		paramsToChange = paramsToChange | storage.ParamPassword
 		password = request.Form.Get("password")
 	}
 

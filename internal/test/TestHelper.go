@@ -63,6 +63,14 @@ func IsEqualInt(t MockT, got, want int) {
 	}
 }
 
+// IsEqualInt64 fails test if got and want are not identical
+func IsEqualInt64(t MockT, got, want int64) {
+	t.Helper()
+	if got != want {
+		t.Errorf("Assertion failed, got: %d, want: %d.", got, want)
+	}
+}
+
 // IsNotEmpty fails test if string is empty
 func IsNotEmpty(t MockT, s string) {
 	t.Helper()

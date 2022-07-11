@@ -145,9 +145,9 @@ func deleteTempFile(file *os.File, hasBeenRenamed *bool) {
 }
 
 const (
-	PARAM_EXPIRY int = 1 << iota
-	PARAM_DOWNLOADS
-	PARAM_PASSWORD
+	ParamExpiry int = 1 << iota
+	ParamDownloads
+	ParamPassword
 )
 
 // DuplicateFile creates a copy of an existing file with new parameters
@@ -157,20 +157,26 @@ func DuplicateFile(file models.File, parametersToChange int, fileParameters mode
 	if err != nil {
 		return models.File{}, err
 	}
-	newFile.Id = createNewId()
-	newFile.DownloadCount = 0
-	if parametersToChange&PARAM_EXPIRY != 0 {
+
+	changeExpiry := parametersToChange&ParamExpiry != 0
+	changeDownloads := parametersToChange&ParamDownloads != 0
+	changePassword := parametersToChange&ParamPassword != 0
+
+	if changeExpiry {
 		newFile.ExpireAt = fileParameters.ExpiryTimestamp
 		newFile.ExpireAtString = time.Unix(fileParameters.ExpiryTimestamp, 0).Format("2006-01-02 15:04")
-		newFile.UnlimitedTime = fileParameters.UnlimitedDownload
+		newFile.UnlimitedTime = fileParameters.UnlimitedTime
 	}
-	if parametersToChange&PARAM_DOWNLOADS != 0 {
+	if changeDownloads {
 		newFile.DownloadsRemaining = fileParameters.AllowedDownloads
 		newFile.UnlimitedDownloads = fileParameters.UnlimitedDownload
 	}
-	if parametersToChange&PARAM_PASSWORD != 0 {
+	if changePassword {
 		newFile.PasswordHash = configuration.HashPassword(fileParameters.Password, true)
 	}
+	newFile.Id = createNewId()
+	newFile.DownloadCount = 0
+
 	database.SaveMetaData(newFile)
 	return newFile, nil
 }

@@ -12,8 +12,10 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -159,7 +161,10 @@ func TestDeleteFile(t *testing.T) {
 	test.IsEqualBool(t, ok, false)
 }
 
-func TestUpload(t *testing.T) {
+func TestUploadAndDuplication(t *testing.T) {
+	//
+	// Upload
+	//
 	file, err := os.Open("test/fileupload.jpg")
 	test.IsNil(t, err)
 	defer file.Close()
@@ -189,6 +194,8 @@ func TestUpload(t *testing.T) {
 	test.IsEqualInt(t, result.FileInfo.DownloadsRemaining, 200)
 	test.IsNotEqualString(t, result.FileInfo.PasswordHash, "")
 	test.IsEqualString(t, result.Url, "http://127.0.0.1:53843/d?id=")
+	newFileId := result.FileInfo.Id
+
 	w, r = test.GetRecorder("POST", "/api/files/add", nil, []test.Header{{
 		Name:  "apikey",
 		Value: "validkey",
@@ -196,6 +203,177 @@ func TestUpload(t *testing.T) {
 	Process(w, r, maxMemory)
 	test.ResponseBodyContains(t, w, "Content-Type isn't multipart/form-data")
 	test.IsEqualInt(t, w.Code, 400)
+
+	//
+	// Duplication
+	//
+	w, r = test.GetRecorder("POST", "/api/files/duplicate", nil, []test.Header{{
+		Name:  "apikey",
+		Value: "validkey",
+	}}, nil)
+	Process(w, r, maxMemory)
+	test.ResponseBodyContains(t, w, "Invalid id provided.")
+	w, r = test.GetRecorder("POST", "/api/files/duplicate", nil, []test.Header{
+		{Name: "apikey", Value: "validkey"},
+		{Name: "id", Value: "invalid"},
+		{Name: "Content-type", Value: "application/x-www-form-urlencoded"},
+	}, nil)
+	Process(w, r, maxMemory)
+	test.ResponseBodyContains(t, w, "Invalid id provided.")
+
+	w, r = test.GetRecorder("POST", "/api/files/duplicate", nil, []test.Header{
+		{Name: "apikey", Value: "validkey"},
+		{Name: "id", Value: "invalid"},
+		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
+		strings.NewReader("§$§$%&(&//&/invalid"))
+	Process(w, r, maxMemory)
+	test.ResponseBodyContains(t, w, "invalid URL escape")
+
+	data := url.Values{}
+	data.Set("id", newFileId)
+
+	w, r = test.GetRecorder("POST", "/api/files/duplicate", nil, []test.Header{
+		{Name: "apikey", Value: "validkey"},
+		{Name: "id", Value: "invalid"},
+		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
+		strings.NewReader(data.Encode()))
+	Process(w, r, maxMemory)
+	resultDuplication := models.File{}
+	response, err = io.ReadAll(w.Result().Body)
+	test.IsNil(t, err)
+	err = json.Unmarshal(response, &resultDuplication)
+	test.IsNil(t, err)
+	test.IsEqualInt(t, resultDuplication.DownloadsRemaining, 200)
+	test.IsEqualBool(t, resultDuplication.UnlimitedTime, false)
+	test.IsEqualBool(t, resultDuplication.UnlimitedDownloads, false)
+	test.IsEqualInt(t, resultDuplication.DownloadCount, 0)
+	test.IsEqualString(t, resultDuplication.PasswordHash, "")
+
+	data = url.Values{}
+	data.Set("id", newFileId)
+	data.Set("allowedDownloads", "100")
+
+	w, r = test.GetRecorder("POST", "/api/files/duplicate", nil, []test.Header{
+		{Name: "apikey", Value: "validkey"},
+		{Name: "id", Value: "invalid"},
+		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
+		strings.NewReader(data.Encode()))
+	Process(w, r, maxMemory)
+	resultDuplication = models.File{}
+	response, err = io.ReadAll(w.Result().Body)
+	test.IsNil(t, err)
+	err = json.Unmarshal(response, &resultDuplication)
+	test.IsNil(t, err)
+	test.IsEqualInt(t, resultDuplication.DownloadsRemaining, 100)
+	test.IsEqualBool(t, resultDuplication.UnlimitedDownloads, false)
+
+	data = url.Values{}
+	data.Set("id", newFileId)
+	data.Set("allowedDownloads", "0")
+
+	w, r = test.GetRecorder("POST", "/api/files/duplicate", nil, []test.Header{
+		{Name: "apikey", Value: "validkey"},
+		{Name: "id", Value: "invalid"},
+		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
+		strings.NewReader(data.Encode()))
+	Process(w, r, maxMemory)
+	resultDuplication = models.File{}
+	response, err = io.ReadAll(w.Result().Body)
+	test.IsNil(t, err)
+	err = json.Unmarshal(response, &resultDuplication)
+	test.IsNil(t, err)
+	test.IsEqualBool(t, resultDuplication.UnlimitedDownloads, true)
+
+	data = url.Values{}
+	data.Set("id", newFileId)
+	data.Set("allowedDownloads", "invalid")
+
+	w, r = test.GetRecorder("POST", "/api/files/duplicate", nil, []test.Header{
+		{Name: "apikey", Value: "validkey"},
+		{Name: "id", Value: "invalid"},
+		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
+		strings.NewReader(data.Encode()))
+	Process(w, r, maxMemory)
+	test.ResponseBodyContains(t, w, "strconv.Atoi: parsing \"invalid\": invalid syntax")
+
+	data = url.Values{}
+	data.Set("id", newFileId)
+	data.Set("expiryDays", "invalid")
+
+	w, r = test.GetRecorder("POST", "/api/files/duplicate", nil, []test.Header{
+		{Name: "apikey", Value: "validkey"},
+		{Name: "id", Value: "invalid"},
+		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
+		strings.NewReader(data.Encode()))
+	Process(w, r, maxMemory)
+	test.ResponseBodyContains(t, w, "strconv.Atoi: parsing \"invalid\": invalid syntax")
+
+	data = url.Values{}
+	data.Set("id", newFileId)
+	data.Set("expiryDays", "20")
+
+	w, r = test.GetRecorder("POST", "/api/files/duplicate", nil, []test.Header{
+		{Name: "apikey", Value: "validkey"},
+		{Name: "id", Value: "invalid"},
+		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
+		strings.NewReader(data.Encode()))
+	Process(w, r, maxMemory)
+	resultDuplication = models.File{}
+	response, err = io.ReadAll(w.Result().Body)
+	test.IsNil(t, err)
+	err = json.Unmarshal(response, &resultDuplication)
+	test.IsNil(t, err)
+	test.IsEqualBool(t, resultDuplication.UnlimitedTime, false)
+
+	data = url.Values{}
+	data.Set("id", newFileId)
+	data.Set("expiryDays", "0")
+
+	w, r = test.GetRecorder("POST", "/api/files/duplicate", nil, []test.Header{
+		{Name: "apikey", Value: "validkey"},
+		{Name: "id", Value: "invalid"},
+		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
+		strings.NewReader(data.Encode()))
+	Process(w, r, maxMemory)
+	resultDuplication = models.File{}
+	response, err = io.ReadAll(w.Result().Body)
+	test.IsNil(t, err)
+	err = json.Unmarshal(response, &resultDuplication)
+	test.IsNil(t, err)
+	test.IsEqualBool(t, resultDuplication.UnlimitedTime, true)
+
+	data = url.Values{}
+	data.Set("id", newFileId)
+	data.Set("password", "")
+	data.Set("originalPassword", "true")
+
+	w, r = test.GetRecorder("POST", "/api/files/duplicate", nil, []test.Header{
+		{Name: "apikey", Value: "validkey"},
+		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
+		strings.NewReader(data.Encode()))
+	Process(w, r, maxMemory)
+	resultDuplication = models.File{}
+	response, err = io.ReadAll(w.Result().Body)
+	test.IsNil(t, err)
+	err = json.Unmarshal(response, &resultDuplication)
+	test.IsNil(t, err)
+	test.IsNotEqualString(t, resultDuplication.PasswordHash, "")
+
+	data = url.Values{}
+	data.Set("id", newFileId)
+	data.Set("password", "")
+
+	w, r = test.GetRecorder("POST", "/api/files/duplicate", nil, []test.Header{
+		{Name: "apikey", Value: "validkey"},
+		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
+		strings.NewReader(data.Encode()))
+	Process(w, r, maxMemory)
+	resultDuplication = models.File{}
+	response, err = io.ReadAll(w.Result().Body)
+	test.IsNil(t, err)
+	err = json.Unmarshal(response, &resultDuplication)
+	test.IsNil(t, err)
+	test.IsEqualString(t, resultDuplication.PasswordHash, "")
 }
 
 func TestList(t *testing.T) {
