@@ -74,7 +74,7 @@ func TestEncryptionSetup(t *testing.T) {
 	test.IsEqualString(t, config.Encryption.Checksum, "")
 
 	input.EncryptionLevel.Value = "2"
-	input.EncryptionPassword.Value = "testpw"
+	input.EncryptionPassword.Value = "testpw12"
 	formObjects, err = input.toFormObject()
 	test.IsNil(t, err)
 	config, _, err = toConfiguration(&formObjects)
@@ -115,7 +115,7 @@ func TestEncryptionSetup(t *testing.T) {
 	_, ok = database.GetMetaDataById(id)
 	test.IsEqualBool(t, ok, true)
 	configuration.Get().Encryption.Level = 2
-	input.EncryptionPassword.Value = "otherpw"
+	input.EncryptionPassword.Value = "otherpw12"
 	id = testconfiguration.WriteEncryptedFile()
 	_, ok = database.GetMetaDataById(id)
 	test.IsEqualBool(t, ok, true)
@@ -517,19 +517,6 @@ func (s *setupValues) toFormObject() ([]jsonFormObject, error) {
 		return nil, err
 	}
 	return setupResult, err
-}
-
-func TestIsPwLongEnough(t *testing.T) {
-	isInitialSetup = true
-	test.IsEqualBool(t, isPwLongEnough("unc"), false)
-	test.IsEqualBool(t, isPwLongEnough("12345"), false)
-	test.IsEqualBool(t, isPwLongEnough("123456"), true)
-	test.IsEqualBool(t, isPwLongEnough("1234567"), true)
-	isInitialSetup = false
-	test.IsEqualBool(t, isPwLongEnough("unc"), true)
-	test.IsEqualBool(t, isPwLongEnough("12345"), false)
-	test.IsEqualBool(t, isPwLongEnough("123456"), true)
-	test.IsEqualBool(t, isPwLongEnough("1234567"), true)
 }
 
 func createInvalidSetupValues() []setupValues {

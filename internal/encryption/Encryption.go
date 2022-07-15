@@ -14,6 +14,7 @@ import (
 	"golang.org/x/crypto/scrypt"
 	"io"
 	"log"
+	"os"
 	"time"
 )
 
@@ -155,17 +156,34 @@ func Encrypt(encInfo *models.EncryptionInfo, input io.Reader, output io.Writer) 
 	return err
 }
 
-// DecryptReader modifies a reader so it can decrypt encrypted files
-func DecryptReader(encInfo models.EncryptionInfo, input io.Reader, output io.Writer) error {
+func createDecryptReader(encInfo models.EncryptionInfo, input io.Reader) (*sio.DecReader, error) {
 	key, err := GetCipherFromFile(encInfo)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	stream := getStream(key)
 	nonce := make([]byte, stream.NonceSize()) // Nonce is not used
-	reader := stream.DecryptReader(input, nonce, nil)
+	return stream.DecryptReader(input, nonce, nil), nil
+}
+
+// DecryptReader modifies a reader so it can decrypt encrypted files
+func DecryptReader(encInfo models.EncryptionInfo, input io.Reader, output io.Writer) error {
+	reader, err := createDecryptReader(encInfo, input)
+	if err != nil {
+		return err
+	}
 	_, err = io.Copy(output, reader)
 	return err
+}
+
+// IsCorrectKey checks if correct key is being used. This does not check for complete file authentication.
+func IsCorrectKey(encInfo models.EncryptionInfo, input *os.File) bool {
+	_, err := createDecryptReader(encInfo, input)
+	if err != nil {
+		fmt.Println(err)
+		return false
+	}
+	return true
 }
 
 // GetDecryptWriter returns a writer that can decrypt encrypted files

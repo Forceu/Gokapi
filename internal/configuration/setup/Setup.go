@@ -381,16 +381,41 @@ func getCloudConfig(formObjects *[]jsonFormObject) (*cloudconfig.CloudConfig, er
 	return &awsConfig, nil
 }
 
+func encryptionHasChanged(encLevel int, formObjects *[]jsonFormObject) (bool, error) {
+	if encLevel != configuration.Get().Encryption.Level {
+		return true, nil
+	}
+	if encLevel == encryption.LocalEncryptionInput || encLevel == encryption.FullEncryptionInput {
+		masterPw, err := getFormValueString(formObjects, "enc_pw")
+		if err != nil {
+			return true, err
+		}
+		return masterPw != "unc", nil
+	}
+	return false, nil
+}
+
 func parseEncryptionAndDelete(result *models.Configuration, formObjects *[]jsonFormObject) error {
 	encLevel, err := parseEncryptionLevel(formObjects)
 	if err != nil {
 		return err
 	}
+
+	generateNewEncConfig := true
+
 	if !isInitialSetup {
-		previousLevel := configuration.Get().Encryption.Level
-		if previousLevel != encLevel {
-			storage.DeleteAllEncrypted()
+		generateNewEncConfig, err = encryptionHasChanged(encLevel, formObjects)
+		if err != nil {
+			return err
 		}
+	}
+
+	if !generateNewEncConfig {
+		result.Encryption = configuration.Get().Encryption
+		return nil
+	}
+	if !isInitialSetup {
+		storage.DeleteAllEncrypted()
 	}
 
 	result.Encryption = models.Encryption{}
@@ -409,24 +434,14 @@ func parseEncryptionAndDelete(result *models.Configuration, formObjects *[]jsonF
 	if encLevel == encryption.LocalEncryptionInput || encLevel == encryption.FullEncryptionInput {
 		result.Encryption.Salt = helper.GenerateRandomString(30)
 		result.Encryption.ChecksumSalt = helper.GenerateRandomString(30)
-		if !isPwLongEnough(masterPw) {
-			return errors.New("password is less than 6 characters long")
-		}
-		if !isInitialSetup && masterPw != "unc" {
-			storage.DeleteAllEncrypted()
+		const minLength = 8
+		if len(masterPw) < minLength {
+			return errors.New("password is less than " + strconv.Itoa(minLength) + " characters long")
 		}
 		result.Encryption.Checksum = encryption.PasswordChecksum(masterPw, result.Encryption.ChecksumSalt)
 	}
 	result.Encryption.Level = encLevel
 	return nil
-}
-
-func isPwLongEnough(pw string) bool {
-	const minLength = 6
-	if isInitialSetup || pw != "unc" {
-		return len(pw) >= minLength
-	}
-	return true
 }
 
 func parseEncryptionLevel(formObjects *[]jsonFormObject) (int, error) {
@@ -471,17 +486,16 @@ func splitAndTrim(input string) []string {
 }
 
 type setupView struct {
-	IsInitialSetup  bool
-	LocalhostOnly   bool
-	HasAwsFeature   bool
-	IsDocker        bool
-	Port            int
-	OAuthUsers      string
-	HeaderUsers     string
-	Auth            models.AuthenticationConfig
-	Settings        models.Configuration
-	CloudSettings   cloudconfig.CloudConfig
-	EncryptionLevel int
+	IsInitialSetup bool
+	LocalhostOnly  bool
+	HasAwsFeature  bool
+	IsDocker       bool
+	Port           int
+	OAuthUsers     string
+	HeaderUsers    string
+	Auth           models.AuthenticationConfig
+	Settings       models.Configuration
+	CloudSettings  cloudconfig.CloudConfig
 }
 
 func (v *setupView) loadFromConfig() {
@@ -498,7 +512,6 @@ func (v *setupView) loadFromConfig() {
 	v.CloudSettings, _ = cloudconfig.Load()
 	v.OAuthUsers = strings.Join(settings.Authentication.OauthUsers, ";")
 	v.HeaderUsers = strings.Join(settings.Authentication.HeaderUsers, ";")
-	v.EncryptionLevel = settings.Encryption.Level
 
 	if strings.Contains(settings.Port, "localhost") || strings.Contains(settings.Port, "127.0.0.1") {
 		v.LocalhostOnly = true

@@ -341,13 +341,20 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 		return
 	}
 	fileData, size := getFileHandler(file, configuration.Get().DataDir)
+	if file.Encryption.IsEncrypted && !RequiresClientDecryption(file) {
+		if !encryption.IsCorrectKey(file.Encryption, fileData) {
+			w.Write([]byte("Internal error - Error decrypting file, source data might be damaged or an incorrect key has been used"))
+			return
+		}
+	}
 	statusId := downloadstatus.SetDownload(file)
 	writeDownloadHeaders(file, w, forceDownload)
 	if file.Encryption.IsEncrypted && !RequiresClientDecryption(file) {
 		err := encryption.DecryptReader(file.Encryption, fileData, w)
 		if err != nil {
 			w.Write([]byte("Error decrypting file"))
-			panic(err)
+			fmt.Println(err)
+			return
 		}
 	} else {
 		w.Header().Set("Content-Length", strconv.FormatInt(size, 10))

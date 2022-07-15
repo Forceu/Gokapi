@@ -440,7 +440,7 @@ func TestDuplicateFile(t *testing.T) {
 func TestServeFile(t *testing.T) {
 	file, result := GetFile(idNewFile)
 	test.IsEqualBool(t, result, true)
-	r := httptest.NewRequest("GET", "/upload", nil)
+	r := httptest.NewRequest("GET", "/", nil)
 	w := httptest.NewRecorder()
 	ServeFile(file, w, r, true)
 	_, result = GetFile(idNewFile)
@@ -459,7 +459,7 @@ func TestServeFile(t *testing.T) {
 		test.IsEqualBool(t, ok, true)
 		ok = aws.Init(config.Aws)
 		test.IsEqualBool(t, ok, true)
-		r = httptest.NewRequest("GET", "/upload", nil)
+		r = httptest.NewRequest("GET", "/", nil)
 		w = httptest.NewRecorder()
 		file, result = GetFile("awsTest1234567890123")
 		test.IsEqualBool(t, result, true)
@@ -475,7 +475,7 @@ func TestServeFile(t *testing.T) {
 	test.IsNil(t, err)
 	file = newFile.File
 	database.SaveMetaData(file)
-	r = httptest.NewRequest("GET", "/upload", nil)
+	r = httptest.NewRequest("GET", "/", nil)
 	w = httptest.NewRecorder()
 	cipher, err := encryption.GetRandomCipher()
 	test.IsNil(t, err)
@@ -488,8 +488,10 @@ func TestServeFile(t *testing.T) {
 	file.Encryption.IsEncrypted = true
 	file.Encryption.DecryptionKey = cipher
 	file.Encryption.Nonce = nonce
-	defer test.ExpectPanic(t)
+	r = httptest.NewRequest("GET", "/", nil)
+	w = httptest.NewRecorder()
 	ServeFile(file, w, r, true)
+	test.ResponseBodyContains(t, w, "Error decrypting file")
 }
 
 func TestCleanUp(t *testing.T) {

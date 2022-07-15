@@ -546,8 +546,9 @@ function TestAWS(button) {
 	
 				<div class="wizard-success">
 					<div class="alert alert-success">
-						<span class="create-server-name"></span>Gokapi has been set up <strong>successfully.</strong>
+						<span class="create-server-name"></span>Gokapi has been set up <strong>successfully</strong>.
 					</div>
+					If you configured Gokapi to use a password during startup, please enter it now in the console before clicking on continue.<br><br>
 	
 					<a class="btn btn-success im-done">Continue</a>
 				</div>
@@ -720,7 +721,8 @@ function TestAWS(button) {
 			function validatePassword2(el) {
 				let value = el.val();
 {{ if not .IsInitialSetup }}
-				if (value == "unc")
+				let previousEncLevel = {{ .Settings.Encryption.Level}};
+				if (value == "unc" && previousEncLevel == document.getElementById("encrypt_sel").value)
 					return true;
 {{end}}
 				let minLenghtStatus = validateMinLength(el);
@@ -753,8 +755,8 @@ function TestAWS(button) {
 {{ if .IsInitialSetup }}			
 				encryptionSelectionChanged(0, true);
 {{ else }}
-				document.getElementById("encrypt_sel").value={{.EncryptionLevel}};
-				encryptionSelectionChanged({{.EncryptionLevel}}, true);
+				document.getElementById("encrypt_sel").value={{.Settings.Encryption.Level}};
+				encryptionSelectionChanged({{.Settings.Encryption.Level}}, true);
 {{ end }}
 			});
 			
