@@ -376,7 +376,7 @@ type DownloadView struct {
 
 // UploadView contains parameters for the admin menu template
 type UploadView struct {
-	Items                    []models.File
+	Items                    []models.FileApiOutput
 	ApiKeys                  []models.ApiKey
 	Url                      string
 	HotlinkUrl               string
@@ -397,11 +397,13 @@ type UploadView struct {
 // Converts the globalConfig variable to an UploadView struct to pass the infos to
 // the admin template
 func (u *UploadView) convertGlobalConfig(isMainView bool) *UploadView {
-	var result []models.File
+	var result []models.FileApiOutput
 	var resultApi []models.ApiKey
 	if isMainView {
 		for _, element := range database.GetAllMetadata() {
-			result = append(result, element)
+			fileInfo, err := element.ToFileApiOutput()
+			helper.Check(err)
+			result = append(result, fileInfo)
 		}
 		sort.Slice(result[:], func(i, j int) bool {
 			if result[i].ExpireAt == result[j].ExpireAt {

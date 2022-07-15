@@ -71,12 +71,12 @@
 						<td scope="col">{{ .ExpireAtString }}</td>
 			{{ end }}
 						<td scope="col">{{ .DownloadCount }}</td>
-						<td scope="col"><a target="_blank" href="{{ $.Url }}{{ .Id }}">{{ $.Url }}{{ .Id }}</a>{{ if ne .PasswordHash "" }} &#128274;{{ end }}</td>
+						<td scope="col"><a target="_blank" href="{{ $.Url }}{{ .Id }}">{{ $.Url }}{{ .Id }}</a>{{ if .IsPasswordProtected }} &#128274;{{ end }}</td>
 						<td scope="col"><button type="button" data-clipboard-text="{{ $.Url }}{{ .Id }}" class="copyurl btn btn-outline-light btn-sm">Copy URL</button> 
 			{{ if ne .HotlinkId "" }}
  						<button type="button" data-clipboard-text="{{ $.HotlinkUrl }}{{ .HotlinkId }}" class="copyurl btn btn-outline-light btn-sm">Copy Hotlink</button>
 			{{ else }}
-				{{ if and (not .RequiresClientSideDecryption) (eq .PasswordHash "") }}
+				{{ if and (not .IsPasswordProtected) (not .RequiresClientSideDecryption)  }}
 	 						<button type="button" data-clipboard-text="{{ $.GenericHotlinkUrl }}{{ .Id }}" class="copyurl btn btn-outline-light btn-sm">Copy Hotlink</button>
 				{{ else }}
  							<button type="button"class="copyurl btn btn-outline-light btn-sm disabled">Copy Hotlink</button>
@@ -95,7 +95,7 @@
 	    </div>
    	 </div>
 
-	<script src="./js/admin.js?v=11"></script>
+	<script src="./js/admin.js?v=12"></script>
 	<script>
 		Dropzone.options.uploaddropzone["maxFilesize"] = {{ .MaxFileSize }};
 		Dropzone.options.uploaddropzone["dictDefaultMessage"] = "Drop files, paste or click here to upload";

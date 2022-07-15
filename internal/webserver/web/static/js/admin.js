@@ -91,7 +91,7 @@ function addRow(jsonText) {
     let cellButtons = row.insertCell(6);
     let lockIcon = "";
 
-    if (item.PasswordHash !== "") {
+    if (item.IsPasswordProtected === true) {
         lockIcon = " &#128274;";
     }
     cellFilename.innerText = item.Name;
@@ -113,7 +113,7 @@ function addRow(jsonText) {
     if (item.HotlinkId !== "") {
         buttons = buttons + '<button type="button" data-clipboard-text="' + jsonObject.HotlinkUrl + item.HotlinkId + '" class="copyurl btn btn-outline-light btn-sm">Copy Hotlink</button> ';
     } else {
-        if (item.RequiresClientSideDecryption === false && item.PasswordHash === "") {
+        if (item.RequiresClientSideDecryption === false && item.IsPasswordProtected === false) {
             buttons = buttons + '<button type="button" data-clipboard-text="' + jsonObject.GenericHotlinkUrl + item.Id + '" class="copyurl btn btn-outline-light btn-sm">Copy Hotlink</button> ';
         } else {
             buttons = buttons + '<button type="button"class="copyurl btn btn-outline-light btn-sm disabled">Copy Hotlink</button> ';

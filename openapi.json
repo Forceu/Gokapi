@@ -217,12 +217,23 @@
       "File": {
         "type": "object",
         "properties": {
-          "ContentType": {
+          "Id": {
             "type": "string"
           },
-          "DownloadsRemaining": {
-            "type": "integer",
-            "format": "int64"
+          "Name": {
+            "type": "string"
+          },
+          "Size": {
+            "type": "string"
+          },
+          "SHA256": {
+            "type": "string"
+          },
+          "HotlinkId": {
+            "type": "string"
+          },
+          "ContentType": {
+            "type": "string"
           },
           "ExpireAt": {
             "type": "integer",
@@ -231,23 +242,31 @@
           "ExpireAtString": {
             "type": "string"
           },
-          "HotlinkId": {
-            "type": "string"
+          "DownloadsRemaining": {
+            "type": "integer",
+            "format": "int64"
           },
-          "Id": {
-            "type": "string"
+          "DownloadCount": {
+            "type": "integer",
+            "format": "int64"
           },
-          "Name": {
-            "type": "string"
+          "UnlimitedDownloads": {
+            "type": "boolean"
           },
-          "PasswordHash": {
-            "type": "string"
+          "UnlimitedTime": {
+            "type": "boolean"
           },
-          "SHA256": {
-            "type": "string"
+          "RequiresClientSideDecryption": {
+            "type": "boolean"
           },
-          "Size": {
-            "type": "string"
+          "IsEncrypted": {
+            "type": "boolean"
+          },
+          "IsPasswordProtected": {
+            "type": "boolean"
+          },
+          "IsSavedOnLocalStorage": {
+            "type": "boolean"
           }
         },
         "description": "File is a struct used for saving information about an uploaded file",
@@ -316,11 +335,15 @@
           },
           "password": {
             "type": "string",
-            "description": "Password for this file to be set. No password will be used if empty-"
+            "description": "Password for this file to be set. No password will be used if empty."
           },
           "originalPassword": {
             "type": "boolean",
             "description": "Set to true to use original password. Field \"password\" will be ignored if set."
+          },
+          "filename": {
+            "type": "string",
+            "description": "Sets a new filename. Filename will be unchanged if empty."
           }
         }
     }

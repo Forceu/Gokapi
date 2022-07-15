@@ -88,11 +88,13 @@ func deleteFile(w http.ResponseWriter, request apiRequest) {
 }
 
 func list(w http.ResponseWriter) {
-	var validFiles []models.File
+	var validFiles []models.FileApiOutput
 	timeNow := time.Now().Unix()
 	for _, element := range database.GetAllMetadata() {
 		if !storage.IsExpiredFile(element, timeNow) {
-			validFiles = append(validFiles, element)
+			file, err := element.ToFileApiOutput()
+			helper.Check(err)
+			validFiles = append(validFiles, file)
 		}
 	}
 	result, err := json.Marshal(validFiles)
@@ -120,35 +122,38 @@ func duplicateFile(w http.ResponseWriter, request apiRequest) {
 		sendError(w, http.StatusBadRequest, "Invalid id provided.")
 		return
 	}
-	uploadRequest, paramsToChange, err := apiRequestToUploadRequest(request.request)
+	uploadRequest, paramsToChange, filename, err := apiRequestToUploadRequest(request.request)
 	if err != nil {
 		sendError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	newFile, err := storage.DuplicateFile(file, paramsToChange, uploadRequest)
+	newFile, err := storage.DuplicateFile(file, paramsToChange, filename, uploadRequest)
 	if err != nil {
 		sendError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	result, err := json.Marshal(newFile)
+	publicOutput, err := newFile.ToFileApiOutput()
+	helper.Check(err)
+	result, err := json.Marshal(publicOutput)
 	helper.Check(err)
 	_, _ = w.Write(result)
 }
 
-func apiRequestToUploadRequest(request *http.Request) (models.UploadRequest, int, error) {
+func apiRequestToUploadRequest(request *http.Request) (models.UploadRequest, int, string, error) {
 	paramsToChange := 0
 	allowedDownloads := 0
 	daysExpiry := 0
 	unlimitedTime := false
 	unlimitedDownloads := false
 	password := ""
+	fileName := ""
 	var err error
 
 	if request.Form.Get("allowedDownloads") != "" {
 		paramsToChange = paramsToChange | storage.ParamDownloads
 		allowedDownloads, err = strconv.Atoi(request.Form.Get("allowedDownloads"))
 		if err != nil {
-			return models.UploadRequest{}, 0, err
+			return models.UploadRequest{}, 0, "", err
 		}
 		if allowedDownloads == 0 {
 			unlimitedDownloads = true
@@ -159,7 +164,7 @@ func apiRequestToUploadRequest(request *http.Request) (models.UploadRequest, int
 		paramsToChange = paramsToChange | storage.ParamExpiry
 		daysExpiry, err = strconv.Atoi(request.Form.Get("expiryDays"))
 		if err != nil {
-			return models.UploadRequest{}, 0, err
+			return models.UploadRequest{}, 0, "", err
 		}
 		if daysExpiry == 0 {
 			unlimitedTime = true
@@ -171,6 +176,11 @@ func apiRequestToUploadRequest(request *http.Request) (models.UploadRequest, int
 		password = request.Form.Get("password")
 	}
 
+	if request.Form.Get("filename") != "" {
+		paramsToChange = paramsToChange | storage.ParamName
+		fileName = request.Form.Get("filename")
+	}
+
 	return models.UploadRequest{
 		AllowedDownloads:  allowedDownloads,
 		Expiry:            daysExpiry,
@@ -178,7 +188,7 @@ func apiRequestToUploadRequest(request *http.Request) (models.UploadRequest, int
 		UnlimitedDownload: unlimitedDownloads,
 		Password:          password,
 		ExpiryTimestamp:   time.Now().Add(time.Duration(daysExpiry) * time.Hour * 24).Unix(),
-	}, paramsToChange, nil
+	}, paramsToChange, fileName, nil
 }
 
 func isAuthorisedForApi(w http.ResponseWriter, request apiRequest) bool {

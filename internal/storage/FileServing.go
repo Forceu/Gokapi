@@ -148,10 +148,11 @@ const (
 	ParamExpiry int = 1 << iota
 	ParamDownloads
 	ParamPassword
+	ParamName
 )
 
 // DuplicateFile creates a copy of an existing file with new parameters
-func DuplicateFile(file models.File, parametersToChange int, fileParameters models.UploadRequest) (models.File, error) {
+func DuplicateFile(file models.File, parametersToChange int, newFileName string, fileParameters models.UploadRequest) (models.File, error) {
 	var newFile models.File
 	err := copier.Copy(&newFile, &file)
 	if err != nil {
@@ -161,6 +162,7 @@ func DuplicateFile(file models.File, parametersToChange int, fileParameters mode
 	changeExpiry := parametersToChange&ParamExpiry != 0
 	changeDownloads := parametersToChange&ParamDownloads != 0
 	changePassword := parametersToChange&ParamPassword != 0
+	changeName := parametersToChange&ParamName != 0
 
 	if changeExpiry {
 		newFile.ExpireAt = fileParameters.ExpiryTimestamp
@@ -174,8 +176,13 @@ func DuplicateFile(file models.File, parametersToChange int, fileParameters mode
 	if changePassword {
 		newFile.PasswordHash = configuration.HashPassword(fileParameters.Password, true)
 	}
+	if changeName {
+		newFile.Name = newFileName
+	}
+
 	newFile.Id = createNewId()
 	newFile.DownloadCount = 0
+	addHotlink(&file)
 
 	database.SaveMetaData(newFile)
 	return newFile, nil

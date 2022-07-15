@@ -333,7 +333,7 @@ func TestDuplicateFile(t *testing.T) {
 	retrievedFile.DownloadCount = 5
 	database.SaveMetaData(retrievedFile)
 
-	newFile, err := DuplicateFile(retrievedFile, 0, models.UploadRequest{})
+	newFile, err := DuplicateFile(retrievedFile, 0, "123", models.UploadRequest{})
 	test.IsNil(t, err)
 	test.IsEqualInt(t, newFile.DownloadCount, 0)
 	test.IsEqualInt(t, newFile.DownloadsRemaining, 1)
@@ -341,6 +341,7 @@ func TestDuplicateFile(t *testing.T) {
 	test.IsEqualString(t, newFile.PasswordHash, "")
 	test.IsEqualBool(t, newFile.UnlimitedDownloads, false)
 	test.IsEqualBool(t, newFile.UnlimitedTime, false)
+	test.IsEqualString(t, newFile.Name, "test.dat")
 
 	uploadRequest := models.UploadRequest{
 		AllowedDownloads:  5,
@@ -351,7 +352,7 @@ func TestDuplicateFile(t *testing.T) {
 		UnlimitedTime:     true,
 	}
 
-	newFile, err = DuplicateFile(retrievedFile, 0, uploadRequest)
+	newFile, err = DuplicateFile(retrievedFile, 0, "123", uploadRequest)
 	test.IsNil(t, err)
 	test.IsEqualInt(t, newFile.DownloadCount, 0)
 	test.IsEqualInt(t, newFile.DownloadsRemaining, 1)
@@ -359,8 +360,19 @@ func TestDuplicateFile(t *testing.T) {
 	test.IsEqualString(t, newFile.PasswordHash, "")
 	test.IsEqualBool(t, newFile.UnlimitedDownloads, false)
 	test.IsEqualBool(t, newFile.UnlimitedTime, false)
+	test.IsEqualString(t, newFile.Name, "test.dat")
 
-	newFile, err = DuplicateFile(retrievedFile, ParamExpiry, uploadRequest)
+	newFile, err = DuplicateFile(retrievedFile, ParamName, "123", uploadRequest)
+	test.IsNil(t, err)
+	test.IsEqualInt(t, newFile.DownloadCount, 0)
+	test.IsEqualInt(t, newFile.DownloadsRemaining, 1)
+	test.IsEqualInt64(t, newFile.ExpireAt, 2147483600)
+	test.IsEqualString(t, newFile.PasswordHash, "")
+	test.IsEqualBool(t, newFile.UnlimitedDownloads, false)
+	test.IsEqualBool(t, newFile.UnlimitedTime, false)
+	test.IsEqualString(t, newFile.Name, "123")
+
+	newFile, err = DuplicateFile(retrievedFile, ParamExpiry, "123", uploadRequest)
 	test.IsNil(t, err)
 	test.IsEqualInt(t, newFile.DownloadCount, 0)
 	test.IsEqualInt(t, newFile.DownloadsRemaining, 1)
@@ -368,8 +380,9 @@ func TestDuplicateFile(t *testing.T) {
 	test.IsEqualString(t, newFile.PasswordHash, "")
 	test.IsEqualBool(t, newFile.UnlimitedDownloads, false)
 	test.IsEqualBool(t, newFile.UnlimitedTime, true)
+	test.IsEqualString(t, newFile.Name, "test.dat")
 
-	newFile, err = DuplicateFile(retrievedFile, ParamDownloads, uploadRequest)
+	newFile, err = DuplicateFile(retrievedFile, ParamDownloads, "123", uploadRequest)
 	test.IsNil(t, err)
 	test.IsEqualInt(t, newFile.DownloadCount, 0)
 	test.IsEqualInt(t, newFile.DownloadsRemaining, 5)
@@ -377,8 +390,9 @@ func TestDuplicateFile(t *testing.T) {
 	test.IsEqualString(t, newFile.PasswordHash, "")
 	test.IsEqualBool(t, newFile.UnlimitedDownloads, true)
 	test.IsEqualBool(t, newFile.UnlimitedTime, false)
+	test.IsEqualString(t, newFile.Name, "test.dat")
 
-	newFile, err = DuplicateFile(retrievedFile, ParamPassword, uploadRequest)
+	newFile, err = DuplicateFile(retrievedFile, ParamPassword, "123", uploadRequest)
 	test.IsNil(t, err)
 	test.IsEqualInt(t, newFile.DownloadCount, 0)
 	test.IsEqualInt(t, newFile.DownloadsRemaining, 1)
@@ -386,9 +400,10 @@ func TestDuplicateFile(t *testing.T) {
 	test.IsNotEqualString(t, newFile.PasswordHash, "")
 	test.IsEqualBool(t, newFile.UnlimitedDownloads, false)
 	test.IsEqualBool(t, newFile.UnlimitedTime, false)
+	test.IsEqualString(t, newFile.Name, "test.dat")
 
 	retrievedFile.PasswordHash = "ahash"
-	newFile, err = DuplicateFile(retrievedFile, 0, uploadRequest)
+	newFile, err = DuplicateFile(retrievedFile, 0, "123", uploadRequest)
 	test.IsNil(t, err)
 	test.IsEqualInt(t, newFile.DownloadCount, 0)
 	test.IsEqualInt(t, newFile.DownloadsRemaining, 1)
@@ -396,9 +411,10 @@ func TestDuplicateFile(t *testing.T) {
 	test.IsEqualString(t, newFile.PasswordHash, "ahash")
 	test.IsEqualBool(t, newFile.UnlimitedDownloads, false)
 	test.IsEqualBool(t, newFile.UnlimitedTime, false)
+	test.IsEqualString(t, newFile.Name, "test.dat")
 
 	uploadRequest.Password = ""
-	newFile, err = DuplicateFile(retrievedFile, ParamPassword, uploadRequest)
+	newFile, err = DuplicateFile(retrievedFile, ParamPassword, "123", uploadRequest)
 	test.IsNil(t, err)
 	test.IsEqualInt(t, newFile.DownloadCount, 0)
 	test.IsEqualInt(t, newFile.DownloadsRemaining, 1)
@@ -406,9 +422,10 @@ func TestDuplicateFile(t *testing.T) {
 	test.IsEqualString(t, newFile.PasswordHash, "")
 	test.IsEqualBool(t, newFile.UnlimitedDownloads, false)
 	test.IsEqualBool(t, newFile.UnlimitedTime, false)
+	test.IsEqualString(t, newFile.Name, "test.dat")
 
 	uploadRequest.Password = "123"
-	newFile, err = DuplicateFile(retrievedFile, ParamExpiry|ParamPassword|ParamDownloads, uploadRequest)
+	newFile, err = DuplicateFile(retrievedFile, ParamExpiry|ParamPassword|ParamDownloads|ParamName, "123", uploadRequest)
 	test.IsNil(t, err)
 	test.IsEqualInt(t, newFile.DownloadCount, 0)
 	test.IsEqualInt(t, newFile.DownloadsRemaining, 5)
@@ -416,6 +433,7 @@ func TestDuplicateFile(t *testing.T) {
 	test.IsNotEqualString(t, newFile.PasswordHash, "")
 	test.IsEqualBool(t, newFile.UnlimitedDownloads, true)
 	test.IsEqualBool(t, newFile.UnlimitedTime, true)
+	test.IsEqualString(t, newFile.Name, "123")
 
 }
 

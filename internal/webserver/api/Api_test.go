@@ -192,7 +192,7 @@ func TestUploadAndDuplication(t *testing.T) {
 	test.IsEqualString(t, result.Result, "OK")
 	test.IsEqualString(t, result.FileInfo.Size, "3 B")
 	test.IsEqualInt(t, result.FileInfo.DownloadsRemaining, 200)
-	test.IsNotEqualString(t, result.FileInfo.PasswordHash, "")
+	test.IsEqualBool(t, result.FileInfo.IsPasswordProtected, true)
 	test.IsEqualString(t, result.Url, "http://127.0.0.1:53843/d?id=")
 	newFileId := result.FileInfo.Id
 
@@ -238,7 +238,7 @@ func TestUploadAndDuplication(t *testing.T) {
 		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
 		strings.NewReader(data.Encode()))
 	Process(w, r, maxMemory)
-	resultDuplication := models.File{}
+	resultDuplication := models.FileApiOutput{}
 	response, err = io.ReadAll(w.Result().Body)
 	test.IsNil(t, err)
 	err = json.Unmarshal(response, &resultDuplication)
@@ -247,7 +247,7 @@ func TestUploadAndDuplication(t *testing.T) {
 	test.IsEqualBool(t, resultDuplication.UnlimitedTime, false)
 	test.IsEqualBool(t, resultDuplication.UnlimitedDownloads, false)
 	test.IsEqualInt(t, resultDuplication.DownloadCount, 0)
-	test.IsEqualString(t, resultDuplication.PasswordHash, "")
+	test.IsEqualBool(t, resultDuplication.IsPasswordProtected, false)
 
 	data = url.Values{}
 	data.Set("id", newFileId)
@@ -259,7 +259,7 @@ func TestUploadAndDuplication(t *testing.T) {
 		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
 		strings.NewReader(data.Encode()))
 	Process(w, r, maxMemory)
-	resultDuplication = models.File{}
+	resultDuplication = models.FileApiOutput{}
 	response, err = io.ReadAll(w.Result().Body)
 	test.IsNil(t, err)
 	err = json.Unmarshal(response, &resultDuplication)
@@ -277,7 +277,7 @@ func TestUploadAndDuplication(t *testing.T) {
 		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
 		strings.NewReader(data.Encode()))
 	Process(w, r, maxMemory)
-	resultDuplication = models.File{}
+	resultDuplication = models.FileApiOutput{}
 	response, err = io.ReadAll(w.Result().Body)
 	test.IsNil(t, err)
 	err = json.Unmarshal(response, &resultDuplication)
@@ -318,7 +318,7 @@ func TestUploadAndDuplication(t *testing.T) {
 		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
 		strings.NewReader(data.Encode()))
 	Process(w, r, maxMemory)
-	resultDuplication = models.File{}
+	resultDuplication = models.FileApiOutput{}
 	response, err = io.ReadAll(w.Result().Body)
 	test.IsNil(t, err)
 	err = json.Unmarshal(response, &resultDuplication)
@@ -335,7 +335,7 @@ func TestUploadAndDuplication(t *testing.T) {
 		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
 		strings.NewReader(data.Encode()))
 	Process(w, r, maxMemory)
-	resultDuplication = models.File{}
+	resultDuplication = models.FileApiOutput{}
 	response, err = io.ReadAll(w.Result().Body)
 	test.IsNil(t, err)
 	err = json.Unmarshal(response, &resultDuplication)
@@ -352,12 +352,12 @@ func TestUploadAndDuplication(t *testing.T) {
 		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
 		strings.NewReader(data.Encode()))
 	Process(w, r, maxMemory)
-	resultDuplication = models.File{}
+	resultDuplication = models.FileApiOutput{}
 	response, err = io.ReadAll(w.Result().Body)
 	test.IsNil(t, err)
 	err = json.Unmarshal(response, &resultDuplication)
 	test.IsNil(t, err)
-	test.IsNotEqualString(t, resultDuplication.PasswordHash, "")
+	test.IsEqualBool(t, resultDuplication.IsPasswordProtected, true)
 
 	data = url.Values{}
 	data.Set("id", newFileId)
@@ -368,12 +368,12 @@ func TestUploadAndDuplication(t *testing.T) {
 		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
 		strings.NewReader(data.Encode()))
 	Process(w, r, maxMemory)
-	resultDuplication = models.File{}
+	resultDuplication = models.FileApiOutput{}
 	response, err = io.ReadAll(w.Result().Body)
 	test.IsNil(t, err)
 	err = json.Unmarshal(response, &resultDuplication)
 	test.IsNil(t, err)
-	test.IsEqualString(t, resultDuplication.PasswordHash, "")
+	test.IsEqualBool(t, resultDuplication.IsPasswordProtected, false)
 }
 
 func TestList(t *testing.T) {
