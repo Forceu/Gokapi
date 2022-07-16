@@ -374,6 +374,37 @@ func TestUploadAndDuplication(t *testing.T) {
 	err = json.Unmarshal(response, &resultDuplication)
 	test.IsNil(t, err)
 	test.IsEqualBool(t, resultDuplication.IsPasswordProtected, false)
+	test.IsEqualString(t, resultDuplication.Name, "fileupload.jpg")
+
+	data = url.Values{}
+	data.Set("id", newFileId)
+	data.Set("filename", "")
+	w, r = test.GetRecorder("POST", "/api/files/duplicate", nil, []test.Header{
+		{Name: "apikey", Value: "validkey"},
+		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
+		strings.NewReader(data.Encode()))
+	Process(w, r, maxMemory)
+	resultDuplication = models.FileApiOutput{}
+	response, err = io.ReadAll(w.Result().Body)
+	test.IsNil(t, err)
+	err = json.Unmarshal(response, &resultDuplication)
+	test.IsNil(t, err)
+	test.IsEqualString(t, resultDuplication.Name, "fileupload.jpg")
+
+	data = url.Values{}
+	data.Set("id", newFileId)
+	data.Set("filename", "test.test")
+	w, r = test.GetRecorder("POST", "/api/files/duplicate", nil, []test.Header{
+		{Name: "apikey", Value: "validkey"},
+		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
+		strings.NewReader(data.Encode()))
+	Process(w, r, maxMemory)
+	resultDuplication = models.FileApiOutput{}
+	response, err = io.ReadAll(w.Result().Body)
+	test.IsNil(t, err)
+	err = json.Unmarshal(response, &resultDuplication)
+	test.IsNil(t, err)
+	test.IsEqualString(t, resultDuplication.Name, "test.test")
 }
 
 func TestList(t *testing.T) {
