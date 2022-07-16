@@ -95,6 +95,7 @@ func Start() {
 	mux.HandleFunc("/logout", doLogout)
 	mux.HandleFunc("/upload", requireLogin(uploadFile, true))
 	mux.HandleFunc("/uploadChunk", requireLogin(uploadChunk, true))
+	mux.HandleFunc("/uploadChunkComplete", requireLogin(uploadChunkComplete, true))
 	mux.HandleFunc("/error-auth", showErrorAuth)
 	mux.Handle("/main.wasm", gziphandler.GzipHandler(http.HandlerFunc(serveWasm)))
 	if configuration.Get().Authentication.Method == authentication.OAuth2 {
@@ -456,12 +457,19 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 	responseError(w, err)
 }
 
-// Handling of /upload
-// If the user is authenticated, this parses the uploaded file from the Multipart Form and
-// adds it to the system.
+// Handling of /uploadChunk
+// If the user is authenticated, this parses the uploaded chunk and stores it
 func uploadChunk(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	err := fileupload.ProcessChunk(w, r, configuration.Get().MaxMemory)
+	err := fileupload.ProcessChunk(w, r)
+	responseError(w, err)
+}
+
+// Handling of /uploadChunkComplete
+// If the user is authenticated, this parses the uploaded chunk and stores it
+func uploadChunkComplete(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	err := fileupload.CompleteChunk(w, r)
 	responseError(w, err)
 }
 
@@ -469,7 +477,7 @@ func uploadChunk(w http.ResponseWriter, r *http.Request) {
 func responseError(w http.ResponseWriter, err error) {
 	if err != nil {
 		_, _ = io.WriteString(w, "{\"Result\":\"error\",\"ErrorMessage\":\""+err.Error()+"\"}")
-		helper.Check(err)
+		fmt.Println(err)
 	}
 }
 

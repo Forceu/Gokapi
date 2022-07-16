@@ -120,7 +120,7 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 	return file, nil
 }
 
-func NewChunk(fileContent io.Reader, fileHeader *multipart.FileHeader, info chunking.ChunkInfo) error {
+func NewFileFromChunk(fileContent io.Reader, fileHeader *multipart.FileHeader, info chunking.ChunkInfo) error {
 	maxFileSizeB := int64(configuration.Get().MaxFileSizeMB) * 1024 * 1024
 	if fileHeader.Size > maxFileSizeB || info.TotalFilesizeBytes > maxFileSizeB {
 		return ErrorFileTooLarge

@@ -58,6 +58,31 @@ func ParseChunkInfo(r *http.Request) (ChunkInfo, error) {
 	return info, nil
 }
 
+func ParseFileHeader(r *http.Request) (multipart.FileHeader, error) {
+	err := r.ParseForm()
+	if err != nil {
+		return multipart.FileHeader{}, err
+	}
+	name := r.Form.Get("filename")
+	if name == "" {
+		return multipart.FileHeader{}, errors.New("empty filename provided")
+	}
+	size := r.Form.Get("filename")
+	if size == "" {
+		return multipart.FileHeader{}, errors.New("empty size provided")
+	}
+	sizeInt, err := strconv.ParseInt(size, 10, 64)
+	if err != nil {
+		return multipart.FileHeader{}, err
+	}
+	// TODO continue
+	result := multipart.FileHeader{
+		Filename: name,
+		Header:   nil,
+		Size:     sizeInt,
+	}
+}
+
 func NewChunk(chunkContent io.Reader, fileHeader *multipart.FileHeader, info ChunkInfo) error {
 	if info.Index == 0 {
 		err := allocateFile(info)
