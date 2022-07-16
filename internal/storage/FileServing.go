@@ -16,6 +16,7 @@ import (
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/logging"
 	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/storage/chunking"
 	"github.com/forceu/gokapi/internal/storage/cloudstorage/aws"
 	"github.com/forceu/gokapi/internal/webserver/downloadstatus"
 	"github.com/jinzhu/copier"
@@ -31,15 +32,17 @@ import (
 	"time"
 )
 
+var ErrorFileTooLarge = errors.New("upload limit exceeded")
+
 // NewFile creates a new file in the system. Called after an upload has been completed. If a file with the same sha256 hash
 // already exists, it is deduplicated. This function gathers information about the file, creates an ID and saves
 // it into the global configuration.
 func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequest models.UploadRequest) (models.File, error) {
 	if fileHeader.Size > int64(configuration.Get().MaxFileSizeMB)*1024*1024 {
-		return models.File{}, errors.New("upload limit exceeded")
+		return models.File{}, ErrorFileTooLarge
 	}
 	var hasBeenRenamed bool
-	reader, hash, tempFile, encInfo := generateHash(fileContent, fileHeader, uploadRequest)
+	reader, hash, tempFile, encInfo := generateHash(fileContent, fileHeader)
 	defer deleteTempFile(tempFile, &hasBeenRenamed)
 	id := createNewId()
 	file := models.File{
@@ -115,6 +118,15 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 	}
 	database.SaveMetaData(file)
 	return file, nil
+}
+
+func NewChunk(fileContent io.Reader, fileHeader *multipart.FileHeader, info chunking.ChunkInfo) error {
+	maxFileSizeB := int64(configuration.Get().MaxFileSizeMB) * 1024 * 1024
+	if fileHeader.Size > maxFileSizeB || info.TotalFilesizeBytes > maxFileSizeB {
+		return ErrorFileTooLarge
+	}
+	// TODO
+	return nil
 }
 
 func createNewId() string {
@@ -200,10 +212,10 @@ func DeleteAllEncrypted() {
 
 // Generates the SHA1 hash of an uploaded file and returns a reader for the file, the hash and if a temporary file was created the
 // reference to that file.
-func generateHash(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequest models.UploadRequest) (io.Reader, []byte, *os.File, models.EncryptionInfo) {
+func generateHash(fileContent io.Reader, fileHeader *multipart.FileHeader) (io.Reader, []byte, *os.File, models.EncryptionInfo) {
 	hash := sha1.New()
 	encInfo := models.EncryptionInfo{}
-	if fileHeader.Size <= int64(uploadRequest.MaxMemory)*1024*1024 {
+	if fileHeader.Size <= int64(configuration.Get().MaxMemory)*1024*1024 {
 		content, err := ioutil.ReadAll(fileContent)
 		helper.Check(err)
 		hash.Write(content)
@@ -216,7 +228,7 @@ func generateHash(fileContent io.Reader, fileHeader *multipart.FileHeader, uploa
 		}
 		return bytes.NewReader(content), hash.Sum(nil), nil, encInfo
 	}
-	tempFile, err := os.CreateTemp(uploadRequest.DataDir, "upload")
+	tempFile, err := os.CreateTemp(configuration.Get().DataDir, "upload")
 	helper.Check(err)
 	var multiWriter io.Writer
 
@@ -227,7 +239,7 @@ func generateHash(fileContent io.Reader, fileHeader *multipart.FileHeader, uploa
 	helper.Check(err)
 
 	if isEncryptionRequested() {
-		tempFileEnc, err := os.CreateTemp(uploadRequest.DataDir, "upload")
+		tempFileEnc, err := os.CreateTemp(configuration.Get().DataDir, "upload")
 		helper.Check(err)
 		encryption.Encrypt(&encInfo, tempFile, tempFileEnc)
 		err = os.Remove(tempFile.Name())

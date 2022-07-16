@@ -38,6 +38,8 @@ const EndToEndEncryption = 5
 
 var encryptedKey, ramCipher []byte
 
+// var tempKey models.EncryptionInfo
+
 const blockSize = 32
 const nonceSize = 12
 
@@ -57,7 +59,21 @@ func Init(config models.Configuration) {
 	case EndToEndEncryption:
 		// TODO
 	}
+	// generateTempKey()
 }
+
+// func generateTempKey() {
+// 	tempKey = models.EncryptionInfo{}
+// 	_, err := generateNewFileKey(&tempKey)
+// 	helper.Check(err)
+// }
+//
+// func GetTempKey() models.EncryptionInfo {
+// 	if !tempKey.IsEncrypted {
+// 		panic(errors.New("runtime error: trying to encrypt temp file without encryption enabled"))
+// 	}
+// 	return tempKey
+// }
 
 func initWithPassword(saltPw, expectedChecksum, saltChecksum string) {
 	if saltPw == "" || saltChecksum == "" {

@@ -3,9 +3,9 @@ package fileupload
 import (
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/database"
-	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
+	"github.com/forceu/gokapi/internal/storage/chunking"
 	"io"
 	"net/http"
 	"strconv"
@@ -15,6 +15,7 @@ import (
 // Process processes a file upload request
 func Process(w http.ResponseWriter, r *http.Request, isWeb bool, maxMemory int) error {
 	err := r.ParseMultipartForm(int64(maxMemory) * 1024 * 1024)
+	defer r.MultipartForm.RemoveAll()
 	if err != nil {
 		return err
 	}
@@ -30,14 +31,36 @@ func Process(w http.ResponseWriter, r *http.Request, isWeb bool, maxMemory int) 
 	}
 
 	result, err := storage.NewFile(file, header, config)
+	defer file.Close()
 	if err != nil {
 		return err
 	}
+	_, _ = io.WriteString(w, result.ToJsonResult(config.ExternalUrl))
+	return nil
+}
+
+// ProcessChunk processes a file chunk upload request
+func ProcessChunk(w http.ResponseWriter, r *http.Request, maxMemory int) error {
+	err := r.ParseMultipartForm(int64(maxMemory) * 1024 * 1024)
+	defer r.MultipartForm.RemoveAll()
+	if err != nil {
+		return err
+	}
+	chunkInfo, err := chunking.ParseChunkInfo(r)
+	if err != nil {
+		return err
+	}
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		return err
+	}
+
+	err = chunking.NewChunk(file, header, chunkInfo)
 	defer file.Close()
-	_, err = io.WriteString(w, result.ToJsonResult(config.ExternalUrl))
-	helper.Check(err)
-	err = r.MultipartForm.RemoveAll()
-	helper.Check(err)
+	if err != nil {
+		return err
+	}
+	_, _ = io.WriteString(w, "{\"result\":\"OK\"}")
 	return nil
 }
 
@@ -84,7 +107,6 @@ func parseConfig(values formOrHeader, setNewDefaults bool) models.UploadRequest 
 		Password:          password,
 		ExternalUrl:       settings.ServerUrl,
 		MaxMemory:         settings.MaxMemory,
-		DataDir:           settings.DataDir,
 		UnlimitedTime:     unlimitedTime,
 		UnlimitedDownload: unlimitedDownload,
 	}
