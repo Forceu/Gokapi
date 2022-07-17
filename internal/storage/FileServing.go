@@ -105,9 +105,9 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 	return file, nil
 }
 
-func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, info chunking.ChunkInfo, uploadRequest models.UploadRequest) (models.File, error) {
+func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, uploadRequest models.UploadRequest) (models.File, error) {
 	maxFileSizeB := int64(configuration.Get().MaxFileSizeMB) * 1024 * 1024
-	if fileHeader.Size > maxFileSizeB || info.TotalFilesizeBytes > maxFileSizeB {
+	if fileHeader.Size > maxFileSizeB {
 		return models.File{}, ErrorFileTooLarge
 	}
 	file, err := chunking.GetFileByChunkId(chunkId)
@@ -118,7 +118,7 @@ func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, info chunk
 	if err != nil {
 		return models.File{}, err
 	}
-	if size != info.TotalFilesizeBytes {
+	if size != fileHeader.Size {
 		return models.File{}, errors.New("total filesize does not match")
 	}
 	hash, err := hashFile(file, isEncryptionRequested())

@@ -132,7 +132,7 @@ func DeleteChunkFile(id string) error {
 }
 
 func allocateFile(info ChunkInfo) error {
-	file, err := GetFileByChunkId(info.UUID)
+	file, err := os.OpenFile(getChunkFilePath(info.UUID), os.O_RDWR|os.O_CREATE, 0600)
 	if err != nil {
 		return err
 	}

@@ -73,7 +73,7 @@ func CompleteChunk(w http.ResponseWriter, r *http.Request) error {
 	}
 	chunkId := r.Form.Get("chunkid")
 	if chunkId == "" {
-		return errors.New("invalid chunk id provided")
+		return errors.New("empty chunk id provided")
 	}
 	if !helper.FileExists(configuration.Get().DataDir + "/chunk-" + chunkId) {
 		return errors.New("chunk file does not exist")
@@ -83,6 +83,7 @@ func CompleteChunk(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
+
 	result, err := storage.NewFileFromChunk(chunkId, header, config)
 	if err != nil {
 		return err

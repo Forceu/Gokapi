@@ -106,6 +106,8 @@
 			 retryChunks: true,
 			 retryChunksLimit: 3,
 			 chunksUploaded: function(file, done) {
+			 	console.log(file);
+			 	sendChunkComplete(file);
 			 	done();
 			 }
 		  };

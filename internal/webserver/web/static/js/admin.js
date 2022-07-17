@@ -50,6 +50,37 @@ document.onpaste = function (event) {
     }
 }
 
+function urlencodeFormData(fd){
+    let s = '';
+    function encode(s){ return encodeURIComponent(s).replace(/%20/g,'+'); }
+    for(var pair of fd.entries()){
+        if(typeof pair[1]=='string'){
+            s += (s?'&':'') + encode(pair[0])+'='+encode(pair[1]);
+        }
+    }
+    return s;
+}
+
+function sendChunkComplete(file) {
+	var xhr = new XMLHttpRequest();
+	xhr.open("POST", "./uploadChunkComplete", false);
+	xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+	
+	let formData = new FormData();
+	formData.append("allowedDownloads", document.getElementById("allowedDownloads").value);
+	formData.append("expiryDays", document.getElementById("expiryDays").value);
+	formData.append("password", document.getElementById("password").value);
+	formData.append("isUnlimitedDownload", !document.getElementById("enableDownloadLimit").checked);
+	formData.append("isUnlimitedTime", !document.getElementById("enableTimeLimit").checked);
+	formData.append("chunkid", file.upload.uuid);
+	formData.append("filesize", file.size);
+	formData.append("filename", file.name);
+	formData.append("filecontenttype", file.type);
+
+	
+	xhr.send(urlencodeFormData(formData));
+}
+
 
 function checkBoxChanged(checkBox, correspondingInput) {
     let disable = !checkBox.checked;
