@@ -19,6 +19,11 @@ type ChunkInfo struct {
 	Offset             int64
 	UUID               string
 }
+type FileHeader struct {
+	Filename    string
+	ContentType string
+	Size        int64
+}
 
 func ParseChunkInfo(r *http.Request) (ChunkInfo, error) {
 	info := ChunkInfo{}
@@ -58,29 +63,58 @@ func ParseChunkInfo(r *http.Request) (ChunkInfo, error) {
 	return info, nil
 }
 
-func ParseFileHeader(r *http.Request) (multipart.FileHeader, error) {
+func ParseFileHeader(r *http.Request) (FileHeader, error) {
 	err := r.ParseForm()
 	if err != nil {
-		return multipart.FileHeader{}, err
+		return FileHeader{}, err
 	}
 	name := r.Form.Get("filename")
 	if name == "" {
-		return multipart.FileHeader{}, errors.New("empty filename provided")
+		return FileHeader{}, errors.New("empty filename provided")
 	}
-	size := r.Form.Get("filename")
+	contentType := r.Form.Get("filecontenttype")
+	if contentType == "" {
+		return FileHeader{}, errors.New("empty content-type provided")
+	}
+	size := r.Form.Get("filesize")
 	if size == "" {
-		return multipart.FileHeader{}, errors.New("empty size provided")
+		return FileHeader{}, errors.New("empty size provided")
 	}
 	sizeInt, err := strconv.ParseInt(size, 10, 64)
 	if err != nil {
-		return multipart.FileHeader{}, err
+		return FileHeader{}, err
 	}
-	// TODO continue
-	result := multipart.FileHeader{
-		Filename: name,
-		Header:   nil,
-		Size:     sizeInt,
+	return FileHeader{
+		Filename:    name,
+		Size:        sizeInt,
+		ContentType: contentType,
+	}, nil
+}
+
+func ParseMultipartHeader(header *multipart.FileHeader) (FileHeader, error) {
+	if header.Filename == "" {
+		return FileHeader{}, errors.New("empty filename provided")
 	}
+	if header.Header.Get("Content-Type") == "" {
+		return FileHeader{}, errors.New("empty content-type provided")
+	}
+	return FileHeader{
+		Filename:    header.Filename,
+		Size:        header.Size,
+		ContentType: header.Header.Get("Content-Type"),
+	}, nil
+}
+
+func getChunkFilePath(id string) string {
+	return configuration.Get().DataDir + "/chunk-" + id
+}
+
+func GetFileByChunkId(id string) (*os.File, error) {
+	file, err := os.OpenFile(getChunkFilePath(id), os.O_RDWR, 0600)
+	if err != nil {
+		return nil, err
+	}
+	return file, nil
 }
 
 func NewChunk(chunkContent io.Reader, fileHeader *multipart.FileHeader, info ChunkInfo) error {
@@ -93,8 +127,12 @@ func NewChunk(chunkContent io.Reader, fileHeader *multipart.FileHeader, info Chu
 	return writeChunk(chunkContent, fileHeader, info)
 }
 
+func DeleteChunkFile(id string) error {
+	return os.Remove(getChunkFilePath(id))
+}
+
 func allocateFile(info ChunkInfo) error {
-	file, err := os.OpenFile(configuration.Get().DataDir+"/chunk-"+info.UUID, os.O_RDWR|os.O_CREATE, 0600)
+	file, err := GetFileByChunkId(info.UUID)
 	if err != nil {
 		return err
 	}
@@ -109,15 +147,14 @@ func writeChunk(chunkContent io.Reader, fileHeader *multipart.FileHeader, info C
 	if fileHeader.Size > info.Size {
 		return errors.New("chunk size mismatch")
 	}
-	filepath := configuration.Get().DataDir + "/chunk-" + info.UUID
-	if !helper.FileExists(filepath) {
+	if !helper.FileExists(getChunkFilePath(info.UUID)) {
 		return errors.New("file has not been allocated yet, first chunk has probably not been sent")
 	}
-	file, err := os.OpenFile(filepath, os.O_RDWR, 0600)
+	file, err := os.OpenFile(getChunkFilePath(info.UUID), os.O_RDWR|os.O_CREATE, 0600)
 	if err != nil {
 		return err
 	}
-	newOffset, err := file.Seek(info.Offset, 0)
+	newOffset, err := file.Seek(info.Offset, io.SeekStart)
 	if err != nil {
 		return err
 	}

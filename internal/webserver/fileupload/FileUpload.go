@@ -79,6 +79,10 @@ func CompleteChunk(w http.ResponseWriter, r *http.Request) error {
 		return errors.New("chunk file does not exist")
 	}
 	config := parseConfig(r.Form, true)
+	header, err := chunking.ParseFileHeader(r)
+	if err != nil {
+		return err
+	}
 	result, err := storage.NewFileFromChunk(chunkId, header, config)
 	if err != nil {
 		return err

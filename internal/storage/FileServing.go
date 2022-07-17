@@ -44,27 +44,12 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 	var hasBeenRenamed bool
 	reader, hash, tempFile, encInfo := generateHash(fileContent, fileHeader)
 	defer deleteTempFile(tempFile, &hasBeenRenamed)
-	id := createNewId()
-	file := models.File{
-		Id:                 id,
-		Encryption:         encInfo,
-		Name:               fileHeader.Filename,
-		SHA256:             hex.EncodeToString(hash),
-		Size:               helper.ByteCountSI(fileHeader.Size),
-		ExpireAt:           uploadRequest.ExpiryTimestamp,
-		ExpireAtString:     time.Unix(uploadRequest.ExpiryTimestamp, 0).Format("2006-01-02 15:04"),
-		DownloadsRemaining: uploadRequest.AllowedDownloads,
-		UnlimitedTime:      uploadRequest.UnlimitedTime,
-		UnlimitedDownloads: uploadRequest.UnlimitedDownload,
-		PasswordHash:       configuration.HashPassword(uploadRequest.Password, true),
-		ContentType:        fileHeader.Header.Get("Content-Type"),
+	header, err := chunking.ParseMultipartHeader(fileHeader)
+	if err != nil {
+		return models.File{}, err
 	}
-	if aws.IsAvailable() {
-		if !configuration.Get().PicturesAlwaysLocal || !isPictureFile(file.Name) {
-			aws.AddBucketName(&file)
-		}
-	}
-	addHotlink(&file)
+	file := createNewMetaData(hex.EncodeToString(hash), header, uploadRequest)
+	file.Encryption = encInfo
 	filename := configuration.Get().DataDir + "/" + file.SHA256
 	dataDir := configuration.Get().DataDir
 
@@ -88,7 +73,7 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 		encryptionLevel := configuration.Get().Encryption.Level
 		previousEncryption, ok := getEncInfoFromExistingFile(file.SHA256)
 		if !ok && encryptionLevel != encryption.NoEncryption && encryptionLevel != encryption.EndToEndEncryption {
-			err := os.Remove(dataDir + "/" + file.SHA256)
+			err = os.Remove(dataDir + "/" + file.SHA256)
 			helper.Check(err)
 			fileWithHashExists = false
 		} else {
@@ -98,7 +83,7 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 
 	if !fileWithHashExists {
 		if tempFile != nil {
-			err := tempFile.Close()
+			err = tempFile.Close()
 			helper.Check(err)
 			err = os.Rename(tempFile.Name(), dataDir+"/"+file.SHA256)
 			helper.Check(err)
@@ -120,13 +105,145 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 	return file, nil
 }
 
-func NewFileFromChunk(fileContent io.Reader, fileHeader *multipart.FileHeader, info chunking.ChunkInfo) error {
+func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, info chunking.ChunkInfo, uploadRequest models.UploadRequest) (models.File, error) {
 	maxFileSizeB := int64(configuration.Get().MaxFileSizeMB) * 1024 * 1024
 	if fileHeader.Size > maxFileSizeB || info.TotalFilesizeBytes > maxFileSizeB {
-		return ErrorFileTooLarge
+		return models.File{}, ErrorFileTooLarge
 	}
-	// TODO
-	return nil
+	file, err := chunking.GetFileByChunkId(chunkId)
+	if err != nil {
+		return models.File{}, err
+	}
+	size, err := helper.GetFileSize(file)
+	if err != nil {
+		return models.File{}, err
+	}
+	if size != info.TotalFilesizeBytes {
+		return models.File{}, errors.New("total filesize does not match")
+	}
+	hash, err := hashFile(file, isEncryptionRequested())
+	if err != nil {
+		_ = file.Close()
+		return models.File{}, err
+	}
+
+	metaData := createNewMetaData(hash, fileHeader, uploadRequest)
+
+	fileExists := FileExists(metaData, configuration.Get().DataDir)
+	if fileExists {
+		encryptionLevel := configuration.Get().Encryption.Level
+		previousEncryption, ok := getEncInfoFromExistingFile(metaData.SHA256)
+		if !ok && encryptionLevel != encryption.NoEncryption && encryptionLevel != encryption.EndToEndEncryption {
+			err = os.Remove(configuration.Get().DataDir + "/" + metaData.SHA256)
+			helper.Check(err)
+			fileExists = false
+		} else {
+			metaData.Encryption = previousEncryption
+		}
+	}
+
+	if fileExists {
+		err = file.Close()
+		if err != nil {
+			return models.File{}, err
+		}
+		err = os.Remove(file.Name())
+		if err != nil {
+			return models.File{}, err
+		}
+	}
+	if !isEncryptionRequested() {
+		if !fileExists {
+			_, err = file.Seek(0, io.SeekStart)
+			if err != nil {
+				return models.File{}, err
+			}
+			if metaData.AwsBucket != "" {
+				_, err = aws.Upload(file, metaData)
+				if err != nil {
+					return models.File{}, err
+				}
+				database.SaveMetaData(metaData)
+				return metaData, nil
+			}
+			err = os.Rename(file.Name(), configuration.Get().DataDir+"/"+metaData.SHA256)
+			if err != nil {
+				return models.File{}, err
+			}
+		}
+		database.SaveMetaData(metaData)
+		return metaData, nil
+	}
+	if !fileExists {
+		tempFile, err := encryptChunkFile(file, &metaData)
+		if err != nil {
+			return models.File{}, err
+		}
+		if metaData.AwsBucket != "" {
+			_, err = aws.Upload(tempFile, metaData)
+			if err != nil {
+				return models.File{}, err
+			}
+			tempFile.Close()
+			// TODO delete
+			database.SaveMetaData(metaData)
+			return metaData, nil
+		}
+		err = os.Rename(tempFile.Name(), configuration.Get().DataDir+"/"+metaData.SHA256)
+		if err != nil {
+			return models.File{}, err
+		}
+	}
+
+	// Also TODO: cleanup
+	database.SaveMetaData(metaData)
+	return metaData, nil
+}
+
+func encryptChunkFile(file *os.File, metadata *models.File) (*os.File, error) {
+	_, err := file.Seek(0, io.SeekStart)
+	if err != nil {
+		return nil, err
+	}
+	tempFileEnc, err := os.CreateTemp(configuration.Get().DataDir, "upload")
+	if err != nil {
+		return nil, err
+	}
+	encInfo := metadata.Encryption
+	err = encryption.Encrypt(&encInfo, file, tempFileEnc)
+	metadata.Encryption = encInfo
+	err = file.Close()
+	if err != nil {
+		return nil, err
+	}
+	err = os.Remove(file.Name())
+	if err != nil {
+		return nil, err
+	}
+	return tempFileEnc, nil
+}
+
+func createNewMetaData(hash string, fileHeader chunking.FileHeader, uploadRequest models.UploadRequest) models.File {
+	file := models.File{
+		Id:                 createNewId(),
+		Name:               fileHeader.Filename,
+		SHA256:             hash,
+		Size:               helper.ByteCountSI(fileHeader.Size),
+		ContentType:        fileHeader.ContentType,
+		ExpireAt:           uploadRequest.ExpiryTimestamp,
+		ExpireAtString:     time.Unix(uploadRequest.ExpiryTimestamp, 0).Format("2006-01-02 15:04"),
+		DownloadsRemaining: uploadRequest.AllowedDownloads,
+		UnlimitedTime:      uploadRequest.UnlimitedTime,
+		UnlimitedDownloads: uploadRequest.UnlimitedDownload,
+		PasswordHash:       configuration.HashPassword(uploadRequest.Password, true),
+	}
+	if aws.IsAvailable() {
+		if !configuration.Get().PicturesAlwaysLocal || !isPictureFile(file.Name) {
+			aws.AddBucketName(&file)
+		}
+	}
+	addHotlink(&file)
+	return file
 }
 
 func createNewId() string {
@@ -208,6 +325,18 @@ func DeleteAllEncrypted() {
 			DeleteFile(file.Id, false)
 		}
 	}
+}
+
+func hashFile(input io.Reader, useSalt bool) (string, error) {
+	hash := sha1.New()
+	_, err := io.Copy(hash, input)
+	if err != nil {
+		return "", err
+	}
+	if useSalt {
+		hash.Write([]byte(configuration.Get().Authentication.SaltFiles))
+	}
+	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
 // Generates the SHA1 hash of an uploaded file and returns a reader for the file, the hash and if a temporary file was created the
@@ -400,12 +529,18 @@ func getFileHandler(file models.File, dataDir string) (*os.File, int64) {
 // FileExists checks if the file exists locally or in S3
 func FileExists(file models.File, dataDir string) bool {
 	if file.AwsBucket != "" {
-		result, _, err := aws.FileExists(file)
+		exists, size, err := aws.FileExists(file)
 		if err != nil {
 			fmt.Println("Warning, cannot check file " + file.Id + ": " + err.Error())
 			return true
 		}
-		return result
+		if !exists {
+			return false
+		}
+		if size == 0 && file.Size != "0 B" {
+			return false
+		}
+		return true
 	}
 	return helper.FileExists(dataDir + "/" + file.SHA256)
 }

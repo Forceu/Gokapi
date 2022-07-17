@@ -31,7 +31,6 @@ type FileApiOutput struct {
 	Id                           string `json:"Id"`
 	Name                         string `json:"Name"`
 	Size                         string `json:"Size"`
-	SHA256                       string `json:"SHA256"`
 	HotlinkId                    string `json:"HotlinkId"`
 	ContentType                  string `json:"ContentType"`
 	ExpireAt                     int64  `json:"ExpireAt"`
