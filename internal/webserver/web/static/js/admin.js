@@ -5,16 +5,18 @@ var dropzoneObject;
 
 Dropzone.options.uploaddropzone = {
     paramName: "file",
-    maxFilesize: 102400, // 100 GB
-    timeout: 7200000,
+    dictDefaultMessage: "Drop files, paste or click here to upload",
     createImageThumbnails: false,
-    success: function (file, response) {
-        addRow(response)
-        this.removeFile(file);
+   // success: function(file, response) {
+   //     addRow(response)
+   //     this.removeFile(file);
+   // },
+    chunksUploaded: function(file, done) {
+        sendChunkComplete(file, done);
     },
-    init: function () {
+    init: function() {
         dropzoneObject = this;
-        this.on("sending", function (file, xhr, formData) {
+        this.on("sending", function(file, xhr, formData) {
             formData.append("allowedDownloads", document.getElementById("allowedDownloads").value);
             formData.append("expiryDays", document.getElementById("expiryDays").value);
             formData.append("password", document.getElementById("password").value);
@@ -24,7 +26,7 @@ Dropzone.options.uploaddropzone = {
     },
 };
 
-document.onpaste = function (event) {
+document.onpaste = function(event) {
     var items = (event.clipboardData || event.originalEvent.clipboardData).items;
     for (index in items) {
         var item = items[index];
@@ -32,7 +34,7 @@ document.onpaste = function (event) {
             dropzoneObject.addFile(item.getAsFile());
         }
         if (item.kind === 'string') {
-            item.getAsString(function (s) {
+            item.getAsString(function(s) {
                 // If a picture was copied from a website, the origin information might be submitted, which is filtered with this regex out
                 const pattern = /<img *.+>/gi;
                 if (pattern.test(s) === false) {
@@ -50,35 +52,49 @@ document.onpaste = function (event) {
     }
 }
 
-function urlencodeFormData(fd){
+function urlencodeFormData(fd) {
     let s = '';
-    function encode(s){ return encodeURIComponent(s).replace(/%20/g,'+'); }
-    for(var pair of fd.entries()){
-        if(typeof pair[1]=='string'){
-            s += (s?'&':'') + encode(pair[0])+'='+encode(pair[1]);
+
+    function encode(s) {
+        return encodeURIComponent(s).replace(/%20/g, '+');
+    }
+    for (var pair of fd.entries()) {
+        if (typeof pair[1] == 'string') {
+            s += (s ? '&' : '') + encode(pair[0]) + '=' + encode(pair[1]);
         }
     }
     return s;
 }
 
-function sendChunkComplete(file) {
-	var xhr = new XMLHttpRequest();
-	xhr.open("POST", "./uploadChunkComplete", false);
-	xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-	
-	let formData = new FormData();
-	formData.append("allowedDownloads", document.getElementById("allowedDownloads").value);
-	formData.append("expiryDays", document.getElementById("expiryDays").value);
-	formData.append("password", document.getElementById("password").value);
-	formData.append("isUnlimitedDownload", !document.getElementById("enableDownloadLimit").checked);
-	formData.append("isUnlimitedTime", !document.getElementById("enableTimeLimit").checked);
-	formData.append("chunkid", file.upload.uuid);
-	formData.append("filesize", file.size);
-	formData.append("filename", file.name);
-	formData.append("filecontenttype", file.type);
+function sendChunkComplete(file, done) {
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "./uploadChunkComplete", true);
+    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
 
-	
-	xhr.send(urlencodeFormData(formData));
+    let formData = new FormData();
+    formData.append("allowedDownloads", document.getElementById("allowedDownloads").value);
+    formData.append("expiryDays", document.getElementById("expiryDays").value);
+    formData.append("password", document.getElementById("password").value);
+    formData.append("isUnlimitedDownload", !document.getElementById("enableDownloadLimit").checked);
+    formData.append("isUnlimitedTime", !document.getElementById("enableTimeLimit").checked);
+    formData.append("chunkid", file.upload.uuid);
+    formData.append("filesize", file.size);
+    formData.append("filename", file.name);
+    formData.append("filecontenttype", file.type);
+
+    xhr.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            if (this.status == 200) {
+                Dropzone.instances[0].removeFile(file);
+        	 addRow(xhr.response);
+		 done();
+            } else {}
+        }
+    };
+
+
+    xhr.send(urlencodeFormData(formData));
+    file.name="Processing...";
 }
 
 
@@ -96,17 +112,22 @@ function checkBoxChanged(checkBox, correspondingInput) {
 }
 
 function parseData(data) {
-    if (!data) return {"Result": "error"};
+    if (!data) return {
+        "Result": "error"
+    };
     if (typeof data === 'object') return data;
     if (typeof data === 'string') return JSON.parse(data);
 
-    return {"Result": "error"};
+    return {
+        "Result": "error"
+    };
 }
 
 function addRow(jsonText) {
     let jsonObject = parseData(jsonText);
     if (jsonObject.Result !== "OK") {
         alert("Failed to upload file!");
+	console.log(jsonObject);
         location.reload();
         return;
     }

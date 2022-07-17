@@ -97,20 +97,14 @@
 
 	<script src="./js/admin.js?v=12"></script>
 	<script>
-		Dropzone.options.uploaddropzone = {
-			maxFilesize: {{ .MaxFileSize }},
-			dictDefaultMessage: "Drop files, paste or click here to upload",
-			 chunking: true,
-			 chunkSize: 10000000,
-			 forceChunking: true,
-			 retryChunks: true,
-			 retryChunksLimit: 3,
-			 chunksUploaded: function(file, done) {
-			 	console.log(file);
-			 	sendChunkComplete(file);
-			 	done();
-			 }
-		  };
+		Dropzone.options.uploaddropzone["maxFilesize"] = {{ .MaxFileSize }};
+		Dropzone.options.uploaddropzone["timeout"] = 1200000;
+		Dropzone.options.uploaddropzone["chunking"] = true;
+		Dropzone.options.uploaddropzone["chunkSize"] = 10000000;
+		Dropzone.options.uploaddropzone["forceChunking"] = true;
+		Dropzone.options.uploaddropzone["retryChunks"] = true;
+		Dropzone.options.uploaddropzone["retryChunksLimit"] = 3;
+		Dropzone.options.uploaddropzone["retryChunks"] = true;
 	</script>
 
 
