@@ -176,6 +176,12 @@ func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, uploadRequ
 	}
 	if !fileExists {
 		tempFile, err := encryptChunkFile(file, &metaData)
+		defer func() {
+			_ = file.Close()
+			_ = os.Remove(file.Name())
+			_ = tempFile.Close()
+			_ = os.Remove(tempFile.Name())
+		}()
 		if err != nil {
 			return models.File{}, err
 		}
@@ -185,17 +191,16 @@ func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, uploadRequ
 				return models.File{}, err
 			}
 			tempFile.Close()
-			// TODO delete
 			database.SaveMetaData(metaData)
 			return metaData, nil
 		}
+		tempFile.Close()
 		err = os.Rename(tempFile.Name(), configuration.Get().DataDir+"/"+metaData.SHA256)
 		if err != nil {
 			return models.File{}, err
 		}
 	}
 
-	// Also TODO: cleanup
 	database.SaveMetaData(metaData)
 	return metaData, nil
 }
