@@ -574,6 +574,8 @@ func CleanUp(periodic bool) {
 	if wasItemDeleted {
 		CleanUp(false)
 	}
+	cleanOldTempFiles()
+
 	if periodic {
 		go func() {
 			select {
@@ -583,6 +585,38 @@ func CleanUp(periodic bool) {
 		}()
 	}
 	database.RunGarbageCollection()
+}
+
+func cleanOldTempFiles() {
+	tmpfiles, err := os.ReadDir(configuration.Get().DataDir)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	for _, file := range tmpfiles {
+		if isOldTempFile(file) {
+			err = os.Remove(configuration.Get().DataDir + "/" + file.Name())
+			if err != nil {
+				fmt.Println(err)
+			}
+		}
+	}
+}
+
+// Returns true if a file is older than 24 hours and starts with the name upload or chunk
+func isOldTempFile(file os.DirEntry) bool {
+	if file.IsDir() {
+		return false
+	}
+	if !strings.HasPrefix(file.Name(), "upload") && !strings.HasPrefix(file.Name(), "chunk-") {
+		return false
+	}
+	info, err := file.Info()
+	if err != nil {
+		return false
+	}
+	return time.Now().Sub(info.ModTime()) > 24*time.Hour
+
 }
 
 // IsExpiredFile returns true if the file is expired, either due to download count

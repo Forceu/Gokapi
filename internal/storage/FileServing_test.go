@@ -148,7 +148,6 @@ func createTestFile() (testFile, error) {
 		Expiry:           999,
 		ExpiryTimestamp:  2147483600,
 		MaxMemory:        10,
-		DataDir:          "test/data",
 	}
 	file, err := NewFile(bytes.NewReader(content), &header, request)
 	return testFile{
@@ -212,7 +211,6 @@ func TestNewFile(t *testing.T) {
 		Expiry:           999,
 		ExpiryTimestamp:  2147483600,
 		MaxMemory:        10,
-		DataDir:          "test/data",
 	}
 	// Also testing renaming of temp file
 	file, err = NewFile(bigFile, &header, request)
@@ -246,7 +244,6 @@ func TestNewFile(t *testing.T) {
 		Expiry:           999,
 		ExpiryTimestamp:  2147483600,
 		MaxMemory:        10,
-		DataDir:          "test/data",
 	}
 	file, err = NewFile(bigFile, &header, request)
 	test.IsNotNil(t, err)
@@ -305,7 +302,6 @@ func TestNewFile(t *testing.T) {
 			Expiry:           999,
 			ExpiryTimestamp:  2147483600,
 			MaxMemory:        10,
-			DataDir:          "test/data",
 		}
 		testconfiguration.EnableS3()
 		config, ok := cloudconfig.Load()
