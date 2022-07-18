@@ -17,10 +17,10 @@ import (
 // Process processes a file upload request
 func Process(w http.ResponseWriter, r *http.Request, isWeb bool, maxMemory int) error {
 	err := r.ParseMultipartForm(int64(maxMemory) * 1024 * 1024)
-	defer r.MultipartForm.RemoveAll()
 	if err != nil {
 		return err
 	}
+	defer r.MultipartForm.RemoveAll()
 	config := parseConfig(r.Form, isWeb)
 	file, header, err := r.FormFile("file")
 	if err != nil {
@@ -39,10 +39,10 @@ func Process(w http.ResponseWriter, r *http.Request, isWeb bool, maxMemory int) 
 // ProcessChunk processes a file chunk upload request
 func ProcessChunk(w http.ResponseWriter, r *http.Request) error {
 	err := r.ParseMultipartForm(int64(configuration.Get().MaxMemory) * 1024 * 1024)
-	defer r.MultipartForm.RemoveAll()
 	if err != nil {
 		return err
 	}
+	defer r.MultipartForm.RemoveAll()
 	chunkInfo, err := chunking.ParseChunkInfo(r)
 	if err != nil {
 		return err
@@ -71,6 +71,7 @@ func CompleteChunk(w http.ResponseWriter, r *http.Request, isWeb bool) error {
 		return errors.New("empty chunk id provided")
 	}
 	if !helper.FileExists(configuration.Get().DataDir + "/chunk-" + chunkId) {
+		time.Sleep(1 * time.Second)
 		return errors.New("chunk file does not exist")
 	}
 	config := parseConfig(r.Form, isWeb)

@@ -466,8 +466,9 @@ func uploadComplete(w http.ResponseWriter, r *http.Request) {
 // Outputs an error in json format
 func responseError(w http.ResponseWriter, err error) {
 	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
 		_, _ = io.WriteString(w, "{\"Result\":\"error\",\"ErrorMessage\":\""+err.Error()+"\"}")
-		fmt.Println(err)
+		log.Println(err)
 	}
 }
 
