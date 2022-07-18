@@ -93,9 +93,8 @@ func Start() {
 	mux.HandleFunc("/index", showIndex)
 	mux.HandleFunc("/login", showLogin)
 	mux.HandleFunc("/logout", doLogout)
-	mux.HandleFunc("/upload", requireLogin(uploadFile, true))
 	mux.HandleFunc("/uploadChunk", requireLogin(uploadChunk, true))
-	mux.HandleFunc("/uploadChunkComplete", requireLogin(uploadChunkComplete, true))
+	mux.HandleFunc("/uploadComplete", requireLogin(uploadComplete, true))
 	mux.HandleFunc("/error-auth", showErrorAuth)
 	mux.Handle("/main.wasm", gziphandler.GzipHandler(http.HandlerFunc(serveWasm)))
 	if configuration.Get().Authentication.Method == authentication.OAuth2 {
@@ -448,15 +447,6 @@ func (u *UploadView) convertGlobalConfig(isMainView bool) *UploadView {
 	return u
 }
 
-// Handling of /upload
-// If the user is authenticated, this parses the uploaded file from the Multipart Form and
-// adds it to the system.
-func uploadFile(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	err := fileupload.Process(w, r, true, configuration.Get().MaxMemory)
-	responseError(w, err)
-}
-
 // Handling of /uploadChunk
 // If the user is authenticated, this parses the uploaded chunk and stores it
 func uploadChunk(w http.ResponseWriter, r *http.Request) {
@@ -465,11 +455,11 @@ func uploadChunk(w http.ResponseWriter, r *http.Request) {
 	responseError(w, err)
 }
 
-// Handling of /uploadChunkComplete
+// Handling of /uploadComplete
 // If the user is authenticated, this parses the uploaded chunk and stores it
-func uploadChunkComplete(w http.ResponseWriter, r *http.Request) {
+func uploadComplete(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	err := fileupload.CompleteChunk(w, r)
+	err := fileupload.CompleteChunk(w, r, true)
 	responseError(w, err)
 }
 

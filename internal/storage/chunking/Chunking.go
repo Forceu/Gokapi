@@ -8,14 +8,12 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
+	"regexp"
 	"strconv"
 )
 
 type ChunkInfo struct {
-	Index              int
 	TotalFilesizeBytes int64
-	Size               int64
-	TotalChunkCount    int
 	Offset             int64
 	UUID               string
 }
@@ -31,36 +29,37 @@ func ParseChunkInfo(r *http.Request) (ChunkInfo, error) {
 	if err != nil {
 		return ChunkInfo{}, err
 	}
-	buf := r.Form.Get("dzchunkindex")
-	info.Index, err = strconv.Atoi(buf)
-	if err != nil {
-		return ChunkInfo{}, err
-	}
-	buf = r.Form.Get("dztotalfilesize")
+
+	buf := r.Form.Get("dztotalfilesize")
 	info.TotalFilesizeBytes, err = strconv.ParseInt(buf, 10, 64)
 	if err != nil {
 		return ChunkInfo{}, err
 	}
-	buf = r.Form.Get("dzchunksize")
-	info.Size, err = strconv.ParseInt(buf, 10, 64)
-	if err != nil {
-		return ChunkInfo{}, err
+	if info.TotalFilesizeBytes < 0 {
+		return ChunkInfo{}, errors.New("value cannot be negative")
 	}
-	buf = r.Form.Get("dztotalchunkcount")
-	info.TotalChunkCount, err = strconv.Atoi(buf)
-	if err != nil {
-		return ChunkInfo{}, err
-	}
+
 	buf = r.Form.Get("dzchunkbyteoffset")
 	info.Offset, err = strconv.ParseInt(buf, 10, 64)
 	if err != nil {
 		return ChunkInfo{}, err
 	}
+	if info.Offset < 0 {
+		return ChunkInfo{}, errors.New("value cannot be negative")
+	}
+
 	info.UUID = r.Form.Get("dzuuid")
 	if len(info.UUID) < 10 {
-		return ChunkInfo{}, errors.New("invalid uuid submitted")
+		return ChunkInfo{}, errors.New("invalid uuid submitted, needs to be at least 10 characters long")
 	}
+	info.UUID = sanitseUuid(info.UUID)
 	return info, nil
+}
+
+func sanitseUuid(input string) string {
+	reg, err := regexp.Compile("[^a-zA-Z0-9-]")
+	helper.Check(err)
+	return reg.ReplaceAllString(input, "_")
 }
 
 func ParseFileHeader(r *http.Request) (FileHeader, error) {
@@ -81,6 +80,9 @@ func ParseFileHeader(r *http.Request) (FileHeader, error) {
 		return FileHeader{}, errors.New("empty size provided")
 	}
 	sizeInt, err := strconv.ParseInt(size, 10, 64)
+	if sizeInt < 0 {
+		return FileHeader{}, errors.New("value cannot be negative")
+	}
 	if err != nil {
 		return FileHeader{}, err
 	}
@@ -118,20 +120,17 @@ func GetFileByChunkId(id string) (*os.File, error) {
 }
 
 func NewChunk(chunkContent io.Reader, fileHeader *multipart.FileHeader, info ChunkInfo) error {
-	if info.Index == 0 {
-		err := allocateFile(info)
-		if err != nil {
-			return err
-		}
+	err := allocateFile(info)
+	if err != nil {
+		return err
 	}
 	return writeChunk(chunkContent, fileHeader, info)
 }
 
-func DeleteChunkFile(id string) error {
-	return os.Remove(getChunkFilePath(id))
-}
-
 func allocateFile(info ChunkInfo) error {
+	if helper.FileExists(getChunkFilePath(info.UUID)) {
+		return nil
+	}
 	file, err := os.OpenFile(getChunkFilePath(info.UUID), os.O_RDWR|os.O_CREATE, 0600)
 	if err != nil {
 		return err
@@ -142,13 +141,7 @@ func allocateFile(info ChunkInfo) error {
 
 func writeChunk(chunkContent io.Reader, fileHeader *multipart.FileHeader, info ChunkInfo) error {
 	if info.Offset+fileHeader.Size > info.TotalFilesizeBytes {
-		return errors.New("invalid offset specified")
-	}
-	if fileHeader.Size > info.Size {
-		return errors.New("chunk size mismatch")
-	}
-	if !helper.FileExists(getChunkFilePath(info.UUID)) {
-		return errors.New("file has not been allocated yet, first chunk has probably not been sent")
+		return errors.New("chunksize will be bigger than total filesize from this offset")
 	}
 	file, err := os.OpenFile(getChunkFilePath(info.UUID), os.O_RDWR|os.O_CREATE, 0600)
 	if err != nil {

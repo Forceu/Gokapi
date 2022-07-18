@@ -34,7 +34,7 @@ import (
 
 var ErrorFileTooLarge = errors.New("upload limit exceeded")
 
-// NewFile creates a new file in the system. Called after an upload has been completed. If a file with the same sha256 hash
+// NewFile creates a new file in the system. Called after an upload from the API has been completed. If a file with the same sha1 hash
 // already exists, it is deduplicated. This function gathers information about the file, creates an ID and saves
 // it into the global configuration.
 func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequest models.UploadRequest) (models.File, error) {
@@ -53,7 +53,7 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 	filename := configuration.Get().DataDir + "/" + file.SHA256
 	dataDir := configuration.Get().DataDir
 
-	if file.AwsBucket != "" {
+	if !file.IsLocalStorage() {
 		exists, size, err := aws.FileExists(file)
 		if err != nil {
 			return models.File{}, err
@@ -105,22 +105,33 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 	return file, nil
 }
 
-func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, uploadRequest models.UploadRequest) (models.File, error) {
+func validateChunkInfo(file *os.File, fileHeader chunking.FileHeader) error {
 	maxFileSizeB := int64(configuration.Get().MaxFileSizeMB) * 1024 * 1024
 	if fileHeader.Size > maxFileSizeB {
-		return models.File{}, ErrorFileTooLarge
-	}
-	file, err := chunking.GetFileByChunkId(chunkId)
-	if err != nil {
-		return models.File{}, err
+		return ErrorFileTooLarge
 	}
 	size, err := helper.GetFileSize(file)
 	if err != nil {
-		return models.File{}, err
+		return err
 	}
 	if size != fileHeader.Size {
-		return models.File{}, errors.New("total filesize does not match")
+		return errors.New("total filesize does not match")
 	}
+	return nil
+}
+
+func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, uploadRequest models.UploadRequest) (models.File, error) {
+
+	file, err := chunking.GetFileByChunkId(chunkId)
+	defer file.Close()
+	if err != nil {
+		return models.File{}, err
+	}
+	err = validateChunkInfo(file, fileHeader)
+	if err != nil {
+		return models.File{}, err
+	}
+
 	hash, err := hashFile(file, isEncryptionRequested())
 	if err != nil {
 		_ = file.Close()
@@ -158,7 +169,7 @@ func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, uploadRequ
 			if err != nil {
 				return models.File{}, err
 			}
-			if metaData.AwsBucket != "" {
+			if !metaData.IsLocalStorage() {
 				_, err = aws.Upload(file, metaData)
 				if err != nil {
 					return models.File{}, err
@@ -185,7 +196,7 @@ func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, uploadRequ
 		if err != nil {
 			return models.File{}, err
 		}
-		if metaData.AwsBucket != "" {
+		if !metaData.IsLocalStorage() {
 			_, err = aws.Upload(tempFile, metaData)
 			if err != nil {
 				return models.File{}, err
@@ -467,7 +478,7 @@ func RequiresClientDecryption(file models.File) bool {
 	if !file.Encryption.IsEncrypted {
 		return false
 	}
-	return file.AwsBucket != ""
+	return !file.IsLocalStorage()
 }
 
 // ServeFile subtracts a download allowance and serves the file to the browser
@@ -477,8 +488,7 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 	database.SaveMetaData(file)
 	logging.AddDownload(&file, r)
 
-	// If file is stored on AWS
-	if file.AwsBucket != "" {
+	if !file.IsLocalStorage() {
 		// We are not setting a download complete status as there is no reliable way to
 		// confirm that the file has been completely downloaded. It expires automatically after 24 hours.
 		downloadstatus.SetDownload(file)
@@ -533,7 +543,7 @@ func getFileHandler(file models.File, dataDir string) (*os.File, int64) {
 
 // FileExists checks if the file exists locally or in S3
 func FileExists(file models.File, dataDir string) bool {
-	if file.AwsBucket != "" {
+	if !file.IsLocalStorage() {
 		exists, size, err := aws.FileExists(file)
 		if err != nil {
 			fmt.Println("Warning, cannot check file " + file.Id + ": " + err.Error())
@@ -640,7 +650,7 @@ func isExpiredFileWithoutDownload(file models.File, timeNow int64) bool {
 
 func deleteSource(file models.File, dataDir string) {
 	var err error
-	if file.AwsBucket != "" {
+	if !file.IsLocalStorage() {
 		_, err = aws.DeleteObject(file)
 	} else {
 		err = os.Remove(dataDir + "/" + file.SHA256)

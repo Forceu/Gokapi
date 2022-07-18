@@ -21,12 +21,7 @@ func Process(w http.ResponseWriter, r *http.Request, isWeb bool, maxMemory int) 
 	if err != nil {
 		return err
 	}
-	var config models.UploadRequest
-	if isWeb {
-		config = parseConfig(r.Form, true)
-	} else {
-		config = parseConfig(r.Form, false)
-	}
+	config := parseConfig(r.Form, isWeb)
 	file, header, err := r.FormFile("file")
 	if err != nil {
 		return err
@@ -66,7 +61,7 @@ func ProcessChunk(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func CompleteChunk(w http.ResponseWriter, r *http.Request) error {
+func CompleteChunk(w http.ResponseWriter, r *http.Request, isWeb bool) error {
 	err := r.ParseForm()
 	if err != nil {
 		return err
@@ -78,7 +73,7 @@ func CompleteChunk(w http.ResponseWriter, r *http.Request) error {
 	if !helper.FileExists(configuration.Get().DataDir + "/chunk-" + chunkId) {
 		return errors.New("chunk file does not exist")
 	}
-	config := parseConfig(r.Form, true)
+	config := parseConfig(r.Form, isWeb)
 	header, err := chunking.ParseFileHeader(r)
 	if err != nil {
 		return err

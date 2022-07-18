@@ -11,7 +11,7 @@ type File struct {
 	Id                           string         `json:"Id"`
 	Name                         string         `json:"Name"`
 	Size                         string         `json:"Size"`
-	SHA256                       string         `json:"SHA256"`
+	SHA256                       string         `json:"SHA256"` // Attention: Is actually a SHA1 hash
 	ExpireAt                     int64          `json:"ExpireAt"`
 	ExpireAtString               string         `json:"ExpireAtString"`
 	DownloadsRemaining           int            `json:"DownloadsRemaining"`
@@ -50,6 +50,10 @@ type EncryptionInfo struct {
 	IsEncrypted   bool   `json:"IsEncrypted"`
 	DecryptionKey []byte `json:"DecryptionKey"`
 	Nonce         []byte `json:"Nonce"`
+}
+
+func (f *File) IsLocalStorage() bool {
+	return f.AwsBucket == ""
 }
 
 func (f *File) ToFileApiOutput() (FileApiOutput, error) {

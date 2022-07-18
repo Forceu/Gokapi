@@ -62,7 +62,7 @@
           "files"
         ],
         "summary": "Adds a new file",
-        "description": "This API call uploads the submitted file to Gokapi",
+        "description": "This API call uploads the submitted file to Gokapi. Please note: This method does not use chunking, therefore if you are behind a reverse proxy or have a provider that limits upload filesizes, this might not work for bigger files (e.g. Cloudflare).",
         "operationId": "add",
         "requestBody": {
           "content": {

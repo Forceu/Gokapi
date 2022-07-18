@@ -70,7 +70,6 @@ func TestProcess(t *testing.T) {
 	test.IsEqualString(t, result.Url, "http://127.0.0.1:53843/d?id=")
 	test.IsEqualString(t, result.HotlinkUrl, "http://127.0.0.1:53843/hotlink/")
 	test.IsEqualString(t, result.FileInfo.Name, "testFile")
-	test.IsEqualString(t, result.FileInfo.SHA256, "17513aad503256b7fdc94d613aeb87b8338c433a")
 	test.IsEqualString(t, result.FileInfo.Size, "11 B")
 	test.IsEqualBool(t, result.FileInfo.UnlimitedTime, false)
 	test.IsEqualBool(t, result.FileInfo.UnlimitedDownloads, false)
