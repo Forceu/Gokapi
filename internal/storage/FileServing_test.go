@@ -658,7 +658,6 @@ func TestRequiresClientDecryption(t *testing.T) {
 	file.Encryption.IsEncrypted = true
 	result = RequiresClientDecryption(file)
 	test.IsEqualBool(t, result, false)
-
 }
 
 func createBigFile(name string, megabytes int64) {

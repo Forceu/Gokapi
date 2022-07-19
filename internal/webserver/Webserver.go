@@ -250,7 +250,9 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 			redirect(w, "admin")
 			return
 		}
-		time.Sleep(3 * time.Second)
+		select {
+		case <-time.After(3 * time.Second):
+		}
 		failedLogin = true
 	}
 	err = templateFolder.ExecuteTemplate(w, "login", LoginView{
@@ -301,7 +303,9 @@ func showDownload(w http.ResponseWriter, r *http.Request) {
 		if configuration.HashPassword(enteredPassword, true) != file.PasswordHash && !isValidPwCookie(r, file) {
 			if enteredPassword != "" {
 				view.IsFailedLogin = true
-				time.Sleep(1 * time.Second)
+				select {
+				case <-time.After(1 * time.Second):
+				}
 			}
 			err := templateFolder.ExecuteTemplate(w, "download_password", view)
 			helper.Check(err)
@@ -349,7 +353,9 @@ func deleteFile(w http.ResponseWriter, r *http.Request) {
 func queryUrl(w http.ResponseWriter, r *http.Request, redirectUrl string) string {
 	keys, ok := r.URL.Query()["id"]
 	if !ok || len(keys[0]) < configuration.Get().LengthId {
-		time.Sleep(500 * time.Millisecond)
+		select {
+		case <-time.After(500 * time.Millisecond):
+		}
 		redirect(w, redirectUrl)
 		return ""
 	}
@@ -516,14 +522,16 @@ func writeFilePwCookie(w http.ResponseWriter, file models.File) {
 }
 
 // Checks if a cookie contains the correct password hash for a password-protected file
-// If incorrect, a 3 second delay is introduced unless the cookie was empty.
+// If incorrect, a 3-second delay is introduced unless the cookie was empty.
 func isValidPwCookie(r *http.Request, file models.File) bool {
 	cookie, err := r.Cookie("p" + file.Id)
 	if err == nil {
 		if cookie.Value == file.PasswordHash {
 			return true
 		}
-		time.Sleep(3 * time.Second)
+		select {
+		case <-time.After(3 * time.Second):
+		}
 	}
 	return false
 }

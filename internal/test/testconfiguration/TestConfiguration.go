@@ -3,7 +3,6 @@
 package testconfiguration
 
 import (
-	"bytes"
 	"fmt"
 	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/helper"
@@ -13,6 +12,7 @@ import (
 	"github.com/johannesboyne/gofakes3/backend/s3mem"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -128,7 +128,7 @@ func StartS3TestServer() *httptest.Server {
 	backend := s3mem.New()
 	_ = backend.CreateBucket("gokapi")
 	_ = backend.CreateBucket("gokapi-test")
-	_, _ = backend.PutObject("gokapi-test", "x341354656543213246465465465432456898794", nil, bytes.NewReader([]byte{}), 0)
+	_, _ = backend.PutObject("gokapi-test", "x341354656543213246465465465432456898794", nil, strings.NewReader("content"), 7)
 	faker := gofakes3.New(backend)
 	server := httptest.NewServer(faker.Server())
 	os.Setenv("GOKAPI_AWS_ENDPOINT", server.URL)
