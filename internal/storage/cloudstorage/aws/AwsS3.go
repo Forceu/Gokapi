@@ -67,7 +67,7 @@ func IsValidLogin(config models.AwsConfig) (bool, error) {
 	}
 	tempConfig := awsConfig
 	awsConfig = config
-	_, _, err := FileExists(models.File{AwsBucket: awsConfig.Bucket, SHA256: "invalid"})
+	_, _, err := FileExists(models.File{AwsBucket: awsConfig.Bucket, SHA1: "invalid"})
 	awsConfig = tempConfig
 	if err != nil {
 		return false, err
@@ -92,7 +92,7 @@ func Upload(input io.Reader, file models.File) (string, error) {
 
 	result, err := uploader.Upload(&s3manager.UploadInput{
 		Bucket: aws.String(file.AwsBucket),
-		Key:    aws.String(file.SHA256),
+		Key:    aws.String(file.SHA1),
 		Body:   input,
 	})
 	if err != nil {
@@ -108,7 +108,7 @@ func Download(writer io.WriterAt, file models.File) (int64, error) {
 
 	size, err := downloader.Download(writer, &s3.GetObjectInput{
 		Bucket: aws.String(file.AwsBucket),
-		Key:    aws.String(file.SHA256),
+		Key:    aws.String(file.SHA1),
 	})
 	if err != nil {
 		return 0, err
@@ -129,7 +129,7 @@ func RedirectToDownload(w http.ResponseWriter, r *http.Request, file models.File
 
 	req, _ := s3svc.GetObjectRequest(&s3.GetObjectInput{
 		Bucket:                     aws.String(file.AwsBucket),
-		Key:                        aws.String(file.SHA256),
+		Key:                        aws.String(file.SHA1),
 		ResponseContentDisposition: aws.String(contentDisposition),
 		ResponseCacheControl:       aws.String("no-store"),
 		ResponseContentType:        aws.String(file.ContentType),
@@ -151,7 +151,7 @@ func FileExists(file models.File) (bool, int64, error) {
 
 	info, err := svc.HeadObject(&s3.HeadObjectInput{
 		Bucket: aws.String(file.AwsBucket),
-		Key:    aws.String(file.SHA256),
+		Key:    aws.String(file.SHA1),
 	})
 
 	if err != nil {
@@ -173,7 +173,7 @@ func DeleteObject(file models.File) (bool, error) {
 
 	_, err := svc.DeleteObject(&s3.DeleteObjectInput{
 		Bucket: aws.String(file.AwsBucket),
-		Key:    aws.String(file.SHA256),
+		Key:    aws.String(file.SHA1),
 	})
 
 	if err != nil {

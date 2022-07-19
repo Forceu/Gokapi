@@ -143,7 +143,7 @@ func writeChunk(chunkContent io.Reader, fileHeader *multipart.FileHeader, info C
 	if info.Offset+fileHeader.Size > info.TotalFilesizeBytes {
 		return errors.New("chunksize will be bigger than total filesize from this offset")
 	}
-	file, err := os.OpenFile(getChunkFilePath(info.UUID), os.O_RDWR|os.O_CREATE, 0600)
+	file, err := GetFileByChunkId(info.UUID)
 	if err != nil {
 		return err
 	}

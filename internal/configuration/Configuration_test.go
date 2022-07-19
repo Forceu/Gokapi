@@ -34,8 +34,6 @@ func TestLoad(t *testing.T) {
 	test.IsEqualInt(t, serverSettings.MaxMemory, 80)
 	os.Unsetenv("GOKAPI_MAX_MEMORY_UPLOAD")
 	Load()
-	testconfiguration.WriteUpgradeConfigFileV8()
-	Load()
 	test.IsEqualInt(t, serverSettings.ConfigVersion, configupgrade.CurrentConfigVersion)
 	testconfiguration.Create(false)
 	Load()
@@ -86,4 +84,11 @@ func TestLoadFromSetup(t *testing.T) {
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualString(t, config.Aws.KeyId, "keyid")
 	test.IsEqualString(t, serverSettings.ServerUrl, "serverurl")
+}
+
+func TestUsesHttps(t *testing.T) {
+	usesHttps = false
+	test.IsEqualBool(t, UsesHttps(), false)
+	usesHttps = true
+	test.IsEqualBool(t, UsesHttps(), true)
 }

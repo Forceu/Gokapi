@@ -16,7 +16,7 @@ func TestMain(m *testing.M) {
 		Id:                 "test",
 		Name:               "testName",
 		Size:               "3 B",
-		SHA256:             "123456",
+		SHA1:               "123456",
 		ExpireAt:           500,
 		ExpireAtString:     "expire",
 		DownloadsRemaining: 1,

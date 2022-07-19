@@ -11,7 +11,7 @@ type File struct {
 	Id                           string         `json:"Id"`
 	Name                         string         `json:"Name"`
 	Size                         string         `json:"Size"`
-	SHA256                       string         `json:"SHA256"` // Attention: Is actually a SHA1 hash
+	SHA1                         string         `json:"SHA1"`
 	ExpireAt                     int64          `json:"ExpireAt"`
 	ExpireAtString               string         `json:"ExpireAtString"`
 	DownloadsRemaining           int            `json:"DownloadsRemaining"`

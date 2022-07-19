@@ -245,7 +245,14 @@ func TestNewChunk(t *testing.T) {
 	info.UUID = "../../../../../../../../../../invalid"
 	err = NewChunk(strings.NewReader("More content"), &header, info)
 	test.IsNotNil(t, err)
+}
 
+func TestWriteChunk(t *testing.T) {
+	err := writeChunk(nil, &multipart.FileHeader{Size: 10}, ChunkInfo{
+		UUID:               "",
+		TotalFilesizeBytes: 10,
+	})
+	test.IsNotNil(t, err)
 }
 
 func sha1sumFile(filename string) string {

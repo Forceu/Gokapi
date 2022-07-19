@@ -1,12 +1,8 @@
 package configupgrade
 
 import (
-	"github.com/forceu/gokapi/internal/configuration/database"
-	"github.com/forceu/gokapi/internal/environment"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/test"
-	"github.com/forceu/gokapi/internal/test/testconfiguration"
-	"os"
 	"testing"
 )
 
@@ -17,40 +13,26 @@ var oldConfigFile = models.Configuration{
 	RedirectUrl:    "https://github.com/Forceu/Gokapi/",
 }
 
-func TestMain(m *testing.M) {
-	testconfiguration.Create(false)
-	exitVal := m.Run()
-	testconfiguration.Delete()
-	os.Exit(exitVal)
-}
-
 func TestUpgradeDb(t *testing.T) {
-	testconfiguration.WriteUpgradeConfigFileV0()
-	os.Setenv("GOKAPI_MAX_FILESIZE", "5")
-
-	env := environment.New()
-	bufferConfig := oldConfigFile
-	wasExit := false
+	exitCode := 0
 	osExit = func(code int) {
-		wasExit = true
+		exitCode = code
 	}
-	_ = DoUpgrade(&bufferConfig, &env)
-	test.IsEqualBool(t, wasExit, true)
+	oldConfigFile.ConfigVersion = 10
+	upgradeDone := DoUpgrade(&oldConfigFile, nil)
+	test.IsEqualBool(t, upgradeDone, true)
+	test.IsEqualInt(t, exitCode, 1)
 
-	oldConfigFile.ConfigVersion = 8
-	database.Init("./test/filestorage.db")
-	testconfiguration.WriteUpgradeConfigFileV8()
-	upgradeDone := DoUpgrade(&oldConfigFile, &env)
+	exitCode = 0
+	oldConfigFile.ConfigVersion = 11
+	upgradeDone = DoUpgrade(&oldConfigFile, nil)
 	test.IsEqualBool(t, upgradeDone, true)
-	test.IsEqualString(t, oldConfigFile.Authentication.SaltAdmin, "LW6fW4Pjv8GtdWVLSZD66gYEev6NAaXxOVBw7C")
-	test.IsEqualString(t, oldConfigFile.Authentication.SaltFiles, "lL5wMTtnVCn5TPbpRaSe4vAQodWW0hgk00WCZE")
-	// TODO write further tests
-	os.Unsetenv("GOKAPI_MAX_FILESIZE")
+	test.IsEqualInt(t, exitCode, 0)
+
+	exitCode = 0
 	oldConfigFile.ConfigVersion = CurrentConfigVersion
-	upgradeDone = DoUpgrade(&oldConfigFile, &env)
+	upgradeDone = DoUpgrade(&oldConfigFile, nil)
 	test.IsEqualBool(t, upgradeDone, false)
-	oldConfigFile.ConfigVersion = 6
-	upgradeDone = DoUpgrade(&oldConfigFile, &env)
-	test.IsEqualBool(t, upgradeDone, true)
-	test.IsEqualBool(t, oldConfigFile.UseSsl, false)
+	test.IsEqualInt(t, exitCode, 0)
+
 }

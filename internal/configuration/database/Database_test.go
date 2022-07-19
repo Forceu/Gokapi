@@ -68,6 +68,11 @@ func TestHotlink(t *testing.T) {
 	DeleteHotlink("testlink")
 	_, ok = GetHotlink("testlink")
 	test.IsEqualBool(t, ok, false)
+
+	SaveHotlink(models.File{Id: "testhfile", Name: "testh.txt", HotlinkId: "testlink", ExpireAt: 0, UnlimitedTime: true})
+	hotlink, ok = GetHotlink("testlink")
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualString(t, hotlink, "testhfile")
 }
 
 func TestApiKey(t *testing.T) {

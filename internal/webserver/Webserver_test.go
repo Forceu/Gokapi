@@ -697,3 +697,11 @@ func TestShowErrorAuth(t *testing.T) {
 		IsHtml:          true,
 	})
 }
+
+func TestServeWasm(t *testing.T) {
+	t.Parallel()
+	test.HttpPageResult(t, test.HttpTestConfig{
+		Url:    "http://localhost:53843/main.wasm",
+		IsHtml: false,
+	})
+}

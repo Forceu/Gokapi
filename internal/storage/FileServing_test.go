@@ -54,7 +54,7 @@ func TestGetFile(t *testing.T) {
 	file = models.File{
 		Id:                 "testget",
 		Name:               "testget",
-		SHA256:             "testget",
+		SHA1:               "testget",
 		UnlimitedDownloads: true,
 		UnlimitedTime:      true,
 	}
@@ -69,9 +69,9 @@ func TestGetEncInfoFromExistingFile(t *testing.T) {
 	_, result := getEncInfoFromExistingFile("testhash")
 	test.IsEqualBool(t, result, true)
 	file := models.File{
-		Id:     "testhash",
-		Name:   "testhash",
-		SHA256: "testhash",
+		Id:   "testhash",
+		Name: "testhash",
+		SHA1: "testhash",
 		Encryption: models.EncryptionInfo{
 			IsEncrypted:   true,
 			DecryptionKey: nil,
@@ -170,7 +170,7 @@ func TestNewFile(t *testing.T) {
 	retrievedFile, ok := database.GetMetaDataById(file.Id)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualString(t, retrievedFile.Name, "test.dat")
-	test.IsEqualString(t, retrievedFile.SHA256, "f1474c19eff0fc8998fa6e1b1f7bf31793b103a6")
+	test.IsEqualString(t, retrievedFile.SHA1, "f1474c19eff0fc8998fa6e1b1f7bf31793b103a6")
 	test.IsEqualString(t, retrievedFile.HotlinkId, "")
 	test.IsEqualString(t, retrievedFile.PasswordHash, "")
 	test.IsEqualString(t, retrievedFile.Size, "35 B")
@@ -218,13 +218,13 @@ func TestNewFile(t *testing.T) {
 	retrievedFile, ok = database.GetMetaDataById(file.Id)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualString(t, retrievedFile.Name, "bigfile")
-	test.IsEqualString(t, retrievedFile.SHA256, "9674344c90c2f0646f0b78026e127c9b86e3ad77")
+	test.IsEqualString(t, retrievedFile.SHA1, "9674344c90c2f0646f0b78026e127c9b86e3ad77")
 	test.IsEqualString(t, retrievedFile.Size, "20.0 MB")
 	_, err = bigFile.Seek(0, io.SeekStart)
 	test.IsNil(t, err)
 	// Testing removal of temp file
 	test.IsEqualString(t, retrievedFile.Name, "bigfile")
-	test.IsEqualString(t, retrievedFile.SHA256, "9674344c90c2f0646f0b78026e127c9b86e3ad77")
+	test.IsEqualString(t, retrievedFile.SHA1, "9674344c90c2f0646f0b78026e127c9b86e3ad77")
 	test.IsEqualString(t, retrievedFile.Size, "20.0 MB")
 	bigFile.Close()
 	os.Remove("bigfile")
@@ -266,7 +266,7 @@ func TestNewFile(t *testing.T) {
 	test.IsNil(t, err)
 	retrievedFile, ok = database.GetMetaDataById(newFile.File.Id)
 	test.IsEqualBool(t, ok, true)
-	test.IsEqualString(t, retrievedFile.SHA256, "5bbfa18805eb12c678cfd284c956718d57039e37")
+	test.IsEqualString(t, retrievedFile.SHA1, "5bbfa18805eb12c678cfd284c956718d57039e37")
 
 	createBigFile("bigfile", 20)
 	header.Size = int64(20) * 1024 * 1024
@@ -276,7 +276,7 @@ func TestNewFile(t *testing.T) {
 	retrievedFile, ok = database.GetMetaDataById(file.Id)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualString(t, retrievedFile.Name, "bigfile")
-	test.IsEqualString(t, retrievedFile.SHA256, "c1c165c30d0def15ba2bc8f1bd243be13b8c8fe7")
+	test.IsEqualString(t, retrievedFile.SHA1, "c1c165c30d0def15ba2bc8f1bd243be13b8c8fe7")
 
 	bigFile.Close()
 	database.DeleteMetaData(retrievedFile.Id)
@@ -313,7 +313,7 @@ func TestNewFile(t *testing.T) {
 		retrievedFile, ok = database.GetMetaDataById(file.Id)
 		test.IsEqualBool(t, ok, true)
 		test.IsEqualString(t, retrievedFile.Name, "bigfile")
-		test.IsEqualString(t, retrievedFile.SHA256, "f1474c19eff0fc8998fa6e1b1f7bf31793b103a6")
+		test.IsEqualString(t, retrievedFile.SHA1, "f1474c19eff0fc8998fa6e1b1f7bf31793b103a6")
 		test.IsEqualString(t, retrievedFile.Size, "20.0 MB")
 		testconfiguration.DisableS3()
 	}
@@ -621,7 +621,7 @@ func TestDeleteFile(t *testing.T) {
 			Id:        "awsTest1234567890123",
 			Name:      "aws Test File",
 			Size:      "20 MB",
-			SHA256:    "x341354656543213246465465465432456898794",
+			SHA1:      "x341354656543213246465465465432456898794",
 			AwsBucket: "gokapi-test",
 		}
 		database.SaveMetaData(awsFile)
