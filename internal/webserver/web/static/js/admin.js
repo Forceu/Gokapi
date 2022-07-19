@@ -7,10 +7,6 @@ Dropzone.options.uploaddropzone = {
     paramName: "file",
     dictDefaultMessage: "Drop files, paste or click here to upload",
     createImageThumbnails: false,
-   // success: function(file, response) {
-   //     addRow(response)
-   //     this.removeFile(file);
-   // },
     chunksUploaded: function(file, done) {
         sendChunkComplete(file, done);
     },
@@ -86,15 +82,27 @@ function sendChunkComplete(file, done) {
         if (this.readyState == 4) {
             if (this.status == 200) {
                 Dropzone.instances[0].removeFile(file);
-        	 addRow(xhr.response);
-		 done();
-            } else {}
+                addRow(xhr.response);
+                done();
+            } else {
+                file.accepted = false;
+                Dropzone.instances[0]._errorProcessing([file], getErrorMessage(xhr.responseText));
+            }
         }
     };
 
 
     xhr.send(urlencodeFormData(formData));
-    file.name="Processing...";
+}
+
+function getErrorMessage(response) {
+    let result;
+    try {
+        result = JSON.parse(response);
+    } catch (e) {
+        return "Unknown error: Server could not process file";
+    }
+    return "Error processing file: " + result.ErrorMessage;
 }
 
 
@@ -127,7 +135,6 @@ function addRow(jsonText) {
     let jsonObject = parseData(jsonText);
     if (jsonObject.Result !== "OK") {
         alert("Failed to upload file!");
-	console.log(jsonObject);
         location.reload();
         return;
     }

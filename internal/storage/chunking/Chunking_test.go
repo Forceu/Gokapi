@@ -135,8 +135,9 @@ func TestParseFileHeader(t *testing.T) {
 	_, r = test.GetRecorder("POST", "/uploadChunk", nil, []test.Header{
 		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
 		strings.NewReader(data.Encode()))
-	_, err = ParseFileHeader(r)
-	test.IsNotNil(t, err)
+	header, err = ParseFileHeader(r)
+	test.IsNil(t, err)
+	test.IsEqualString(t, header.ContentType, "application/octet-stream")
 
 	data.Set("filecontenttype", "test/content")
 	data.Set("filesize", "invalid")

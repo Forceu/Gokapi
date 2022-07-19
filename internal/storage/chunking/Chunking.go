@@ -73,7 +73,7 @@ func ParseFileHeader(r *http.Request) (FileHeader, error) {
 	}
 	contentType := r.Form.Get("filecontenttype")
 	if contentType == "" {
-		return FileHeader{}, errors.New("empty content-type provided")
+		contentType = "application/octet-stream"
 	}
 	size := r.Form.Get("filesize")
 	if size == "" {
