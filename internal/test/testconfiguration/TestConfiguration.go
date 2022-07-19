@@ -323,7 +323,7 @@ var configTestFile = []byte(`{
    "Port":"127.0.0.1:53843",
   "ServerUrl": "http://127.0.0.1:53843/",
   "RedirectUrl": "https://test.com/",
-  "ConfigVersion": 11,
+  "ConfigVersion": 12,
   "LengthId": 20,
   "DataDir": "test/data",
   "MaxMemory": 10,

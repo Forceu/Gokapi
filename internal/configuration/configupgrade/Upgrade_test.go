@@ -1,10 +1,20 @@
 package configupgrade
 
 import (
+	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/test"
+	"github.com/forceu/gokapi/internal/test/testconfiguration"
+	"os"
 	"testing"
 )
+
+func TestMain(m *testing.M) {
+	testconfiguration.Create(false)
+	exitVal := m.Run()
+	testconfiguration.Delete()
+	os.Exit(exitVal)
+}
 
 var oldConfigFile = models.Configuration{
 	Authentication: models.AuthenticationConfig{},
@@ -23,6 +33,7 @@ func TestUpgradeDb(t *testing.T) {
 	test.IsEqualBool(t, upgradeDone, true)
 	test.IsEqualInt(t, exitCode, 1)
 
+	database.Init("./test/filestorage.db")
 	exitCode = 0
 	oldConfigFile.ConfigVersion = 11
 	upgradeDone = DoUpgrade(&oldConfigFile, nil)
