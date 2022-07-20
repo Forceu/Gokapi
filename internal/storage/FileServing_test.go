@@ -159,7 +159,6 @@ func createTestFile() (testFile, error) {
 }
 
 func TestNewFile(t *testing.T) {
-
 	newFile, err := createTestFile()
 	file := newFile.File
 	request := newFile.Request
@@ -317,6 +316,10 @@ func TestNewFile(t *testing.T) {
 		test.IsEqualString(t, retrievedFile.Size, "20.0 MB")
 		testconfiguration.DisableS3()
 	}
+}
+
+func TestNewFileFromChunk(t *testing.T) {
+	// TODO
 }
 
 func TestDuplicateFile(t *testing.T) {

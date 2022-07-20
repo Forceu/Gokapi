@@ -50,7 +50,8 @@ var templateFolderEmbedded embed.FS
 //go:embed web/main.wasm
 var wasmFile embed.FS
 
-const timeOutWebserver = 12 * time.Hour
+const timeOutWebserverRead = 15 * time.Minute
+const timeOutWebserverWrite = 12 * time.Hour
 
 // Variable containing all parsed templates
 var templateFolder *template.Template
@@ -106,8 +107,8 @@ func Start() {
 	fmt.Println("Binding webserver to " + configuration.Get().Port)
 	srv = http.Server{
 		Addr:         configuration.Get().Port,
-		ReadTimeout:  timeOutWebserver,
-		WriteTimeout: timeOutWebserver,
+		ReadTimeout:  timeOutWebserverRead,
+		WriteTimeout: timeOutWebserverWrite,
 		Handler:      mux,
 	}
 	infoMessage := "Webserver can be accessed at " + configuration.Get().ServerUrl + "admin\nPress CTRL+C to stop Gokapi"
