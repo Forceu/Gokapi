@@ -175,6 +175,8 @@ func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, uploadRequ
 					return models.File{}, err
 				}
 				database.SaveMetaData(metaData)
+				err = os.Remove(file.Name())
+				helper.Check(err)
 				return metaData, nil
 			}
 			err = os.Rename(file.Name(), configuration.Get().DataDir+"/"+metaData.SHA1)
