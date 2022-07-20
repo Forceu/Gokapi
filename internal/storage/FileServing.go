@@ -229,6 +229,13 @@ func encryptChunkFile(file *os.File, metadata *models.File) (*os.File, error) {
 	}
 	encInfo := metadata.Encryption
 	err = encryption.Encrypt(&encInfo, file, tempFileEnc)
+	if err != nil {
+		return nil, err
+	}
+	_, err = tempFileEnc.Seek(0, io.SeekStart)
+	if err != nil {
+		return nil, err
+	}
 	metadata.Encryption = encInfo
 	err = file.Close()
 	if err != nil {
