@@ -6,7 +6,9 @@ import (
 	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
 	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/encryption"
+	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/storage/chunking"
 	"github.com/forceu/gokapi/internal/storage/cloudstorage/aws"
 	"github.com/forceu/gokapi/internal/test"
 	"github.com/forceu/gokapi/internal/test/testconfiguration"
@@ -132,9 +134,8 @@ type testFile struct {
 	Content []byte
 }
 
-func createTestFile() (testFile, error) {
+func createRawTestFile(content []byte) (multipart.FileHeader, models.UploadRequest) {
 	os.Setenv("TZ", "UTC")
-	content := []byte("This is a file for testing purposes")
 	mimeHeader := make(textproto.MIMEHeader)
 	mimeHeader.Set("Content-Disposition", "form-data; name=\"file\"; filename=\"test.dat\"")
 	mimeHeader.Set("Content-Type", "text/plain")
@@ -149,6 +150,12 @@ func createTestFile() (testFile, error) {
 		ExpiryTimestamp:  2147483600,
 		MaxMemory:        10,
 	}
+	return header, request
+}
+
+func createTestFile() (testFile, error) {
+	content := []byte("This is a file for testing purposes")
+	header, request := createRawTestFile(content)
 	file, err := NewFile(bytes.NewReader(content), &header, request)
 	return testFile{
 		File:    file,
@@ -156,6 +163,22 @@ func createTestFile() (testFile, error) {
 		Header:  header,
 		Content: content,
 	}, err
+}
+
+func createTestChunk() (string, chunking.FileHeader, models.UploadRequest, error) {
+	content := []byte("This is a file for chunk testing purposes")
+	header, request := createRawTestFile(content)
+	chunkId := helper.GenerateRandomString(15)
+	fileheader := chunking.FileHeader{
+		Filename:    header.Filename,
+		ContentType: header.Header.Get("Content-Type"),
+		Size:        header.Size,
+	}
+	err := ioutil.WriteFile("test/data/chunk-"+chunkId, content, 0600)
+	if err != nil {
+		return "", chunking.FileHeader{}, models.UploadRequest{}, err
+	}
+	return chunkId, fileheader, request, nil
 }
 
 func TestNewFile(t *testing.T) {
@@ -319,7 +342,81 @@ func TestNewFile(t *testing.T) {
 }
 
 func TestNewFileFromChunk(t *testing.T) {
-	// TODO
+	test.FileDoesNotExist(t, "test/data/6cca7a6905774e6d61a77dca3ad7a1f44581d6ab")
+	id, header, request, err := createTestChunk()
+	test.IsNil(t, err)
+	file, err := NewFileFromChunk(id, header, request)
+	test.IsNil(t, err)
+	test.IsEqualString(t, file.Name, "test.dat")
+	test.IsEqualString(t, file.Size, "41 B")
+	test.IsEqualString(t, file.SHA1, "6cca7a6905774e6d61a77dca3ad7a1f44581d6ab")
+	test.IsEqualString(t, file.ExpireAtString, "2038-01-19 03:13")
+	test.IsEqualInt64(t, file.ExpireAt, 2147483600)
+	test.IsEqualInt(t, file.DownloadsRemaining, 1)
+	test.IsEqualInt(t, file.DownloadCount, 0)
+	test.IsEmpty(t, file.PasswordHash)
+	test.IsEmpty(t, file.HotlinkId)
+	test.IsEqualString(t, file.ContentType, "text/plain")
+	test.IsEqualBool(t, file.UnlimitedTime, false)
+	test.IsEqualBool(t, file.UnlimitedDownloads, false)
+	test.FileExists(t, "test/data/6cca7a6905774e6d61a77dca3ad7a1f44581d6ab")
+	test.FileDoesNotExist(t, "test/data/chunk-"+id)
+	retrievedFile, ok := database.GetMetaDataById(file.Id)
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualStruct(t, file, retrievedFile)
+
+	id, header, request, err = createTestChunk()
+	header.Filename = "newfile"
+	request.UnlimitedTime = true
+	request.UnlimitedDownload = true
+	test.IsNil(t, err)
+	file, err = NewFileFromChunk(id, header, request)
+	test.IsNil(t, err)
+	test.IsEqualString(t, file.Name, "newfile")
+	test.IsEqualString(t, file.Size, "41 B")
+	test.IsEqualString(t, file.SHA1, "6cca7a6905774e6d61a77dca3ad7a1f44581d6ab")
+	test.IsEqualString(t, file.ExpireAtString, "2038-01-19 03:13")
+	test.IsEqualInt64(t, file.ExpireAt, 2147483600)
+	test.IsEqualInt(t, file.DownloadsRemaining, 1)
+	test.IsEqualInt(t, file.DownloadCount, 0)
+	test.IsEmpty(t, file.PasswordHash)
+	test.IsEmpty(t, file.HotlinkId)
+	test.IsEqualString(t, file.ContentType, "text/plain")
+	test.IsEqualBool(t, file.UnlimitedTime, true)
+	test.IsEqualBool(t, file.UnlimitedDownloads, true)
+	test.FileExists(t, "test/data/6cca7a6905774e6d61a77dca3ad7a1f44581d6ab")
+	test.FileDoesNotExist(t, "test/data/chunk-"+id)
+	retrievedFile, ok = database.GetMetaDataById(file.Id)
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualStruct(t, file, retrievedFile)
+	err = os.Remove("test/data/6cca7a6905774e6d61a77dca3ad7a1f44581d6ab")
+	test.IsNil(t, err)
+
+	_, err = NewFileFromChunk("invalid", header, request)
+	test.IsNotNil(t, err)
+	id, header, request, err = createTestChunk()
+	test.IsNil(t, err)
+	header.Size = 100000
+	file, err = NewFileFromChunk(id, header, request)
+	test.IsNotNil(t, err)
+
+	if aws.IsIncludedInBuild {
+		testconfiguration.EnableS3()
+		config, ok := cloudconfig.Load()
+		test.IsEqualBool(t, ok, true)
+		ok = aws.Init(config.Aws)
+		test.IsEqualBool(t, ok, true)
+		id, header, request, err = createTestChunk()
+		test.IsNil(t, err)
+		file, err = NewFileFromChunk(id, header, request)
+		test.IsNil(t, err)
+		test.IsEqualBool(t, file.AwsBucket != "", true)
+		test.IsEqualString(t, file.SHA1, "6cca7a6905774e6d61a77dca3ad7a1f44581d6ab")
+		retrievedFile, ok = database.GetMetaDataById(file.Id)
+		test.IsEqualStruct(t, file, retrievedFile)
+		test.IsEqualBool(t, ok, true)
+		testconfiguration.DisableS3()
+	}
 }
 
 func TestDuplicateFile(t *testing.T) {

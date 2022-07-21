@@ -121,12 +121,11 @@ func validateChunkInfo(file *os.File, fileHeader chunking.FileHeader) error {
 }
 
 func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, uploadRequest models.UploadRequest) (models.File, error) {
-
 	file, err := chunking.GetFileByChunkId(chunkId)
-	defer file.Close()
 	if err != nil {
 		return models.File{}, err
 	}
+	defer file.Close()
 	err = validateChunkInfo(file, fileHeader)
 	if err != nil {
 		return models.File{}, err

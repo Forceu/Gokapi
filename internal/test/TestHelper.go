@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -52,6 +53,14 @@ func IsEqualBool(t MockT, got, want bool) {
 	t.Helper()
 	if got != want {
 		t.Errorf("Assertion failed, got: %t, want: %t.", got, want)
+	}
+}
+
+// IsEqualStruct fails test if got and want are not identical
+func IsEqualStruct(t MockT, got, want any) {
+	t.Helper()
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("Assertion failed, got: %+v, want: %+v.", got, want)
 	}
 }
 
