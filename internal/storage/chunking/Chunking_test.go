@@ -34,7 +34,7 @@ func TestParseChunkInfo(t *testing.T) {
 	_, r := test.GetRecorder("POST", "/uploadChunk", nil, []test.Header{
 		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
 		strings.NewReader(data.Encode()))
-	info, err := ParseChunkInfo(r)
+	info, err := ParseChunkInfo(r, false)
 	test.IsNil(t, err)
 	test.IsEqualInt64(t, info.TotalFilesizeBytes, 100000)
 	test.IsEqualInt64(t, info.Offset, 10)
@@ -44,14 +44,14 @@ func TestParseChunkInfo(t *testing.T) {
 	_, r = test.GetRecorder("POST", "/uploadChunk", nil, []test.Header{
 		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
 		strings.NewReader(data.Encode()))
-	_, err = ParseChunkInfo(r)
+	_, err = ParseChunkInfo(r, false)
 	test.IsNotNil(t, err)
 
 	data.Set("dzuuid", "!\"§$%&/()=?abc-")
 	_, r = test.GetRecorder("POST", "/uploadChunk", nil, []test.Header{
 		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
 		strings.NewReader(data.Encode()))
-	info, err = ParseChunkInfo(r)
+	info, err = ParseChunkInfo(r, false)
 	test.IsNil(t, err)
 	test.IsEqualInt64(t, info.TotalFilesizeBytes, 100000)
 	test.IsEqualInt64(t, info.Offset, 10)
@@ -62,7 +62,7 @@ func TestParseChunkInfo(t *testing.T) {
 	_, r = test.GetRecorder("POST", "/uploadChunk", nil, []test.Header{
 		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
 		strings.NewReader(data.Encode()))
-	_, err = ParseChunkInfo(r)
+	_, err = ParseChunkInfo(r, false)
 	test.IsNotNil(t, err)
 
 	data.Set("dzchunkbyteoffset", "-1")
@@ -70,7 +70,7 @@ func TestParseChunkInfo(t *testing.T) {
 	_, r = test.GetRecorder("POST", "/uploadChunk", nil, []test.Header{
 		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
 		strings.NewReader(data.Encode()))
-	_, err = ParseChunkInfo(r)
+	_, err = ParseChunkInfo(r, false)
 	test.IsNotNil(t, err)
 
 	data.Set("dzchunkbyteoffset", "")
@@ -78,7 +78,7 @@ func TestParseChunkInfo(t *testing.T) {
 	_, r = test.GetRecorder("POST", "/uploadChunk", nil, []test.Header{
 		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
 		strings.NewReader(data.Encode()))
-	_, err = ParseChunkInfo(r)
+	_, err = ParseChunkInfo(r, false)
 	test.IsNotNil(t, err)
 
 	data.Set("dzchunkbyteoffset", "0")
@@ -87,7 +87,7 @@ func TestParseChunkInfo(t *testing.T) {
 	_, r = test.GetRecorder("POST", "/uploadChunk", nil, []test.Header{
 		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
 		strings.NewReader(data.Encode()))
-	_, err = ParseChunkInfo(r)
+	_, err = ParseChunkInfo(r, false)
 	test.IsNotNil(t, err)
 
 	data.Set("dztotalfilesize", "-1")
@@ -95,7 +95,7 @@ func TestParseChunkInfo(t *testing.T) {
 	_, r = test.GetRecorder("POST", "/uploadChunk", nil, []test.Header{
 		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
 		strings.NewReader(data.Encode()))
-	_, err = ParseChunkInfo(r)
+	_, err = ParseChunkInfo(r, false)
 	test.IsNotNil(t, err)
 
 	data.Set("dztotalfilesize", "")
@@ -103,14 +103,27 @@ func TestParseChunkInfo(t *testing.T) {
 	_, r = test.GetRecorder("POST", "/uploadChunk", nil, []test.Header{
 		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
 		strings.NewReader(data.Encode()))
-	_, err = ParseChunkInfo(r)
+	_, err = ParseChunkInfo(r, false)
 	test.IsNotNil(t, err)
 
 	_, r = test.GetRecorder("POST", "/uploadChunk", nil, []test.Header{
 		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
 		strings.NewReader("invalid§%&§"))
-	_, err = ParseChunkInfo(r)
+	_, err = ParseChunkInfo(r, false)
 	test.IsNotNil(t, err)
+
+	data = url.Values{}
+	data.Set("filesize", "100000")
+	data.Set("offset", "10")
+	data.Set("uuid", "fweflwfejkfwejf-wekjefwjfwej")
+	_, r = test.GetRecorder("POST", "/uploadChunk", nil, []test.Header{
+		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
+		strings.NewReader(data.Encode()))
+	info, err = ParseChunkInfo(r, true)
+	test.IsNil(t, err)
+	test.IsEqualInt64(t, info.TotalFilesizeBytes, 100000)
+	test.IsEqualInt64(t, info.Offset, 10)
+	test.IsEqualString(t, info.UUID, "fweflwfejkfwejf-wekjefwjfwej")
 }
 
 func TestParseFileHeader(t *testing.T) {
@@ -169,6 +182,16 @@ func TestParseFileHeader(t *testing.T) {
 		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
 		strings.NewReader("invalid§%&§"))
 	_, err = ParseFileHeader(r)
+	test.IsNotNil(t, err)
+
+	data = url.Values{}
+	data.Set("dztotalfilesize", "100000")
+	data.Set("dzchunkbyteoffset", "10")
+	data.Set("dzuuid", "fweflwfejkfwejf-wekjefwjfwej")
+	_, r = test.GetRecorder("POST", "/uploadChunk", nil, []test.Header{
+		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
+		strings.NewReader(data.Encode()))
+	_, err = ParseChunkInfo(r, true)
 	test.IsNotNil(t, err)
 }
 
