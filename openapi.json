@@ -302,9 +302,6 @@
           "Size": {
             "type": "string"
           },
-          "SHA256": {
-            "type": "string"
-          },
           "HotlinkId": {
             "type": "string"
           },
@@ -361,16 +358,19 @@
       "UploadResult": {
         "type": "object",
         "properties": {
+          "Result": {
+            "type": "string"
+          },
           "FileInfo": {
             "$ref": "#/components/schemas/File"
           },
           "HotlinkUrl": {
             "type": "string"
           },
-          "Result": {
+          "Url": {
             "type": "string"
           },
-          "Url": {
+          "GenericHotlinkUrl": {
             "type": "string"
           }
         },
