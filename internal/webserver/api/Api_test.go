@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/models"
@@ -405,6 +406,97 @@ func TestUploadAndDuplication(t *testing.T) {
 	err = json.Unmarshal(response, &resultDuplication)
 	test.IsNil(t, err)
 	test.IsEqualString(t, resultDuplication.Name, "test.test")
+}
+
+func TestChunkUpload(t *testing.T) {
+	err := os.WriteFile("test/tmpupload", []byte("chunktestfile"), 0600)
+	test.IsNil(t, err)
+	body, formcontent := test.FileToMultipartFormBody(t, test.HttpTestConfig{
+		UploadFileName:  "test/tmpupload",
+		UploadFieldName: "file",
+		PostValues: []test.PostBody{{
+			Key:   "filesize",
+			Value: "13",
+		}, {
+			Key:   "offset",
+			Value: "0",
+		}, {
+			Key:   "uuid",
+			Value: "tmpupload123",
+		}},
+	})
+	w, r := test.GetRecorder("POST", "/api/chunk/add", nil, []test.Header{{
+		Name:  "apikey",
+		Value: "validkey",
+	}}, body)
+	r.Header.Add("Content-Type", formcontent)
+	Process(w, r, maxMemory)
+	test.IsEqualInt(t, w.Code, 200)
+	test.ResponseBodyContains(t, w, "OK")
+
+	body, formcontent = test.FileToMultipartFormBody(t, test.HttpTestConfig{
+		UploadFileName:  "test/tmpupload",
+		UploadFieldName: "file",
+		PostValues: []test.PostBody{{
+			Key:   "dztotalfilesize",
+			Value: "13",
+		}, {
+			Key:   "dzchunkbyteoffset",
+			Value: "0",
+		}, {
+			Key:   "dzuuid",
+			Value: "tmpupload123",
+		}},
+	})
+	w, r = test.GetRecorder("POST", "/api/chunk/add", nil, []test.Header{{
+		Name:  "apikey",
+		Value: "validkey",
+	}}, body)
+	r.Header.Add("Content-Type", formcontent)
+	Process(w, r, maxMemory)
+	test.IsEqualInt(t, w.Code, 400)
+	test.ResponseBodyContains(t, w, "error")
+}
+
+func TestChunkComplete(t *testing.T) {
+	data := url.Values{}
+	data.Set("uuid", "tmpupload123")
+	data.Set("filename", "test.upload")
+	data.Set("filesize", "13")
+
+	w, r := test.GetRecorder("POST", "/api/chunk/complete", nil, []test.Header{
+		{Name: "apikey", Value: "validkey"},
+		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
+		strings.NewReader(data.Encode()))
+	Process(w, r, maxMemory)
+	test.IsEqualInt(t, w.Code, 200)
+	result := struct {
+		FileInfo models.FileApiOutput `json:"FileInfo"`
+	}{}
+	response, err := io.ReadAll(w.Result().Body)
+	fmt.Println(string(response))
+	test.IsNil(t, err)
+	err = json.Unmarshal(response, &result)
+	test.IsNil(t, err)
+	test.IsEqualString(t, result.FileInfo.Name, "test.upload")
+
+	data.Set("filesize", "15")
+
+	w, r = test.GetRecorder("POST", "/api/chunk/complete", nil, []test.Header{
+		{Name: "apikey", Value: "validkey"},
+		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
+		strings.NewReader(data.Encode()))
+	Process(w, r, maxMemory)
+	test.IsEqualInt(t, w.Code, 400)
+	test.ResponseBodyContains(t, w, "error")
+
+	w, r = test.GetRecorder("POST", "/api/chunk/complete", nil, []test.Header{
+		{Name: "apikey", Value: "validkey"},
+		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
+		strings.NewReader("invalid&&§$%"))
+	Process(w, r, maxMemory)
+	test.IsEqualInt(t, w.Code, 400)
+	test.ResponseBodyContains(t, w, "error")
 }
 
 func TestList(t *testing.T) {

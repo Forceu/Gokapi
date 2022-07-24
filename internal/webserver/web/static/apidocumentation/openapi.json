@@ -63,7 +63,7 @@
         ],
         "summary": "Uploads a new chunk",
         "description": "Uploads a file in chunks, in case a reverse proxy does not support upload of larger files. Parallel uploading is supported. Must call /chunk/complete after all chunks have been uploaded.",
-        "operationId": "add",
+        "operationId": "chunkadd",
         "requestBody": {
           "content": {
             "multipart/form-data": {
@@ -101,7 +101,7 @@
         ],
         "summary": "Finalises uploaded chunks",
         "description": "Needs to be called after all chunks have been uploaded. Adds the uploaded file to Gokapi.",
-        "operationId": "add",
+        "operationId": "chunkcomplete",
         "requestBody": {
           "content": {
             "application/x-www-form-urlencoded": {

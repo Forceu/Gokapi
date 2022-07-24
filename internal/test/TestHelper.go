@@ -334,6 +334,23 @@ type PostBody struct {
 func HttpPostUploadRequest(t MockT, config HttpTestConfig) {
 	t.Helper()
 	config.init(t)
+	body, formcontent := FileToMultipartFormBody(t, config)
+	request, err := http.NewRequest("POST", config.Url, body)
+	IsNil(t, err)
+	for _, cookie := range config.Cookies {
+		request.Header.Set("Cookie", cookie.toString())
+	}
+	request.Header.Add("Content-Type", formcontent)
+	client := &http.Client{}
+
+	response, err := client.Do(request)
+	IsNil(t, err)
+	defer response.Body.Close()
+
+	checkResponse(t, response, config)
+}
+
+func FileToMultipartFormBody(t MockT, config HttpTestConfig) (*bytes.Buffer, string) {
 	file, err := os.Open(config.UploadFileName)
 	IsNil(t, err)
 	defer file.Close()
@@ -346,23 +363,10 @@ func HttpPostUploadRequest(t MockT, config HttpTestConfig) {
 	part, err := writer.CreateFormFile(config.UploadFieldName, filepath.Base(file.Name()))
 	IsNil(t, err)
 
-	io.Copy(part, file)
-
-	writer.Close()
-	request, err := http.NewRequest("POST", config.Url, body)
+	_, err = io.Copy(part, file)
 	IsNil(t, err)
-
-	for _, cookie := range config.Cookies {
-		request.Header.Set("Cookie", cookie.toString())
-	}
-	request.Header.Add("Content-Type", writer.FormDataContentType())
-	client := &http.Client{}
-
-	response, err := client.Do(request)
-	IsNil(t, err)
-	defer response.Body.Close()
-
-	checkResponse(t, response, config)
+	defer writer.Close()
+	return body, writer.FormDataContentType()
 }
 
 // HttpPostRequest sends a post request
