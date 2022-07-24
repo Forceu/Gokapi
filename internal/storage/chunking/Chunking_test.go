@@ -1,11 +1,15 @@
 package chunking
 
 import (
+	"bytes"
 	"crypto/sha1"
 	"encoding/hex"
 	"github.com/forceu/gokapi/internal/configuration"
+	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/test"
 	"github.com/forceu/gokapi/internal/test/testconfiguration"
+	"github.com/juju/ratelimit"
+	"golang.org/x/sync/errgroup"
 	"mime/multipart"
 	"net/textproto"
 	"net/url"
@@ -246,6 +250,36 @@ func TestNewChunk(t *testing.T) {
 	info.UUID = "../../../../../../../../../../invalid"
 	err = NewChunk(strings.NewReader("More content"), &header, info)
 	test.IsNotNil(t, err)
+
+	// Testing simultaneous writes
+	egroup := new(errgroup.Group)
+	egroup.Go(func() error {
+		return writeRateLimitedChunk(true)
+	})
+	egroup.Go(func() error {
+		return writeRateLimitedChunk(false)
+	})
+	err = egroup.Wait()
+	test.IsNil(t, err)
+}
+
+func writeRateLimitedChunk(firstHalf bool) error {
+	var offset int64
+	if !firstHalf {
+		offset = 500 * 1024
+	}
+	info := ChunkInfo{
+		TotalFilesizeBytes: 1000 * 1024,
+		Offset:             offset,
+		UUID:               "multiplewrites",
+	}
+	header := multipart.FileHeader{
+		Size: 500 * 1024,
+	}
+	content := []byte(helper.GenerateRandomString(500 * 1024))
+	bucket := ratelimit.NewBucketWithRate(400*1024, 400*1024)
+	err := NewChunk(ratelimit.Reader(bytes.NewReader(content), bucket), &header, info)
+	return err
 }
 
 func TestWriteChunk(t *testing.T) {

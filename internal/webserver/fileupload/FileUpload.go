@@ -1,10 +1,8 @@
 package fileupload
 
 import (
-	"errors"
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/database"
-	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
 	"github.com/forceu/gokapi/internal/storage/chunking"
@@ -37,13 +35,13 @@ func Process(w http.ResponseWriter, r *http.Request, isWeb bool, maxMemory int) 
 }
 
 // ProcessChunk processes a file chunk upload request
-func ProcessChunk(w http.ResponseWriter, r *http.Request) error {
+func ProcessChunk(w http.ResponseWriter, r *http.Request, isApiCall bool) error {
 	err := r.ParseMultipartForm(int64(configuration.Get().MaxMemory) * 1024 * 1024)
 	if err != nil {
 		return err
 	}
 	defer r.MultipartForm.RemoveAll()
-	chunkInfo, err := chunking.ParseChunkInfo(r)
+	chunkInfo, err := chunking.ParseChunkInfo(r, isApiCall)
 	if err != nil {
 		return err
 	}
@@ -67,13 +65,6 @@ func CompleteChunk(w http.ResponseWriter, r *http.Request, isWeb bool) error {
 		return err
 	}
 	chunkId := r.Form.Get("chunkid")
-	if chunkId == "" {
-		return errors.New("empty chunk id provided")
-	}
-	if !helper.FileExists(configuration.Get().DataDir + "/chunk-" + chunkId) {
-		time.Sleep(1 * time.Second)
-		return errors.New("chunk file does not exist")
-	}
 	config := parseConfig(r.Form, isWeb)
 	header, err := chunking.ParseFileHeader(r)
 	if err != nil {

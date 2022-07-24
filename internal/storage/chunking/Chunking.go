@@ -23,14 +23,24 @@ type FileHeader struct {
 	Size        int64
 }
 
-func ParseChunkInfo(r *http.Request) (ChunkInfo, error) {
+func ParseChunkInfo(r *http.Request, isApiCall bool) (ChunkInfo, error) {
 	info := ChunkInfo{}
 	err := r.ParseForm()
 	if err != nil {
 		return ChunkInfo{}, err
 	}
 
-	buf := r.Form.Get("dztotalfilesize")
+	formTotalSize := "dztotalfilesize"
+	formOffset := "dzchunkbyteoffset"
+	formUuid := "dzuuid"
+
+	if isApiCall {
+		formTotalSize = "filesize"
+		formOffset = "offset"
+		formUuid = "uuid"
+	}
+
+	buf := r.Form.Get(formTotalSize)
 	info.TotalFilesizeBytes, err = strconv.ParseInt(buf, 10, 64)
 	if err != nil {
 		return ChunkInfo{}, err
@@ -39,7 +49,7 @@ func ParseChunkInfo(r *http.Request) (ChunkInfo, error) {
 		return ChunkInfo{}, errors.New("value cannot be negative")
 	}
 
-	buf = r.Form.Get("dzchunkbyteoffset")
+	buf = r.Form.Get(formOffset)
 	info.Offset, err = strconv.ParseInt(buf, 10, 64)
 	if err != nil {
 		return ChunkInfo{}, err
@@ -48,7 +58,7 @@ func ParseChunkInfo(r *http.Request) (ChunkInfo, error) {
 		return ChunkInfo{}, errors.New("value cannot be negative")
 	}
 
-	info.UUID = r.Form.Get("dzuuid")
+	info.UUID = r.Form.Get(formUuid)
 	if len(info.UUID) < 10 {
 		return ChunkInfo{}, errors.New("invalid uuid submitted, needs to be at least 10 characters long")
 	}

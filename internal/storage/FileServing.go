@@ -121,6 +121,13 @@ func validateChunkInfo(file *os.File, fileHeader chunking.FileHeader) error {
 }
 
 func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, uploadRequest models.UploadRequest) (models.File, error) {
+	if chunkId == "" {
+		return models.File{}, errors.New("empty chunk id provided")
+	}
+	if !helper.FileExists(configuration.Get().DataDir + "/chunk-" + chunkId) {
+		time.Sleep(1 * time.Second)
+		return models.File{}, errors.New("chunk file does not exist")
+	}
 	file, err := chunking.GetFileByChunkId(chunkId)
 	if err != nil {
 		return models.File{}, err

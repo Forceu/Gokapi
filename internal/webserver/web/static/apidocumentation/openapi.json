@@ -56,13 +56,89 @@
         }
       }
     },
+    "/chunk/add": {
+      "post": {
+        "tags": [
+          "files"
+        ],
+        "summary": "Uploads a new chunk",
+        "description": "Uploads a file in chunks, in case a reverse proxy does not support upload of larger files. Parallel uploading is supported. Must call /chunk/complete after all chunks have been uploaded.",
+        "operationId": "add",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/chunking"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Operation successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/chunkUploadResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Invalid API key provided or not logged in as admin"
+          }
+        }
+      }
+    },
+    "/chunk/complete": {
+      "post": {
+        "tags": [
+          "files"
+        ],
+        "summary": "Finalises uploaded chunks",
+        "description": "Needs to be called after all chunks have been uploaded. Adds the uploaded file to Gokapi.",
+        "operationId": "add",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/chunkingcomplete"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Operation successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Invalid API key provided or not logged in as admin"
+          }
+        }
+      }
+    },
     "/files/add": {
       "post": {
         "tags": [
           "files"
         ],
-        "summary": "Adds a new file",
-        "description": "This API call uploads the submitted file to Gokapi",
+        "summary": "Adds a new file without chunking",
+        "description": "Uploads the submitted file to Gokapi. Please note: This method does not use chunking, therefore if you are behind a reverse proxy or have a provider that limits upload filesizes, this might not work for bigger files (e.g. Cloudflare).",
         "operationId": "add",
         "requestBody": {
           "content": {
@@ -272,6 +348,16 @@
         "description": "File is a struct used for saving information about an uploaded file",
         "x-go-package": "Gokapi/internal/models"
       },
+      "chunkUploadResult": {
+        "type": "object",
+        "properties": {
+          "Result": {
+            "type": "string"
+            }
+        },
+        "description": "Result after uploading a chunk",
+        "x-go-package": "Gokapi/internal/models"
+      },
       "UploadResult": {
         "type": "object",
         "properties": {
@@ -344,6 +430,65 @@
           "filename": {
             "type": "string",
             "description": "Sets a new filename. Filename will be unchanged if empty."
+          }
+        }
+    },"chunking": {
+        "required": [
+          "file","uuid","filesize","offset"
+        ],
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string",
+            "description": "The file to be uploaded",
+            "format": "binary"
+          },
+          "uuid": {
+            "type": "string",
+            "description": "A unique ID that has to be the same for all chunks of a single file. Needs to be at least 10 characters long.",
+          },
+          "filesize": {
+            "type": "integer",
+            "description": "The total filesize of the final file in bytes"
+          },
+          "offset": {
+            "type": "integer",
+            "description": "The chunk's offset starting at the beginning of the file"
+          }
+        }
+    },"chunkingcomplete": {
+        "required": [
+          "uuid","filename","filesize"
+        ],
+        "type": "object",
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "description": "The unique ID that was used for the uploaded chunks",
+          },
+          "filename": {
+            "type": "string",
+            "description": "The filename of the uploaded file",
+          },
+          "filesize": {
+            "type": "integer",
+            "description": "The total filesize of the uploaded file in bytes"
+          },
+          "contenttype": {
+            "type": "string",
+            "description": "The MIME content type. If empty, application/octet-stream will be used."
+          },
+          "allowedDownloads": {
+            "type": "integer",
+            "description": "How many downloads are allowed. Last used value from web interface will be used if empty. Unlimited if 0 is passed."
+          },
+          "expiryDays": {
+            "type": "integer",
+            "description": "How many days the file will be stored. Last used value from web interface will be used if empty. Unlimited if 0 is passed."
+          },
+          "password": {
+            "type": "string",
+            "description": "Password for this file to be set. No password will be used if empty"
           }
         }
     }

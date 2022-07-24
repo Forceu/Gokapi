@@ -458,7 +458,7 @@ func (u *UploadView) convertGlobalConfig(isMainView bool) *UploadView {
 // If the user is authenticated, this parses the uploaded chunk and stores it
 func uploadChunk(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	err := fileupload.ProcessChunk(w, r)
+	err := fileupload.ProcessChunk(w, r, false)
 	responseError(w, err)
 }
 
