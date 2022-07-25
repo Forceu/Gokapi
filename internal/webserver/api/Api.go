@@ -92,7 +92,7 @@ func deleteFile(w http.ResponseWriter, request apiRequest) {
 }
 
 func chunkAdd(w http.ResponseWriter, request apiRequest) {
-	err := fileupload.ProcessChunk(w, request.request, true)
+	err := fileupload.ProcessNewChunk(w, request.request, true)
 	if err != nil {
 		sendError(w, http.StatusBadRequest, err.Error())
 	}
@@ -103,7 +103,7 @@ func chunkComplete(w http.ResponseWriter, request apiRequest) {
 		sendError(w, http.StatusBadRequest, err.Error())
 	}
 	request.request.Form.Set("chunkid", request.request.Form.Get("uuid"))
-	err = fileupload.CompleteChunk(w, request.request, false)
+	err = fileupload.CompleteChunk(w, request.request, true)
 	if err != nil {
 		sendError(w, http.StatusBadRequest, err.Error())
 		return

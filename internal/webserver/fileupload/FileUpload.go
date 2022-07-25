@@ -34,8 +34,8 @@ func Process(w http.ResponseWriter, r *http.Request, isWeb bool, maxMemory int) 
 	return nil
 }
 
-// ProcessChunk processes a file chunk upload request
-func ProcessChunk(w http.ResponseWriter, r *http.Request, isApiCall bool) error {
+// ProcessNewChunk processes a file chunk upload request
+func ProcessNewChunk(w http.ResponseWriter, r *http.Request, isApiCall bool) error {
 	err := r.ParseMultipartForm(int64(configuration.Get().MaxMemory) * 1024 * 1024)
 	if err != nil {
 		return err
@@ -59,13 +59,13 @@ func ProcessChunk(w http.ResponseWriter, r *http.Request, isApiCall bool) error 
 	return nil
 }
 
-func CompleteChunk(w http.ResponseWriter, r *http.Request, isWeb bool) error {
+func CompleteChunk(w http.ResponseWriter, r *http.Request, isApiCall bool) error {
 	err := r.ParseForm()
 	if err != nil {
 		return err
 	}
 	chunkId := r.Form.Get("chunkid")
-	config := parseConfig(r.Form, isWeb)
+	config := parseConfig(r.Form, !isApiCall)
 	header, err := chunking.ParseFileHeader(r)
 	if err != nil {
 		return err
