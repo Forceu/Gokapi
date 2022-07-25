@@ -126,6 +126,43 @@ func TestParseChunkInfo(t *testing.T) {
 	test.IsEqualString(t, info.UUID, "fweflwfejkfwejf-wekjefwjfwej")
 }
 
+func TestParseContentType(t *testing.T) {
+	var imageFileExtensions = []string{".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg", ".tiff", ".tif", ".ico"}
+
+	data := url.Values{}
+	data.Set("filename", "test.unknown")
+	data.Set("filecontenttype", "test/unknown")
+	_, r := test.GetRecorder("POST", "/uploadComplete", nil, []test.Header{
+		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
+		strings.NewReader(data.Encode()))
+	err := r.ParseForm()
+	test.IsNil(t, err)
+	contentType := parseContentType(r)
+	test.IsEqualString(t, contentType, "test/unknown")
+
+	data.Set("filecontenttype", "")
+	_, r = test.GetRecorder("POST", "/uploadComplete", nil, []test.Header{
+		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
+		strings.NewReader(data.Encode()))
+	err = r.ParseForm()
+	test.IsNil(t, err)
+	contentType = parseContentType(r)
+	test.IsEqualString(t, contentType, "application/octet-stream")
+
+	for _, imageExt := range imageFileExtensions {
+		data.Set("filename", "test"+imageExt)
+		_, r = test.GetRecorder("POST", "/uploadComplete", nil, []test.Header{
+			{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
+			strings.NewReader(data.Encode()))
+		err = r.ParseForm()
+		test.IsNil(t, err)
+		contentType = parseContentType(r)
+		test.IsNotEqualString(t, contentType, "application/octet-stream")
+		test.IsNotEqualString(t, contentType, "")
+		test.IsEqualBool(t, strings.Contains(contentType, "image/"), true)
+	}
+}
+
 func TestParseFileHeader(t *testing.T) {
 	data := url.Values{}
 	data.Set("filename", "testfile")

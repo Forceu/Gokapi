@@ -8,8 +8,10 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 type ChunkInfo struct {
@@ -81,10 +83,7 @@ func ParseFileHeader(r *http.Request) (FileHeader, error) {
 	if name == "" {
 		return FileHeader{}, errors.New("empty filename provided")
 	}
-	contentType := r.Form.Get("filecontenttype")
-	if contentType == "" {
-		contentType = "application/octet-stream"
-	}
+	contentType := parseContentType(r)
 	size := r.Form.Get("filesize")
 	if size == "" {
 		return FileHeader{}, errors.New("empty size provided")
@@ -101,6 +100,39 @@ func ParseFileHeader(r *http.Request) (FileHeader, error) {
 		Size:        sizeInt,
 		ContentType: contentType,
 	}, nil
+}
+
+func parseContentType(r *http.Request) string {
+	contentType := r.Form.Get("filecontenttype")
+	if contentType != "" {
+		return contentType
+	}
+	fileExt := strings.ToLower(filepath.Ext(r.Form.Get("filename")))
+	switch fileExt {
+	case ".jpeg":
+		fallthrough
+	case ".jpg":
+		contentType = "image/jpeg"
+	case ".png":
+		contentType = "image/png"
+	case ".gif":
+		contentType = "image/gif"
+	case ".webp":
+		contentType = "image/webp"
+	case ".bmp":
+		contentType = "image/bmp"
+	case ".svg":
+		contentType = "image/svg+xml"
+	case ".tiff":
+		fallthrough
+	case ".tif":
+		contentType = "image/tiff"
+	case ".ico":
+		contentType = "image/vnd.microsoft.icon"
+	default:
+		contentType = "application/octet-stream"
+	}
+	return contentType
 }
 
 func ParseMultipartHeader(header *multipart.FileHeader) (FileHeader, error) {

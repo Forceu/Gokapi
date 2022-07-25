@@ -429,7 +429,7 @@ func isEncryptionRequested() bool {
 	}
 }
 
-var imageFileExtensions = []string{".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg"}
+var imageFileExtensions = []string{".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg", ".tiff", ".tif", ".ico"}
 
 // If file is an image, create link for hotlinking
 func addHotlink(file *models.File) {
