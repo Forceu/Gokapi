@@ -9,9 +9,11 @@ require (
 	github.com/caarlos0/env/v6 v6.9.1
 	github.com/jinzhu/copier v0.3.5
 	github.com/johannesboyne/gofakes3 v0.0.0-20210415062230-4b6b67a85d38
+	github.com/juju/ratelimit v1.0.2
 	github.com/secure-io/sio-go v0.3.1
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/oauth2 v0.0.0-20210402161424-2e8d93401602
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 )

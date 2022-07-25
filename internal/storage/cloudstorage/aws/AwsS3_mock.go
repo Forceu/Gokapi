@@ -38,7 +38,7 @@ func Init(config models.AwsConfig) bool {
 		Id:        "awsTest1234567890123",
 		Name:      "aws Test File",
 		Size:      "20 MB",
-		SHA256:    "x341354656543213246465465465432456898794",
+		SHA1:      "x341354656543213246465465465432456898794",
 		AwsBucket: "gokapi-test",
 	})
 	return true
@@ -120,7 +120,7 @@ func Download(writer io.WriterAt, file models.File) (int64, error) {
 
 func isUploaded(file models.File) bool {
 	for _, element := range uploadedFiles {
-		if element.SHA256 == file.SHA256 {
+		if element.SHA1 == file.SHA1 {
 			return true
 		}
 	}
@@ -161,7 +161,7 @@ func DeleteObject(file models.File) (bool, error) {
 	var buffer []models.File
 
 	for _, element := range uploadedFiles {
-		if element.SHA256 != file.SHA256 {
+		if element.SHA1 != file.SHA1 {
 			buffer = append(buffer, element)
 		}
 	}

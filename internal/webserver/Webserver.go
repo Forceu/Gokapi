@@ -50,7 +50,8 @@ var templateFolderEmbedded embed.FS
 //go:embed web/main.wasm
 var wasmFile embed.FS
 
-const timeOutWebserver = 12 * time.Hour
+const timeOutWebserverRead = 15 * time.Minute
+const timeOutWebserverWrite = 12 * time.Hour
 
 // Variable containing all parsed templates
 var templateFolder *template.Template
@@ -93,7 +94,8 @@ func Start() {
 	mux.HandleFunc("/index", showIndex)
 	mux.HandleFunc("/login", showLogin)
 	mux.HandleFunc("/logout", doLogout)
-	mux.HandleFunc("/upload", requireLogin(uploadFile, true))
+	mux.HandleFunc("/uploadChunk", requireLogin(uploadChunk, true))
+	mux.HandleFunc("/uploadComplete", requireLogin(uploadComplete, true))
 	mux.HandleFunc("/error-auth", showErrorAuth)
 	mux.Handle("/main.wasm", gziphandler.GzipHandler(http.HandlerFunc(serveWasm)))
 	if configuration.Get().Authentication.Method == authentication.OAuth2 {
@@ -105,8 +107,8 @@ func Start() {
 	fmt.Println("Binding webserver to " + configuration.Get().Port)
 	srv = http.Server{
 		Addr:         configuration.Get().Port,
-		ReadTimeout:  timeOutWebserver,
-		WriteTimeout: timeOutWebserver,
+		ReadTimeout:  timeOutWebserverRead,
+		WriteTimeout: timeOutWebserverWrite,
 		Handler:      mux,
 	}
 	infoMessage := "Webserver can be accessed at " + configuration.Get().ServerUrl + "admin\nPress CTRL+C to stop Gokapi"
@@ -249,7 +251,9 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 			redirect(w, "admin")
 			return
 		}
-		time.Sleep(3 * time.Second)
+		select {
+		case <-time.After(3 * time.Second):
+		}
 		failedLogin = true
 	}
 	err = templateFolder.ExecuteTemplate(w, "login", LoginView{
@@ -300,7 +304,9 @@ func showDownload(w http.ResponseWriter, r *http.Request) {
 		if configuration.HashPassword(enteredPassword, true) != file.PasswordHash && !isValidPwCookie(r, file) {
 			if enteredPassword != "" {
 				view.IsFailedLogin = true
-				time.Sleep(1 * time.Second)
+				select {
+				case <-time.After(1 * time.Second):
+				}
 			}
 			err := templateFolder.ExecuteTemplate(w, "download_password", view)
 			helper.Check(err)
@@ -348,7 +354,9 @@ func deleteFile(w http.ResponseWriter, r *http.Request) {
 func queryUrl(w http.ResponseWriter, r *http.Request, redirectUrl string) string {
 	keys, ok := r.URL.Query()["id"]
 	if !ok || len(keys[0]) < configuration.Get().LengthId {
-		time.Sleep(500 * time.Millisecond)
+		select {
+		case <-time.After(500 * time.Millisecond):
+		}
 		redirect(w, redirectUrl)
 		return ""
 	}
@@ -446,20 +454,28 @@ func (u *UploadView) convertGlobalConfig(isMainView bool) *UploadView {
 	return u
 }
 
-// Handling of /upload
-// If the user is authenticated, this parses the uploaded file from the Multipart Form and
-// adds it to the system.
-func uploadFile(w http.ResponseWriter, r *http.Request) {
+// Handling of /uploadChunk
+// If the user is authenticated, this parses the uploaded chunk and stores it
+func uploadChunk(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	err := fileupload.Process(w, r, true, configuration.Get().MaxMemory)
+	err := fileupload.ProcessNewChunk(w, r, false)
+	responseError(w, err)
+}
+
+// Handling of /uploadComplete
+// If the user is authenticated, this parses the uploaded chunk and stores it
+func uploadComplete(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	err := fileupload.CompleteChunk(w, r, false)
 	responseError(w, err)
 }
 
 // Outputs an error in json format
 func responseError(w http.ResponseWriter, err error) {
 	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
 		_, _ = io.WriteString(w, "{\"Result\":\"error\",\"ErrorMessage\":\""+err.Error()+"\"}")
-		helper.Check(err)
+		log.Println(err)
 	}
 }
 
@@ -507,14 +523,16 @@ func writeFilePwCookie(w http.ResponseWriter, file models.File) {
 }
 
 // Checks if a cookie contains the correct password hash for a password-protected file
-// If incorrect, a 3 second delay is introduced unless the cookie was empty.
+// If incorrect, a 3-second delay is introduced unless the cookie was empty.
 func isValidPwCookie(r *http.Request, file models.File) bool {
 	cookie, err := r.Cookie("p" + file.Id)
 	if err == nil {
 		if cookie.Value == file.PasswordHash {
 			return true
 		}
-		time.Sleep(3 * time.Second)
+		select {
+		case <-time.After(3 * time.Second):
+		}
 	}
 	return false
 }

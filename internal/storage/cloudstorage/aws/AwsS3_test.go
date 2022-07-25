@@ -17,13 +17,13 @@ var testFile, invalidFile, invalidBucket, invalidAll models.File
 
 func TestMain(m *testing.M) {
 	testFile.AwsBucket = "gokapi-test"
-	testFile.SHA256 = "testfile"
+	testFile.SHA1 = "testfile"
 	invalidFile.AwsBucket = "gokapi-test"
-	invalidFile.SHA256 = "invalid"
+	invalidFile.SHA1 = "invalid"
 	invalidBucket.AwsBucket = "invalid"
-	invalidBucket.SHA256 = "testfile"
+	invalidBucket.SHA1 = "testfile"
 	invalidAll.AwsBucket = "invalid"
-	invalidAll.SHA256 = "invalid"
+	invalidAll.SHA1 = "invalid"
 	if os.Getenv("REAL_AWS_CREDENTIALS") != "true" {
 		ts := startMockServer()
 		os.Setenv("GOKAPI_AWS_ENDPOINT", ts.URL)

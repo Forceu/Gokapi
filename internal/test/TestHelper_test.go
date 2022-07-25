@@ -58,6 +58,8 @@ func TestFunctions(t *testing.T) {
 	mockT.WantNoFail()
 	IsEqualInt(mockT, 1, 1)
 	mockT.WantNoFail()
+	IsEqualInt64(mockT, 2, 2)
+	mockT.WantNoFail()
 	IsNotEmpty(mockT, "notEmpty")
 	mockT.WantNoFail()
 	IsEmpty(mockT, "")
@@ -79,6 +81,8 @@ func TestFunctions(t *testing.T) {
 	IsEqualBool(mockT, true, false)
 	mockT.WantFail()
 	IsEqualInt(mockT, 1, 2)
+	mockT.WantFail()
+	IsEqualInt64(mockT, 4, 9)
 	mockT.WantFail()
 	IsNotEmpty(mockT, "")
 	mockT.WantFail()
@@ -157,12 +161,13 @@ func TestHttpPageResult(t *testing.T) {
 	mockT.Check()
 }
 
-func TestHttpPostRequest(t *testing.T) {
+func TestHttpPostUploadRequest(t *testing.T) {
 	os.WriteFile("testfile", []byte("Testbytes"), 0777)
 	HttpPostUploadRequest(t, HttpTestConfig{
 		Url:             "http://127.0.0.1:9999/test",
 		UploadFileName:  "testfile",
 		UploadFieldName: "file",
+		PostValues:      []PostBody{{Key: "test", Value: "test2"}},
 		RequiredContent: []string{"TestContent", "testName", "testValue"},
 		ExcludedContent: []string{"invalid"},
 		Cookies: []Cookie{{
@@ -187,6 +192,68 @@ func TestHttpPostRequest(t *testing.T) {
 	)
 	mockT.Check()
 	os.Remove("testfile")
+}
+func TestHttpPageResultJson(t *testing.T) {
+	HttpPageResultJson(t, HttpTestConfig{
+		Url:             "http://127.0.0.1:9999/test",
+		UploadFileName:  "testfile",
+		UploadFieldName: "file",
+		PostValues:      []PostBody{{Key: "test", Value: "test2"}},
+		RequiredContent: []string{"TestContent", "testName", "testValue"},
+		ExcludedContent: []string{"invalid"},
+		Cookies: []Cookie{{
+			Name:  "testName",
+			Value: "testValue",
+		}},
+	})
+	mockT := MockTest{reference: t}
+	mockT.WantFail()
+	HttpPageResultJson(mockT, HttpTestConfig{
+		Url:             "http://127.0.0.1:9999/test",
+		UploadFileName:  "testfile",
+		UploadFieldName: "file",
+		Headers:         []Header{{Name: "test", Value: "input"}},
+		ExcludedContent: []string{"TestContent"}},
+	)
+	mockT.WantFail()
+	HttpPageResultJson(mockT, HttpTestConfig{
+		Url:             "http://127.0.0.1:9999/test",
+		UploadFileName:  "testfile",
+		UploadFieldName: "file",
+		RequiredContent: []string{"invalid"}},
+	)
+	mockT.Check()
+}
+func TestHttpPostRequest(t *testing.T) {
+	HttpPostRequest(t, HttpTestConfig{
+		Url:             "http://127.0.0.1:9999/test",
+		UploadFileName:  "testfile",
+		UploadFieldName: "file",
+		PostValues:      []PostBody{{Key: "test", Value: "test2"}},
+		RequiredContent: []string{"TestContent", "testName", "testValue"},
+		ExcludedContent: []string{"invalid"},
+		Cookies: []Cookie{{
+			Name:  "testName",
+			Value: "testValue",
+		}},
+	})
+	mockT := MockTest{reference: t}
+	mockT.WantFail()
+	HttpPostRequest(mockT, HttpTestConfig{
+		Url:             "http://127.0.0.1:9999/test",
+		UploadFileName:  "testfile",
+		UploadFieldName: "file",
+		Headers:         []Header{{Name: "test", Value: "input"}},
+		ExcludedContent: []string{"TestContent"}},
+	)
+	mockT.WantFail()
+	HttpPostRequest(mockT, HttpTestConfig{
+		Url:             "http://127.0.0.1:9999/test",
+		UploadFileName:  "testfile",
+		UploadFieldName: "file",
+		RequiredContent: []string{"invalid"}},
+	)
+	mockT.Check()
 }
 
 func TestResponseBodyContains(t *testing.T) {

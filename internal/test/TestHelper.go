@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -52,6 +53,14 @@ func IsEqualBool(t MockT, got, want bool) {
 	t.Helper()
 	if got != want {
 		t.Errorf("Assertion failed, got: %t, want: %t.", got, want)
+	}
+}
+
+// IsEqualStruct fails test if got and want are not identical
+func IsEqualStruct(t MockT, got, want any) {
+	t.Helper()
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("Assertion failed, got: %+v, want: %+v.", got, want)
 	}
 }
 
@@ -250,7 +259,7 @@ func checkResponse(t MockT, response *http.Response, config HttpTestConfig) {
 	t.Helper()
 	IsEqualBool(t, response != nil, true)
 	if response.StatusCode != config.ResultCode {
-		t.Errorf("Status %d != %d", config.ResultCode, response.StatusCode)
+		t.Errorf("Status Code - Got: %d Want: %d", config.ResultCode, response.StatusCode)
 	}
 
 	content, err := ioutil.ReadAll(response.Body)
@@ -325,23 +334,13 @@ type PostBody struct {
 func HttpPostUploadRequest(t MockT, config HttpTestConfig) {
 	t.Helper()
 	config.init(t)
-	file, err := os.Open(config.UploadFileName)
-	IsNil(t, err)
-	defer file.Close()
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile(config.UploadFieldName, filepath.Base(file.Name()))
-	IsNil(t, err)
-
-	io.Copy(part, file)
-	writer.Close()
+	body, formcontent := FileToMultipartFormBody(t, config)
 	request, err := http.NewRequest("POST", config.Url, body)
 	IsNil(t, err)
-
 	for _, cookie := range config.Cookies {
 		request.Header.Set("Cookie", cookie.toString())
 	}
-	request.Header.Add("Content-Type", writer.FormDataContentType())
+	request.Header.Add("Content-Type", formcontent)
 	client := &http.Client{}
 
 	response, err := client.Do(request)
@@ -349,6 +348,25 @@ func HttpPostUploadRequest(t MockT, config HttpTestConfig) {
 	defer response.Body.Close()
 
 	checkResponse(t, response, config)
+}
+
+func FileToMultipartFormBody(t MockT, config HttpTestConfig) (*bytes.Buffer, string) {
+	file, err := os.Open(config.UploadFileName)
+	IsNil(t, err)
+	defer file.Close()
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	for _, postValue := range config.PostValues {
+		err = writer.WriteField(postValue.Key, postValue.Value)
+		IsNil(t, err)
+	}
+	part, err := writer.CreateFormFile(config.UploadFieldName, filepath.Base(file.Name()))
+	IsNil(t, err)
+
+	_, err = io.Copy(part, file)
+	IsNil(t, err)
+	defer writer.Close()
+	return body, writer.FormDataContentType()
 }
 
 // HttpPostRequest sends a post request
@@ -360,9 +378,21 @@ func HttpPostRequest(t MockT, config HttpTestConfig) []*http.Cookie {
 	for _, dataField := range config.PostValues {
 		data.Add(dataField.Key, dataField.Value)
 	}
-
-	response, err := http.PostForm(config.Url, data)
+	r, err := http.NewRequest("POST", config.Url, strings.NewReader(data.Encode()))
 	IsNil(t, err)
+
+	for _, cookie := range config.Cookies {
+		r.AddCookie(&http.Cookie{
+			Name:  cookie.Name,
+			Value: cookie.Value,
+			Path:  "/",
+		})
+	}
+	r.Header.Set("Content-type", "application/x-www-form-urlencoded")
+	client := &http.Client{}
+	response, err := client.Do(r)
+	IsNil(t, err)
+	defer response.Body.Close()
 
 	checkResponse(t, response, config)
 	return response.Cookies()

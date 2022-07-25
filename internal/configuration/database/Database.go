@@ -69,14 +69,7 @@ func GetAllMetadata() map[string]models.File {
 		panic("Database not loaded!")
 	}
 	result := make(map[string]models.File)
-	var keys []string
-	err := bitcaskDb.Scan([]byte(prefixFile), func(key []byte) error {
-		fileId := strings.Replace(string(key), prefixFile, "", 1)
-		keys = append(keys, fileId)
-		return nil
-	})
-
-	helper.Check(err)
+	keys := GetAllMetaDataIds()
 
 	for _, key := range keys {
 		file, ok := GetMetaDataById(key)
@@ -86,6 +79,20 @@ func GetAllMetadata() map[string]models.File {
 	}
 
 	return result
+}
+
+func GetAllMetaDataIds() []string {
+	if bitcaskDb == nil {
+		panic("Database not loaded!")
+	}
+	var keys []string
+	err := bitcaskDb.Scan([]byte(prefixFile), func(key []byte) error {
+		fileId := strings.Replace(string(key), prefixFile, "", 1)
+		keys = append(keys, fileId)
+		return nil
+	})
+	helper.Check(err)
+	return keys
 }
 
 // GetMetaDataById returns a models.File,true from the ID passed or false if the id is not valid
@@ -317,6 +324,10 @@ func getValue(id string) ([]byte, bool) {
 		return nil, false
 	}
 	panic(err)
+}
+
+func GetRawKey(id string) ([]byte, bool) {
+	return getValue(id)
 }
 
 func expiryToDuration(file models.File) time.Duration {

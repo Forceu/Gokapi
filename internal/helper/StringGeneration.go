@@ -69,5 +69,4 @@ func cleanRandomString(input string) string {
 	reg, err := regexp.Compile("[^a-zA-Z0-9]+")
 	Check(err)
 	return reg.ReplaceAllString(input, "")
-
 }

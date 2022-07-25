@@ -3,7 +3,6 @@
 package testconfiguration
 
 import (
-	"bytes"
 	"fmt"
 	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/helper"
@@ -13,6 +12,7 @@ import (
 	"github.com/johannesboyne/gofakes3/backend/s3mem"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -61,9 +61,9 @@ func Create(initFiles bool) {
 func WriteEncryptedFile() string {
 	name := helper.GenerateRandomString(10)
 	database.SaveMetaData(models.File{
-		Id:     name,
-		Name:   name,
-		SHA256: name,
+		Id:   name,
+		Name: name,
+		SHA1: name,
 		Encryption: models.EncryptionInfo{
 			IsEncrypted: true,
 		},
@@ -71,18 +71,6 @@ func WriteEncryptedFile() string {
 		UnlimitedTime:      true,
 	})
 	return name
-}
-
-// WriteUpgradeConfigFileV0 writes a Gokapi v1.1.0 config file
-func WriteUpgradeConfigFileV0() {
-	os.Mkdir(dataDir, 0777)
-	os.WriteFile(configFile, configUpgradeTestFile, 0777)
-}
-
-// WriteUpgradeConfigFileV8 writes a Gokapi v1.3 config file
-func WriteUpgradeConfigFileV8() {
-	os.Mkdir(dataDir, 0777)
-	os.WriteFile(configFile, configTestFileV8, 0777)
 }
 
 // WriteSslCertificates writes a valid or invalid SSL certificate
@@ -140,7 +128,7 @@ func StartS3TestServer() *httptest.Server {
 	backend := s3mem.New()
 	_ = backend.CreateBucket("gokapi")
 	_ = backend.CreateBucket("gokapi-test")
-	_, _ = backend.PutObject("gokapi-test", "x341354656543213246465465465432456898794", nil, bytes.NewReader([]byte{}), 0)
+	_, _ = backend.PutObject("gokapi-test", "x341354656543213246465465465432456898794", nil, strings.NewReader("content"), 7)
 	faker := gofakes3.New(backend)
 	server := httptest.NewServer(faker.Server())
 	os.Setenv("GOKAPI_AWS_ENDPOINT", server.URL)
@@ -204,7 +192,7 @@ func writeTestFiles() {
 		Id:                 "Wzol7LyY2QVczXynJtVo",
 		Name:               "smallfile2",
 		Size:               "8 B",
-		SHA256:             "e017693e4a04a59d0b0f400fe98177fe7ee13cf7",
+		SHA1:               "e017693e4a04a59d0b0f400fe98177fe7ee13cf7",
 		ExpireAt:           2147483646,
 		ExpireAtString:     "2021-05-04 15:19",
 		DownloadsRemaining: 1,
@@ -214,7 +202,7 @@ func writeTestFiles() {
 		Id:                 "e4TjE7CokWK0giiLNxDL",
 		Name:               "smallfile2",
 		Size:               "8 B",
-		SHA256:             "e017693e4a04a59d0b0f400fe98177fe7ee13cf7",
+		SHA1:               "e017693e4a04a59d0b0f400fe98177fe7ee13cf7",
 		ExpireAt:           2147483645,
 		ExpireAtString:     "2021-05-04 15:19",
 		DownloadsRemaining: 2,
@@ -224,7 +212,7 @@ func writeTestFiles() {
 		Id:                 "wefffewhtrhhtrhtrhtr",
 		Name:               "smallfile3",
 		Size:               "8 B",
-		SHA256:             "e017693e4a04a59d0b0f400fe98177fe7ee13cf7",
+		SHA1:               "e017693e4a04a59d0b0f400fe98177fe7ee13cf7",
 		ExpireAt:           2147483645,
 		ExpireAtString:     "2021-05-04 15:19",
 		DownloadsRemaining: 1,
@@ -234,7 +222,7 @@ func writeTestFiles() {
 		Id:                 "deletedfile123456789",
 		Name:               "DeletedFile",
 		Size:               "8 B",
-		SHA256:             "invalid",
+		SHA1:               "invalid",
 		ExpireAt:           2147483645,
 		ExpireAtString:     "2021-05-04 15:19",
 		DownloadsRemaining: 2,
@@ -244,7 +232,7 @@ func writeTestFiles() {
 		Id:                 "jpLXGJKigM4hjtA6T6sN",
 		Name:               "smallfile",
 		Size:               "7 B",
-		SHA256:             "c4f9375f9834b4e7f0a528cc65c055702bf5f24a",
+		SHA1:               "c4f9375f9834b4e7f0a528cc65c055702bf5f24a",
 		ExpireAt:           2147483646,
 		ExpireAtString:     "2021-05-04 15:18",
 		DownloadsRemaining: 1,
@@ -255,7 +243,7 @@ func writeTestFiles() {
 		Id:                 "jpLXGJKigM4hjtA6T6sN2",
 		Name:               "smallfile",
 		Size:               "7 B",
-		SHA256:             "c4f9375f9834b4e7f0a528cc65c055702bf5f24a",
+		SHA1:               "c4f9375f9834b4e7f0a528cc65c055702bf5f24a",
 		ExpireAt:           2147483646,
 		ExpireAtString:     "2021-05-04 15:18",
 		DownloadsRemaining: 1,
@@ -266,7 +254,7 @@ func writeTestFiles() {
 		Id:                 "n1tSTAGj8zan9KaT4u6p",
 		Name:               "picture.jpg",
 		Size:               "4 B",
-		SHA256:             "a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd0",
+		SHA1:               "a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd0",
 		ExpireAt:           2147483646,
 		ExpireAtString:     "2021-05-04 15:19",
 		DownloadsRemaining: 1,
@@ -277,7 +265,7 @@ func writeTestFiles() {
 		Id:                 "cleanuptest123456789",
 		Name:               "cleanup",
 		Size:               "4 B",
-		SHA256:             "2341354656543213246465465465432456898794",
+		SHA1:               "2341354656543213246465465465432456898794",
 		ExpireAt:           2147483646,
 		ExpireAtString:     "2021-05-04 15:19",
 		DownloadsRemaining: 0,
@@ -287,7 +275,7 @@ func writeTestFiles() {
 		Id:                 "awsTest1234567890123",
 		Name:               "Aws Test File",
 		Size:               "20 MB",
-		SHA256:             "x341354656543213246465465465432456898794",
+		SHA1:               "x341354656543213246465465465432456898794",
 		ExpireAt:           2147483646,
 		ExpireAtString:     "2021-05-04 15:19",
 		DownloadsRemaining: 4,
@@ -298,7 +286,7 @@ func writeTestFiles() {
 		Id:                 "unlimitedDownload",
 		Name:               "unlimitedDownload",
 		Size:               "8 B",
-		SHA256:             "unlimtedtest",
+		SHA1:               "unlimtedtest",
 		ExpireAt:           2147483646,
 		ExpireAtString:     "2021-05-04 15:19",
 		DownloadsRemaining: 0,
@@ -309,7 +297,7 @@ func writeTestFiles() {
 		Id:                 "unlimitedTime",
 		Name:               "unlimitedTime",
 		Size:               "8 B",
-		SHA256:             "unlimtedtest",
+		SHA1:               "unlimtedtest",
 		ExpireAt:           0,
 		ExpireAtString:     "2021-05-04 15:19",
 		DownloadsRemaining: 1,
@@ -335,208 +323,12 @@ var configTestFile = []byte(`{
    "Port":"127.0.0.1:53843",
   "ServerUrl": "http://127.0.0.1:53843/",
   "RedirectUrl": "https://test.com/",
-  "ConfigVersion": 11,
+  "ConfigVersion": 12,
   "LengthId": 20,
   "DataDir": "test/data",
   "MaxMemory": 10,
   "UseSsl": false,
   "MaxFileSizeMB": 25
-}`)
-var configTestFileV8 = []byte(`{
-   "Port":"127.0.0.1:53843",
-   "AdminName":"test",
-   "AdminPassword":"10340aece68aa4fb14507ae45b05506026f276cf",
-   "ServerUrl":"http://127.0.0.1:53843/",
-   "DefaultDownloads":3,
-   "DefaultExpiry":20,
-   "DefaultPassword":"123",
-   "RedirectUrl":"https://test.com/",
-   "Sessions":{
-      "validsession":{
-         "RenewAt":2147483645,
-         "ValidUntil":2147483646
-      },
-      "logoutsession":{
-         "RenewAt":2147483645,
-         "ValidUntil":2147483646
-      },
-      "needsRenewal":{
-         "RenewAt":0,
-         "ValidUntil":2147483646
-      },
-      "expiredsession":{
-         "RenewAt":0,
-         "ValidUntil":0
-      }
-   },
-   "Files":{
-      "Wzol7LyY2QVczXynJtVo":{
-         "Id":"Wzol7LyY2QVczXynJtVo",
-         "Name":"smallfile2",
-         "Size":"8 B",
-         "SHA256":"e017693e4a04a59d0b0f400fe98177fe7ee13cf7",
-         "ExpireAt":2147483646,
-         "ExpireAtString":"2021-05-04 15:19",
-         "DownloadsRemaining":1,
-         "PasswordHash":"",
-         "ContentType":"text/html",
-         "HotlinkId":""
-      },
-      "e4TjE7CokWK0giiLNxDL":{
-         "Id":"e4TjE7CokWK0giiLNxDL",
-         "Name":"smallfile2",
-         "Size":"8 B",
-         "SHA256":"e017693e4a04a59d0b0f400fe98177fe7ee13cf7",
-         "ExpireAt":2147483645,
-         "ExpireAtString":"2021-05-04 15:19",
-         "DownloadsRemaining":2,
-         "PasswordHash":"",
-         "ContentType":"text/html",
-         "HotlinkId":""
-      },
-      "wefffewhtrhhtrhtrhtr":{
-         "Id":"wefffewhtrhhtrhtrhtr",
-         "Name":"smallfile3",
-         "Size":"8 B",
-         "SHA256":"e017693e4a04a59d0b0f400fe98177fe7ee13cf7",
-         "ExpireAt":2147483645,
-         "ExpireAtString":"2021-05-04 15:19",
-         "DownloadsRemaining":1,
-         "PasswordHash":"",
-         "ContentType":"text/html",
-         "HotlinkId":""
-      },
-      "deletedfile123456789":{
-         "Id":"deletedfile123456789",
-         "Name":"DeletedFile",
-         "Size":"8 B",
-         "SHA256":"invalid",
-         "ExpireAt":2147483645,
-         "ExpireAtString":"2021-05-04 15:19",
-         "DownloadsRemaining":2,
-         "PasswordHash":"",
-         "ContentType":"text/html",
-         "HotlinkId":""
-      },
-      "jpLXGJKigM4hjtA6T6sN":{
-         "Id":"jpLXGJKigM4hjtA6T6sN",
-         "Name":"smallfile",
-         "Size":"7 B",
-         "SHA256":"c4f9375f9834b4e7f0a528cc65c055702bf5f24a",
-         "ExpireAt":2147483646,
-         "ExpireAtString":"2021-05-04 15:18",
-         "DownloadsRemaining":1,
-         "ContentType":"text/html",
-         "PasswordHash":"7b30508aa9b233ab4b8a11b2af5816bdb58ca3e7",
-         "HotlinkId":""
-      },
-      "jpLXGJKigM4hjtA6T6sN2":{
-         "Id":"jpLXGJKigM4hjtA6T6sN2",
-         "Name":"smallfile",
-         "Size":"7 B",
-         "SHA256":"c4f9375f9834b4e7f0a528cc65c055702bf5f24a",
-         "ExpireAt":2147483646,
-         "ExpireAtString":"2021-05-04 15:18",
-         "DownloadsRemaining":1,
-         "ContentType":"text/html",
-         "PasswordHash":"7b30508aa9b233ab4b8a11b2af5816bdb58ca3e7",
-         "HotlinkId":""
-      },
-      "n1tSTAGj8zan9KaT4u6p":{
-         "Id":"n1tSTAGj8zan9KaT4u6p",
-         "Name":"picture.jpg",
-         "Size":"4 B",
-         "SHA256":"a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd0",
-         "ExpireAt":2147483646,
-         "ExpireAtString":"2021-05-04 15:19",
-         "DownloadsRemaining":1,
-         "PasswordHash":"",
-         "ContentType":"text/html",
-         "HotlinkId":"PhSs6mFtf8O5YGlLMfNw9rYXx9XRNkzCnJZpQBi7inunv3Z4A.jpg"
-      },
-      "cleanuptest123456789":{
-         "Id":"cleanuptest123456789",
-         "Name":"cleanup",
-         "Size":"4 B",
-         "SHA256":"2341354656543213246465465465432456898794",
-         "ExpireAt":2147483646,
-         "ExpireAtString":"2021-05-04 15:19",
-         "DownloadsRemaining":0,
-         "PasswordHash":"",
-         "ContentType":"text/html",
-         "HotlinkId":""
-      },
-      "awsTest1234567890123":{
-         "Id":"awsTest1234567890123",
-         "Name":"Aws Test File",
-         "Size":"20 MB",
-         "SHA256":"x341354656543213246465465465432456898794",
-         "ExpireAt":2147483646,
-         "ExpireAtString":"2021-05-04 15:19",
-         "DownloadsRemaining":4,
-         "PasswordHash":"",
-         "ContentType":"application/octet-stream",
-         "AwsBucket":"gokapi-test",
-         "HotlinkId":""
-      }
-   },
-   "Hotlinks":{
-      "PhSs6mFtf8O5YGlLMfNw9rYXx9XRNkzCnJZpQBi7inunv3Z4A.jpg":{
-         "Id":"PhSs6mFtf8O5YGlLMfNw9rYXx9XRNkzCnJZpQBi7inunv3Z4A.jpg",
-         "FileId":"n1tSTAGj8zan9KaT4u6p"
-      }
-   },
-   "DownloadStatus":{
-      "69JCbLVxx2KxfvB6FYkrDn3oCU7BWT":{
-         "Id":"69JCbLVxx2KxfvB6FYkrDn3oCU7BWT",
-         "FileId":"cleanuptest123456789",
-         "ExpireAt":2147483646
-      }
-   },
-   "ApiKeys":{
-      "validkey":{
-         "Id":"validkey",
-         "FriendlyName":"First Key",
-         "LastUsed":0,
-         "LastUsedString":""
-      },
-      "GAh1IhXDvYnqfYLazWBqMB9HSFmNPO":{
-         "Id":"GAh1IhXDvYnqfYLazWBqMB9HSFmNPO",
-         "FriendlyName":"Second Key",
-         "LastUsed":1620671580,
-         "LastUsedString":"used"
-      },
-      "jiREglQJW0bOqJakfjdVfe8T1EM8n8":{
-         "Id":"jiREglQJW0bOqJakfjdVfe8T1EM8n8",
-         "FriendlyName":"Unnamed Key",
-         "LastUsed":0,
-         "LastUsedString":""
-      },
-      "okeCMWqhVMZSpt5c1qpCWhKvJJPifb":{
-         "Id":"okeCMWqhVMZSpt5c1qpCWhKvJJPifb",
-         "FriendlyName":"Unnamed Key",
-         "LastUsed":0,
-         "LastUsedString":""
-      }
-   },
-   "ConfigVersion":8,
-   "SaltAdmin":"LW6fW4Pjv8GtdWVLSZD66gYEev6NAaXxOVBw7C",
-   "SaltFiles":"lL5wMTtnVCn5TPbpRaSe4vAQodWW0hgk00WCZE",
-   "LengthId":20,
-   "DataDir":"test/data",
-   "UseSsl":false,
-   "MaxFileSizeMB":25
-}`)
-
-var configUpgradeTestFile = []byte(`{
-   "Port":"127.0.0.1:53844",
-   "AdminName":"admin",
-   "AdminPassword":"7450c2403ab85f0e8d5436818b66b99fdd287ac6",
-   "ServerUrl":"https://gokapi.url/",
-   "DefaultDownloads":1,
-   "DefaultExpiry":14,
-   "DefaultPassword":"123",
-   "RedirectUrl":"https://github.com/Forceu/Gokapi/"
 }`)
 
 var sslCertValid = []byte(`-----BEGIN CERTIFICATE-----

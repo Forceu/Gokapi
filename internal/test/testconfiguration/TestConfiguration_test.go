@@ -23,19 +23,6 @@ func TestDelete(t *testing.T) {
 	test.IsEqualBool(t, helper.FolderExists(dataDir), false)
 }
 
-func TestSetUpgradeConfigFileV0(t *testing.T) {
-	os.Remove(configFile)
-	WriteUpgradeConfigFileV0()
-	test.FileExists(t, configFile)
-	TestDelete(t)
-}
-func TestSetUpgradeConfigFileV8(t *testing.T) {
-	os.Remove(configFile)
-	WriteUpgradeConfigFileV0()
-	test.FileExists(t, configFile)
-	TestDelete(t)
-}
-
 func TestWriteEncryptedFile(t *testing.T) {
 	database.Init("./test/filestorage.db")
 	fileId := WriteEncryptedFile()

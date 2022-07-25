@@ -26,6 +26,10 @@ func Process(w http.ResponseWriter, r *http.Request, maxMemory int) {
 		return
 	}
 	switch request.requestUrl {
+	case "/chunk/add":
+		chunkAdd(w, request)
+	case "/chunk/complete":
+		chunkComplete(w, request)
 	case "/files/list":
 		list(w)
 	case "/files/add":
@@ -62,28 +66,47 @@ func NewKey() string {
 }
 
 func changeFriendlyName(w http.ResponseWriter, request apiRequest) {
-	if !IsValidApiKey(request.apiKeyToModify, false) {
+	if !IsValidApiKey(request.apiInfo.apiKeyToModify, false) {
 		sendError(w, http.StatusBadRequest, "Invalid api key provided.")
 		return
 	}
-	if request.friendlyName == "" {
-		request.friendlyName = "Unnamed key"
+	if request.apiInfo.friendlyName == "" {
+		request.apiInfo.friendlyName = "Unnamed key"
 	}
-	key, ok := database.GetApiKey(request.apiKeyToModify)
+	key, ok := database.GetApiKey(request.apiInfo.apiKeyToModify)
 	if !ok {
 		sendError(w, http.StatusInternalServerError, "Could not modify API key")
 		return
 	}
-	if key.FriendlyName != request.friendlyName {
-		key.FriendlyName = request.friendlyName
+	if key.FriendlyName != request.apiInfo.friendlyName {
+		key.FriendlyName = request.apiInfo.friendlyName
 		database.SaveApiKey(key, false)
 	}
 }
 
 func deleteFile(w http.ResponseWriter, request apiRequest) {
-	ok := storage.DeleteFile(request.fileId, true)
+	ok := storage.DeleteFile(request.fileInfo.id, true)
 	if !ok {
 		sendError(w, http.StatusBadRequest, "Invalid id provided.")
+	}
+}
+
+func chunkAdd(w http.ResponseWriter, request apiRequest) {
+	err := fileupload.ProcessNewChunk(w, request.request, true)
+	if err != nil {
+		sendError(w, http.StatusBadRequest, err.Error())
+	}
+}
+func chunkComplete(w http.ResponseWriter, request apiRequest) {
+	err := request.request.ParseForm()
+	if err != nil {
+		sendError(w, http.StatusBadRequest, err.Error())
+	}
+	request.request.Form.Set("chunkid", request.request.Form.Get("uuid"))
+	err = fileupload.CompleteChunk(w, request.request, true)
+	if err != nil {
+		sendError(w, http.StatusBadRequest, err.Error())
+		return
 	}
 }
 
@@ -111,23 +134,22 @@ func upload(w http.ResponseWriter, request apiRequest, maxMemory int) {
 }
 
 func duplicateFile(w http.ResponseWriter, request apiRequest) {
-
-	err := request.request.ParseForm()
+	err := request.parseForm()
 	if err != nil {
 		sendError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	file, ok := storage.GetFile(request.request.Form.Get("id"))
+	file, ok := storage.GetFile(request.fileInfo.id)
 	if !ok {
 		sendError(w, http.StatusBadRequest, "Invalid id provided.")
 		return
 	}
-	uploadRequest, paramsToChange, filename, err := apiRequestToUploadRequest(request.request)
+	err = request.parseUploadRequest()
 	if err != nil {
 		sendError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	newFile, err := storage.DuplicateFile(file, paramsToChange, filename, uploadRequest)
+	newFile, err := storage.DuplicateFile(file, request.fileInfo.paramsToChange, request.fileInfo.filename, request.fileInfo.uploadRequest)
 	if err != nil {
 		sendError(w, http.StatusBadRequest, err.Error())
 		return
@@ -139,6 +161,73 @@ func duplicateFile(w http.ResponseWriter, request apiRequest) {
 	_, _ = w.Write(result)
 }
 
+func isAuthorisedForApi(w http.ResponseWriter, request apiRequest) bool {
+	if IsValidApiKey(request.apiKey, true) || sessionmanager.IsValidSession(w, request.request) {
+		return true
+	}
+	sendError(w, http.StatusUnauthorized, "Unauthorized")
+	return false
+}
+
+func sendError(w http.ResponseWriter, errorInt int, errorMessage string) {
+	w.WriteHeader(errorInt)
+	_, _ = w.Write([]byte("{\"Result\":\"error\",\"ErrorMessage\":\"" + errorMessage + "\"}"))
+}
+
+type apiRequest struct {
+	apiKey     string
+	requestUrl string
+	request    *http.Request
+	fileInfo   fileInfo
+	apiInfo    apiInfo
+}
+
+func (a *apiRequest) parseUploadRequest() error {
+	uploadRequest, paramsToChange, filename, err := apiRequestToUploadRequest(a.request)
+	if err != nil {
+		return err
+	}
+	a.fileInfo.uploadRequest = uploadRequest
+	a.fileInfo.paramsToChange = paramsToChange
+	a.fileInfo.filename = filename
+	return nil
+}
+
+func (a *apiRequest) parseForm() error {
+	err := a.request.ParseForm()
+	if err != nil {
+		return err
+	}
+	if a.request.Form.Get("id") != "" {
+		a.fileInfo.id = a.request.Form.Get("id")
+	}
+	return nil
+}
+
+type fileInfo struct {
+	id             string               // apiRequest.parseForm() needs to be called first if id is encoded in form
+	uploadRequest  models.UploadRequest // apiRequest.parseUploadRequest() needs to be called first
+	paramsToChange int                  // apiRequest.parseUploadRequest() needs to be called first
+	filename       string               // apiRequest.parseUploadRequest() needs to be called first
+}
+
+type apiInfo struct {
+	friendlyName   string
+	apiKeyToModify string
+}
+
+func parseRequest(r *http.Request) apiRequest {
+	return apiRequest{
+		apiKey:     r.Header.Get("apikey"),
+		requestUrl: strings.Replace(r.URL.String(), "/api", "", 1),
+		request:    r,
+		fileInfo:   fileInfo{id: r.Header.Get("id")},
+		apiInfo: apiInfo{
+			friendlyName:   r.Header.Get("friendlyName"),
+			apiKeyToModify: r.Header.Get("apiKeyToModify")},
+	}
+}
+
 func apiRequestToUploadRequest(request *http.Request) (models.UploadRequest, int, string, error) {
 	paramsToChange := 0
 	allowedDownloads := 0
@@ -147,7 +236,11 @@ func apiRequestToUploadRequest(request *http.Request) (models.UploadRequest, int
 	unlimitedDownloads := false
 	password := ""
 	fileName := ""
-	var err error
+
+	err := request.ParseForm()
+	if err != nil {
+		return models.UploadRequest{}, 0, "", err
+	}
 
 	if request.Form.Get("allowedDownloads") != "" {
 		paramsToChange = paramsToChange | storage.ParamDownloads
@@ -189,39 +282,6 @@ func apiRequestToUploadRequest(request *http.Request) (models.UploadRequest, int
 		Password:          password,
 		ExpiryTimestamp:   time.Now().Add(time.Duration(daysExpiry) * time.Hour * 24).Unix(),
 	}, paramsToChange, fileName, nil
-}
-
-func isAuthorisedForApi(w http.ResponseWriter, request apiRequest) bool {
-	if IsValidApiKey(request.apiKey, true) || sessionmanager.IsValidSession(w, request.request) {
-		return true
-	}
-	sendError(w, http.StatusUnauthorized, "Unauthorized")
-	return false
-}
-
-func sendError(w http.ResponseWriter, errorInt int, errorMessage string) {
-	w.WriteHeader(errorInt)
-	_, _ = w.Write([]byte("{\"Result\":\"error\",\"ErrorMessage\":\"" + errorMessage + "\"}"))
-}
-
-type apiRequest struct {
-	apiKey         string
-	requestUrl     string
-	fileId         string
-	friendlyName   string
-	apiKeyToModify string
-	request        *http.Request
-}
-
-func parseRequest(r *http.Request) apiRequest {
-	return apiRequest{
-		apiKey:         r.Header.Get("apikey"),
-		fileId:         r.Header.Get("id"),
-		friendlyName:   r.Header.Get("friendlyName"),
-		apiKeyToModify: r.Header.Get("apiKeyToModify"),
-		requestUrl:     strings.Replace(r.URL.String(), "/api", "", 1),
-		request:        r,
-	}
 }
 
 // IsValidApiKey checks if the API key provides is valid. If modifyTime is true, it also automatically updates

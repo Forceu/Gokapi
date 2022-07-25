@@ -8,7 +8,6 @@ type UploadRequest struct {
 	Password          string
 	ExternalUrl       string
 	MaxMemory         int
-	DataDir           string
 	UnlimitedDownload bool
 	UnlimitedTime     bool
 }

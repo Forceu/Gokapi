@@ -118,7 +118,7 @@ func LoadFromSetup(config models.Configuration, cloudConfig *cloudconfig.CloudCo
 	Load()
 }
 
-// HashPassword hashes a string with SHA256 the file salt or admin user salt
+// HashPassword hashes a string with SHA1 the file salt or admin user salt
 func HashPassword(password string, useFileSalt bool) string {
 	if useFileSalt {
 		return HashPasswordCustomSalt(password, serverSettings.Authentication.SaltFiles)
@@ -126,7 +126,7 @@ func HashPassword(password string, useFileSalt bool) string {
 	return HashPasswordCustomSalt(password, serverSettings.Authentication.SaltAdmin)
 }
 
-// HashPasswordCustomSalt hashes a password with SHA256 and the provided salt
+// HashPasswordCustomSalt hashes a password with SHA1 and the provided salt
 func HashPasswordCustomSalt(password, salt string) string {
 	if password == "" {
 		return ""
