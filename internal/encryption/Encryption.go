@@ -128,14 +128,14 @@ func storeMasterKey(cipherKey []byte) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	encryptedKey, err = encryptDecryptText(cipherKey, ramCipher, make([]byte, nonceSize), true)
+	encryptedKey, err = EncryptDecryptText(cipherKey, ramCipher, make([]byte, nonceSize), true)
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
 func getMasterCipher() []byte {
-	key, err := encryptDecryptText(encryptedKey, ramCipher, make([]byte, nonceSize), false)
+	key, err := EncryptDecryptText(encryptedKey, ramCipher, make([]byte, nonceSize), false)
 	if err != nil {
 		key = []byte{}
 		log.Fatal(err)
@@ -252,13 +252,13 @@ func getStream(cipherKey []byte) *sio.Stream {
 }
 
 func fileCipherEncrypt(input, nonce []byte) ([]byte, error) {
-	return encryptDecryptText(input, getMasterCipher(), nonce, true)
+	return EncryptDecryptText(input, getMasterCipher(), nonce, true)
 }
 func fileCipherDecrypt(input, nonce []byte) ([]byte, error) {
-	return encryptDecryptText(input, getMasterCipher(), nonce, false)
+	return EncryptDecryptText(input, getMasterCipher(), nonce, false)
 }
 
-func encryptDecryptText(input, cipherBlock, nonce []byte, doEncrypt bool) ([]byte, error) {
+func EncryptDecryptText(input, cipherBlock, nonce []byte, doEncrypt bool) ([]byte, error) {
 	block, err := aes.NewCipher(cipherBlock)
 	if err != nil {
 		return []byte{}, err

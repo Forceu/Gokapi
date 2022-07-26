@@ -18,6 +18,7 @@ const prefixFile = "file:id:"
 const prefixHotlink = "hotlink:id:"
 const prefixSessions = "session:id:"
 const idLastUploadConfig = "default:lastupload"
+const idEnd2EndInfo = "e2e:info"
 
 const maxKeySize = 96
 
@@ -286,6 +287,34 @@ func SaveUploadDefaults(values models.LastUploadValues) {
 	helper.Check(err)
 	err = bitcaskDb.Put([]byte(idLastUploadConfig), buf.Bytes())
 	helper.Check(err)
+}
+
+// ## End2End Encryption ##
+
+// SaveEnd2EndInfo stores the encrypted e2e info
+func SaveEnd2EndInfo(info models.E2EInfoEncrypted) {
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+	err := enc.Encode(info)
+	helper.Check(err)
+	err = bitcaskDb.Put([]byte(idEnd2EndInfo), buf.Bytes())
+	helper.Check(err)
+	err = bitcaskDb.Sync()
+	helper.Check(err)
+}
+
+// GetEnd2EndInfo retrieves the encrypted e2e info or false if none stored yet
+func GetEnd2EndInfo() models.E2EInfoEncrypted {
+	result := models.E2EInfoEncrypted{}
+	value, ok := getValue(idEnd2EndInfo)
+	if !ok {
+		return result
+	}
+	buf := bytes.NewBuffer(value)
+	dec := gob.NewDecoder(buf)
+	err := dec.Decode(&result)
+	helper.Check(err)
+	return result
 }
 
 // RunGarbageCollection runs the databases GC

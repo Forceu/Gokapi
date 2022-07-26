@@ -47,9 +47,10 @@ type FileApiOutput struct {
 
 // EncryptionInfo holds information about the encryption used on the file
 type EncryptionInfo struct {
-	IsEncrypted   bool   `json:"IsEncrypted"`
-	DecryptionKey []byte `json:"DecryptionKey"`
-	Nonce         []byte `json:"Nonce"`
+	IsEncrypted         bool   `json:"IsEncrypted"`
+	IsEndToEndEncrypted bool   `json:"IsEndToEndEncrypted"`
+	DecryptionKey       []byte `json:"DecryptionKey"`
+	Nonce               []byte `json:"Nonce"`
 }
 
 func (f *File) IsLocalStorage() bool {

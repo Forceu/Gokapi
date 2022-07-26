@@ -8,6 +8,8 @@ import (
 	"context"
 	"embed"
 	"encoding/base64"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/NYTimes/gziphandler"
 	"github.com/forceu/gokapi/internal/configuration"
@@ -88,6 +90,7 @@ func Start() {
 	mux.HandleFunc("/d", showDownload)
 	mux.HandleFunc("/delete", requireLogin(deleteFile, false))
 	mux.HandleFunc("/downloadFile", downloadFile)
+	mux.HandleFunc("/e2eInfo", requireLogin(e2eInfo, true))
 	mux.HandleFunc("/error", showError)
 	mux.HandleFunc("/forgotpw", forgotPassword)
 	mux.HandleFunc("/hotlink/", showHotlink)
@@ -336,6 +339,52 @@ func showHotlink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	storage.ServeFile(file, w, r, false)
+}
+
+// Handling of /e2eInfo
+// User needs to be admin. Receives or stores end2end encryption info
+func e2eInfo(w http.ResponseWriter, r *http.Request) {
+	action, ok := r.URL.Query()["action"]
+	if !ok || len(action) < 1 {
+		responseError(w, errors.New("invalid action specified"))
+		return
+	}
+	switch action[0] {
+	case "get":
+		getE2eInfo(w)
+	case "store":
+		storeE2eInfo(w, r)
+	default:
+		responseError(w, errors.New("invalid action specified"))
+	}
+}
+
+func storeE2eInfo(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		responseError(w, err)
+		return
+	}
+	uploadedInfo := r.Form.Get("info")
+	if uploadedInfo == "" {
+		responseError(w, errors.New("empty info sent"))
+		return
+	}
+	var info models.E2EInfoEncrypted
+	err = json.Unmarshal([]byte(uploadedInfo), &info)
+	if err != nil {
+		responseError(w, err)
+		return
+	}
+	database.SaveEnd2EndInfo(info)
+	_, _ = w.Write([]byte("\"result\":\"OK\""))
+}
+
+func getE2eInfo(w http.ResponseWriter) {
+	info := database.GetEnd2EndInfo()
+	bytes, err := json.Marshal(info)
+	helper.Check(err)
+	_, _ = w.Write(bytes)
 }
 
 // Handling of /delete
