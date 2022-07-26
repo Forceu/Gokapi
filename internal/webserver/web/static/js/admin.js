@@ -91,7 +91,6 @@ function sendChunkComplete(file, done) {
         }
     };
 
-
     xhr.send(urlencodeFormData(formData));
 }
 
