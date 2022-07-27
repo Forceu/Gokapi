@@ -303,7 +303,7 @@ func SaveEnd2EndInfo(info models.E2EInfoEncrypted) {
 	helper.Check(err)
 }
 
-// GetEnd2EndInfo retrieves the encrypted e2e info or false if none stored yet
+// GetEnd2EndInfo retrieves the encrypted e2e info
 func GetEnd2EndInfo() models.E2EInfoEncrypted {
 	result := models.E2EInfoEncrypted{}
 	value, ok := getValue(idEnd2EndInfo)

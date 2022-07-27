@@ -56,6 +56,9 @@
 						WebAssembly.instantiate(bytes, go.importObject).then(function (obj) {
 							wasm = obj.instance;
 							go.run(wasm);
+							document.getElementById("wasmspinner").style.display = "none";
+							document.getElementById("downloadbutton").disabled = false;
+							document.getElementById("downloadbutton").innerHTML = "Download";
 						})
 					)
 				}

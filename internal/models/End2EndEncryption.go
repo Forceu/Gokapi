@@ -9,6 +9,10 @@ type E2EInfoEncrypted struct {
 	Content []byte `json:"content"`
 }
 
+func (e *E2EInfoEncrypted) HasBeenSetUp() bool {
+	return e.Version != 0 && len(e.Content) != 0
+}
+
 type E2EFile struct {
 	Id       string `json:"id"`
 	Filename string `json:"filename"`

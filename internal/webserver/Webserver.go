@@ -50,7 +50,12 @@ var templateFolderEmbedded embed.FS
 // wasmFile is the compiled binary of the wasm downloader
 // Will be generated with go generate ./...
 //go:embed web/main.wasm
-var wasmFile embed.FS
+var wasmDownloadFile embed.FS
+
+// wasmFile is the compiled binary of the wasm downloader
+// Will be generated with go generate ./...
+//go:embed web/e2e.wasm
+var wasmE2EFile embed.FS
 
 const timeOutWebserverRead = 15 * time.Minute
 const timeOutWebserverWrite = 12 * time.Hour
@@ -91,6 +96,7 @@ func Start() {
 	mux.HandleFunc("/delete", requireLogin(deleteFile, false))
 	mux.HandleFunc("/downloadFile", downloadFile)
 	mux.HandleFunc("/e2eInfo", requireLogin(e2eInfo, true))
+	mux.HandleFunc("/e2eSetup", requireLogin(showE2ESetup, false))
 	mux.HandleFunc("/error", showError)
 	mux.HandleFunc("/forgotpw", forgotPassword)
 	mux.HandleFunc("/hotlink/", showHotlink)
@@ -100,7 +106,8 @@ func Start() {
 	mux.HandleFunc("/uploadChunk", requireLogin(uploadChunk, true))
 	mux.HandleFunc("/uploadComplete", requireLogin(uploadComplete, true))
 	mux.HandleFunc("/error-auth", showErrorAuth)
-	mux.Handle("/main.wasm", gziphandler.GzipHandler(http.HandlerFunc(serveWasm)))
+	mux.Handle("/main.wasm", gziphandler.GzipHandler(http.HandlerFunc(serveDownloadWasm)))
+	mux.Handle("/e2e.wasm", gziphandler.GzipHandler(http.HandlerFunc(serveE2EWasm)))
 	if configuration.Get().Authentication.Method == authentication.OAuth2 {
 		oauth.Init(configuration.Get().ServerUrl, configuration.Get().Authentication)
 		mux.HandleFunc("/oauth-login", oauth.HandlerLogin)
@@ -167,10 +174,19 @@ func redirect(w http.ResponseWriter, url string) {
 }
 
 // Handling of /main.wasm
-func serveWasm(w http.ResponseWriter, r *http.Request) {
+func serveDownloadWasm(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Cache-Control", "public, max-age=100800") // 2 days
 	w.Header().Set("content-type", "application/wasm")
-	file, err := wasmFile.ReadFile("web/main.wasm")
+	file, err := wasmDownloadFile.ReadFile("web/main.wasm")
+	helper.Check(err)
+	w.Write(file)
+}
+
+// Handling of /main.wasm
+func serveE2EWasm(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Cache-Control", "public, max-age=100800") // 2 days
+	w.Header().Set("content-type", "application/wasm")
+	file, err := wasmE2EFile.ReadFile("web/e2e.wasm")
 	helper.Check(err)
 	w.Write(file)
 }
@@ -420,7 +436,24 @@ func queryUrl(w http.ResponseWriter, r *http.Request, redirectUrl string) string
 // Handling of /admin
 // If user is authenticated, this menu lists all uploads and enables uploading new files
 func showAdminMenu(w http.ResponseWriter, r *http.Request) {
+	if configuration.Get().Encryption.Level == encryption.EndToEndEncryption {
+		e2einfo := database.GetEnd2EndInfo()
+		if !e2einfo.HasBeenSetUp() {
+			redirect(w, "e2eSetup")
+			return
+		}
+	}
 	err := templateFolder.ExecuteTemplate(w, "admin", (&UploadView{}).convertGlobalConfig(true))
+	helper.Check(err)
+}
+
+func showE2ESetup(w http.ResponseWriter, r *http.Request) {
+	if configuration.Get().Encryption.Level != encryption.EndToEndEncryption {
+		// redirect(w, "admin")
+		// return
+	}
+	e2einfo := database.GetEnd2EndInfo()
+	err := templateFolder.ExecuteTemplate(w, "e2esetup", e2ESetupView{HasBeenSetup: e2einfo.HasBeenSetUp()})
 	helper.Check(err)
 }
 
@@ -434,6 +467,11 @@ type DownloadView struct {
 	ClientSideDecryption bool
 	UsesHttps            bool
 	Cipher               string
+}
+
+type e2ESetupView struct {
+	IsAdminView  bool
+	HasBeenSetup bool
 }
 
 // UploadView contains parameters for the admin menu template

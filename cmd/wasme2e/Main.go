@@ -1,6 +1,6 @@
 //go:build js && wasm
 
-package wasme2e
+package main
 
 import (
 	"bytes"
@@ -24,7 +24,8 @@ func main() {
 	js.Global().Set("GokapiE2EInfoEncrypt", js.FuncOf(InfoEncrypt))
 	js.Global().Set("GokapiE2EGetById", js.FuncOf(GetById))
 	js.Global().Set("GokapiE2EAddFile", js.FuncOf(AddFile))
-	js.Global().Set("GokapiE2EGetCipher", js.FuncOf(GetCipher))
+	js.Global().Set("GokapiE2EGetNewCipher", js.FuncOf(GetNewCipher))
+	js.Global().Set("GokapiE2ESetCipher", js.FuncOf(SetCipher))
 	println("WASM end-to-end encryption module loaded")
 	// Prevent the function from returning, which is required in a wasm module
 	select {}
@@ -102,12 +103,29 @@ func AddFile(this js.Value, args []js.Value) interface{} {
 	return nil
 }
 
-func GetCipher(this js.Value, args []js.Value) interface{} {
+func GetNewCipher(this js.Value, args []js.Value) interface{} {
 	cipher, err := encryption.GetRandomCipher()
 	if err != nil {
 		return jsError(err.Error())
 	}
+	setAsMaster := args[0].Bool()
+	if setAsMaster {
+		key = cipher
+	}
 	return base64.StdEncoding.EncodeToString(cipher)
+}
+
+func SetCipher(this js.Value, args []js.Value) interface{} {
+	cipher := args[0].String()
+	rawKey, err := base64.StdEncoding.DecodeString(cipher)
+	if err != nil {
+		return jsError(err.Error())
+	}
+	if len(rawKey) != 32 {
+		return jsError("Invalid cipher length")
+	}
+	key = rawKey
+	return nil
 }
 
 func InfoEncrypt(this js.Value, args []js.Value) interface{} {

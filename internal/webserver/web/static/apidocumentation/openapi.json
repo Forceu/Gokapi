@@ -62,7 +62,7 @@
           "files"
         ],
         "summary": "Uploads a new chunk",
-        "description": "Uploads a file in chunks, in case a reverse proxy does not support upload of larger files. Parallel uploading is supported. Must call /chunk/complete after all chunks have been uploaded.",
+        "description": "Uploads a file in chunks, in case a reverse proxy does not support upload of larger files. Parallel uploading is supported. Must call /chunk/complete after all chunks have been uploaded. WARNING: Does not support end-to-end encryption! If server is setup to utilise end-to-end encryption, file will be stored in plain-text!",
         "operationId": "chunkadd",
         "requestBody": {
           "content": {
@@ -138,7 +138,7 @@
           "files"
         ],
         "summary": "Adds a new file without chunking",
-        "description": "Uploads the submitted file to Gokapi. Please note: This method does not use chunking, therefore if you are behind a reverse proxy or have a provider that limits upload filesizes, this might not work for bigger files (e.g. Cloudflare).",
+        "description": "Uploads the submitted file to Gokapi. Please note: This method does not use chunking, therefore if you are behind a reverse proxy or have a provider that limits upload filesizes, this might not work for bigger files (e.g. Cloudflare). WARNING: Does not support end-to-end encryption! If server is setup to utilise end-to-end encryption, file will be stored in plain-text!",
         "operationId": "add",
         "requestBody": {
           "content": {

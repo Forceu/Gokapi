@@ -1,0 +1,90 @@
+{{define "e2esetup"}}
+{{template "header" .}}
+
+ 
+	<script src="./js/end2end.js?v=1"></script>
+       <script src="./js/wasm_exec.js"></script>
+	<script>
+		document.title = "Gokapi - E2E Setup";
+	</script>
+	
+{{ if not .HasBeenSetup }}	
+      <div class="row">
+        <div class="col">
+		<div class="card" style="width: 50%;">
+		  <div class="card-body">
+		    <h2 class="card-title">End-to-End Encryption Setup</h2>
+		    <br><br>
+		    <p class="card-text">Your password for decryption is:<br>
+<b><kbd id="decryptionpw">Generating.......</kbd></b></p>
+		    <b>Save this password to a secure location, without it you will not be able to decrypt/share your files if your browser data gets deleted or you login from a different machine! This password will only be shown once.</b>
+		    <br><br>If you need to reset the password, run the Gokapi setup again.
+		    <br><br><button type="button" id="genbutton" class="btn btn-light" disabled onclick="window.location='./admin';">Continue</button>
+		    </div>
+		  </div>
+		</div>
+	    </div>
+	    
+    
+    <script>
+	function newKey() {
+	    localStorage.clear();
+	    let key;
+	    try {
+		key = GokapiE2EGetNewCipher(true);
+		document.getElementById("decryptionpw").innerText = key;
+		let data = GokapiE2EInfoEncrypt();
+		storeE2EInfo(data);
+	    } catch (err) {
+		console.log(err);
+		return;
+
+	    }
+	    localStorage.setItem("e2ekey", key);
+	    document.getElementById("genbutton").disabled = false;
+	}
+	loadWasm(newKey);
+    </script>
+    
+{{ else }}	    
+      <div class="row">
+        <div class="col">
+		<div class="card" style="width: 50%;">
+		  <div class="card-body">
+		    <h2 class="card-title">End-to-End Encryption Setup</h2>
+		    <br><br>
+		    <p class="card-text">End-to-end encryption has been set up, however no key was found on the local machine. Please enter the password in the text field below. If you do not know the decryption password, please re-run the Gokapi setup to reset the password.</p>
+		      <div class="mb-3"><br>
+    <input type="password" class="form-control" id="password" name="password">
+		    <br><br><button type="button"  id="enterpwbutton" class="btn btn-light"  onclick="saveKey()" >Save</button>
+  			</div>
+		  </div>
+		</div>
+	    </div>
+    </div>
+    
+    
+    <script>
+	function saveKey() {
+	    localStorage.clear();
+	    let key = document.getElementById("password").value;
+	    localStorage.setItem("e2ekey", key);
+
+	    try {
+		let output = GokapiE2ESetCipher(key);
+		console.log(output);
+	    } catch (err) {
+		console.log(err);
+		return;
+
+	    }
+	    window.location = './admin';
+
+	}
+	loadWasm(function() {
+	    document.getElementById("enterpwbutton").disabled = false;
+	});
+    </script>
+{{ end }}
+{{template "footer"}}    
+{{end}}
