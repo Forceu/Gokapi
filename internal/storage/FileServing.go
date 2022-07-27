@@ -32,11 +32,12 @@ import (
 	"time"
 )
 
+// ErrorFileTooLarge is an error that is called when a file larger than the set maximum is uploaded
 var ErrorFileTooLarge = errors.New("upload limit exceeded")
 
 // NewFile creates a new file in the system. Called after an upload from the API has been completed. If a file with the same sha1 hash
 // already exists, it is deduplicated. This function gathers information about the file, creates an ID and saves
-// it into the global configuration.
+// it into the global configuration. It is now only used by the API, the web UI uses NewFileFromChunk
 func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequest models.UploadRequest) (models.File, error) {
 	if fileHeader.Size > int64(configuration.Get().MaxFileSizeMB)*1024*1024 {
 		return models.File{}, ErrorFileTooLarge
@@ -120,6 +121,9 @@ func validateChunkInfo(file *os.File, fileHeader chunking.FileHeader) error {
 	return nil
 }
 
+// NewFileFromChunk creates a new file in the system after a chunk upload has fully completed. If a file with the same sha1 hash
+// already exists, it is deduplicated. This function gathers information about the file, creates an ID and saves
+// it into the global configuration.
 func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, uploadRequest models.UploadRequest) (models.File, error) {
 	if chunkId == "" {
 		return models.File{}, errors.New("empty chunk id provided")
@@ -305,9 +309,13 @@ func deleteTempFile(file *os.File, hasBeenRenamed *bool) {
 }
 
 const (
+	// ParamExpiry is a bit to indicate that the time remaining shall be changed after a duplication
 	ParamExpiry int = 1 << iota
+	// ParamDownloads is a bit to indicate that the downloads remaining shall be changed after a duplication
 	ParamDownloads
+	// ParamPassword is a bit to indicate that the password shall be changed after a duplication
 	ParamPassword
+	// ParamName is a bit to indicate that the filename shall be changed after a duplication
 	ParamName
 )
 

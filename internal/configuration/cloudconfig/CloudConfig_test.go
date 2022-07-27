@@ -19,14 +19,14 @@ func TestLoad(t *testing.T) {
 	os.Unsetenv("GOKAPI_AWS_REGION")
 	os.Unsetenv("GOKAPI_AWS_KEY")
 	os.Unsetenv("GOKAPI_AWS_KEY_SECRET")
-	config, ok := Load()
+	_, ok := Load()
 	test.IsEqualBool(t, ok, false)
 	testconfiguration.WriteCloudConfigFile(true)
 	os.Setenv("GOKAPI_AWS_BUCKET", "test")
 	os.Setenv("GOKAPI_AWS_REGION", "test")
 	os.Setenv("GOKAPI_AWS_KEY", "test")
 	os.Setenv("GOKAPI_AWS_KEY_SECRET", "test")
-	config, ok = Load()
+	config, ok := Load()
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, config.Aws == models.AwsConfig{
 		Bucket:    "test",

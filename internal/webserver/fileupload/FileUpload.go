@@ -59,6 +59,7 @@ func ProcessNewChunk(w http.ResponseWriter, r *http.Request, isApiCall bool) err
 	return nil
 }
 
+// CompleteChunk processes a file after all the chunks have been completed
 func CompleteChunk(w http.ResponseWriter, r *http.Request, isApiCall bool) error {
 	err := r.ParseForm()
 	if err != nil {
