@@ -365,13 +365,18 @@ func storeE2eInfo(w http.ResponseWriter, r *http.Request) {
 		responseError(w, err)
 		return
 	}
-	uploadedInfo := r.Form.Get("info")
-	if uploadedInfo == "" {
+	uploadedInfoBase64 := r.Form.Get("info")
+	if uploadedInfoBase64 == "" {
 		responseError(w, errors.New("empty info sent"))
 		return
 	}
+	uploadedInfo, err := base64.StdEncoding.DecodeString(uploadedInfoBase64)
+	if err != nil {
+		responseError(w, err)
+		return
+	}
 	var info models.E2EInfoEncrypted
-	err = json.Unmarshal([]byte(uploadedInfo), &info)
+	err = json.Unmarshal(uploadedInfo, &info)
 	if err != nil {
 		responseError(w, err)
 		return

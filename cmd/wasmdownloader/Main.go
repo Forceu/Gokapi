@@ -18,7 +18,7 @@ import (
 func main() {
 	js.Global().Set("GokapiEncrypt", js.FuncOf(Encrypt))
 	js.Global().Set("GokapiDecrypt", js.FuncOf(Decrypt))
-	println("WASM module loaded")
+	println("WASM Downloader module loaded")
 	// Prevent the function from returning, which is required in a wasm module
 	select {}
 }

@@ -8,13 +8,19 @@ import (
 	"github.com/forceu/gokapi/internal/models"
 )
 
-func EncryptData(files []models.E2EFile, key, nonce []byte) (models.E2EInfoEncrypted, error) {
+const e2eVersion = 1
+
+func EncryptData(files []models.E2EFile, key []byte) (models.E2EInfoEncrypted, error) {
+	nonce, err := encryption.GetRandomNonce()
+	if err != nil {
+		return models.E2EInfoEncrypted{}, err
+	}
 	result := models.E2EInfoEncrypted{
 		Nonce: nonce,
 	}
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
-	err := enc.Encode(files)
+	err = enc.Encode(files)
 	helper.Check(err)
 
 	encryptedResult, err := encryption.EncryptDecryptText(buf.Bytes(), key, nonce, true)
@@ -22,6 +28,7 @@ func EncryptData(files []models.E2EFile, key, nonce []byte) (models.E2EInfoEncry
 		return models.E2EInfoEncrypted{}, err
 	}
 	result.Content = encryptedResult
+	result.Version = e2eVersion
 	return result, nil
 }
 
