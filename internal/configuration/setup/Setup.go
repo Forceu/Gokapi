@@ -456,10 +456,6 @@ func parseEncryptionLevel(formObjects *[]jsonFormObject) (int, error) {
 	if encLevel < encryption.NoEncryption || encLevel > encryption.EndToEndEncryption {
 		return 0, errors.New("invalid encryption level selected")
 	}
-
-	if encLevel == encryption.EndToEndEncryption {
-		return 0, errors.New("end to end encryption not implemented yet") // TODO
-	}
 	return encLevel, nil
 }
 

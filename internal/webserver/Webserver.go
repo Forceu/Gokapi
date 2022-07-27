@@ -204,7 +204,18 @@ func showIndex(w http.ResponseWriter, r *http.Request) {
 
 // Handling of /error
 func showError(w http.ResponseWriter, r *http.Request) {
-	err := templateFolder.ExecuteTemplate(w, "error", genericView{})
+	const invalidFile = 0
+	const noCipherSupplied = 1
+	const wrongCipher = 2
+
+	errorReason := invalidFile
+	if r.URL.Query().Has("e2e") {
+		errorReason = noCipherSupplied
+	}
+	if r.URL.Query().Has("key") {
+		errorReason = wrongCipher
+	}
+	err := templateFolder.ExecuteTemplate(w, "error", genericView{ErrorId: errorReason})
 	helper.Check(err)
 }
 
@@ -303,22 +314,26 @@ func showDownload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	view := DownloadView{
-		Name:          file.Name,
-		Size:          file.Size,
-		Id:            file.Id,
-		IsFailedLogin: false,
-		UsesHttps:     configuration.UsesHttps(),
+		Name:               file.Name,
+		Size:               file.Size,
+		Id:                 file.Id,
+		EndToEndEncryption: file.Encryption.IsEndToEndEncrypted,
+		IsFailedLogin:      false,
+		UsesHttps:          configuration.UsesHttps(),
 	}
 
 	if storage.RequiresClientDecryption(file) {
 		view.ClientSideDecryption = true
-		cipher, err := encryption.GetCipherFromFile(file.Encryption)
-		helper.Check(err)
-		view.Cipher = base64.StdEncoding.EncodeToString(cipher)
+		if !file.Encryption.IsEndToEndEncrypted {
+			cipher, err := encryption.GetCipherFromFile(file.Encryption)
+			helper.Check(err)
+			view.Cipher = base64.StdEncoding.EncodeToString(cipher)
+		}
 	}
 
+	// TODO e2e password
 	if file.PasswordHash != "" {
-		r.ParseForm()
+		_ = r.ParseForm()
 		enteredPassword := r.Form.Get("password")
 		if configuration.HashPassword(enteredPassword, true) != file.PasswordHash && !isValidPwCookie(r, file) {
 			if enteredPassword != "" {
@@ -449,8 +464,8 @@ func showAdminMenu(w http.ResponseWriter, r *http.Request) {
 
 func showE2ESetup(w http.ResponseWriter, r *http.Request) {
 	if configuration.Get().Encryption.Level != encryption.EndToEndEncryption {
-		// redirect(w, "admin")
-		// return
+		redirect(w, "admin")
+		return
 	}
 	e2einfo := database.GetEnd2EndInfo()
 	err := templateFolder.ExecuteTemplate(w, "e2esetup", e2ESetupView{HasBeenSetup: e2einfo.HasBeenSetUp()})
@@ -465,6 +480,7 @@ type DownloadView struct {
 	IsFailedLogin        bool
 	IsAdminView          bool
 	ClientSideDecryption bool
+	EndToEndEncryption   bool
 	UsesHttps            bool
 	Cipher               string
 }
@@ -638,4 +654,5 @@ func addNoCacheHeader(w http.ResponseWriter) {
 type genericView struct {
 	IsAdminView bool
 	RedirectUrl string
+	ErrorId     int
 }

@@ -493,7 +493,7 @@ func RequiresClientDecryption(file models.File) bool {
 	if !file.Encryption.IsEncrypted {
 		return false
 	}
-	return !file.IsLocalStorage()
+	return !file.IsLocalStorage() || file.Encryption.IsEndToEndEncrypted
 }
 
 // ServeFile subtracts a download allowance and serves the file to the browser
