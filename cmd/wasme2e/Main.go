@@ -30,6 +30,7 @@ type uploadData struct {
 	writerInput            *bytes.Buffer
 	encrypter              *sio.EncWriter
 	cipher                 []byte
+	filename               string
 }
 
 // Main routine that is called on startup
@@ -51,6 +52,7 @@ func main() {
 func EncryptNew(this js.Value, args []js.Value) interface{} {
 	id := args[0].String()
 	fileSize := int64(args[1].Float())
+	filename := args[2].String()
 	fileSizeEncrypted := encryption.CalculateEncryptedFilesize(fileSize)
 	cipher, err := encryption.GetRandomCipher()
 	if err != nil {
@@ -69,6 +71,7 @@ func EncryptNew(this js.Value, args []js.Value) interface{} {
 		encrypter:              stream,
 		writerInput:            input,
 		cipher:                 cipher,
+		filename:               filename,
 	}
 	uploads[id] = result
 	return fileSizeEncrypted
@@ -79,7 +82,7 @@ func EncryptChunk(this js.Value, args []js.Value) interface{} {
 	if uploads[id].id != id {
 		return jsError("upload id not found")
 	}
-	size := args[1].Int()
+	size := int64(args[1].Float())
 	isLastChunk := args[2].Bool()
 	chunkContent := make([]byte, size)
 	js.CopyBytesToGo(chunkContent, args[3])

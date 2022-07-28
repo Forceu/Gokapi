@@ -1,6 +1,5 @@
 var clipboard = new ClipboardJS('.btn');
 
-
 var dropzoneObject;
 
 Dropzone.options.uploaddropzone = {
