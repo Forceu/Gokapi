@@ -96,7 +96,14 @@
    	 </div>
 
 	<script src="./js/admin.js?v=12"></script>
+	<script src="./js/end2end.js?v=1"></script>
+       <script src="./js/wasm_exec.js"></script>
 	<script>
+	
+	loadWasm(function() {
+	    
+	});
+	
 		Dropzone.options.uploaddropzone["maxFilesize"] = {{ .MaxFileSize }};
 		Dropzone.options.uploaddropzone["timeout"] = 1200000;
 		Dropzone.options.uploaddropzone["chunking"] = true;
@@ -105,6 +112,13 @@
 		Dropzone.options.uploaddropzone["retryChunks"] = true;
 		Dropzone.options.uploaddropzone["retryChunksLimit"] = 3;
 		Dropzone.options.uploaddropzone["retryChunks"] = true;
+		
+		/* 
+		Dropzone.instances[0].uploadFiles = function(files) {
+		    	GokapiE2EUpload(files);
+		    };
+		*/
+			
 	</script>
 
 

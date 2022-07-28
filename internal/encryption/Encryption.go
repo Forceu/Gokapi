@@ -207,6 +207,14 @@ func GetEncryptReader(cipherKey []byte, input io.Reader) (io.Reader, error) {
 	return stream.EncryptReader(input, nonce, nil), nil
 }
 
+// GetEncryptWriter returns a writer that can encrypt plain files
+func GetEncryptWriter(cipherKey []byte, input io.Writer) (*sio.EncWriter, error) {
+	stream := getStream(cipherKey)
+	nonce := make([]byte, stream.NonceSize()) // Nonce is not used
+	return stream.EncryptWriter(input, nonce, nil), nil
+
+}
+
 func generateNewFileKey(encInfo *models.EncryptionInfo) ([]byte, error) {
 	encryptionKey, err := getRandomData(blockSize)
 	if err != nil {
@@ -227,9 +235,7 @@ func generateNewFileKey(encInfo *models.EncryptionInfo) ([]byte, error) {
 }
 
 func CalculateEncryptedFilesize(size int64) int64 {
-	encryptionKey, err := getRandomData(blockSize)
-	helper.Check(err)
-	return size + getStream(encryptionKey).Overhead(size)
+	return size + getStream(make([]byte, blockSize)).Overhead(size)
 }
 
 // GetCipherFromFile loads the cipher from a file model

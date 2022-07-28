@@ -36,7 +36,6 @@ import (
 )
 
 // TODO add 404 handler
-
 // staticFolderEmbedded is the embedded version of the "static" folder
 // This contains JS files, CSS, images etc
 //go:embed web/static
