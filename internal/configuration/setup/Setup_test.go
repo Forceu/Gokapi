@@ -555,10 +555,6 @@ func createInvalidSetupValues() []setupValues {
 	result = append(result, invalidSetup)
 
 	invalidSetup = input
-	invalidSetup.EncryptionLevel.Value = "5" // e2e not implemented yet
-	result = append(result, invalidSetup)
-
-	invalidSetup = input
 	invalidSetup.EncryptionLevel.Value = "4"
 	invalidSetup.EncryptionPassword.Value = "2shrt"
 	result = append(result, invalidSetup)

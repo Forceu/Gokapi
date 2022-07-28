@@ -331,7 +331,6 @@ func showDownload(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// TODO e2e password
 	if file.PasswordHash != "" {
 		_ = r.ParseForm()
 		enteredPassword := r.Form.Get("password")

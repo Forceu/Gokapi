@@ -226,6 +226,12 @@ func generateNewFileKey(encInfo *models.EncryptionInfo) ([]byte, error) {
 	return encryptionKey, nil
 }
 
+func CalculateEncryptedFilesize(size int64) int64 {
+	encryptionKey, err := getRandomData(blockSize)
+	helper.Check(err)
+	return size + getStream(encryptionKey).Overhead(size)
+}
+
 // GetCipherFromFile loads the cipher from a file model
 func GetCipherFromFile(encInfo models.EncryptionInfo) ([]byte, error) {
 	cipherFile, err := fileCipherDecrypt(encInfo.DecryptionKey, encInfo.Nonce)
