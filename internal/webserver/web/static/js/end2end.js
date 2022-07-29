@@ -29,7 +29,6 @@ function storeE2EInfo(data) {
         }
     };
     let formData = new FormData();
-    console.log("sending: "+data);
     formData.append("info", data);
     xhr.send(urlencodeFormData(formData));
 }

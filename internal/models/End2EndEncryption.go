@@ -15,6 +15,7 @@ func (e *E2EInfoEncrypted) HasBeenSetUp() bool {
 }
 
 type E2EFile struct {
+	Uuid     string `json:"uuid"`
 	Id       string `json:"id"`
 	Filename string `json:"filename"`
 	Cipher   []byte `json:"cipher"`

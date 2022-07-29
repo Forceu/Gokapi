@@ -91,9 +91,9 @@ function sendChunkComplete(file, done) {
         if (this.readyState == 4) {
             if (this.status == 200) {
                 Dropzone.instances[0].removeFile(file);
-                addRow(xhr.response);
+                let fileId = addRow(xhr.response);
                 if (file.isEndToEndEncrypted === true) {
-                	let err = GokapiE2EAddFile(file.upload.uuid, file.name); //TODO
+                	let err = GokapiE2EAddFile(file.upload.uuid, fileId, file.name); //TODO
                 	let info = GokapiE2EInfoEncrypt(); //TODO
                 	storeE2EInfo(info);
                 }
@@ -179,7 +179,7 @@ function addRow(jsonText) {
         cellStoredUntil.innerText = item.ExpireAtString;
     }
     cellDownloadCount.innerHTML = '0';
-    cellUrl.innerHTML = '<a  target="_blank" style="color: inherit" href="' + jsonObject.Url + item.Id + '">' + jsonObject.Url + item.Id + '</a>' + lockIcon;
+    cellUrl.innerHTML = '<a  target="_blank" style="color: inherit" href="' + jsonObject.Url + item.Id + '">' + item.Id + '</a>' + lockIcon;
 
     let buttons = "<button type=\"button\" data-clipboard-text=\"" + jsonObject.Url + item.Id + "\" class=\"copyurl btn btn-outline-light btn-sm\">Copy URL</button> ";
     if (item.HotlinkId !== "") {
@@ -202,4 +202,5 @@ function addRow(jsonText) {
     cellDownloadCount.style.backgroundColor = "green"
     cellUrl.style.backgroundColor = "green"
     cellButtons.style.backgroundColor = "green"
+    return item.Id;
 }

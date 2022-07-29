@@ -49,7 +49,7 @@
 						<th scope="col">Downloads remaining</th>
 						<th scope="col">Stored until</th>
 						<th scope="col">Downloads</th>
-						<th scope="col">URL</th>
+						<th scope="col">ID</th>
 						<th scope="col">Actions</th>
 					</tr>
 				</thead>
@@ -58,7 +58,7 @@
 	{{ if  or (gt .ExpireAt $.TimeNow) (.UnlimitedTime) }}
 		{{ if or (gt .DownloadsRemaining 0) (.UnlimitedDownloads) }}
 					<tr>
-						<td scope="col">{{ .Name }}</td>
+						<td scope="col" id="cell-name-{{ .Id }}">{{ .Name }}</td>
 						<td scope="col">{{ .Size }}</td>
 			{{ if .UnlimitedDownloads }}
 						<td scope="col">Unlimited</td>
@@ -71,8 +71,8 @@
 						<td scope="col">{{ .ExpireAtString }}</td>
 			{{ end }}
 						<td scope="col">{{ .DownloadCount }}</td>
-						<td scope="col"><a target="_blank" href="{{ $.Url }}{{ .Id }}">{{ $.Url }}{{ .Id }}</a>{{ if .IsPasswordProtected }} &#128274;{{ end }}</td>
-						<td scope="col"><button type="button" data-clipboard-text="{{ $.Url }}{{ .Id }}" class="copyurl btn btn-outline-light btn-sm">Copy URL</button> 
+						<td scope="col"><a id="url-href-{{ .Id }}" target="_blank" href="{{ $.Url }}{{ .Id }}">{{ .Id }}</a>{{ if .IsPasswordProtected }} &#128274;{{ end }}</td>
+						<td scope="col"><button id="url-button-{{ .Id }}" type="button" data-clipboard-text="{{ $.Url }}{{ .Id }}" class="copyurl btn btn-outline-light btn-sm">Copy URL</button> 
 			{{ if ne .HotlinkId "" }}
  						<button type="button" data-clipboard-text="{{ $.HotlinkUrl }}{{ .HotlinkId }}" class="copyurl btn btn-outline-light btn-sm">Copy Hotlink</button>
 			{{ else }}

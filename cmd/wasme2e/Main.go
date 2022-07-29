@@ -15,6 +15,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 	"syscall/js"
 )
@@ -47,6 +48,7 @@ func main() {
 	js.Global().Set("GokapiE2ESetCipher", js.FuncOf(SetCipher))
 	js.Global().Set("GokapiE2EEncryptNew", js.FuncOf(EncryptNew))
 	js.Global().Set("GokapiE2EUploadChunk", js.FuncOf(UploadChunk))
+	js.Global().Set("GokapiE2EDecryptMenu", js.FuncOf(DecryptMenu))
 	println("WASM end-to-end encryption module loaded")
 	// Prevent the function from returning, which is required in a wasm module
 	select {}
@@ -185,6 +187,7 @@ func InfoParse(this js.Value, args []js.Value) interface{} {
 	var e2EncModel models.E2EInfoEncrypted
 
 	e2InfoJson := args[0].String()
+	println("e2info: " + e2InfoJson)
 	err = json.Unmarshal([]byte(e2InfoJson), &e2EncModel)
 	if err != nil {
 		return jsError(err.Error())
@@ -194,6 +197,34 @@ func InfoParse(this js.Value, args []js.Value) interface{} {
 		return jsError(err.Error())
 	}
 	fileInfo.Files = removeExpiredFiles(e2EncModel)
+	return nil
+}
+
+func DecryptMenu(this js.Value, args []js.Value) interface{} {
+	for _, file := range fileInfo.Files {
+		cipher := base64.StdEncoding.EncodeToString(file.Cipher)
+
+		cellName := js.Global().Get("document").Call("getElementById", "cell-name-"+file.Id)
+		if !cellName.IsNull() && !cellName.IsUndefined() {
+			cellName.Set("innerText", file.Filename)
+		}
+
+		urlLink := js.Global().Get("document").Call("getElementById", "url-href-"+file.Id)
+		if !urlLink.IsNull() && !urlLink.IsUndefined() {
+			linkText := urlLink.Get("href").String()
+			if !strings.Contains(linkText, cipher) {
+				urlLink.Set("href", linkText+"#"+cipher)
+			}
+		}
+
+		urlButton := js.Global().Get("document").Call("getElementById", "url-button-"+file.Id)
+		if !urlButton.IsNull() && !urlButton.IsUndefined() {
+			linkText := urlButton.Call("getAttribute", "data-clipboard-text").String()
+			if !strings.Contains(linkText, cipher) {
+				urlButton.Call("setAttribute", "data-clipboard-text", linkText+"#"+cipher)
+			}
+		}
+	}
 	return nil
 }
 
@@ -213,19 +244,22 @@ func removeExpiredFiles(encInfo models.E2EInfoEncrypted) []models.E2EFile {
 func AddFile(this js.Value, args []js.Value) interface{} {
 	fileMutex.Lock()
 	files := fileInfo.Files
-	id := args[0].String()
-	if uploads[id].id != id {
+	uuid := args[0].String()
+	if uploads[uuid].id != uuid {
 		return jsError("upload id not found")
 	}
-	fileName := args[1].String()
+	id := args[1].String()
+	fileName := args[2].String()
 
 	files = append(files, models.E2EFile{
+		Uuid:     uuid,
 		Id:       id,
 		Filename: fileName,
-		Cipher:   uploads[id].cipher,
+		Cipher:   uploads[uuid].cipher,
 	})
 	fileInfo.Files = files
 	fileMutex.Unlock()
+	delete(uploads, uuid)
 	return nil
 }
 
@@ -273,7 +307,7 @@ func InfoEncrypt(this js.Value, args []js.Value) interface{} {
 func GetById(this js.Value, args []js.Value) interface{} {
 	id := args[0].String()
 	for _, file := range fileInfo.Files {
-		if file.Id == id {
+		if file.Uuid == id {
 			return file
 		}
 	}

@@ -10,6 +10,7 @@ Blob.prototype.arrayBuffer ??= function() {
 				let key = localStorage.getItem("e2ekey");
 				let err = GokapiE2ESetCipher(key); //TODO
 				getE2EInfo();
+				GokapiE2EDecryptMenu();
 			});
 		}
 
