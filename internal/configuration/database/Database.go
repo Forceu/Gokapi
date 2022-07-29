@@ -314,7 +314,13 @@ func GetEnd2EndInfo() models.E2EInfoEncrypted {
 	dec := gob.NewDecoder(buf)
 	err := dec.Decode(&result)
 	helper.Check(err)
+	result.AvailableFiles = GetAllMetaDataIds()
 	return result
+}
+
+// DeleteEnd2EndInfo resets the encrypted e2e info
+func DeleteEnd2EndInfo() {
+	deleteKey(idEnd2EndInfo)
 }
 
 // RunGarbageCollection runs the databases GC

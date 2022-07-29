@@ -92,6 +92,11 @@ function sendChunkComplete(file, done) {
             if (this.status == 200) {
                 Dropzone.instances[0].removeFile(file);
                 addRow(xhr.response);
+                if (file.isEndToEndEncrypted === true) {
+                	let err = GokapiE2EAddFile(file.upload.uuid, file.name); //TODO
+                	let info = GokapiE2EInfoEncrypt(); //TODO
+                	storeE2EInfo(info);
+                }
                 done();
             } else {
                 file.accepted = false;

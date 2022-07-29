@@ -4,7 +4,7 @@ function getE2EInfo() {
     xhr.onreadystatechange = function() {
         if (this.readyState == 4) {
             if (this.status == 200) {
-                console.log(xhr.response);
+                let err = GokapiE2EInfoParse(xhr.response); //TODO
             } else {
                 console.log("TODO: Could not get e2e info!");
             }
@@ -29,6 +29,7 @@ function storeE2EInfo(data) {
         }
     };
     let formData = new FormData();
+    console.log("sending: "+data);
     formData.append("info", data);
     xhr.send(urlencodeFormData(formData));
 }

@@ -3,7 +3,16 @@ Blob.prototype.arrayBuffer ??= function() {
 }
 
 
-loadWasm(function() {});
+		if (!isE2EKeySet()) {
+			window.location='./e2eSetup';
+		} else {
+			loadWasm(function() {
+				let key = localStorage.getItem("e2ekey");
+				let err = GokapiE2ESetCipher(key); //TODO
+				getE2EInfo();
+			});
+		}
+
 
 function setE2eUpload() {
 dropzoneObject.uploadFiles = function(files) {

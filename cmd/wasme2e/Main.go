@@ -5,8 +5,8 @@ package main
 import (
 	"bytes"
 	"encoding/base64"
-	"encoding/gob"
 	"encoding/json"
+	"errors"
 	"github.com/forceu/gokapi/internal/encryption"
 	"github.com/forceu/gokapi/internal/encryption/end2end"
 	"github.com/forceu/gokapi/internal/models"
@@ -113,7 +113,7 @@ func UploadChunk(this js.Value, args []js.Value) interface{} {
 				}
 			}
 			encryptedContent := uploads[id].writerInput.Bytes()
-			err = sendChunk(&encryptedContent, uploadInfo.id, uploadInfo.totalFilesizeEncrypted, uploadInfo.bytesSent)
+			err = postChunk(&encryptedContent, uploadInfo.id, uploadInfo.totalFilesizeEncrypted, uploadInfo.bytesSent)
 			if err != nil {
 				reject.Invoke(jsError(err.Error()))
 				return
@@ -133,7 +133,7 @@ func UploadChunk(this js.Value, args []js.Value) interface{} {
 	return promiseConstructor.New(handler)
 }
 
-func sendChunk(data *[]byte, uuid string, fileSize, offset int64) error {
+func postChunk(data *[]byte, uuid string, fileSize, offset int64) error {
 	body := new(bytes.Buffer)
 	writer := multipart.NewWriter(body)
 	part, err := writer.CreateFormFile("file", "encrypted.file")
@@ -184,15 +184,8 @@ func InfoParse(this js.Value, args []js.Value) interface{} {
 	var err error
 	var e2EncModel models.E2EInfoEncrypted
 
-	e2InfoJson := bytesFromJs(args[0])
-	key, err = base64.StdEncoding.DecodeString(args[1].String())
-	if err != nil {
-		return jsError(err.Error())
-	}
-	if len(key) != 32 {
-		return jsError("invalid cipher provided")
-	}
-	err = json.Unmarshal(e2InfoJson, &e2EncModel)
+	e2InfoJson := args[0].String()
+	err = json.Unmarshal([]byte(e2InfoJson), &e2EncModel)
 	if err != nil {
 		return jsError(err.Error())
 	}
@@ -200,52 +193,36 @@ func InfoParse(this js.Value, args []js.Value) interface{} {
 	if err != nil {
 		return jsError(err.Error())
 	}
-	fileInfo.Files, err = removeExpiredFiles(args, fileInfo.Files)
-	if err != nil {
-		return jsError(err.Error())
-	}
+	fileInfo.Files = removeExpiredFiles(e2EncModel)
 	return nil
 }
 
-func removeExpiredFiles(args []js.Value, files []models.E2EFile) ([]models.E2EFile, error) {
-	availableFilesBase64, err := base64.StdEncoding.DecodeString(args[2].String())
-	if err != nil {
-		return nil, err
-	}
-	var fileIds models.E2EAvailableFiles
-	buf := bytes.NewBuffer(availableFilesBase64)
-	dec := gob.NewDecoder(buf)
-	err = dec.Decode(&fileIds)
-	if err != nil {
-		return nil, err
-	}
+func removeExpiredFiles(encInfo models.E2EInfoEncrypted) []models.E2EFile {
 	cleanedFiles := make([]models.E2EFile, 0)
-	for _, file := range files {
-		for _, id := range fileIds.Ids {
+	for _, id := range encInfo.AvailableFiles {
+		for _, file := range fileInfo.Files {
 			if file.Id == id {
 				cleanedFiles = append(cleanedFiles, file)
 				break
 			}
 		}
 	}
-	return cleanedFiles, err
+	return cleanedFiles
 }
 
 func AddFile(this js.Value, args []js.Value) interface{} {
 	fileMutex.Lock()
 	files := fileInfo.Files
 	id := args[0].String()
-	fileName := args[1].String()
-	cipherBase64 := args[2].String()
-	cipher, err := base64.StdEncoding.DecodeString(cipherBase64)
-	if err != nil {
-		return jsError(err.Error())
+	if uploads[id].id != id {
+		return jsError("upload id not found")
 	}
+	fileName := args[1].String()
 
 	files = append(files, models.E2EFile{
 		Id:       id,
 		Filename: fileName,
-		Cipher:   cipher,
+		Cipher:   uploads[id].cipher,
 	})
 	fileInfo.Files = files
 	fileMutex.Unlock()
@@ -264,17 +241,21 @@ func GetNewCipher(this js.Value, args []js.Value) interface{} {
 	return base64.StdEncoding.EncodeToString(cipher)
 }
 
-func SetCipher(this js.Value, args []js.Value) interface{} {
-	cipher := args[0].String()
-	rawKey, err := base64.StdEncoding.DecodeString(cipher)
+func setCipher(keyBase64 string) error {
+	rawKey, err := base64.StdEncoding.DecodeString(keyBase64)
 	if err != nil {
-		return jsError(err.Error())
+		return err
 	}
 	if len(rawKey) != 32 {
-		return jsError("Invalid cipher length")
+		return errors.New("invalid cipher length")
 	}
 	key = rawKey
 	return nil
+}
+
+func SetCipher(this js.Value, args []js.Value) interface{} {
+	cipher := args[0].String()
+	return setCipher(cipher)
 }
 
 func InfoEncrypt(this js.Value, args []js.Value) interface{} {
