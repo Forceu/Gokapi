@@ -155,11 +155,13 @@
 				}
 				
 				
-				let dataBlock =  file.slice(bytesReadPlaintext, readEnd);
+				let dataBlock =  file.webkitSlice ?
+					    file.webkitSlice(bytesReadPlaintext, readEnd) :
+					    file.slice(bytesReadPlaintext, readEnd);
 				    
 				let data = await dataBlock.arrayBuffer();
 				    
-				let err = await GokapiE2EEncryptChunk(file.upload.uuid, data.size, isLastChunk, data);  //TODO error checking
+				let err = await GokapiE2EEncryptChunk(file.upload.uuid, data.byteLength, isLastChunk, new Uint8Array(data));  //TODO error checking
 				data = null;
 				dataBlock = null;
 				
@@ -167,12 +169,12 @@
 					uploadChunk(file, chunkIndex+1, encryptedTotalSize, plainTextSize, chunkSize)
 				} else {
 				    file.status = Dropzone.SUCCESS;
-				    self.emit("success", file, 'success', null);
-				    self.emit("complete", file);
-				    self.processQueue();
+				    dropzoneObject.emit("success", file, 'success', null);
+				    dropzoneObject.emit("complete", file);
+				    dropzoneObject.processQueue();
 				    
-					this.options.chunksUploaded(file, () => {
-					    this._finished(files, "responseText", null);
+					dropzoneObject.options.chunksUploaded(file, () => {
+					    dropzoneObject._finished(files, "responseText", null);
 					});
 				}
 		}

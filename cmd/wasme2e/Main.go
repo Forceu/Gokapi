@@ -85,9 +85,8 @@ func EncryptChunk(this js.Value, args []js.Value) interface{} {
 	}
 	size := int64(args[1].Float())
 	isLastChunk := args[2].Bool()
-	// chunkContent := make([]byte, size)
-	// js.CopyBytesToGo(chunkContent, args[3])
-	chunkContent := []byte("This is sample data for testing")
+	chunkContent := make([]byte, size)
+	js.CopyBytesToGo(chunkContent, args[3])
 	fmt.Println(size)
 
 	_, err := io.Copy(uploads[id].encrypter, bytes.NewReader(chunkContent))
