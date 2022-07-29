@@ -18,6 +18,9 @@ Dropzone.options.uploaddropzone = {
             formData.append("isUnlimitedDownload", !document.getElementById("enableDownloadLimit").checked);
             formData.append("isUnlimitedTime", !document.getElementById("enableTimeLimit").checked);
         });
+        if (typeof setE2eUpload === 'function') {
+        	setE2eUpload();
+        }
     },
 };
 
@@ -73,9 +76,16 @@ function sendChunkComplete(file, done) {
     formData.append("isUnlimitedDownload", !document.getElementById("enableDownloadLimit").checked);
     formData.append("isUnlimitedTime", !document.getElementById("enableTimeLimit").checked);
     formData.append("chunkid", file.upload.uuid);
-    formData.append("filesize", file.size);
-    formData.append("filename", file.name);
-    formData.append("filecontenttype", file.type);
+    
+    if (file.isEndToEndEncrypted === true) {
+	    formData.append("filesize", file.sizeEncrypted);
+	    formData.append("filename", "file.e2e");
+	    formData.append("filecontenttype", "");
+    } else {
+	    formData.append("filesize", file.size);
+	    formData.append("filename", file.name);
+	    formData.append("filecontenttype", file.type);
+    }
 
     xhr.onreadystatechange = function() {
         if (this.readyState == 4) {

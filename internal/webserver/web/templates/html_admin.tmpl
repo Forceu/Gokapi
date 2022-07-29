@@ -96,13 +96,7 @@
    	 </div>
 
 	<script src="./js/admin.js?v=12"></script>
-	<script src="./js/end2end.js?v=1"></script>
-       <script src="./js/wasm_exec.js"></script>
 	<script>
-	
-	loadWasm(function() {
-	    
-	});
 	
 		Dropzone.options.uploaddropzone["maxFilesize"] = {{ .MaxFileSize }};
 		Dropzone.options.uploaddropzone["timeout"] = 1200000;
@@ -112,74 +106,14 @@
 		Dropzone.options.uploaddropzone["retryChunks"] = true;
 		Dropzone.options.uploaddropzone["retryChunksLimit"] = 3;
 		Dropzone.options.uploaddropzone["retryChunks"] = true;
-		
-		
-		dropzoneObject.uploadFiles = function(files) {
-		    this._transformFiles(files, (transformedFiles) => {
-			let transformedFile = transformedFiles[0];
-			files[0].upload.chunked = true;
-			
-			let filename = files[0].upload.filename; //TODO remove filename and contenttype
-	       	 let plainTextSize = transformedFile.size;
-	       	 let bytesSent = 0;
-	       	 
-	       	 let encryptedSize = GokapiE2EEncryptNew(files[0].upload.uuid, plainTextSize, filename);  //TODO error checking
-			
-			files[0].upload.totalChunkCount = Math.ceil(
-			    encryptedSize / this.options.chunkSize
-			);
-
-			let file = files[0];
-
-			let bytesReadPlaintext = 0;
-			let bytesSendEncrypted = 0;
-			
-			let finishedReading = false;
-			let chunkIndex = 0;
-			
-		
-			uploadChunk(file,0,encryptedSize,plainTextSize, this.options.chunkSize);
-		});
-		}
-		
-		Blob.prototype.arrayBuffer ??=function(){ return new Response(this).arrayBuffer() }
-		
-		async function uploadChunk(file, chunkIndex, encryptedTotalSize, plainTextSize, chunkSize) {
-				let isLastChunk = false;
-				let bytesReadPlaintext = chunkIndex*chunkSize;
-				let readEnd = bytesReadPlaintext + chunkSize;
-				
-				if (chunkIndex === file.upload.totalChunkCount -1) {
-					isLastChunk = true;
-					readEnd = plainTextSize;
-				}
-				
-				
-				let dataBlock =  file.webkitSlice ?
-					    file.webkitSlice(bytesReadPlaintext, readEnd) :
-					    file.slice(bytesReadPlaintext, readEnd);
-				    
-				let data = await dataBlock.arrayBuffer();
-				    
-				let err = await GokapiE2EEncryptChunk(file.upload.uuid, data.byteLength, isLastChunk, new Uint8Array(data));  //TODO error checking
-				data = null;
-				dataBlock = null;
-				
-				if (!isLastChunk) {
-					uploadChunk(file, chunkIndex+1, encryptedTotalSize, plainTextSize, chunkSize)
-				} else {
-				    file.status = Dropzone.SUCCESS;
-				    dropzoneObject.emit("success", file, 'success', null);
-				    dropzoneObject.emit("complete", file);
-				    dropzoneObject.processQueue();
-				    
-					dropzoneObject.options.chunksUploaded(file, () => {
-					    dropzoneObject._finished(files, "responseText", null);
-					});
-				}
-		}
-			
 	</script>
+	
+{{ if .EndToEndEncryption }}
+	<script src="./js/end2end.js?v=1"></script>
+        <script src="./js/wasm_exec.js"></script>
+	<script src="./js/end2end_admin.js?v=1"></script>
+{{ end }}
+        
 
 
 {{ template "footer" }}

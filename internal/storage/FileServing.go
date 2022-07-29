@@ -423,6 +423,8 @@ func isEncryptionRequested() bool {
 		fallthrough
 	case encryption.FullEncryptionInput:
 		return true
+	case encryption.EndToEndEncryption:
+		return false
 	default:
 		log.Fatalln("Unknown encryption level requested")
 		return false

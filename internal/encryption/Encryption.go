@@ -55,7 +55,7 @@ func Init(config models.Configuration) {
 	case FullEncryptionInput:
 		initWithPassword(config.Encryption.Salt, config.Encryption.Checksum, config.Encryption.ChecksumSalt)
 	case EndToEndEncryption:
-		// TODO
+		return
 	}
 }
 

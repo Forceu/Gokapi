@@ -506,6 +506,7 @@ type UploadView struct {
 	DefaultPassword          string
 	DefaultUnlimitedDownload bool
 	DefaultUnlimitedTime     bool
+	EndToEndEncryption       bool
 }
 
 // Converts the globalConfig variable to an UploadView struct to pass the infos to
@@ -557,6 +558,7 @@ func (u *UploadView) convertGlobalConfig(isMainView bool) *UploadView {
 	u.DefaultPassword = defaultValues.Password
 	u.DefaultUnlimitedDownload = defaultValues.UnlimitedDownload
 	u.DefaultUnlimitedTime = defaultValues.UnlimitedTime
+	u.EndToEndEncryption = configuration.Get().Encryption.Level == encryption.EndToEndEncryption
 	return u
 }
 

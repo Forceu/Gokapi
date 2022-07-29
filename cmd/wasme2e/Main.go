@@ -7,12 +7,14 @@ import (
 	"encoding/base64"
 	"encoding/gob"
 	"encoding/json"
-	"fmt"
 	"github.com/forceu/gokapi/internal/encryption"
 	"github.com/forceu/gokapi/internal/encryption/end2end"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/secure-io/sio-go"
 	"io"
+	"mime/multipart"
+	"net/http"
+	"strconv"
 	"sync"
 	"syscall/js"
 )
@@ -44,7 +46,7 @@ func main() {
 	js.Global().Set("GokapiE2EGetNewCipher", js.FuncOf(GetNewCipher))
 	js.Global().Set("GokapiE2ESetCipher", js.FuncOf(SetCipher))
 	js.Global().Set("GokapiE2EEncryptNew", js.FuncOf(EncryptNew))
-	js.Global().Set("GokapiE2EEncryptChunk", js.FuncOf(EncryptChunk))
+	js.Global().Set("GokapiE2EUploadChunk", js.FuncOf(UploadChunk))
 	println("WASM end-to-end encryption module loaded")
 	// Prevent the function from returning, which is required in a wasm module
 	select {}
@@ -78,7 +80,7 @@ func EncryptNew(this js.Value, args []js.Value) interface{} {
 	return fileSizeEncrypted
 }
 
-func EncryptChunk(this js.Value, args []js.Value) interface{} {
+func UploadChunk(this js.Value, args []js.Value) interface{} {
 	id := args[0].String()
 	if uploads[id].id != id {
 		return jsError("upload id not found")
@@ -87,25 +89,95 @@ func EncryptChunk(this js.Value, args []js.Value) interface{} {
 	isLastChunk := args[2].Bool()
 	chunkContent := make([]byte, size)
 	js.CopyBytesToGo(chunkContent, args[3])
-	fmt.Println(size)
 
-	_, err := io.Copy(uploads[id].encrypter, bytes.NewReader(chunkContent))
+	// Handler for the Promise
+	// We need to return a Promise because HTTP requests are blocking in Go
+	handler := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		resolve := args[0]
+		reject := args[1]
+
+		// Run this code asynchronously
+		go func() {
+			uploadInfo := uploads[id]
+
+			_, err := io.Copy(uploadInfo.encrypter, bytes.NewReader(chunkContent))
+			if err != nil {
+				reject.Invoke(jsError(err.Error()))
+				return
+			}
+			if isLastChunk {
+				err = uploads[id].encrypter.Close()
+				if err != nil {
+					reject.Invoke(jsError(err.Error()))
+					return
+				}
+			}
+			encryptedContent := uploads[id].writerInput.Bytes()
+			err = sendChunk(&encryptedContent, uploadInfo.id, uploadInfo.totalFilesizeEncrypted, uploadInfo.bytesSent)
+			if err != nil {
+				reject.Invoke(jsError(err.Error()))
+				return
+			}
+			uploadInfo.bytesSent = uploadInfo.bytesSent + int64(len(encryptedContent))
+			uploadInfo.writerInput.Reset()
+			uploads[id] = uploadInfo
+			chunkContent = nil
+
+			resolve.Invoke("OK")
+		}()
+		return nil
+	})
+	// Create and return the Promise object
+	// The Promise will resolve with a Response object
+	promiseConstructor := js.Global().Get("Promise")
+	return promiseConstructor.New(handler)
+}
+
+func sendChunk(data *[]byte, uuid string, fileSize, offset int64) error {
+	body := new(bytes.Buffer)
+	writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile("file", "encrypted.file")
 	if err != nil {
-		return jsError(err.Error())
+		return err
 	}
-	if isLastChunk {
-		err = uploads[id].encrypter.Close()
-		if err != nil {
-			return jsError(err.Error())
-		}
+	_, err = part.Write(*data)
+	if err != nil {
+		return err
 	}
-	encryptedContent := uploads[id].writerInput.Bytes()
-	uploads[id].writerInput.Reset()
 
-	arrayConstructor := js.Global().Get("Uint8Array")
-	dataJS := arrayConstructor.New(len(encryptedContent))
-	js.CopyBytesToJS(dataJS, chunkContent) // [0:len(encryptedContent)])
-	return dataJS
+	err = writer.WriteField("dztotalfilesize", strconv.FormatInt(fileSize, 10))
+	if err != nil {
+		return err
+	}
+	err = writer.WriteField("dzchunkbyteoffset", strconv.FormatInt(offset, 10))
+	if err != nil {
+		return err
+	}
+	err = writer.WriteField("dzuuid", uuid)
+	if err != nil {
+		return err
+	}
+	err = writer.Close()
+	if err != nil {
+		return err
+	}
+	r, err := http.NewRequest("POST", "./uploadChunk", body)
+	if err != nil {
+		return err
+	}
+	r.Header.Set("Content-Type", writer.FormDataContentType())
+	client := &http.Client{}
+	resp, err := client.Do(r)
+	if err != nil {
+		return err
+	}
+	var bodyContent []byte
+	println(resp.StatusCode)
+	println(resp.Header)
+	resp.Body.Read(bodyContent)
+	resp.Body.Close()
+	println(string(bodyContent))
+	return nil
 }
 
 func InfoParse(this js.Value, args []js.Value) interface{} {
