@@ -118,14 +118,11 @@
 		    this._transformFiles(files, (transformedFiles) => {
 			let transformedFile = transformedFiles[0];
 			files[0].upload.chunked = true;
-			console.log(files[0]);
 			
 			let filename = files[0].upload.filename; //TODO remove filename and contenttype
 	       	 let plainTextSize = transformedFile.size;
 	       	 let bytesSent = 0;
 	       	 
-	       	 console.log(plainTextSize);
-	       	 console.log(transformedFile);
 	       	 let encryptedSize = GokapiE2EEncryptNew(files[0].upload.uuid, plainTextSize, filename);  //TODO error checking
 			
 			files[0].upload.totalChunkCount = Math.ceil(
@@ -140,78 +137,45 @@
 			let finishedReading = false;
 			let chunkIndex = 0;
 			
-			while (chunkIndex < files[0].upload.totalChunkCount) {
-			
+		
+			uploadChunk(file,0,encryptedSize,plainTextSize, this.options.chunkSize);
+		});
+		}
+		
+		Blob.prototype.arrayBuffer ??=function(){ return new Response(this).arrayBuffer() }
+		
+		async function uploadChunk(file, chunkIndex, encryptedTotalSize, plainTextSize, chunkSize) {
 				let isLastChunk = false;
-				let readEnd = bytesReadPlaintext + this.options.chunkSize;
+				let bytesReadPlaintext = chunkIndex*chunkSize;
+				let readEnd = bytesReadPlaintext + chunkSize;
 				
-				if (chunkIndex === files[0].upload.totalChunkCount -1) {
+				if (chunkIndex === file.upload.totalChunkCount -1) {
 					isLastChunk = true;
 					readEnd = plainTextSize;
 				}
 				
-				let dataBlock = {
-					name: this._getParamName(0),
-					data: transformedFile.webkitSlice ?
-					    transformedFile.webkitSlice(bytesReadPlaintext, readEnd) :
-					    transformedFile.slice(bytesReadPlaintext, readEnd),
-					filename: "endtoend.encrypted",
-					chunkIndex: chunkIndex,
-				    };
-				     
-				     console.log(typeof dataBlock.data);
-				    bytesReadPlaintext = bytesReadPlaintext + dataBlock.data.size;
-				    dataBlock.data = GokapiE2EEncryptChunk(files[0].upload.uuid,dataBlock.data.size, isLastChunk, data);
-				    bytesSendEncrypted = bytesSendEncrypted + dataBlock.data.size;
-
-				    file.upload.chunks[chunkIndex] = {
-					file: file,
-					index: chunkIndex,
-					dataBlock: dataBlock, // In case we want to retry.
-					status: Dropzone.UPLOADING,
-					progress: 0,
-					retries: 0, // The number of times this block has been retried.
-				    };
-
-				chunkIndex++;
-				this._uploadData(files, [dataBlock]);
-			}
-
-
-			file.upload.finishedChunkUpload = (chunk, response) => {
-			    let allFinished = true;
-			    chunk.status = Dropzone.SUCCESS;
-
-			    // Clear the data from the chunk
-			    chunk.dataBlock = null;
-			    // Leaving this reference to xhr intact here will cause memory leaks in some browsers
-			    chunk.xhr = null;
-
-			    for (let i = 0; i < file.upload.totalChunkCount; i++) {
-				if (file.upload.chunks[i] === undefined) {
-				    return handleNextChunk();
+				
+				let dataBlock =  file.slice(bytesReadPlaintext, readEnd);
+				    
+				let data = await dataBlock.arrayBuffer();
+				    
+				let err = await GokapiE2EEncryptChunk(file.upload.uuid, data.size, isLastChunk, data);  //TODO error checking
+				data = null;
+				dataBlock = null;
+				
+				if (!isLastChunk) {
+					uploadChunk(file, chunkIndex+1, encryptedTotalSize, plainTextSize, chunkSize)
+				} else {
+				    file.status = Dropzone.SUCCESS;
+				    self.emit("success", file, 'success', null);
+				    self.emit("complete", file);
+				    self.processQueue();
+				    
+					this.options.chunksUploaded(file, () => {
+					    this._finished(files, "responseText", null);
+					});
 				}
-				if (file.upload.chunks[i].status !== Dropzone.SUCCESS) {
-				    allFinished = false;
-				}
-			    }
-
-			    if (allFinished) {
-				this.options.chunksUploaded(file, () => {
-				    this._finished(files, response, null);
-				});
-			    }
-			};
-
-			if (this.options.parallelChunkUploads) {
-			    for (let i = 0; i < file.upload.totalChunkCount; i++) {
-				handleNextChunk();
-			    }
-			} else {
-			    handleNextChunk();
-			}
-		    });
-		};
+		}
 			
 	</script>
 

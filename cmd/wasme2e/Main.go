@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/gob"
 	"encoding/json"
+	"fmt"
 	"github.com/forceu/gokapi/internal/encryption"
 	"github.com/forceu/gokapi/internal/encryption/end2end"
 	"github.com/forceu/gokapi/internal/models"
@@ -84,8 +85,10 @@ func EncryptChunk(this js.Value, args []js.Value) interface{} {
 	}
 	size := int64(args[1].Float())
 	isLastChunk := args[2].Bool()
-	chunkContent := make([]byte, size)
-	js.CopyBytesToGo(chunkContent, args[3])
+	// chunkContent := make([]byte, size)
+	// js.CopyBytesToGo(chunkContent, args[3])
+	chunkContent := []byte("This is sample data for testing")
+	fmt.Println(size)
 
 	_, err := io.Copy(uploads[id].encrypter, bytes.NewReader(chunkContent))
 	if err != nil {
