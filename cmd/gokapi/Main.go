@@ -48,7 +48,7 @@ func main() {
 	encryption.Init(*configuration.Get())
 	authentication.Init(configuration.Get().Authentication)
 	createSsl(passedFlags)
-	initCloudConfig()
+	initCloudConfig(passedFlags)
 
 	go storage.CleanUp(true)
 	logging.AddString("Gokapi started")
@@ -115,15 +115,16 @@ func parseBuildSettings(infos []debug.BuildSetting) {
 	}
 }
 
-func initCloudConfig() {
+func initCloudConfig(passedFlags flagparser.MainFlags) {
 	cConfig, ok := cloudconfig.Load()
 	if ok && aws.Init(cConfig.Aws) {
 		fmt.Println("Saving new files to cloud storage")
 		encLevel := configuration.Get().Encryption.Level
-		if encLevel == encryption.FullEncryptionStored || encLevel == encryption.FullEncryptionInput {
+		if (encLevel == encryption.FullEncryptionStored || encLevel == encryption.FullEncryptionInput) && !passedFlags.DisableCorsCheck {
 			ok, err := aws.IsCorsCorrectlySet(cConfig.Aws.Bucket, configuration.Get().ServerUrl)
 			if err != nil {
 				fmt.Println("Warning: Cannot check CORS settings. " + err.Error())
+				fmt.Println("If your provider does not implement the CORS API call and you are certain that it is set correctly, you can disable this check with --disable-cors-check")
 			} else {
 				if !ok {
 					fmt.Println("Warning: CORS settings for bucket " + cConfig.Aws.Bucket + " might not be set correctly. Download might not be possible with encryption.")

@@ -51,22 +51,27 @@ func ParseFlags() MainFlags {
 		Long:  "port",
 		Short: "p",
 	})
+	disableCorsCheck := passedFlags.Bool("disable-cors-check", false, "Disables the CORS check on startup")
 
 	passedFlags.Usage = showUsage(passedFlags, aliases)
 	err := passedFlags.Parse(os.Args[1:])
 
 	if err != nil {
+		if err.Error() == "flag: help requested" {
+			os.Exit(0)
+		}
 		os.Exit(2)
 	}
 
 	result := MainFlags{
-		ShowVersion: *versionFlagShort || *versionFlagLong,
-		Reconfigure: *reconfigureFlag,
-		CreateSsl:   *createSslFlag,
-		ConfigPath:  getAliasedString(configPathFlagLong, configPathFlagShort),
-		ConfigDir:   getAliasedString(configDirFlagLong, configDirFlagShort),
-		DataDir:     getAliasedString(dataDirFlagLong, dataDirFlagShort),
-		Port:        getAliasedInt(portFlagLong, portFlagShort),
+		ShowVersion:      *versionFlagShort || *versionFlagLong,
+		Reconfigure:      *reconfigureFlag,
+		CreateSsl:        *createSslFlag,
+		ConfigPath:       getAliasedString(configPathFlagLong, configPathFlagShort),
+		ConfigDir:        getAliasedString(configDirFlagLong, configDirFlagShort),
+		DataDir:          getAliasedString(dataDirFlagLong, dataDirFlagShort),
+		Port:             getAliasedInt(portFlagLong, portFlagShort),
+		DisableCorsCheck: *disableCorsCheck,
 	}
 	result.setBoolValues()
 	return result
@@ -110,17 +115,18 @@ func getAliasedInt(flag1, flag2 *int) int {
 
 // MainFlags holds info for the parsed program arguments
 type MainFlags struct {
-	ShowVersion     bool
-	Reconfigure     bool
-	CreateSsl       bool
-	ConfigPath      string
-	ConfigDir       string
-	DataDir         string
-	Port            int
-	IsConfigPathSet bool
-	IsConfigDirSet  bool
-	IsDataDirSet    bool
-	IsPortSet       bool
+	ShowVersion      bool
+	Reconfigure      bool
+	CreateSsl        bool
+	ConfigPath       string
+	ConfigDir        string
+	DataDir          string
+	Port             int
+	IsConfigPathSet  bool
+	IsConfigDirSet   bool
+	IsDataDirSet     bool
+	IsPortSet        bool
+	DisableCorsCheck bool
 }
 
 func (mf *MainFlags) setBoolValues() {
