@@ -3,10 +3,13 @@
 package aws
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
@@ -144,12 +147,25 @@ func RedirectToDownload(w http.ResponseWriter, r *http.Request, file models.File
 	return nil
 }
 
+func getTimeoutContext() (context.Context, context.CancelFunc) {
+	ctx := context.Background()
+	rContext, rCancel := context.WithTimeout(ctx, 5*time.Second)
+	return rContext, func() {
+		if rCancel != nil {
+			rCancel()
+		}
+	}
+}
+
 // FileExists returns true if the object is stored in S3
 func FileExists(file models.File) (bool, int64, error) {
 	sess := createSession()
 	svc := s3.New(sess)
 
-	info, err := svc.HeadObject(&s3.HeadObjectInput{
+	ctx, cancelCtx := getTimeoutContext()
+	defer cancelCtx()
+
+	info, err := svc.HeadObjectWithContext(ctx, &s3.HeadObjectInput{
 		Bucket: aws.String(file.AwsBucket),
 		Key:    aws.String(file.SHA1),
 	})
@@ -161,6 +177,9 @@ func FileExists(file models.File) (bool, int64, error) {
 				return false, 0, nil
 			}
 		}
+		if aerr.Code() == request.CanceledErrorCode {
+			return false, 0, errors.New("Timeout - could not connect to " + *svc.Config.Endpoint)
+		}
 		return false, 0, err
 	}
 	return true, *info.ContentLength, nil
@@ -171,7 +190,10 @@ func DeleteObject(file models.File) (bool, error) {
 	sess := createSession()
 	svc := s3.New(sess)
 
-	_, err := svc.DeleteObject(&s3.DeleteObjectInput{
+	ctx, cancelCtx := getTimeoutContext()
+	defer cancelCtx()
+
+	_, err := svc.DeleteObjectWithContext(ctx, &s3.DeleteObjectInput{
 		Bucket: aws.String(file.AwsBucket),
 		Key:    aws.String(file.SHA1),
 	})
@@ -189,7 +211,11 @@ func IsCorsCorrectlySet(bucket, gokapiUrl string) (bool, error) {
 	input := &s3.GetBucketCorsInput{
 		Bucket: aws.String(bucket),
 	}
-	result, err := svc.GetBucketCors(input)
+
+	ctx, cancelCtx := getTimeoutContext()
+	defer cancelCtx()
+
+	result, err := svc.GetBucketCorsWithContext(ctx, input)
 	if err != nil {
 		aerr, ok := err.(awserr.Error)
 		if ok && aerr.Code() == "NoSuchCorsConfiguration" {
