@@ -491,8 +491,9 @@ function TestAWS(button) {
 					</ul></p>
 							
 {{ if not .IsInitialSetup }}
-				     <div id="e2eclear"><br> <!-- TODO add bootstrap -->
-				     <input name="cleare2e" type="checkbox" value="true">Reset end-to-end password (you will lose access to already encrypted files)</input>
+				     <div id="e2eclear"><br>
+				     <input name="cleare2e" type="checkbox" value="true"/>
+				     <span>&nbsp;Reset end-to-end password (you will lose access to already encrypted files)</span>
 				     </div>
 
 {{ end }}

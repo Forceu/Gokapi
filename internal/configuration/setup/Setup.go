@@ -45,7 +45,7 @@ var password string
 
 var serverStarted = false
 
-const debugDisableAuth = true
+const debugDisableAuth = false
 
 // RunIfFirstStart checks if config files exist and if not start a blocking webserver for setup
 func RunIfFirstStart() {
