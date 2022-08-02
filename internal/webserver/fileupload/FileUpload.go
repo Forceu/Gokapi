@@ -114,16 +114,21 @@ func parseConfig(values formOrHeader, setNewDefaults bool) models.UploadRequest 
 		}
 		database.SaveUploadDefaults(values)
 	}
+	isEnd2End := false
+	if values.Get("isE2E") == "true" {
+		isEnd2End = true
+	}
 	settings := configuration.Get()
 	return models.UploadRequest{
-		AllowedDownloads:  allowedDownloadsInt,
-		Expiry:            expiryDaysInt,
-		ExpiryTimestamp:   time.Now().Add(time.Duration(expiryDaysInt) * time.Hour * 24).Unix(),
-		Password:          password,
-		ExternalUrl:       settings.ServerUrl,
-		MaxMemory:         settings.MaxMemory,
-		UnlimitedTime:     unlimitedTime,
-		UnlimitedDownload: unlimitedDownload,
+		AllowedDownloads:    allowedDownloadsInt,
+		Expiry:              expiryDaysInt,
+		ExpiryTimestamp:     time.Now().Add(time.Duration(expiryDaysInt) * time.Hour * 24).Unix(),
+		Password:            password,
+		ExternalUrl:         settings.ServerUrl,
+		MaxMemory:           settings.MaxMemory,
+		UnlimitedTime:       unlimitedTime,
+		UnlimitedDownload:   unlimitedDownload,
+		IsEndToEndEncrypted: isEnd2End,
 	}
 }
 

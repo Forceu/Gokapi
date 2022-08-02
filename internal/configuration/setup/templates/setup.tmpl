@@ -403,6 +403,7 @@ function TestAWS(button) {
 							<option value="5" >Level 3 - End-To-End encryption</option>
 					</select>
 					
+					
 					<div id="encinfo0">
 					<p><br><br><b>Level 0 - No encryption</b>
 					<ul>
@@ -488,6 +489,13 @@ function TestAWS(button) {
 					  <li><b>Warning:</b> Encryption keys are stored in plain-text on this machine</li>
 					  <li><b>Warning:</b> Encryption has not been audited.</li>
 					</ul></p>
+							
+{{ if not .IsInitialSetup }}
+				     <div id="e2eclear"><br> <!-- TODO add bootstrap -->
+				     <input name="cleare2e" type="checkbox" value="true">Reset end-to-end password (you will lose access to already encrypted files)</input>
+				     </div>
+
+{{ end }}
 					</div>
 
 				</div>

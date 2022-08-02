@@ -1,6 +1,7 @@
 var clipboard = new ClipboardJS('.btn');
 
 var dropzoneObject;
+var isE2EEnabled = false;
 
 Dropzone.options.uploaddropzone = {
     paramName: "file",
@@ -17,8 +18,11 @@ Dropzone.options.uploaddropzone = {
             formData.append("password", document.getElementById("password").value);
             formData.append("isUnlimitedDownload", !document.getElementById("enableDownloadLimit").checked);
             formData.append("isUnlimitedTime", !document.getElementById("enableTimeLimit").checked);
+	    if (isE2EEnabled) {
+	       formData.append("isE2E", "true");
+	    }
         });
-        if (typeof setE2eUpload === 'function') {
+        if (isE2EEnabled) {
         	setE2eUpload();
         }
     },
@@ -81,6 +85,7 @@ function sendChunkComplete(file, done) {
 	    formData.append("filesize", file.sizeEncrypted);
 	    formData.append("filename", "file.e2e");
 	    formData.append("filecontenttype", "");
+	    formData.append("isE2E", "true");
     } else {
 	    formData.append("filesize", file.size);
 	    formData.append("filename", file.name);

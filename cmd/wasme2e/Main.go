@@ -187,7 +187,6 @@ func InfoParse(this js.Value, args []js.Value) interface{} {
 	var e2EncModel models.E2EInfoEncrypted
 
 	e2InfoJson := args[0].String()
-	println("e2info: " + e2InfoJson)
 	err = json.Unmarshal([]byte(e2InfoJson), &e2EncModel)
 	if err != nil {
 		return jsError(err.Error())

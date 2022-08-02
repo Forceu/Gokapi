@@ -1,6 +1,7 @@
 Blob.prototype.arrayBuffer ??= function() {
     return new Response(this).arrayBuffer()
 }
+isE2EEnabled = true;
 
 
 		if (!isE2EKeySet()) {

@@ -9,6 +9,7 @@ import (
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
 	"github.com/forceu/gokapi/internal/configuration/configupgrade"
+	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/encryption"
 	"github.com/forceu/gokapi/internal/environment"
 	"github.com/forceu/gokapi/internal/helper"
@@ -44,7 +45,7 @@ var password string
 
 var serverStarted = false
 
-const debugDisableAuth = false
+const debugDisableAuth = true
 
 // RunIfFirstStart checks if config files exist and if not start a blocking webserver for setup
 func RunIfFirstStart() {
@@ -407,6 +408,12 @@ func parseEncryptionAndDelete(result *models.Configuration, formObjects *[]jsonF
 		generateNewEncConfig, err = encryptionHasChanged(encLevel, formObjects)
 		if err != nil {
 			return err
+		}
+		if encLevel == encryption.EndToEndEncryption {
+			deleteE2eInfo, _ := getFormValueString(formObjects, "cleare2e")
+			if deleteE2eInfo == "true" {
+				database.DeleteEnd2EndInfo()
+			}
 		}
 	}
 
