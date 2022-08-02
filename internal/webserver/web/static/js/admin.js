@@ -13,17 +13,10 @@ Dropzone.options.uploaddropzone = {
     init: function() {
         dropzoneObject = this;
         this.on("sending", function(file, xhr, formData) {
-            formData.append("allowedDownloads", document.getElementById("allowedDownloads").value);
-            formData.append("expiryDays", document.getElementById("expiryDays").value);
-            formData.append("password", document.getElementById("password").value);
-            formData.append("isUnlimitedDownload", !document.getElementById("enableDownloadLimit").checked);
-            formData.append("isUnlimitedTime", !document.getElementById("enableTimeLimit").checked);
-	    if (isE2EEnabled) {
-	       formData.append("isE2E", "true");
-	    }
+            alert("Warning: This function is not available anymore!");
         });
         if (isE2EEnabled) {
-        	setE2eUpload();
+            setE2eUpload();
         }
     },
 };
@@ -80,16 +73,16 @@ function sendChunkComplete(file, done) {
     formData.append("isUnlimitedDownload", !document.getElementById("enableDownloadLimit").checked);
     formData.append("isUnlimitedTime", !document.getElementById("enableTimeLimit").checked);
     formData.append("chunkid", file.upload.uuid);
-    
+
     if (file.isEndToEndEncrypted === true) {
-	    formData.append("filesize", file.sizeEncrypted);
-	    formData.append("filename", "file.e2e");
-	    formData.append("filecontenttype", "");
-	    formData.append("isE2E", "true");
+        formData.append("filesize", file.sizeEncrypted);
+        formData.append("filename", "file.e2e");
+        formData.append("filecontenttype", "");
+        formData.append("isE2E", "true");
     } else {
-	    formData.append("filesize", file.size);
-	    formData.append("filename", file.name);
-	    formData.append("filecontenttype", file.type);
+        formData.append("filesize", file.size);
+        formData.append("filename", file.name);
+        formData.append("filecontenttype", file.type);
     }
 
     xhr.onreadystatechange = function() {
@@ -98,9 +91,10 @@ function sendChunkComplete(file, done) {
                 Dropzone.instances[0].removeFile(file);
                 let fileId = addRow(xhr.response);
                 if (file.isEndToEndEncrypted === true) {
-                	let err = GokapiE2EAddFile(file.upload.uuid, fileId, file.name); //TODO
-                	let info = GokapiE2EInfoEncrypt(); //TODO
-                	storeE2EInfo(info);
+                    let err = GokapiE2EAddFile(file.upload.uuid, fileId, file.name); //TODO
+                    let info = GokapiE2EInfoEncrypt(); //TODO
+                    storeE2EInfo(info);
+                    GokapiE2EDecryptMenu();
                 }
                 done();
             } else {
@@ -172,6 +166,7 @@ function addRow(jsonText) {
         lockIcon = " &#128274;";
     }
     cellFilename.innerText = item.Name;
+    cellFilename.id = "cell-name-" + item.Id;
     cellFileSize.innerText = item.Size;
     if (item.UnlimitedDownloads) {
         cellRemainingDownloads.innerText = "Unlimited";
@@ -184,9 +179,9 @@ function addRow(jsonText) {
         cellStoredUntil.innerText = item.ExpireAtString;
     }
     cellDownloadCount.innerHTML = '0';
-    cellUrl.innerHTML = '<a  target="_blank" style="color: inherit" href="' + jsonObject.Url + item.Id + '">' + item.Id + '</a>' + lockIcon;
+    cellUrl.innerHTML = '<a  target="_blank" style="color: inherit" id="url-href-' + item.Id + '" href="' + jsonObject.Url + item.Id + '">' + item.Id + '</a>' + lockIcon;
 
-    let buttons = "<button type=\"button\" data-clipboard-text=\"" + jsonObject.Url + item.Id + "\" class=\"copyurl btn btn-outline-light btn-sm\">Copy URL</button> ";
+    let buttons = '<button type="button" id="url-button-' + item.Id + '"  data-clipboard-text="' + jsonObject.Url + item.Id + '" class="copyurl btn btn-outline-light btn-sm">Copy URL</button>';
     if (item.HotlinkId !== "") {
         buttons = buttons + '<button type="button" data-clipboard-text="' + jsonObject.HotlinkUrl + item.HotlinkId + '" class="copyurl btn btn-outline-light btn-sm">Copy Hotlink</button> ';
     } else {

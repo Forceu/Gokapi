@@ -516,7 +516,7 @@ func (u *UploadView) convertGlobalConfig(isMainView bool) *UploadView {
 	var resultApi []models.ApiKey
 	if isMainView {
 		for _, element := range database.GetAllMetadata() {
-			fileInfo, err := element.ToFileApiOutput()
+			fileInfo, err := element.ToFileApiOutput(storage.RequiresClientDecryption(element))
 			helper.Check(err)
 			result = append(result, fileInfo)
 		}

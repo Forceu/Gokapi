@@ -15,7 +15,6 @@ import (
 	"mime/multipart"
 	"net/http"
 	"strconv"
-	"strings"
 	"sync"
 	"syscall/js"
 )
@@ -202,27 +201,7 @@ func InfoParse(this js.Value, args []js.Value) interface{} {
 func DecryptMenu(this js.Value, args []js.Value) interface{} {
 	for _, file := range fileInfo.Files {
 		cipher := base64.StdEncoding.EncodeToString(file.Cipher)
-
-		cellName := js.Global().Get("document").Call("getElementById", "cell-name-"+file.Id)
-		if !cellName.IsNull() && !cellName.IsUndefined() {
-			cellName.Set("innerText", file.Filename)
-		}
-
-		urlLink := js.Global().Get("document").Call("getElementById", "url-href-"+file.Id)
-		if !urlLink.IsNull() && !urlLink.IsUndefined() {
-			linkText := urlLink.Get("href").String()
-			if !strings.Contains(linkText, cipher) {
-				urlLink.Set("href", linkText+"#"+cipher)
-			}
-		}
-
-		urlButton := js.Global().Get("document").Call("getElementById", "url-button-"+file.Id)
-		if !urlButton.IsNull() && !urlButton.IsUndefined() {
-			linkText := urlButton.Call("getAttribute", "data-clipboard-text").String()
-			if !strings.Contains(linkText, cipher) {
-				urlButton.Call("setAttribute", "data-clipboard-text", linkText+"#"+cipher)
-			}
-		}
+		js.Global().Call("decryptFileEntry", file.Id, file.Filename, cipher)
 	}
 	return nil
 }

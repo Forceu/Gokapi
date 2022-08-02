@@ -4,48 +4,72 @@ Blob.prototype.arrayBuffer ??= function() {
 isE2EEnabled = true;
 
 
-		if (!isE2EKeySet()) {
-			window.location='./e2eSetup';
-		} else {
-			loadWasm(function() {
-				let key = localStorage.getItem("e2ekey");
-				let err = GokapiE2ESetCipher(key); //TODO
-				getE2EInfo();
-				GokapiE2EDecryptMenu();
-			});
-		}
+if (!isE2EKeySet()) {
+    window.location = './e2eSetup';
+} else {
+    loadWasm(function() {
+        let key = localStorage.getItem("e2ekey");
+        let err = GokapiE2ESetCipher(key); //TODO
+        getE2EInfo();
+        GokapiE2EDecryptMenu();
+    });
+}
 
 
 function setE2eUpload() {
-dropzoneObject.uploadFiles = function(files) {
-    this._transformFiles(files, (transformedFiles) => {
-        let transformedFile = transformedFiles[0];
-        files[0].upload.chunked = true;
-        files[0].isEndToEndEncrypted = true;
+    dropzoneObject.uploadFiles = function(files) {
+        this._transformFiles(files, (transformedFiles) => {
+            let transformedFile = transformedFiles[0];
+            files[0].upload.chunked = true;
+            files[0].isEndToEndEncrypted = true;
 
-        let filename = files[0].upload.filename; //TODO remove filename and contenttype
-        let plainTextSize = transformedFile.size;
-        let bytesSent = 0;
+            let filename = files[0].upload.filename; //TODO remove filename and contenttype
+            let plainTextSize = transformedFile.size;
+            let bytesSent = 0;
 
-        let encryptedSize = GokapiE2EEncryptNew(files[0].upload.uuid, plainTextSize, filename); //TODO error checking
+            let encryptedSize = GokapiE2EEncryptNew(files[0].upload.uuid, plainTextSize, filename); //TODO error checking
 
-        files[0].upload.totalChunkCount = Math.ceil(
-            encryptedSize / this.options.chunkSize
-        );
+            files[0].upload.totalChunkCount = Math.ceil(
+                encryptedSize / this.options.chunkSize
+            );
 
-        files[0].sizeEncrypted = encryptedSize;
-        let file = files[0];
+            files[0].sizeEncrypted = encryptedSize;
+            let file = files[0];
 
-        let bytesReadPlaintext = 0;
-        let bytesSendEncrypted = 0;
+            let bytesReadPlaintext = 0;
+            let bytesSendEncrypted = 0;
 
-        let finishedReading = false;
-        let chunkIndex = 0;
+            let finishedReading = false;
+            let chunkIndex = 0;
 
 
-        uploadChunk(file, 0, encryptedSize, plainTextSize, this.options.chunkSize);
-    });
+            uploadChunk(file, 0, encryptedSize, plainTextSize, this.options.chunkSize);
+        });
+    }
 }
+
+function decryptFileEntry(id, filename, cipher) {
+    let cellName = document.getElementById("cell-name-" + id);
+    if (cellName != null) {
+        cellName.innerText = filename;
+    }
+
+    let urlLink = document.getElementById("url-href-" + id);
+    if (urlLink != null) {
+        let url = urlLink.href;
+        if (!url.includes(cipher)) {
+            urlLink.href = url + "#" + cipher;
+        }
+    }
+
+    let urlButton = document.getElementById("url-button-" + id)
+    if (urlButton != null) {
+        let url = urlButton.getAttribute("data-clipboard-text");
+        if (!url.includes(cipher)) {
+            urlButton.setAttribute("data-clipboard-text", url + "#" + cipher);
+        }
+    }
+
 }
 
 async function uploadChunk(file, chunkIndex, encryptedTotalSize, plainTextSize, chunkSize) {

@@ -30,7 +30,7 @@ func Process(w http.ResponseWriter, r *http.Request, isWeb bool, maxMemory int) 
 	if err != nil {
 		return err
 	}
-	_, _ = io.WriteString(w, result.ToJsonResult(config.ExternalUrl))
+	_, _ = io.WriteString(w, result.ToJsonResult(config.ExternalUrl, storage.RequiresClientDecryption(result)))
 	return nil
 }
 
@@ -75,7 +75,7 @@ func CompleteChunk(w http.ResponseWriter, r *http.Request, isApiCall bool) error
 	if err != nil {
 		return err
 	}
-	_, _ = io.WriteString(w, result.ToJsonResult(config.ExternalUrl))
+	_, _ = io.WriteString(w, result.ToJsonResult(config.ExternalUrl, storage.RequiresClientDecryption(result)))
 	return nil
 }
 
