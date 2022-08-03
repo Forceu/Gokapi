@@ -176,10 +176,3 @@ func jsError(message string) js.Value {
 	errVal := errConstructor.New(message)
 	return errVal
 }
-
-// Returns a byte slice from a js.Value
-func bytesFromJs(arg js.Value) []byte {
-	out := make([]byte, arg.Length())
-	js.CopyBytesToGo(out, arg)
-	return out
-}

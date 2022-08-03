@@ -41,7 +41,6 @@ func main() {
 	uploads = make(map[string]uploadData)
 	js.Global().Set("GokapiE2EInfoParse", js.FuncOf(InfoParse))
 	js.Global().Set("GokapiE2EInfoEncrypt", js.FuncOf(InfoEncrypt))
-	js.Global().Set("GokapiE2EGetById", js.FuncOf(GetById))
 	js.Global().Set("GokapiE2EAddFile", js.FuncOf(AddFile))
 	js.Global().Set("GokapiE2EGetNewCipher", js.FuncOf(GetNewCipher))
 	js.Global().Set("GokapiE2ESetCipher", js.FuncOf(SetCipher))
@@ -201,7 +200,15 @@ func InfoParse(this js.Value, args []js.Value) interface{} {
 func DecryptMenu(this js.Value, args []js.Value) interface{} {
 	for _, file := range fileInfo.Files {
 		cipher := base64.StdEncoding.EncodeToString(file.Cipher)
-		js.Global().Call("decryptFileEntry", file.Id, file.Filename, cipher)
+		hashContent, err := json.Marshal(models.E2EHashContent{
+			Filename: file.Filename,
+			Cipher:   cipher,
+		})
+		if err != nil {
+			return jsError(err.Error())
+		}
+		hashBase64 := base64.StdEncoding.EncodeToString(hashContent)
+		js.Global().Call("decryptFileEntry", file.Id, file.Filename, hashBase64)
 	}
 	return nil
 }
@@ -282,26 +289,9 @@ func InfoEncrypt(this js.Value, args []js.Value) interface{} {
 	return base64.StdEncoding.EncodeToString(outputJson)
 }
 
-func GetById(this js.Value, args []js.Value) interface{} {
-	id := args[0].String()
-	for _, file := range fileInfo.Files {
-		if file.Uuid == id {
-			return file
-		}
-	}
-	return jsError("file not found")
-}
-
 // Wraps a message into a JavaScript object of type error
 func jsError(message string) js.Value {
 	errConstructor := js.Global().Get("Error")
 	errVal := errConstructor.New(message)
 	return errVal
-}
-
-// Returns a byte slice from a js.Value
-func bytesFromJs(arg js.Value) []byte {
-	out := make([]byte, arg.Length())
-	js.CopyBytesToGo(out, arg)
-	return out
 }

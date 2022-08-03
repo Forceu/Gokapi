@@ -5,7 +5,7 @@
         <div class="col">
 		<div class="card" style="width: 18rem;">
 		  <div class="card-body">
-		    <h4 class="card-title">{{ .Name }}</h4>
+		    <h4 id="filename" class="card-title">{{ .Name }}</h4>
 		    <p class="card-text">Filesize: {{ .Size }}</p><br>
 			<div id="buttondiv">
 {{ if .ClientSideDecryption }}
@@ -36,16 +36,7 @@
 		
 		<script>
 {{ if .EndToEndEncryption }}
-		let key = localStorage.getItem("key-{{ .Id }}");
-		if (key === null) {
-		    key = window.location.hash.substr(1);
-		    if (key.length < 32) {
-			window.location = "./error?e2e";
-		    } else {
-			localStorage.setItem("key-{{ .Id }}", key);
-		    }
-		}
-			       
+		parseHashValue({{.Id}});
 {{ end }}
 		
 		const go = new Go(); // Defined in wasm_exec.js
@@ -85,6 +76,8 @@
 {{ if .EndToEndEncryption }}
 			let key = localStorage.getItem("key-{{ .Id }}");
 			localStorage.removeItem("key-{{ .Id }}"); 
+			let filename = localStorage.getItem("fn-{{ .Id }}");
+			localStorage.removeItem("fn-{{ .Id }}"); 
 {{ else }}
 			let key = "{{ .Cipher }}";
 {{ end }}
@@ -97,7 +90,11 @@
 			console.log("Gokapi is not being accessed through https, therefore an external serviceworker will be used");
 			streamSaver.mitm = 'https://bulling-it.de/gokapi/serviceworker.html';
 {{  end }}
+{{ if .EndToEndEncryption }}
+			const fileStream = streamSaver.createWriteStream(filename);
+{{ else }}
 			const fileStream = streamSaver.createWriteStream({{.Name }});
+{{ end }}
 					     
 			window.writer = fileStream.getWriter();
 
@@ -132,6 +129,11 @@
 		     button.disabled = true;
 		     location.href = "./downloadFile?id={{ .Id }}";
 		   }   
+		</script>
+{{ end }}
+{{ if .EndToEndEncryption }}
+		<script> 
+			document.getElementById("filename").innerText = localStorage.getItem("fn-{{ .Id }}");
 		</script>
 {{ end }}
 

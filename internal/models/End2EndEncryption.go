@@ -20,3 +20,8 @@ type E2EFile struct {
 	Filename string `json:"filename"`
 	Cipher   []byte `json:"cipher"`
 }
+
+type E2EHashContent struct {
+	Filename string `json:"f"`
+	Cipher   string `json:"c"`
+}
