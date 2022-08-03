@@ -5,7 +5,11 @@
         <div class="col">
 		<div class="card" style="width: 18rem;">
 		  <div class="card-body">
+{{ if .EndToEndEncryption }}
+		    <h4 id="filename" class="card-title">Decrypting...</h4>
+{{ else }}
 		    <h4 id="filename" class="card-title">{{ .Name }}</h4>
+{{ end }}
 		    <p class="card-text">Filesize: {{ .Size }}</p><br>
 			<div id="buttondiv">
 {{ if .ClientSideDecryption }}

@@ -6,7 +6,7 @@ function getE2EInfo() {
             if (this.status == 200) {
                 let err = GokapiE2EInfoParse(xhr.response); //TODO
             } else {
-                console.log("TODO: Could not get e2e info!");
+                console.log("TODO: Could not get e2e info!");  //TODO
             }
         }
     };
@@ -21,10 +21,8 @@ function storeE2EInfo(data) {
 
     xhr.onreadystatechange = function() {
         if (this.readyState == 4) {
-            if (this.status == 200) {
-                console.log(xhr.response);
-            } else {
-                console.log("TODO: Could not store e2e info!");
+            if (this.status != 200) {
+                console.log("TODO: Could not store e2e info!");  //TODO
             }
         }
     };
@@ -64,8 +62,7 @@ function loadWasm(func) {
             )
         }
     } catch (err) {
-        console.log(err);
-        //TODO
+        console.log(err); //TODO
     }
 }
 

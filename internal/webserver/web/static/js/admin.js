@@ -79,6 +79,7 @@ function sendChunkComplete(file, done) {
         formData.append("filename", "file.e2e");
         formData.append("filecontenttype", "");
         formData.append("isE2E", "true");
+        formData.append("realSize", file.size);
     } else {
         formData.append("filesize", file.size);
         formData.append("filename", file.name);

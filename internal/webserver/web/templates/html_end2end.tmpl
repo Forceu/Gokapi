@@ -36,7 +36,7 @@
 		let data = GokapiE2EInfoEncrypt();
 		storeE2EInfo(data);
 	    } catch (err) {
-		console.log(err);
+		console.log(err); //TODO
 		return;
 
 	    }
@@ -72,9 +72,8 @@
 
 	    try {
 		let output = GokapiE2ESetCipher(key);
-		console.log(output);
 	    } catch (err) {
-		console.log(err);
+		console.log(err); //TODO
 		return;
 
 	    }

@@ -274,6 +274,7 @@ func createNewMetaData(hash string, fileHeader chunking.FileHeader, uploadReques
 	}
 	if uploadRequest.IsEndToEndEncrypted {
 		file.Encryption = models.EncryptionInfo{IsEndToEndEncrypted: true, IsEncrypted: true}
+		file.Size = helper.ByteCountSI(uploadRequest.RealSize)
 	}
 	if aws.IsAvailable() {
 		if !configuration.Get().PicturesAlwaysLocal || !isPictureFile(file.Name) {

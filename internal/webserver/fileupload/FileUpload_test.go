@@ -33,27 +33,31 @@ func TestParseConfig(t *testing.T) {
 		expiryDays:       "5",
 		password:         "123",
 	}
-	config := parseConfig(data, false)
+	config, err := parseConfig(data, false)
+	test.IsNil(t, err)
 	defaults := database.GetUploadDefaults()
 	test.IsEqualInt(t, config.AllowedDownloads, 9)
 	test.IsEqualString(t, config.Password, "123")
 	test.IsEqualInt(t, config.Expiry, 5)
 
 	test.IsEqualInt(t, defaults.Downloads, 3)
-	config = parseConfig(data, true)
+	config, err = parseConfig(data, true)
+	test.IsNil(t, err)
 	defaults = database.GetUploadDefaults()
 	test.IsEqualInt(t, defaults.Downloads, 9)
 	database.SaveUploadDefaults(models.LastUploadValues{Downloads: 3, TimeExpiry: 20})
 	data.allowedDownloads = ""
 	data.expiryDays = "invalid"
-	config = parseConfig(data, false)
+	config, err = parseConfig(data, false)
+	test.IsNil(t, err)
 	test.IsEqualInt(t, config.AllowedDownloads, 3)
 	test.IsEqualInt(t, config.Expiry, 20)
 	test.IsEqualBool(t, config.UnlimitedTime, false)
 	test.IsEqualBool(t, config.UnlimitedDownload, false)
 	data.allowedDownloads = "0"
 	data.expiryDays = "0"
-	config = parseConfig(data, false)
+	config, err = parseConfig(data, false)
+	test.IsNil(t, err)
 	test.IsEqualBool(t, config.UnlimitedTime, true)
 	test.IsEqualBool(t, config.UnlimitedDownload, true)
 }
