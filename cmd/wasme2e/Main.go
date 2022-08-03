@@ -12,6 +12,7 @@ import (
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/secure-io/sio-go"
 	"io"
+	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"strconv"
@@ -123,7 +124,7 @@ func UploadChunk(this js.Value, args []js.Value) interface{} {
 			uploads[id] = uploadInfo
 			chunkContent = nil
 
-			resolve.Invoke("OK")
+			resolve.Invoke(nil)
 		}()
 		return nil
 	})
@@ -171,12 +172,18 @@ func postChunk(data *[]byte, uuid string, fileSize, offset int64) error {
 	if err != nil {
 		return err
 	}
-	var bodyContent []byte
-	println(resp.StatusCode)
-	println(resp.Header)
-	resp.Body.Read(bodyContent)
-	resp.Body.Close()
-	println(string(bodyContent))
+	bodyContent, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	response := string(bodyContent)
+	if resp.StatusCode != http.StatusOK {
+		return errors.New("failed to upload chunk: status code " + strconv.Itoa(resp.StatusCode) + ", response: " + response)
+	}
+	if response != "{\"result\":\"OK\"}" {
+		return errors.New("failed to upload chunk: unexpected response: " + response)
+	}
+
 	return nil
 }
 
@@ -260,21 +267,21 @@ func GetNewCipher(this js.Value, args []js.Value) interface{} {
 	return base64.StdEncoding.EncodeToString(cipher)
 }
 
-func setCipher(keyBase64 string) error {
-	rawKey, err := base64.StdEncoding.DecodeString(keyBase64)
-	if err != nil {
-		return err
-	}
-	if len(rawKey) != 32 {
-		return errors.New("invalid cipher length")
-	}
-	key = rawKey
-	return nil
-}
-
 func SetCipher(this js.Value, args []js.Value) interface{} {
 	cipher := args[0].String()
 	return setCipher(cipher)
+}
+
+func setCipher(keyBase64 string) interface{} {
+	rawKey, err := base64.StdEncoding.DecodeString(keyBase64)
+	if err != nil {
+		return jsError(err.Error())
+	}
+	if len(rawKey) != 32 {
+		return jsError("invalid cipher length")
+	}
+	key = rawKey
+	return nil
 }
 
 func InfoEncrypt(this js.Value, args []js.Value) interface{} {

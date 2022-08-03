@@ -11,7 +11,6 @@
 			      class="dropzone"
 			      id="uploaddropzone"></form>			
 		<p></p><br>
-
 		<div class="container-md">
 		  <div class="row">
 			  <div class="form-group col">
@@ -37,6 +36,9 @@
 	     			<label class="control-label  small" for="password">Password</label>
 				<input class="form-control admin-input" value="{{ .DefaultPassword }}" name="password" id="password" placeholder="None" {{ if eq .DefaultPassword "" }} disabled {{ end }}/>
 			  </div>
+<div id="errordiv" class="alert alert-danger" style="display:none">
+  <span id="errormessage" ></span>
+</div>
 		  </div>
 		</div>
 		<br><br>
@@ -97,7 +99,6 @@
 
 	<script src="./js/admin.js?v=12"></script>
 	<script>
-	
 		Dropzone.options.uploaddropzone["maxFilesize"] = {{ .MaxFileSize }};
 		Dropzone.options.uploaddropzone["timeout"] = 1200000;
 		Dropzone.options.uploaddropzone["chunking"] = true;
@@ -109,9 +110,11 @@
 	</script>
 
 {{ if .EndToEndEncryption }}
-	<script src="./js/end2end.js?v=1"></script>
         <script src="./js/wasm_exec.js"></script>
 	<script src="./js/end2end_admin.js?v=1"></script>
+	<script>
+		checkIfE2EKeyIsSet();
+	</script>
 {{ end }}
         
 

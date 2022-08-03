@@ -85,7 +85,11 @@
 {{ else }}
 			let key = "{{ .Cipher }}";
 {{ end }}
-			const response = await GokapiDecrypt(key, "./downloadFile?id={{ .Id }}");
+			const response  = await GokapiDecrypt(key, "./downloadFile?id={{ .Id }}");
+			if (response instanceof Error) {
+			    throw response;
+			}
+			
 			const readableStream = response.body;
 			const reader = response.body.getReader();
 {{ if .UsesHttps }}
@@ -116,7 +120,7 @@
 		function displayError(err) {
 		    document.getElementById("buttondiv").style.display = "none";
 		    document.getElementById("errordiv").style.display = "block";
-		    document.getElementById("errormessage").innerHTML = "<b>Error</b> " + err.toString();
+		    document.getElementById("errormessage").innerHTML = "<b>Error: </b> " + err.toString().replace(/^Error:/gi, "");
 		    console.error('Caught exception', err)
 		}
 

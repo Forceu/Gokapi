@@ -12,8 +12,6 @@ function parseHashValue(id) {
         try {
             let infoJson = atob(hash);
             info = JSON.parse(infoJson)
-            console.log(infoJson);
-            console.log(info);
         } catch (err) {
             redirectToE2EError();
             return;

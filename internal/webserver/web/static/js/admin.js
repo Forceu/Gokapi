@@ -15,6 +15,7 @@ Dropzone.options.uploaddropzone = {
         this.on("sending", function(file, xhr, formData) {
             alert("Warning: This function is not available anymore!");
         });
+        // This will be executed after the page has loaded. If e2e ist enabled, the end2end_admin.js has set isE2EEnabled to true
         if (isE2EEnabled) {
             setE2eUpload();
         }
@@ -76,7 +77,7 @@ function sendChunkComplete(file, done) {
 
     if (file.isEndToEndEncrypted === true) {
         formData.append("filesize", file.sizeEncrypted);
-        formData.append("filename", "file.e2e");
+        formData.append("filename", "Encrypted File");
         formData.append("filecontenttype", "");
         formData.append("isE2E", "true");
         formData.append("realSize", file.size);
@@ -89,14 +90,26 @@ function sendChunkComplete(file, done) {
     xhr.onreadystatechange = function() {
         if (this.readyState == 4) {
             if (this.status == 200) {
-                Dropzone.instances[0].removeFile(file);
                 let fileId = addRow(xhr.response);
                 if (file.isEndToEndEncrypted === true) {
-                    let err = GokapiE2EAddFile(file.upload.uuid, fileId, file.name); //TODO
-                    let info = GokapiE2EInfoEncrypt(); //TODO
-                    storeE2EInfo(info);
+                    try {
+                        let result = GokapiE2EAddFile(file.upload.uuid, fileId, file.name);
+                        if (result instanceof Error) {
+                            throw result;
+                        }
+                        let info = GokapiE2EInfoEncrypt();
+                        if (info instanceof Error) {
+                            throw info;
+                        }
+                        storeE2EInfo(info);
+                    } catch (err) {
+                        file.accepted = false;
+                        Dropzone.instances[0]._errorProcessing([file], err);
+                        return;
+                    }
                     GokapiE2EDecryptMenu();
                 }
+                Dropzone.instances[0].removeFile(file);
                 done();
             } else {
                 file.accepted = false;
@@ -104,7 +117,6 @@ function sendChunkComplete(file, done) {
             }
         }
     };
-
     xhr.send(urlencodeFormData(formData));
 }
 

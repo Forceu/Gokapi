@@ -4,15 +4,115 @@ Blob.prototype.arrayBuffer ??= function() {
 isE2EEnabled = true;
 
 
-if (!isE2EKeySet()) {
-    window.location = './e2eSetup';
-} else {
-    loadWasm(function() {
-        let key = localStorage.getItem("e2ekey");
-        let err = GokapiE2ESetCipher(key); //TODO
-        getE2EInfo();
-        GokapiE2EDecryptMenu();
-    });
+function displayError(err) {
+    document.getElementById("errordiv").style.display = "block";
+    document.getElementById("errormessage").innerHTML = "<b>Error: </b> " + err.toString().replace(/^Error:/gi, "");
+    console.error('Caught exception', err)
+}
+
+
+function checkIfE2EKeyIsSet() {
+    if (!isE2EKeySet()) {
+        window.location = './e2eSetup';
+    } else {
+        loadWasm(function() {
+            let key = localStorage.getItem("e2ekey");
+            let err = GokapiE2ESetCipher(key);
+            if (err !== null) {
+                displayError(err);
+                return;
+            }
+            getE2EInfo();
+            GokapiE2EDecryptMenu();
+        });
+    }
+}
+
+function getE2EInfo() {
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", "./e2eInfo?action=get", false);
+    xhr.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            if (this.status == 200) {
+                let err = GokapiE2EInfoParse(xhr.response);
+                if (err !== null) {
+                    displayError(err);
+                }
+            } else {
+                displayError("Trying to get E2E info: " + xhr.statusText);
+            }
+        }
+    };
+
+    xhr.send();
+}
+
+
+function storeE2EInfo(data) {
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "./e2eInfo?action=store", false);
+    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+
+    xhr.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            if (this.status != 200) {
+                displayError("Trying to store E2E info: " + xhr.statusText);
+            }
+        }
+    };
+    let formData = new FormData();
+    formData.append("info", data);
+    xhr.send(urlencodeFormData(formData));
+}
+
+function isE2EKeySet() {
+    let key = localStorage.getItem("e2ekey");
+    return key !== null && key !== "";
+}
+
+
+function loadWasm(func) {
+    const go = new Go(); // Defined in wasm_exec.js
+    const WASM_URL = 'e2e.wasm?v=1';
+
+    var wasm;
+
+    try {
+        if ('instantiateStreaming' in WebAssembly) {
+            WebAssembly.instantiateStreaming(fetch(WASM_URL), go.importObject).then(function(obj) {
+                wasm = obj.instance;
+                go.run(wasm);
+                func();
+            })
+        } else {
+            fetch(WASM_URL).then(resp =>
+                resp.arrayBuffer()
+            ).then(bytes =>
+                WebAssembly.instantiate(bytes, go.importObject).then(function(obj) {
+                    wasm = obj.instance;
+                    go.run(wasm);
+                    func();
+                })
+            )
+        }
+    } catch (err) {
+        displayError(err);
+    }
+}
+
+
+function urlencodeFormData(fd) {
+    let s = '';
+
+    function encode(s) {
+        return encodeURIComponent(s).replace(/%20/g, '+');
+    }
+    for (var pair of fd.entries()) {
+        if (typeof pair[1] == 'string') {
+            s += (s ? '&' : '') + encode(pair[0]) + '=' + encode(pair[1]);
+        }
+    }
+    return s;
 }
 
 
@@ -23,11 +123,15 @@ function setE2eUpload() {
             files[0].upload.chunked = true;
             files[0].isEndToEndEncrypted = true;
 
-            let filename = files[0].upload.filename; //TODO remove filename and contenttype
+            let filename = files[0].upload.filename;
             let plainTextSize = transformedFile.size;
             let bytesSent = 0;
 
-            let encryptedSize = GokapiE2EEncryptNew(files[0].upload.uuid, plainTextSize, filename); //TODO error checking
+            let encryptedSize = GokapiE2EEncryptNew(files[0].upload.uuid, plainTextSize, filename);
+            if (encryptedSize instanceof Error) {
+                displayError(encryptedSize);
+                return;
+            }
 
             files[0].upload.totalChunkCount = Math.ceil(
                 encryptedSize / this.options.chunkSize
@@ -89,7 +193,11 @@ async function uploadChunk(file, chunkIndex, encryptedTotalSize, plainTextSize, 
 
     let data = await dataBlock.arrayBuffer();
 
-    let err = await GokapiE2EUploadChunk(file.upload.uuid, data.byteLength, isLastChunk, new Uint8Array(data)); //TODO error checking
+    let err = await GokapiE2EUploadChunk(file.upload.uuid, data.byteLength, isLastChunk, new Uint8Array(data));
+    if (err !== null) {
+        displayError(err);
+        return;
+    }
     data = null;
     dataBlock = null;
 
@@ -101,8 +209,6 @@ async function uploadChunk(file, chunkIndex, encryptedTotalSize, plainTextSize, 
         dropzoneObject.emit("complete", file);
         dropzoneObject.processQueue();
 
-        dropzoneObject.options.chunksUploaded(file, () => {
-            //  dropzoneObject._finished(files, "responseText", null);
-        });
+        dropzoneObject.options.chunksUploaded(file, () => {});
     }
 }
