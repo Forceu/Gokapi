@@ -37,6 +37,9 @@ function getE2EInfo() {
                 let err = GokapiE2EInfoParse(xhr.response);
                 if (err !== null) {
                     displayError(err);
+                    if (err.message === "cipher: message authentication failed") {
+                        invalidCipherRedirectConfim();
+                    }
                 }
             } else {
                 displayError("Trying to get E2E info: " + xhr.statusText);
@@ -47,6 +50,11 @@ function getE2EInfo() {
     xhr.send();
 }
 
+function invalidCipherRedirectConfim() {
+    if (confirm('It appears that an invalid end-to-end encryption key has been entered. Would you like to enter the correct one?')) {
+        window.location = './e2eSetup';
+    }
+}
 
 function storeE2EInfo(data) {
     var xhr = new XMLHttpRequest();

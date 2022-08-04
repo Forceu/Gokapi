@@ -91,7 +91,6 @@
 	    let output = GokapiE2ESetCipher(key);
 	    if (output instanceof Error) {
 		localStorage.removeItem("e2ekey"); 
-		document.getElementById("enterpwbutton").disabled = true;
 		document.getElementById("password").value = "";
 		displayError(output);
 		return;
