@@ -14,17 +14,21 @@ import (
 	"strings"
 )
 
+// ChunkInfo contains info about the current chunk
 type ChunkInfo struct {
 	TotalFilesizeBytes int64
 	Offset             int64
 	UUID               string
 }
+
+// FileHeader contains info about the uploaded file
 type FileHeader struct {
 	Filename    string
 	ContentType string
 	Size        int64
 }
 
+// ParseChunkInfo parses the posted form data and returns it as a ChunkInfo object
 func ParseChunkInfo(r *http.Request, isApiCall bool) (ChunkInfo, error) {
 	info := ChunkInfo{}
 	err := r.ParseForm()
@@ -74,6 +78,7 @@ func sanitseUuid(input string) string {
 	return reg.ReplaceAllString(input, "_")
 }
 
+// ParseFileHeader parses the formdata and returns a FileHeader
 func ParseFileHeader(r *http.Request) (FileHeader, error) {
 	err := r.ParseForm()
 	if err != nil {
@@ -135,6 +140,7 @@ func parseContentType(r *http.Request) string {
 	return contentType
 }
 
+// ParseMultipartHeader converts a multipart.FileHeader to the internal FileHeader
 func ParseMultipartHeader(header *multipart.FileHeader) (FileHeader, error) {
 	if header.Filename == "" {
 		return FileHeader{}, errors.New("empty filename provided")
@@ -153,6 +159,7 @@ func getChunkFilePath(id string) string {
 	return configuration.Get().DataDir + "/chunk-" + id
 }
 
+// GetFileByChunkId returns a handle to the chunk file
 func GetFileByChunkId(id string) (*os.File, error) {
 	file, err := os.OpenFile(getChunkFilePath(id), os.O_RDWR, 0600)
 	if err != nil {
@@ -161,6 +168,7 @@ func GetFileByChunkId(id string) (*os.File, error) {
 	return file, nil
 }
 
+// NewChunk allocates the space for the new file and writes the chunk
 func NewChunk(chunkContent io.Reader, fileHeader *multipart.FileHeader, info ChunkInfo) error {
 	err := allocateFile(info)
 	if err != nil {

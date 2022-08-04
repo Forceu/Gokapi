@@ -82,6 +82,7 @@ func GetAllMetadata() map[string]models.File {
 	return result
 }
 
+// GetAllMetaDataIds returns all Ids that contain metadata
 func GetAllMetaDataIds() []string {
 	if bitcaskDb == nil {
 		panic("Database not loaded!")
@@ -361,6 +362,7 @@ func getValue(id string) ([]byte, bool) {
 	panic(err)
 }
 
+// GetRawKey returns the raw value of a database key
 func GetRawKey(id string) ([]byte, bool) {
 	return getValue(id)
 }

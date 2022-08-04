@@ -206,15 +206,18 @@ func TestNewFile(t *testing.T) {
 
 	request.UnlimitedDownload = true
 	file, err = NewFile(bytes.NewReader(content), &header, request)
+	test.IsNil(t, err)
 	test.IsEqualBool(t, file.UnlimitedTime, false)
 	test.IsEqualBool(t, file.UnlimitedDownloads, true)
 	request.UnlimitedDownload = false
 	request.UnlimitedTime = true
 	file, err = NewFile(bytes.NewReader(content), &header, request)
+	test.IsNil(t, err)
 	test.IsEqualBool(t, file.UnlimitedTime, true)
 	test.IsEqualBool(t, file.UnlimitedDownloads, false)
 	request.UnlimitedDownload = true
 	file, err = NewFile(bytes.NewReader(content), &header, request)
+	test.IsNil(t, err)
 	test.IsEqualBool(t, file.UnlimitedTime, true)
 	test.IsEqualBool(t, file.UnlimitedDownloads, true)
 
@@ -571,8 +574,6 @@ func TestServeFile(t *testing.T) {
 	test.IsNil(t, err)
 	file = newFile.File
 	database.SaveMetaData(file)
-	r = httptest.NewRequest("GET", "/", nil)
-	w = httptest.NewRecorder()
 	cipher, err := encryption.GetRandomCipher()
 	test.IsNil(t, err)
 	nonce, err := encryption.GetRandomNonce()
@@ -620,7 +621,6 @@ func TestCleanUp(t *testing.T) {
 	file, _ := GetFile("n1tSTAGj8zan9KaT4u6p")
 	file.DownloadsRemaining = 0
 	database.SaveMetaData(file)
-	files = database.GetAllMetadata()
 
 	CleanUp(false)
 	files = database.GetAllMetadata()
@@ -710,6 +710,7 @@ func TestDeleteFile(t *testing.T) {
 	DeleteFile(file.Id, false)
 	file, ok = database.GetMetaDataById("testfiledownload")
 	test.IsEqualInt(t, int(file.ExpireAt), 0)
+	test.IsEqualBool(t, ok, true)
 
 	if aws.IsIncludedInBuild {
 		testconfiguration.EnableS3()
@@ -726,12 +727,12 @@ func TestDeleteFile(t *testing.T) {
 		}
 		database.SaveMetaData(awsFile)
 		files = database.GetAllMetadata()
-		result, size, err := aws.FileExists(files["awsTest1234567890123"])
+		result, _, err := aws.FileExists(files["awsTest1234567890123"])
 		test.IsEqualBool(t, result, true)
 		test.IsNil(t, err)
 		DeleteFile("awsTest1234567890123", true)
 		time.Sleep(5 * time.Second)
-		result, size, err = aws.FileExists(awsFile)
+		result, size, err := aws.FileExists(awsFile)
 		test.IsEqualBool(t, result, false)
 		test.IsEqualInt(t, int(size), 0)
 		test.IsNil(t, err)
@@ -793,6 +794,7 @@ func TestDeleteAllEncrypted(t *testing.T) {
 	test.IsEqualBool(t, data.UnlimitedTime, true)
 	DeleteAllEncrypted()
 	data, ok = database.GetMetaDataById("testEncDelEnc")
+	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, data.UnlimitedTime, false)
 	data, ok = database.GetMetaDataById("testEncDelUn")
 	test.IsEqualBool(t, ok, true)

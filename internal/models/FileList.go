@@ -52,10 +52,12 @@ type EncryptionInfo struct {
 	Nonce               []byte `json:"Nonce"`
 }
 
+// IsLocalStorage returns true if the file is not stored on a remote storage
 func (f *File) IsLocalStorage() bool {
 	return f.AwsBucket == ""
 }
 
+// ToFileApiOutput returns a json object without sensitive information
 func (f *File) ToFileApiOutput(isClientSideDecryption bool) (FileApiOutput, error) {
 	var result FileApiOutput
 	err := copier.Copy(&result, &f)
