@@ -10,6 +10,7 @@ import (
 
 const e2eVersion = 1
 
+// EncryptData encrypts the locally stored e2e data to save on the server
 func EncryptData(files []models.E2EFile, key []byte) (models.E2EInfoEncrypted, error) {
 	nonce, err := encryption.GetRandomNonce()
 	if err != nil {
@@ -23,7 +24,7 @@ func EncryptData(files []models.E2EFile, key []byte) (models.E2EInfoEncrypted, e
 	err = enc.Encode(files)
 	helper.Check(err)
 
-	encryptedResult, err := encryption.EncryptDecryptText(buf.Bytes(), key, nonce, true)
+	encryptedResult, err := encryption.EncryptDecryptBytes(buf.Bytes(), key, nonce, true)
 	if err != nil {
 		return models.E2EInfoEncrypted{}, err
 	}
@@ -32,8 +33,9 @@ func EncryptData(files []models.E2EFile, key []byte) (models.E2EInfoEncrypted, e
 	return result, nil
 }
 
+// DecryptData decrypts the e2e data stored on the server
 func DecryptData(encryptedContent models.E2EInfoEncrypted, key []byte) (models.E2EInfoPlainText, error) {
-	result, err := encryption.EncryptDecryptText(encryptedContent.Content, key, encryptedContent.Nonce, false)
+	result, err := encryption.EncryptDecryptBytes(encryptedContent.Content, key, encryptedContent.Nonce, false)
 	if err != nil {
 		return models.E2EInfoPlainText{}, err
 	}

@@ -30,11 +30,13 @@ import (
 
 // webserverDir is the embedded version of the "static" folder
 // This contains JS files, CSS, images etc for the setup
+//
 //go:embed static
 var webserverDirEmb embed.FS
 
 // templateFolderEmbedded is the embedded version of the "templates" folder
 // This contains templates that Gokapi uses for creating the HTML output
+//
 //go:embed templates
 var templateFolderEmbedded embed.FS
 

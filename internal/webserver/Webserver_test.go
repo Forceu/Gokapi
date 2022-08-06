@@ -220,14 +220,26 @@ func TestInvalidLink(t *testing.T) {
 		IsHtml:          true,
 	})
 }
+
 func TestError(t *testing.T) {
 	t.Parallel()
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://localhost:53843/error",
-		RequiredContent: []string{"this file cannot be found"},
+		RequiredContent: []string{"Sorry, this file cannot be found"},
+		IsHtml:          true,
+	})
+	test.HttpPageResult(t, test.HttpTestConfig{
+		Url:             "http://localhost:53843/error?e2e",
+		RequiredContent: []string{"This file is encrypted and no key has been passed"},
+		IsHtml:          true,
+	})
+	test.HttpPageResult(t, test.HttpTestConfig{
+		Url:             "http://localhost:53843/error?key",
+		RequiredContent: []string{"This file is encrypted and an incorrect key has been passed"},
 		IsHtml:          true,
 	})
 }
+
 func TestForgotPw(t *testing.T) {
 	t.Parallel()
 	test.HttpPageResult(t, test.HttpTestConfig{
@@ -236,6 +248,7 @@ func TestForgotPw(t *testing.T) {
 		IsHtml:          true,
 	})
 }
+
 func TestLoginCorrect(t *testing.T) {
 	t.Parallel()
 	test.HttpPageResult(t, test.HttpTestConfig{
@@ -698,10 +711,17 @@ func TestShowErrorAuth(t *testing.T) {
 	})
 }
 
-func TestServeWasm(t *testing.T) {
+func TestServeWasmDownloader(t *testing.T) {
 	t.Parallel()
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:    "http://localhost:53843/main.wasm",
+		IsHtml: false,
+	})
+}
+func TestServeWasmE2E(t *testing.T) {
+	t.Parallel()
+	test.HttpPageResult(t, test.HttpTestConfig{
+		Url:    "http://localhost:53843/e2e.wasm",
 		IsHtml: false,
 	})
 }

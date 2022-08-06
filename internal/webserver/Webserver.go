@@ -38,21 +38,25 @@ import (
 // TODO add 404 handler
 // staticFolderEmbedded is the embedded version of the "static" folder
 // This contains JS files, CSS, images etc
+//
 //go:embed web/static
 var staticFolderEmbedded embed.FS
 
 // templateFolderEmbedded is the embedded version of the "templates" folder
 // This contains templates that Gokapi uses for creating the HTML output
+//
 //go:embed web/templates
 var templateFolderEmbedded embed.FS
 
-// wasmFile is the compiled binary of the wasm downloader
+// wasmDownloadFile is the compiled binary of the wasm downloader
 // Will be generated with go generate ./...
+//
 //go:embed web/main.wasm
 var wasmDownloadFile embed.FS
 
-// wasmFile is the compiled binary of the wasm downloader
+// wasmE2EFile is the compiled binary of the wasm e2e encrypter
 // Will be generated with go generate ./...
+//
 //go:embed web/e2e.wasm
 var wasmE2EFile embed.FS
 
@@ -181,7 +185,7 @@ func serveDownloadWasm(w http.ResponseWriter, r *http.Request) {
 	w.Write(file)
 }
 
-// Handling of /main.wasm
+// Handling of /e2e.wasm
 func serveE2EWasm(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Cache-Control", "public, max-age=100800") // 2 days
 	w.Header().Set("content-type", "application/wasm")

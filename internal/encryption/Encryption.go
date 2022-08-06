@@ -128,14 +128,14 @@ func storeMasterKey(cipherKey []byte) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	encryptedKey, err = EncryptDecryptText(cipherKey, ramCipher, make([]byte, nonceSize), true)
+	encryptedKey, err = EncryptDecryptBytes(cipherKey, ramCipher, make([]byte, nonceSize), true)
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
 func getMasterCipher() []byte {
-	key, err := EncryptDecryptText(encryptedKey, ramCipher, make([]byte, nonceSize), false)
+	key, err := EncryptDecryptBytes(encryptedKey, ramCipher, make([]byte, nonceSize), false)
 	if err != nil {
 		key = []byte{}
 		log.Fatal(err)
@@ -234,6 +234,7 @@ func generateNewFileKey(encInfo *models.EncryptionInfo) ([]byte, error) {
 	return encryptionKey, nil
 }
 
+// CalculateEncryptedFilesize returns the filesize of the encrypted file including the encryption overhead
 func CalculateEncryptedFilesize(size int64) int64 {
 	return size + getStream(make([]byte, blockSize)).Overhead(size)
 }
@@ -264,13 +265,14 @@ func getStream(cipherKey []byte) *sio.Stream {
 }
 
 func fileCipherEncrypt(input, nonce []byte) ([]byte, error) {
-	return EncryptDecryptText(input, getMasterCipher(), nonce, true)
+	return EncryptDecryptBytes(input, getMasterCipher(), nonce, true)
 }
 func fileCipherDecrypt(input, nonce []byte) ([]byte, error) {
-	return EncryptDecryptText(input, getMasterCipher(), nonce, false)
+	return EncryptDecryptBytes(input, getMasterCipher(), nonce, false)
 }
 
-func EncryptDecryptText(input, cipherBlock, nonce []byte, doEncrypt bool) ([]byte, error) {
+// EncryptDecryptBytes encrypts or decrypts a byte array
+func EncryptDecryptBytes(input, cipherBlock, nonce []byte, doEncrypt bool) ([]byte, error) {
 	block, err := aes.NewCipher(cipherBlock)
 	if err != nil {
 		return []byte{}, err

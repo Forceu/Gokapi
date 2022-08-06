@@ -32,34 +32,49 @@ func TestParseConfig(t *testing.T) {
 		allowedDownloads: "9",
 		expiryDays:       "5",
 		password:         "123",
+		isE2E:            "",
+		realSize:         "",
 	}
 	config, err := parseConfig(data, false)
 	test.IsNil(t, err)
+	test.IsEqualBool(t, config.IsEndToEndEncrypted, false)
+	test.IsEqualInt64(t, config.RealSize, 0)
+
 	defaults := database.GetUploadDefaults()
 	test.IsEqualInt(t, config.AllowedDownloads, 9)
 	test.IsEqualString(t, config.Password, "123")
 	test.IsEqualInt(t, config.Expiry, 5)
-
 	test.IsEqualInt(t, defaults.Downloads, 3)
+
 	config, err = parseConfig(data, true)
 	test.IsNil(t, err)
 	defaults = database.GetUploadDefaults()
 	test.IsEqualInt(t, defaults.Downloads, 9)
 	database.SaveUploadDefaults(models.LastUploadValues{Downloads: 3, TimeExpiry: 20})
+
 	data.allowedDownloads = ""
 	data.expiryDays = "invalid"
+
 	config, err = parseConfig(data, false)
 	test.IsNil(t, err)
 	test.IsEqualInt(t, config.AllowedDownloads, 3)
 	test.IsEqualInt(t, config.Expiry, 20)
 	test.IsEqualBool(t, config.UnlimitedTime, false)
 	test.IsEqualBool(t, config.UnlimitedDownload, false)
+
 	data.allowedDownloads = "0"
 	data.expiryDays = "0"
 	config, err = parseConfig(data, false)
 	test.IsNil(t, err)
 	test.IsEqualBool(t, config.UnlimitedTime, true)
 	test.IsEqualBool(t, config.UnlimitedDownload, true)
+
+	data.isE2E = "true"
+	data.realSize = "200"
+	config, err = parseConfig(data, false)
+	test.IsNil(t, err)
+	test.IsEqualBool(t, config.IsEndToEndEncrypted, true)
+	test.IsEqualInt64(t, config.RealSize, 200)
 }
 
 func TestProcess(t *testing.T) {
@@ -167,7 +182,7 @@ func getFileUploadRecorder(addChunkInfo bool) *http.Request {
 }
 
 type testData struct {
-	allowedDownloads, expiryDays, password string
+	allowedDownloads, expiryDays, password, isE2E, realSize string
 }
 
 func (t testData) Get(key string) string {
