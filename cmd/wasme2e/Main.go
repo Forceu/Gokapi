@@ -12,7 +12,6 @@ import (
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/secure-io/sio-go"
 	"io"
-	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"strconv"
@@ -89,7 +88,8 @@ func UploadChunk(this js.Value, args []js.Value) interface{} {
 	size := int64(args[1].Float())
 	isLastChunk := args[2].Bool()
 	chunkContent := make([]byte, size)
-	js.CopyBytesToGo(chunkContent, args[3])
+	fileObj := args[3]
+	js.CopyBytesToGo(chunkContent, args[4])
 
 	// Handler for the Promise
 	// We need to return a Promise because HTTP requests are blocking in Go
@@ -114,7 +114,7 @@ func UploadChunk(this js.Value, args []js.Value) interface{} {
 				}
 			}
 			encryptedContent := uploads[id].writerInput.Bytes()
-			err = postChunk(&encryptedContent, uploadInfo.id, uploadInfo.totalFilesizeEncrypted, uploadInfo.bytesSent)
+			err = postChunk(&encryptedContent, uploadInfo.id, uploadInfo.totalFilesizeEncrypted, uploadInfo.bytesSent, fileObj)
 			if err != nil {
 				reject.Invoke(jsError(err.Error()))
 				return
@@ -134,7 +134,7 @@ func UploadChunk(this js.Value, args []js.Value) interface{} {
 	return promiseConstructor.New(handler)
 }
 
-func postChunk(data *[]byte, uuid string, fileSize, offset int64) error {
+func postChunk(data *[]byte, uuid string, fileSize, offset int64, jsFile js.Value) error {
 	body := new(bytes.Buffer)
 	writer := multipart.NewWriter(body)
 	part, err := writer.CreateFormFile("file", "encrypted.file")
@@ -162,17 +162,25 @@ func postChunk(data *[]byte, uuid string, fileSize, offset int64) error {
 	if err != nil {
 		return err
 	}
-	r, err := http.NewRequest("POST", "./uploadChunk", body)
+
+	pReporter := progressReporter{
+		r:                 body,
+		fileSizeEncrypted: fileSize,
+		sent:              offset,
+		file:              jsFile,
+	}
+	r, err := http.NewRequest("POST", "./uploadChunk", &pReporter)
 	if err != nil {
 		return err
 	}
 	r.Header.Set("Content-Type", writer.FormDataContentType())
 	client := &http.Client{}
 	resp, err := client.Do(r)
+
 	if err != nil {
 		return err
 	}
-	bodyContent, err := ioutil.ReadAll(resp.Body)
+	bodyContent, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
@@ -301,4 +309,22 @@ func jsError(message string) js.Value {
 	errConstructor := js.Global().Get("Error")
 	errVal := errConstructor.New(message)
 	return errVal
+}
+
+type progressReporter struct {
+	r                 io.Reader
+	fileSizeEncrypted int64
+	sent              int64
+	file              js.Value
+}
+
+func (pr *progressReporter) Read(p []byte) (int, error) {
+	n, err := pr.r.Read(p)
+	pr.sent = pr.sent + int64(n)
+	pr.report()
+	return n, err
+}
+
+func (pr *progressReporter) report() {
+	go js.Global().Get("dropzoneObject").Call("emit", "uploadprogress", pr.file, pr.sent*100/pr.fileSizeEncrypted, pr.sent)
 }

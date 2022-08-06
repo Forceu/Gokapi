@@ -548,7 +548,7 @@ func TestServeFile(t *testing.T) {
 	test.IsEqualString(t, w.Result().Header.Get("Content-Disposition"), "attachment; filename=\"test.dat\"")
 	test.IsEqualString(t, w.Result().Header.Get("Content-Length"), "35")
 	test.IsEqualString(t, w.Result().Header.Get("Content-Type"), "text/plain")
-	content, err := ioutil.ReadAll(w.Result().Body)
+	content, err := io.ReadAll(w.Result().Body)
 	test.IsNil(t, err)
 	test.IsEqualString(t, string(content), "This is a file for testing purposes")
 

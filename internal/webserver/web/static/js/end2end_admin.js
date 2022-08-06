@@ -157,8 +157,8 @@ function setE2eUpload() {
             let finishedReading = false;
             let chunkIndex = 0;
 
+            uploadChunk(file, 0, encryptedSize, plainTextSize, dropzoneObject.options.chunkSize);
 
-            uploadChunk(file, 0, encryptedSize, plainTextSize, this.options.chunkSize);
         });
     }
 }
@@ -188,6 +188,7 @@ function decryptFileEntry(id, filename, cipher) {
 
 }
 
+
 async function uploadChunk(file, chunkIndex, encryptedTotalSize, plainTextSize, chunkSize) {
     let isLastChunk = false;
     let bytesReadPlaintext = chunkIndex * chunkSize;
@@ -205,7 +206,7 @@ async function uploadChunk(file, chunkIndex, encryptedTotalSize, plainTextSize, 
 
     let data = await dataBlock.arrayBuffer();
 
-    let err = await GokapiE2EUploadChunk(file.upload.uuid, data.byteLength, isLastChunk, new Uint8Array(data));
+    let err = await GokapiE2EUploadChunk(file.upload.uuid, data.byteLength, isLastChunk, file, new Uint8Array(data));
     if (err !== null) {
         displayError(err);
         return;

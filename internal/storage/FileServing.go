@@ -21,7 +21,6 @@ import (
 	"github.com/forceu/gokapi/internal/webserver/downloadstatus"
 	"github.com/jinzhu/copier"
 	"io"
-	"io/ioutil"
 	"log"
 	"mime/multipart"
 	"net/http"
@@ -392,7 +391,7 @@ func generateHashAndEncrypt(fileContent io.Reader, fileHeader *multipart.FileHea
 	hash := sha1.New()
 	encInfo := models.EncryptionInfo{}
 	if fileHeader.Size <= int64(configuration.Get().MaxMemory)*1024*1024 {
-		content, err := ioutil.ReadAll(fileContent)
+		content, err := io.ReadAll(fileContent)
 		helper.Check(err)
 		hash.Write(content)
 		if isEncryptionRequested() {
