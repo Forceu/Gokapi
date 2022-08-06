@@ -24,6 +24,8 @@ function checkIfE2EKeyIsSet() {
             }
             getE2EInfo();
             GokapiE2EDecryptMenu();
+            dropzoneObject.enable();
+            document.getElementsByClassName("dz-button")[0].innerText = "Drop files, paste or click here to upload (end-to-end encrypted)";
         });
     }
 }
@@ -127,6 +129,7 @@ function urlencodeFormData(fd) {
 function setE2eUpload() {
     dropzoneObject.uploadFiles = function(files) {
         this._transformFiles(files, (transformedFiles) => {
+
             let transformedFile = transformedFiles[0];
             files[0].upload.chunked = true;
             files[0].isEndToEndEncrypted = true;
@@ -159,6 +162,7 @@ function setE2eUpload() {
         });
     }
 }
+
 
 function decryptFileEntry(id, filename, cipher) {
     let cellName = document.getElementById("cell-name-" + id);
