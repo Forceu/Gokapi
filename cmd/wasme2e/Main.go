@@ -163,13 +163,7 @@ func postChunk(data *[]byte, uuid string, fileSize, offset int64, jsFile js.Valu
 		return err
 	}
 
-	pReporter := progressReporter{
-		r:                 body,
-		fileSizeEncrypted: fileSize,
-		sent:              offset,
-		file:              jsFile,
-	}
-	r, err := http.NewRequest("POST", "./uploadChunk", &pReporter)
+	r, err := http.NewRequest("POST", "./uploadChunk", body)
 	if err != nil {
 		return err
 	}
@@ -311,20 +305,4 @@ func jsError(message string) js.Value {
 	return errVal
 }
 
-type progressReporter struct {
-	r                 io.Reader
-	fileSizeEncrypted int64
-	sent              int64
-	file              js.Value
-}
-
-func (pr *progressReporter) Read(p []byte) (int, error) {
-	n, err := pr.r.Read(p)
-	pr.sent = pr.sent + int64(n)
-	pr.report()
-	return n, err
-}
-
-func (pr *progressReporter) report() {
-	go js.Global().Get("dropzoneObject").Call("emit", "uploadprogress", pr.file, pr.sent*100/pr.fileSizeEncrypted, pr.sent)
-}
+//	js.Global().Get("dropzoneObject").Call("emit", "uploadprogress", pr.file, pr.sent*100/pr.fileSizeEncrypted, pr.sent)

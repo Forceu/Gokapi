@@ -50,7 +50,6 @@ func main() {
 	authentication.Init(configuration.Get().Authentication)
 	createSsl(passedFlags)
 	initCloudConfig(passedFlags)
-
 	go storage.CleanUp(true)
 	logging.AddString("Gokapi started")
 	go webserver.Start()
