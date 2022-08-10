@@ -157,7 +157,7 @@ function setE2eUpload() {
             let finishedReading = false;
             let chunkIndex = 0;
 
-            uploadChunk(file, 0, encryptedSize, plainTextSize, dropzoneObject.options.chunkSize);
+            uploadChunk(file, 0, encryptedSize, plainTextSize, dropzoneObject.options.chunkSize, 0);
 
         });
     }
@@ -189,7 +189,7 @@ function decryptFileEntry(id, filename, cipher) {
 }
 
 
-async function uploadChunk(file, chunkIndex, encryptedTotalSize, plainTextSize, chunkSize) {
+async function uploadChunk(file, chunkIndex, encryptedTotalSize, plainTextSize, chunkSize, bytesWritten) {
     let isLastChunk = false;
     let bytesReadPlaintext = chunkIndex * chunkSize;
     let readEnd = bytesReadPlaintext + chunkSize;
@@ -206,16 +206,23 @@ async function uploadChunk(file, chunkIndex, encryptedTotalSize, plainTextSize, 
 
     let data = await dataBlock.arrayBuffer();
 
-    let err = await GokapiE2EUploadChunk(file.upload.uuid, data.byteLength, isLastChunk, file, new Uint8Array(data));
+    let dataEnc = await GokapiE2EUploadChunk(file.upload.uuid, data.byteLength, isLastChunk, new Uint8Array(data));
+    if (dataEnc instanceof Error) {
+        displayError(data);
+        return;
+    }
+    let err = await postChunk(file.upload.uuid, bytesWritten, encryptedTotalSize, dataEnc);
     if (err !== null) {
         displayError(err);
         return;
     }
+    bytesWritten = bytesWritten + dataEnc.byteLength;
     data = null;
+    dataEnc = null;
     dataBlock = null;
 
     if (!isLastChunk) {
-        uploadChunk(file, chunkIndex + 1, encryptedTotalSize, plainTextSize, chunkSize)
+        await uploadChunk(file, chunkIndex + 1, encryptedTotalSize, plainTextSize, chunkSize, bytesWritten, file)
     } else {
         file.status = Dropzone.SUCCESS;
         dropzoneObject.emit("success", file, 'success', null);
@@ -224,4 +231,35 @@ async function uploadChunk(file, chunkIndex, encryptedTotalSize, plainTextSize, 
 
         dropzoneObject.options.chunksUploaded(file, () => {});
     }
+}
+
+async function postChunk(uuid, bytesWritten, encSize, data, file) {
+    return new Promise(resolve => {
+        let formData = new FormData();
+        formData.append("dztotalfilesize", encSize)
+        formData.append("dzchunkbyteoffset", bytesWritten)
+        formData.append("dzuuid", uuid)
+        formData.append("file", new Blob([data]), "encrypted.file");
+
+        let xhr = new XMLHttpRequest();
+        xhr.open("POST", "./uploadChunk");
+
+        let progressObj = xhr.upload != null ? xhr.upload : xhr;
+        progressObj.onprogress = (e) =>
+            dropzoneObject.emit("uploadprogress", file, (100 * (e.loaded + bytesWritten)) / encSize, e.loaded + bytesWritten);
+
+
+
+        xhr.onreadystatechange = function() {
+            if (this.readyState == 4) {
+                if (this.status == 200) {
+                    resolve(null);
+                } else { //TODO error handling
+                    console.log(xhr.responseText);
+                    resolve(xhr.responseText);
+                }
+            }
+        };
+        xhr.send(formData);
+    });
 }

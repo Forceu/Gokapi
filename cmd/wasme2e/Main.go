@@ -88,8 +88,7 @@ func UploadChunk(this js.Value, args []js.Value) interface{} {
 	size := int64(args[1].Float())
 	isLastChunk := args[2].Bool()
 	chunkContent := make([]byte, size)
-	fileObj := args[3]
-	js.CopyBytesToGo(chunkContent, args[4])
+	js.CopyBytesToGo(chunkContent, args[3])
 
 	// Handler for the Promise
 	// We need to return a Promise because HTTP requests are blocking in Go
@@ -114,17 +113,15 @@ func UploadChunk(this js.Value, args []js.Value) interface{} {
 				}
 			}
 			encryptedContent := uploads[id].writerInput.Bytes()
-			err = postChunk(&encryptedContent, uploadInfo.id, uploadInfo.totalFilesizeEncrypted, uploadInfo.bytesSent, fileObj)
-			if err != nil {
-				reject.Invoke(jsError(err.Error()))
-				return
-			}
+
 			uploadInfo.bytesSent = uploadInfo.bytesSent + int64(len(encryptedContent))
 			uploadInfo.writerInput.Reset()
 			uploads[id] = uploadInfo
 			chunkContent = nil
 
-			resolve.Invoke(nil)
+			jsResult := js.Global().Get("Uint8Array").New(len(encryptedContent))
+			js.CopyBytesToJS(jsResult, encryptedContent)
+			resolve.Invoke(jsResult)
 		}()
 		return nil
 	})
@@ -304,5 +301,3 @@ func jsError(message string) js.Value {
 	errVal := errConstructor.New(message)
 	return errVal
 }
-
-//	js.Global().Get("dropzoneObject").Call("emit", "uploadprogress", pr.file, pr.sent*100/pr.fileSizeEncrypted, pr.sent)
