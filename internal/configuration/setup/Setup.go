@@ -115,15 +115,17 @@ func startSetupWebserver() {
 		Handler:      mux,
 	}
 	fmt.Println("Please open http://" + resolveHostIp() + ":" + port + "/setup to setup Gokapi.")
+	listener, err := net.Listen("tcp", ":"+port)
+	if err != nil {
+		log.Fatalf("Setup Webserver: %v", err)
+	}
 	if statusChannel != nil {
 		go func() {
-			time.Sleep(2 * time.Second)
+			time.Sleep(time.Second)
 			statusChannel <- true
 		}()
 	}
-
-	// always returns error. ErrServerClosed on graceful close
-	err := srv.ListenAndServe()
+	err = srv.Serve(listener)
 	if err != nil && err != http.ErrServerClosed {
 		log.Fatalf("Setup Webserver: %v", err)
 	}
