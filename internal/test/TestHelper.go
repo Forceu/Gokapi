@@ -5,7 +5,6 @@ package test
 import (
 	"bytes"
 	"io"
-	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -262,7 +261,7 @@ func checkResponse(t MockT, response *http.Response, config HttpTestConfig) {
 		t.Errorf("Status Code - Got: %d Want: %d", config.ResultCode, response.StatusCode)
 	}
 
-	content, err := ioutil.ReadAll(response.Body)
+	content, err := io.ReadAll(response.Body)
 	IsNil(t, err)
 	if config.IsHtml && !bytes.Contains(content, []byte("</html>")) {
 		t.Errorf(config.Url + ": Incorrect response, no HTML tag")

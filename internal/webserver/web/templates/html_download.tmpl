@@ -5,7 +5,11 @@
         <div class="col">
 		<div class="card" style="width: 18rem;">
 		  <div class="card-body">
-		    <h4 class="card-title">{{ .Name }}</h4>
+{{ if .EndToEndEncryption }}
+		    <h4 id="filename" class="card-title">Decrypting...</h4>
+{{ else }}
+		    <h4 id="filename" class="card-title">{{ .Name }}</h4>
+{{ end }}
 		    <p class="card-text">Filesize: {{ .Size }}</p><br>
 			<div id="buttondiv">
 {{ if .ClientSideDecryption }}
@@ -35,73 +39,96 @@
 		
 		
 		<script>
-			const go = new Go(); // Defined in wasm_exec.js
-			const WASM_URL = 'main.wasm?v=1';
+{{ if .EndToEndEncryption }}
+		parseHashValue({{.Id}});
+{{ end }}
+		
+		const go = new Go(); // Defined in wasm_exec.js
+		const WASM_URL = 'main.wasm?v=1';
 
-			var wasm;
+		var wasm;
 
-			try {
-				if ('instantiateStreaming' in WebAssembly) {
-					WebAssembly.instantiateStreaming(fetch(WASM_URL), go.importObject).then(function (obj) {
-						wasm = obj.instance;
-						go.run(wasm);
-						document.getElementById("wasmspinner").style.display = "none";
-						document.getElementById("downloadbutton").disabled = false;
-						document.getElementById("downloadbutton").innerHTML = "Download";
-					})
-				} else {
-					fetch(WASM_URL).then(resp =>
-						resp.arrayBuffer()
-					).then(bytes =>
-						WebAssembly.instantiate(bytes, go.importObject).then(function (obj) {
-							wasm = obj.instance;
-							go.run(wasm);
-						})
-					)
-				}
-		    	} catch (err) {
-				displayError(err);
-		    	}
+		try {
+		    if ('instantiateStreaming' in WebAssembly) {
+			WebAssembly.instantiateStreaming(fetch(WASM_URL), go.importObject).then(function(obj) {
+			    wasm = obj.instance;
+			    go.run(wasm);
+			    document.getElementById("wasmspinner").style.display = "none";
+			    document.getElementById("downloadbutton").disabled = false;
+			    document.getElementById("downloadbutton").innerHTML = "Download";
+			})
+		    } else {
+			fetch(WASM_URL).then(resp =>
+			    resp.arrayBuffer()
+			).then(bytes =>
+			    WebAssembly.instantiate(bytes, go.importObject).then(function(obj) {
+				wasm = obj.instance;
+				go.run(wasm);
+				document.getElementById("wasmspinner").style.display = "none";
+				document.getElementById("downloadbutton").disabled = false;
+				document.getElementById("downloadbutton").innerHTML = "Download";
+			    })
+			)
+		    }
+		} catch (err) {
+		    displayError(err);
+		}
+
+
+		async function DownloadEncrypted() {
+		    try {
+{{ if .EndToEndEncryption }}
+			let key = localStorage.getItem("key-{{ .Id }}");
+			localStorage.removeItem("key-{{ .Id }}"); 
+			let filename = localStorage.getItem("fn-{{ .Id }}");
+			localStorage.removeItem("fn-{{ .Id }}"); 
+{{ else }}
+			let key = "{{ .Cipher }}";
+{{ end }}
+			const response  = await GokapiDecrypt(key, "./downloadFile?id={{ .Id }}");
+			if (response instanceof Error) {
+			    throw response;
+			}
 			
-			
-			async function DownloadEncrypted() {
-			    try {
-				const response = await GokapiDecrypt({{ .Cipher }}, "./downloadFile?id={{ .Id }}");
-				const readableStream = response.body;
-				const reader = response.body.getReader();
+			const readableStream = response.body;
+			const reader = response.body.getReader();
 {{ if .UsesHttps }}
-				streamSaver.mitm = './serviceworker/index.html';
+			streamSaver.mitm = './serviceworker/index.html';
 {{  else }}
-				console.log("Gokapi is not being accessed through https, therefore an external serviceworker will be used");
-				streamSaver.mitm = 'https://bulling-it.de/gokapi/serviceworker.html';
+			console.log("Gokapi is not being accessed through https, therefore an external serviceworker will be used");
+			streamSaver.mitm = 'https://forceu.github.io/Gokapi/internal/webserver/web/static/serviceworker/index.html';
 {{  end }}
-				const fileStream = streamSaver.createWriteStream({{.Name }});
-				     
-				  window.writer = fileStream.getWriter();
+{{ if .EndToEndEncryption }}
+			const fileStream = streamSaver.createWriteStream(filename);
+{{ else }}
+			const fileStream = streamSaver.createWriteStream({{.Name }});
+{{ end }}
+					     
+			window.writer = fileStream.getWriter();
 
-				  const pump = () => reader.read()
-				    .then(res => res.done
-				      ? writer.close()
-				      : writer.write(res.value).then(pump))
+			const pump = () => reader.read()
+			    .then(res => res.done ?
+				writer.close() :
+				writer.write(res.value).then(pump))
 
-				  pump();
-			    } catch (err) {
-				displayError(err);
-			    }
-			}
+			pump();
+		    } catch (err) {
+			displayError(err);
+		    }
+		}
 
-			function displayError(err) {
-				document.getElementById("buttondiv").style.display = "none";
-				document.getElementById("errordiv").style.display = "block";
-				document.getElementById("errormessage").innerHTML = "<b>Error</b> "+err.toString();
-				console.error('Caught exception', err)
-			}
-			
-			
-		   function Download(button) {
-		   	button.disabled = true;
-		   	DownloadEncrypted();
-		   }   
+		function displayError(err) {
+		    document.getElementById("buttondiv").style.display = "none";
+		    document.getElementById("errordiv").style.display = "block";
+		    document.getElementById("errormessage").innerHTML = "<b>Error: </b> " + err.toString().replace(/^Error:/gi, "");
+		    console.error('Caught exception', err)
+		}
+
+
+		function Download(button) {
+		    button.disabled = true;
+		    DownloadEncrypted();
+		}
 		</script>
 {{ else }}
 
@@ -110,6 +137,11 @@
 		     button.disabled = true;
 		     location.href = "./downloadFile?id={{ .Id }}";
 		   }   
+		</script>
+{{ end }}
+{{ if .EndToEndEncryption }}
+		<script> 
+			document.getElementById("filename").innerText = localStorage.getItem("fn-{{ .Id }}");
 		</script>
 {{ end }}
 

@@ -115,7 +115,7 @@ func list(w http.ResponseWriter) {
 	timeNow := time.Now().Unix()
 	for _, element := range database.GetAllMetadata() {
 		if !storage.IsExpiredFile(element, timeNow) {
-			file, err := element.ToFileApiOutput()
+			file, err := element.ToFileApiOutput(storage.RequiresClientDecryption(element))
 			helper.Check(err)
 			validFiles = append(validFiles, file)
 		}
@@ -154,7 +154,7 @@ func duplicateFile(w http.ResponseWriter, request apiRequest) {
 		sendError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	publicOutput, err := newFile.ToFileApiOutput()
+	publicOutput, err := newFile.ToFileApiOutput(storage.RequiresClientDecryption(newFile))
 	helper.Check(err)
 	result, err := json.Marshal(publicOutput)
 	helper.Check(err)

@@ -18,7 +18,7 @@ import (
 func main() {
 	js.Global().Set("GokapiEncrypt", js.FuncOf(Encrypt))
 	js.Global().Set("GokapiDecrypt", js.FuncOf(Decrypt))
-	println("WASM module loaded")
+	println("WASM Downloader module loaded")
 	// Prevent the function from returning, which is required in a wasm module
 	select {}
 }
@@ -175,11 +175,4 @@ func jsError(message string) js.Value {
 	errConstructor := js.Global().Get("Error")
 	errVal := errConstructor.New(message)
 	return errVal
-}
-
-// Returns a byte slice from a js.Value
-func bytesFromJs(arg js.Value) []byte {
-	out := make([]byte, arg.Length())
-	js.CopyBytesToGo(out, arg)
-	return out
 }

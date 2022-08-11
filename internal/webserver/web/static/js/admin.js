@@ -1,7 +1,7 @@
 var clipboard = new ClipboardJS('.btn');
 
-
 var dropzoneObject;
+var isE2EEnabled = false;
 
 Dropzone.options.uploaddropzone = {
     paramName: "file",
@@ -12,17 +12,21 @@ Dropzone.options.uploaddropzone = {
     },
     init: function() {
         dropzoneObject = this;
-        this.on("sending", function(file, xhr, formData) {
-            formData.append("allowedDownloads", document.getElementById("allowedDownloads").value);
-            formData.append("expiryDays", document.getElementById("expiryDays").value);
-            formData.append("password", document.getElementById("password").value);
-            formData.append("isUnlimitedDownload", !document.getElementById("enableDownloadLimit").checked);
-            formData.append("isUnlimitedTime", !document.getElementById("enableTimeLimit").checked);
-        });
+        this.on("sending", function(file, xhr, formData) {});
+        // This will be executed after the page has loaded. If e2e ist enabled, the end2end_admin.js has set isE2EEnabled to true
+        if (isE2EEnabled) {
+            dropzoneObject.disable();
+            dropzoneObject.options.dictDefaultMessage = "Loading end-to-end encryption...";
+            document.getElementsByClassName("dz-button")[0].innerText = "Loading end-to-end encryption...";
+            setE2eUpload();
+        }
     },
 };
 
 document.onpaste = function(event) {
+    if (dropzoneObject.disabled) {
+        return;
+    }
     var items = (event.clipboardData || event.originalEvent.clipboardData).items;
     for (index in items) {
         var item = items[index];
@@ -74,24 +78,49 @@ function sendChunkComplete(file, done) {
     formData.append("isUnlimitedDownload", !document.getElementById("enableDownloadLimit").checked);
     formData.append("isUnlimitedTime", !document.getElementById("enableTimeLimit").checked);
     formData.append("chunkid", file.upload.uuid);
-    formData.append("filesize", file.size);
-    formData.append("filename", file.name);
-    formData.append("filecontenttype", file.type);
+
+    if (file.isEndToEndEncrypted === true) {
+        formData.append("filesize", file.sizeEncrypted);
+        formData.append("filename", "Encrypted File");
+        formData.append("filecontenttype", "");
+        formData.append("isE2E", "true");
+        formData.append("realSize", file.size);
+    } else {
+        formData.append("filesize", file.size);
+        formData.append("filename", file.name);
+        formData.append("filecontenttype", file.type);
+    }
 
     xhr.onreadystatechange = function() {
         if (this.readyState == 4) {
             if (this.status == 200) {
-                Dropzone.instances[0].removeFile(file);
-                addRow(xhr.response);
+                let fileId = addRow(xhr.response);
+                if (file.isEndToEndEncrypted === true) {
+                    try {
+                        let result = GokapiE2EAddFile(file.upload.uuid, fileId, file.name);
+                        if (result instanceof Error) {
+                            throw result;
+                        }
+                        let info = GokapiE2EInfoEncrypt();
+                        if (info instanceof Error) {
+                            throw info;
+                        }
+                        storeE2EInfo(info);
+                    } catch (err) {
+                        file.accepted = false;
+                        dropzoneObject._errorProcessing([file], err);
+                        return;
+                    }
+                    GokapiE2EDecryptMenu();
+                }
+                dropzoneObject.removeFile(file);
                 done();
             } else {
                 file.accepted = false;
-                Dropzone.instances[0]._errorProcessing([file], getErrorMessage(xhr.responseText));
+                dropzoneObject._errorProcessing([file], getErrorMessage(xhr.responseText));
             }
         }
     };
-
-
     xhr.send(urlencodeFormData(formData));
 }
 
@@ -154,6 +183,7 @@ function addRow(jsonText) {
         lockIcon = " &#128274;";
     }
     cellFilename.innerText = item.Name;
+    cellFilename.id = "cell-name-" + item.Id;
     cellFileSize.innerText = item.Size;
     if (item.UnlimitedDownloads) {
         cellRemainingDownloads.innerText = "Unlimited";
@@ -166,9 +196,9 @@ function addRow(jsonText) {
         cellStoredUntil.innerText = item.ExpireAtString;
     }
     cellDownloadCount.innerHTML = '0';
-    cellUrl.innerHTML = '<a  target="_blank" style="color: inherit" href="' + jsonObject.Url + item.Id + '">' + jsonObject.Url + item.Id + '</a>' + lockIcon;
+    cellUrl.innerHTML = '<a  target="_blank" style="color: inherit" id="url-href-' + item.Id + '" href="' + jsonObject.Url + item.Id + '">' + item.Id + '</a>' + lockIcon;
 
-    let buttons = "<button type=\"button\" data-clipboard-text=\"" + jsonObject.Url + item.Id + "\" class=\"copyurl btn btn-outline-light btn-sm\">Copy URL</button> ";
+    let buttons = '<button type="button" id="url-button-' + item.Id + '"  data-clipboard-text="' + jsonObject.Url + item.Id + '" class="copyurl btn btn-outline-light btn-sm">Copy URL</button>';
     if (item.HotlinkId !== "") {
         buttons = buttons + '<button type="button" data-clipboard-text="' + jsonObject.HotlinkUrl + item.HotlinkId + '" class="copyurl btn btn-outline-light btn-sm">Copy Hotlink</button> ';
     } else {
@@ -189,4 +219,5 @@ function addRow(jsonText) {
     cellDownloadCount.style.backgroundColor = "green"
     cellUrl.style.backgroundColor = "green"
     cellButtons.style.backgroundColor = "green"
+    return item.Id;
 }

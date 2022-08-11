@@ -1,0 +1,129 @@
+{{define "e2esetup"}}
+{{template "header" .}}
+
+ 
+	<script src="./js/end2end_admin.js?v=1"></script>
+	<script src="./js/streamsaver.js"></script>
+	<script src="./js/wasm_exec.js"></script>
+	<script>
+		document.title = "Gokapi - E2E Setup";
+	</script>
+	
+{{ if not .HasBeenSetup }}	
+      <div class="row">
+        <div class="col">
+		<div class="card" style="width: 50%;">
+		  <div class="card-body">
+		    <h2 class="card-title">End-to-End Encryption Setup</h2>
+		    <br><br>
+		    <p class="card-text">Your password for decryption is:<br>
+			<b><kbd id="decryptionpw">Generating.......</kbd></b> <button type="button" id="downpw" class="btn btn-outline-light btn-sm" disabled>&#x2B73;</button></p>
+			<div id="errordiv" style="display:none">
+				<span id="errormessage" style="color:red"></span>
+				<br>
+				<br>
+			</div>
+		    <b>Save this password to a secure location, without it you will not be able to decrypt/share your files if your browser data gets deleted or you login from a different machine! This password will only be shown once.</b>
+		    <br><br>If you need to reset the password, run the Gokapi setup again.
+		    <br><br><button type="button" id="genbutton" class="btn btn-light" disabled onclick="window.location='./admin';">Continue</button>
+		    </div>
+		  </div>
+		</div>
+	    </div>
+	    
+    
+    <script>
+	function downloadKey(key) {
+	    const uInt8 = new TextEncoder().encode(key)
+
+	    const fileStream = streamSaver.createWriteStream('GokapiE2E.txt', {
+		size: uInt8.byteLength
+	    })
+
+	    const writer = fileStream.getWriter()
+	    writer.write(uInt8)
+	    writer.close()
+
+	}
+
+	function newKey() {
+	    localStorage.clear();
+	    let key;
+	    try {
+		key = GokapiE2EGetNewCipher(true);
+		if (key instanceof Error) {
+		    throw (key);
+		}
+		document.getElementById("decryptionpw").innerText = key;
+		let data = GokapiE2EInfoEncrypt();
+		if (data instanceof Error) {
+		    throw (data);
+		}
+		storeE2EInfo(data);
+	    } catch (err) {
+		displayError(err);
+		return;
+
+	    }
+	    localStorage.setItem("e2ekey", key);
+	    document.getElementById("downpw").onclick = function() {
+		downloadKey(key);
+	    }
+	    document.getElementById("downpw").disabled = false;
+	    document.getElementById("genbutton").disabled = false;
+	}
+
+	loadWasm(newKey);
+	
+    </script>
+    
+{{ else }}	    
+      <div class="row">
+        <div class="col">
+		<div class="card" style="width: 50%;">
+		  <div class="card-body">
+		    <h2 class="card-title">End-to-End Encryption Setup</h2>
+		    <br><br>
+		    <p class="card-text">End-to-end encryption has been set up, however no key was found on the local machine. Please enter the password in the text field below. If you do not know the decryption password, please re-run the Gokapi setup to reset the password.</p>
+		      <div class="mb-3"><br>
+    			<input type="password" class="form-control" id="password" name="password">
+			<div id="errordiv" style="display:none">
+				<br>
+				<span id="errormessage" style="color:red"></span>
+				<br>
+			</div>
+		    <br><br><button type="button"  id="enterpwbutton" class="btn btn-light"  onclick="saveKey()" >Save</button>
+  			</div>
+		  </div>
+		</div>
+	    </div>
+    </div>
+    
+    
+    <script>
+	function saveKey() {
+	    localStorage.clear();
+	    let key = document.getElementById("password").value;
+	    localStorage.setItem("e2ekey", key);
+
+	    let output = GokapiE2ESetCipher(key);
+	    if (output instanceof Error) {
+		localStorage.removeItem("e2ekey"); 
+		document.getElementById("password").value = "";
+		displayError(output);
+		return;
+	    }
+	    window.location = './admin';
+
+	}
+	
+	loadWasm(function() {
+	    document.getElementById("enterpwbutton").disabled = false;
+	});
+	
+	
+	
+    </script>
+{{ end }}
+{{template "footer"}}    
+{{end}}

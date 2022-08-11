@@ -400,8 +400,9 @@ function TestAWS(button) {
 							<option value="2" >Level 1 - Local encryption / Key on startup</option>
 							<option value="3" >Level 2 - Full encryption / Key locally</option>
 							<option value="4" >Level 2 - Full encryption / Key on startup</option>
-							<!-- <option value="5" disabled>Level 3 - End-To-End encryption (not implemented yet)</option> -->
+							<option value="5" >Level 3 - End-To-End encryption</option>
 					</select>
+					
 					
 					<div id="encinfo0">
 					<p><br><br><b>Level 0 - No encryption</b>
@@ -476,17 +477,26 @@ function TestAWS(button) {
 					
 					
 					<div id="encinfo5">
-					<p><br><br><b>Level 3 - NOT IMPLEMENTED YET</b>
+					<p><br><br><b>Level 3 - End-To-End encryption</b>
 					<ul>
 					  <li>All files are encrypted end-to-end</li>
 					  <li>Encryption and decryption is done client-side and requires 2MB file to load on first visit</li>
 					  <li>Does not support hotlinks to files</li>
 					  <li>Does not support download progress bar</li>
 					  <li>Gokapi starts without user input</li>
+					  <li>Files uploaded through the API have to be unencrypted</li>
 					  <li>Password cannot be read with access to Gokapi configuration</li>
-					  <li><b>Warning:</b> During upload temporary files containing the plaintext content may be created.</li>
+					  <li><b>Warning:</b> Encryption keys are stored in plain-text on this machine</li>
 					  <li><b>Warning:</b> Encryption has not been audited.</li>
 					</ul></p>
+							
+{{ if not .IsInitialSetup }}
+				     <div id="e2eclear"><br>
+				     <input name="cleare2e" type="checkbox" value="true"/>
+				     <span>&nbsp;Reset end-to-end password (you will lose access to already encrypted files)</span>
+				     </div>
+
+{{ end }}
 					</div>
 
 				</div>

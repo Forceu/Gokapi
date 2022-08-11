@@ -21,7 +21,6 @@ import (
 	"github.com/forceu/gokapi/internal/webserver/downloadstatus"
 	"github.com/jinzhu/copier"
 	"io"
-	"io/ioutil"
 	"log"
 	"mime/multipart"
 	"net/http"
@@ -43,7 +42,7 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 		return models.File{}, ErrorFileTooLarge
 	}
 	var hasBeenRenamed bool
-	reader, hash, tempFile, encInfo := generateHash(fileContent, fileHeader)
+	reader, hash, tempFile, encInfo := generateHashAndEncrypt(fileContent, fileHeader)
 	defer deleteTempFile(tempFile, &hasBeenRenamed)
 	header, err := chunking.ParseMultipartHeader(fileHeader)
 	if err != nil {
@@ -129,7 +128,6 @@ func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, uploadRequ
 		return models.File{}, errors.New("empty chunk id provided")
 	}
 	if !helper.FileExists(configuration.Get().DataDir + "/chunk-" + chunkId) {
-		time.Sleep(1 * time.Second)
 		return models.File{}, errors.New("chunk file does not exist")
 	}
 	file, err := chunking.GetFileByChunkId(chunkId)
@@ -142,10 +140,15 @@ func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, uploadRequ
 		return models.File{}, err
 	}
 
-	hash, err := hashFile(file, isEncryptionRequested())
-	if err != nil {
-		_ = file.Close()
-		return models.File{}, err
+	var hash string
+	if uploadRequest.IsEndToEndEncrypted {
+		hash = "e2e-" + helper.GenerateRandomString(20)
+	} else {
+		hash, err = hashFile(file, isEncryptionRequested())
+		if err != nil {
+			_ = file.Close()
+			return models.File{}, err
+		}
 	}
 
 	metaData := createNewMetaData(hash, fileHeader, uploadRequest)
@@ -272,6 +275,10 @@ func createNewMetaData(hash string, fileHeader chunking.FileHeader, uploadReques
 		UnlimitedDownloads: uploadRequest.UnlimitedDownload,
 		PasswordHash:       configuration.HashPassword(uploadRequest.Password, true),
 	}
+	if uploadRequest.IsEndToEndEncrypted {
+		file.Encryption = models.EncryptionInfo{IsEndToEndEncrypted: true, IsEncrypted: true}
+		file.Size = helper.ByteCountSI(uploadRequest.RealSize)
+	}
 	if aws.IsAvailable() {
 		if !configuration.Get().PicturesAlwaysLocal || !isPictureFile(file.Name) {
 			aws.AddBucketName(&file)
@@ -380,11 +387,11 @@ func hashFile(input io.Reader, useSalt bool) (string, error) {
 
 // Generates the SHA1 hash of an uploaded file and returns a reader for the file, the hash and if a temporary file was created the
 // reference to that file.
-func generateHash(fileContent io.Reader, fileHeader *multipart.FileHeader) (io.Reader, []byte, *os.File, models.EncryptionInfo) {
+func generateHashAndEncrypt(fileContent io.Reader, fileHeader *multipart.FileHeader) (io.Reader, []byte, *os.File, models.EncryptionInfo) {
 	hash := sha1.New()
 	encInfo := models.EncryptionInfo{}
 	if fileHeader.Size <= int64(configuration.Get().MaxMemory)*1024*1024 {
-		content, err := ioutil.ReadAll(fileContent)
+		content, err := io.ReadAll(fileContent)
 		helper.Check(err)
 		hash.Write(content)
 		if isEncryptionRequested() {
@@ -431,6 +438,8 @@ func isEncryptionRequested() bool {
 		fallthrough
 	case encryption.FullEncryptionInput:
 		return true
+	case encryption.EndToEndEncryption:
+		return false
 	default:
 		log.Fatalln("Unknown encryption level requested")
 		return false
@@ -501,7 +510,7 @@ func RequiresClientDecryption(file models.File) bool {
 	if !file.Encryption.IsEncrypted {
 		return false
 	}
-	return !file.IsLocalStorage()
+	return !file.IsLocalStorage() || file.Encryption.IsEndToEndEncrypted
 }
 
 // ServeFile subtracts a download allowance and serves the file to the browser

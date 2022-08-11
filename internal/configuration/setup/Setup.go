@@ -9,6 +9,7 @@ import (
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
 	"github.com/forceu/gokapi/internal/configuration/configupgrade"
+	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/encryption"
 	"github.com/forceu/gokapi/internal/environment"
 	"github.com/forceu/gokapi/internal/helper"
@@ -29,11 +30,13 @@ import (
 
 // webserverDir is the embedded version of the "static" folder
 // This contains JS files, CSS, images etc for the setup
+//
 //go:embed static
 var webserverDirEmb embed.FS
 
 // templateFolderEmbedded is the embedded version of the "templates" folder
 // This contains templates that Gokapi uses for creating the HTML output
+//
 //go:embed templates
 var templateFolderEmbedded embed.FS
 
@@ -42,7 +45,8 @@ var isInitialSetup = true
 var username string
 var password string
 
-var serverStarted = false
+// statusChannel is only used for testing to indicate to the unit test that the server has been started or shut down.
+var statusChannel chan bool = nil
 
 const debugDisableAuth = false
 
@@ -111,16 +115,21 @@ func startSetupWebserver() {
 		Handler:      mux,
 	}
 	fmt.Println("Please open http://" + resolveHostIp() + ":" + port + "/setup to setup Gokapi.")
-	go func() {
-		time.Sleep(time.Second)
-		serverStarted = true
-	}()
+	if statusChannel != nil {
+		go func() {
+			time.Sleep(2 * time.Second)
+			statusChannel <- true
+		}()
+	}
+
 	// always returns error. ErrServerClosed on graceful close
 	err := srv.ListenAndServe()
 	if err != nil && err != http.ErrServerClosed {
 		log.Fatalf("Setup Webserver: %v", err)
 	}
-	serverStarted = false
+	if statusChannel != nil {
+		statusChannel <- false
+	}
 }
 
 func resolveHostIp() string {
@@ -408,6 +417,12 @@ func parseEncryptionAndDelete(result *models.Configuration, formObjects *[]jsonF
 		if err != nil {
 			return err
 		}
+		if encLevel == encryption.EndToEndEncryption {
+			deleteE2eInfo, _ := getFormValueString(formObjects, "cleare2e")
+			if deleteE2eInfo == "true" {
+				database.DeleteEnd2EndInfo()
+			}
+		}
 	}
 
 	if !generateNewEncConfig {
@@ -455,10 +470,6 @@ func parseEncryptionLevel(formObjects *[]jsonFormObject) (int, error) {
 	}
 	if encLevel < encryption.NoEncryption || encLevel > encryption.EndToEndEncryption {
 		return 0, errors.New("invalid encryption level selected")
-	}
-
-	if encLevel == encryption.EndToEndEncryption {
-		return 0, errors.New("end to end encryption not implemented yet") // TODO
 	}
 	return encLevel, nil
 }
