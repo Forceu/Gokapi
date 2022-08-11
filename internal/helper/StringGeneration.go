@@ -41,7 +41,7 @@ func generateRandomBytes(n int) ([]byte, error) {
 
 // GenerateRandomString returns a URL-safe, base64 encoded securely generated random string.
 func GenerateRandomString(length int) string {
-	b, err := generateRandomBytes(length)
+	b, err := generateRandomBytes(length + 10)
 	if err != nil {
 		return generateUnsafeId(length)
 	}
