@@ -302,8 +302,8 @@ func TestIntegration(t *testing.T) {
 	for serverStarted {
 		time.Sleep(100 * time.Millisecond)
 		counter++
-		if counter > 100 {
-			t.Fatal("Unbroken loop")
+		if counter > 200 {
+			t.Fatal("Server timed out")
 		}
 	}
 	test.FileExists(t, "test/config.json")
@@ -384,8 +384,8 @@ func TestIntegration(t *testing.T) {
 	for serverStarted {
 		time.Sleep(100 * time.Millisecond)
 		counter++
-		if counter > 100 {
-			t.Fatal("Unbroken loop")
+		if counter > 200 {
+			t.Fatal("Server timed out")
 		}
 	}
 	test.FileExists(t, "test/config.json")
@@ -438,8 +438,8 @@ func TestIntegration(t *testing.T) {
 	for serverStarted {
 		time.Sleep(100 * time.Millisecond)
 		counter++
-		if counter > 100 {
-			t.Fatal("Unbroken loop")
+		if counter > 200 {
+			t.Fatal("Server timed out")
 		}
 	}
 

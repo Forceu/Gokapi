@@ -52,7 +52,7 @@ func GenerateRandomString(length int) string {
 	return result[:length]
 }
 
-// ByteCountSI converts bytes to a human readable format
+// ByteCountSI converts bytes to a human-readable format
 func ByteCountSI(b int64) string {
 	const unit = 1024
 	if b < unit {

@@ -1,6 +1,6 @@
 package models
 
-// E2EInfoPlainText is stored locally and will be encrpyted before storing on server
+// E2EInfoPlainText is stored locally and will be encrypted before storing on server
 type E2EInfoPlainText struct {
 	Files []E2EFile `json:"files"`
 }
