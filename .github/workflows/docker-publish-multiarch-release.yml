@@ -3,7 +3,7 @@ name: Docker Publish Release Multiarch
 on:
   workflow_dispatch:
   release:
-    types: [published]
+    types: [released]
 
 
 

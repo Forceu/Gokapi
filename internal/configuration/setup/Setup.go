@@ -121,7 +121,7 @@ func startSetupWebserver() {
 	}
 	if statusChannel != nil {
 		go func() {
-			time.Sleep(time.Second)
+			time.Sleep(2 * time.Second)
 			statusChannel <- true
 		}()
 	}
