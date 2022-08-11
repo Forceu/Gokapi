@@ -46,6 +46,9 @@ func GenerateRandomString(length int) string {
 		return generateUnsafeId(length)
 	}
 	result := cleanRandomString(base64.URLEncoding.EncodeToString(b))
+	if len(result) < length {
+		return GenerateRandomString(length)
+	}
 	return result[:length]
 }
 
