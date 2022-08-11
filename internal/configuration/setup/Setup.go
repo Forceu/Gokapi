@@ -117,7 +117,7 @@ func startSetupWebserver() {
 	fmt.Println("Please open http://" + resolveHostIp() + ":" + port + "/setup to setup Gokapi.")
 	if statusChannel != nil {
 		go func() {
-			time.Sleep(time.Second)
+			time.Sleep(2 * time.Second)
 			statusChannel <- true
 		}()
 	}
