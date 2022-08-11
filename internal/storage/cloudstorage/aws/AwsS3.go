@@ -6,13 +6,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/forceu/gokapi/internal/models"
 	"io"
 	"net/http"
@@ -32,6 +31,9 @@ const IsMockApi = false
 
 // Init reads the credentials for AWS. Returns true if valid
 func Init(config models.AwsConfig) bool {
+	if config.Endpoint != "" && !strings.HasPrefix(config.Endpoint, "http") {
+		config.Endpoint = "https://" + config.Endpoint
+	}
 	awsConfig = config
 	ok, err := IsValidLogin(config)
 	if err != nil {
@@ -78,22 +80,42 @@ func IsValidLogin(config models.AwsConfig) (bool, error) {
 	return true, nil
 }
 
-func createSession() *session.Session {
-	s3Config := &aws.Config{
-		Credentials:      credentials.NewStaticCredentials(awsConfig.KeyId, awsConfig.KeySecret, ""),
-		Endpoint:         aws.String(awsConfig.Endpoint),
-		Region:           aws.String(awsConfig.Region),
-		S3ForcePathStyle: aws.Bool(true),
+func createClient() (*s3.Client, error) {
+	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
+		if awsConfig.Endpoint != "" && service == s3.ServiceID && region == awsConfig.Region {
+			return aws.Endpoint{
+				PartitionID:   "aws",
+				URL:           awsConfig.Endpoint,
+				SigningRegion: awsConfig.Region,
+			}, nil
+		}
+		return aws.Endpoint{}, &aws.EndpointNotFoundError{}
+	})
+
+	cfg, err := config.LoadDefaultConfig(context.TODO(),
+		config.WithRegion(awsConfig.Region),
+		config.WithEndpointResolverWithOptions(customResolver),
+		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(awsConfig.KeyId, awsConfig.KeySecret, "")),
+	)
+	if err != nil {
+		return nil, err
 	}
-	return session.Must(session.NewSession(s3Config))
+	client := s3.NewFromConfig(cfg, func(o *s3.Options) {
+		o.UsePathStyle = true
+		o.Region = awsConfig.Region
+	})
+	return client, nil
 }
 
 // Upload uploads a file to AWS
 func Upload(input io.Reader, file models.File) (string, error) {
-	sess := createSession()
-	uploader := s3manager.NewUploader(sess)
+	client, err := createClient()
+	if err != nil {
+		return "", err
+	}
 
-	result, err := uploader.Upload(&s3manager.UploadInput{
+	uploader := manager.NewUploader(client)
+	result, err := uploader.Upload(context.TODO(), &s3.PutObjectInput{
 		Bucket: aws.String(file.AwsBucket),
 		Key:    aws.String(file.SHA1),
 		Body:   input,
@@ -106,10 +128,13 @@ func Upload(input io.Reader, file models.File) (string, error) {
 
 // Download downloads a file from AWS, used for encrypted files and testing
 func Download(writer io.WriterAt, file models.File) (int64, error) {
-	sess := createSession()
-	downloader := s3manager.NewDownloader(sess)
+	client, err := createClient()
+	if err != nil {
+		return 0, err
+	}
+	downloader := manager.NewDownloader(client)
 
-	size, err := downloader.Download(writer, &s3.GetObjectInput{
+	size, err := downloader.Download(context.TODO(), writer, &s3.GetObjectInput{
 		Bucket: aws.String(file.AwsBucket),
 		Key:    aws.String(file.SHA1),
 	})
@@ -122,28 +147,28 @@ func Download(writer io.WriterAt, file models.File) (int64, error) {
 // RedirectToDownload creates a presigned link that is valid for 15 seconds and redirects the
 // client to this url
 func RedirectToDownload(w http.ResponseWriter, r *http.Request, file models.File, forceDownload bool) error {
-	sess := createSession()
-	s3svc := s3.New(sess)
+	client, err := createClient()
+	if err != nil {
+		return err
+	}
 
 	contentDisposition := "inline; filename=\"" + file.Name + "\""
 	if forceDownload {
 		contentDisposition = "Attachment; filename=\"" + file.Name + "\""
 	}
-
-	req, _ := s3svc.GetObjectRequest(&s3.GetObjectInput{
+	presignClient := s3.NewPresignClient(client)
+	presignResult, err := presignClient.PresignGetObject(context.TODO(), &s3.GetObjectInput{
 		Bucket:                     aws.String(file.AwsBucket),
 		Key:                        aws.String(file.SHA1),
 		ResponseContentDisposition: aws.String(contentDisposition),
 		ResponseCacheControl:       aws.String("no-store"),
 		ResponseContentType:        aws.String(file.ContentType),
-	})
-
-	url, err := req.Presign(15 * time.Second)
+	}, s3.WithPresignExpires(15*time.Second))
 	if err != nil {
 		return err
 	}
 
-	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+	http.Redirect(w, r, presignResult.URL, http.StatusTemporaryRedirect)
 	return nil
 }
 
@@ -159,41 +184,42 @@ func getTimeoutContext() (context.Context, context.CancelFunc) {
 
 // FileExists returns true if the object is stored in S3
 func FileExists(file models.File) (bool, int64, error) {
-	sess := createSession()
-	svc := s3.New(sess)
+	client, err := createClient()
+	if err != nil {
+		return false, 0, err
+	}
 
 	ctx, cancelCtx := getTimeoutContext()
 	defer cancelCtx()
 
-	info, err := svc.HeadObjectWithContext(ctx, &s3.HeadObjectInput{
+	info, err := client.HeadObject(ctx, &s3.HeadObjectInput{
 		Bucket: aws.String(file.AwsBucket),
 		Key:    aws.String(file.SHA1),
 	})
 
 	if err != nil {
-		aerr, ok := err.(awserr.Error)
-		if ok {
-			if aerr.Code() == "NotFound" {
-				return false, 0, nil
-			}
+		var errorNotFound *types.NotFound
+		if errors.As(err, &errorNotFound) {
+			return false, 0, nil
 		}
-		if aerr.Code() == request.CanceledErrorCode {
-			return false, 0, errors.New("Timeout - could not connect to " + *svc.Config.Endpoint)
+		fmt.Println(err.Error()) // TODO
+		if true {                // TODO
+			return false, 0, errors.New("Timeout - could not connect to " + awsConfig.Endpoint)
 		}
 		return false, 0, err
 	}
-	return true, *info.ContentLength, nil
+	return true, info.ContentLength, nil
 }
 
 // DeleteObject deletes a file from S3
 func DeleteObject(file models.File) (bool, error) {
-	sess := createSession()
-	svc := s3.New(sess)
-
+	client, err := createClient()
+	if err != nil {
+		return false, err
+	}
 	ctx, cancelCtx := getTimeoutContext()
 	defer cancelCtx()
-
-	_, err := svc.DeleteObjectWithContext(ctx, &s3.DeleteObjectInput{
+	_, err = client.DeleteObject(ctx, &s3.DeleteObjectInput{
 		Bucket: aws.String(file.AwsBucket),
 		Key:    aws.String(file.SHA1),
 	})
@@ -206,19 +232,19 @@ func DeleteObject(file models.File) (bool, error) {
 
 // IsCorsCorrectlySet returns true if CORS rules allow download from Gokapi
 func IsCorsCorrectlySet(bucket, gokapiUrl string) (bool, error) {
-	sess := createSession()
-	svc := s3.New(sess)
+	client, err := createClient()
+	if err != nil {
+		return false, err
+	}
 	input := &s3.GetBucketCorsInput{
 		Bucket: aws.String(bucket),
 	}
-
 	ctx, cancelCtx := getTimeoutContext()
 	defer cancelCtx()
 
-	result, err := svc.GetBucketCorsWithContext(ctx, input)
+	result, err := client.GetBucketCors(ctx, input)
 	if err != nil {
-		aerr, ok := err.(awserr.Error)
-		if ok && aerr.Code() == "NoSuchCorsConfiguration" {
+		if err.Error() == "NoSuchCorsConfiguration" { // TODO
 			return false, nil
 		}
 		return false, err
@@ -226,10 +252,10 @@ func IsCorsCorrectlySet(bucket, gokapiUrl string) (bool, error) {
 
 	for _, rule := range result.CORSRules {
 		for _, origin := range rule.AllowedOrigins {
-			if *origin == "*" {
+			if origin == "*" {
 				return true, nil
 			}
-			if strings.HasPrefix(gokapiUrl, *origin) {
+			if strings.HasPrefix(gokapiUrl, origin) {
 				return true, nil
 			}
 		}
