@@ -108,16 +108,16 @@ function sendChunkComplete(file, done) {
                         storeE2EInfo(info);
                     } catch (err) {
                         file.accepted = false;
-                        Dropzone.instances[0]._errorProcessing([file], err);
+                        dropzoneObject._errorProcessing([file], err);
                         return;
                     }
                     GokapiE2EDecryptMenu();
                 }
-                Dropzone.instances[0].removeFile(file);
+                dropzoneObject.removeFile(file);
                 done();
             } else {
                 file.accepted = false;
-                Dropzone.instances[0]._errorProcessing([file], getErrorMessage(xhr.responseText));
+                dropzoneObject._errorProcessing([file], getErrorMessage(xhr.responseText));
             }
         }
     };

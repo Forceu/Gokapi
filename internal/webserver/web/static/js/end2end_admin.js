@@ -211,9 +211,10 @@ async function uploadChunk(file, chunkIndex, encryptedTotalSize, plainTextSize, 
         displayError(data);
         return;
     }
-    let err = await postChunk(file.upload.uuid, bytesWritten, encryptedTotalSize, dataEnc);
+    let err = await postChunk(file.upload.uuid, bytesWritten, encryptedTotalSize, dataEnc, file);
     if (err !== null) {
-        displayError(err);
+        file.accepted = false;
+        dropzoneObject._errorProcessing([file], err);
         return;
     }
     bytesWritten = bytesWritten + dataEnc.byteLength;
@@ -222,7 +223,7 @@ async function uploadChunk(file, chunkIndex, encryptedTotalSize, plainTextSize, 
     dataBlock = null;
 
     if (!isLastChunk) {
-        await uploadChunk(file, chunkIndex + 1, encryptedTotalSize, plainTextSize, chunkSize, bytesWritten, file)
+        await uploadChunk(file, chunkIndex + 1, encryptedTotalSize, plainTextSize, chunkSize, bytesWritten)
     } else {
         file.status = Dropzone.SUCCESS;
         dropzoneObject.emit("success", file, 'success', null);
@@ -245,16 +246,18 @@ async function postChunk(uuid, bytesWritten, encSize, data, file) {
         xhr.open("POST", "./uploadChunk");
 
         let progressObj = xhr.upload != null ? xhr.upload : xhr;
-        progressObj.onprogress = (e) =>
-            dropzoneObject.emit("uploadprogress", file, (100 * (e.loaded + bytesWritten)) / encSize, e.loaded + bytesWritten);
-
-
-
+        progressObj.onprogress = (event) => {
+            try {
+                dropzoneObject.emit("uploadprogress", file, (100 * (event.loaded + bytesWritten)) / encSize, event.loaded + bytesWritten);
+            } catch (e) {
+                console.log(e);
+            }
+        }
         xhr.onreadystatechange = function() {
             if (this.readyState == 4) {
                 if (this.status == 200) {
                     resolve(null);
-                } else { //TODO error handling
+                } else {
                     console.log(xhr.responseText);
                     resolve(xhr.responseText);
                 }
