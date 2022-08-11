@@ -45,7 +45,8 @@ var isInitialSetup = true
 var username string
 var password string
 
-var serverStarted = false
+// statusChannel is only used for testing to indicate to the unit test that the server has been started or shut down.
+var statusChannel chan bool = nil
 
 const debugDisableAuth = false
 
@@ -114,16 +115,21 @@ func startSetupWebserver() {
 		Handler:      mux,
 	}
 	fmt.Println("Please open http://" + resolveHostIp() + ":" + port + "/setup to setup Gokapi.")
-	go func() {
-		time.Sleep(time.Second)
-		serverStarted = true
-	}()
+	if statusChannel != nil {
+		go func() {
+			time.Sleep(time.Second)
+			statusChannel <- true
+		}()
+	}
+
 	// always returns error. ErrServerClosed on graceful close
 	err := srv.ListenAndServe()
 	if err != nil && err != http.ErrServerClosed {
 		log.Fatalf("Setup Webserver: %v", err)
 	}
-	serverStarted = false
+	if statusChannel != nil {
+		statusChannel <- false
+	}
 }
 
 func resolveHostIp() string {

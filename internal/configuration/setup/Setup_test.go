@@ -227,14 +227,13 @@ func TestInitialSetup(t *testing.T) {
 }
 
 func TestRunConfigModification(t *testing.T) {
+	statusChannel = make(chan bool, 1)
 	testconfiguration.Create(false)
 	username = ""
 	password = ""
 	finish := make(chan bool)
 	go func() {
-		for !serverStarted {
-			time.Sleep(100 * time.Millisecond)
-		}
+		checkServerStatus(t, true)
 		time.Sleep(500 * time.Millisecond)
 		test.HttpPageResult(t, test.HttpTestConfig{
 			Url:             "http://localhost:53842/setup/start",
@@ -252,15 +251,36 @@ func TestRunConfigModification(t *testing.T) {
 	test.IsEqualInt(t, len(password), 10)
 	isInitialSetup = true
 	<-finish
+	statusChannel = nil
+}
+
+func checkServerStatus(t *testing.T, expected bool) {
+	t.Helper()
+	if statusChannel == nil {
+		t.Fatal("statusChannel is nil")
+	}
+	var result bool
+	select {
+	case result = <-statusChannel:
+
+	case <-time.After(20 * time.Second):
+		t.Fatal("statusChannel timeout after 20 seconds")
+	}
+	if result != expected {
+		if expected == true {
+			t.Fatal("Server was started when it was supposed to be shut down")
+		} else {
+			t.Fatal("Server was shut down when it was supposed to be started")
+		}
+	}
 }
 
 func TestIntegration(t *testing.T) {
+	statusChannel = make(chan bool, 1)
 	testconfiguration.Delete()
 	test.FileDoesNotExist(t, "test/config.json")
 	go RunIfFirstStart()
-	for !serverStarted {
-		time.Sleep(100 * time.Millisecond)
-	}
+	checkServerStatus(t, true)
 
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://localhost:53842/admin",
@@ -298,14 +318,7 @@ func TestIntegration(t *testing.T) {
 		Body:            strings.NewReader(setupValues.toJson()),
 	})
 
-	counter := 0
-	for serverStarted {
-		time.Sleep(100 * time.Millisecond)
-		counter++
-		if counter > 1200 {
-			t.Fatal("Server did not shutdown within 120 seconds")
-		}
-	}
+	checkServerStatus(t, false)
 	test.FileExists(t, "test/config.json")
 	settings := configuration.Get()
 	test.IsEqualInt(t, settings.Authentication.Method, 0)
@@ -333,9 +346,7 @@ func TestIntegration(t *testing.T) {
 	test.FileExists(t, "test/cloudconfig.yml")
 
 	go RunConfigModification()
-	for !serverStarted {
-		time.Sleep(100 * time.Millisecond)
-	}
+	checkServerStatus(t, true)
 
 	username = "test"
 	password = "testpw"
@@ -380,14 +391,8 @@ func TestIntegration(t *testing.T) {
 		Body:            strings.NewReader(setupInput.toJson()),
 	})
 
-	counter = 0
-	for serverStarted {
-		time.Sleep(100 * time.Millisecond)
-		counter++
-		if counter > 1200 {
-			t.Fatal("Server did not shutdown within 120 seconds")
-		}
-	}
+	checkServerStatus(t, false)
+
 	test.FileExists(t, "test/config.json")
 	settings = configuration.Get()
 	test.IsEqualInt(t, settings.Authentication.Method, 2)
@@ -416,9 +421,8 @@ func TestIntegration(t *testing.T) {
 	test.FileDoesNotExist(t, "test/cloudconfig.yml")
 
 	go RunConfigModification()
-	for !serverStarted {
-		time.Sleep(100 * time.Millisecond)
-	}
+	checkServerStatus(t, true)
+
 	username = "test"
 	password = "testpw"
 
@@ -434,14 +438,7 @@ func TestIntegration(t *testing.T) {
 		Body:            strings.NewReader(setupInput.toJson()),
 	})
 
-	counter = 0
-	for serverStarted {
-		time.Sleep(100 * time.Millisecond)
-		counter++
-		if counter > 1200 {
-			t.Fatal("Server did not shutdown within 120 seconds")
-		}
-	}
+	checkServerStatus(t, false)
 
 	test.IsEqualBool(t, settings.PicturesAlwaysLocal, true)
 	test.IsEqualString(t, settings.Authentication.OauthProvider, "provider")
@@ -453,6 +450,7 @@ func TestIntegration(t *testing.T) {
 		test.IsEqualString(t, settings.Authentication.OauthUsers[0], "oatest1")
 		test.IsEqualString(t, settings.Authentication.OauthUsers[1], "oatest2")
 	}
+	statusChannel = nil
 }
 
 type setupValues struct {
