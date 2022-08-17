@@ -260,13 +260,9 @@
 						<span style="color:#FF0000;">Warning:</span> This setting will disable authentication completely! You will need to secure the following URLs with your reverse proxy:
 						
 						<ul>
-						  <li>/admin</li>
-						  <li>/apiDelete</li>
-						  <li>/apiKeys</li>
-						  <li>/apiNew</li>
-						  <li>/delete</li>
-						  <li>/uploadChunk</li>
-						  <li>/uploadComplete</li>
+{{ range .ProtectedUrls }}
+						  <li>{{ . }}</li>
+{{ end }}
 						</ul>
 
 						Only proceed if you know what you are doing!

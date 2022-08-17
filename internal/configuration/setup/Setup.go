@@ -40,6 +40,10 @@ var webserverDirEmb embed.FS
 //go:embed templates
 var templateFolderEmbedded embed.FS
 
+// protectedUrls contains a list of URLs that need to be protected if authentication is disabled.
+// This list will be displayed during the setup
+var protectedUrls = []string{"/admin", "/apiDelete", "/apiKeys", "/apiNew", "/delete", "/e2eInfo", "/e2eSetup", "/uploadChunk", "/uploadComplete"}
+
 var srv http.Server
 var isInitialSetup = true
 var username string
@@ -509,12 +513,14 @@ type setupView struct {
 	Auth           models.AuthenticationConfig
 	Settings       models.Configuration
 	CloudSettings  cloudconfig.CloudConfig
+	ProtectedUrls  []string
 }
 
 func (v *setupView) loadFromConfig() {
 	v.IsInitialSetup = isInitialSetup
 	v.IsDocker = environment.IsDockerInstance()
 	v.HasAwsFeature = aws.IsIncludedInBuild
+	v.ProtectedUrls = protectedUrls
 	if isInitialSetup {
 		return
 	}
