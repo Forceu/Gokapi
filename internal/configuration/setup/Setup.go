@@ -125,7 +125,8 @@ func startSetupWebserver() {
 	}
 	if statusChannel != nil {
 		go func() {
-			time.Sleep(4 * time.Second)
+			// Normally only one second should be enough, however slow Github action runners require more time
+			time.Sleep(5 * time.Second)
 			statusChannel <- true
 		}()
 	}
