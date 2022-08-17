@@ -150,7 +150,10 @@ This option disables Gokapis internal authentication completely, except for API 
 - ``/apiKeys``
 - ``/apiNew``
 - ``/delete``
-- ``/upload``
+- ``/e2eInfo``
+- ``/e2eSetup``
+- ``/uploadChunk``
+- ``/uploadComplete``
 
 **Warning:** This option has potential to be *very* dangerous, only proceed if you know what you are doing!
 
@@ -201,19 +204,22 @@ Encryption
 
 *Warning: Encryption has not been audited.*
 
-There are two different encryption levels, level 1 encrypts only local files and level 2 encrypts local and files stored on cloud storage (e.g. AWS S3). Decryption of files on remote storage is done client-side, for which a 2MB library needs to be downloaded on first visit.
+There are three different encryption levels, level 1 encrypts only local files and level 2 encrypts local and files stored on cloud storage (e.g. AWS S3). Decryption of files on remote storage is done client-side, for which a 2MB library needs to be downloaded on first visit. End-to-End encryption (level 3) encrypts the files client-side, therefore even if the Gokapi server has been compromised, no data should leak to the attacker.
 
 There are some drawbacks of using encryption:
 
-+------------------------------+---------------+--------------------+-------------------------+
-|                              | No Encryption | Level 1 Local      | Level 2 Full            |
-+==============================+===============+====================+=========================+
-| File Encryption              | None          | Only local files   | Local and cloud storage |
-+------------------------------+---------------+--------------------+-------------------------+
-| Hotlink Support              | Yes           | Yes                | Only local files        |
-+------------------------------+---------------+--------------------+-------------------------+
-| Download Progress Indication | Yes           | Only cloud storage | No                      |
-+------------------------------+---------------+--------------------+-------------------------+
++------------------------------+---------------+---------------------------------+---------------------------------+-------------------------+
+|                              | No Encryption | Level 1 Local                   | Level 2 Full                    | Level 3 End-to-End      |
++==============================+===============+=================================+=================================+=========================+
+| File Encryption              | None          | Only local files                | Local and cloud storage         | Local and cloud storage |
++------------------------------+---------------+---------------------------------+---------------------------------+-------------------------+
+| Hotlink Support              | Yes           | Yes                             | Only local files                | No                      |
++------------------------------+---------------+---------------------------------+---------------------------------+-------------------------+
+| Download Progress Indication | Yes           | Only cloud storage              | No                              | No                      |
++------------------------------+---------------+---------------------------------+---------------------------------+-------------------------+
+| Download Speed               | Full          | Might be slower for local files | Slower for remote files,        | Slower for all files    |
+|                              |               |                                 | might be slower for local files |                         |
++------------------------------+---------------+---------------------------------+---------------------------------+-------------------------+
 
 You can choose to store the key in the configuration file, which is preferred if access by other parties to your configuration file is unlikely.
 
