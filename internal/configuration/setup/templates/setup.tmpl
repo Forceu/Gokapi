@@ -108,7 +108,12 @@
 					<div class="form-group">
 							<div class="col-sm-8">
 							  <label for="port">Port:</label>
-								<input type="number" class="form-control" id="port" name="port" value="53842" min="1" max="65535" placeholder="Port number" data-min="1" data-validate="validateMinLength" required onChange="urlParamChanged()" {{ if .IsDocker }}disabled{{ end }}>
+{{ if .IsDocker }}
+							<input type="number" class="form-control" id="port" value="53842" placeholder="Port number" disabled>
+							<input type="hidden" class="form-control" name="port" value="53842">
+{{ else }}
+							<input type="number" class="form-control" id="port" name="port" value="53842" min="1" max="65535" placeholder="Port number" data-min="1" data-validate="validateMinLength" required onChange="urlParamChanged()">
+{{ end }}
 							</div><br><br><br>
 							
 
