@@ -60,7 +60,7 @@ var wasmDownloadFile embed.FS
 //go:embed web/e2e.wasm
 var wasmE2EFile embed.FS
 
-const timeOutWebserverRead = 15 * time.Minute
+const timeOutWebserverRead = 12 * time.Hour
 const timeOutWebserverWrite = 12 * time.Hour
 
 // Variable containing all parsed templates
