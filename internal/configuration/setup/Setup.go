@@ -23,8 +23,11 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
+	"runtime"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -121,6 +124,9 @@ func startSetupWebserver() {
 	fmt.Println("Please open http://" + resolveHostIp() + ":" + port + "/setup to setup Gokapi.")
 	listener, err := net.Listen("tcp", ":"+port)
 	if err != nil {
+		if isErrorAddressAlreadyInUse(err) {
+			fmt.Println("This port is already in use. Use parameter -p or env variable GOKAPI_PORT to change the port.")
+		}
 		log.Fatalf("Setup Webserver: %v", err)
 	}
 	if statusChannel != nil {
@@ -137,6 +143,25 @@ func startSetupWebserver() {
 	if statusChannel != nil {
 		statusChannel <- false
 	}
+}
+
+func isErrorAddressAlreadyInUse(err error) bool {
+	var eOsSyscall *os.SyscallError
+	if !errors.As(err, &eOsSyscall) {
+		return false
+	}
+	var errErrno syscall.Errno
+	if !errors.As(eOsSyscall, &errErrno) {
+		return false
+	}
+	if errErrno == syscall.EADDRINUSE {
+		return true
+	}
+	const WSAEADDRINUSE = 10048
+	if runtime.GOOS == "windows" && errErrno == WSAEADDRINUSE {
+		return true
+	}
+	return false
 }
 
 func resolveHostIp() string {

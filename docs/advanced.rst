@@ -73,6 +73,8 @@ Available environment variables
 | GOKAPI_MAX_MEMORY_UPLOAD | Sets the amount of RAM in MB that can be allocated for an upload.            | Yes         | 20                          |
 |                          | Any upload with a size greater than that will be written to a temporary file |             |                             |
 +--------------------------+------------------------------------------------------------------------------+-------------+-----------------------------+
+| GOKAPI_PORT              | Sets the webserver port                                                      | Yes         | 53842                       |
++--------------------------+------------------------------------------------------------------------------+-------------+-----------------------------+
 | TMPDIR                   | Sets the path which contains temporary files                                 | No          | Non-Docker: Default OS path |
 |                          |                                                                              |             | Docker:     [DATA_DIR]      |
 +--------------------------+------------------------------------------------------------------------------+-------------+-----------------------------+
