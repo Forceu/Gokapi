@@ -302,6 +302,10 @@
           "Size": {
             "type": "string"
           },
+          "SizeBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
           "HotlinkId": {
             "type": "string"
           },

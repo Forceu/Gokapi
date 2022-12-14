@@ -11,6 +11,7 @@ func TestToJsonResult(t *testing.T) {
 		Id:                 "testId",
 		Name:               "testName",
 		Size:               "10 B",
+		SizeBytes:          10,
 		SHA1:               "sha256",
 		ExpireAt:           50,
 		ExpireAtString:     "future",
@@ -28,7 +29,7 @@ func TestToJsonResult(t *testing.T) {
 		UnlimitedDownloads: true,
 		UnlimitedTime:      true,
 	}
-	test.IsEqualString(t, file.ToJsonResult("serverurl/", true), `{"Result":"OK","FileInfo":{"Id":"testId","Name":"testName","Size":"10 B","HotlinkId":"hotlinkid","ContentType":"text/html","ExpireAt":50,"ExpireAtString":"future","DownloadsRemaining":1,"DownloadCount":3,"UnlimitedDownloads":true,"UnlimitedTime":true,"RequiresClientSideDecryption":true,"IsEncrypted":true,"IsPasswordProtected":true,"IsSavedOnLocalStorage":false},"Url":"serverurl/d?id=","HotlinkUrl":"serverurl/hotlink/","GenericHotlinkUrl":"serverurl/downloadFile?id="}`)
+	test.IsEqualString(t, file.ToJsonResult("serverurl/", true), `{"Result":"OK","FileInfo":{"Id":"testId","Name":"testName","Size":"10 B","HotlinkId":"hotlinkid","ContentType":"text/html","ExpireAt":50,"SizeBytes":10,"ExpireAtString":"future","DownloadsRemaining":1,"DownloadCount":3,"UnlimitedDownloads":true,"UnlimitedTime":true,"RequiresClientSideDecryption":true,"IsEncrypted":true,"IsPasswordProtected":true,"IsSavedOnLocalStorage":false},"Url":"serverurl/d?id=","HotlinkUrl":"serverurl/hotlink/","GenericHotlinkUrl":"serverurl/downloadFile?id="}`)
 }
 
 func TestIsLocalStorage(t *testing.T) {
