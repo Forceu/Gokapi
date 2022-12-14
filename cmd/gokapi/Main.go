@@ -29,7 +29,7 @@ import (
 
 // Version is the current version in readable form.
 // The go generate call below needs to be modified as well
-const Version = "1.6.1"
+const Version = "1.6.2"
 
 //go:generate sh "../../build/setVersionTemplate.sh" "1.6.1"
 //go:generate sh -c "cp \"$(go env GOROOT)/misc/wasm/wasm_exec.js\" ../../internal/webserver/web/static/js/ && echo Copied wasm_exec.js"

@@ -13,6 +13,7 @@ type File struct {
 	Size               string         `json:"Size"`
 	SHA1               string         `json:"SHA1"`
 	ExpireAt           int64          `json:"ExpireAt"`
+	SizeBytes          int64          `json:"SizeBytes"`
 	ExpireAtString     string         `json:"ExpireAtString"`
 	DownloadsRemaining int            `json:"DownloadsRemaining"`
 	DownloadCount      int            `json:"DownloadCount"`
@@ -33,6 +34,7 @@ type FileApiOutput struct {
 	HotlinkId                    string `json:"HotlinkId"`
 	ContentType                  string `json:"ContentType"`
 	ExpireAt                     int64  `json:"ExpireAt"`
+	SizeBytes                    int64  `json:"SizeBytes"`
 	ExpireAtString               string `json:"ExpireAtString"`
 	DownloadsRemaining           int    `json:"DownloadsRemaining"`
 	DownloadCount                int    `json:"DownloadCount"`

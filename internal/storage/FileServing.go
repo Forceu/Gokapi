@@ -267,6 +267,7 @@ func createNewMetaData(hash string, fileHeader chunking.FileHeader, uploadReques
 		Name:               fileHeader.Filename,
 		SHA1:               hash,
 		Size:               helper.ByteCountSI(fileHeader.Size),
+		SizeBytes:          fileHeader.Size,
 		ContentType:        fileHeader.ContentType,
 		ExpireAt:           uploadRequest.ExpiryTimestamp,
 		ExpireAtString:     time.Unix(uploadRequest.ExpiryTimestamp, 0).Format("2006-01-02 15:04"),

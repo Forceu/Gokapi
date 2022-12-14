@@ -43,7 +43,7 @@
 		</div>
 		<br><br>
 		<div class="table-responsive">
-			<table class="table table-dark">
+			<table id="maintable" class="table table-dark">
 				<thead>
 					<tr>
 						<th scope="col">Filename</th>
@@ -61,7 +61,7 @@
 		{{ if or (gt .DownloadsRemaining 0) (.UnlimitedDownloads) }}
 					<tr>
 						<td scope="col" id="cell-name-{{ .Id }}">{{ .Name }}</td>
-						<td scope="col">{{ .Size }}</td>
+						<td data-order="{{ .SizeBytes }}" scope="col">{{ .Size }}</td>
 			{{ if .UnlimitedDownloads }}
 						<td scope="col">Unlimited</td>
 			{{ else }}
@@ -97,7 +97,7 @@
 	    </div>
    	 </div>
 
-	<script src="./js/admin.js?v=12"></script>
+	<script src="./js/admin.js?v=13"></script>
 	<script>
 		Dropzone.options.uploaddropzone["maxFilesize"] = {{ .MaxFileSize }};
 		Dropzone.options.uploaddropzone["timeout"] = 1200000;
@@ -107,6 +107,22 @@
 		Dropzone.options.uploaddropzone["retryChunks"] = true;
 		Dropzone.options.uploaddropzone["retryChunksLimit"] = 3;
 		Dropzone.options.uploaddropzone["retryChunks"] = true;
+		
+		$(document).ready(function () {
+		    $('#maintable').DataTable({
+    		    "responsive": true,
+		    "columnDefs": [ {
+			"targets": 6,
+			"orderable": false
+			} ],
+		    "paging": false,
+		    "language": {
+		      "info": "Files stored: _TOTAL_",
+		      "emptyTable": "No files stored yet",
+		      "infoEmpty": "",
+		    }
+		    });
+		});
 	</script>
 
 {{ if .EndToEndEncryption }}

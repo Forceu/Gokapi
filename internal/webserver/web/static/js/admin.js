@@ -214,10 +214,13 @@ function addRow(jsonText) {
 
     cellFilename.style.backgroundColor = "green"
     cellFileSize.style.backgroundColor = "green"
+    console.log(jsonObject);
+    cellFileSize.setAttribute('data-order', jsonObject.FileInfo.SizeBytes);
     cellRemainingDownloads.style.backgroundColor = "green"
     cellStoredUntil.style.backgroundColor = "green"
     cellDownloadCount.style.backgroundColor = "green"
     cellUrl.style.backgroundColor = "green"
     cellButtons.style.backgroundColor = "green"
+    $('#maintable').DataTable().row.add(row);
     return item.Id;
 }

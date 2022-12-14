@@ -8,12 +8,15 @@ import (
 	"github.com/forceu/gokapi/internal/environment"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
+	"github.com/inhies/go-bytesize"
 	"github.com/jinzhu/copier"
 	"os"
+	"strconv"
+	"strings"
 )
 
 // CurrentConfigVersion is the version of the configuration structure. Used for upgrading
-const CurrentConfigVersion = 12
+const CurrentConfigVersion = 13
 
 // DoUpgrade checks if an old version is present and updates it to the current version if required
 func DoUpgrade(settings *models.Configuration, env *environment.Environment) bool {
@@ -45,6 +48,22 @@ func updateConfig(settings *models.Configuration, env *environment.Environment) 
 			}
 			file := legacyFileToCurrentFile(raw)
 			database.SaveMetaData(file)
+		}
+	}
+	// < v1.6.2
+	if settings.ConfigVersion < 13 {
+		data := database.GetAllMetadata()
+		for _, file := range data {
+			b, err := bytesize.Parse(file.Size)
+			if err == nil {
+				bytesFormatted := b.Format("%.0f", "b", false)
+				bytesFormatted = strings.Replace(bytesFormatted, "B", "", 1)
+				sizeBytes, err := strconv.ParseInt(bytesFormatted, 10, 64)
+				if err == nil {
+					file.SizeBytes = sizeBytes
+					database.SaveMetaData(file)
+				}
+			}
 		}
 	}
 }
