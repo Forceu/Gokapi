@@ -16,7 +16,7 @@ Gokapi is a lightweight server to share files, which expire after a set amount o
 
 This enables companies or individuals to share their files very easily and having them removed afterwards, therefore saving disk space and having control over who downloads the file from the server.
 
-Identical files will be deduplicated. An API is available to interact with Gokapi. AWS S3 and Backblaze B2 can be used instead of local storage. Customization is very easy with HTML/CSS knowledge. Encryption available, end-to-end encryption coming soon.
+Identical files will be deduplicated. An API is available to interact with Gokapi. AWS S3 and Backblaze B2 can be used instead of local storage. Customization is very easy with HTML/CSS knowledge. Encryption including end-to-end encryption is available.
 
 
 ## Screenshots
