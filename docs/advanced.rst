@@ -143,8 +143,8 @@ Customising
 By default, all files are included in the executable. If you want to change the layout (e.g. add your company logo or change the app name etc.), follow these steps:
 
 1. Download the source code for the Gokapi version you are using. It is either attached to the specific release  `on Github <https://github.com/Forceu/Gokapi/releases>`_ or you can clone the repository and checkout the tag for the specific version.
-2. Copy either the folder ``static``, ``templates`` or both from the ``internal/webserver/web`` folder to the directory where the executable is located
+2. Copy either the folder ``static``, ``templates`` or both from the ``internal/webserver/web`` folder to the directory where the executable is located (if you are using Docker, mount the folders into the the ``/app/`` directory, e.g. ``/app/templates``).
 3. Make changes to the folders. ``static`` contains images, CSS files and JavaScript. ``templates`` contains the HTML code.
-4. Restart the server. If the folders exist, the server will use the local files instead of the embedded files
-5. (Optional) To embed the files permanently, copy the modified files back to the original folders and recompiled with ``go build Gokapi/cmd/gokapi``.
+4. Restart the server. If the folders exist, the server will use the local files instead of the embedded files.
+5. Optional: To embed the files permanently, copy the modified files back to the original folders and recompile with ``go build Gokapi/cmd/gokapi``.
 
