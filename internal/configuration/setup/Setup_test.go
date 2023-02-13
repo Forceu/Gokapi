@@ -318,6 +318,7 @@ func TestIntegration(t *testing.T) {
 		Body:            strings.NewReader(setupValues.toJson()),
 	})
 
+	time.Sleep(5 * time.Second)
 	checkServerStatus(t, false)
 	test.FileExists(t, "test/config.json")
 	settings := configuration.Get()
@@ -391,6 +392,7 @@ func TestIntegration(t *testing.T) {
 		Body:            strings.NewReader(setupInput.toJson()),
 	})
 
+	time.Sleep(5 * time.Second)
 	checkServerStatus(t, false)
 
 	test.FileExists(t, "test/config.json")
@@ -438,6 +440,7 @@ func TestIntegration(t *testing.T) {
 		Body:            strings.NewReader(setupInput.toJson()),
 	})
 
+	time.Sleep(5 * time.Second)
 	checkServerStatus(t, false)
 
 	test.IsEqualBool(t, settings.PicturesAlwaysLocal, true)
