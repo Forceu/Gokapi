@@ -3,6 +3,14 @@ var clipboard = new ClipboardJS('.btn');
 var dropzoneObject;
 var isE2EEnabled = false;
 
+var isUploading = false;
+
+window.addEventListener('beforeunload', (event) => {
+  if (isUploading) {
+    event.returnValue = 'Upload is still in progress. Do you want to close this page?';
+  }
+});
+
 Dropzone.options.uploaddropzone = {
     paramName: "file",
     dictDefaultMessage: "Drop files, paste or click here to upload",
@@ -12,15 +20,20 @@ Dropzone.options.uploaddropzone = {
     },
     init: function() {
         dropzoneObject = this;
-        this.on("sending", function(file, xhr, formData) {});
-        // This will be executed after the page has loaded. If e2e ist enabled, the end2end_admin.js has set isE2EEnabled to true
-        if (isE2EEnabled) {
-            dropzoneObject.disable();
-            dropzoneObject.options.dictDefaultMessage = "Loading end-to-end encryption...";
-            document.getElementsByClassName("dz-button")[0].innerText = "Loading end-to-end encryption...";
-            setE2eUpload();
-        }
-    },
+        this.on("queuecomplete", function() {
+			isUploading = false;
+        	});
+        this.on("sending", function(file, xhr, formData) {
+			isUploading = true;
+        	});
+	// This will be executed after the page has loaded. If e2e ist enabled, the end2end_admin.js has set isE2EEnabled to true
+	if (isE2EEnabled) {
+	    dropzoneObject.disable();
+	    dropzoneObject.options.dictDefaultMessage = "Loading end-to-end encryption...";
+	    document.getElementsByClassName("dz-button")[0].innerText = "Loading end-to-end encryption...";
+	    setE2eUpload();
+	}
+     },
 };
 
 document.onpaste = function(event) {
