@@ -25,6 +25,11 @@ func AddString(text string) {
 	go writeToFile(text)
 }
 
+// GetLogPath returns the relative path to the log file
+func GetLogPath() string {
+	return logPath
+}
+
 // AddDownload adds a line to the logfile when a download was requested. Non-Blocking
 func AddDownload(file *models.File, r *http.Request) {
 	AddString(fmt.Sprintf("Download: Filename %s, IP %s, ID %s, Useragent %s", file.Name, getIpAddress(r), file.Id, r.UserAgent()))

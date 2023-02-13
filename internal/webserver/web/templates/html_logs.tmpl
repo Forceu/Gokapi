@@ -1,0 +1,25 @@
+{{ define "logs" }}
+{{ template "header" . }}
+<div class="row">
+    <div class="col">
+        <div id="container" class="card" style="width: 80%">
+            <div class="card-body">
+                <h3 class="card-title">Log File</h3>
+                <br>
+                
+    <textarea class="form-control" id="logviewer" rows="20" readonly>
+{{ .Logs }}</textarea>
+            </div>
+        </div>
+    </div>
+</div>
+	<script>
+		let textarea = document.getElementById('logviewer');
+		textarea.scrollTop = textarea.scrollHeight;
+		
+		window.setTimeout( function() {
+		  window.location.reload();
+		}, 30000);
+	</script>
+{{ template "footer" }}
+{{ end }}

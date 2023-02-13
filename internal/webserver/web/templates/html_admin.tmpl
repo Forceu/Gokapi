@@ -97,7 +97,7 @@
 	    </div>
    	 </div>
 
-	<script src="./js/admin.js?v=13"></script>
+	<script src="./js/admin.js?v={{ template "js_admin_version"}}"></script>
 	<script>
 		Dropzone.options.uploaddropzone["maxFilesize"] = {{ .MaxFileSize }};
 		Dropzone.options.uploaddropzone["timeout"] = 1200000;
@@ -127,7 +127,7 @@
 
 {{ if .EndToEndEncryption }}
         <script src="./js/wasm_exec.js"></script>
-	<script src="./js/end2end_admin.js?v=1"></script>
+	<script src="./js/end2end_admin.js?v={{ template "js_e2eversion"}}"></script>
 	<script>
 		checkIfE2EKeyIsSet();
 	</script>

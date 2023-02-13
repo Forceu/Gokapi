@@ -16,6 +16,7 @@ import (
 	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/encryption"
 	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/logging"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
 	"github.com/forceu/gokapi/internal/webserver/api"
@@ -105,6 +106,7 @@ func Start() {
 	mux.HandleFunc("/hotlink/", showHotlink)
 	mux.HandleFunc("/index", showIndex)
 	mux.HandleFunc("/login", showLogin)
+	mux.HandleFunc("/logs", requireLogin(showLogs, false))
 	mux.HandleFunc("/logout", doLogout)
 	mux.HandleFunc("/uploadChunk", requireLogin(uploadChunk, true))
 	mux.HandleFunc("/uploadComplete", requireLogin(uploadComplete, true))
@@ -237,7 +239,7 @@ func forgotPassword(w http.ResponseWriter, r *http.Request) {
 // Handling of /api
 // If user is authenticated, this menu lists all uploads and enables uploading new files
 func showApiAdmin(w http.ResponseWriter, r *http.Request) {
-	err := templateFolder.ExecuteTemplate(w, "api", (&UploadView{}).convertGlobalConfig(false))
+	err := templateFolder.ExecuteTemplate(w, "api", (&UploadView{}).convertGlobalConfig(ViewAPI))
 	helper.Check(err)
 }
 
@@ -460,7 +462,14 @@ func showAdminMenu(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	err := templateFolder.ExecuteTemplate(w, "admin", (&UploadView{}).convertGlobalConfig(true))
+	err := templateFolder.ExecuteTemplate(w, "admin", (&UploadView{}).convertGlobalConfig(ViewMain))
+	helper.Check(err)
+}
+
+// Handling of /logs
+// If user is authenticated, this menu shows the stored logs
+func showLogs(w http.ResponseWriter, r *http.Request) {
+	err := templateFolder.ExecuteTemplate(w, "logs", (&UploadView{}).convertGlobalConfig(ViewLogs))
 	helper.Check(err)
 }
 
@@ -501,7 +510,6 @@ type UploadView struct {
 	GenericHotlinkUrl        string
 	TimeNow                  int64
 	IsAdminView              bool
-	IsMainView               bool
 	IsApiView                bool
 	MaxFileSize              int
 	IsLogoutAvailable        bool
@@ -511,14 +519,21 @@ type UploadView struct {
 	DefaultUnlimitedDownload bool
 	DefaultUnlimitedTime     bool
 	EndToEndEncryption       bool
+	ActiveView               int
+	Logs                     string
 }
+
+const ViewMain = 0
+const ViewLogs = 1
+const ViewAPI = 2
 
 // Converts the globalConfig variable to an UploadView struct to pass the infos to
 // the admin template
-func (u *UploadView) convertGlobalConfig(isMainView bool) *UploadView {
+func (u *UploadView) convertGlobalConfig(view int) *UploadView {
 	var result []models.FileApiOutput
 	var resultApi []models.ApiKey
-	if isMainView {
+	switch view {
+	case ViewMain:
 		for _, element := range database.GetAllMetadata() {
 			fileInfo, err := element.ToFileApiOutput(storage.RequiresClientDecryption(element))
 			helper.Check(err)
@@ -530,7 +545,7 @@ func (u *UploadView) convertGlobalConfig(isMainView bool) *UploadView {
 			}
 			return result[i].ExpireAt > result[j].ExpireAt
 		})
-	} else {
+	case ViewAPI:
 		for _, element := range database.GetAllApiKeys() {
 			if element.LastUsed == 0 {
 				element.LastUsedString = "Never"
@@ -545,7 +560,16 @@ func (u *UploadView) convertGlobalConfig(isMainView bool) *UploadView {
 			}
 			return resultApi[i].LastUsed > resultApi[j].LastUsed
 		})
+	case ViewLogs:
+		if helper.FileExists(logging.GetLogPath()) {
+			content, err := os.ReadFile(logging.GetLogPath())
+			helper.Check(err)
+			u.Logs = string(content)
+		} else {
+			u.Logs = "Warning: Log file not found!"
+		}
 	}
+
 	u.Url = configuration.Get().ServerUrl + "d?id="
 	u.HotlinkUrl = configuration.Get().ServerUrl + "hotlink/"
 	u.GenericHotlinkUrl = configuration.Get().ServerUrl + "downloadFile?id="
@@ -553,7 +577,7 @@ func (u *UploadView) convertGlobalConfig(isMainView bool) *UploadView {
 	u.ApiKeys = resultApi
 	u.TimeNow = time.Now().Unix()
 	u.IsAdminView = true
-	u.IsMainView = isMainView
+	u.ActiveView = view
 	u.MaxFileSize = configuration.Get().MaxFileSizeMB
 	u.IsLogoutAvailable = authentication.IsLogoutAvailable()
 	defaultValues := database.GetUploadDefaults()

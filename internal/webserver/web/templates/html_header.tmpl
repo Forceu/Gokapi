@@ -18,7 +18,7 @@
 	<link href="./assets/dist/css/datatables.min.css" rel="stylesheet" />
 	<script src="./assets/dist/js/jquery.min.js"></script>
 	<script src="./assets/dist/js/bootstrap.bundle.min.js"></script>
-	<script src="./assets/dist/js/dropzone.min.js?v=3"></script>
+	<script src="./assets/dist/js/dropzone.min.js?v={{ template "js_dropzone_version"}}"></script>
 	<script src="./assets/dist/js/clipboard.min.js"></script>
 	<script src="./assets/dist/js/datatables.min.js"></script>
 	<style>
@@ -46,8 +46,9 @@
         <div  style="max-width: 80em;  margin: 0 auto;"  class="inner">
           <h1>{{template "app_name"}}</h1>
           <nav class="nav nav-masthead justify-content-center">
-            <a class="nav-link {{ if .IsMainView }}active{{ end }}" href="./admin">Upload</a>
-            <a class="nav-link {{ if not .IsMainView }}active{{ end }}" href="./apiKeys">API</a>
+            <a class="nav-link {{ if eq .ActiveView 0}}active{{ end }}" href="./admin">Upload</a>
+            <a class="nav-link {{ if eq .ActiveView 1 }}active{{ end }}" href="./logs">Logs</a>
+            <a class="nav-link {{ if eq .ActiveView 2 }}active{{ end }}" href="./apiKeys">API</a>
             {{ if .IsLogoutAvailable }}<a class="nav-link" href="./logout">Logout</a>{{ end }}
           </nav>
         </div>
