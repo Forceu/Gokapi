@@ -15,8 +15,9 @@ RUN cd /compile && go generate ./... && CGO_ENABLED=0 go build -ldflags="-s -w -
 FROM alpine:3.13
 
 
-RUN apk add ca-certificates && mkdir /app && touch /app/.isdocker
+RUN apk add ca-certificates curl && mkdir /app && touch /app/.isdocker
 COPY --from=build_base /compile/gokapi /app/gokapi
 WORKDIR /app
 
 CMD ["/app/gokapi"]
+HEALTHCHECK --interval=10s --timeout=5s --retries=3 CMD curl --fail http://127.0.0.1:53842 || exit 1
