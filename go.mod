@@ -5,7 +5,11 @@ go 1.20
 require (
 	git.mills.io/prologic/bitcask v1.0.2
 	github.com/NYTimes/gziphandler v1.1.1
-	github.com/aws/aws-sdk-go v1.42.22
+	github.com/aws/aws-sdk-go-v2 v1.16.10
+	github.com/aws/aws-sdk-go-v2/config v1.16.0
+	github.com/aws/aws-sdk-go-v2/credentials v1.12.12
+	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.11.24
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.27.4
 	github.com/caarlos0/env/v6 v6.9.1
 	github.com/inhies/go-bytesize v0.0.0-20220417184213-4913239db9cf
 	github.com/jinzhu/copier v0.3.5
@@ -21,6 +25,19 @@ require (
 
 require (
 	github.com/abcum/lcp v0.0.0-20201209214815-7a3f3840be81 // indirect
+	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.4.4 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.12.11 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.1.17 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.4.11 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/ini v1.3.18 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/v4a v1.0.8 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.9.4 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.1.12 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.9.11 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.13.11 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sso v1.11.15 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.16.12 // indirect
+	github.com/aws/smithy-go v1.12.1 // indirect
 	github.com/gofrs/flock v0.8.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
