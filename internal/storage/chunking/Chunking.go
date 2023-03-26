@@ -182,6 +182,7 @@ func allocateFile(info ChunkInfo) error {
 		return nil
 	}
 	file, err := os.OpenFile(getChunkFilePath(info.UUID), os.O_RDWR|os.O_CREATE, 0600)
+	defer file.Close()
 	if err != nil {
 		return err
 	}
@@ -194,6 +195,7 @@ func writeChunk(chunkContent io.Reader, fileHeader *multipart.FileHeader, info C
 		return errors.New("chunksize will be bigger than total filesize from this offset")
 	}
 	file, err := GetFileByChunkId(info.UUID)
+	defer file.Close()
 	if err != nil {
 		return err
 	}

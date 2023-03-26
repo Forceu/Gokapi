@@ -124,6 +124,7 @@ func validateChunkInfo(file *os.File, fileHeader chunking.FileHeader) error {
 // already exists, it is deduplicated. This function gathers information about the file, creates an ID and saves
 // it into the global configuration.
 func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, uploadRequest models.UploadRequest) (models.File, error) {
+	// FIXME: Make function more readable, refactor to smaller subprocedures
 	if chunkId == "" {
 		return models.File{}, errors.New("empty chunk id provided")
 	}
@@ -164,9 +165,6 @@ func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, uploadRequ
 		} else {
 			metaData.Encryption = previousEncryption
 		}
-	}
-
-	if fileExists {
 		err = file.Close()
 		if err != nil {
 			return models.File{}, err
@@ -192,6 +190,7 @@ func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, uploadRequ
 				helper.Check(err)
 				return metaData, nil
 			}
+			file.Close()
 			err = os.Rename(file.Name(), configuration.Get().DataDir+"/"+metaData.SHA1)
 			if err != nil {
 				return models.File{}, err
@@ -220,6 +219,7 @@ func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, uploadRequ
 			database.SaveMetaData(metaData)
 			return metaData, nil
 		}
+		file.Close()
 		tempFile.Close()
 		err = os.Rename(tempFile.Name(), configuration.Get().DataDir+"/"+metaData.SHA1)
 		if err != nil {
