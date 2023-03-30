@@ -78,10 +78,10 @@
 			{{ if ne .HotlinkId "" }}
  						<button type="button" data-clipboard-text="{{ $.HotlinkUrl }}{{ .HotlinkId }}" class="copyurl btn btn-outline-light btn-sm">Copy Hotlink</button>
 			{{ else }}
-				{{ if and (not .IsPasswordProtected) (not .RequiresClientSideDecryption)  }}
-	 						<button type="button" data-clipboard-text="{{ $.GenericHotlinkUrl }}{{ .Id }}" class="copyurl btn btn-outline-light btn-sm">Copy Hotlink</button>
+				{{ if or (.IsPasswordProtected) (.RequiresClientSideDecryption)  }}
+	 						<button type="button"class="copyurl btn btn-outline-light btn-sm disabled">Copy Hotlink</button>
 				{{ else }}
- 							<button type="button"class="copyurl btn btn-outline-light btn-sm disabled">Copy Hotlink</button>
+ 							<button type="button" data-clipboard-text="{{ $.GenericHotlinkUrl }}{{ .Id }}" class="copyurl btn btn-outline-light btn-sm">Copy Hotlink</button>
 				{{ end }}
 			{{ end }}
 						<button type="button" class="btn btn-outline-light btn-sm" onclick="window.location='./delete?id={{ .Id }}'">Delete</button></td>

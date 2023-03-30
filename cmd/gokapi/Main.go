@@ -35,7 +35,7 @@ const versionGokapi = "1.6.3-dev"
 // The following call updates the version numbers
 // Parameters:
 // GokapiVersion, JsAdmin, JsDropzone, JsE2EAdmin
-//go:generate sh "../../build/setVersionTemplate.sh" "1.6.3-dev" "15" "3" "1"
+//go:generate sh "../../build/setVersionTemplate.sh" "1.6.3-dev" "16" "3" "1"
 //go:generate sh -c "cp \"$(go env GOROOT)/misc/wasm/wasm_exec.js\" ../../internal/webserver/web/static/js/ && echo Copied wasm_exec.js"
 //go:generate sh -c "GOOS=js GOARCH=wasm go build -o ../../internal/webserver/web/main.wasm github.com/forceu/gokapi/cmd/wasmdownloader && echo Compiled Downloader WASM module"
 //go:generate sh -c "GOOS=js GOARCH=wasm go build -o ../../internal/webserver/web/e2e.wasm github.com/forceu/gokapi/cmd/wasme2e && echo Compiled E2E WASM module"

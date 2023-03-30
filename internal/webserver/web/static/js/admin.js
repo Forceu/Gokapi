@@ -217,10 +217,10 @@ function addRow(jsonText) {
     if (item.HotlinkId !== "") {
         buttons = buttons + '<button type="button" data-clipboard-text="' + jsonObject.HotlinkUrl + item.HotlinkId + '" class="copyurl btn btn-outline-light btn-sm">Copy Hotlink</button> ';
     } else {
-        if (item.RequiresClientSideDecryption === false && item.IsPasswordProtected === false) {
-            buttons = buttons + '<button type="button" data-clipboard-text="' + jsonObject.GenericHotlinkUrl + item.Id + '" class="copyurl btn btn-outline-light btn-sm">Copy Hotlink</button> ';
-        } else {
+        if (item.RequiresClientSideDecryption === true || item.IsPasswordProtected === true) {
             buttons = buttons + '<button type="button"class="copyurl btn btn-outline-light btn-sm disabled">Copy Hotlink</button> ';
+        } else {
+            buttons = buttons + '<button type="button" data-clipboard-text="' + jsonObject.GenericHotlinkUrl + item.Id + '" class="copyurl btn btn-outline-light btn-sm">Copy Hotlink</button> ';
         }
     }
     buttons = buttons + "<button type=\"button\" class=\"btn btn-outline-light btn-sm\" onclick=\"window.location='./delete?id=" + item.Id + "'\">Delete</button>";
