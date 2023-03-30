@@ -187,3 +187,8 @@ func IsCorsCorrectlySet(bucket, gokapiUrl string) (bool, error) {
 		return false, errors.New("unknown")
 	}
 }
+
+// GetDefaultBucketName returns the default bucketname where new files are stored
+func GetDefaultBucketName() string {
+	return bucketName
+}

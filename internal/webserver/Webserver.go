@@ -523,8 +523,13 @@ type UploadView struct {
 	Logs                     string
 }
 
+// ViewMain is the identifier for the main menu
 const ViewMain = 0
+
+// ViewLogs is the identifier for the log viever menu
 const ViewLogs = 1
+
+// ViewAPI is the identifier for the API menu
 const ViewAPI = 2
 
 // Converts the globalConfig variable to an UploadView struct to pass the infos to

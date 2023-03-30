@@ -17,7 +17,8 @@ import (
 	"github.com/forceu/gokapi/internal/logging"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage/chunking"
-	"github.com/forceu/gokapi/internal/storage/cloudstorage/aws"
+	"github.com/forceu/gokapi/internal/storage/filesystem"
+	"github.com/forceu/gokapi/internal/storage/filesystem/s3filesystem/aws"
 	"github.com/forceu/gokapi/internal/webserver/downloadstatus"
 	"github.com/jinzhu/copier"
 	"io"
@@ -124,11 +125,10 @@ func validateChunkInfo(file *os.File, fileHeader chunking.FileHeader) error {
 // already exists, it is deduplicated. This function gathers information about the file, creates an ID and saves
 // it into the global configuration.
 func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, uploadRequest models.UploadRequest) (models.File, error) {
-	// FIXME: Make function more readable, refactor to smaller subprocedures
 	if chunkId == "" {
 		return models.File{}, errors.New("empty chunk id provided")
 	}
-	if !helper.FileExists(configuration.Get().DataDir + "/chunk-" + chunkId) {
+	if !chunking.FileExists(chunkId) {
 		return models.File{}, errors.New("chunk file does not exist")
 	}
 	file, err := chunking.GetFileByChunkId(chunkId)
@@ -141,30 +141,16 @@ func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, uploadRequ
 		return models.File{}, err
 	}
 
-	var hash string
-	if uploadRequest.IsEndToEndEncrypted {
-		hash = "e2e-" + helper.GenerateRandomString(20)
-	} else {
-		hash, err = hashFile(file, isEncryptionRequested())
-		if err != nil {
-			_ = file.Close()
-			return models.File{}, err
-		}
+	hash, err := getChunkFileHash(file, uploadRequest.IsEndToEndEncrypted)
+	if err != nil {
+		return models.File{}, err
 	}
 
 	metaData := createNewMetaData(hash, fileHeader, uploadRequest)
 
 	fileExists := FileExists(metaData, configuration.Get().DataDir)
 	if fileExists {
-		encryptionLevel := configuration.Get().Encryption.Level
-		previousEncryption, ok := getEncInfoFromExistingFile(metaData.SHA1)
-		if !ok && encryptionLevel != encryption.NoEncryption && encryptionLevel != encryption.EndToEndEncryption {
-			err = os.Remove(configuration.Get().DataDir + "/" + metaData.SHA1)
-			helper.Check(err)
-			fileExists = false
-		} else {
-			metaData.Encryption = previousEncryption
-		}
+		fileExists = copyEncryptionInfo(&metaData)
 		err = file.Close()
 		if err != nil {
 			return models.File{}, err
@@ -174,79 +160,94 @@ func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, uploadRequ
 			return models.File{}, err
 		}
 	}
-	if !isEncryptionRequested() {
-		if !fileExists {
+
+	if !fileExists {
+		fileToMove := file
+		if !isEncryptionRequested() {
 			_, err = file.Seek(0, io.SeekStart)
 			if err != nil {
 				return models.File{}, err
 			}
-			if !metaData.IsLocalStorage() {
-				_, err = aws.Upload(file, metaData)
-				if err != nil {
-					return models.File{}, err
-				}
-				database.SaveMetaData(metaData)
-				err = os.Remove(file.Name())
-				helper.Check(err)
-				return metaData, nil
-			}
-			file.Close()
-			err = os.Rename(file.Name(), configuration.Get().DataDir+"/"+metaData.SHA1)
+		} else {
+			tempFile, err := encryptChunkFile(file, &metaData)
 			if err != nil {
 				return models.File{}, err
 			}
+			fileToMove = tempFile
 		}
-		database.SaveMetaData(metaData)
-		return metaData, nil
-	}
-	if !fileExists {
-		tempFile, err := encryptChunkFile(file, &metaData)
-		defer func() {
-			_ = file.Close()
-			_ = os.Remove(file.Name())
-			_ = tempFile.Close()
-			_ = os.Remove(tempFile.Name())
-		}()
-		if err != nil {
-			return models.File{}, err
-		}
-		if !metaData.IsLocalStorage() {
-			_, err = aws.Upload(tempFile, metaData)
-			if err != nil {
-				return models.File{}, err
-			}
-			tempFile.Close()
-			database.SaveMetaData(metaData)
-			return metaData, nil
-		}
-		file.Close()
-		tempFile.Close()
-		err = os.Rename(tempFile.Name(), configuration.Get().DataDir+"/"+metaData.SHA1)
+		err = filesystem.ActiveStorageSystem.MoveToFilesystem(fileToMove, metaData)
 		if err != nil {
 			return models.File{}, err
 		}
 	}
-
 	database.SaveMetaData(metaData)
 	return metaData, nil
 }
 
+// copyEncryptionInfo copies encryption info from an existing file,
+// if possible. If not possible due to incompatible encryption level,
+// the old file is removed.
+//
+// The function returns false if the old file was removed.
+func copyEncryptionInfo(metaData *models.File) bool {
+	encryptionLevel := configuration.Get().Encryption.Level
+	previousEncryption, ok := getEncInfoFromExistingFile(metaData.SHA1)
+	if !ok && encryptionLevel != encryption.NoEncryption && encryptionLevel != encryption.EndToEndEncryption {
+		err := os.Remove(configuration.Get().DataDir + "/" + metaData.SHA1)
+		helper.Check(err)
+		return false
+	}
+	metaData.Encryption = previousEncryption
+	return true
+}
+
+func getChunkFileHash(file *os.File, isEndToEndEncryted bool) (string, error) {
+	if isEndToEndEncryted {
+		return "e2e-" + helper.GenerateRandomString(20), nil
+	}
+	hash, err := hashFile(file, isEncryptionRequested())
+	if err != nil {
+		_ = file.Close()
+		return "", err
+	}
+	return hash, nil
+}
+
 func encryptChunkFile(file *os.File, metadata *models.File) (*os.File, error) {
+
+	var removeTempFiles = func() {
+		err := file.Close()
+		if err != nil {
+			fmt.Println("Warning: cannot close plain-text file")
+			fmt.Println(err)
+		}
+		err = os.Remove(file.Name())
+		if err != nil {
+			fmt.Println("Warning: cannot remove plain-text file")
+			fmt.Println(err)
+		}
+
+	}
+
 	_, err := file.Seek(0, io.SeekStart)
 	if err != nil {
+		removeTempFiles()
 		return nil, err
 	}
 	tempFileEnc, err := os.CreateTemp(configuration.Get().DataDir, "upload")
 	if err != nil {
+		removeTempFiles()
 		return nil, err
 	}
 	encInfo := metadata.Encryption
 	err = encryption.Encrypt(&encInfo, file, tempFileEnc)
 	if err != nil {
+		removeTempFiles()
 		return nil, err
 	}
 	_, err = tempFileEnc.Seek(0, io.SeekStart)
 	if err != nil {
+		removeTempFiles()
 		return nil, err
 	}
 	metadata.Encryption = encInfo

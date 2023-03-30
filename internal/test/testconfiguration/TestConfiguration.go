@@ -7,7 +7,8 @@ import (
 	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
-	"github.com/forceu/gokapi/internal/storage/cloudstorage/aws"
+	"github.com/forceu/gokapi/internal/storage/filesystem"
+	"github.com/forceu/gokapi/internal/storage/filesystem/s3filesystem/aws"
 	"github.com/johannesboyne/gofakes3"
 	"github.com/johannesboyne/gofakes3/backend/s3mem"
 	"net/http/httptest"
@@ -111,6 +112,7 @@ func EnableS3() {
 	os.Setenv("GOKAPI_AWS_REGION", "mock-region-1")
 	os.Setenv("GOKAPI_AWS_KEY", "accId")
 	os.Setenv("GOKAPI_AWS_KEY_SECRET", "accKey")
+	filesystem.SetAws()
 }
 
 func UseMockS3Server() bool {
@@ -145,6 +147,7 @@ func DisableS3() {
 	os.Unsetenv("AWS_REGION")
 	os.Unsetenv("AWS_ACCESS_KEY_ID")
 	os.Unsetenv("AWS_SECRET_ACCESS_KEY")
+	filesystem.SetLocal()
 }
 
 func writeTestSessions() {

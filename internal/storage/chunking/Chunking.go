@@ -168,6 +168,11 @@ func GetFileByChunkId(id string) (*os.File, error) {
 	return file, nil
 }
 
+// FileExists returns true if a file exists for the given chunk ID
+func FileExists(id string) bool {
+	return helper.FileExists(getChunkFilePath(id))
+}
+
 // NewChunk allocates the space for the new file and writes the chunk
 func NewChunk(chunkContent io.Reader, fileHeader *multipart.FileHeader, info ChunkInfo) error {
 	err := allocateFile(info)
@@ -178,7 +183,7 @@ func NewChunk(chunkContent io.Reader, fileHeader *multipart.FileHeader, info Chu
 }
 
 func allocateFile(info ChunkInfo) error {
-	if helper.FileExists(getChunkFilePath(info.UUID)) {
+	if FileExists(info.UUID) {
 		return nil
 	}
 	file, err := os.OpenFile(getChunkFilePath(info.UUID), os.O_RDWR|os.O_CREATE, 0600)

@@ -71,3 +71,8 @@ func DeleteObject(file models.File) (bool, error) {
 func IsCorsCorrectlySet(bucket, gokapiUrl string) (bool, error) {
 	return false, errors.New(errorString)
 }
+
+// GetDefaultBucketName returns the default bucketname where new files are stored
+func GetDefaultBucketName() string {
+	return ""
+}

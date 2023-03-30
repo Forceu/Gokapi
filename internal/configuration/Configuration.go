@@ -18,6 +18,7 @@ import (
 	"github.com/forceu/gokapi/internal/helper"
 	log "github.com/forceu/gokapi/internal/logging"
 	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/storage/filesystem"
 	"io"
 	"os"
 	"strings"
@@ -60,6 +61,7 @@ func Load() {
 		serverSettings.MaxMemory = Environment.MaxMemory
 	}
 	helper.CreateDir(serverSettings.DataDir)
+	filesystem.Init(serverSettings.DataDir)
 	log.Init(Environment.DataDir)
 	usesHttps = strings.HasPrefix(strings.ToLower(serverSettings.ServerUrl), "https://")
 }

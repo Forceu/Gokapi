@@ -9,7 +9,7 @@ import (
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage/chunking"
-	"github.com/forceu/gokapi/internal/storage/cloudstorage/aws"
+	"github.com/forceu/gokapi/internal/storage/filesystem/s3filesystem/aws"
 	"github.com/forceu/gokapi/internal/test"
 	"github.com/forceu/gokapi/internal/test/testconfiguration"
 	"github.com/forceu/gokapi/internal/webserver/downloadstatus"
@@ -401,6 +401,9 @@ func TestNewFileFromChunk(t *testing.T) {
 	test.IsNil(t, err)
 	header.Size = 100000
 	file, err = NewFileFromChunk(id, header, request)
+	test.IsNotNil(t, err)
+
+	_, err = NewFileFromChunk("", header, request)
 	test.IsNotNil(t, err)
 
 	if aws.IsIncludedInBuild {

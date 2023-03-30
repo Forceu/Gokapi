@@ -159,6 +159,10 @@ func getTimeoutContext() (context.Context, context.CancelFunc) {
 
 // FileExists returns true if the object is stored in S3
 func FileExists(file models.File) (bool, int64, error) {
+	return fileExists(file.AwsBucket, file.SHA1)
+}
+
+func fileExists(bucket, filename string) (bool, int64, error) {
 	sess := createSession()
 	svc := s3.New(sess)
 
@@ -166,8 +170,8 @@ func FileExists(file models.File) (bool, int64, error) {
 	defer cancelCtx()
 
 	info, err := svc.HeadObjectWithContext(ctx, &s3.HeadObjectInput{
-		Bucket: aws.String(file.AwsBucket),
-		Key:    aws.String(file.SHA1),
+		Bucket: aws.String(bucket),
+		Key:    aws.String(filename),
 	})
 
 	if err != nil {
@@ -235,4 +239,9 @@ func IsCorsCorrectlySet(bucket, gokapiUrl string) (bool, error) {
 		}
 	}
 	return false, nil
+}
+
+// GetDefaultBucketName returns the default bucketname where new files are stored
+func GetDefaultBucketName() string {
+	return awsConfig.Bucket
 }
