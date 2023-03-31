@@ -1,6 +1,7 @@
 package localstorage
 
 import (
+	"errors"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	fileInterfaces "github.com/forceu/gokapi/internal/storage/filesystem/interfaces"
@@ -32,12 +33,12 @@ func (d *localStorageDriver) MoveToFilesystem(sourceFile *os.File, metaData mode
 	if err != nil {
 		return err
 	}
-	return os.Rename(sourceFile.Name(), d.getDataPath()+metaData.SHA1)
+	if metaData.SHA1 == "" {
+		return errors.New("empty metadata passed")
+	}
+	return os.Rename(sourceFile.Name(), d.getPath()+d.filePrefix+metaData.SHA1)
 }
 
-func (d *localStorageDriver) getDataPath() string {
-	return d.dataPath
-}
 
 // Init sets the driver configurations and returns true if successful
 // Requires a Config struct as input

@@ -95,11 +95,17 @@ func IsEmpty(t MockT, s string) {
 	}
 }
 
-// IsNil fails test if error not nil
-func IsNil(t MockT, got error) {
+// IsNil fails test if object is not nil. If object is an error, it will display the error message
+func IsNil(t MockT, got any) {
 	t.Helper()
-	if got != nil {
-		t.Errorf("Assertion failed, got: %s, want: nil.", got.(error).Error())
+	if got == nil {
+		return
+	}
+	err, ok := got.(error)
+	if !ok {
+		t.Errorf("Assertion failed, got: not nil, want: nil.")
+	} else {
+		t.Errorf("Assertion failed, got: %s, want: nil.", err.Error())
 	}
 }
 
@@ -136,8 +142,8 @@ func fileExists(name string) bool {
 	return !info.IsDir()
 }
 
-// IsNotNil fails test if error is nil
-func IsNotNil(t MockT, got error) {
+// IsNotNil fails test if input is nil
+func IsNotNil(t MockT, got any) {
 	t.Helper()
 	if got == nil {
 		t.Errorf("Assertion failed, got: nil, want: not nil.")

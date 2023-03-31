@@ -3,10 +3,8 @@ package helper
 import (
 	"errors"
 	"github.com/forceu/gokapi/internal/test"
-	"io/ioutil"
 	"os"
 	"testing"
-	_ "unsafe"
 )
 
 func TestIsInArray(t *testing.T) {
@@ -20,7 +18,7 @@ func TestFolderCreation(t *testing.T) {
 	test.IsEqualBool(t, FileExists("invalid/file"), false)
 	CreateDir("invalid")
 	test.IsEqualBool(t, FolderExists("invalid"), true)
-	err := ioutil.WriteFile("invalid/file", []byte("test"), 0644)
+	err := os.WriteFile("invalid/file", []byte("test"), 0644)
 	if err != nil {
 		t.Error(err)
 	}

@@ -26,16 +26,21 @@ func Init(pathData string) {
 
 // SetAws sets the AWS filesystem as the default storage
 func SetAws() {
-	s3FileSystem = s3filesystem.GetDriver()
-	ok := s3FileSystem.Init(s3filesystem.Config{Bucket: aws.GetDefaultBucketName()})
-	if !ok {
-		log.Println("Unable to set AWS S3 as filesystem")
-		return
+	if aws.IsIncludedInBuild {
+		s3FileSystem = s3filesystem.GetDriver()
+		ok := s3FileSystem.Init(s3filesystem.Config{Bucket: aws.GetDefaultBucketName()})
+		if !ok && !isUnitTesting {
+			log.Println("Unable to set AWS S3 as filesystem")
+			return
+		}
+		ActiveStorageSystem = s3FileSystem
 	}
-	ActiveStorageSystem = s3FileSystem
 }
 
 // SetLocal sets the local filesystem as the default storage
 func SetLocal() {
 	ActiveStorageSystem = dataFilesystem
 }
+
+// isUnitTesting is only set to true when testing, to avoid login with aws
+var isUnitTesting = false
