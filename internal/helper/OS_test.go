@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
+	_ "unsafe"
 )
 
 func TestIsInArray(t *testing.T) {
