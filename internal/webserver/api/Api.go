@@ -14,9 +14,6 @@ import (
 	"time"
 )
 
-//go:generate cp ../../../openapi.json ../web/static/apidocumentation/
-//go:generate echo "Copied openapi.json"
-
 // Process parses the request and executes the API call or returns an error message to the sender
 func Process(w http.ResponseWriter, r *http.Request, maxMemory int) {
 	w.Header().Set("cache-control", "no-store")

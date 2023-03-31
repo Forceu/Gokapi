@@ -29,16 +29,13 @@ import (
 )
 
 // versionGokapi is the current version in readable form.
-// The go generate call below needs to be modified as well
+// Other version numbers can be modified in /build/go-generate/updateVersionNumbers.go
 const versionGokapi = "1.6.3-dev"
 
-// The following call updates the version numbers
-// Parameters:
-// GokapiVersion, JsAdmin, JsDropzone, JsE2EAdmin
-//go:generate sh "../../build/setVersionTemplate.sh" "1.6.3-dev" "16" "3" "1"
-//go:generate sh -c "cp \"$(go env GOROOT)/misc/wasm/wasm_exec.js\" ../../internal/webserver/web/static/js/ && echo Copied wasm_exec.js"
-//go:generate sh -c "GOOS=js GOARCH=wasm go build -o ../../internal/webserver/web/main.wasm github.com/forceu/gokapi/cmd/wasmdownloader && echo Compiled Downloader WASM module"
-//go:generate sh -c "GOOS=js GOARCH=wasm go build -o ../../internal/webserver/web/e2e.wasm github.com/forceu/gokapi/cmd/wasme2e && echo Compiled E2E WASM module"
+// The following calls updates the version numbers and build the WASM modules
+//go:generate go run "../../build/go-generate/updateVersionNumbers.go"
+//go:generate go run "../../build/go-generate/buildWasm.go"
+//go:generate go run "../../build/go-generate/copyStaticFiles.go"
 
 // Main routine that is called on startup
 func main() {
@@ -164,7 +161,3 @@ const logo = `
 ██    ██ ██    ██ ██  ██  ██   ██ ██      ██ 
  ██████   ██████  ██   ██ ██   ██ ██      ██ 
                                              `
-
-// Copy go mod file to docker image builder
-//go:generate cp "../../go.mod" "../../build/go.mod"
-//go:generate echo "Copied go.mod to Docker build directory"
