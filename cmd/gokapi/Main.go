@@ -1,3 +1,5 @@
+//go:build go1.20
+
 package main
 
 /**
@@ -20,12 +22,10 @@ import (
 	"github.com/forceu/gokapi/internal/webserver"
 	"github.com/forceu/gokapi/internal/webserver/authentication"
 	"github.com/forceu/gokapi/internal/webserver/ssl"
-	"math/rand"
 	"os"
 	"os/signal"
 	"runtime/debug"
 	"syscall"
-	"time"
 )
 
 // versionGokapi is the current version in readable form.
@@ -41,7 +41,6 @@ const versionGokapi = "1.6.3-dev"
 func main() {
 	passedFlags := flagparser.ParseFlags()
 	showVersion(passedFlags)
-	rand.Seed(time.Now().UnixNano())
 	fmt.Println(logo)
 	fmt.Println("Gokapi v" + versionGokapi + " starting")
 	setup.RunIfFirstStart()
