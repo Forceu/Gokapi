@@ -598,7 +598,12 @@ func (u *UploadView) convertGlobalConfig(view int) *UploadView {
 // Handling of /uploadChunk
 // If the user is authenticated, this parses the uploaded chunk and stores it
 func uploadChunk(w http.ResponseWriter, r *http.Request) {
+	maxUpload := int64(configuration.Get().MaxFileSizeMB) * 1024 * 1024
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	if r.ContentLength > maxUpload {
+		responseError(w, storage.ErrorFileTooLarge)
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, maxUpload)
 	err := fileupload.ProcessNewChunk(w, r, false)
 	responseError(w, err)
 }
