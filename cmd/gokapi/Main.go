@@ -34,6 +34,7 @@ const versionGokapi = "1.6.3-dev"
 
 // The following calls updates the version numbers and build the WASM modules
 //go:generate go run "../../build/go-generate/updateVersionNumbers.go"
+//go:generate go run "../../build/go-generate/updateProtectedUrls.go"
 //go:generate go run "../../build/go-generate/buildWasm.go"
 //go:generate go run "../../build/go-generate/copyStaticFiles.go"
 

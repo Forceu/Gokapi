@@ -41,6 +41,7 @@ func checkFileExists(filename string) {
 		os.Exit(3)
 	}
 }
+
 func getTemplate() string {
 	versionGokapi := parseGokapiVersion()
 	result := strings.ReplaceAll(templateVersions, "%gokapiversion%", versionGokapi)

@@ -228,14 +228,12 @@ func TestInitialSetup(t *testing.T) {
 }
 
 func TestRunConfigModification(t *testing.T) {
-	statusChannel = make(chan bool, 1)
 	testconfiguration.Create(false)
 	username = ""
 	password = ""
 	finish := make(chan bool)
 	go func() {
-		checkServerStatus(t, true)
-		time.Sleep(500 * time.Millisecond)
+		waitForServer(t, true)
 		test.HttpPageResult(t, test.HttpTestConfig{
 			Url:             "http://localhost:53842/setup/start",
 			IsHtml:          false,
@@ -252,36 +250,39 @@ func TestRunConfigModification(t *testing.T) {
 	test.IsEqualInt(t, len(password), 10)
 	isInitialSetup = true
 	<-finish
-	statusChannel = nil
 }
 
-func checkServerStatus(t *testing.T, expected bool) {
-	t.Helper()
-	if statusChannel == nil {
-		t.Fatal("statusChannel is nil")
-	}
-	var result bool
-	select {
-	case result = <-statusChannel:
-
-	case <-time.After(20 * time.Second):
-		t.Fatal("statusChannel timeout after 20 seconds")
-	}
-	if result != expected {
-		if expected == true {
-			t.Fatal("Server was started when it was supposed to be shut down")
-		} else {
-			t.Fatal("Server was shut down when it was supposed to be started")
+func waitForServer(t *testing.T, expectedRunning bool) bool {
+	const maxCount = 100
+	counter := 0
+	for counter < maxCount {
+		isRunning := isServerRunning(t)
+		if isRunning == expectedRunning {
+			return true
 		}
+		counter++
+		time.Sleep(100 * time.Millisecond)
 	}
+	t.Fatalf("Timeout after 10 seconds")
+	return false
+}
+
+func isServerRunning(t *testing.T) bool {
+	client := &http.Client{
+		Timeout: 100 * time.Millisecond,
+	}
+	t.Helper()
+	req, err := http.NewRequest("GET", "http://localhost:53842/admin", nil)
+	test.IsNil(t, err)
+	_, err = client.Do(req)
+	return err == nil
 }
 
 func TestIntegration(t *testing.T) {
-	statusChannel = make(chan bool, 1)
 	testconfiguration.Delete()
 	test.FileDoesNotExist(t, "test/config.json")
 	go RunIfFirstStart()
-	checkServerStatus(t, true)
+	waitForServer(t, true)
 
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://localhost:53842/admin",
@@ -319,8 +320,7 @@ func TestIntegration(t *testing.T) {
 		Body:            strings.NewReader(setupValues.toJson()),
 	})
 
-	time.Sleep(5 * time.Second)
-	checkServerStatus(t, false)
+	waitForServer(t, false)
 	test.FileExists(t, "test/config.json")
 	settings := configuration.Get()
 	test.IsEqualInt(t, settings.Authentication.Method, 0)
@@ -348,7 +348,7 @@ func TestIntegration(t *testing.T) {
 	test.FileExists(t, "test/cloudconfig.yml")
 
 	go RunConfigModification()
-	checkServerStatus(t, true)
+	waitForServer(t, true)
 
 	username = "test"
 	password = "testpw"
@@ -393,8 +393,7 @@ func TestIntegration(t *testing.T) {
 		Body:            strings.NewReader(setupInput.toJson()),
 	})
 
-	time.Sleep(5 * time.Second)
-	checkServerStatus(t, false)
+	waitForServer(t, false)
 
 	test.FileExists(t, "test/config.json")
 	settings = configuration.Get()
@@ -424,7 +423,7 @@ func TestIntegration(t *testing.T) {
 	test.FileDoesNotExist(t, "test/cloudconfig.yml")
 
 	go RunConfigModification()
-	checkServerStatus(t, true)
+	waitForServer(t, true)
 
 	username = "test"
 	password = "testpw"
@@ -441,8 +440,7 @@ func TestIntegration(t *testing.T) {
 		Body:            strings.NewReader(setupInput.toJson()),
 	})
 
-	time.Sleep(5 * time.Second)
-	checkServerStatus(t, false)
+	waitForServer(t, false)
 
 	test.IsEqualBool(t, settings.PicturesAlwaysLocal, true)
 	test.IsEqualString(t, settings.Authentication.OauthProvider, "provider")
@@ -454,7 +452,6 @@ func TestIntegration(t *testing.T) {
 		test.IsEqualString(t, settings.Authentication.OauthUsers[0], "oatest1")
 		test.IsEqualString(t, settings.Authentication.OauthUsers[1], "oatest2")
 	}
-	statusChannel = nil
 }
 
 type setupValues struct {
@@ -640,7 +637,7 @@ func TestIsErrorAddressAlreadyInUse(t *testing.T) {
 	case err = <-httpError:
 		test.IsEqualBool(t, isErrorAddressAlreadyInUse(err), true)
 	case <-time.After(15 * time.Second):
-		t.Fatalf("15 seconds timeout")
+		t.Fatalf("httpError timeout after 15 seconds")
 	}
 	err = errors.New("other error")
 	test.IsEqualBool(t, isErrorAddressAlreadyInUse(err), false)

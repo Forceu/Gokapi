@@ -43,17 +43,10 @@ var webserverDirEmb embed.FS
 //go:embed templates
 var templateFolderEmbedded embed.FS
 
-// protectedUrls contains a list of URLs that need to be protected if authentication is disabled.
-// This list will be displayed during the setup
-var protectedUrls = []string{"/admin", "/apiDelete", "/apiKeys", "/apiNew", "/delete", "/e2eInfo", "/e2eSetup", "/uploadChunk", "/uploadComplete"}
-
 var srv http.Server
 var isInitialSetup = true
 var username string
 var password string
-
-// statusChannel is only used for testing to indicate to the unit test that the server has been started or shut down.
-var statusChannel chan bool = nil
 
 const debugDisableAuth = false
 
@@ -129,19 +122,9 @@ func startSetupWebserver() {
 		}
 		log.Fatalf("Setup Webserver: %v", err)
 	}
-	if statusChannel != nil {
-		go func() {
-			// Normally only one second should be enough, however slow Github action runners require more time
-			time.Sleep(5 * time.Second)
-			statusChannel <- true
-		}()
-	}
 	err = srv.Serve(listener)
 	if err != nil && err != http.ErrServerClosed {
 		log.Fatalf("Setup Webserver: %v", err)
-	}
-	if statusChannel != nil {
-		statusChannel <- false
 	}
 }
 
