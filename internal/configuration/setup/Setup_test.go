@@ -14,6 +14,7 @@ import (
 	"github.com/forceu/gokapi/internal/test/testconfiguration"
 	"github.com/forceu/gokapi/internal/webserver/authentication"
 	"log"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -621,4 +622,27 @@ func createInputOAuth() setupValues {
 	values.StorageSelection.Value = "local"
 	values.PicturesAlwaysLocal.Value = "local"
 	return values
+}
+
+func TestIsErrorAddressAlreadyInUse(t *testing.T) {
+
+	l, err := net.Listen("tcp", "127.0.0.1:19888")
+	test.IsNil(t, err)
+	srv2 := http.Server{
+		Addr: ":19888",
+	}
+	httpError := make(chan error)
+	go func() {
+		sErr := srv2.ListenAndServe()
+		httpError <- sErr
+	}()
+	select {
+	case err = <-httpError:
+		test.IsEqualBool(t, isErrorAddressAlreadyInUse(err), true)
+	case <-time.After(15 * time.Second):
+		t.Fatalf("15 seconds timeout")
+	}
+	err = errors.New("other error")
+	test.IsEqualBool(t, isErrorAddressAlreadyInUse(err), false)
+	l.Close()
 }

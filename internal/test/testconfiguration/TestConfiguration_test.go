@@ -38,11 +38,21 @@ func TestEnableS3(t *testing.T) {
 		test.IsEqualString(t, os.Getenv("GOKAPI_AWS_REGION"), "mock-region-1")
 	}
 }
+
 func TestDisableS3S3(t *testing.T) {
 	DisableS3()
 	if aws.IsMockApi {
 		test.IsEqualString(t, os.Getenv("AWS_REGION"), "")
 	}
+}
+
+func TestUseMockS3Server(t *testing.T) {
+	previousValue := os.Getenv("REAL_AWS_CREDENTIALS")
+	os.Setenv("REAL_AWS_CREDENTIALS", "false")
+	test.IsEqualBool(t, UseMockS3Server(), true)
+	os.Setenv("REAL_AWS_CREDENTIALS", "true")
+	test.IsEqualBool(t, UseMockS3Server(), false)
+	os.Setenv("REAL_AWS_CREDENTIALS", previousValue)
 }
 
 func TestWriteSslCertificates(t *testing.T) {
@@ -65,4 +75,9 @@ func TestWriteCloudConfigFile(t *testing.T) {
 	WriteCloudConfigFile(false)
 	test.FileExists(t, "test/cloudconfig.yml")
 	Delete()
+}
+
+func TestStartS3TestServer(t *testing.T) {
+	server := StartS3TestServer()
+	test.IsNotNil(t, server)
 }

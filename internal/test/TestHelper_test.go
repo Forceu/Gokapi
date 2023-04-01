@@ -47,6 +47,10 @@ func (t *MockTest) Check() {
 	}
 }
 
+type testStruct struct {
+	Value1 int64
+}
+
 func TestFunctions(t *testing.T) {
 	mockT := MockTest{reference: t}
 	mockT.WantNoFail()
@@ -70,9 +74,13 @@ func TestFunctions(t *testing.T) {
 	os.WriteFile("testfile", []byte("content"), 0777)
 	mockT.WantNoFail()
 	FileExists(mockT, "testfile")
+	mockT.WantNoFail()
+	IsEqualStruct(mockT, testStruct{Value1: 1337}, testStruct{Value1: 1337})
 
 	mockT.WantNoFail()
 	IsNotNil(mockT, errors.New("hello"))
+	mockT.WantNoFail()
+	IsNotNil(mockT, "test")
 	mockT.WantFail()
 	IsEqualString(mockT, "test", "test2")
 	mockT.WantFail()
@@ -90,6 +98,8 @@ func TestFunctions(t *testing.T) {
 	mockT.WantFail()
 	IsNil(mockT, errors.New("hello"))
 	mockT.WantFail()
+	IsNil(mockT, "test")
+	mockT.WantFail()
 	IsNilWithMessage(mockT, errors.New("hello"), "there")
 	mockT.WantFail()
 	IsNotNil(mockT, nil)
@@ -100,6 +110,8 @@ func TestFunctions(t *testing.T) {
 	os.Remove("testfile")
 	mockT.WantFail()
 	FileExists(mockT, "testfile")
+	mockT.WantFail()
+	IsEqualStruct(mockT, testStruct{Value1: 1337}, testStruct{Value1: 1338})
 	mockT.Check()
 }
 

@@ -41,7 +41,7 @@ func (d *s3StorageDriver) MoveToFilesystem(sourceFile *os.File, metaData models.
 func (d *s3StorageDriver) Init(input any) bool {
 	config, ok := input.(Config)
 	if !ok {
-		panic("runtime exception: input for local filesystem is not a config object")
+		panic("runtime exception: input for aws filesystem is not a config object")
 	}
 	if config.Bucket == "" {
 		panic("empty bucket has been passed")

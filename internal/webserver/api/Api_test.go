@@ -508,3 +508,10 @@ func TestList(t *testing.T) {
 	test.IsEqualInt(t, w.Code, 200)
 	test.ResponseBodyContains(t, w, "picture.jpg")
 }
+
+func TestApiRequestToUploadRequest(t *testing.T) {
+	_, r := test.GetRecorder("POST", "/api/chunk/complete", nil, []test.Header{
+		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}}, strings.NewReader("invalid&&§$%"))
+	_, _, _, err := apiRequestToUploadRequest(r)
+	test.IsNotNil(t, err)
+}
