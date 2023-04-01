@@ -152,6 +152,7 @@ This option disables Gokapis internal authentication completely, except for API 
 - ``/delete``
 - ``/e2eInfo``
 - ``/e2eSetup``
+- ``/logs``
 - ``/uploadChunk``
 - ``/uploadComplete``
 
