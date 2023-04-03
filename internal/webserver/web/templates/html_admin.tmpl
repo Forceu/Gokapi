@@ -89,6 +89,7 @@
  							<button type="button" data-clipboard-text="{{ $.GenericHotlinkUrl }}{{ .Id }}" class="copyurl btn btn-outline-light btn-sm">Copy Hotlink</button>
 				{{ end }}
 			{{ end }}
+						<button type="button" class="btn btn-outline-light btn-sm" onclick="showQrCode('{{ $.Url }}{{ .Id }}');">QR</button>
 						<button type="button" class="btn btn-outline-light btn-sm" onclick="window.location='./delete?id={{ .Id }}'">Delete</button></td>
 					</tr>
 		{{ end }}
@@ -101,6 +102,11 @@
 		</div>
 	    </div>
    	 </div>
+
+
+	<div id="qroverlay">
+	  <div id="qrcode"></div>
+	</div>
 
 	<script src="./js/admin.js?v={{ template "js_admin_version"}}"></script>
 	<script>

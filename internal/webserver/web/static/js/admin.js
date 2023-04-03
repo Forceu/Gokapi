@@ -339,7 +339,7 @@ function addRow(jsonText) {
     cellDownloadCount.innerHTML = '0';
     cellUrl.innerHTML = '<a  target="_blank" style="color: inherit" id="url-href-' + item.Id + '" href="' + jsonObject.Url + item.Id + '">' + item.Id + '</a>' + lockIcon;
 
-    let buttons = '<button type="button" id="url-button-' + item.Id + '"  data-clipboard-text="' + jsonObject.Url + item.Id + '" class="copyurl btn btn-outline-light btn-sm">Copy URL</button>';
+    let buttons = '<button type="button" id="url-button-' + item.Id + '"  data-clipboard-text="' + jsonObject.Url + item.Id + '" class="copyurl btn btn-outline-light btn-sm">Copy URL</button> ';
     if (item.HotlinkId !== "") {
         buttons = buttons + '<button type="button" data-clipboard-text="' + jsonObject.HotlinkUrl + item.HotlinkId + '" class="copyurl btn btn-outline-light btn-sm">Copy Hotlink</button> ';
     } else {
@@ -349,6 +349,7 @@ function addRow(jsonText) {
             buttons = buttons + '<button type="button" data-clipboard-text="' + jsonObject.GenericHotlinkUrl + item.Id + '" class="copyurl btn btn-outline-light btn-sm">Copy Hotlink</button> ';
         }
     }
+    buttons = buttons + "<button type=\"button\" class=\"btn btn-outline-light btn-sm\" onclick=\"showQrCode('" + jsonObject.Url + item.Id + "');\">QR</button> ";
     buttons = buttons + "<button type=\"button\" class=\"btn btn-outline-light btn-sm\" onclick=\"window.location='./delete?id=" + item.Id + "'\">Delete</button>";
 
     cellButtons.innerHTML = buttons;
@@ -376,4 +377,23 @@ function addRow(jsonText) {
         document.getElementsByClassName("dataTables_info")[0].innerText = "Files stored: " + rowCount;
     }
     return item.Id;
+}
+
+function hideQrCode() {
+    document.getElementById("qroverlay").style.display = "none";
+    document.getElementById("qrcode").innerHTML = "";
+}
+
+function showQrCode(url) {
+    const overlay = document.getElementById("qroverlay");
+    overlay.style.display = "block";
+    new QRCode(document.getElementById("qrcode"), {
+        text: url,
+        width: 200,
+        height: 200,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
+    });
+    overlay.addEventListener("click", hideQrCode);
 }
