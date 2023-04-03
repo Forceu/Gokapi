@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build !ignore
 
 package main
 
@@ -12,12 +12,15 @@ import (
 
 const fileSetup = "../../internal/webserver/Webserver.go"
 const fileSetupConstants = "../../internal/configuration/setup/ProtectedUrls.go"
+const fileDocumentation = "../../docs/setup.rst"
 
 func main() {
 	checkFileExists(fileSetup)
 	checkFileExists(fileSetupConstants)
+	checkFileExists(fileDocumentation)
 	urls := parseProtectedUrls()
 	writeConstantFile(urls)
+	writeDocumentationFile(urls)
 }
 
 func checkFileExists(filename string) {
@@ -69,14 +72,40 @@ var protectedUrls = []string{`
 		if i < len(urls)-1 {
 			output = output + ", "
 		} else {
-			output = output + "}"
+			output = output + "}\n"
 		}
 	}
 	err := os.WriteFile(fileSetupConstants, []byte(output), 0664)
 	if err != nil {
-		fmt.Println("ERROR: Cannot write file: ")
+		fmt.Println("ERROR: Cannot write file:")
 		fmt.Println(err)
 		os.Exit(1)
 	}
 	fmt.Println("Updated protected URLs variable")
+}
+
+func writeDocumentationFile(urls []string) {
+	documentationContent, err := os.ReadFile(fileDocumentation)
+	if err != nil {
+		fmt.Println("ERROR: Cannot read file:")
+		fmt.Println(err)
+		os.Exit(6)
+	}
+	output := "proxy:\n\n"
+	for _, url := range urls {
+		output = output + "- ``" + url + "``\n"
+	}
+	regex := regexp.MustCompile(`proxy:\n+((?:- ` + "``" + `\/\w+` + "``" + `\n)+)`)
+	matches := regex.FindAllIndex(documentationContent, -1)
+	if len(matches) != 1 {
+		fmt.Println("ERROR: Not one match found exactly for documentation")
+		os.Exit(7)
+	}
+	documentationContent = regex.ReplaceAll(documentationContent, []byte(output))
+	err = os.WriteFile(fileDocumentation, documentationContent, 0664)
+	if err != nil {
+		fmt.Println("ERROR: Cannot write file:")
+		fmt.Println(err)
+		os.Exit(8)
+	}
 }

@@ -9,8 +9,13 @@
 		    <br>
 		    <p class="card-text"><form action="./uploadChunk"
 			      class="dropzone"
-			      id="uploaddropzone"></form>			
-		<p></p><br>
+			      id="uploaddropzone"></form>	
+		
+		<div id="uploadstatus" class="container uploads-container">
+		</div>		
+		<p></p>
+		
+		<br>
 		<div class="container-md">
 		  <div class="row">
 			  <div class="form-group col">
@@ -104,9 +109,9 @@
 		Dropzone.options.uploaddropzone["chunking"] = true;
 		Dropzone.options.uploaddropzone["chunkSize"] = 10000000;
 		Dropzone.options.uploaddropzone["forceChunking"] = true;
-		Dropzone.options.uploaddropzone["retryChunks"] = true;
 		Dropzone.options.uploaddropzone["retryChunksLimit"] = 3;
 		Dropzone.options.uploaddropzone["retryChunks"] = true;
+		Dropzone.options.uploaddropzone["previewsContainer"] = false;
 		
 		$(document).ready(function () {
 		    $('#maintable').DataTable({
@@ -123,6 +128,7 @@
 		    }
 		    });
 		});
+		registerChangeHandler();
 	</script>
 
 {{ if .EndToEndEncryption }}

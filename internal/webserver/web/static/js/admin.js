@@ -22,12 +22,19 @@ Dropzone.options.uploaddropzone = {
     },
     init: function() {
         dropzoneObject = this;
+        this.on("addedfile", file => {
+            addFileProgress(file);
+        });
         this.on("queuecomplete", function() {
             isUploading = false;
         });
         this.on("sending", function(file, xhr, formData) {
             isUploading = true;
         });
+        this.on("uploadprogress", function(file, progress, bytesSent) {
+            updateProgressbar(file, progress, bytesSent);
+        });
+
         // This will be executed after the page has loaded. If e2e ist enabled, the end2end_admin.js has set isE2EEnabled to true
         if (isE2EEnabled) {
             dropzoneObject.disable();
@@ -37,6 +44,42 @@ Dropzone.options.uploaddropzone = {
         }
     },
 };
+
+function updateProgressbar(file, progress, bytesSent) {
+    let chunkId = file.upload.uuid;
+    let container = document.getElementById(`us-container-${chunkId}`);
+    if (container == null || container.getAttribute('data-complete') === "true") {
+        return;
+    }
+    let rounded = Math.round(progress);
+    let millisSinceUpload = Date.now() - container.getAttribute('data-starttime');
+    let megabytePerSecond = bytesSent / (millisSinceUpload / 1000) / 1024 / 1024;
+    let uploadSpeed = Math.round(megabytePerSecond * 10) / 10;
+    document.getElementById(`us-progressbar-${chunkId}`).style.width = rounded + "%";
+    document.getElementById(`us-progress-info-${chunkId}`).innerText = rounded + "% - " + uploadSpeed + "MB/s";
+}
+
+function setProgressStatus(chunkId, progressCode) {
+    let container = document.getElementById(`us-container-${chunkId}`);
+    if (container == null) {
+        return;
+    }
+    container.setAttribute('data-complete', 'true');
+    let text;
+    switch (progressCode) {
+        case 0:
+            text = "Processing file...";
+            break;
+        case 1:
+            text = "Uploading file...";
+            break;
+    }
+    document.getElementById(`us-progress-info-${chunkId}`).innerText = text;
+}
+
+function addFileProgress(file) {
+    addFileStatus(file.upload.uuid, file.upload.filename);
+}
 
 document.onpaste = function(event) {
     if (dropzoneObject.disabled) {
@@ -128,11 +171,13 @@ function sendChunkComplete(file, done) {
                     }
                     GokapiE2EDecryptMenu();
                 }
-                dropzoneObject.removeFile(file);
+                removeFileStatus(file.upload.uuid);
                 done();
             } else {
                 file.accepted = false;
-                dropzoneObject._errorProcessing([file], getErrorMessage(xhr.responseText));
+                let errorMessage = getErrorMessage(xhr.responseText)
+                dropzoneObject._errorProcessing([file], errorMessage);
+                showError(file, errorMessage);
             }
         }
     };
@@ -146,7 +191,15 @@ function getErrorMessage(response) {
     } catch (e) {
         return "Unknown error: Server could not process file";
     }
-    return "Error processing file: " + result.ErrorMessage;
+    return "Error: " + result.ErrorMessage;
+}
+
+function showError(file, message) {
+    let chunkId = file.upload.uuid;
+    document.getElementById(`us-progressbar-${chunkId}`).style.width = "100%";
+    document.getElementById(`us-progressbar-${chunkId}`).style.backgroundColor = "red";
+    document.getElementById(`us-progress-info-${chunkId}`).innerText = message;
+    document.getElementById(`us-progress-info-${chunkId}`).classList.add('uploaderror');
 }
 
 
@@ -174,6 +227,79 @@ function parseData(data) {
         "Result": "error"
     };
 }
+
+function registerChangeHandler() {
+    const source = new EventSource("./uploadStatus?stream=changes")
+    source.onmessage = (event) => {
+        let eventData = JSON.parse(event.data);
+        setProgressStatus(eventData.chunkid, eventData.currentstatus);
+    }
+}
+
+var statusItemCount = 0;
+
+
+function addFileStatus(chunkId, filename) {
+    const container = document.createElement('div');
+    container.setAttribute('id', `us-container-${chunkId}`);
+    container.classList.add('us-container');
+
+    // create filename div
+    const filenameDiv = document.createElement('div');
+    filenameDiv.classList.add('filename');
+    filenameDiv.textContent = filename;
+    container.appendChild(filenameDiv);
+
+    // create progress bar container div
+    const progressContainerDiv = document.createElement('div');
+    progressContainerDiv.classList.add('upload-progress-container');
+    progressContainerDiv.setAttribute('id', `us-progress-container-${chunkId}`);
+
+    // create progress bar div
+    const progressBarDiv = document.createElement('div');
+    progressBarDiv.classList.add('upload-progress-bar');
+
+    // create progress bar progress div
+    const progressBarProgressDiv = document.createElement('div');
+    progressBarProgressDiv.setAttribute('id', `us-progressbar-${chunkId}`);
+    progressBarProgressDiv.classList.add('upload-progress-bar-progress');
+    progressBarProgressDiv.style.width = '0%';
+    progressBarDiv.appendChild(progressBarProgressDiv);
+
+    // create progress info div
+    const progressInfoDiv = document.createElement('div');
+    progressInfoDiv.setAttribute('id', `us-progress-info-${chunkId}`);
+    progressInfoDiv.classList.add('upload-progress-info');
+    progressInfoDiv.textContent = '0%';
+
+    // append progress bar and progress info to progress bar container
+    progressContainerDiv.appendChild(progressBarDiv);
+    progressContainerDiv.appendChild(progressInfoDiv);
+
+    // append progress bar container to container
+    container.appendChild(progressContainerDiv);
+
+    container.setAttribute('data-starttime', Date.now());
+    container.setAttribute('data-complete', "false");
+
+    const uploadstatusContainer = document.getElementById("uploadstatus");
+    uploadstatusContainer.appendChild(container);
+    uploadstatusContainer.style.visibility = "visible";
+    statusItemCount++;
+}
+
+function removeFileStatus(chunkId) {
+    const container = document.getElementById(`us-container-${chunkId}`);
+    if (container == null) {
+        return;
+    }
+    container.remove();
+    statusItemCount--;
+    if (statusItemCount < 1) {
+        document.getElementById("uploadstatus").style.visibility = "hidden";
+    }
+}
+
 
 function addRow(jsonText) {
     let jsonObject = parseData(jsonText);

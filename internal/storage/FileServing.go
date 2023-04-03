@@ -19,6 +19,7 @@ import (
 	"github.com/forceu/gokapi/internal/storage/chunking"
 	"github.com/forceu/gokapi/internal/storage/filesystem"
 	"github.com/forceu/gokapi/internal/storage/filesystem/s3filesystem/aws"
+	"github.com/forceu/gokapi/internal/storage/processingstatus"
 	"github.com/forceu/gokapi/internal/webserver/downloadstatus"
 	"github.com/jinzhu/copier"
 	"io"
@@ -141,11 +142,11 @@ func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, uploadRequ
 		return models.File{}, err
 	}
 
+	processingstatus.Set(chunkId, processingstatus.StatusHashingOrEncrypting)
 	hash, err := getChunkFileHash(file, uploadRequest.IsEndToEndEncrypted)
 	if err != nil {
 		return models.File{}, err
 	}
-
 	metaData := createNewMetaData(hash, fileHeader, uploadRequest)
 
 	fileExists := FileExists(metaData, configuration.Get().DataDir)
@@ -175,6 +176,7 @@ func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, uploadRequ
 			}
 			fileToMove = tempFile
 		}
+		processingstatus.Set(chunkId, processingstatus.StatusUploading)
 		err = filesystem.ActiveStorageSystem.MoveToFilesystem(fileToMove, metaData)
 		if err != nil {
 			return models.File{}, err

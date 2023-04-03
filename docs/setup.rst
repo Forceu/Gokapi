@@ -155,6 +155,7 @@ This option disables Gokapis internal authentication completely, except for API 
 - ``/logs``
 - ``/uploadChunk``
 - ``/uploadComplete``
+- ``/uploadStatus``
 
 **Warning:** This option has potential to be *very* dangerous, only proceed if you know what you are doing!
 

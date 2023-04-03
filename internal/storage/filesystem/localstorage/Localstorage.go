@@ -39,7 +39,6 @@ func (d *localStorageDriver) MoveToFilesystem(sourceFile *os.File, metaData mode
 	return os.Rename(sourceFile.Name(), d.getPath()+d.filePrefix+metaData.SHA1)
 }
 
-
 // Init sets the driver configurations and returns true if successful
 // Requires a Config struct as input
 func (d *localStorageDriver) Init(input any) bool {

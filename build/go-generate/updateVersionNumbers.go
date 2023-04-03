@@ -13,6 +13,8 @@ import (
 const versionJsAdmin = "16"
 const versionJsDropzone = "3"
 const versionJsE2EAdmin = "1"
+const versionCssCover = "4"
+const versionCssUploadStatus = "1"
 
 const fileMain = "../../cmd/gokapi/Main.go"
 const fileVersionConstants = "../../internal/webserver/web/templates/string_constants.tmpl"
@@ -48,6 +50,8 @@ func getTemplate() string {
 	result = strings.ReplaceAll(result, "%jsadmin%", versionJsAdmin)
 	result = strings.ReplaceAll(result, "%jsdropzone%", versionJsDropzone)
 	result = strings.ReplaceAll(result, "%jse2e%", versionJsE2EAdmin)
+	result = strings.ReplaceAll(result, "%css_cover%", versionCssCover)
+	result = strings.ReplaceAll(result, "%css_uploadstatus%", versionCssUploadStatus)
 	return result
 }
 
@@ -82,4 +86,6 @@ const templateVersions = `// Change these for rebranding
 // use a cached version, if the file has been updated
 {{define "js_admin_version"}}%jsadmin%{{end}}
 {{define "js_dropzone_version"}}%jsdropzone%{{end}}
-{{define "js_e2eversion"}}%jse2e%{{end}}`
+{{define "js_e2eversion"}}%jse2e%{{end}}
+{{define "css_coverversion"}}%css_cover%{{end}}
+{{define "css_statusversion"}}%css_uploadstatus%{{end}}`

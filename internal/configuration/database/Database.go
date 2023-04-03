@@ -17,6 +17,7 @@ const prefixApiKey = "apikey:id:"
 const prefixFile = "file:id:"
 const prefixHotlink = "hotlink:id:"
 const prefixSessions = "session:id:"
+const prefixUploadStatus = "fstatus:id:"
 const idLastUploadConfig = "default:lastupload"
 const idEnd2EndInfo = "e2e:info"
 
@@ -97,7 +98,7 @@ func GetAllMetaDataIds() []string {
 	return keys
 }
 
-// GetMetaDataById returns a models.File,true from the ID passed or false if the id is not valid
+// GetMetaDataById returns a models.File from the ID passed or false if the id is not valid
 func GetMetaDataById(id string) (models.File, bool) {
 	result := models.File{}
 	value, ok := getValue(prefixFile + id)
@@ -126,6 +127,32 @@ func SaveMetaData(file models.File) {
 // DeleteMetaData deletes information about a file
 func DeleteMetaData(id string) {
 	deleteKey(prefixFile + id)
+}
+
+// GetUploadStatus returns a models.UploadStatus from the ID passed or false if the id is not valid
+func GetUploadStatus(id string) (models.UploadStatus, bool) {
+	result := models.UploadStatus{}
+	value, ok := getValue(prefixUploadStatus + id)
+	if !ok {
+		return result, false
+	}
+	buf := bytes.NewBuffer(value)
+	dec := gob.NewDecoder(buf)
+	err := dec.Decode(&result)
+	helper.Check(err)
+	return result, true
+}
+
+// SaveUploadStatus stores the upload status of a new file for 24 hours
+func SaveUploadStatus(status models.UploadStatus) {
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+	err := enc.Encode(status)
+	helper.Check(err)
+	err = bitcaskDb.PutWithTTL([]byte(prefixUploadStatus+status.ChunkId), buf.Bytes(), time.Hour*24)
+	helper.Check(err)
+	err = bitcaskDb.Sync()
+	helper.Check(err)
 }
 
 // ## Hotlinks ##

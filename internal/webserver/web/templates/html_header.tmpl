@@ -11,7 +11,8 @@
 	<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
 	<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
 	<link rel="manifest" href="/site.webmanifest">
-        <link href="css/cover.css?v=4" rel="stylesheet">
+        <link href="css/cover.css?v={{ template "css_coverversion"}}" rel="stylesheet">
+        <link href="css/uploadProgress.css?v={{ template "css_statusversion"}}" rel="stylesheet">
 {{ if .IsAdminView }}
         <title>{{template "app_name"}} Admin</title>
 	<link href="./assets/dist/css/dropzone.min.css" rel="stylesheet">

@@ -1,0 +1,48 @@
+.filename {
+     font-weight: bold;
+     font-size: 14px;
+     margin-bottom: 5px;
+}
+ .upload-progress-container {
+     display: flex;
+     align-items: center;
+}
+ .upload-progress-bar {
+     position: relative;
+     height: 10px;
+     background-color: #eee;
+     flex: 1;
+     margin-right: 10px;
+     border-radius: 4px;
+}
+ .upload-progress-bar-progress {
+     position: absolute;
+     top: 0;
+     left: 0;
+     height: 100%;
+     background-color: #0a0;
+     border-radius: 4px;
+     transition: width 0.2s ease-in-out;
+}
+ .upload-progress-info {
+     font-size: 12px;
+}
+ .us-container {
+     margin-top: 10px;
+     margin-bottom: 20px;
+}
+ .uploaderror {
+     font-weight: bold;
+     color: red;
+     margin-bottom: 5px;
+}
+ .uploads-container {
+     background-color: rgb(47, 52, 58);
+     border: 2px solid rgba(0,0,0,.3);
+     border-radius: 5px;
+     margin-left: 0px;
+     margin-right: 0px;
+     max-width: none;
+     visibility: hidden;
+}
+
