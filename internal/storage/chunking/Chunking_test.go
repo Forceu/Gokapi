@@ -6,9 +6,11 @@ import (
 	"encoding/hex"
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/storage/processingstatus"
 	"github.com/forceu/gokapi/internal/test"
 	"github.com/forceu/gokapi/internal/test/testconfiguration"
 	"github.com/juju/ratelimit"
+	"github.com/r3labs/sse/v2"
 	"golang.org/x/sync/errgroup"
 	"mime/multipart"
 	"net/textproto"
@@ -21,6 +23,7 @@ import (
 func TestMain(m *testing.M) {
 	testconfiguration.Create(false)
 	configuration.Load()
+	processingstatus.Init(sse.New())
 	exitVal := m.Run()
 	testconfiguration.Delete()
 	os.Exit(exitVal)
