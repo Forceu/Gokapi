@@ -2,9 +2,9 @@
 {{template "header" .}}
 
  
-	<script src="./js/end2end_admin.js?v=1"></script>
-	<script src="./js/streamsaver.js"></script>
-	<script src="./js/wasm_exec.js"></script>
+	<script src="./js/min/end2end_admin.min.js?v={{ template "js_e2eversion"}}"></script>
+	<script src="./js/min/streamsaver.min.js"></script>
+	<script src="./js/min/wasm_exec.min.js"></script>
 	<script>
 		document.title = "Gokapi - E2E Setup";
 	</script>
@@ -17,7 +17,7 @@
 		    <h2 class="card-title">End-to-End Encryption Setup</h2>
 		    <br><br>
 		    <p class="card-text">Your password for decryption is:<br>
-			<b><kbd id="decryptionpw">Generating.......</kbd></b> <button type="button" id="downpw" class="btn btn-outline-light btn-sm" disabled>&#x2B73;</button></p>
+			<b><kbd id="decryptionpw">Generating.......</kbd></b> <button type="button" id="downpw" class="btn btn-outline-light btn-sm" disabled>&#11123;</button></p>
 			<div id="errordiv" style="display:none">
 				<span id="errormessage" style="color:red"></span>
 				<br>

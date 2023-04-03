@@ -37,6 +37,7 @@ const versionGokapi = "1.6.3-dev"
 //go:generate go run "../../build/go-generate/updateProtectedUrls.go"
 //go:generate go run "../../build/go-generate/buildWasm.go"
 //go:generate go run "../../build/go-generate/copyStaticFiles.go"
+//go:generate go run "../../build/go-generate/minifyStaticContent.go"
 
 // Main routine that is called on startup
 func main() {

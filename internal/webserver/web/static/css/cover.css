@@ -15,7 +15,6 @@
  */
 
 body {
-  text-shadow: 0 0.05rem 0.1rem rgba(0, 0, 0, 0.5);
   background: url("../assets/background.jpg") no-repeat center center fixed;
   -webkit-background-size: cover;
   -moz-background-size: cover;

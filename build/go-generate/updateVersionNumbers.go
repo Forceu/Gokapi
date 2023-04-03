@@ -10,11 +10,10 @@ import (
 	"strings"
 )
 
-const versionJsAdmin = "16"
+const versionJsAdmin = "1"
 const versionJsDropzone = "3"
 const versionJsE2EAdmin = "1"
-const versionCssCover = "4"
-const versionCssUploadStatus = "1"
+const versionCssMain = "1"
 
 const fileMain = "../../cmd/gokapi/Main.go"
 const fileVersionConstants = "../../internal/webserver/web/templates/string_constants.tmpl"
@@ -50,8 +49,7 @@ func getTemplate() string {
 	result = strings.ReplaceAll(result, "%jsadmin%", versionJsAdmin)
 	result = strings.ReplaceAll(result, "%jsdropzone%", versionJsDropzone)
 	result = strings.ReplaceAll(result, "%jse2e%", versionJsE2EAdmin)
-	result = strings.ReplaceAll(result, "%css_cover%", versionCssCover)
-	result = strings.ReplaceAll(result, "%css_uploadstatus%", versionCssUploadStatus)
+	result = strings.ReplaceAll(result, "%css_main%", versionCssMain)
 	return result
 }
 
@@ -87,5 +85,4 @@ const templateVersions = `// Change these for rebranding
 {{define "js_admin_version"}}%jsadmin%{{end}}
 {{define "js_dropzone_version"}}%jsdropzone%{{end}}
 {{define "js_e2eversion"}}%jse2e%{{end}}
-{{define "css_coverversion"}}%css_cover%{{end}}
-{{define "css_statusversion"}}%css_uploadstatus%{{end}}`
+{{define "css_main"}}%css_main%{{end}}`

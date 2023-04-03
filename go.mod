@@ -32,6 +32,8 @@ require (
 	github.com/ryszard/goskiplist v0.0.0-20150312221310-2dfbae5fcf46 // indirect
 	github.com/shabbyrobe/gocovmerge v0.0.0-20180507124511-f6ea450bfb63 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
+	github.com/tdewolff/minify/v2 v2.12.5 // indirect
+	github.com/tdewolff/parse/v2 v2.6.5 // indirect
 	golang.org/x/net v0.8.0 // indirect
 	golang.org/x/tools v0.2.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect

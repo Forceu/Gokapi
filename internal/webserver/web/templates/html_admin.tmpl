@@ -109,7 +109,7 @@
 	  <div id="qrcode"></div>
 	</div>
 
-	<script src="./js/admin.js?v={{ template "js_admin_version"}}"></script>
+	<script src="./js/min/admin.min.js?v={{ template "js_admin_version"}}"></script>
 	<script>
 		Dropzone.options.uploaddropzone["maxFilesize"] = {{ .MaxFileSize }};
 		Dropzone.options.uploaddropzone["timeout"] = 1200000;
@@ -139,8 +139,8 @@
 	</script>
 
 {{ if .EndToEndEncryption }}
-        <script src="./js/wasm_exec.js"></script>
-	<script src="./js/end2end_admin.js?v={{ template "js_e2eversion"}}"></script>
+        <script src="./js/min/wasm_exec.min.js"></script>
+	<script src="./js/min/end2end_admin.min.js?v={{ template "js_e2eversion"}}"></script>
 	<script>
 		checkIfE2EKeyIsSet();
 	</script>

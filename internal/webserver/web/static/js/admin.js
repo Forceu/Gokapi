@@ -52,6 +52,12 @@ function updateProgressbar(file, progress, bytesSent) {
         return;
     }
     let rounded = Math.round(progress);
+    if (rounded < 0) {
+        rounded = 0;
+    }
+    if (rounded > 100) {
+        rounded = 100;
+    }
     let millisSinceUpload = Date.now() - container.getAttribute('data-starttime');
     let megabytePerSecond = bytesSent / (millisSinceUpload / 1000) / 1024 / 1024;
     let uploadSpeed = Math.round(megabytePerSecond * 10) / 10;
