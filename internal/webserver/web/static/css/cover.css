@@ -154,3 +154,21 @@ a:hover {
     height: 210px;
 	border: 5px solid #ffffff;
 }
+
+.toastnotification {
+			position: fixed;
+			bottom: 20px;
+			left: 50%;
+			transform: translateX(-50%);
+			background-color: #333;
+			color: #fff;
+			padding: 15px;
+			border-radius: 5px;
+			box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+			opacity: 0;
+			transition: opacity 0.3s ease-in-out;
+			z-index: 9999;
+		}
+		.toastnotification.show {
+			opacity: 1;
+		}

@@ -339,14 +339,14 @@ function addRow(jsonText) {
     cellDownloadCount.innerHTML = '0';
     cellUrl.innerHTML = '<a  target="_blank" style="color: inherit" id="url-href-' + item.Id + '" href="' + jsonObject.Url + item.Id + '">' + item.Id + '</a>' + lockIcon;
 
-    let buttons = '<button type="button" id="url-button-' + item.Id + '"  data-clipboard-text="' + jsonObject.Url + item.Id + '" class="copyurl btn btn-outline-light btn-sm">Copy URL</button> ';
+    let buttons = '<button type="button" onclick="showToast()" id="url-button-' + item.Id + '"  data-clipboard-text="' + jsonObject.Url + item.Id + '" class="copyurl btn btn-outline-light btn-sm">Copy URL</button> ';
     if (item.HotlinkId !== "") {
-        buttons = buttons + '<button type="button" data-clipboard-text="' + jsonObject.HotlinkUrl + item.HotlinkId + '" class="copyurl btn btn-outline-light btn-sm">Copy Hotlink</button> ';
+        buttons = buttons + '<button type="button" onclick="showToast()" data-clipboard-text="' + jsonObject.HotlinkUrl + item.HotlinkId + '" class="copyurl btn btn-outline-light btn-sm">Copy Hotlink</button> ';
     } else {
         if (item.RequiresClientSideDecryption === true || item.IsPasswordProtected === true) {
             buttons = buttons + '<button type="button"class="copyurl btn btn-outline-light btn-sm disabled">Copy Hotlink</button> ';
         } else {
-            buttons = buttons + '<button type="button" data-clipboard-text="' + jsonObject.GenericHotlinkUrl + item.Id + '" class="copyurl btn btn-outline-light btn-sm">Copy Hotlink</button> ';
+            buttons = buttons + '<button type="button" onclick="showToast()" data-clipboard-text="' + jsonObject.GenericHotlinkUrl + item.Id + '" class="copyurl btn btn-outline-light btn-sm">Copy Hotlink</button> ';
         }
     }
     buttons = buttons + "<button type=\"button\" class=\"btn btn-outline-light btn-sm\" onclick=\"showQrCode('" + jsonObject.Url + item.Id + "');\">QR</button> ";
@@ -396,4 +396,12 @@ function showQrCode(url) {
         correctLevel: QRCode.CorrectLevel.H
     });
     overlay.addEventListener("click", hideQrCode);
+}
+
+function showToast() {
+    let notification = document.getElementById("toastnotification");
+    notification.classList.add("show");
+    setTimeout(() => {
+        notification.classList.remove("show");
+    }, 1000);
 }
