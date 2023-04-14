@@ -29,8 +29,8 @@ func main() {
 func getPaths() []converter {
 	var result []converter
 	result = append(result, converter{
-		InputPath:  pathPrefix + "css/*",
-		OutputPath: pathPrefix + "css/gokapi.min.css",
+		InputPath:  pathPrefix + "css/*.css",
+		OutputPath: pathPrefix + "css/min/gokapi.min.css",
 		Type:       "text/css",
 		Name:       "Main CSS",
 	})
