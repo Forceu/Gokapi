@@ -53,12 +53,6 @@ func getPaths() []converter {
 		Name:       "Download E2E JS",
 	})
 	result = append(result, converter{
-		InputPath:  pathPrefix + "js/end2end_download.js",
-		OutputPath: pathPrefix + "js/min/end2end_download.min.js",
-		Type:       "text/javascript",
-		Name:       "Download E2E JS",
-	})
-	result = append(result, converter{
 		InputPath:  pathPrefix + "js/streamsaver.js",
 		OutputPath: pathPrefix + "js/min/streamsaver.min.js",
 		Type:       "text/javascript",
