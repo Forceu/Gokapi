@@ -60,7 +60,7 @@ func (f *File) IsLocalStorage() bool {
 }
 
 // ToFileApiOutput returns a json object without sensitive information
-func (f *File) ToFileApiOutput(isClientSideDecryption bool) (FileApiOutput, error) {
+func (f *File) ToFileApiOutput() (FileApiOutput, error) {
 	var result FileApiOutput
 	err := copier.Copy(&result, &f)
 	if err != nil {
@@ -69,15 +69,15 @@ func (f *File) ToFileApiOutput(isClientSideDecryption bool) (FileApiOutput, erro
 	result.IsPasswordProtected = f.PasswordHash != ""
 	result.IsEncrypted = f.Encryption.IsEncrypted
 	result.IsSavedOnLocalStorage = f.AwsBucket == ""
-	if f.Encryption.IsEndToEndEncrypted || isClientSideDecryption {
+	if f.Encryption.IsEndToEndEncrypted || f.RequiresClientDecryption() {
 		result.RequiresClientSideDecryption = true
 	}
 	return result, nil
 }
 
 // ToJsonResult converts the file info to a json String used for returning a result for an upload
-func (f *File) ToJsonResult(serverUrl string, isClientSideDecryption bool) string {
-	info, err := f.ToFileApiOutput(isClientSideDecryption)
+func (f *File) ToJsonResult(serverUrl string) string {
+	info, err := f.ToFileApiOutput()
 	if err != nil {
 		return errorAsJson(err)
 	}
@@ -95,6 +95,14 @@ func (f *File) ToJsonResult(serverUrl string, isClientSideDecryption bool) strin
 	return string(bytes)
 }
 
+// RequiresClientDecryption checks if the file needs to be decrypted by the client
+// (if remote storage or end-to-end encryption)
+func (f *File) RequiresClientDecryption() bool {
+	if !f.Encryption.IsEncrypted {
+		return false
+	}
+	return !f.IsLocalStorage() || f.Encryption.IsEndToEndEncrypted
+}
 func errorAsJson(err error) string {
 	fmt.Println(err)
 	return "{\"Result\":\"error\",\"ErrorMessage\":\"" + err.Error() + "\"}"

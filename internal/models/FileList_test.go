@@ -29,7 +29,7 @@ func TestToJsonResult(t *testing.T) {
 		UnlimitedDownloads: true,
 		UnlimitedTime:      true,
 	}
-	test.IsEqualString(t, file.ToJsonResult("serverurl/", true), `{"Result":"OK","FileInfo":{"Id":"testId","Name":"testName","Size":"10 B","HotlinkId":"hotlinkid","ContentType":"text/html","ExpireAt":50,"SizeBytes":10,"ExpireAtString":"future","DownloadsRemaining":1,"DownloadCount":3,"UnlimitedDownloads":true,"UnlimitedTime":true,"RequiresClientSideDecryption":true,"IsEncrypted":true,"IsPasswordProtected":true,"IsSavedOnLocalStorage":false},"Url":"serverurl/d?id=","HotlinkUrl":"serverurl/hotlink/","GenericHotlinkUrl":"serverurl/downloadFile?id="}`)
+	test.IsEqualString(t, file.ToJsonResult("serverurl/"), `{"Result":"OK","FileInfo":{"Id":"testId","Name":"testName","Size":"10 B","HotlinkId":"hotlinkid","ContentType":"text/html","ExpireAt":50,"SizeBytes":10,"ExpireAtString":"future","DownloadsRemaining":1,"DownloadCount":3,"UnlimitedDownloads":true,"UnlimitedTime":true,"RequiresClientSideDecryption":true,"IsEncrypted":true,"IsPasswordProtected":true,"IsSavedOnLocalStorage":false},"Url":"serverurl/d?id=","HotlinkUrl":"serverurl/hotlink/","GenericHotlinkUrl":"serverurl/downloadFile?id="}`)
 }
 
 func TestIsLocalStorage(t *testing.T) {
@@ -42,4 +42,21 @@ func TestIsLocalStorage(t *testing.T) {
 func TestErrorAsJson(t *testing.T) {
 	result := errorAsJson(errors.New("testerror"))
 	test.IsEqualString(t, result, "{\"Result\":\"error\",\"ErrorMessage\":\"testerror\"}")
+}
+
+func TestRequiresClientDecryption(t *testing.T) {
+	file := File{
+		Id:        "test",
+		AwsBucket: "bucket",
+		Encryption: EncryptionInfo{
+			IsEncrypted: true,
+		},
+	}
+	test.IsEqualBool(t, file.RequiresClientDecryption(), true)
+	file.Encryption.IsEncrypted = false
+	test.IsEqualBool(t, file.RequiresClientDecryption(), false)
+	file.AwsBucket = ""
+	test.IsEqualBool(t, file.RequiresClientDecryption(), false)
+	file.Encryption.IsEncrypted = true
+	test.IsEqualBool(t, file.RequiresClientDecryption(), false)
 }

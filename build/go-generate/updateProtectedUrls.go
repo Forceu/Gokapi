@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build gogenerate
 
 package main
 
@@ -15,15 +15,15 @@ const fileSetupConstants = "../../internal/configuration/setup/ProtectedUrls.go"
 const fileDocumentation = "../../docs/setup.rst"
 
 func main() {
-	checkFileExists(fileSetup)
-	checkFileExists(fileSetupConstants)
-	checkFileExists(fileDocumentation)
+	checkFileExistsUrl(fileSetup)
+	checkFileExistsUrl(fileSetupConstants)
+	checkFileExistsUrl(fileDocumentation)
 	urls := parseProtectedUrls()
 	writeConstantFile(urls)
 	writeDocumentationFile(urls)
 }
 
-func checkFileExists(filename string) {
+func checkFileExistsUrl(filename string) {
 	info, err := os.Stat(filename)
 	if os.IsNotExist(err) {
 		fmt.Println("ERROR: File does not exist: " + filename)

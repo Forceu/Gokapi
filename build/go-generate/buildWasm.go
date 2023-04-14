@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build gogenerate
 
 package main
 

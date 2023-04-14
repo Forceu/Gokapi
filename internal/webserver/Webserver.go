@@ -335,7 +335,7 @@ func showDownload(w http.ResponseWriter, r *http.Request) {
 		UsesHttps:          configuration.UsesHttps(),
 	}
 
-	if storage.RequiresClientDecryption(file) {
+	if file.RequiresClientDecryption() {
 		view.ClientSideDecryption = true
 		if !file.Encryption.IsEndToEndEncrypted {
 			cipher, err := encryption.GetCipherFromFile(file.Encryption)
@@ -548,7 +548,7 @@ func (u *UploadView) convertGlobalConfig(view int) *UploadView {
 	switch view {
 	case ViewMain:
 		for _, element := range database.GetAllMetadata() {
-			fileInfo, err := element.ToFileApiOutput(storage.RequiresClientDecryption(element))
+			fileInfo, err := element.ToFileApiOutput()
 			helper.Check(err)
 			result = append(result, fileInfo)
 		}

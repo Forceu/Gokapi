@@ -165,27 +165,32 @@ function setE2eUpload() {
 
 
 function decryptFileEntry(id, filename, cipher) {
-    let cellName = document.getElementById("cell-name-" + id);
-    if (cellName != null) {
-        cellName.innerText = filename;
-    }
+    let datatable = $('#maintable').DataTable();
+    const rows = datatable.rows().nodes();
 
-    let urlLink = document.getElementById("url-href-" + id);
-    if (urlLink != null) {
-        let url = urlLink.href;
-        if (!url.includes(cipher)) {
-            urlLink.href = url + "#" + cipher;
+    for (let i = 0; i < rows.length; i++) {
+        const cell = datatable.cell(i, 0).node();
+        if ("cell-name-" + id === $(cell).attr("id")) {
+            datatable.cell(i, 0).data(filename);
+            let urlNode = datatable.cell(i, 5).node();
+            let urlLink = urlNode.querySelector("a");
+            let url = urlLink.getAttribute("href");
+            if (!url.includes(cipher)) {
+                urlLink.setAttribute("href", url + "#" + cipher);
+            }
+            datatable.cell(i, 5).node(urlNode);
+
+
+            let buttonNode = datatable.cell(i, 6).node();
+            let button = buttonNode.querySelector("button");
+            let urlButton = button.getAttribute("data-clipboard-text");
+            if (!urlButton.includes(cipher)) {
+                button.setAttribute("data-clipboard-text", urlButton + "#" + cipher);
+            }
+        datatable.cell(i, 6).node(buttonNode);
+        break;
         }
     }
-
-    let urlButton = document.getElementById("url-button-" + id)
-    if (urlButton != null) {
-        let url = urlButton.getAttribute("data-clipboard-text");
-        if (!url.includes(cipher)) {
-            urlButton.setAttribute("data-clipboard-text", url + "#" + cipher);
-        }
-    }
-
 }
 
 

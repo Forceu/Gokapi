@@ -746,27 +746,6 @@ func TestDeleteFile(t *testing.T) {
 	}
 }
 
-func TestRequiresClientDecryption(t *testing.T) {
-	file := models.File{
-		Id:        "test",
-		AwsBucket: "bucket",
-		Encryption: models.EncryptionInfo{
-			IsEncrypted: true,
-		},
-	}
-	result := RequiresClientDecryption(file)
-	test.IsEqualBool(t, result, true)
-	file.Encryption.IsEncrypted = false
-	result = RequiresClientDecryption(file)
-	test.IsEqualBool(t, result, false)
-	file.AwsBucket = ""
-	result = RequiresClientDecryption(file)
-	test.IsEqualBool(t, result, false)
-	file.Encryption.IsEncrypted = true
-	result = RequiresClientDecryption(file)
-	test.IsEqualBool(t, result, false)
-}
-
 func createBigFile(name string, megabytes int64) {
 	size := megabytes * 1024 * 1024
 	file, _ := os.Create(name)

@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build gogenerate
 
 package main
 
@@ -18,6 +18,12 @@ type converter struct {
 	OutputPath string
 	Type       string
 	Name       string
+}
+
+func main() {
+	for _, f := range getPaths() {
+		minifyContent(f)
+	}
 }
 
 func getPaths() []converter {
@@ -65,12 +71,6 @@ func getPaths() []converter {
 		Name:       "wasm_exec JS",
 	})
 	return result
-}
-
-func main() {
-	for _, f := range getPaths() {
-		minifyContent(f)
-	}
 }
 
 func minifyContent(conv converter) {

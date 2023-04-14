@@ -457,7 +457,7 @@ var imageFileExtensions = []string{".jpg", ".jpeg", ".png", ".gif", ".webp", ".b
 
 // If file is an image, create link for hotlinking
 func addHotlink(file *models.File) {
-	if RequiresClientDecryption(*file) {
+	if file.RequiresClientDecryption() {
 		return
 	}
 	if file.PasswordHash != "" {
@@ -514,15 +514,6 @@ func GetFileByHotlink(id string) (models.File, bool) {
 	return GetFile(fileId)
 }
 
-// RequiresClientDecryption checks if the file needs to be decrypted by the client
-// (if remote storage or end-to-end encryption)
-func RequiresClientDecryption(file models.File) bool {
-	if !file.Encryption.IsEncrypted {
-		return false
-	}
-	return !file.IsLocalStorage() || file.Encryption.IsEndToEndEncrypted
-}
-
 // ServeFile subtracts a download allowance and serves the file to the browser
 func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDownload bool) {
 	file.DownloadsRemaining = file.DownloadsRemaining - 1
@@ -539,7 +530,7 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 		return
 	}
 	fileData, size := getFileHandler(file, configuration.Get().DataDir)
-	if file.Encryption.IsEncrypted && !RequiresClientDecryption(file) {
+	if file.Encryption.IsEncrypted && !file.RequiresClientDecryption() {
 		if !encryption.IsCorrectKey(file.Encryption, fileData) {
 			w.Write([]byte("Internal error - Error decrypting file, source data might be damaged or an incorrect key has been used"))
 			return
@@ -547,7 +538,7 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 	}
 	statusId := downloadstatus.SetDownload(file)
 	writeDownloadHeaders(file, w, forceDownload)
-	if file.Encryption.IsEncrypted && !RequiresClientDecryption(file) {
+	if file.Encryption.IsEncrypted && !file.RequiresClientDecryption() {
 		err := encryption.DecryptReader(file.Encryption, fileData, w)
 		if err != nil {
 			w.Write([]byte("Error decrypting file"))

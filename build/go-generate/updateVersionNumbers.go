@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build gogenerate
 
 package main
 
@@ -12,7 +12,7 @@ import (
 
 const versionJsAdmin = "1"
 const versionJsDropzone = "3"
-const versionJsE2EAdmin = "1"
+const versionJsE2EAdmin = "2"
 const versionCssMain = "1"
 
 const fileMain = "../../cmd/gokapi/Main.go"
