@@ -77,7 +77,6 @@ func parseGokapiVersion() string {
 }
 
 const templateVersions = `// Change these for rebranding
-{{define "app_name"}}Gokapi{{end}}
 {{define "version"}}%gokapiversion%{{end}}
 
 // Specifies the version of JS files, so that the browser doesn't
