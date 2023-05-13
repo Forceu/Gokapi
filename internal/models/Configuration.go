@@ -11,6 +11,7 @@ type Configuration struct {
 	Port                string               `json:"Port"`
 	ServerUrl           string               `json:"ServerUrl"`
 	RedirectUrl         string               `json:"RedirectUrl"`
+	PublicName          string               `json:"PublicName"`
 	ConfigVersion       int                  `json:"ConfigVersion"`
 	LengthId            int                  `json:"LengthId"`
 	DataDir             string               `json:"DataDir"`

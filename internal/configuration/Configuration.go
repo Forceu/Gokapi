@@ -60,6 +60,9 @@ func Load() {
 	if envMaxMem != "" {
 		serverSettings.MaxMemory = Environment.MaxMemory
 	}
+	if serverSettings.PublicName == "" {
+		serverSettings.PublicName = "Gokapi"
+	}
 	helper.CreateDir(serverSettings.DataDir)
 	filesystem.Init(serverSettings.DataDir)
 	log.Init(Environment.DataDir)

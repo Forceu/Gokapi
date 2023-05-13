@@ -458,6 +458,7 @@ type setupValues struct {
 	BindLocalhost        setupEntry `form:"localhost_sel" isBool:"true"`
 	UseSsl               setupEntry `form:"ssl_sel" isBool:"true"`
 	Port                 setupEntry `form:"port" isInt:"true"`
+	PublicName           setupEntry `form:"public_name"`
 	ExtUrl               setupEntry `form:"url"`
 	RedirectUrl          setupEntry `form:"url_redirection"`
 	AuthenticationMode   setupEntry `form:"authentication_sel" isInt:"true"`
@@ -572,6 +573,7 @@ func createInputInternalAuth() setupValues {
 	values.init()
 
 	values.BindLocalhost.Value = "1"
+	values.PublicName.Value = "Test Name"
 	values.UseSsl.Value = "0"
 	values.Port.Value = "53842"
 	values.ExtUrl.Value = "http://127.0.0.1:53842/"
@@ -596,6 +598,7 @@ func createInputHeaderAuth() setupValues {
 	values.init()
 
 	values.BindLocalhost.Value = "0"
+	values.PublicName.Value = "Test Name"
 	values.UseSsl.Value = "1"
 	values.Port.Value = "53842"
 	values.ExtUrl.Value = "http://127.0.0.1:53842/"

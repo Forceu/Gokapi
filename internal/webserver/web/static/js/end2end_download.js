@@ -1,6 +1,6 @@
 function parseHashValue(id) {
-    let key = localStorage.getItem("key-" + id);
-    let filename = localStorage.getItem("fn-" + id);
+    let key = sessionStorage.getItem("key-" + id);
+    let filename = sessionStorage.getItem("fn-" + id);
 
     if (key === null || filename === null) {
         hash = window.location.hash.substr(1);
@@ -20,8 +20,8 @@ function parseHashValue(id) {
             redirectToE2EError();
             return;
         }
-        localStorage.setItem("key-" + id, info.c);
-        localStorage.setItem("fn-" + id, info.f);
+        sessionStorage.setItem("key-" + id, info.c);
+        sessionStorage.setItem("fn-" + id, info.f);
     }
 }
 

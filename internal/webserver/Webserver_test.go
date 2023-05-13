@@ -12,7 +12,6 @@ import (
 	"github.com/forceu/gokapi/internal/webserver/authentication"
 	"github.com/r3labs/sse/v2"
 	"html/template"
-	"io/fs"
 	"os"
 	"strings"
 	"testing"
@@ -35,12 +34,8 @@ func TestEmbedFs(t *testing.T) {
 	if err != nil {
 		t.Error("Unable to read templates")
 	}
-	if !strings.Contains(templates.DefinedTemplates(), "app_name") {
+	if !strings.Contains(templates.DefinedTemplates(), "header") {
 		t.Error("Unable to parse templates")
-	}
-	_, err = fs.Stat(staticFolderEmbedded, "web/static/expired.png")
-	if err != nil {
-		t.Error("Static webdir incomplete")
 	}
 }
 
@@ -326,7 +321,7 @@ func TestDownloadHotlink(t *testing.T) {
 	// Download expired hotlink
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/hotlink/PhSs6mFtf8O5YGlLMfNw9rYXx9XRNkzCnJZpQBi7inunv3Z4A.jpg",
-		RequiredContent: []string{"Created with GIMP"},
+		RequiredContent: []string{"The requested image has expired"},
 	})
 }
 

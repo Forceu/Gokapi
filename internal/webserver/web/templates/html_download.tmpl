@@ -78,10 +78,10 @@
 		async function DownloadEncrypted() {
 		    try {
 {{ if .EndToEndEncryption }}
-			let key = localStorage.getItem("key-{{ .Id }}");
-			localStorage.removeItem("key-{{ .Id }}"); 
-			let filename = localStorage.getItem("fn-{{ .Id }}");
-			localStorage.removeItem("fn-{{ .Id }}"); 
+			let key = sessionStorage.getItem("key-{{ .Id }}");
+			sessionStorage.removeItem("key-{{ .Id }}"); 
+			let filename = sessionStorage.getItem("fn-{{ .Id }}");
+			sessionStorage.removeItem("fn-{{ .Id }}"); 
 {{ else }}
 			let key = "{{ .Cipher }}";
 {{ end }}
@@ -141,7 +141,9 @@
 {{ end }}
 {{ if .EndToEndEncryption }}
 		<script> 
-			document.getElementById("filename").innerText = localStorage.getItem("fn-{{ .Id }}");
+			let filename = sessionStorage.getItem("fn-{{ .Id }}");
+			document.getElementById("filename").innerText = filename;
+			document.title = "{{.PublicName}}: "+ filename;
 		</script>
 {{ end }}
 

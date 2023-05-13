@@ -5,6 +5,7 @@ Handling of webserver and requests / uploads
 */
 
 import (
+	"bytes"
 	"context"
 	"embed"
 	"encoding/base64"
@@ -35,6 +36,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	templatetext "text/template"
 	"time"
 )
 
@@ -71,8 +73,6 @@ var templateFolder *template.Template
 
 var imageExpiredPicture []byte
 
-const expiredFile = "static/expired.png"
-
 var srv http.Server
 var sseServer *sse.Server
 
@@ -90,13 +90,12 @@ func Start() {
 	if helper.FolderExists("static") {
 		fmt.Println("Found folder 'static', using local folder instead of internal static folder")
 		mux.Handle("/", http.FileServer(http.Dir("static")))
-		imageExpiredPicture, err = os.ReadFile(expiredFile)
-		helper.Check(err)
 	} else {
 		mux.Handle("/", http.FileServer(http.FS(webserverDir)))
-		imageExpiredPicture, err = fs.ReadFile(staticFolderEmbedded, "web/"+expiredFile)
 		helper.Check(err)
 	}
+	loadExpiryImage()
+
 	mux.HandleFunc("/admin", requireLogin(showAdminMenu, false))
 	mux.HandleFunc("/api/", processApi)
 	mux.HandleFunc("/apiDelete", requireLogin(deleteApiKey, false))
@@ -157,6 +156,16 @@ func Start() {
 	}
 }
 
+func loadExpiryImage() {
+	svgTemplate, err := templatetext.ParseFS(templateFolderEmbedded, "web/templates/expired_file_svg.tmpl")
+	helper.Check(err)
+	var buf bytes.Buffer
+	view := UploadView{}
+	err = svgTemplate.Execute(&buf, view.convertGlobalConfig(ViewMain))
+	helper.Check(err)
+	imageExpiredPicture = buf.Bytes()
+}
+
 // Shutdown closes the webserver gracefully
 func Shutdown() {
 	sseServer.Close()
@@ -211,7 +220,7 @@ func doLogout(w http.ResponseWriter, r *http.Request) {
 
 // Handling of /index and redirecting to globalConfig.RedirectUrl
 func showIndex(w http.ResponseWriter, r *http.Request) {
-	err := templateFolder.ExecuteTemplate(w, "index", genericView{RedirectUrl: configuration.Get().RedirectUrl})
+	err := templateFolder.ExecuteTemplate(w, "index", genericView{RedirectUrl: configuration.Get().RedirectUrl, PublicName: configuration.Get().PublicName})
 	helper.Check(err)
 }
 
@@ -228,19 +237,19 @@ func showError(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Query().Has("key") {
 		errorReason = wrongCipher
 	}
-	err := templateFolder.ExecuteTemplate(w, "error", genericView{ErrorId: errorReason})
+	err := templateFolder.ExecuteTemplate(w, "error", genericView{ErrorId: errorReason, PublicName: configuration.Get().PublicName})
 	helper.Check(err)
 }
 
 // Handling of /error-auth
 func showErrorAuth(w http.ResponseWriter, r *http.Request) {
-	err := templateFolder.ExecuteTemplate(w, "error_auth", genericView{})
+	err := templateFolder.ExecuteTemplate(w, "error_auth", genericView{PublicName: configuration.Get().PublicName})
 	helper.Check(err)
 }
 
 // Handling of /forgotpw
 func forgotPassword(w http.ResponseWriter, r *http.Request) {
-	err := templateFolder.ExecuteTemplate(w, "forgotpw", genericView{})
+	err := templateFolder.ExecuteTemplate(w, "forgotpw", genericView{PublicName: configuration.Get().PublicName})
 	helper.Check(err)
 }
 
@@ -303,15 +312,18 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 		IsFailedLogin: failedLogin,
 		User:          user,
 		IsAdminView:   false,
+		PublicName:    configuration.Get().PublicName,
 	})
 	helper.Check(err)
 }
 
 // LoginView contains variables for the login template
 type LoginView struct {
-	IsFailedLogin bool
-	User          string
-	IsAdminView   bool
+	IsFailedLogin  bool
+	IsAdminView    bool
+	IsDownloadView bool
+	User           string
+	PublicName     string
 }
 
 // Handling of /d
@@ -330,7 +342,9 @@ func showDownload(w http.ResponseWriter, r *http.Request) {
 		Name:               file.Name,
 		Size:               file.Size,
 		Id:                 file.Id,
+		IsDownloadView:     true,
 		EndToEndEncryption: file.Encryption.IsEndToEndEncrypted,
+		PublicName:         configuration.Get().PublicName,
 		IsFailedLogin:      false,
 		UsesHttps:          configuration.UsesHttps(),
 	}
@@ -354,6 +368,7 @@ func showDownload(w http.ResponseWriter, r *http.Request) {
 				case <-time.After(1 * time.Second):
 				}
 			}
+			view.IsPasswordView = true
 			err := templateFolder.ExecuteTemplate(w, "download_password", view)
 			helper.Check(err)
 			return
@@ -376,7 +391,7 @@ func showHotlink(w http.ResponseWriter, r *http.Request) {
 	hotlinkId := strings.Replace(r.URL.Path, "/hotlink/", "", 1)
 	file, ok := storage.GetFileByHotlink(hotlinkId)
 	if !ok {
-		w.Header().Set("Content-Type", "image/png")
+		w.Header().Set("Content-Type", "image/svg+xml")
 		_, err := w.Write(imageExpiredPicture)
 		helper.Check(err)
 		return
@@ -487,7 +502,7 @@ func showE2ESetup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	e2einfo := database.GetEnd2EndInfo()
-	err := templateFolder.ExecuteTemplate(w, "e2esetup", e2ESetupView{HasBeenSetup: e2einfo.HasBeenSetUp()})
+	err := templateFolder.ExecuteTemplate(w, "e2esetup", e2ESetupView{HasBeenSetup: e2einfo.HasBeenSetUp(), PublicName: configuration.Get().PublicName})
 	helper.Check(err)
 }
 
@@ -496,17 +511,22 @@ type DownloadView struct {
 	Name                 string
 	Size                 string
 	Id                   string
+	Cipher               string
+	PublicName           string
 	IsFailedLogin        bool
 	IsAdminView          bool
+	IsDownloadView       bool
+	IsPasswordView       bool
 	ClientSideDecryption bool
 	EndToEndEncryption   bool
 	UsesHttps            bool
-	Cipher               string
 }
 
 type e2ESetupView struct {
-	IsAdminView  bool
-	HasBeenSetup bool
+	IsAdminView    bool
+	IsDownloadView bool
+	HasBeenSetup   bool
+	PublicName     string
 }
 
 // UploadView contains parameters for the admin menu template
@@ -516,25 +536,27 @@ type UploadView struct {
 	Url                      string
 	HotlinkUrl               string
 	GenericHotlinkUrl        string
-	TimeNow                  int64
-	IsAdminView              bool
-	IsApiView                bool
-	MaxFileSize              int
-	IsLogoutAvailable        bool
-	DefaultDownloads         int
-	DefaultExpiry            int
 	DefaultPassword          string
+	Logs                     string
+	PublicName               string
+	IsAdminView              bool
+	IsDownloadView           bool
+	IsApiView                bool
+	IsLogoutAvailable        bool
 	DefaultUnlimitedDownload bool
 	DefaultUnlimitedTime     bool
 	EndToEndEncryption       bool
+	MaxFileSize              int
+	DefaultDownloads         int
+	DefaultExpiry            int
 	ActiveView               int
-	Logs                     string
+	TimeNow                  int64
 }
 
 // ViewMain is the identifier for the main menu
 const ViewMain = 0
 
-// ViewLogs is the identifier for the log viever menu
+// ViewLogs is the identifier for the log viewer menu
 const ViewLogs = 1
 
 // ViewAPI is the identifier for the API menu
@@ -583,15 +605,18 @@ func (u *UploadView) convertGlobalConfig(view int) *UploadView {
 		}
 	}
 
-	u.Url = configuration.Get().ServerUrl + "d?id="
-	u.HotlinkUrl = configuration.Get().ServerUrl + "hotlink/"
-	u.GenericHotlinkUrl = configuration.Get().ServerUrl + "downloadFile?id="
+	config := configuration.Get()
+
+	u.Url = config.ServerUrl + "d?id="
+	u.HotlinkUrl = config.ServerUrl + "hotlink/"
+	u.GenericHotlinkUrl = config.ServerUrl + "downloadFile?id="
 	u.Items = result
+	u.PublicName = config.PublicName
 	u.ApiKeys = resultApi
 	u.TimeNow = time.Now().Unix()
 	u.IsAdminView = true
 	u.ActiveView = view
-	u.MaxFileSize = configuration.Get().MaxFileSizeMB
+	u.MaxFileSize = config.MaxFileSizeMB
 	u.IsLogoutAvailable = authentication.IsLogoutAvailable()
 	defaultValues := database.GetUploadDefaults()
 	u.DefaultDownloads = defaultValues.Downloads
@@ -599,7 +624,7 @@ func (u *UploadView) convertGlobalConfig(view int) *UploadView {
 	u.DefaultPassword = defaultValues.Password
 	u.DefaultUnlimitedDownload = defaultValues.UnlimitedDownload
 	u.DefaultUnlimitedTime = defaultValues.UnlimitedTime
-	u.EndToEndEncryption = configuration.Get().Encryption.Level == encryption.EndToEndEncryption
+	u.EndToEndEncryption = config.Encryption.Level == encryption.EndToEndEncryption
 	return u
 }
 
@@ -698,7 +723,9 @@ func addNoCacheHeader(w http.ResponseWriter) {
 
 // A view containing parameters for a generic template
 type genericView struct {
-	IsAdminView bool
-	RedirectUrl string
-	ErrorId     int
+	IsAdminView    bool
+	IsDownloadView bool
+	PublicName     string
+	RedirectUrl    string
+	ErrorId        int
 }

@@ -147,4 +147,3 @@ By default, all files are included in the executable. If you want to change the 
 3. Make changes to the folders. ``static`` contains images, CSS files and JavaScript. ``templates`` contains the HTML code.
 4. Restart the server. If the folders exist, the server will use the local files instead of the embedded files.
 5. Optional: To embed the files permanently, copy the modified files back to the original folders and recompile with ``go build Gokapi/cmd/gokapi``.
-

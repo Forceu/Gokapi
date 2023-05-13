@@ -16,7 +16,7 @@ import (
 )
 
 // CurrentConfigVersion is the version of the configuration structure. Used for upgrading
-const CurrentConfigVersion = 13
+const CurrentConfigVersion = 14
 
 // DoUpgrade checks if an old version is present and updates it to the current version if required
 func DoUpgrade(settings *models.Configuration, env *environment.Environment) bool {
@@ -65,6 +65,10 @@ func updateConfig(settings *models.Configuration, env *environment.Environment) 
 				}
 			}
 		}
+	}
+	// < v1.7.2
+	if settings.ConfigVersion < 14 {
+		settings.PublicName = "Gokapi"
 	}
 }
 
