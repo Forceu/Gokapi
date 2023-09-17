@@ -16,7 +16,7 @@
     - [ ] Only accept if file isn't too big
 
 ## Tasks
-- [ ] Add guest tokens to database
+- [x] Add guest tokens to database
 - [ ] Add webserver endpoint for uploading
 - [ ] Create page to upload
 - [ ] Create admin panel page to make tokens
