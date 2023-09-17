@@ -8,6 +8,11 @@ Main routine
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
+	"runtime/debug"
+	"syscall"
+
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
 	"github.com/forceu/gokapi/internal/configuration/database"
@@ -22,10 +27,6 @@ import (
 	"github.com/forceu/gokapi/internal/webserver"
 	"github.com/forceu/gokapi/internal/webserver/authentication"
 	"github.com/forceu/gokapi/internal/webserver/ssl"
-	"os"
-	"os/signal"
-	"runtime/debug"
-	"syscall"
 )
 
 // versionGokapi is the current version in readable form.
@@ -156,7 +157,7 @@ var osExit = os.Exit
 
 // ASCII art logo
 const logo = `
-██████   ██████  ██   ██  █████  ██████  ██ 
+██████   ██████   ██   ██  █████  ██████  ██ 
 ██       ██    ██ ██  ██  ██   ██ ██   ██ ██ 
 ██   ███ ██    ██ █████   ███████ ██████  ██ 
 ██    ██ ██    ██ ██  ██  ██   ██ ██      ██ 
