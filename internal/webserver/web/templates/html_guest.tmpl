@@ -1,149 +1,75 @@
 {{ define "guest" }}
 {{ template "header" . }}
  
-      <div class="row">
-        <div class="col">
-		<div id="container" class="card" style="width: 80%">
-		  <div class="card-body">
-		    <h3 class="card-title">Guest Upload</h3>
-		    <br>
-		    <p class="card-text"><form action="./uploadChunk"
-			      class="dropzone"
-			      id="uploaddropzone"></form>	
-		
-		<div id="uploadstatus" class="container uploads-container">
-		</div>		
-		<p></p>
-		
-		<br>
-		<div class="container-md">
-		  <div class="row">
-			  <div class="form-group col">
-				<input class="form-check-input" type="checkbox" name="enableDownloadLimit" id="enableDownloadLimit" onchange="checkBoxChanged(this, 'allowedDownloads')" value="" aria-label="Enable Download Limit" {{ if not .DefaultUnlimitedDownload }} checked {{ end }}>
-	     			<label class="control-label small" for="allowedDownloads">Limit Downloads</label>
-				<div class="input-group mb-3">
-					<input type="number" class="form-control admin-input" value="{{ .DefaultDownloads }}" name="allowedDownloads" id="allowedDownloads" min="1"  {{ if .DefaultUnlimitedDownload }} disabled {{ end }}  style="text-align: right;"/>
-	  				<span class="input-group-text">Downloads</span>
-				</div>
-			 </div>
-  			 <div class="break"></div>
-	   		 <div class="form-group col">
-				<input class="form-check-input" type="checkbox" name="enableTimeLimit" id="enableTimeLimit" onchange="checkBoxChanged(this, 'expiryDays')" value="" aria-label="Enable Time Limit"  {{ if not .DefaultUnlimitedTime }} checked {{ end }}>
-	     			<label class="control-label  small" for="expiryDays">Expiry</label>
-				<div class="input-group mb-3">
-					<input type="number" class="form-control admin-input" value="{{ .DefaultExpiry }}" name="expiryDays" id="expiryDays" min="1"  {{ if .DefaultUnlimitedTime }} disabled {{ end }} style="text-align: right;"/>
-	  				<span class="input-group-text">Days</span>
-				</div>
-			 </div>
-  			 <div class="break"></div>
-	    		 <div class="form-group col">
-				<input class="form-check-input" type="checkbox" name="enablePassword" id="enablePassword" onchange="checkBoxChanged(this, 'password')" value="" aria-label="Enable Password Protection" {{ if ne .DefaultPassword "" }} checked {{ end }}>
-	     			<label class="control-label  small" for="password">Password</label>
-				<input class="form-control admin-input" value="{{ .DefaultPassword }}" name="password" id="password" placeholder="None" {{ if eq .DefaultPassword "" }} disabled {{ end }}/>
-			  </div>
-<div id="errordiv" class="alert alert-danger" style="display:none">
-  <span id="errormessage" ></span>
+<div class="row">
+  <div class="col">
+    <div id="container" class="card" style="width: 80%">
+      <div class="card-body">
+        <h3 class="card-title">Guest Upload</h3>
+        <br>
+        <p class="card-text"></p>
+        <form action="./uploadChunk" class="dropzone" id="uploaddropzone"></form>	
+        <div id="uploadstatus" class="container uploads-container"></div>
+        <p></p>
+        <br>
+        {{/* <div class="container-md">
+          <div class="row">
+            <div class="form-group col">
+              <input class="form-check-input" type="checkbox" name="enableDownloadLimit" id="enableDownloadLimit" onchange="checkBoxChanged(this, 'allowedDownloads')" value="" aria-label="Enable Download Limit" {{ if not .DefaultUnlimitedDownload }} checked {{ end }}>
+              <label class="control-label small" for="allowedDownloads">Limit Downloads</label>
+              <div class="input-group mb-3">
+                <input type="number" class="form-control admin-input" value="{{ .DefaultDownloads }}" name="allowedDownloads" id="allowedDownloads" min="1"  {{ if .DefaultUnlimitedDownload }} disabled {{ end }}  style="text-align: right;"/>
+                <span class="input-group-text">Downloads</span>
+              </div>
+            </div>
+            <div class="break"></div>
+            <div class="form-group col">
+              <input class="form-check-input" type="checkbox" name="enableTimeLimit" id="enableTimeLimit" onchange="checkBoxChanged(this, 'expiryDays')" value="" aria-label="Enable Time Limit"  {{ if not .DefaultUnlimitedTime }} checked {{ end }}>
+              <label class="control-label  small" for="expiryDays">Expiry</label>
+              <div class="input-group mb-3">
+                <input type="number" class="form-control admin-input" value="{{ .DefaultExpiry }}" name="expiryDays" id="expiryDays" min="1"  {{ if .DefaultUnlimitedTime }} disabled {{ end }} style="text-align: right;"/>
+                <span class="input-group-text">Days</span>
+              </div>
+            </div>
+            <div class="break"></div>
+            <div class="form-group col">
+              <input class="form-check-input" type="checkbox" name="enablePassword" id="enablePassword" onchange="checkBoxChanged(this, 'password')" value="" aria-label="Enable Password Protection" {{ if ne .DefaultPassword "" }} checked {{ end }}>
+              <label class="control-label  small" for="password">Password</label>
+              <input class="form-control admin-input" value="{{ .DefaultPassword }}" name="password" id="password" placeholder="None" {{ if eq .DefaultPassword "" }} disabled {{ end }}/>
+            </div>
+            <div id="errordiv" class="alert alert-danger" style="display:none">
+              <span id="errormessage" ></span>
+            </div>
+          </div>
+        </div> */}}
+      </div>
+    </div>
+  </div>
 </div>
-		  </div>
-		</div>
-		<br><br>
-		<div class="table-responsive">
-			<table id="maintable" class="table table-dark">
-				<thead>
-					<tr>
-						<th scope="col">Filename</th>
-						<th scope="col">Size</th>
-						<th scope="col">Downloads remaining</th>
-						<th scope="col">Stored until</th>
-						<th scope="col">Downloads</th>
-						<th scope="col">ID</th>
-						<th scope="col">Actions</th>
-					</tr>
-				</thead>
-				<tbody id="downloadtable">
-{{ range .Items }}
-	{{ if  or (gt .ExpireAt $.TimeNow) (.UnlimitedTime) }}
-		{{ if or (gt .DownloadsRemaining 0) (.UnlimitedDownloads) }}
-					<tr>
-						<td scope="col" id="cell-name-{{ .Id }}">{{ .Name }}</td>
-						<td data-order="{{ .SizeBytes }}" scope="col">{{ .Size }}</td>
-			{{ if .UnlimitedDownloads }}
-						<td scope="col">Unlimited</td>
-			{{ else }}
-						<td scope="col">{{ .DownloadsRemaining }}</td>
-			{{ end }}
-			{{ if .UnlimitedTime }}
-						<td scope="col">Unlimited</td>
-			{{ else }}
-						<td scope="col">{{ .ExpireAtString }}</td>
-			{{ end }}
-						<td scope="col">{{ .DownloadCount }}</td>
-						<td scope="col"><a id="url-href-{{ .Id }}" target="_blank" href="{{ $.Url }}{{ .Id }}">{{ .Id }}</a>{{ if .IsPasswordProtected }} &#128274;{{ end }}</td>
-						<td scope="col"><button id="url-button-{{ .Id }}" type="button" onclick="showToast()" data-clipboard-text="{{ $.Url }}{{ .Id }}" class="copyurl btn btn-outline-light btn-sm">Copy URL</button> 
-			{{ if ne .HotlinkId "" }}
- 						<button type="button" onclick="showToast()" data-clipboard-text="{{ $.HotlinkUrl }}{{ .HotlinkId }}" class="copyurl btn btn-outline-light btn-sm">Copy Hotlink</button>
-			{{ else }}
-				{{ if or (.IsPasswordProtected) (.RequiresClientSideDecryption)  }}
-	 						<button type="button"class="copyurl btn btn-outline-light btn-sm disabled">Copy Hotlink</button>
-				{{ else }}
- 							<button type="button" onclick="showToast()" data-clipboard-text="{{ $.GenericHotlinkUrl }}{{ .Id }}" class="copyurl btn btn-outline-light btn-sm">Copy Hotlink</button>
-				{{ end }}
-			{{ end }}
-						<button type="button" class="btn btn-outline-light btn-sm" onclick="showQrCode('{{ $.Url }}{{ .Id }}');">QR</button>
-						<button type="button" class="btn btn-outline-light btn-sm" onclick="window.location='./delete?id={{ .Id }}'">Delete</button></td>
-					</tr>
-		{{ end }}
-	{{ end }}
-{{ end }}
-				</tbody>
-			</table>
-		      </div>
-		  </div>
-		</div>
-	    </div>
-   	 </div>
 
+<div id="toastnotification" class="toastnotification">URL copied to clipboard</div>
+<div id="qroverlay">  
+  <div id="qrcode"></div>
+</div>
 
-	<div id="toastnotification" class="toastnotification">URL copied to clipboard</div>
-	<div id="qroverlay">
-	  <div id="qrcode"></div>
-	</div>
-
-	<script src="./js/min/admin.min.js?v={{ template "js_admin_version"}}"></script>
-	<script>
-		Dropzone.options.uploaddropzone["maxFilesize"] = {{ .MaxFileSize }};
-		Dropzone.options.uploaddropzone["timeout"] = 1200000;
-		Dropzone.options.uploaddropzone["chunking"] = true;
-		Dropzone.options.uploaddropzone["chunkSize"] = 10000000;
-		Dropzone.options.uploaddropzone["forceChunking"] = true;
-		Dropzone.options.uploaddropzone["retryChunksLimit"] = 3;
-		Dropzone.options.uploaddropzone["retryChunks"] = true;
-		Dropzone.options.uploaddropzone["previewsContainer"] = false;
-		
-		$(document).ready(function () {
-		    $('#maintable').DataTable({
-    		    "responsive": true,
-		    "columnDefs": [ {
-			"targets": 6,
-			"orderable": false
-			} ],
-		    "paging": false,
-		    "language": {
-		      "info": "Files stored: _TOTAL_",
-		      "emptyTable": "No files stored yet",
-		      "infoEmpty": "",
-		    }
-		    });
-		});
-		registerChangeHandler();
-	</script>
+<script src="./js/min/admin.min.js?v={{ template "js_admin_version"}}"></script>
+<script>
+  Dropzone.options.uploaddropzone["maxFilesize"] = {{ .MaxFileSize }};
+  Dropzone.options.uploaddropzone["timeout"] = 1200000;
+  Dropzone.options.uploaddropzone["chunking"] = true;
+  Dropzone.options.uploaddropzone["chunkSize"] = 10000000;
+  Dropzone.options.uploaddropzone["forceChunking"] = true;
+  Dropzone.options.uploaddropzone["retryChunksLimit"] = 3;
+  Dropzone.options.uploaddropzone["retryChunks"] = true;
+  Dropzone.options.uploaddropzone["previewsContainer"] = false;
+</script>
 
 {{ if .EndToEndEncryption }}
-        <script src="./js/min/wasm_exec.min.js"></script>
-	<script src="./js/min/end2end_admin.min.js?v={{ template "js_e2eversion"}}"></script>
-	<script>
-		checkIfE2EKeyIsSet();
-	</script>
+<script src="./js/min/wasm_exec.min.js"></script>
+<script src="./js/min/end2end_admin.min.js?v={{ template "js_e2eversion"}}"></script>
+<script>
+  checkIfE2EKeyIsSet();
+</script>
 {{ end }}
         
 

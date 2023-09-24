@@ -17,6 +17,7 @@
 
 ## Tasks
 - [x] Add guest tokens to database
-- [ ] Add webserver endpoint for uploading
+- [x] Create admin panel page to make tokens
 - [ ] Create page to upload
-- [ ] Create admin panel page to make tokens
+  - [ ] Create matching error page
+- [ ] Add webserver endpoint for uploading

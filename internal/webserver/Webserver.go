@@ -324,11 +324,12 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 
 // LoginView contains variables for the login template
 type LoginView struct {
-	IsFailedLogin  bool
-	IsAdminView    bool
-	IsDownloadView bool
-	User           string
-	PublicName     string
+	IsFailedLogin     bool
+	IsAdminView       bool
+	IsDownloadView    bool
+	IsGuestUploadView bool
+	User              string
+	PublicName        string
 }
 
 // Handling of /d
@@ -528,8 +529,14 @@ func showGuest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	config := configuration.Get()
+
 	view := GuestUploadView{
-		GuestToken: token.Id,
+		GuestToken:         token.Id,
+		IsGuestUploadView:  true,
+		PublicName:         config.PublicName,
+		MaxFileSize:        config.MaxFileSizeMB,
+		EndToEndEncryption: config.Encryption.Level == encryption.EndToEndEncryption,
 	}
 
 	err := templateFolder.ExecuteTemplate(w, "guest", view)
@@ -564,13 +571,21 @@ type DownloadView struct {
 	IsAdminView          bool
 	IsDownloadView       bool
 	IsPasswordView       bool
+	IsGuestUploadView    bool
 	ClientSideDecryption bool
 	EndToEndEncryption   bool
 	UsesHttps            bool
 }
 
 type GuestUploadView struct {
-	GuestToken string
+	GuestToken         string
+	PublicName         string
+	IsAdminView        bool
+	IsDownloadView     bool
+	IsPasswordView     bool
+	IsGuestUploadView  bool
+	MaxFileSize        int
+	EndToEndEncryption bool
 }
 
 type e2ESetupView struct {
@@ -588,12 +603,14 @@ type UploadView struct {
 	Url                      string
 	HotlinkUrl               string
 	GenericHotlinkUrl        string
+	GuestUploadUrl           string
 	DefaultPassword          string
 	Logs                     string
 	PublicName               string
 	IsAdminView              bool
 	IsDownloadView           bool
 	IsApiView                bool
+	IsGuestUploadView        bool
 	IsLogoutAvailable        bool
 	DefaultUnlimitedDownload bool
 	DefaultUnlimitedTime     bool
@@ -686,6 +703,7 @@ func (u *UploadView) convertGlobalConfig(view int) *UploadView {
 	u.Url = config.ServerUrl + "d?id="
 	u.HotlinkUrl = config.ServerUrl + "hotlink/"
 	u.GenericHotlinkUrl = config.ServerUrl + "downloadFile?id="
+	u.GuestUploadUrl = config.ServerUrl + "guest?token="
 	u.Items = result
 	u.PublicName = config.PublicName
 	u.ApiKeys = resultApi
@@ -800,9 +818,10 @@ func addNoCacheHeader(w http.ResponseWriter) {
 
 // A view containing parameters for a generic template
 type genericView struct {
-	IsAdminView    bool
-	IsDownloadView bool
-	PublicName     string
-	RedirectUrl    string
-	ErrorId        int
+	IsAdminView       bool
+	IsDownloadView    bool
+	IsGuestUploadView bool
+	PublicName        string
+	RedirectUrl       string
+	ErrorId           int
 }
