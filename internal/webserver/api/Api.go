@@ -2,6 +2,11 @@ package api
 
 import (
 	"encoding/json"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/helper"
@@ -9,10 +14,6 @@ import (
 	"github.com/forceu/gokapi/internal/storage"
 	"github.com/forceu/gokapi/internal/webserver/authentication/sessionmanager"
 	"github.com/forceu/gokapi/internal/webserver/fileupload"
-	"net/http"
-	"strconv"
-	"strings"
-	"time"
 )
 
 // Process parses the request and executes the API call or returns an error message to the sender

@@ -12,6 +12,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html/template"
+	"io"
+	"io/fs"
+	"log"
+	"net/http"
+	"os"
+	"sort"
+	"strings"
+	templatetext "text/template"
+	"time"
+
 	"github.com/NYTimes/gziphandler"
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/database"
@@ -26,18 +37,9 @@ import (
 	"github.com/forceu/gokapi/internal/webserver/authentication/oauth"
 	"github.com/forceu/gokapi/internal/webserver/authentication/sessionmanager"
 	"github.com/forceu/gokapi/internal/webserver/fileupload"
+	"github.com/forceu/gokapi/internal/webserver/guest"
 	"github.com/forceu/gokapi/internal/webserver/ssl"
 	"github.com/r3labs/sse/v2"
-	"html/template"
-	"io"
-	"io/fs"
-	"log"
-	"net/http"
-	"os"
-	"sort"
-	"strings"
-	templatetext "text/template"
-	"time"
 )
 
 // TODO add 404 handler
@@ -106,14 +108,17 @@ func Start() {
 	mux.HandleFunc("/downloadFile", downloadFile)
 	mux.HandleFunc("/e2eInfo", requireLogin(e2eInfo, true))
 	mux.HandleFunc("/e2eSetup", requireLogin(showE2ESetup, false))
-	mux.HandleFunc("/error", showError)
 	mux.HandleFunc("/error-auth", showErrorAuth)
+	mux.HandleFunc("/error", showError)
 	mux.HandleFunc("/forgotpw", forgotPassword)
+	mux.HandleFunc("/guest", showGuest)
+	mux.HandleFunc("/guestTokens", requireLogin(showGuestTokenMenu, false))
 	mux.HandleFunc("/hotlink/", showHotlink)
 	mux.HandleFunc("/index", showIndex)
 	mux.HandleFunc("/login", showLogin)
-	mux.HandleFunc("/logs", requireLogin(showLogs, false))
 	mux.HandleFunc("/logout", doLogout)
+	mux.HandleFunc("/logs", requireLogin(showLogs, false))
+	mux.HandleFunc("/newGuestToken", requireLogin(newGuestToken, false))
 	mux.HandleFunc("/uploadChunk", requireLogin(uploadChunk, true))
 	mux.HandleFunc("/uploadComplete", requireLogin(uploadComplete, true))
 	mux.HandleFunc("/uploadStatus", requireLogin(sseServer.ServeHTTP, false))
@@ -489,6 +494,13 @@ func showAdminMenu(w http.ResponseWriter, r *http.Request) {
 	helper.Check(err)
 }
 
+// Handling of /guestTokens
+// If user is authenticated, this menu lets the user create new guest tokens
+func showGuestTokenMenu(w http.ResponseWriter, r *http.Request) {
+	err := templateFolder.ExecuteTemplate(w, "guesttokens", (&UploadView{}).convertGlobalConfig(ViewGuestTokens))
+	helper.Check(err)
+}
+
 // Handling of /logs
 // If user is authenticated, this menu shows the stored logs
 func showLogs(w http.ResponseWriter, r *http.Request) {
@@ -504,6 +516,41 @@ func showE2ESetup(w http.ResponseWriter, r *http.Request) {
 	e2einfo := database.GetEnd2EndInfo()
 	err := templateFolder.ExecuteTemplate(w, "e2esetup", e2ESetupView{HasBeenSetup: e2einfo.HasBeenSetUp(), PublicName: configuration.Get().PublicName})
 	helper.Check(err)
+}
+
+// Guest Uploads
+func showGuest(w http.ResponseWriter, r *http.Request) {
+	addNoCacheHeader(w)
+	tokenId := queryToken(w, r, "error")
+	token, ok := database.GetGuestToken(tokenId)
+	if !ok {
+		redirect(w, "error")
+		return
+	}
+
+	view := GuestUploadView{
+		GuestToken: token.Id,
+	}
+
+	err := templateFolder.ExecuteTemplate(w, "guest", view)
+	helper.Check(err)
+}
+
+func queryToken(w http.ResponseWriter, r *http.Request, redirectUrl string) string {
+	tokens, ok := r.URL.Query()["token"]
+	if !ok || len(tokens[0]) < configuration.Get().LengthId {
+		select {
+		case <-time.After(500 * time.Millisecond):
+		}
+		redirect(w, redirectUrl)
+		return ""
+	}
+	return tokens[0]
+}
+
+func newGuestToken(w http.ResponseWriter, r *http.Request) {
+	guest.NewToken()
+	redirect(w, "guestTokens")
 }
 
 // DownloadView contains parameters for the download template
@@ -522,6 +569,10 @@ type DownloadView struct {
 	UsesHttps            bool
 }
 
+type GuestUploadView struct {
+	GuestToken string
+}
+
 type e2ESetupView struct {
 	IsAdminView    bool
 	IsDownloadView bool
@@ -533,6 +584,7 @@ type e2ESetupView struct {
 type UploadView struct {
 	Items                    []models.FileApiOutput
 	ApiKeys                  []models.ApiKey
+	GuestTokens              []models.GuestToken
 	Url                      string
 	HotlinkUrl               string
 	GenericHotlinkUrl        string
@@ -562,11 +614,15 @@ const ViewLogs = 1
 // ViewAPI is the identifier for the API menu
 const ViewAPI = 2
 
+// ViewGuestTokens is the identifier for the Guest Token menu
+const ViewGuestTokens = 3
+
 // Converts the globalConfig variable to an UploadView struct to pass the infos to
 // the admin template
 func (u *UploadView) convertGlobalConfig(view int) *UploadView {
 	var result []models.FileApiOutput
 	var resultApi []models.ApiKey
+	var resultGuestTokens []models.GuestToken
 	switch view {
 	case ViewMain:
 		for _, element := range database.GetAllMetadata() {
@@ -603,6 +659,26 @@ func (u *UploadView) convertGlobalConfig(view int) *UploadView {
 		} else {
 			u.Logs = "Warning: Log file not found!"
 		}
+	case ViewGuestTokens:
+		for _, element := range database.GetAllGuestTokens() {
+			if element.LastUsed == 0 {
+				element.LastUsedString = "Never"
+			} else {
+				element.LastUsedString = time.Unix(element.LastUsed, 0).Format("2006-01-02 15:04:05")
+			}
+			if element.ExpireAt == 0 {
+				element.ExpireAtString = "Never"
+			} else {
+				element.ExpireAtString = time.Unix(element.ExpireAt, 0).Format("2006-01-02 15:04:05")
+			}
+			resultGuestTokens = append(resultGuestTokens, element)
+		}
+		sort.Slice(resultGuestTokens[:], func(i, j int) bool {
+			if resultGuestTokens[i].LastUsed == resultGuestTokens[j].LastUsed {
+				return resultGuestTokens[i].Id < resultGuestTokens[j].Id
+			}
+			return resultGuestTokens[i].LastUsed > resultGuestTokens[j].LastUsed
+		})
 	}
 
 	config := configuration.Get()
@@ -625,6 +701,7 @@ func (u *UploadView) convertGlobalConfig(view int) *UploadView {
 	u.DefaultUnlimitedDownload = defaultValues.UnlimitedDownload
 	u.DefaultUnlimitedTime = defaultValues.UnlimitedTime
 	u.EndToEndEncryption = config.Encryption.Level == encryption.EndToEndEncryption
+	u.GuestTokens = resultGuestTokens
 	return u
 }
 
