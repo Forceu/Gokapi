@@ -18,6 +18,9 @@
 ## Tasks
 - [x] Add guest tokens to database
 - [x] Create admin panel page to make tokens
-- [ ] Create page to upload
+- [x] Create page to upload
   - [ ] Create matching error page
-- [ ] Add webserver endpoint for uploading
+- [x] Add webserver endpoint for uploading
+- [ ] Add the options back in
+- [ ] Un-break E2E encryption
+- [ ] Check for possible token circumvention
