@@ -134,11 +134,11 @@ function sendChunkComplete(file, done) {
     xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
 
     let formData = new FormData();
-    formData.append("allowedDownloads", document.getElementById("allowedDownloads").value);
-    formData.append("expiryDays", document.getElementById("expiryDays").value);
-    formData.append("password", document.getElementById("password").value);
-    formData.append("isUnlimitedDownload", !document.getElementById("enableDownloadLimit").checked);
-    formData.append("isUnlimitedTime", !document.getElementById("enableTimeLimit").checked);
+    // formData.append("allowedDownloads", document.getElementById("allowedDownloads").value);
+    // formData.append("expiryDays", document.getElementById("expiryDays").value);
+    // formData.append("password", document.getElementById("password").value);
+    // formData.append("isUnlimitedDownload", !document.getElementById("enableDownloadLimit").checked);
+    // formData.append("isUnlimitedTime", !document.getElementById("enableTimeLimit").checked);
     formData.append("chunkid", file.upload.uuid);
 
     if (file.isEndToEndEncrypted === true) {
@@ -156,25 +156,25 @@ function sendChunkComplete(file, done) {
     xhr.onreadystatechange = function () {
         if (this.readyState == 4) {
             if (this.status == 200) {
-                let fileId = addRow(xhr.response);
-                if (file.isEndToEndEncrypted === true) {
-                    try {
-                        let result = GokapiE2EAddFile(file.upload.uuid, fileId, file.name);
-                        if (result instanceof Error) {
-                            throw result;
-                        }
-                        let info = GokapiE2EInfoEncrypt();
-                        if (info instanceof Error) {
-                            throw info;
-                        }
-                        storeE2EInfo(info);
-                    } catch (err) {
-                        file.accepted = false;
-                        dropzoneObject._errorProcessing([file], err);
-                        return;
-                    }
-                    GokapiE2EDecryptMenu();
-                }
+                // let fileId = addRow(xhr.response);
+                // if (file.isEndToEndEncrypted === true) {
+                //     try {
+                //         let result = GokapiE2EAddFile(file.upload.uuid, fileId, file.name);
+                //         if (result instanceof Error) {
+                //             throw result;
+                //         }
+                //         let info = GokapiE2EInfoEncrypt();
+                //         if (info instanceof Error) {
+                //             throw info;
+                //         }
+                //         storeE2EInfo(info);
+                //     } catch (err) {
+                //         file.accepted = false;
+                //         dropzoneObject._errorProcessing([file], err);
+                //         return;
+                //     }
+                //     GokapiE2EDecryptMenu();
+                // }
                 removeFileStatus(file.upload.uuid);
                 done();
             } else {
