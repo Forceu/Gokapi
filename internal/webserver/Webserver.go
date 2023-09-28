@@ -122,6 +122,9 @@ func Start() {
 	mux.HandleFunc("/uploadChunk", requireLogin(uploadChunk, true))
 	mux.HandleFunc("/uploadComplete", requireLogin(uploadComplete, true))
 	mux.HandleFunc("/uploadStatus", requireLogin(sseServer.ServeHTTP, false))
+	mux.HandleFunc("/guestUploadChunk", requireValidGuestToken(guestUploadChunk, true))
+	mux.HandleFunc("/guestUploadComplete", requireValidGuestToken(guestUploadComplete, true))
+	mux.HandleFunc("/guestUploadStatus", requireValidGuestToken(sseServer.ServeHTTP, false))
 	mux.Handle("/main.wasm", gziphandler.GzipHandler(http.HandlerFunc(serveDownloadWasm)))
 	mux.Handle("/e2e.wasm", gziphandler.GzipHandler(http.HandlerFunc(serveE2EWasm)))
 	if configuration.Get().Authentication.Method == authentication.OAuth2 {
@@ -544,15 +547,27 @@ func showGuest(w http.ResponseWriter, r *http.Request) {
 }
 
 func queryToken(w http.ResponseWriter, r *http.Request, redirectUrl string) string {
-	tokens, ok := r.URL.Query()["token"]
-	if !ok || len(tokens[0]) < configuration.Get().LengthId {
-		select {
-		case <-time.After(500 * time.Millisecond):
-		}
+	config := configuration.Get()
+
+	getTokens, ok := r.URL.Query()["token"]
+	if ok && len(getTokens[0]) >= config.LengthId {
+		return getTokens[0]
+	}
+
+	err := r.ParseForm()
+	if err != nil {
 		redirect(w, redirectUrl)
 		return ""
 	}
-	return tokens[0]
+	formToken := r.Form.Get("token")
+	if formToken != "" && len(formToken) >= config.LengthId {
+		return formToken
+	}
+	select {
+	case <-time.After(500 * time.Millisecond):
+	}
+	redirect(w, redirectUrl)
+	return ""
 }
 
 func newGuestToken(w http.ResponseWriter, r *http.Request) {
@@ -744,6 +759,31 @@ func uploadComplete(w http.ResponseWriter, r *http.Request) {
 	responseError(w, err)
 }
 
+// Handling of /guestUploadChunk
+// If the guesttoken is valid, this parses the uploaded chunk and stores it
+func guestUploadChunk(w http.ResponseWriter, r *http.Request) {
+	maxUpload := int64(configuration.Get().MaxFileSizeMB) * 1024 * 1024
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	if r.ContentLength > maxUpload {
+		responseError(w, storage.ErrorFileTooLarge)
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, maxUpload)
+	err := fileupload.ProcessNewChunk(w, r, false)
+	responseError(w, err)
+
+	// TODO: Update the guesttoken in the database
+}
+
+// Handling of /guestUploadComplete
+// If the guesttoken is valid, this parses the uploaded chunk and stores it
+func guestUploadComplete(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	err := fileupload.CompleteChunk(w, r, false)
+	responseError(w, err)
+
+	// TODO: Update the guesttoken in the database
+}
+
 // Outputs an error in json format if err!=nil
 func responseError(w http.ResponseWriter, err error) {
 	if err != nil {
@@ -784,6 +824,26 @@ func requireLogin(next http.HandlerFunc, isUpload bool) http.HandlerFunc {
 			return
 		}
 		redirect(w, "login")
+	}
+}
+
+func requireValidGuestToken(next http.HandlerFunc, isUpload bool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		addNoCacheHeader(w)
+
+		tokenId := queryToken(w, r, "error")
+		_, ok := database.GetGuestToken(tokenId)
+
+		if ok {
+			next.ServeHTTP(w, r)
+			return
+		}
+		if isUpload {
+			_, err := io.WriteString(w, "{\"Result\":\"error\",\"ErrorMessage\":\"Invalid Guest Token\"}")
+			helper.Check(err)
+			return
+		}
+		redirect(w, "/")
 	}
 }
 

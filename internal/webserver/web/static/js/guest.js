@@ -130,7 +130,7 @@ function urlencodeFormData(fd) {
 
 function sendChunkComplete(file, done) {
     var xhr = new XMLHttpRequest();
-    xhr.open("POST", "./uploadComplete", true);
+    xhr.open("POST", "./guestUploadComplete", true);
     xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
 
     let formData = new FormData();
