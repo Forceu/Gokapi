@@ -119,6 +119,7 @@ func Start() {
 	mux.HandleFunc("/logout", doLogout)
 	mux.HandleFunc("/logs", requireLogin(showLogs, false))
 	mux.HandleFunc("/newGuestToken", requireLogin(newGuestToken, false))
+	mux.HandleFunc("/guestTokenDelete", requireLogin(guestTokenDelete, false))
 	mux.HandleFunc("/uploadChunk", requireLogin(uploadChunk, true))
 	mux.HandleFunc("/uploadComplete", requireLogin(uploadComplete, true))
 	mux.HandleFunc("/uploadStatus", requireLogin(sseServer.ServeHTTP, false))
@@ -572,6 +573,16 @@ func queryToken(w http.ResponseWriter, r *http.Request, redirectUrl string) stri
 
 func newGuestToken(w http.ResponseWriter, r *http.Request) {
 	guest.NewToken()
+	redirect(w, "guestTokens")
+}
+
+func guestTokenDelete(w http.ResponseWriter, r *http.Request) {
+	tokenId := queryToken(w, r, "error")
+	ok := guest.DeleteToken(tokenId)
+	if !ok {
+		redirect(w, "error")
+		return
+	}
 	redirect(w, "guestTokens")
 }
 

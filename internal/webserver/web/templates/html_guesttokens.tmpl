@@ -57,7 +57,7 @@
               {{ range .GuestTokens }}
                 {{ if or (gt .ExpireAt $.TimeNow) (.UnlimitedTime) }}
                   <tr>
-                    <td scope="col" id="cell-id-{{ .Id }}">{{ .Id }}</td>
+                    <td scope="col" id="cell-id-{{ .Id }}"><a href="{{ $.GuestUploadUrl }}{{ .Id }}">{{ .Id }}</a></td>
                     {{ if .UnlimitedTime }}
                       <td scope="col">Unlimited</td>
                     {{ else }}
