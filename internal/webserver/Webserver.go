@@ -169,8 +169,9 @@ func loadExpiryImage() {
 	svgTemplate, err := templatetext.ParseFS(templateFolderEmbedded, "web/templates/expired_file_svg.tmpl")
 	helper.Check(err)
 	var buf bytes.Buffer
-	view := UploadView{}
-	err = svgTemplate.Execute(&buf, view.convertGlobalConfig(ViewMain))
+	view := GenericView{}
+	view.initView()
+	err = svgTemplate.Execute(&buf, view)
 	helper.Check(err)
 	imageExpiredPicture = buf.Bytes()
 }
@@ -229,7 +230,9 @@ func doLogout(w http.ResponseWriter, r *http.Request) {
 
 // Handling of /index and redirecting to globalConfig.RedirectUrl
 func showIndex(w http.ResponseWriter, r *http.Request) {
-	err := templateFolder.ExecuteTemplate(w, "index", genericView{RedirectUrl: configuration.Get().RedirectUrl, PublicName: configuration.Get().PublicName})
+	view := GenericView{RedirectUrl: configuration.Get().RedirectUrl}
+	view.initView()
+	err := templateFolder.ExecuteTemplate(w, "index", view)
 	helper.Check(err)
 }
 
@@ -246,26 +249,38 @@ func showError(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Query().Has("key") {
 		errorReason = wrongCipher
 	}
-	err := templateFolder.ExecuteTemplate(w, "error", genericView{ErrorId: errorReason, PublicName: configuration.Get().PublicName})
+	view := GenericView{ErrorId: errorReason}
+	view.initView()
+	err := templateFolder.ExecuteTemplate(w, "error", view)
 	helper.Check(err)
 }
 
 // Handling of /error-auth
 func showErrorAuth(w http.ResponseWriter, r *http.Request) {
-	err := templateFolder.ExecuteTemplate(w, "error_auth", genericView{PublicName: configuration.Get().PublicName})
+	view := GenericView{}
+	view.initView()
+	err := templateFolder.ExecuteTemplate(w, "error_auth", view)
 	helper.Check(err)
 }
 
 // Handling of /forgotpw
 func forgotPassword(w http.ResponseWriter, r *http.Request) {
-	err := templateFolder.ExecuteTemplate(w, "forgotpw", genericView{PublicName: configuration.Get().PublicName})
+	view := GenericView{}
+	view.initView()
+	err := templateFolder.ExecuteTemplate(w, "forgotpw", view)
 	helper.Check(err)
 }
 
 // Handling of /api
 // If user is authenticated, this menu lists all uploads and enables uploading new files
 func showApiAdmin(w http.ResponseWriter, r *http.Request) {
-	err := templateFolder.ExecuteTemplate(w, "api", (&UploadView{}).convertGlobalConfig(ViewAPI))
+	view := &APIView{
+		AdminView: AdminView{
+			ActiveView: ViewAPI,
+		},
+	}
+	view.initView()
+	err := templateFolder.ExecuteTemplate(w, "api", view)
 	helper.Check(err)
 }
 
@@ -317,23 +332,13 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 		}
 		failedLogin = true
 	}
-	err = templateFolder.ExecuteTemplate(w, "login", LoginView{
+	view := LoginView{
 		IsFailedLogin: failedLogin,
 		User:          user,
-		IsAdminView:   false,
-		PublicName:    configuration.Get().PublicName,
-	})
+	}
+	view.initView()
+	err = templateFolder.ExecuteTemplate(w, "login", view)
 	helper.Check(err)
-}
-
-// LoginView contains variables for the login template
-type LoginView struct {
-	IsFailedLogin     bool
-	IsAdminView       bool
-	IsDownloadView    bool
-	IsGuestUploadView bool
-	User              string
-	PublicName        string
 }
 
 // Handling of /d
@@ -349,15 +354,17 @@ func showDownload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	view := DownloadView{
+		GenericView: GenericView{
+			ViewType: ViewTypeDownload,
+		},
 		Name:               file.Name,
 		Size:               file.Size,
 		Id:                 file.Id,
-		IsDownloadView:     true,
 		EndToEndEncryption: file.Encryption.IsEndToEndEncrypted,
-		PublicName:         configuration.Get().PublicName,
 		IsFailedLogin:      false,
 		UsesHttps:          configuration.UsesHttps(),
 	}
+	(&view).initView()
 
 	if file.RequiresClientDecryption() {
 		view.ClientSideDecryption = true
@@ -495,21 +502,39 @@ func showAdminMenu(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	err := templateFolder.ExecuteTemplate(w, "admin", (&UploadView{}).convertGlobalConfig(ViewMain))
+	view := UploadView{
+		AdminView: AdminView{
+			ActiveView: ViewMain,
+		},
+	}
+	view.initView()
+	err := templateFolder.ExecuteTemplate(w, "admin", view)
 	helper.Check(err)
 }
 
 // Handling of /guestTokens
 // If user is authenticated, this menu lets the user create new guest tokens
 func showGuestTokenMenu(w http.ResponseWriter, r *http.Request) {
-	err := templateFolder.ExecuteTemplate(w, "guesttokens", (&UploadView{}).convertGlobalConfig(ViewGuestTokens))
+	view := GuestTokenView{
+		AdminView: AdminView{
+			ActiveView: ViewGuestTokens,
+		},
+	}
+	view.initView()
+	err := templateFolder.ExecuteTemplate(w, "guesttokens", view)
 	helper.Check(err)
 }
 
 // Handling of /logs
 // If user is authenticated, this menu shows the stored logs
 func showLogs(w http.ResponseWriter, r *http.Request) {
-	err := templateFolder.ExecuteTemplate(w, "logs", (&UploadView{}).convertGlobalConfig(ViewLogs))
+	view := LogView{
+		AdminView: AdminView{
+			ActiveView: ViewLogs,
+		},
+	}
+	view.initView()
+	err := templateFolder.ExecuteTemplate(w, "logs", view)
 	helper.Check(err)
 }
 
@@ -519,7 +544,9 @@ func showE2ESetup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	e2einfo := database.GetEnd2EndInfo()
-	err := templateFolder.ExecuteTemplate(w, "e2esetup", e2ESetupView{HasBeenSetup: e2einfo.HasBeenSetUp(), PublicName: configuration.Get().PublicName})
+	view := E2ESetupView{HasBeenSetup: e2einfo.HasBeenSetUp()}
+	view.initView()
+	err := templateFolder.ExecuteTemplate(w, "e2esetup", view)
 	helper.Check(err)
 }
 
@@ -536,12 +563,14 @@ func showGuest(w http.ResponseWriter, r *http.Request) {
 	config := configuration.Get()
 
 	view := GuestUploadView{
+		GenericView: GenericView{
+			ViewType: ViewTypeGuestUpload,
+		},
 		GuestToken:         token.Id,
-		IsGuestUploadView:  true,
-		PublicName:         config.PublicName,
 		MaxFileSize:        config.MaxFileSizeMB,
 		EndToEndEncryption: config.Encryption.Level == encryption.EndToEndEncryption,
 	}
+	(&view).initView()
 
 	err := templateFolder.ExecuteTemplate(w, "guest", view)
 	helper.Check(err)
@@ -584,169 +613,6 @@ func guestTokenDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	redirect(w, "guestTokens")
-}
-
-// DownloadView contains parameters for the download template
-type DownloadView struct {
-	Name                 string
-	Size                 string
-	Id                   string
-	Cipher               string
-	PublicName           string
-	IsFailedLogin        bool
-	IsAdminView          bool
-	IsDownloadView       bool
-	IsPasswordView       bool
-	IsGuestUploadView    bool
-	ClientSideDecryption bool
-	EndToEndEncryption   bool
-	UsesHttps            bool
-}
-
-type GuestUploadView struct {
-	GuestToken         string
-	PublicName         string
-	IsAdminView        bool
-	IsDownloadView     bool
-	IsPasswordView     bool
-	IsGuestUploadView  bool
-	MaxFileSize        int
-	EndToEndEncryption bool
-}
-
-type e2ESetupView struct {
-	IsAdminView    bool
-	IsDownloadView bool
-	HasBeenSetup   bool
-	PublicName     string
-}
-
-// UploadView contains parameters for the admin menu template
-type UploadView struct {
-	Items                    []models.FileApiOutput
-	ApiKeys                  []models.ApiKey
-	GuestTokens              []models.GuestToken
-	Url                      string
-	HotlinkUrl               string
-	GenericHotlinkUrl        string
-	GuestUploadUrl           string
-	DefaultPassword          string
-	Logs                     string
-	PublicName               string
-	IsAdminView              bool
-	IsDownloadView           bool
-	IsApiView                bool
-	IsGuestUploadView        bool
-	IsLogoutAvailable        bool
-	DefaultUnlimitedDownload bool
-	DefaultUnlimitedTime     bool
-	EndToEndEncryption       bool
-	MaxFileSize              int
-	DefaultDownloads         int
-	DefaultExpiry            int
-	ActiveView               int
-	TimeNow                  int64
-}
-
-// ViewMain is the identifier for the main menu
-const ViewMain = 0
-
-// ViewLogs is the identifier for the log viewer menu
-const ViewLogs = 1
-
-// ViewAPI is the identifier for the API menu
-const ViewAPI = 2
-
-// ViewGuestTokens is the identifier for the Guest Token menu
-const ViewGuestTokens = 3
-
-// Converts the globalConfig variable to an UploadView struct to pass the infos to
-// the admin template
-func (u *UploadView) convertGlobalConfig(view int) *UploadView {
-	var result []models.FileApiOutput
-	var resultApi []models.ApiKey
-	var resultGuestTokens []models.GuestToken
-	switch view {
-	case ViewMain:
-		for _, element := range database.GetAllMetadata() {
-			fileInfo, err := element.ToFileApiOutput()
-			helper.Check(err)
-			result = append(result, fileInfo)
-		}
-		sort.Slice(result[:], func(i, j int) bool {
-			if result[i].ExpireAt == result[j].ExpireAt {
-				return result[i].Id > result[j].Id
-			}
-			return result[i].ExpireAt > result[j].ExpireAt
-		})
-	case ViewAPI:
-		for _, element := range database.GetAllApiKeys() {
-			if element.LastUsed == 0 {
-				element.LastUsedString = "Never"
-			} else {
-				element.LastUsedString = time.Unix(element.LastUsed, 0).Format("2006-01-02 15:04:05")
-			}
-			resultApi = append(resultApi, element)
-		}
-		sort.Slice(resultApi[:], func(i, j int) bool {
-			if resultApi[i].LastUsed == resultApi[j].LastUsed {
-				return resultApi[i].Id < resultApi[j].Id
-			}
-			return resultApi[i].LastUsed > resultApi[j].LastUsed
-		})
-	case ViewLogs:
-		if helper.FileExists(logging.GetLogPath()) {
-			content, err := os.ReadFile(logging.GetLogPath())
-			helper.Check(err)
-			u.Logs = string(content)
-		} else {
-			u.Logs = "Warning: Log file not found!"
-		}
-	case ViewGuestTokens:
-		for _, element := range database.GetAllGuestTokens() {
-			if element.LastUsed == 0 {
-				element.LastUsedString = "Never"
-			} else {
-				element.LastUsedString = time.Unix(element.LastUsed, 0).Format("2006-01-02 15:04:05")
-			}
-			if element.ExpireAt == 0 {
-				element.ExpireAtString = "Never"
-			} else {
-				element.ExpireAtString = time.Unix(element.ExpireAt, 0).Format("2006-01-02 15:04:05")
-			}
-			resultGuestTokens = append(resultGuestTokens, element)
-		}
-		sort.Slice(resultGuestTokens[:], func(i, j int) bool {
-			if resultGuestTokens[i].LastUsed == resultGuestTokens[j].LastUsed {
-				return resultGuestTokens[i].Id < resultGuestTokens[j].Id
-			}
-			return resultGuestTokens[i].LastUsed > resultGuestTokens[j].LastUsed
-		})
-	}
-
-	config := configuration.Get()
-
-	u.Url = config.ServerUrl + "d?id="
-	u.HotlinkUrl = config.ServerUrl + "hotlink/"
-	u.GenericHotlinkUrl = config.ServerUrl + "downloadFile?id="
-	u.GuestUploadUrl = config.ServerUrl + "guest?token="
-	u.Items = result
-	u.PublicName = config.PublicName
-	u.ApiKeys = resultApi
-	u.TimeNow = time.Now().Unix()
-	u.IsAdminView = true
-	u.ActiveView = view
-	u.MaxFileSize = config.MaxFileSizeMB
-	u.IsLogoutAvailable = authentication.IsLogoutAvailable()
-	defaultValues := database.GetUploadDefaults()
-	u.DefaultDownloads = defaultValues.Downloads
-	u.DefaultExpiry = defaultValues.TimeExpiry
-	u.DefaultPassword = defaultValues.Password
-	u.DefaultUnlimitedDownload = defaultValues.UnlimitedDownload
-	u.DefaultUnlimitedTime = defaultValues.UnlimitedTime
-	u.EndToEndEncryption = config.Encryption.Level == encryption.EndToEndEncryption
-	u.GuestTokens = resultGuestTokens
-	return u
 }
 
 // Handling of /uploadChunk
@@ -887,12 +753,204 @@ func addNoCacheHeader(w http.ResponseWriter) {
 	w.Header().Set("cache-control", "no-store")
 }
 
-// A view containing parameters for a generic template
-type genericView struct {
-	IsAdminView       bool
-	IsDownloadView    bool
-	IsGuestUploadView bool
-	PublicName        string
-	RedirectUrl       string
-	ErrorId           int
+const (
+	ViewTypeAdmin       string = "admin"
+	ViewTypeLogin       string = "login"
+	ViewTypeGuestUpload string = "guestupload"
+	ViewTypeDownload    string = "download"
+	ViewTypeError       string = "error"
+)
+
+// GenericView contains parameters for all templates
+type GenericView struct {
+	PublicName  string
+	RedirectUrl string
+	ViewType    string
+	ErrorId     int
+}
+
+func (v *GenericView) initView() {
+	v.PublicName = configuration.Get().PublicName
+}
+
+// LoginView contains parameters for the login template
+type LoginView struct {
+	GenericView
+	IsFailedLogin bool
+	User          string
+}
+
+// DownloadView contains parameters for the download template
+type DownloadView struct {
+	GenericView
+	Name                 string
+	Size                 string
+	Id                   string
+	Cipher               string
+	IsFailedLogin        bool
+	IsPasswordView       bool
+	ClientSideDecryption bool
+	EndToEndEncryption   bool
+	UsesHttps            bool
+}
+
+type GuestUploadView struct {
+	GenericView
+	GuestToken         string
+	MaxFileSize        int
+	EndToEndEncryption bool
+}
+
+type E2ESetupView struct {
+	GenericView
+	HasBeenSetup bool
+}
+
+// AdminView contains parameters for the admin templates
+type AdminView struct {
+	GenericView
+	ActiveView        int
+	IsLogoutAvailable bool
+	TimeNow           int64
+}
+
+const (
+	ViewMain        int = 0
+	ViewLogs        int = 1
+	ViewAPI         int = 2
+	ViewGuestTokens int = 3
+)
+
+func (v *AdminView) initView() {
+	v.GenericView.initView()
+	v.ViewType = ViewTypeAdmin
+	v.TimeNow = time.Now().Unix()
+}
+
+// UploadView contains parameters for the upload admin template
+type UploadView struct {
+	AdminView
+	Items                    []models.FileApiOutput
+	Url                      string
+	HotlinkUrl               string
+	GenericHotlinkUrl        string
+	DefaultPassword          string
+	DefaultUnlimitedDownload bool
+	DefaultUnlimitedTime     bool
+	DefaultDownloads         int
+	DefaultExpiry            int
+	MaxFileSize              int
+	EndToEndEncryption       bool
+}
+
+func (v *UploadView) initView() {
+	v.AdminView.initView()
+
+	config := configuration.Get()
+	defaultValues := database.GetUploadDefaults()
+
+	var result []models.FileApiOutput
+	for _, element := range database.GetAllMetadata() {
+		fileInfo, err := element.ToFileApiOutput()
+		helper.Check(err)
+		result = append(result, fileInfo)
+	}
+	sort.Slice(result[:], func(i, j int) bool {
+		if result[i].ExpireAt == result[j].ExpireAt {
+			return result[i].Id > result[j].Id
+		}
+		return result[i].ExpireAt > result[j].ExpireAt
+	})
+	v.Items = result
+	v.Url = config.ServerUrl + "d?id="
+	v.HotlinkUrl = config.ServerUrl + "hotlink/"
+	v.GenericHotlinkUrl = config.ServerUrl + "downloadFile?id="
+	v.DefaultPassword = defaultValues.Password
+	v.DefaultUnlimitedDownload = defaultValues.UnlimitedDownload
+	v.DefaultUnlimitedTime = defaultValues.UnlimitedTime
+	v.DefaultDownloads = defaultValues.Downloads
+	v.DefaultExpiry = defaultValues.TimeExpiry
+	v.MaxFileSize = config.MaxFileSizeMB
+	v.EndToEndEncryption = config.Encryption.Level == encryption.EndToEndEncryption
+}
+
+type LogView struct {
+	AdminView
+	Logs string
+}
+
+func (v *LogView) initView() {
+	v.AdminView.initView()
+
+	if helper.FileExists(logging.GetLogPath()) {
+		content, err := os.ReadFile(logging.GetLogPath())
+		helper.Check(err)
+		v.Logs = string(content)
+	} else {
+		v.Logs = "Warning: Log file not found!"
+	}
+}
+
+type GuestTokenView struct {
+	AdminView
+	GuestUploadUrl string
+	GuestTokens    []models.GuestToken
+}
+
+func (v *GuestTokenView) initView() {
+	v.AdminView.initView()
+
+	config := configuration.Get()
+
+	var result []models.GuestToken
+	for _, element := range database.GetAllGuestTokens() {
+		if element.LastUsed == 0 {
+			element.LastUsedString = "Never"
+		} else {
+			element.LastUsedString = time.Unix(element.LastUsed, 0).Format("2006-01-02 15:04:05")
+		}
+		if element.ExpireAt == 0 {
+			element.ExpireAtString = "Never"
+		} else {
+			element.ExpireAtString = time.Unix(element.ExpireAt, 0).Format("2006-01-02 15:04:05")
+		}
+		result = append(result, element)
+	}
+	sort.Slice(result[:], func(i, j int) bool {
+		if result[i].LastUsed == result[j].LastUsed {
+			return result[i].Id < result[j].Id
+		}
+		return result[i].LastUsed > result[j].LastUsed
+	})
+
+	v.GuestTokens = result
+	v.GuestUploadUrl = config.ServerUrl + "guest?token="
+}
+
+type APIView struct {
+	AdminView
+	ApiKeys []models.ApiKey
+}
+
+func (v *APIView) initView() {
+	v.AdminView.initView()
+
+	var result []models.ApiKey
+
+	for _, element := range database.GetAllApiKeys() {
+		if element.LastUsed == 0 {
+			element.LastUsedString = "Never"
+		} else {
+			element.LastUsedString = time.Unix(element.LastUsed, 0).Format("2006-01-02 15:04:05")
+		}
+		result = append(result, element)
+	}
+	sort.Slice(result[:], func(i, j int) bool {
+		if result[i].LastUsed == result[j].LastUsed {
+			return result[i].Id < result[j].Id
+		}
+		return result[i].LastUsed > result[j].LastUsed
+	})
+
+	v.ApiKeys = result
 }

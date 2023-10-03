@@ -1,4 +1,5 @@
-{{ define "header" }}<!doctype html>
+{{ define "header" }}
+<!doctype html>
 <html lang="en" class="h-100">
   <head>
     <meta charset="utf-8">
@@ -12,66 +13,35 @@
     <link rel="manifest" href="/site.webmanifest">
     <link href="css/min/gokapi.min.css?v={{ template "css_main"}}" rel="stylesheet">
 
-    {{ if .IsAdminView }}
-
+    {{/* Title */}}
+    {{ if eq .ViewType "admin" }}
       <title>{{.PublicName}} Admin</title>
-
-      <link href="./assets/dist/css/dropzone.min.css" rel="stylesheet" />
-      <link href="./assets/dist/css/datatables.min.css" rel="stylesheet" />
-      <script src="./assets/dist/js/jquery.min.js"></script>
-      <script src="./assets/dist/js/bootstrap.bundle.min.js"></script>
-      <script src="./assets/dist/js/dropzone.min.js?v={{ template "js_dropzone_version"}}"></script>
-      <script src="./assets/dist/js/clipboard.min.js"></script>
-      <script src="./assets/dist/js/datatables.min.js"></script>
-      <script src="./assets/dist/js/qrcode.min.js"></script>
-      
-      <style>
-        .masthead-brand {
-          float: left;
-        }
-        .nav-masthead {
-          float: right;
-        }
-      </style>
-
-    {{ else }}
-
-      {{ if .IsDownloadView }}
-        {{ if .IsPasswordView }}
-          <title>{{.PublicName}}: Password required</title>
-        {{ else }}
-          <title>{{.PublicName}}: {{.Name}}</title>
-        {{ end }}
+    {{ else if eq .ViewType "download" }}
+      {{ if .IsPasswordView }}
+        <title>{{.PublicName}}: Password required</title>
       {{ else }}
-        <title>{{.PublicName}}</title>
+        <title>{{.PublicName}}: {{.Name}}</title>
       {{ end }}
-      <style>
-        body {
-          box-shadow: inset 0 0 5rem rgba(0, 0, 0, .5);
-        }
-      </style>
-      <script src="./js/min/end2end_download.min.js"></script>
-
-    {{end}}
-
-    {{ if .IsGuestUploadView }}
-      <title>{{.PublicName}} - Guest Upload</title>
-
-      <link href="./assets/dist/css/dropzone.min.css" rel="stylesheet" />
-      <script src="./assets/dist/js/jquery.min.js"></script>
-      <script src="./assets/dist/js/dropzone.min.js?v={{ template "js_dropzone_version"}}"></script>
-      <script src="./assets/dist/js/clipboard.min.js"></script>
-
-      <style>
-        body {
-          box-shadow: inset 0 0 5rem rgba(0, 0, 0, .5);
-        }
-      </style>
+    {{ else if eq .ViewType "guestupload" }}
+      <title>{{.PublicName}} Guest Upload</title>
+    {{ else }}
+      <title>{{.PublicName}}</title>
     {{ end }}
 
+    {{ if eq .ViewType "admin" }}
+      {{ template "admin_header" . }}
+    {{ end }}
+    
+    {{ if eq .ViewType "download" }}
+      {{ template "download_header" . }}
+    {{ end }}
+
+    {{ if eq .ViewType "guestupload" }}
+      {{ template "guestupload_header" . }}
+    {{ end }}
   </head>
   <body class="d-flex h-100 text-center text-white bg-dark">
-    {{ if .IsAdminView }}
+    {{ if eq .ViewType "admin" }}
       <div class="d-flex w-100 h-100 p-3 mx-auto flex-column">
         <header class="masthead mb-auto">
           <div  style="max-width: 80em;  margin: 0 auto;"  class="inner">
