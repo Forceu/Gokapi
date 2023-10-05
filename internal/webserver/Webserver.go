@@ -824,6 +824,7 @@ const (
 func (v *AdminView) initView() {
 	v.GenericView.initView()
 	v.ViewType = ViewTypeAdmin
+	v.IsLogoutAvailable = authentication.IsLogoutAvailable()
 	v.TimeNow = time.Now().Unix()
 }
 

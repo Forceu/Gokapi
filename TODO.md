@@ -21,7 +21,7 @@
 - [x] Create page to upload
   - [ ] Create matching error page
 - [x] Add webserver endpoint for uploading
-- [ ] Normalize the various View structs
+- [x] Normalize the various View structs
 - [ ] Add the options back in
   - [ ] Update the options on the admin page
   - [ ] Update the options on the guest page
