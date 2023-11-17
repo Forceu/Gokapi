@@ -11,6 +11,7 @@ import (
 )
 
 const versionJsAdmin = "1"
+const versionJsGuest = "1"
 const versionJsDropzone = "3"
 const versionJsE2EAdmin = "2"
 const versionCssMain = "1"
@@ -47,6 +48,7 @@ func getTemplate() string {
 	versionGokapi := parseGokapiVersion()
 	result := strings.ReplaceAll(templateVersions, "%gokapiversion%", versionGokapi)
 	result = strings.ReplaceAll(result, "%jsadmin%", versionJsAdmin)
+	result = strings.ReplaceAll(result, "%jsguest%", versionJsGuest)
 	result = strings.ReplaceAll(result, "%jsdropzone%", versionJsDropzone)
 	result = strings.ReplaceAll(result, "%jse2e%", versionJsE2EAdmin)
 	result = strings.ReplaceAll(result, "%css_main%", versionCssMain)
@@ -82,6 +84,7 @@ const templateVersions = `// Change these for rebranding
 // Specifies the version of JS files, so that the browser doesn't
 // use a cached version, if the file has been updated
 {{define "js_admin_version"}}%jsadmin%{{end}}
+{{define "js_guest_version"}}%jsguest%{{end}}
 {{define "js_dropzone_version"}}%jsdropzone%{{end}}
 {{define "js_e2eversion"}}%jse2e%{{end}}
 {{define "css_main"}}%css_main%{{end}}`

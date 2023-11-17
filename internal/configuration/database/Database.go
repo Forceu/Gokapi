@@ -5,12 +5,13 @@ import (
 	"encoding/binary"
 	"encoding/gob"
 	"fmt"
-	"git.mills.io/prologic/bitcask"
-	"github.com/forceu/gokapi/internal/helper"
-	"github.com/forceu/gokapi/internal/models"
 	"log"
 	"strings"
 	"time"
+
+	"git.mills.io/prologic/bitcask"
+	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/models"
 )
 
 const prefixApiKey = "apikey:id:"
@@ -18,6 +19,7 @@ const prefixFile = "file:id:"
 const prefixHotlink = "hotlink:id:"
 const prefixSessions = "session:id:"
 const prefixUploadStatus = "fstatus:id:"
+const prefixGuestToken = "guesttoken:id:"
 const idLastUploadConfig = "default:lastupload"
 const idEnd2EndInfo = "e2e:info"
 
@@ -239,6 +241,61 @@ func SaveApiKey(apikey models.ApiKey, updateTimeOnly bool) {
 // DeleteApiKey deletes an API key with the given ID
 func DeleteApiKey(id string) {
 	deleteKey(prefixApiKey + id)
+}
+
+// ## Guest Tokens ##
+
+// GetAllGuestTokens returns a map with all guest tokens
+func GetAllGuestTokens() map[string]models.GuestToken {
+	result := make(map[string]models.GuestToken)
+	var tokens []string
+	err := bitcaskDb.Scan([]byte(prefixGuestToken), func(token []byte) error {
+		guestTokenID := strings.Replace(string(token), prefixGuestToken, "", 1)
+		tokens = append(tokens, guestTokenID)
+		return nil
+	})
+	helper.Check(err)
+
+	for _, key := range tokens {
+		guestToken, ok := GetGuestToken(key)
+		if ok {
+			result[guestToken.Id] = guestToken
+		}
+	}
+	return result
+}
+
+// GetGuestToken returns a models.GuestToken if valid or false if the ID is not valid
+func GetGuestToken(id string) (models.GuestToken, bool) {
+	result := models.GuestToken{}
+	value, ok := getValue(prefixGuestToken + id)
+	if !ok {
+		return result, false
+	}
+	buf := bytes.NewBuffer(value)
+	dec := gob.NewDecoder(buf)
+	err := dec.Decode(&result)
+	helper.Check(err)
+	return result, true
+}
+
+// SaveGuestToken saves the guest token to the database. If updateTimeOnly is true, the database might not be synced afterwards
+func SaveGuestToken(guestToken models.GuestToken, updateTimeOnly bool) {
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+	err := enc.Encode(guestToken)
+	helper.Check(err)
+	err = bitcaskDb.Put([]byte(prefixGuestToken+guestToken.Id), buf.Bytes())
+	helper.Check(err)
+	if !updateTimeOnly {
+		err = bitcaskDb.Sync()
+		helper.Check(err)
+	}
+}
+
+// DeleteGuestToken deletes a guest token with the given ID
+func DeleteGuestToken(id string) {
+	deleteKey(prefixGuestToken + id)
 }
 
 // ## Sessions ##

@@ -1,11 +1,12 @@
 package database
 
 import (
-	"github.com/forceu/gokapi/internal/models"
-	"github.com/forceu/gokapi/internal/test"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/test"
 )
 
 func TestMain(m *testing.M) {
@@ -115,6 +116,43 @@ func TestApiKey(t *testing.T) {
 	key, ok = GetApiKey("newkey")
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualString(t, key.FriendlyName, "Old Key")
+}
+
+func TestGuestToken(t *testing.T) {
+	SaveGuestToken(models.GuestToken{
+		Id:             "newtoken",
+		LastUsed:       100,
+		LastUsedString: "LastUsed",
+	}, false)
+	SaveGuestToken(models.GuestToken{
+		Id:             "newtoken2",
+		LastUsed:       200,
+		LastUsedString: "LastUsed2",
+	}, true)
+
+	tokens := GetAllGuestTokens()
+	test.IsEqualInt(t, len(tokens), 2)
+	test.IsEqualString(t, tokens["newtoken"].Id, "newtoken")
+	test.IsEqualString(t, tokens["newtoken"].LastUsedString, "LastUsed")
+	test.IsEqualBool(t, tokens["newtoken"].LastUsed == 100, true)
+
+	test.IsEqualInt(t, len(GetAllGuestTokens()), 2)
+	DeleteGuestToken("newtoken2")
+	test.IsEqualInt(t, len(GetAllGuestTokens()), 1)
+
+	key, ok := GetGuestToken("newtoken")
+	test.IsEqualBool(t, ok, true)
+	_, ok = GetGuestToken("newtoken2")
+	test.IsEqualBool(t, ok, false)
+
+	SaveGuestToken(models.GuestToken{
+		Id:             "newtoken",
+		LastUsed:       300,
+		LastUsedString: "LastUsed",
+	}, false)
+	key, ok = GetGuestToken("newtoken")
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualBool(t, key.LastUsed == 300, true)
 }
 
 func TestSession(t *testing.T) {

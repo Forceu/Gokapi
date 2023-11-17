@@ -1,0 +1,12 @@
+{{ define "guestupload_header" }}
+<link href="./assets/dist/css/dropzone.min.css" rel="stylesheet" />
+<script src="./assets/dist/js/jquery.min.js"></script>
+<script src="./assets/dist/js/dropzone.min.js?v={{ template "js_dropzone_version"}}"></script>
+<script src="./assets/dist/js/clipboard.min.js"></script>
+
+<style>
+body {
+    box-shadow: inset 0 0 5rem rgba(0, 0, 0, .5);
+}
+</style>
+{{ end }}
