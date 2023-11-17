@@ -235,3 +235,10 @@ Changing Configuration
 
 To change any settings set in the initial setup (e.g. your password or storage location), run Gokapi with the parameter ``--reconfigure`` and follow the instructions. A random username and password will be generated and displayed in the programm output to access the configuration webpage, as all entered information can be read in plain text (except the user password).
 
+If you are using Docker, shut down the running instance and create a new temporary container with the follwing command: ::
+
+ docker run --rm -p 127.0.0.1:53842:53842 -v gokapi-data:/app/data -v gokapi-config:/app/config  f0rc3/gokapi:latest /app/gokapi --reconfigure
+
+
+
+
