@@ -52,7 +52,7 @@ func Load() {
 	err = decoder.Decode(&serverSettings)
 	helper.Check(err)
 	file.Close()
-	database.Init(Environment.FileDbPath)
+	database.Init(serverSettings.DataDir, Environment.DatabaseName)
 	if configupgrade.DoUpgrade(&serverSettings, &Environment) {
 		save()
 	}

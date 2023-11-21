@@ -3,11 +3,10 @@ package environment
 import (
 	"fmt"
 	envParser "github.com/caarlos0/env/v6"
-	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/environment/flagparser"
 	"github.com/forceu/gokapi/internal/helper"
 	"os"
-	"strconv"
+	"path"
 )
 
 // DefaultPort for the webserver
@@ -17,6 +16,7 @@ const DefaultPort = 53842
 type Environment struct {
 	ConfigDir     string `env:"CONFIG_DIR" envDefault:"config"`
 	ConfigFile    string `env:"CONFIG_FILE" envDefault:"config.json"`
+	ConfigPath    string
 	DataDir       string `env:"DATA_DIR" envDefault:"data"`
 	WebserverPort int    `env:"PORT" envDefault:"53842"`
 	LengthId      int    `env:"LENGTH_ID" envDefault:"15"`
@@ -27,9 +27,12 @@ type Environment struct {
 	AwsKeyId      string `env:"AWS_KEY"`
 	AwsKeySecret  string `env:"AWS_KEY_SECRET"`
 	AwsEndpoint   string `env:"AWS_ENDPOINT"`
-	ConfigPath    string
-	FileDbPath    string
-	FileDb        string `env:"FILE_DB" envDefault:"filestorage.db"`
+	DatabaseName  string `env:"DB_NAME" envDefault:"gokapi.sqlite"`
+	// Deprecated: will be removed with 1.9
+	LegacyDbPath string
+	// Deprecated: will be removed with 1.9
+	// Previously undocumented env "FILE_DB"
+	LegacyDbFolderName string `env:"LEGACY_FILE_DB" envDefault:"filestorage.db"`
 }
 
 // New parses the env variables
@@ -56,20 +59,19 @@ func New() Environment {
 		result.DataDir = flags.DataDir
 	}
 
+	result.ConfigDir = path.Clean(result.ConfigDir)
+	result.DataDir = path.Clean(result.DataDir)
 	result.ConfigPath = result.ConfigDir + "/" + result.ConfigFile
 	if flags.IsConfigPathSet {
 		result.ConfigPath = flags.ConfigPath
 	}
-	result.FileDbPath = result.DataDir + "/" + result.FileDb
+	result.LegacyDbPath = result.DataDir + "/" + result.LegacyDbFolderName
 	if IsDockerInstance() && os.Getenv("TMPDIR") == "" {
-		os.Setenv("TMPDIR", result.DataDir)
+		err = os.Setenv("TMPDIR", result.DataDir)
+		helper.Check(err)
 	}
 	if result.LengthId < 5 {
 		result.LengthId = 5
-	}
-	if result.LengthId > database.GetLengthAvailable() {
-		result.LengthId = database.GetLengthAvailable()
-		fmt.Println("Reduced ID length to " + strconv.Itoa(database.GetLengthAvailable()) + " due to database constraints")
 	}
 	if result.MaxMemory < 5 {
 		result.MaxMemory = 5

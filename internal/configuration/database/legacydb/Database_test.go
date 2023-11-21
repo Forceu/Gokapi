@@ -1,4 +1,4 @@
-package database
+package legacydb
 
 import (
 	"github.com/forceu/gokapi/internal/models"
@@ -18,17 +18,17 @@ func TestMain(m *testing.M) {
 }
 
 func TestInit(t *testing.T) {
-	Init("./test", "gokapi.sqlite")
-	test.IsEqualBool(t, sqliteDb != nil, true)
+	Init("./test/filestorage.db")
+	test.IsEqualBool(t, bitcaskDb != nil, true)
 	// Test that second init doesn't raise an error
-	Init("./test", "gokapi.sqlite")
+	Init("./test/filestorage.db")
 }
 
 func TestClose(t *testing.T) {
-	test.IsEqualBool(t, sqliteDb != nil, true)
+	test.IsEqualBool(t, bitcaskDb != nil, true)
 	Close()
-	test.IsEqualBool(t, sqliteDb == nil, true)
-	Init("./test", "gokapi.sqlite")
+	test.IsEqualBool(t, bitcaskDb == nil, true)
+	Init("./test/filestorage.db")
 }
 
 func TestMetaData(t *testing.T) {
@@ -81,13 +81,13 @@ func TestApiKey(t *testing.T) {
 		FriendlyName:   "New Key",
 		LastUsed:       100,
 		LastUsedString: "LastUsed",
-	})
+	}, false)
 	SaveApiKey(models.ApiKey{
 		Id:             "newkey2",
 		FriendlyName:   "New Key2",
 		LastUsed:       200,
 		LastUsedString: "LastUsed2",
-	})
+	}, true)
 
 	keys := GetAllApiKeys()
 	test.IsEqualInt(t, len(keys), 2)
@@ -111,7 +111,7 @@ func TestApiKey(t *testing.T) {
 		FriendlyName:   "Old Key",
 		LastUsed:       100,
 		LastUsedString: "LastUsed",
-	})
+	}, false)
 	key, ok = GetApiKey("newkey")
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualString(t, key.FriendlyName, "Old Key")
@@ -122,7 +122,7 @@ func TestSession(t *testing.T) {
 	SaveSession("newsession", models.Session{
 		RenewAt:    renewAt,
 		ValidUntil: time.Now().Add(2 * time.Hour).Unix(),
-	})
+	}, 2*time.Hour)
 
 	session, ok := GetSession("newsession")
 	test.IsEqualBool(t, ok, true)
@@ -135,12 +135,12 @@ func TestSession(t *testing.T) {
 	SaveSession("newsession", models.Session{
 		RenewAt:    renewAt,
 		ValidUntil: time.Now().Add(2 * time.Hour).Unix(),
-	})
+	}, 2*time.Hour)
 
 	SaveSession("anothersession", models.Session{
 		RenewAt:    renewAt,
 		ValidUntil: time.Now().Add(2 * time.Hour).Unix(),
-	})
+	}, 2*time.Hour)
 	_, ok = GetSession("newsession")
 	test.IsEqualBool(t, ok, true)
 	_, ok = GetSession("anothersession")
@@ -176,106 +176,24 @@ func TestUploadDefaults(t *testing.T) {
 	test.IsEqualBool(t, defaults.UnlimitedTime, true)
 }
 
-func TestGarbageCollectionUploads(t *testing.T) {
-	orgiginalFunc := currentTime
-	currentTime = func() time.Time {
-		return time.Now().Add(-25 * time.Hour)
-	}
-	SaveUploadStatus(models.UploadStatus{
-		ChunkId:       "ctodelete1",
-		CurrentStatus: 0,
-		LastUpdate:    time.Now().Add(-24 * time.Hour).Unix(),
-	})
-	SaveUploadStatus(models.UploadStatus{
-		ChunkId:       "ctodelete2",
-		CurrentStatus: 1,
-		LastUpdate:    time.Now().Add(-24 * time.Hour).Unix(),
-	})
-	SaveUploadStatus(models.UploadStatus{
-		ChunkId:       "ctodelete3",
-		CurrentStatus: 0,
-		LastUpdate:    0,
-	})
-	SaveUploadStatus(models.UploadStatus{
-		ChunkId:       "ctodelete4",
-		CurrentStatus: 0,
-		LastUpdate:    time.Now().Add(-20 * time.Hour).Unix(),
-	})
-	SaveUploadStatus(models.UploadStatus{
-		ChunkId:       "ctodelete5",
-		CurrentStatus: 1,
-		LastUpdate:    time.Now().Add(40 * time.Hour).Unix(),
-	})
-	currentTime = orgiginalFunc
-
-	SaveUploadStatus(models.UploadStatus{
-		ChunkId:       "ctokeep1",
-		CurrentStatus: 0,
-		LastUpdate:    time.Now().Add(-24 * time.Hour).Unix(),
-	})
-	SaveUploadStatus(models.UploadStatus{
-		ChunkId:       "ctokeep2",
-		CurrentStatus: 1,
-		LastUpdate:    time.Now().Add(-24 * time.Hour).Unix(),
-	})
-	SaveUploadStatus(models.UploadStatus{
-		ChunkId:       "ctokeep3",
-		CurrentStatus: 0,
-		LastUpdate:    0,
-	})
-	SaveUploadStatus(models.UploadStatus{
-		ChunkId:       "ctokeep4",
-		CurrentStatus: 0,
-		LastUpdate:    time.Now().Add(-20 * time.Hour).Unix(),
-	})
-	SaveUploadStatus(models.UploadStatus{
-		ChunkId:       "ctokeep5",
-		CurrentStatus: 1,
-		LastUpdate:    time.Now().Add(40 * time.Hour).Unix(),
-	})
-	for _, item := range []string{"ctodelete1", "ctodelete2", "ctodelete3", "ctodelete4", "ctokeep1", "ctokeep2", "ctokeep3", "ctokeep4"} {
-		_, result := GetUploadStatus(item)
-		test.IsEqualBool(t, result, true)
-	}
-	RunGarbageCollection()
-	for _, item := range []string{"ctodelete1", "ctodelete2", "ctodelete3", "ctodelete4"} {
-		_, result := GetUploadStatus(item)
-		test.IsEqualBool(t, result, false)
-	}
-	for _, item := range []string{"ctokeep1", "ctokeep2", "ctokeep3", "ctokeep4"} {
-		_, result := GetUploadStatus(item)
-		test.IsEqualBool(t, result, true)
-	}
+func TestBinaryConversion(t *testing.T) {
+	test.IsEqualInt(t, byteToInt(intToByte(0)), 0)
+	test.IsEqualInt(t, byteToInt(intToByte(-100)), -100)
+	test.IsEqualInt(t, byteToInt(intToByte(100)), 100)
+	test.IsEqualInt(t, byteToInt(intToByte(10000)), 10000)
+	test.IsEqualInt(t, byteToInt(intToByte(2147483647)), 2147483647)
+	test.IsEqualInt(t, byteToInt(intToByte(-2147483647)), -2147483647)
 }
 
-func TestGarbageCollectionSessions(t *testing.T) {
-	SaveSession("todelete1", models.Session{
-		RenewAt:    time.Now().Add(-10 * time.Second).Unix(),
-		ValidUntil: time.Now().Add(-10 * time.Second).Unix(),
-	})
-	SaveSession("todelete2", models.Session{
-		RenewAt:    time.Now().Add(10 * time.Second).Unix(),
-		ValidUntil: time.Now().Add(-10 * time.Second).Unix(),
-	})
-	SaveSession("tokeep1", models.Session{
-		RenewAt:    time.Now().Add(-10 * time.Second).Unix(),
-		ValidUntil: time.Now().Add(10 * time.Second).Unix(),
-	})
-	SaveSession("tokeep2", models.Session{
-		RenewAt:    time.Now().Add(10 * time.Second).Unix(),
-		ValidUntil: time.Now().Add(10 * time.Second).Unix(),
-	})
-	for _, item := range []string{"todelete1", "todelete2", "tokeep1", "tokeep2"} {
-		_, result := GetSession(item)
-		test.IsEqualBool(t, result, true)
-	}
+func TestRunGc(t *testing.T) {
+	items := bitcaskDb.Len()
+	bitcaskDb.PutWithTTL([]byte("test"), []byte("value"), 500*time.Millisecond)
+	test.IsEqualInt(t, bitcaskDb.Len(), items+1)
+	time.Sleep(501 * time.Millisecond)
 	RunGarbageCollection()
-	for _, item := range []string{"todelete1", "todelete2"} {
-		_, result := GetSession(item)
-		test.IsEqualBool(t, result, false)
-	}
-	for _, item := range []string{"tokeep1", "tokeep2"} {
-		_, result := GetSession(item)
-		test.IsEqualBool(t, result, true)
-	}
+	test.IsEqualInt(t, bitcaskDb.Len(), items)
+}
+
+func TestGetLengthAvailable(t *testing.T) {
+	test.IsEqualInt(t, GetLengthAvailable(), 85)
 }

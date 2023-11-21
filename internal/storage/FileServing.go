@@ -623,6 +623,7 @@ func CleanUp(periodic bool) {
 		CleanUp(false)
 	}
 	cleanOldTempFiles()
+	database.RunGarbageCollection()
 
 	if periodic {
 		go func() {
@@ -632,7 +633,6 @@ func CleanUp(periodic bool) {
 			}
 		}()
 	}
-	database.RunGarbageCollection()
 }
 
 func cleanOldTempFiles() {

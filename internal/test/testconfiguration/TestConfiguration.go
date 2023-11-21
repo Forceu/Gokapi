@@ -18,14 +18,16 @@ import (
 )
 
 const (
-	dataDir    = "test"
-	configFile = dataDir + "/config.json"
+	baseDir    = "test"
+	dataDir    = baseDir + "/data"
+	configFile = baseDir + "/config.json"
 )
 
 func SetDirEnv() {
-	os.Setenv("GOKAPI_CONFIG_DIR", "test")
-	os.Setenv("GOKAPI_DATA_DIR", "test")
-	os.Mkdir(dataDir, 0777)
+	os.Setenv("GOKAPI_CONFIG_DIR", baseDir)
+	os.Setenv("GOKAPI_DATA_DIR", dataDir)
+	os.MkdirAll(baseDir, 0777)
+	os.MkdirAll(dataDir, 0777)
 
 }
 
@@ -33,7 +35,7 @@ func SetDirEnv() {
 func Create(initFiles bool) {
 	SetDirEnv()
 	os.WriteFile(configFile, configTestFile, 0777)
-	database.Init("./test/filestorage.db")
+	database.Init(dataDir, "gokapi.sqlite")
 	writeTestSessions()
 	database.SaveUploadDefaults(models.LastUploadValues{
 		Downloads:         3,
@@ -48,13 +50,13 @@ func Create(initFiles bool) {
 	database.Close()
 
 	if initFiles {
-		os.Mkdir("test/data", 0777)
-		os.WriteFile("test/data/a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd0", []byte("123"), 0777)
-		os.WriteFile("test/data/c4f9375f9834b4e7f0a528cc65c055702bf5f24a", []byte("456"), 0777)
-		os.WriteFile("test/data/e017693e4a04a59d0b0f400fe98177fe7ee13cf7", []byte("789"), 0777)
-		os.WriteFile("test/data/2341354656543213246465465465432456898794", []byte("abc"), 0777)
-		os.WriteFile("test/data/unlimtedtest", []byte("def"), 0777)
-		os.WriteFile("test/fileupload.jpg", []byte("abc"), 0777)
+		os.MkdirAll(dataDir, 0777)
+		os.WriteFile(dataDir+"/a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd0", []byte("123"), 0777)
+		os.WriteFile(dataDir+"/c4f9375f9834b4e7f0a528cc65c055702bf5f24a", []byte("456"), 0777)
+		os.WriteFile(dataDir+"/e017693e4a04a59d0b0f400fe98177fe7ee13cf7", []byte("789"), 0777)
+		os.WriteFile(dataDir+"/2341354656543213246465465465432456898794", []byte("abc"), 0777)
+		os.WriteFile(dataDir+"/unlimitedtest", []byte("def"), 0777)
+		os.WriteFile(baseDir+"/fileupload.jpg", []byte("abc"), 0777)
 	}
 }
 
@@ -76,29 +78,29 @@ func WriteEncryptedFile() string {
 
 // WriteSslCertificates writes a valid or invalid SSL certificate
 func WriteSslCertificates(valid bool) {
-	os.Mkdir(dataDir, 0777)
+	os.Mkdir(baseDir, 0777)
 	if valid {
-		os.WriteFile("test/ssl.crt", sslCertValid, 0700)
-		os.WriteFile("test/ssl.key", sslKeyValid, 0700)
+		os.WriteFile(baseDir+"/ssl.crt", sslCertValid, 0700)
+		os.WriteFile(baseDir+"/ssl.key", sslKeyValid, 0700)
 	} else {
-		os.WriteFile("test/ssl.crt", sslCertExpired, 0700)
-		os.WriteFile("test/ssl.key", sslKeyExpired, 0700)
+		os.WriteFile(baseDir+"/ssl.crt", sslCertExpired, 0700)
+		os.WriteFile(baseDir+"/ssl.key", sslKeyExpired, 0700)
 	}
 }
 
 // WriteCloudConfigFile writes a valid or invalid AWS config file
 func WriteCloudConfigFile(valid bool) {
-	os.Mkdir(dataDir, 0777)
+	os.Mkdir(baseDir, 0777)
 	if valid {
-		os.WriteFile("test/cloudconfig.yml", cloudConfigTestFile, 0700)
+		os.WriteFile(baseDir+"/cloudconfig.yml", cloudConfigTestFile, 0700)
 	} else {
-		os.WriteFile("test/cloudconfig.yml", []byte("invalid"), 0700)
+		os.WriteFile(baseDir+"/cloudconfig.yml", []byte("invalid"), 0700)
 	}
 }
 
 // Delete deletes the configuration for unit testing
 func Delete() {
-	os.RemoveAll(dataDir)
+	os.RemoveAll(baseDir)
 }
 
 var testServer *httptest.Server
@@ -154,40 +156,40 @@ func writeTestSessions() {
 	database.SaveSession("validsession", models.Session{
 		RenewAt:    2147483645,
 		ValidUntil: 2147483646,
-	}, 1*time.Hour)
+	})
 	database.SaveSession("logoutsession", models.Session{
 		RenewAt:    2147483645,
 		ValidUntil: 2147483646,
-	}, 1*time.Hour)
+	})
 	database.SaveSession("needsRenewal", models.Session{
 		RenewAt:    0,
 		ValidUntil: 2147483646,
-	}, 1*time.Hour)
+	})
 	database.SaveSession("expiredsession", models.Session{
 		RenewAt:    0,
 		ValidUntil: 0,
-	}, 1*time.Hour)
+	})
 }
 
 func writeApiKeyys() {
 	database.SaveApiKey(models.ApiKey{
 		Id:           "validkey",
 		FriendlyName: "First Key",
-	}, false)
+	})
 	database.SaveApiKey(models.ApiKey{
 		Id:             "GAh1IhXDvYnqfYLazWBqMB9HSFmNPO",
 		FriendlyName:   "Second Key",
 		LastUsed:       1620671580,
 		LastUsedString: "used",
-	}, false)
+	})
 	database.SaveApiKey(models.ApiKey{
 		Id:           "jiREglQJW0bOqJakfjdVfe8T1EM8n8",
 		FriendlyName: "Unnamed Key",
-	}, false)
+	})
 	database.SaveApiKey(models.ApiKey{
 		Id:           "okeCMWqhVMZSpt5c1qpCWhKvJJPifb",
 		FriendlyName: "Unnamed Key",
-	}, false)
+	})
 }
 
 func writeTestFiles() {
@@ -289,7 +291,7 @@ func writeTestFiles() {
 		Id:                 "unlimitedDownload",
 		Name:               "unlimitedDownload",
 		Size:               "8 B",
-		SHA1:               "unlimtedtest",
+		SHA1:               "unlimitedtest",
 		ExpireAt:           2147483646,
 		ExpireAtString:     "2021-05-04 15:19",
 		DownloadsRemaining: 0,
@@ -300,7 +302,7 @@ func writeTestFiles() {
 		Id:                 "unlimitedTime",
 		Name:               "unlimitedTime",
 		Size:               "8 B",
-		SHA1:               "unlimtedtest",
+		SHA1:               "unlimitedtest",
 		ExpireAt:           0,
 		ExpireAtString:     "2021-05-04 15:19",
 		DownloadsRemaining: 1,
@@ -326,7 +328,7 @@ var configTestFile = []byte(`{
    "Port":"127.0.0.1:53843",
   "ServerUrl": "http://127.0.0.1:53843/",
   "RedirectUrl": "https://test.com/",
-  "ConfigVersion": 12,
+  "ConfigVersion": 15,
   "LengthId": 20,
   "DataDir": "test/data",
   "MaxMemory": 10,

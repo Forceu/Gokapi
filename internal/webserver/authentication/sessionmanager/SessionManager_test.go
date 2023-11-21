@@ -13,7 +13,7 @@ import (
 var newSession string
 
 func TestMain(m *testing.M) {
-	testconfiguration.Create(true)
+	testconfiguration.Create(false)
 	configuration.Load()
 	exitVal := m.Run()
 	testconfiguration.Delete()

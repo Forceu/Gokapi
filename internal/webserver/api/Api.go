@@ -59,7 +59,7 @@ func NewKey() string {
 		FriendlyName: "Unnamed key",
 		LastUsed:     0,
 	}
-	database.SaveApiKey(newKey, false)
+	database.SaveApiKey(newKey)
 	return newKey.Id
 }
 
@@ -78,7 +78,7 @@ func changeFriendlyName(w http.ResponseWriter, request apiRequest) {
 	}
 	if key.FriendlyName != request.apiInfo.friendlyName {
 		key.FriendlyName = request.apiInfo.friendlyName
-		database.SaveApiKey(key, false)
+		database.SaveApiKey(key)
 	}
 }
 
@@ -304,7 +304,7 @@ func IsValidApiKey(key string, modifyTime bool) bool {
 	if ok && savedKey.Id != "" {
 		if modifyTime {
 			savedKey.LastUsed = time.Now().Unix()
-			database.SaveApiKey(savedKey, true)
+			database.UpdateTimeApiKey(savedKey)
 		}
 		return true
 	}

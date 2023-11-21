@@ -24,7 +24,7 @@ func TestDelete(t *testing.T) {
 }
 
 func TestWriteEncryptedFile(t *testing.T) {
-	database.Init("./test/filestorage.db")
+	database.Init("./test", "gokapi.sqlite")
 	fileId := WriteEncryptedFile()
 	file, ok := database.GetMetaDataById(fileId)
 	test.IsEqualBool(t, ok, true)

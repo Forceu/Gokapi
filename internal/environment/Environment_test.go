@@ -43,7 +43,7 @@ func TestEnvLoad(t *testing.T) {
 	test.IsEqualInt(t, env.LengthId, 5)
 	os.Setenv("GOKAPI_LENGTH_ID", "86")
 	env = New()
-	test.IsEqualInt(t, env.LengthId, 85)
+	test.IsEqualInt(t, env.LengthId, 86)
 	os.Unsetenv("GOKAPI_LENGTH_ID")
 	env = New()
 	os.Setenv("GOKAPI_LENGTH_ID", "15")

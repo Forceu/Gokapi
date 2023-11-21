@@ -13,11 +13,8 @@ jobs:
         with:
           go-version: '^1.20'
       - run: go generate ./...
-      - run: go test ./... -parallel 8 --tags=test,awsmock
-      - run: go clean -testcache
-      - run: go test ./... -parallel 8 --tags=test,noaws
-      - run: go clean -testcache
-      - run: go test ./... --tags=test,noaws,integration
-      - run: go clean -testcache
-      - run: GOKAPI_AWS_BUCKET="gokapi" GOKAPI_AWS_REGION="eu-central-1" GOKAPI_AWS_KEY="keyid" GOKAPI_AWS_KEY_SECRET="secret" go test ./...  --tags=test,awstest
+      - run: go test ./... -parallel 8 -count=1 --tags=test,awsmock
+      - run: go test ./... -parallel 8 -count=1 --tags=test,noaws
+      - run: go test ./... --tags=test,noaws,integration -count=1
+      - run: GOKAPI_AWS_BUCKET="gokapi" GOKAPI_AWS_REGION="eu-central-1" GOKAPI_AWS_KEY="keyid" GOKAPI_AWS_KEY_SECRET="secret" go test ./...  --tags=test,awstest -count=1
 

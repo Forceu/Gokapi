@@ -57,7 +57,7 @@ func CreateSession(w http.ResponseWriter) {
 	database.SaveSession(sessionString, models.Session{
 		RenewAt:    time.Now().Add(12 * time.Hour).Unix(),
 		ValidUntil: time.Now().Add(cookieLifeAdmin).Unix(),
-	}, cookieLifeAdmin)
+	})
 	writeSessionCookie(w, sessionString, time.Now().Add(cookieLifeAdmin))
 }
 
