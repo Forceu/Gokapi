@@ -22,6 +22,13 @@ type MockT interface {
 	Helper()
 }
 
+func IsEqualByteSlice(t MockT, got, want []byte) {
+	t.Helper()
+	if !bytes.Equal(got, want) {
+		t.Errorf("Assertion failed, GOT: %s, WANT: %s.", string(got), string(want))
+	}
+}
+
 // IsEqualString fails test if got and want are not identical
 func IsEqualString(t MockT, got, want string) {
 	t.Helper()

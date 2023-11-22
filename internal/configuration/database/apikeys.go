@@ -37,7 +37,6 @@ func GetAllApiKeys() map[string]models.ApiKey {
 
 // GetApiKey returns a models.ApiKey if valid or false if the ID is not valid
 func GetApiKey(id string) (models.ApiKey, bool) {
-
 	var rowResult schemaApiKeys
 	row := sqliteDb.QueryRow("SELECT * FROM ApiKeys WHERE Id = ?", id)
 	err := row.Scan(&rowResult.Id, &rowResult.FriendlyName, &rowResult.LastUsed, &rowResult.LastUsedString)

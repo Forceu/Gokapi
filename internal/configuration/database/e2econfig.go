@@ -17,6 +17,7 @@ type schemaE2EConfig struct {
 // SaveEnd2EndInfo stores the encrypted e2e info
 func SaveEnd2EndInfo(info models.E2EInfoEncrypted) {
 
+	info.AvailableFiles = nil
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
 	err := enc.Encode(info)

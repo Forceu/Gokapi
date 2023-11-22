@@ -1,9 +1,12 @@
 package database
 
 import (
+	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/test"
+	"math"
 	"os"
+	"sync"
 	"testing"
 	"time"
 )
@@ -278,4 +281,156 @@ func TestGarbageCollectionSessions(t *testing.T) {
 		_, result := GetSession(item)
 		test.IsEqualBool(t, result, true)
 	}
+}
+
+func TestEnd2EndInfo(t *testing.T) {
+	info := GetEnd2EndInfo()
+	test.IsEqualInt(t, info.Version, 0)
+	test.IsEqualBool(t, info.HasBeenSetUp(), false)
+
+	SaveEnd2EndInfo(models.E2EInfoEncrypted{
+		Version:        1,
+		Nonce:          []byte("testNonce1"),
+		Content:        []byte("testContent1"),
+		AvailableFiles: []string{"file1_0", "file1_1"},
+	})
+
+	info = GetEnd2EndInfo()
+	test.IsEqualInt(t, info.Version, 1)
+	test.IsEqualBool(t, info.HasBeenSetUp(), true)
+	test.IsEqualByteSlice(t, info.Nonce, []byte("testNonce1"))
+	test.IsEqualByteSlice(t, info.Content, []byte("testContent1"))
+	test.IsEqualBool(t, len(info.AvailableFiles) == 0, true)
+
+	SaveEnd2EndInfo(models.E2EInfoEncrypted{
+		Version:        2,
+		Nonce:          []byte("testNonce2"),
+		Content:        []byte("testContent2"),
+		AvailableFiles: []string{"file2_0", "file2_1"},
+	})
+
+	info = GetEnd2EndInfo()
+	test.IsEqualInt(t, info.Version, 2)
+	test.IsEqualBool(t, info.HasBeenSetUp(), true)
+	test.IsEqualByteSlice(t, info.Nonce, []byte("testNonce2"))
+	test.IsEqualByteSlice(t, info.Content, []byte("testContent2"))
+	test.IsEqualBool(t, len(info.AvailableFiles) == 0, true)
+
+	DeleteEnd2EndInfo()
+	info = GetEnd2EndInfo()
+	test.IsEqualInt(t, info.Version, 0)
+	test.IsEqualBool(t, info.HasBeenSetUp(), false)
+}
+
+func TestUpdateTimeApiKey(t *testing.T) {
+
+	retrievedKey, ok := GetApiKey("key1")
+	test.IsEqualBool(t, ok, false)
+	test.IsEqualString(t, retrievedKey.Id, "")
+
+	key := models.ApiKey{
+		Id:             "key1",
+		FriendlyName:   "key1",
+		LastUsed:       100,
+		LastUsedString: "last1",
+	}
+	SaveApiKey(key)
+	key = models.ApiKey{
+		Id:             "key2",
+		FriendlyName:   "key2",
+		LastUsed:       200,
+		LastUsedString: "last2",
+	}
+	SaveApiKey(key)
+
+	retrievedKey, ok = GetApiKey("key1")
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualString(t, retrievedKey.Id, "key1")
+	test.IsEqualInt64(t, retrievedKey.LastUsed, 100)
+	test.IsEqualString(t, retrievedKey.LastUsedString, "last1")
+	retrievedKey, ok = GetApiKey("key2")
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualString(t, retrievedKey.Id, "key2")
+	test.IsEqualInt64(t, retrievedKey.LastUsed, 200)
+	test.IsEqualString(t, retrievedKey.LastUsedString, "last2")
+
+	key.LastUsed = 300
+	key.LastUsedString = "last2_1"
+	UpdateTimeApiKey(key)
+
+	retrievedKey, ok = GetApiKey("key1")
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualString(t, retrievedKey.Id, "key1")
+	test.IsEqualInt64(t, retrievedKey.LastUsed, 100)
+	test.IsEqualString(t, retrievedKey.LastUsedString, "last1")
+	retrievedKey, ok = GetApiKey("key2")
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualString(t, retrievedKey.Id, "key2")
+	test.IsEqualInt64(t, retrievedKey.LastUsed, 300)
+	test.IsEqualString(t, retrievedKey.LastUsedString, "last2_1")
+}
+
+func TestParallelConnectionsWritingAndReading(t *testing.T) {
+	var wg sync.WaitGroup
+
+	simulatedConnection := func(t *testing.T) {
+		file := models.File{
+			Id:                 helper.GenerateRandomString(10),
+			Name:               helper.GenerateRandomString(10),
+			Size:               "10B",
+			SHA1:               "1289423794287598237489",
+			ExpireAt:           math.MaxInt,
+			SizeBytes:          10,
+			ExpireAtString:     "Never",
+			DownloadsRemaining: 10,
+			DownloadCount:      10,
+			PasswordHash:       "",
+			HotlinkId:          "",
+			ContentType:        "",
+			AwsBucket:          "",
+			Encryption:         models.EncryptionInfo{},
+			UnlimitedDownloads: false,
+			UnlimitedTime:      false,
+		}
+		SaveMetaData(file)
+		retrievedFile, ok := GetMetaDataById(file.Id)
+		test.IsEqualBool(t, ok, true)
+		test.IsEqualString(t, retrievedFile.Name, file.Name)
+		DeleteMetaData(file.Id)
+		_, ok = GetMetaDataById(file.Id)
+		test.IsEqualBool(t, ok, false)
+	}
+
+	for i := 1; i <= 4000; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			simulatedConnection(t)
+		}()
+	}
+	wg.Wait()
+}
+
+func TestParallelConnectionsReading(t *testing.T) {
+	var wg sync.WaitGroup
+
+	SaveApiKey(models.ApiKey{
+		Id:             "readtest",
+		FriendlyName:   "readtest",
+		LastUsed:       40000,
+		LastUsedString: "readtest",
+	})
+	simulatedConnection := func(t *testing.T) {
+		_, ok := GetApiKey("readtest")
+		test.IsEqualBool(t, ok, true)
+	}
+
+	for i := 1; i <= 100000; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			simulatedConnection(t)
+		}()
+	}
+	wg.Wait()
 }

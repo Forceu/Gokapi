@@ -85,9 +85,6 @@ func TestProcess(t *testing.T) {
 	err := Process(w, r, false, 20)
 	test.IsNotNil(t, err)
 
-	data := url.Values{}
-	data.Set("file", "invalid")
-
 	w = httptest.NewRecorder()
 	r = getFileUploadRecorder(false)
 	err = Process(w, r, false, 20)

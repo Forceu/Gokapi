@@ -7,9 +7,14 @@ type E2EInfoPlainText struct {
 
 // E2EInfoEncrypted is the struct that is stored on the server and decrypted locally
 type E2EInfoEncrypted struct {
-	Version        int      `json:"version"`
-	Nonce          []byte   `json:"nonce"`
-	Content        []byte   `json:"content"`
+	// Version of the E2E used, must be at least 1
+	Version int `json:"version"`
+	// Nonce used for encryption
+	Nonce []byte `json:"nonce"`
+	// Content that is encrypted
+	Content []byte `json:"content"`
+	// AvailableFiles contains a list of all files on the webserver and will be populated
+	// when reading from the database, but will not be saved to the database
 	AvailableFiles []string `json:"availablefiles"`
 }
 
