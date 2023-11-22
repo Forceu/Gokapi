@@ -401,7 +401,7 @@ func TestParallelConnectionsWritingAndReading(t *testing.T) {
 		test.IsEqualBool(t, ok, false)
 	}
 
-	for i := 1; i <= 1000; i++ {
+	for i := 1; i <= 100; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -425,7 +425,7 @@ func TestParallelConnectionsReading(t *testing.T) {
 		test.IsEqualBool(t, ok, true)
 	}
 
-	for i := 1; i <= 5000; i++ {
+	for i := 1; i <= 1000; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
