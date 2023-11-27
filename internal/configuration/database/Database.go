@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/forceu/gokapi/internal/helper"
 	"log"
+	// Required for sqlite driver
 	_ "modernc.org/sqlite"
 	"os"
 	"path/filepath"
