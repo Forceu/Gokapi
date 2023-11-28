@@ -13,7 +13,10 @@
   ],
   "security": [
     {
-      "apikey": []
+      "apikey": ["VIEW","UPLOAD","DELETE", "API_MANAGE"]
+    },
+    {
+      "session": []
     }
   ],
   "tags": [
@@ -33,6 +36,14 @@
         "summary": "Lists all files",
         "description": "This API call lists all files that are not expired.",
         "operationId": "list",
+        "security": [
+          {
+            "apikey": ["VIEW"]
+          },
+          {
+            "session": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Operation successful",
@@ -64,6 +75,14 @@
         "summary": "Uploads a new chunk",
         "description": "Uploads a file in chunks, in case a reverse proxy does not support upload of larger files. Parallel uploading is supported. Must call /chunk/complete after all chunks have been uploaded. WARNING: Does not support end-to-end encryption! If server is setup to utilise end-to-end encryption, file will be stored in plain-text!",
         "operationId": "chunkadd",
+        "security": [
+          {
+            "apikey": ["UPLOAD"]
+          },
+          {
+            "session": []
+          }
+        ],
         "requestBody": {
           "content": {
             "multipart/form-data": {
@@ -102,6 +121,14 @@
         "summary": "Finalises uploaded chunks",
         "description": "Needs to be called after all chunks have been uploaded. Adds the uploaded file to Gokapi.",
         "operationId": "chunkcomplete",
+        "security": [
+          {
+            "apikey": ["UPLOAD"]
+          },
+          {
+            "session": []
+          }
+        ],
         "requestBody": {
           "content": {
             "application/x-www-form-urlencoded": {
@@ -140,6 +167,14 @@
         "summary": "Adds a new file without chunking",
         "description": "Uploads the submitted file to Gokapi. Please note: This method does not use chunking, therefore if you are behind a reverse proxy or have a provider that limits upload filesizes, this might not work for bigger files (e.g. Cloudflare). WARNING: Does not support end-to-end encryption! If server is setup to utilise end-to-end encryption, file will be stored in plain-text!",
         "operationId": "add",
+        "security": [
+          {
+            "apikey": ["UPLOAD"]
+          },
+          {
+            "session": []
+          }
+        ],
         "requestBody": {
           "content": {
             "multipart/form-data": {
@@ -178,6 +213,14 @@
         "summary": "Duplicates an existing file",
         "description": "This API call duplicates an existing file with new parameters",
         "operationId": "duplicate",
+        "security": [
+          {
+            "apikey": ["VIEW","UPLOAD"]
+          },
+          {
+            "session": []
+          }
+        ],
         "requestBody": {
           "content": {
             "application/x-www-form-urlencoded": {
@@ -216,6 +259,14 @@
         "summary": "Deletes the selected file",
         "description": "This API call deletes the selected file and runs the clean-up procedure which purges all expired files from the data directory immediately",
         "operationId": "delete",
+        "security": [
+          {
+            "apikey": ["DELETE"]
+          },
+          {
+            "session": []
+          }
+        ],
         "parameters": [
           {
             "name": "id",
@@ -250,6 +301,14 @@
         "summary": "Changes the name of the API key",
         "description": "This API call changes the name of the API key that is shown in the API overview",
         "operationId": "friendlyname",
+        "security": [
+          {
+            "apikey": ["API_MANAGE"]
+          },
+          {
+            "session": []
+          }
+        ],
         "parameters": [
           {
             "name": "apiKeyToModify",
@@ -265,12 +324,78 @@
           {
             "name": "friendlyName",
             "in": "header",
-            "description": "The new name of the API key",
+            "description": "The new name of a API key",
             "required": true,
             "style": "simple",
             "explode": false,
             "schema": {
               "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Invalid ID supplied"
+          },
+          "401": {
+            "description": "Invalid API key provided or not logged in as admin"
+          }
+        }
+      }
+    },
+    "/auth/modifypermission": {
+      "put": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Changes the permissions of the API key",
+        "description": "This API call changes the permissions for the given API key",
+        "operationId": "modifypermission",
+        "security": [
+          {
+            "apikey": ["API_MANAGE"]
+          },
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "apiKeyToModify",
+            "in": "header",
+            "description": "The API key to change the permission of",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "permission",
+            "in": "header",
+            "description": "The name of the permission",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "enum": ["PERM_VIEW", "PERM_UPLOAD", "PERM_DELETE", "PERM_API_MOD"]
+            }
+          },
+          {
+            "name": "permissionModifier",
+            "in": "header",
+            "description": "If the permission shall be granted or revoked",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "enum": ["GRANT", "REVOKE"]
             }
           }
         ],
@@ -413,7 +538,7 @@
         "properties": {
           "id": {
             "type": "string",
-            "description": "ID of file to be duplicated",
+            "description": "ID of file to be duplicated"
           },
           "allowedDownloads": {
             "type": "integer",
@@ -449,7 +574,7 @@
           },
           "uuid": {
             "type": "string",
-            "description": "A unique ID that has to be the same for all chunks of a single file. Needs to be at least 10 characters long.",
+            "description": "A unique ID that has to be the same for all chunks of a single file. Needs to be at least 10 characters long."
           },
           "filesize": {
             "type": "integer",
@@ -468,11 +593,11 @@
         "properties": {
           "uuid": {
             "type": "string",
-            "description": "The unique ID that was used for the uploaded chunks",
+            "description": "The unique ID that was used for the uploaded chunks"
           },
           "filename": {
             "type": "string",
-            "description": "The filename of the uploaded file",
+            "description": "The filename of the uploaded file"
           },
           "filesize": {
             "type": "integer",
@@ -502,6 +627,11 @@
         "type": "apiKey",
         "name": "apikey",
         "in": "header"
+      },
+      "session": {
+        "type": "apiKey",
+        "name": "session_token",
+        "in": "cookie"
       }
     }
   }

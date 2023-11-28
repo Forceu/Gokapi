@@ -57,7 +57,7 @@
 						<th scope="col" style="text-align: center;">Stored until</th>
 						<th scope="col" style="text-align: center;">Downloads</th>
 						<th scope="col" style="text-align: center;">ID</th>
-						<th scope="col" style="text-align: center; min-width:15em;">Actions</th>
+						<th scope="col" style="text-align: center; min-width:13em;">Actions</th>
 					</tr>
 				</thead>
 				<tbody id="downloadtable">
@@ -79,18 +79,19 @@
 			{{ end }}
 						<td scope="col">{{ .DownloadCount }}</td>
 						<td scope="col"><a id="url-href-{{ .Id }}" target="_blank" href="{{ $.Url }}{{ .Id }}">{{ .Id }}</a>{{ if .IsPasswordProtected }} &#128274;{{ end }}</td>
-						<td scope="col"><button id="url-button-{{ .Id }}" type="button" onclick="showToast()" data-clipboard-text="{{ $.Url }}{{ .Id }}" class="copyurl btn btn-outline-light btn-sm">Copy URL</button> 
+						<td scope="col"><button id="url-button-{{ .Id }}" type="button" onclick="showToast()" data-clipboard-text="{{ $.Url }}{{ .Id }}" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> URL</button> 
 			{{ if ne .HotlinkId "" }}
- 						<button type="button" onclick="showToast()" data-clipboard-text="{{ $.HotlinkUrl }}{{ .HotlinkId }}" class="copyurl btn btn-outline-light btn-sm">Copy Hotlink</button>
+ 						<button type="button" onclick="showToast()" data-clipboard-text="{{ $.HotlinkUrl }}{{ .HotlinkId }}" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> Hotlink</button>
 			{{ else }}
 				{{ if or (.IsPasswordProtected) (.RequiresClientSideDecryption)  }}
-	 						<button type="button"class="copyurl btn btn-outline-light btn-sm disabled">Copy Hotlink</button>
+	 						<button type="button"class="copyurl btn btn-outline-light btn-sm disabled"><i class="bi bi-copy"></i> Hotlink</button>
 				{{ else }}
- 							<button type="button" onclick="showToast()" data-clipboard-text="{{ $.GenericHotlinkUrl }}{{ .Id }}" class="copyurl btn btn-outline-light btn-sm">Copy Hotlink</button>
+ 							<button type="button" onclick="showToast()" data-clipboard-text="{{ $.GenericHotlinkUrl }}{{ .Id }}" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> Hotlink</button>
 				{{ end }}
 			{{ end }}
-						<button type="button" class="btn btn-outline-light btn-sm" onclick="showQrCode('{{ $.Url }}{{ .Id }}');">QR</button>
-						<button type="button" class="btn btn-outline-light btn-sm" onclick="window.location='./delete?id={{ .Id }}'">Delete</button></td>
+						<button type="button" title="QR Code" class="btn btn-outline-light btn-sm" onclick="showQrCode('{{ $.Url }}{{ .Id }}');"><i class="bi bi-qr-code"></i>
+</button>
+						<button type="button" title="Delete" class="btn btn-outline-danger btn-sm" onclick="window.location='./delete?id={{ .Id }}'"><i class="bi bi-trash3"></i></button></td>
 					</tr>
 		{{ end }}
 	{{ end }}

@@ -38,14 +38,39 @@ func Process(w http.ResponseWriter, r *http.Request, maxMemory int) {
 		duplicateFile(w, request)
 	case "/auth/friendlyname":
 		changeFriendlyName(w, request)
+	case "/auth/modifypermission":
+		modifyApiPermission(w, request)
 	default:
 		sendError(w, http.StatusBadRequest, "Invalid request")
 	}
 }
 
+func getApiPermissionRequired(requestUrl string) (uint8, bool) {
+	switch requestUrl {
+	case "/chunk/add":
+		return models.ApiPermUpload, true
+	case "/chunk/complete":
+		return models.ApiPermUpload, true
+	case "/files/list":
+		return models.ApiPermView, true
+	case "/files/add":
+		return models.ApiPermUpload, true
+	case "/files/delete":
+		return models.ApiPermDelete, true
+	case "/files/duplicate":
+		return models.ApiPermUpload | models.ApiPermView, true
+	case "/auth/friendlyname":
+		return models.ApiPermApiMod, true
+	case "/auth/modifypermission":
+		return models.ApiPermApiMod, true
+	default:
+		return models.ApiPermNone, false
+	}
+}
+
 // DeleteKey deletes the selected API key
 func DeleteKey(id string) bool {
-	if !IsValidApiKey(id, false) {
+	if !IsValidApiKey(id, false, models.ApiPermNone) {
 		return false
 	}
 	database.DeleteApiKey(id)
@@ -58,14 +83,46 @@ func NewKey() string {
 		Id:           helper.GenerateRandomString(30),
 		FriendlyName: "Unnamed key",
 		LastUsed:     0,
+		Permissions:  models.ApiPermAllNoApiMod,
 	}
 	database.SaveApiKey(newKey)
 	return newKey.Id
 }
 
-func changeFriendlyName(w http.ResponseWriter, request apiRequest) {
-	if !IsValidApiKey(request.apiInfo.apiKeyToModify, false) {
+func modifyApiPermission(w http.ResponseWriter, request apiRequest) {
+	if !isValidKeyForEditing(w, request) {
+		return
+	}
+	if request.apiInfo.permission < models.ApiPermView || request.apiInfo.permission > models.ApiPermApiMod {
+		sendError(w, http.StatusBadRequest, "Invalid permission sent")
+		return
+	}
+	key, ok := database.GetApiKey(request.apiInfo.apiKeyToModify)
+	if !ok {
+		sendError(w, http.StatusInternalServerError, "Could not modify API key")
+		return
+	}
+	if request.apiInfo.grantPermission && !key.HasPermission(request.apiInfo.permission) {
+		key.SetPermission(request.apiInfo.permission)
+		database.SaveApiKey(key)
+		return
+	}
+	if !request.apiInfo.grantPermission && key.HasPermission(request.apiInfo.permission) {
+		key.RemovePermission(request.apiInfo.permission)
+		database.SaveApiKey(key)
+	}
+}
+
+func isValidKeyForEditing(w http.ResponseWriter, request apiRequest) bool {
+	if !IsValidApiKey(request.apiInfo.apiKeyToModify, false, models.ApiPermNone) {
 		sendError(w, http.StatusBadRequest, "Invalid api key provided.")
+		return false
+	}
+	return true
+}
+
+func changeFriendlyName(w http.ResponseWriter, request apiRequest) {
+	if !isValidKeyForEditing(w, request) {
 		return
 	}
 	if request.apiInfo.friendlyName == "" {
@@ -172,7 +229,11 @@ func duplicateFile(w http.ResponseWriter, request apiRequest) {
 }
 
 func isAuthorisedForApi(w http.ResponseWriter, request apiRequest) bool {
-	if IsValidApiKey(request.apiKey, true) || sessionmanager.IsValidSession(w, request.request) {
+	perm, ok := getApiPermissionRequired(request.requestUrl)
+	if !ok {
+		sendError(w, http.StatusUnauthorized, "Unauthorized")
+	}
+	if IsValidApiKey(request.apiKey, true, perm) || sessionmanager.IsValidSession(w, request.request) {
 		return true
 	}
 	sendError(w, http.StatusUnauthorized, "Unauthorized")
@@ -222,19 +283,34 @@ type fileInfo struct {
 }
 
 type apiInfo struct {
-	friendlyName   string
-	apiKeyToModify string
+	friendlyName    string
+	apiKeyToModify  string
+	permission      uint8
+	grantPermission bool
 }
 
 func parseRequest(r *http.Request) apiRequest {
+	permission := models.ApiPermNone
+	switch r.Header.Get("permission") {
+	case "PERM_VIEW":
+		permission = models.ApiPermView
+	case "PERM_UPLOAD":
+		permission = models.ApiPermUpload
+	case "PERM_DELETE":
+		permission = models.ApiPermDelete
+	case "PERM_API_MOD":
+		permission = models.ApiPermApiMod
+	}
 	return apiRequest{
 		apiKey:     r.Header.Get("apikey"),
 		requestUrl: strings.Replace(r.URL.String(), "/api", "", 1),
 		request:    r,
 		fileInfo:   fileInfo{id: r.Header.Get("id")},
 		apiInfo: apiInfo{
-			friendlyName:   r.Header.Get("friendlyName"),
-			apiKeyToModify: r.Header.Get("apiKeyToModify")},
+			friendlyName:    r.Header.Get("friendlyName"),
+			apiKeyToModify:  r.Header.Get("apiKeyToModify"),
+			permission:      uint8(permission),
+			grantPermission: r.Header.Get("permissionModifier") == "GRANT"},
 	}
 }
 
@@ -296,7 +372,7 @@ func apiRequestToUploadRequest(request *http.Request) (models.UploadRequest, int
 
 // IsValidApiKey checks if the API key provides is valid. If modifyTime is true, it also automatically updates
 // the lastUsed timestamp
-func IsValidApiKey(key string, modifyTime bool) bool {
+func IsValidApiKey(key string, modifyTime bool, requiredPermission uint8) bool {
 	if key == "" {
 		return false
 	}
@@ -306,7 +382,8 @@ func IsValidApiKey(key string, modifyTime bool) bool {
 			savedKey.LastUsed = time.Now().Unix()
 			database.UpdateTimeApiKey(savedKey)
 		}
-		return true
+		result := savedKey.HasPermission(requiredPermission)
+		return result
 	}
 	return false
 }

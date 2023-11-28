@@ -10,10 +10,10 @@ import (
 	"strings"
 )
 
-const versionJsAdmin = "1"
+const versionJsAdmin = "2"
 const versionJsDropzone = "3"
 const versionJsE2EAdmin = "2"
-const versionCssMain = "1"
+const versionCssMain = "2"
 
 const fileMain = "../../cmd/gokapi/Main.go"
 const fileVersionConstants = "../../internal/webserver/web/templates/string_constants.tmpl"

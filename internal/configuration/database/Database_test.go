@@ -82,14 +82,16 @@ func TestApiKey(t *testing.T) {
 	SaveApiKey(models.ApiKey{
 		Id:             "newkey",
 		FriendlyName:   "New Key",
-		LastUsed:       100,
 		LastUsedString: "LastUsed",
+		LastUsed:       100,
+		Permissions:    20,
 	})
 	SaveApiKey(models.ApiKey{
 		Id:             "newkey2",
 		FriendlyName:   "New Key2",
-		LastUsed:       200,
 		LastUsedString: "LastUsed2",
+		LastUsed:       200,
+		Permissions:    40,
 	})
 
 	keys := GetAllApiKeys()
@@ -97,7 +99,8 @@ func TestApiKey(t *testing.T) {
 	test.IsEqualString(t, keys["newkey"].FriendlyName, "New Key")
 	test.IsEqualString(t, keys["newkey"].Id, "newkey")
 	test.IsEqualString(t, keys["newkey"].LastUsedString, "LastUsed")
-	test.IsEqualBool(t, keys["newkey"].LastUsed == 100, true)
+	test.IsEqualInt64(t, keys["newkey"].LastUsed, 100)
+	test.IsEqualInt(t, keys["newkey"].Permissions, 20)
 
 	test.IsEqualInt(t, len(GetAllApiKeys()), 2)
 	DeleteApiKey("newkey2")

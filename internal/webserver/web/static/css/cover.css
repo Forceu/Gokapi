@@ -178,3 +178,15 @@ a:hover {
     opacity: 1;
     pointer-events: auto;
 }
+
+.apiperm-granted {
+    cursor: pointer;
+    color: #378431;
+}
+.apiperm-notgranted {
+    cursor: pointer;
+    color: #f85072;
+}
+.apiperm-processing {
+    color: #aaaaaa;
+}

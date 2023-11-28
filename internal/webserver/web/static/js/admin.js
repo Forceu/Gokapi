@@ -208,6 +208,63 @@ function showError(file, message) {
     document.getElementById(`us-progress-info-${chunkId}`).classList.add('uploaderror');
 }
 
+function changeApiPermission(apiKey, permission, buttonId) {
+  
+  var indicator = document.getElementById(buttonId);
+  if (indicator.classList.contains("apiperm-processing")) {
+  	return;
+  }
+  var wasGranted = indicator.classList.contains("apiperm-granted");
+  indicator.classList.add("apiperm-processing");
+  indicator.classList.remove("apiperm-granted");
+  indicator.classList.remove("apiperm-notgranted");
+  
+  var apiUrl = './api/auth/modifypermission';
+  var modifier = "GRANT";
+  if (wasGranted) {
+  	modifier = "REVOKE";
+  }
+
+  // Fetch options with headers
+  const requestOptions = {
+    method: 'GET', // or 'POST' or any other HTTP method
+    headers: {
+      'Content-Type': 'application/json',
+      'apiKeyToModify': apiKey,
+      'permission': permission,
+      'permissionModifier': modifier
+      
+    },
+    // You can add more options like body for POST requests
+  };
+
+  // Send the request
+  fetch(apiUrl, requestOptions)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Request failed with status: ${response.status}`);
+      }
+    })
+    .then(data => {
+      if (wasGranted) {
+  	indicator.classList.add("apiperm-notgranted");
+      } else {
+  	indicator.classList.add("apiperm-granted");
+      }
+      indicator.classList.remove("apiperm-processing");
+    })
+    .catch(error => {
+      if (wasGranted) {
+  	indicator.classList.add("apiperm-granted");
+      } else {
+  	indicator.classList.add("apiperm-notgranted");
+      }
+      indicator.classList.remove("apiperm-processing");
+      alert("Unable to set permission: "+error);
+      console.error('Error:', error);
+    });
+}
+
 
 function checkBoxChanged(checkBox, correspondingInput) {
     let disable = !checkBox.checked;
@@ -345,18 +402,18 @@ function addRow(jsonText) {
     cellDownloadCount.innerHTML = '0';
     cellUrl.innerHTML = '<a  target="_blank" style="color: inherit" id="url-href-' + item.Id + '" href="' + jsonObject.Url + item.Id + '">' + item.Id + '</a>' + lockIcon;
 
-    let buttons = '<button type="button" onclick="showToast()" id="url-button-' + item.Id + '"  data-clipboard-text="' + jsonObject.Url + item.Id + '" class="copyurl btn btn-outline-light btn-sm">Copy URL</button> ';
+    let buttons = '<button type="button" onclick="showToast()" id="url-button-' + item.Id + '"  data-clipboard-text="' + jsonObject.Url + item.Id + '" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> URL</button> ';
     if (item.HotlinkId !== "") {
-        buttons = buttons + '<button type="button" onclick="showToast()" data-clipboard-text="' + jsonObject.HotlinkUrl + item.HotlinkId + '" class="copyurl btn btn-outline-light btn-sm">Copy Hotlink</button> ';
+        buttons = buttons + '<button type="button" onclick="showToast()" data-clipboard-text="' + jsonObject.HotlinkUrl + item.HotlinkId + '" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> Hotlink</button> ';
     } else {
         if (item.RequiresClientSideDecryption === true || item.IsPasswordProtected === true) {
-            buttons = buttons + '<button type="button"class="copyurl btn btn-outline-light btn-sm disabled">Copy Hotlink</button> ';
+            buttons = buttons + '<button type="button"class="copyurl btn btn-outline-light btn-sm disabled"><i class="bi bi-copy"></i> Hotlink</button> ';
         } else {
-            buttons = buttons + '<button type="button" onclick="showToast()" data-clipboard-text="' + jsonObject.GenericHotlinkUrl + item.Id + '" class="copyurl btn btn-outline-light btn-sm">Copy Hotlink</button> ';
+            buttons = buttons + '<button type="button" onclick="showToast()" data-clipboard-text="' + jsonObject.GenericHotlinkUrl + item.Id + '" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> Hotlink</button> ';
         }
     }
-    buttons = buttons + "<button type=\"button\" class=\"btn btn-outline-light btn-sm\" onclick=\"showQrCode('" + jsonObject.Url + item.Id + "');\">QR</button> ";
-    buttons = buttons + "<button type=\"button\" class=\"btn btn-outline-light btn-sm\" onclick=\"window.location='./delete?id=" + item.Id + "'\">Delete</button>";
+    buttons = buttons + '<button type="button" title="QR Code" class="btn btn-outline-light btn-sm" onclick="showQrCode(\'' + jsonObject.Url + item.Id + '\');"><i class="bi bi-qr-code"></i></button> ';
+    buttons = buttons + '<button type="button" title="Delete" class="btn btn-outline-danger btn-sm" onclick="window.location=\'./delete?id=' + item.Id + '\'"><i class="bi bi-trash3"></i></button>';
 
     cellButtons.innerHTML = buttons;
 

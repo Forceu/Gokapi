@@ -12,6 +12,7 @@ type schemaApiKeys struct {
 	FriendlyName   string
 	LastUsed       int64
 	LastUsedString string
+	Permissions    int
 }
 
 // GetAllApiKeys returns a map with all API keys
@@ -23,13 +24,14 @@ func GetAllApiKeys() map[string]models.ApiKey {
 	defer rows.Close()
 	for rows.Next() {
 		rowData := schemaApiKeys{}
-		err = rows.Scan(&rowData.Id, &rowData.FriendlyName, &rowData.LastUsed, &rowData.LastUsedString)
+		err = rows.Scan(&rowData.Id, &rowData.FriendlyName, &rowData.LastUsed, &rowData.LastUsedString, &rowData.Permissions)
 		helper.Check(err)
 		result[rowData.Id] = models.ApiKey{
 			Id:             rowData.Id,
 			FriendlyName:   rowData.FriendlyName,
 			LastUsed:       rowData.LastUsed,
 			LastUsedString: rowData.LastUsedString,
+			Permissions:    uint8(rowData.Permissions),
 		}
 	}
 	return result
@@ -39,7 +41,7 @@ func GetAllApiKeys() map[string]models.ApiKey {
 func GetApiKey(id string) (models.ApiKey, bool) {
 	var rowResult schemaApiKeys
 	row := sqliteDb.QueryRow("SELECT * FROM ApiKeys WHERE Id = ?", id)
-	err := row.Scan(&rowResult.Id, &rowResult.FriendlyName, &rowResult.LastUsed, &rowResult.LastUsedString)
+	err := row.Scan(&rowResult.Id, &rowResult.FriendlyName, &rowResult.LastUsed, &rowResult.LastUsedString, &rowResult.Permissions)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return models.ApiKey{}, false
@@ -53,6 +55,7 @@ func GetApiKey(id string) (models.ApiKey, bool) {
 		FriendlyName:   rowResult.FriendlyName,
 		LastUsed:       rowResult.LastUsed,
 		LastUsedString: rowResult.LastUsedString,
+		Permissions:    uint8(rowResult.Permissions),
 	}
 
 	return result, true
@@ -60,8 +63,8 @@ func GetApiKey(id string) (models.ApiKey, bool) {
 
 // SaveApiKey saves the API key to the database
 func SaveApiKey(apikey models.ApiKey) {
-	_, err := sqliteDb.Exec("INSERT OR REPLACE INTO ApiKeys (Id, FriendlyName, LastUsed, LastUsedString) VALUES (?, ?, ?, ?)",
-		apikey.Id, apikey.FriendlyName, apikey.LastUsed, apikey.LastUsedString)
+	_, err := sqliteDb.Exec("INSERT OR REPLACE INTO ApiKeys (Id, FriendlyName, LastUsed, LastUsedString, Permissions) VALUES (?, ?, ?, ?, ?)",
+		apikey.Id, apikey.FriendlyName, apikey.LastUsed, apikey.LastUsedString, apikey.Permissions)
 	helper.Check(err)
 }
 

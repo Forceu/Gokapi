@@ -53,6 +53,42 @@ func RunGarbageCollection() {
 	cleanUploadStatus()
 }
 
+// RawSqlite runs a raw SQL statement. Should only be used for upgrading
+func RawSqlite(statement string) error {
+	_, err := sqliteDb.Exec(statement)
+	return err
+}
+
+type schemaPragma struct {
+	Cid        string
+	Name       string
+	Type       string
+	NotNull    int
+	DefaultVal sql.NullString
+	Pk         int
+}
+
+// ColumnExists returns true if a column with the name columnName exists in table tableName
+// Should only be used for upgrading
+func ColumnExists(tableName, columnName string) (bool, error) {
+	rows, err := sqliteDb.Query("PRAGMA table_info(" + tableName + ")")
+	if err != nil {
+		return false, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var pragmaInfo schemaPragma
+		err = rows.Scan(&pragmaInfo.Cid, &pragmaInfo.Name, &pragmaInfo.Type, &pragmaInfo.NotNull, &pragmaInfo.DefaultVal, &pragmaInfo.Pk)
+		if err != nil {
+			return false, err
+		}
+		if pragmaInfo.Name == columnName {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 func createNewDatabase() {
 	sqlStmt := `
 		CREATE TABLE "ApiKeys" (
@@ -60,6 +96,7 @@ func createNewDatabase() {
 			"FriendlyName"	TEXT NOT NULL,
 			"LastUsed"	INTEGER NOT NULL,
 			"LastUsedString"	TEXT NOT NULL,
+			"Permissions"	INTEGER NOT NULL DEFAULT 0,
 			PRIMARY KEY("Id")
 		) WITHOUT ROWID;
 		CREATE TABLE "E2EConfig" (
@@ -114,6 +151,6 @@ func createNewDatabase() {
 			PRIMARY KEY("ChunkId")
 		) WITHOUT ROWID;
 `
-	_, err := sqliteDb.Exec(sqlStmt)
+	err := RawSqlite(sqlStmt)
 	helper.Check(err)
 }
