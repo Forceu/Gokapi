@@ -175,20 +175,24 @@ func writeApiKeyys() {
 	database.SaveApiKey(models.ApiKey{
 		Id:           "validkey",
 		FriendlyName: "First Key",
+		Permissions:  models.ApiPermAll, // TODO
 	})
 	database.SaveApiKey(models.ApiKey{
 		Id:             "GAh1IhXDvYnqfYLazWBqMB9HSFmNPO",
 		FriendlyName:   "Second Key",
 		LastUsed:       1620671580,
 		LastUsedString: "used",
+		Permissions:    models.ApiPermAll, // TODO
 	})
 	database.SaveApiKey(models.ApiKey{
 		Id:           "jiREglQJW0bOqJakfjdVfe8T1EM8n8",
 		FriendlyName: "Unnamed Key",
+		Permissions:  models.ApiPermAll, // TODO
 	})
 	database.SaveApiKey(models.ApiKey{
 		Id:           "okeCMWqhVMZSpt5c1qpCWhKvJJPifb",
 		FriendlyName: "Unnamed Key",
+		Permissions:  models.ApiPermAll, // TODO
 	})
 }
 
@@ -328,7 +332,7 @@ var configTestFile = []byte(`{
    "Port":"127.0.0.1:53843",
   "ServerUrl": "http://127.0.0.1:53843/",
   "RedirectUrl": "https://test.com/",
-  "ConfigVersion": 15,
+  "ConfigVersion": 16,
   "LengthId": 20,
   "DataDir": "test/data",
   "MaxMemory": 10,

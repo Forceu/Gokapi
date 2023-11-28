@@ -240,6 +240,8 @@ func isAuthorisedForApi(w http.ResponseWriter, request apiRequest) bool {
 	return false
 }
 
+// TODO investigate  superfluous response.WriteHeader call from github.com/forceu/gokapi/internal/webserver/api.sendError (Api.go:244)
+// Probably from new API permission system
 func sendError(w http.ResponseWriter, errorInt int, errorMessage string) {
 	w.WriteHeader(errorInt)
 	_, _ = w.Write([]byte("{\"Result\":\"error\",\"ErrorMessage\":\"" + errorMessage + "\"}"))

@@ -1,10 +1,10 @@
 package models
 
 const (
-	ApiPermView   = 1 << iota // upper case
-	ApiPermUpload             // lower case
-	ApiPermDelete             // capitalizes
-	ApiPermApiMod             // reverses
+	ApiPermView = 1 << iota
+	ApiPermUpload
+	ApiPermDelete
+	ApiPermApiMod
 )
 
 const ApiPermNone = 0

@@ -100,7 +100,7 @@ func TestApiKey(t *testing.T) {
 	test.IsEqualString(t, keys["newkey"].Id, "newkey")
 	test.IsEqualString(t, keys["newkey"].LastUsedString, "LastUsed")
 	test.IsEqualInt64(t, keys["newkey"].LastUsed, 100)
-	test.IsEqualInt(t, keys["newkey"].Permissions, 20)
+	test.IsEqualBool(t, keys["newkey"].Permissions == 20, true)
 
 	test.IsEqualInt(t, len(GetAllApiKeys()), 2)
 	DeleteApiKey("newkey2")

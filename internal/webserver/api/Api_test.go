@@ -32,6 +32,8 @@ func TestMain(m *testing.M) {
 	os.Exit(exitVal)
 }
 
+// TODO test new permission system
+
 const maxMemory = 20
 
 var newKeyId string
@@ -56,13 +58,13 @@ func TestDeleteKey(t *testing.T) {
 }
 
 func TestIsValidApiKey(t *testing.T) {
-	test.IsEqualBool(t, IsValidApiKey("", false), false)
-	test.IsEqualBool(t, IsValidApiKey("invalid", false), false)
-	test.IsEqualBool(t, IsValidApiKey("validkey", false), true)
+	test.IsEqualBool(t, IsValidApiKey("", false, models.ApiPermNone), false)        // TODO permission
+	test.IsEqualBool(t, IsValidApiKey("invalid", false, models.ApiPermNone), false) // TODO permission
+	test.IsEqualBool(t, IsValidApiKey("validkey", false, models.ApiPermNone), true) // TODO permission
 	key, ok := database.GetApiKey("validkey")
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, key.LastUsed == 0, true)
-	test.IsEqualBool(t, IsValidApiKey("validkey", true), true)
+	test.IsEqualBool(t, IsValidApiKey("validkey", true, models.ApiPermNone), true) // TODO permission
 	key, ok = database.GetApiKey("validkey")
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, key.LastUsed == 0, false)
