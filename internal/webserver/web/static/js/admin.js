@@ -208,61 +208,209 @@ function showError(file, message) {
     document.getElementById(`us-progress-info-${chunkId}`).classList.add('uploaderror');
 }
 
-function changeApiPermission(apiKey, permission, buttonId) {
-  
-  var indicator = document.getElementById(buttonId);
-  if (indicator.classList.contains("apiperm-processing")) {
-  	return;
-  }
-  var wasGranted = indicator.classList.contains("apiperm-granted");
-  indicator.classList.add("apiperm-processing");
-  indicator.classList.remove("apiperm-granted");
-  indicator.classList.remove("apiperm-notgranted");
-  
-  var apiUrl = './api/auth/modifypermission';
-  var modifier = "GRANT";
-  if (wasGranted) {
-  	modifier = "REVOKE";
-  }
 
-  // Fetch options with headers
-  const requestOptions = {
-    method: 'GET', // or 'POST' or any other HTTP method
-    headers: {
-      'Content-Type': 'application/json',
-      'apiKeyToModify': apiKey,
-      'permission': permission,
-      'permissionModifier': modifier
-      
-    },
-    // You can add more options like body for POST requests
-  };
+function editFile() {
+    const button = document.getElementById('mb_save');
+    button.disabled = true;
+    let apiUrl = './api/files/modify';
 
-  // Send the request
-  fetch(apiUrl, requestOptions)
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`Request failed with status: ${response.status}`);
-      }
-    })
-    .then(data => {
-      if (wasGranted) {
-  	indicator.classList.add("apiperm-notgranted");
-      } else {
-  	indicator.classList.add("apiperm-granted");
-      }
-      indicator.classList.remove("apiperm-processing");
-    })
-    .catch(error => {
-      if (wasGranted) {
-  	indicator.classList.add("apiperm-granted");
-      } else {
-  	indicator.classList.add("apiperm-notgranted");
-      }
-      indicator.classList.remove("apiperm-processing");
-      alert("Unable to set permission: "+error);
-      console.error('Error:', error);
+    let  allowedDownloads = document.getElementById('mi_edit_down').value;
+    let  expiryTimestamp = document.getElementById('mi_edit_expiry').value;
+    let  password = document.getElementById('mi_edit_pw').value;
+    let  originalPassword = (password === '(unchanged)');
+    
+    if (!document.getElementById('mc_download').checked) {
+    	allowedDownloads = 0;
+    }
+    if (!document.getElementById('mc_expiry').checked) {
+    	expiryTimestamp = 0;
+    }
+    if (!document.getElementById('mc_password').checked) {
+    	originalPassword = false;
+    	password = "";
+    } 
+    
+    const requestOptions = {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'id': button.getAttribute('data-fileid'),
+            'allowedDownloads': allowedDownloads,
+            'expiryTimestamp': expiryTimestamp,
+            'password': password,
+            'originalPassword': originalPassword
+
+        },
+    };
+
+    // Send the request
+    fetch(apiUrl, requestOptions)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Request failed with status: ${response.status}`);
+            }
+        })
+        .then(data => {
+            location.reload();
+        })
+        .catch(error => {
+            alert("Unable to edit file: " + error);
+            console.error('Error:', error);
+            button.disabled = false;
+        });
+}
+
+var calendarInstance = null;
+
+function createCalendar(timestamp) {
+    // Convert Unix timestamp to JavaScript Date object
+    const expiryDate = new Date(timestamp * 1000);
+
+    calendarInstance = flatpickr('#mi_edit_expiry', {
+        enableTime: true,
+        dateFormat: 'U', // Unix timestamp
+        altInput: true,
+        altFormat: 'Y-m-d H:i',
+        allowInput: true,
+        time_24hr: true,
+        defaultDate: expiryDate,
+        minDate: 'today',
     });
+
+}
+
+
+
+function handleEditCheckboxChange(checkbox) {
+    var targetElement = document.getElementById(checkbox.getAttribute("data-toggle-target"));
+    var timestamp = checkbox.getAttribute("data-timestamp");
+
+    if (checkbox.checked) {
+        targetElement.classList.remove("disabled");
+        targetElement.removeAttribute("disabled");
+        if (timestamp != null) {
+            calendarInstance._input.disabled = false;
+        }
+    } else {
+        if (timestamp != null) {
+            calendarInstance._input.disabled = true;
+        }
+        targetElement.classList.add("disabled");
+        targetElement.setAttribute("disabled", true);
+    }
+
+}
+
+function showEditModal(filename, id, downloads, expiry, password, unlimitedown, unlimitedtime) {
+    document.getElementById("m_filenamelabel").innerHTML = filename;
+    document.getElementById("mc_expiry").setAttribute("data-timestamp", expiry);
+    document.getElementById("mb_save").setAttribute('data-fileid', id);
+    createCalendar(expiry);
+
+    if (unlimitedown) {
+        document.getElementById("mi_edit_down").value = "1";
+        document.getElementById("mi_edit_down").disabled = true;
+        document.getElementById("mc_download").checked = false;
+    } else {
+        document.getElementById("mi_edit_down").value = downloads;
+        document.getElementById("mi_edit_down").disabled = false;
+        document.getElementById("mc_download").checked = true;
+    }
+
+    if (unlimitedtime) {
+        document.getElementById("mi_edit_expiry").value = add14DaysIfBeforeCurrentTime(expiry);
+        document.getElementById("mi_edit_expiry").disabled = true;
+        document.getElementById("mc_expiry").checked = false;
+        calendarInstance._input.disabled = true;
+    } else {
+        document.getElementById("mi_edit_expiry").value = expiry;
+        document.getElementById("mi_edit_expiry").disabled = false;
+        document.getElementById("mc_expiry").checked = true;
+        calendarInstance._input.disabled = false;
+    }
+
+    if (password) {
+        document.getElementById("mi_edit_pw").value = "(unchanged)";
+        document.getElementById("mi_edit_pw").disabled = false;
+        document.getElementById("mc_password").checked = true;
+    } else {
+        document.getElementById("mi_edit_pw").value = "";
+        document.getElementById("mi_edit_pw").disabled = true;
+        document.getElementById("mc_password").checked = false;
+    }
+    new bootstrap.Modal('#modaledit', {}).show();
+}
+
+function selectTextForPw(input) {
+    if (input.value === "(unchanged)") {
+        input.setSelectionRange(0, input.value.length);
+    }
+}
+
+function add14DaysIfBeforeCurrentTime(unixTimestamp) {
+  let currentTime = Date.now();
+  let timestampInMilliseconds = unixTimestamp * 1000;
+  if (timestampInMilliseconds < currentTime) {
+    let newTimestamp = currentTime + (14 * 24 * 60 * 60 * 1000);
+    return Math.floor(newTimestamp / 1000);
+  } else {
+    return unixTimestamp;
+  }
+}
+
+function changeApiPermission(apiKey, permission, buttonId) {
+
+    var indicator = document.getElementById(buttonId);
+    if (indicator.classList.contains("apiperm-processing")) {
+        return;
+    }
+    var wasGranted = indicator.classList.contains("apiperm-granted");
+    indicator.classList.add("apiperm-processing");
+    indicator.classList.remove("apiperm-granted");
+    indicator.classList.remove("apiperm-notgranted");
+
+    var apiUrl = './api/auth/modify';
+    var modifier = "GRANT";
+    if (wasGranted) {
+        modifier = "REVOKE";
+    }
+
+    const requestOptions = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'apiKeyToModify': apiKey,
+            'permission': permission,
+            'permissionModifier': modifier
+
+        },
+    };
+
+    // Send the request
+    fetch(apiUrl, requestOptions)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Request failed with status: ${response.status}`);
+            }
+        })
+        .then(data => {
+            if (wasGranted) {
+                indicator.classList.add("apiperm-notgranted");
+            } else {
+                indicator.classList.add("apiperm-granted");
+            }
+            indicator.classList.remove("apiperm-processing");
+        })
+        .catch(error => {
+            if (wasGranted) {
+                indicator.classList.add("apiperm-granted");
+            } else {
+                indicator.classList.add("apiperm-notgranted");
+            }
+            indicator.classList.remove("apiperm-processing");
+            alert("Unable to set permission: " + error);
+            console.error('Error:', error);
+        });
 }
 
 
@@ -384,7 +532,7 @@ function addRow(jsonText) {
     let lockIcon = "";
 
     if (item.IsPasswordProtected === true) {
-        lockIcon = " &#128274;";
+        lockIcon = '  <i  title="Password protected" class="bi bi-key"></i>';
     }
     cellFilename.innerText = item.Name;
     cellFilename.id = "cell-name-" + item.Id;
@@ -413,6 +561,7 @@ function addRow(jsonText) {
         }
     }
     buttons = buttons + '<button type="button" title="QR Code" class="btn btn-outline-light btn-sm" onclick="showQrCode(\'' + jsonObject.Url + item.Id + '\');"><i class="bi bi-qr-code"></i></button> ';
+    buttons = buttons + '<button type="button" title="Edit" class="btn btn-outline-light btn-sm" onclick="showEditModal(\'' + item.Name + '\',\'' + item.Id + '\', ' + item.DownloadsRemaining + ', ' + item.ExpireAt + ', ' + item.IsPasswordProtected + ', ' + item.UnlimitedDownloads + ', ' + item.UnlimitedTime + ');"><i class="bi bi-pencil"></i></button> ';
     buttons = buttons + '<button type="button" title="Delete" class="btn btn-outline-danger btn-sm" onclick="window.location=\'./delete?id=' + item.Id + '\'"><i class="bi bi-trash3"></i></button>';
 
     cellButtons.innerHTML = buttons;
@@ -446,6 +595,7 @@ function hideQrCode() {
     document.getElementById("qroverlay").style.display = "none";
     document.getElementById("qrcode").innerHTML = "";
 }
+
 
 function showQrCode(url) {
     const overlay = document.getElementById("qroverlay");

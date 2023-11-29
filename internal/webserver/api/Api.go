@@ -36,13 +36,56 @@ func Process(w http.ResponseWriter, r *http.Request, maxMemory int) {
 		deleteFile(w, request)
 	case "/files/duplicate":
 		duplicateFile(w, request)
+	case "/files/modify":
+		editFile(w, request)
 	case "/auth/friendlyname":
 		changeFriendlyName(w, request)
-	case "/auth/modifypermission":
+	case "/auth/modify":
 		modifyApiPermission(w, request)
 	default:
 		sendError(w, http.StatusBadRequest, "Invalid request")
 	}
+}
+
+func editFile(w http.ResponseWriter, request apiRequest) {
+	file, ok := database.GetMetaDataById(request.filemodInfo.id)
+	if !ok {
+		sendError(w, http.StatusBadRequest, "Invalid file ID provided.")
+		return
+	}
+	if request.filemodInfo.downloads != "" {
+		dowloadsInt, err := strconv.Atoi(request.filemodInfo.downloads)
+		if err != nil {
+			sendError(w, http.StatusBadRequest, "Invalid download count provided.")
+			return
+		}
+		if dowloadsInt != 0 {
+			file.DownloadsRemaining = dowloadsInt
+			file.UnlimitedDownloads = false
+		} else {
+			file.UnlimitedDownloads = true
+		}
+	}
+	if request.filemodInfo.expiry != "" {
+		expiryInt, err := strconv.ParseInt(request.filemodInfo.expiry, 10, 64)
+		if err != nil {
+			sendError(w, http.StatusBadRequest, "Invalid expiry timestamp provided.")
+			return
+		}
+		if expiryInt != 0 {
+			file.ExpireAt = expiryInt
+			file.ExpireAtString = storage.FormatTimestamp(expiryInt)
+			file.UnlimitedTime = false
+		} else {
+			file.UnlimitedTime = true
+		}
+	}
+
+	if !request.filemodInfo.originalPassword {
+		file.PasswordHash = configuration.HashPassword(request.filemodInfo.password, true)
+	}
+	database.SaveMetaData(file)
+	outputFileInfo(w, file)
 }
 
 func getApiPermissionRequired(requestUrl string) (uint8, bool) {
@@ -58,10 +101,12 @@ func getApiPermissionRequired(requestUrl string) (uint8, bool) {
 	case "/files/delete":
 		return models.ApiPermDelete, true
 	case "/files/duplicate":
-		return models.ApiPermUpload | models.ApiPermView, true
+		return models.ApiPermUpload, true
+	case "/files/modify":
+		return models.ApiPermEdit, true
 	case "/auth/friendlyname":
 		return models.ApiPermApiMod, true
-	case "/auth/modifypermission":
+	case "/auth/modify":
 		return models.ApiPermApiMod, true
 	default:
 		return models.ApiPermNone, false
@@ -93,7 +138,7 @@ func modifyApiPermission(w http.ResponseWriter, request apiRequest) {
 	if !isValidKeyForEditing(w, request) {
 		return
 	}
-	if request.apiInfo.permission < models.ApiPermView || request.apiInfo.permission > models.ApiPermApiMod {
+	if request.apiInfo.permission < models.ApiPermView || request.apiInfo.permission > models.ApiPermEdit {
 		sendError(w, http.StatusBadRequest, "Invalid permission sent")
 		return
 	}
@@ -142,7 +187,7 @@ func changeFriendlyName(w http.ResponseWriter, request apiRequest) {
 func deleteFile(w http.ResponseWriter, request apiRequest) {
 	ok := storage.DeleteFile(request.fileInfo.id, true)
 	if !ok {
-		sendError(w, http.StatusBadRequest, "Invalid id provided.")
+		sendError(w, http.StatusBadRequest, "Invalid file ID provided.")
 	}
 }
 
@@ -150,6 +195,7 @@ func chunkAdd(w http.ResponseWriter, request apiRequest) {
 	maxUpload := int64(configuration.Get().MaxFileSizeMB) * 1024 * 1024
 	if request.request.ContentLength > maxUpload {
 		sendError(w, http.StatusBadRequest, storage.ErrorFileTooLarge.Error())
+		return
 	}
 
 	request.request.Body = http.MaxBytesReader(w, request.request.Body, maxUpload)
@@ -162,12 +208,12 @@ func chunkComplete(w http.ResponseWriter, request apiRequest) {
 	err := request.request.ParseForm()
 	if err != nil {
 		sendError(w, http.StatusBadRequest, err.Error())
+		return
 	}
 	request.request.Form.Set("chunkid", request.request.Form.Get("uuid"))
 	err = fileupload.CompleteChunk(w, request.request, true)
 	if err != nil {
 		sendError(w, http.StatusBadRequest, err.Error())
-		return
 	}
 }
 
@@ -190,6 +236,7 @@ func upload(w http.ResponseWriter, request apiRequest, maxMemory int) {
 	maxUpload := int64(configuration.Get().MaxFileSizeMB) * 1024 * 1024
 	if request.request.ContentLength > maxUpload {
 		sendError(w, http.StatusBadRequest, storage.ErrorFileTooLarge.Error())
+		return
 	}
 
 	request.request.Body = http.MaxBytesReader(w, request.request.Body, maxUpload)
@@ -221,7 +268,11 @@ func duplicateFile(w http.ResponseWriter, request apiRequest) {
 		sendError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	publicOutput, err := newFile.ToFileApiOutput()
+	outputFileInfo(w, newFile)
+}
+
+func outputFileInfo(w http.ResponseWriter, file models.File) {
+	publicOutput, err := file.ToFileApiOutput()
 	helper.Check(err)
 	result, err := json.Marshal(publicOutput)
 	helper.Check(err)
@@ -231,7 +282,8 @@ func duplicateFile(w http.ResponseWriter, request apiRequest) {
 func isAuthorisedForApi(w http.ResponseWriter, request apiRequest) bool {
 	perm, ok := getApiPermissionRequired(request.requestUrl)
 	if !ok {
-		sendError(w, http.StatusUnauthorized, "Unauthorized")
+		sendError(w, http.StatusBadRequest, "Invalid request")
+		return false
 	}
 	if IsValidApiKey(request.apiKey, true, perm) || sessionmanager.IsValidSession(w, request.request) {
 		return true
@@ -240,7 +292,6 @@ func isAuthorisedForApi(w http.ResponseWriter, request apiRequest) bool {
 	return false
 }
 
-// TODO investigate  superfluous response.WriteHeader call from github.com/forceu/gokapi/internal/webserver/api.sendError (Api.go:244)
 // Probably from new API permission system
 func sendError(w http.ResponseWriter, errorInt int, errorMessage string) {
 	w.WriteHeader(errorInt)
@@ -248,11 +299,12 @@ func sendError(w http.ResponseWriter, errorInt int, errorMessage string) {
 }
 
 type apiRequest struct {
-	apiKey     string
-	requestUrl string
-	request    *http.Request
-	fileInfo   fileInfo
-	apiInfo    apiInfo
+	apiKey      string
+	requestUrl  string
+	request     *http.Request
+	fileInfo    fileInfo
+	apiInfo     apiInfo
+	filemodInfo filemodInfo
 }
 
 func (a *apiRequest) parseUploadRequest() error {
@@ -290,6 +342,13 @@ type apiInfo struct {
 	permission      uint8
 	grantPermission bool
 }
+type filemodInfo struct {
+	id               string
+	downloads        string
+	expiry           string
+	password         string
+	originalPassword bool
+}
 
 func parseRequest(r *http.Request) apiRequest {
 	permission := models.ApiPermNone
@@ -302,12 +361,21 @@ func parseRequest(r *http.Request) apiRequest {
 		permission = models.ApiPermDelete
 	case "PERM_API_MOD":
 		permission = models.ApiPermApiMod
+	case "PERM_EDIT":
+		permission = models.ApiPermEdit
 	}
 	return apiRequest{
 		apiKey:     r.Header.Get("apikey"),
 		requestUrl: strings.Replace(r.URL.String(), "/api", "", 1),
 		request:    r,
 		fileInfo:   fileInfo{id: r.Header.Get("id")},
+		filemodInfo: filemodInfo{
+			id:               r.Header.Get("id"),
+			downloads:        r.Header.Get("allowedDownloads"),
+			expiry:           r.Header.Get("expiryTimestamp"),
+			password:         r.Header.Get("password"),
+			originalPassword: r.Header.Get("originalPassword") == "true",
+		},
 		apiInfo: apiInfo{
 			friendlyName:    r.Header.Get("friendlyName"),
 			apiKeyToModify:  r.Header.Get("apiKeyToModify"),
@@ -384,8 +452,7 @@ func IsValidApiKey(key string, modifyTime bool, requiredPermission uint8) bool {
 			savedKey.LastUsed = time.Now().Unix()
 			database.UpdateTimeApiKey(savedKey)
 		}
-		result := savedKey.HasPermission(requiredPermission)
-		return result
+		return savedKey.HasPermission(requiredPermission)
 	}
 	return false
 }

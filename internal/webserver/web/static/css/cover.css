@@ -181,12 +181,18 @@ a:hover {
 
 .apiperm-granted {
     cursor: pointer;
-    color: #378431;
+    color: #19b90e;
 }
+
 .apiperm-notgranted {
     cursor: pointer;
-    color: #f85072;
+    color: #7e7e7e;
 }
 .apiperm-processing {
-    color: #aaaaaa;
+    color: #929611;
+}
+
+.gokapi-dialog {
+    background-color: #212529;
+    color: #ddd;
 }

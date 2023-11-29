@@ -22,7 +22,7 @@
 				<input class="form-check-input" type="checkbox" name="enableDownloadLimit" id="enableDownloadLimit" onchange="checkBoxChanged(this, 'allowedDownloads')" value="" aria-label="Enable Download Limit" {{ if not .DefaultUnlimitedDownload }} checked {{ end }}>
 	     			<label class="control-label small" for="allowedDownloads">Limit Downloads</label>
 				<div class="input-group mb-3">
-					<input type="number" class="form-control admin-input" value="{{ .DefaultDownloads }}" name="allowedDownloads" id="allowedDownloads" min="1"  {{ if .DefaultUnlimitedDownload }} disabled {{ end }}  style="text-align: right;"/>
+					<input type="number" class="form-control admin-input" value="{{ .DefaultDownloads }}" name="allowedDownloads" id="allowedDownloads" min="1"  {{ if .DefaultUnlimitedDownload }} disabled {{ end }}  style="text-align: right;">
 	  				<span class="input-group-text">Downloads</span>
 				</div>
 			 </div>
@@ -31,7 +31,7 @@
 				<input class="form-check-input" type="checkbox" name="enableTimeLimit" id="enableTimeLimit" onchange="checkBoxChanged(this, 'expiryDays')" value="" aria-label="Enable Time Limit"  {{ if not .DefaultUnlimitedTime }} checked {{ end }}>
 	     			<label class="control-label  small" for="expiryDays">Expiry</label>
 				<div class="input-group mb-3">
-					<input type="number" class="form-control admin-input" value="{{ .DefaultExpiry }}" name="expiryDays" id="expiryDays" min="1"  {{ if .DefaultUnlimitedTime }} disabled {{ end }} style="text-align: right;"/>
+					<input type="number" class="form-control admin-input" value="{{ .DefaultExpiry }}" name="expiryDays" id="expiryDays" min="1"  {{ if .DefaultUnlimitedTime }} disabled {{ end }} style="text-align: right;">
 	  				<span class="input-group-text">Days</span>
 				</div>
 			 </div>
@@ -39,7 +39,7 @@
 	    		 <div class="form-group col">
 				<input class="form-check-input" type="checkbox" name="enablePassword" id="enablePassword" onchange="checkBoxChanged(this, 'password')" value="" aria-label="Enable Password Protection" {{ if ne .DefaultPassword "" }} checked {{ end }}>
 	     			<label class="control-label  small" for="password">Password</label>
-				<input class="form-control admin-input" value="{{ .DefaultPassword }}" name="password" id="password" placeholder="None" {{ if eq .DefaultPassword "" }} disabled {{ end }}/>
+				<input class="form-control admin-input" value="{{ .DefaultPassword }}" name="password" id="password" placeholder="None" {{ if eq .DefaultPassword "" }} disabled {{ end }}>
 			  </div>
 <div id="errordiv" class="alert alert-danger" style="display:none">
   <span id="errormessage" ></span>
@@ -65,21 +65,21 @@
 	{{ if  or (gt .ExpireAt $.TimeNow) (.UnlimitedTime) }}
 		{{ if or (gt .DownloadsRemaining 0) (.UnlimitedDownloads) }}
 					<tr>
-						<td scope="col" id="cell-name-{{ .Id }}">{{ .Name }}</td>
-						<td data-order="{{ .SizeBytes }}" scope="col">{{ .Size }}</td>
+						<td id="cell-name-{{ .Id }}">{{ .Name }}</td>
+						<td data-order="{{ .SizeBytes }}">{{ .Size }}</td>
 			{{ if .UnlimitedDownloads }}
-						<td scope="col">Unlimited</td>
+						<td>Unlimited</td>
 			{{ else }}
-						<td scope="col">{{ .DownloadsRemaining }}</td>
+						<td>{{ .DownloadsRemaining }}</td>
 			{{ end }}
 			{{ if .UnlimitedTime }}
-						<td scope="col">Unlimited</td>
+						<td>Unlimited</td>
 			{{ else }}
-						<td scope="col">{{ .ExpireAtString }}</td>
+						<td>{{ .ExpireAtString }}</td>
 			{{ end }}
-						<td scope="col">{{ .DownloadCount }}</td>
-						<td scope="col"><a id="url-href-{{ .Id }}" target="_blank" href="{{ $.Url }}{{ .Id }}">{{ .Id }}</a>{{ if .IsPasswordProtected }} &#128274;{{ end }}</td>
-						<td scope="col"><button id="url-button-{{ .Id }}" type="button" onclick="showToast()" data-clipboard-text="{{ $.Url }}{{ .Id }}" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> URL</button> 
+						<td>{{ .DownloadCount }}</td>
+						<td><a id="url-href-{{ .Id }}" target="_blank" href="{{ $.Url }}{{ .Id }}">{{ .Id }}</a>{{ if .IsPasswordProtected }}  <i title="Password protected" class="bi bi-key"></i>{{ end }}</td>
+						<td><button id="url-button-{{ .Id }}" type="button" onclick="showToast()" data-clipboard-text="{{ $.Url }}{{ .Id }}" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> URL</button> 
 			{{ if ne .HotlinkId "" }}
  						<button type="button" onclick="showToast()" data-clipboard-text="{{ $.HotlinkUrl }}{{ .HotlinkId }}" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> Hotlink</button>
 			{{ else }}
@@ -89,8 +89,8 @@
  							<button type="button" onclick="showToast()" data-clipboard-text="{{ $.GenericHotlinkUrl }}{{ .Id }}" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> Hotlink</button>
 				{{ end }}
 			{{ end }}
-						<button type="button" title="QR Code" class="btn btn-outline-light btn-sm" onclick="showQrCode('{{ $.Url }}{{ .Id }}');"><i class="bi bi-qr-code"></i>
-</button>
+						<button type="button" title="QR Code" class="btn btn-outline-light btn-sm" onclick="showQrCode('{{ $.Url }}{{ .Id }}');"><i class="bi bi-qr-code"></i></button>
+						<button type="button" title="Edit" class="btn btn-outline-light btn-sm" onclick="showEditModal('{{.Name }}','{{.Id}}', {{.DownloadsRemaining }}, {{.ExpireAt }}, {{.IsPasswordProtected}}, {{.UnlimitedDownloads }}, {{.UnlimitedTime}});"><i class="bi bi-pencil"></i></button>
 						<button type="button" title="Delete" class="btn btn-outline-danger btn-sm" onclick="window.location='./delete?id={{ .Id }}'"><i class="bi bi-trash3"></i></button></td>
 					</tr>
 		{{ end }}
@@ -103,6 +103,46 @@
 		</div>
 	    </div>
    	 </div>
+	
+	<!-- Modal for editing-->
+	<div class="modal fade" id="modaledit" tabindex="-1" aria-labelledby="m_filenamelabel" aria-hidden="true">
+	  <div class="modal-dialog gokapi-dialog">
+	    <div class="modal-content gokapi-dialog">
+	      <div class="modal-header">
+		<h1 class="modal-title fs-5" id="m_filenamelabel">Filename</h1>
+	      </div>
+	      <div class="modal-body">
+		<div class="input-group mb-3">
+		  <div class="input-group-text">
+      			<input type="checkbox" id="mc_download"  checked aria-label="Limit downloads" title="Limit downloads"  data-toggle-target="mi_edit_down" onchange="handleEditCheckboxChange(this)">
+   		 </div>
+		  <span class="input-group-text" id="edit_down">Limit Downloads</span>
+		  <input type="number" min="1" id="mi_edit_down" class="form-control" aria-label="Downloads Remaining" aria-describedby="edit_down">
+		</div>
+		<div class="input-group mb-3">
+		  <div class="input-group-text">
+      			<input id="mc_expiry" type="checkbox" checked aria-label="Expire files" title="Expire files"  data-toggle-target="mi_edit_expiry" data-timestamp="" onchange="handleEditCheckboxChange(this)">
+   		 </div>
+		  <span class="input-group-text" id="edit_expdate">Expiry&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+		  <input type="text" id="mi_edit_expiry" class="form-control" aria-label="Expiry" aria-describedby="edit_expdate">
+		</div>
+		<div class="input-group mb-3">
+		  <div class="input-group-text">
+      			<input type="checkbox" id="mc_password" aria-label="Require password" title="Require password" data-toggle-target="mi_edit_pw" onchange="handleEditCheckboxChange(this)">
+   		 </div>
+		  <span class="input-group-text" id="edit_pw">Password&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+		  <input type="text" id="mi_edit_pw" class="form-control" aria-label="Password" disabled onclick="selectTextForPw(this)" aria-describedby="edit_pw">
+		</div>
+	      </div>
+	      <div class="modal-footer">
+		<button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Close</button>
+		<button type="button" class="btn btn-primary" data-fileid="" id="mb_save" onclick="editFile();">Save changes</button>
+	      </div>
+	    </div>
+	  </div>
+	</div>
+	
+	
 
 
 	<div id="toastnotification" class="toastnotification">URL copied to clipboard</div>
@@ -122,6 +162,7 @@
 		Dropzone.options.uploaddropzone["previewsContainer"] = false;
 		
 		$(document).ready(function () {
+		
 		    $('#maintable').DataTable({
     		    "responsive": true,
 		    "columnDefs": [ {

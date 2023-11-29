@@ -5,11 +5,12 @@ const (
 	ApiPermUpload
 	ApiPermDelete
 	ApiPermApiMod
+	ApiPermEdit
 )
 
 const ApiPermNone = 0
-const ApiPermAllNoApiMod = 7
-const ApiPermAll = 15
+const ApiPermAllNoApiMod = 23
+const ApiPermAll = 31
 
 // ApiKey contains data of a single api key
 type ApiKey struct {
@@ -48,4 +49,8 @@ func (key *ApiKey) HasPermissionDelete() bool {
 
 func (key *ApiKey) HasPermissionApiMod() bool {
 	return key.HasPermission(ApiPermApiMod)
+}
+
+func (key *ApiKey) HasPermissionEdit() bool {
+	return key.HasPermission(ApiPermEdit)
 }

@@ -70,7 +70,7 @@
     "/chunk/add": {
       "post": {
         "tags": [
-          "files"
+          "chunk"
         ],
         "summary": "Uploads a new chunk",
         "description": "Uploads a file in chunks, in case a reverse proxy does not support upload of larger files. Parallel uploading is supported. Must call /chunk/complete after all chunks have been uploaded. WARNING: Does not support end-to-end encryption! If server is setup to utilise end-to-end encryption, file will be stored in plain-text!",
@@ -116,7 +116,7 @@
     "/chunk/complete": {
       "post": {
         "tags": [
-          "files"
+          "chunk"
         ],
         "summary": "Finalises uploaded chunks",
         "description": "Needs to be called after all chunks have been uploaded. Adds the uploaded file to Gokapi.",
@@ -251,6 +251,89 @@
         }
       }
     },
+    "/files/modify": {
+      "put": {
+        "tags": [
+          "files"
+        ],
+        "summary": "Changes parameters of an uploaded file",
+        "description": "This API call changes parameters of an uploaded file",
+        "operationId": "modifyfile",
+        "security": [
+          {
+            "apikey": ["API_EDIT"]
+          },
+          {
+            "session": []
+          }
+        ],
+            "parameters": [
+      {
+        "name": "id",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string"
+        },
+        "description": "ID of file to be edited"
+      },
+      {
+        "name": "allowedDownloads",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "integer"
+        },
+        "description": "How many remaining downloads are allowed. Unlimited if 0 is passed."
+      },
+      {
+        "name": "expiryTimestamp",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "integer"
+        },
+        "description": "Unix timestamp of the file expiration date. Unlimited if 0 is passed."
+      },
+      {
+        "name": "password",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Password for this file to be set. No password will be used if empty."
+      },
+      {
+        "name": "originalPassword",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "boolean"
+        },
+        "description": "Set to true to use the original password. Field \"password\" will be ignored if set."
+      }
+    ],
+        "responses": {
+          "200": {
+            "description": "Operation successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid ID supplied or incorrect data type sent"
+          },
+          "401": {
+            "description": "Invalid API key provided or not logged in as admin"
+          }
+        }
+      }
+    },
     "/files/delete": {
       "delete": {
         "tags": [
@@ -346,7 +429,7 @@
         }
       }
     },
-    "/auth/modifypermission": {
+    "/auth/modify": {
       "put": {
         "tags": [
           "auth"
@@ -383,7 +466,7 @@
             "explode": false,
             "schema": {
               "type": "string",
-              "enum": ["PERM_VIEW", "PERM_UPLOAD", "PERM_DELETE", "PERM_API_MOD"]
+              "enum": ["PERM_VIEW", "PERM_UPLOAD", "PERM_EDIT", "PERM_DELETE", "PERM_API_MOD"]
             }
           },
           {

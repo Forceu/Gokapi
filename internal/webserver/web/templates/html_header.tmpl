@@ -6,23 +6,27 @@
     <meta name="description" content="">
 
 
+	<script src="./assets/dist/js/jquery.min.js"></script>
+	<script src="./assets/dist/js/bootstrap.bundle.min.js"></script>
 	<link href="./assets/dist/css/bootstrap.min.css" rel="stylesheet">
-	<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-	<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-	<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-	<link rel="manifest" href="/site.webmanifest">
+	<link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
+	<link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png">
+	<link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png">
+	<link rel="manifest" href="./site.webmanifest">
         <link href="css/min/gokapi.min.css?v={{ template "css_main"}}" rel="stylesheet">
 {{ if .IsAdminView }}
         <title>{{.PublicName}} Admin</title>
-	<link href="./assets/dist/css/dropzone.min.css" rel="stylesheet">
-	<link href="./assets/dist/css/datatables.min.css" rel="stylesheet" />
-	<script src="./assets/dist/js/jquery.min.js"></script>
-	<script src="./assets/dist/js/bootstrap.bundle.min.js"></script>
 	<script src="./assets/dist/js/dropzone.min.js?v={{ template "js_dropzone_version"}}"></script>
 	<script src="./assets/dist/js/clipboard.min.js"></script>
 	<script src="./assets/dist/js/datatables.min.js"></script>
 	<script src="./assets/dist/js/qrcode.min.js"></script>
-	<link rel="stylesheet" href="./assets/dist/icons/bootstrap-icons.min.css">
+	<script src="./assets/dist/js/flatpickr.min.js"></script>
+	<link  href="./assets/dist/css/dropzone.min.css" rel="stylesheet">
+	<link  href="./assets/dist/css/datatables.min.css" rel="stylesheet">
+	<link  href="./assets/dist/css/flatpickr.min.css" rel="stylesheet">
+	<link  href="./assets/dist/css/flatpickr.dark.min.css" rel="stylesheet">
+	<link  href="./assets/dist/icons/bootstrap-icons.min.css" rel="stylesheet">
+
 	<style>
 		.masthead-brand {
 			float: left;

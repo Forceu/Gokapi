@@ -76,7 +76,7 @@ func TestProcess(t *testing.T) {
 	test.ResponseBodyContains(t, w, "{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}")
 	w, r = test.GetRecorder("GET", "/api/invalid", nil, nil, nil)
 	Process(w, r, maxMemory)
-	test.ResponseBodyContains(t, w, "Unauthorized")
+	test.ResponseBodyContains(t, w, "Invalid request")
 	w, r = test.GetRecorder("GET", "/api/invalid", nil, []test.Header{{
 		Name:  "apikey",
 		Value: "validkey",
@@ -138,7 +138,7 @@ func TestDeleteFile(t *testing.T) {
 		Value: "validkey",
 	}}, nil)
 	Process(w, r, maxMemory)
-	test.ResponseBodyContains(t, w, "Invalid id provided.")
+	test.ResponseBodyContains(t, w, "Invalid file ID provided")
 	w, r = test.GetRecorder("GET", "/api/files/delete", nil, []test.Header{{
 		Name:  "apikey",
 		Value: "validkey",
@@ -148,7 +148,7 @@ func TestDeleteFile(t *testing.T) {
 	},
 	}, nil)
 	Process(w, r, maxMemory)
-	test.ResponseBodyContains(t, w, "Invalid id provided.")
+	test.ResponseBodyContains(t, w, "Invalid file ID provided")
 	file, ok := database.GetMetaDataById("jpLXGJKigM4hjtA6T6sN2")
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualString(t, file.Id, "jpLXGJKigM4hjtA6T6sN2")
