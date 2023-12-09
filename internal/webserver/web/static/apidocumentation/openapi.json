@@ -34,7 +34,7 @@
           "files"
         ],
         "summary": "Lists all files",
-        "description": "This API call lists all files that are not expired.",
+        "description": "This API call lists all files that are not expired. Requires permission VIEW",
         "operationId": "list",
         "security": [
           {
@@ -73,7 +73,7 @@
           "chunk"
         ],
         "summary": "Uploads a new chunk",
-        "description": "Uploads a file in chunks, in case a reverse proxy does not support upload of larger files. Parallel uploading is supported. Must call /chunk/complete after all chunks have been uploaded. WARNING: Does not support end-to-end encryption! If server is setup to utilise end-to-end encryption, file will be stored in plain-text!",
+        "description": "Uploads a file in chunks, in case a reverse proxy does not support upload of larger files. Parallel uploading is supported. Must call /chunk/complete after all chunks have been uploaded. WARNING: Does not support end-to-end encryption! If server is setup to utilise end-to-end encryption, file will be stored in plain-text! Requires permission UPLOAD",
         "operationId": "chunkadd",
         "security": [
           {
@@ -119,7 +119,7 @@
           "chunk"
         ],
         "summary": "Finalises uploaded chunks",
-        "description": "Needs to be called after all chunks have been uploaded. Adds the uploaded file to Gokapi.",
+        "description": "Needs to be called after all chunks have been uploaded. Adds the uploaded file to Gokapi. Requires permission UPLOAD",
         "operationId": "chunkcomplete",
         "security": [
           {
@@ -165,7 +165,7 @@
           "files"
         ],
         "summary": "Adds a new file without chunking",
-        "description": "Uploads the submitted file to Gokapi. Please note: This method does not use chunking, therefore if you are behind a reverse proxy or have a provider that limits upload filesizes, this might not work for bigger files (e.g. Cloudflare). WARNING: Does not support end-to-end encryption! If server is setup to utilise end-to-end encryption, file will be stored in plain-text!",
+        "description": "Uploads the submitted file to Gokapi. Please note: This method does not use chunking, therefore if you are behind a reverse proxy or have a provider that limits upload filesizes, this might not work for bigger files (e.g. Cloudflare). WARNING: Does not support end-to-end encryption! If server is setup to utilise end-to-end encryption, file will be stored in plain-text! Requires permission UPLOAD",
         "operationId": "add",
         "security": [
           {
@@ -211,7 +211,7 @@
           "files"
         ],
         "summary": "Duplicates an existing file",
-        "description": "This API call duplicates an existing file with new parameters",
+        "description": "This API call duplicates an existing file with new parameters. Requires permission UPLOAD",
         "operationId": "duplicate",
         "security": [
           {
@@ -257,7 +257,7 @@
           "files"
         ],
         "summary": "Changes parameters of an uploaded file",
-        "description": "This API call changes parameters of an uploaded file",
+        "description": "This API call changes parameters of an uploaded file.  Requires permission EDIT",
         "operationId": "modifyfile",
         "security": [
           {
@@ -340,7 +340,7 @@
           "files"
         ],
         "summary": "Deletes the selected file",
-        "description": "This API call deletes the selected file and runs the clean-up procedure which purges all expired files from the data directory immediately",
+        "description": "This API call deletes the selected file and runs the clean-up procedure which purges all expired files from the data directory immediately. Requires permission DELETE",
         "operationId": "delete",
         "security": [
           {
@@ -382,7 +382,7 @@
           "auth"
         ],
         "summary": "Changes the name of the API key",
-        "description": "This API call changes the name of the API key that is shown in the API overview",
+        "description": "This API call changes the name of the API key that is shown in the API overview. Requires permission API_MOD",
         "operationId": "friendlyname",
         "security": [
           {
@@ -435,7 +435,7 @@
           "auth"
         ],
         "summary": "Changes the permissions of the API key",
-        "description": "This API call changes the permissions for the given API key",
+        "description": "This API call changes the permissions for the given API key. Requires permission API_MOD",
         "operationId": "modifypermission",
         "security": [
           {
