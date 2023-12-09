@@ -523,7 +523,7 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 	file.DownloadsRemaining = file.DownloadsRemaining - 1
 	file.DownloadCount = file.DownloadCount + 1
 	database.SaveMetaData(file)
-	logging.AddDownload(&file, r)
+	logging.AddDownload(&file, r, configuration.Get().SaveIp)
 
 	if !file.IsLocalStorage() {
 		// We are not setting a download complete status as there is no reliable way to

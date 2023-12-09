@@ -118,8 +118,9 @@ func startSetupWebserver() {
 		srv.Addr = "127.0.0.1:" + port
 		fmt.Println("Authentication is disabled by debug flag. Setup only accessible by localhost")
 		fmt.Println("Please open http://127.0.0.1:" + port + "/setup to setup Gokapi.")
+	} else {
+		fmt.Println("Please open http://" + resolveHostIp() + ":" + port + "/setup to setup Gokapi.")
 	}
-	fmt.Println("Please open http://" + resolveHostIp() + ":" + port + "/setup to setup Gokapi.")
 	listener, err := net.Listen("tcp", ":"+port)
 	if err != nil {
 		if isErrorAddressAlreadyInUse(err) {
@@ -355,6 +356,10 @@ func parseServerSettings(result *models.Configuration, formObjects *[]jsonFormOb
 		return err
 	}
 	result.UseSsl, err = getFormValueBool(formObjects, "ssl_sel")
+	if err != nil {
+		return err
+	}
+	result.SaveIp, err = getFormValueBool(formObjects, "logip_sel")
 	if err != nil {
 		return err
 	}

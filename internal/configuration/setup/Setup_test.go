@@ -334,6 +334,7 @@ func TestIntegration(t *testing.T) {
 	test.IsEqualBool(t, strings.Contains(settings.Port, "127.0.0.1"), true)
 	test.IsEqualBool(t, strings.Contains(settings.Port, ":53842"), true)
 	test.IsEqualBool(t, settings.UseSsl, false)
+	test.IsEqualBool(t, settings.SaveIp, false)
 	test.IsEqualString(t, settings.ServerUrl, "http://127.0.0.1:53842/")
 	test.IsEqualString(t, settings.RedirectUrl, "https://github.com/Forceu/Gokapi/")
 	cconfig, ok := cloudconfig.Load()
@@ -413,6 +414,7 @@ func TestIntegration(t *testing.T) {
 	test.IsEqualBool(t, strings.Contains(settings.Port, "127.0.0.1"), false)
 	test.IsEqualBool(t, strings.Contains(settings.Port, ":53842"), true)
 	test.IsEqualBool(t, settings.UseSsl, true)
+	test.IsEqualBool(t, settings.SaveIp, true)
 	test.IsEqualString(t, settings.ServerUrl, "http://127.0.0.1:53842/")
 	test.IsEqualString(t, settings.RedirectUrl, "https://test.com")
 	test.IsEqualBool(t, settings.PicturesAlwaysLocal, false)
@@ -457,6 +459,7 @@ func TestIntegration(t *testing.T) {
 type setupValues struct {
 	BindLocalhost        setupEntry `form:"localhost_sel" isBool:"true"`
 	UseSsl               setupEntry `form:"ssl_sel" isBool:"true"`
+	SaveIp               setupEntry `form:"logip_sel" isBool:"true"`
 	Port                 setupEntry `form:"port" isInt:"true"`
 	PublicName           setupEntry `form:"public_name"`
 	ExtUrl               setupEntry `form:"url"`
@@ -589,6 +592,7 @@ func createInputInternalAuth() setupValues {
 	values.S3Endpoint.Value = "testendpoint"
 	values.EncryptionLevel.Value = "0"
 	values.PicturesAlwaysLocal.Value = "nochange"
+	values.SaveIp.Value = "0"
 
 	return values
 }
@@ -608,6 +612,7 @@ func createInputHeaderAuth() setupValues {
 	values.AuthHeaderUsers.Value = "test1 ;test2"
 	values.StorageSelection.Value = "local"
 	values.EncryptionLevel.Value = "0"
+	values.SaveIp.Value = "1"
 
 	return values
 }

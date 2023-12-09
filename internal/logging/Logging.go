@@ -31,8 +31,12 @@ func GetLogPath() string {
 }
 
 // AddDownload adds a line to the logfile when a download was requested. Non-Blocking
-func AddDownload(file *models.File, r *http.Request) {
-	AddString(fmt.Sprintf("Download: Filename %s, IP %s, ID %s, Useragent %s", file.Name, getIpAddress(r), file.Id, r.UserAgent()))
+func AddDownload(file *models.File, r *http.Request, saveIp bool) {
+	if saveIp {
+		AddString(fmt.Sprintf("Download: Filename %s, IP %s, ID %s, Useragent %s", file.Name, getIpAddress(r), file.Id, r.UserAgent()))
+	} else {
+		AddString(fmt.Sprintf("Download: Filename %s, ID %s, Useragent %s", file.Name, file.Id, r.UserAgent()))
+	}
 }
 
 func writeToFile(text string) {

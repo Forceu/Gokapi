@@ -88,13 +88,19 @@
 								<option value="1">Yes</option>
 {{ end }}
 
-						</select><br><br>
+						</select><br>
 							
 							  <label for="ssl_sel">Use SSL (a self-signed certificate will be generated that can be replaced)</label>
 						<select name="ssl_sel" id="ssl_sel" style="width:350px;" onChange="urlParamChanged()" class="select form-control">
 								<option value="0" selected>No</option>
 								<option value="1">Yes</option>
 
+						</select><br>
+						
+							  <label for="logip_sel">Log IP address on download <i>(might not be GDPR compliant)</i></label>
+						<select name="logip_sel" id="logip_sel" style="width:350px;" class="select form-control">
+								<option value="0" selected>No</option>
+								<option value="1">Yes</option>
 						</select>
 					</div>
 				</div>
@@ -619,6 +625,9 @@ function TestAWS(button) {
 	{{ end }}
 	{{ if .Settings.UseSsl }}
 				document.getElementById("ssl_sel").selectedIndex = 1;
+	{{ end }}
+	{{ if .Settings.SaveIp }}
+				document.getElementById("logip_sel").selectedIndex = 1;
 	{{ end }}
 				document.getElementById("port").value = "{{ .Port }}";
 				document.getElementById("url").value = "{{ .Settings.ServerUrl }}";

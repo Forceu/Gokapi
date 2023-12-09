@@ -20,6 +20,7 @@ type Configuration struct {
 	MaxFileSizeMB       int                  `json:"MaxFileSizeMB"`
 	Encryption          Encryption           `json:"Encryption"`
 	PicturesAlwaysLocal bool                 `json:"PicturesAlwaysLocal"`
+	SaveIp              bool                 `json:"SaveIp"`
 }
 
 // Encryption hold information about the encryption used on this file
