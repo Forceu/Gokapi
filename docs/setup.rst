@@ -18,7 +18,7 @@ Bare Metal
 
 Stable version
 """""""""""""""""
-`Download the project <https://github.com/Forceu/gokapi/releases/latest>`_ and copy the executable into a new folder with write permissions.
+`Download the latest release <https://github.com/Forceu/gokapi/releases/latest>`_ and copy the executable into a new folder with write permissions. Select the executable according to your system. If you are using Windows, select ``gokapi-windows_amd64``, for Mac either ``gokapi-darwin_amd64`` or ``gokapi-darwin_arm64`` and for Linux the ``gokapi-linux_`` file matching your system.
 
 Unstable version
 """""""""""""""""
