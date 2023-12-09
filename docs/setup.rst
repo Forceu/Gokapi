@@ -89,6 +89,7 @@ The following configuration can be set:
 
 -  **Bind to localhost** Only allow the server to be accessed from the machine it is running on. Select this if you are running Gokapi behind a reverse proxy or for testing purposes
 -  **Use SSL** Generates a self-signed SSL certificate (which can be replaced with a valid one). Select this if you are not running Gokapi behind a reverse proxy. Please note: Gokapi needs to be restarted in order to renew a certificate.
+-  **Save IP** If set, the IP address of the client requesting a download will be saved to the log file. This might not be GDPR compliant.
 -  **Webserver Port** Set the port that Gokapi can be accessed on
 -  **Public Facing URL** Enter the URL where users from an external network can use to reach Gokapi. The URL will be used for generating download links
 -  **Redirection URL**  By default Gokapi redirects to this URL instead of showing a generic page if no download link was passed
