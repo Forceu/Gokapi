@@ -264,6 +264,7 @@ func encryptChunkFile(file *os.File, metadata *models.File) (*os.File, error) {
 	return tempFileEnc, nil
 }
 
+// FormatTimestamp converts a timestamp to a string in the format YYYY-MM-DD HH:MM
 func FormatTimestamp(timestamp int64) string {
 	return time.Unix(timestamp, 0).Format("2006-01-02 15:04")
 }
