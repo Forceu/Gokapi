@@ -9,12 +9,15 @@ import (
 	"golang.org/x/oauth2"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 )
 
 var config oauth2.Config
 var ctx context.Context
 var provider *oidc.Provider
+
+var prompt string
 
 // Init starts the oauth connection
 func Init(baseUrl string, credentials models.AuthenticationConfig) {
@@ -25,6 +28,9 @@ func Init(baseUrl string, credentials models.AuthenticationConfig) {
 		log.Fatal(err)
 	}
 
+	if !strings.HasSuffix(baseUrl, "/") {
+		baseUrl = baseUrl + "/"
+	}
 	config = oauth2.Config{
 		ClientID:     credentials.OAuthClientId,
 		ClientSecret: credentials.OAuthClientSecret,
@@ -32,13 +38,18 @@ func Init(baseUrl string, credentials models.AuthenticationConfig) {
 		RedirectURL:  baseUrl + "oauth-callback",
 		Scopes:       []string{oidc.ScopeOpenID, "profile", "email"},
 	}
+	prompt = credentials.OAuthPrompt
 }
 
 // HandlerLogin is a handler for showing the login screen
 func HandlerLogin(w http.ResponseWriter, r *http.Request) {
 	state := helper.GenerateRandomString(16)
 	setCallbackCookie(w, state)
-	http.Redirect(w, r, config.AuthCodeURL(state)+"&prompt=select_account", http.StatusFound)
+	var authOpts []oauth2.AuthCodeOption
+	if prompt != "" {
+		authOpts = append(authOpts, oauth2.SetAuthURLParam("prompt", prompt))
+	}
+	http.Redirect(w, r, config.AuthCodeURL(state, authOpts...), http.StatusFound)
 }
 
 // HandlerCallback is a handler for processing the oauth callback

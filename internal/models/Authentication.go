@@ -11,6 +11,7 @@ type AuthenticationConfig struct {
 	OauthProvider     string   `json:"OauthProvider"`
 	OAuthClientId     string   `json:"OAuthClientId"`
 	OAuthClientSecret string   `json:"OAuthClientSecret"`
+	OAuthPrompt       string   `json:"OAuthPrompt"`
 	HeaderUsers       []string `json:"HeaderUsers"`
 	OauthUsers        []string `json:"OauthUsers"`
 }

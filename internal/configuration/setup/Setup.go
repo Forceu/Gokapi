@@ -283,6 +283,8 @@ func parseBasicAuthSettings(result *models.Configuration, formObjects *[]jsonFor
 	return nil
 }
 
+const defaultOAuthPrompt = "select_account"
+
 func parseOAuthSettings(result *models.Configuration, formObjects *[]jsonFormObject) error {
 	var err error
 	result.Authentication.OauthProvider, err = getFormValueString(formObjects, "oauth_provider")
@@ -299,6 +301,8 @@ func parseOAuthSettings(result *models.Configuration, formObjects *[]jsonFormObj
 	if err != nil {
 		return err
 	}
+
+	result.Authentication.OAuthPrompt = defaultOAuthPrompt
 
 	oauthAllowedUsers, err := getFormValueString(formObjects, "oauth_header_users")
 	if err != nil {
