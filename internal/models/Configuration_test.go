@@ -17,6 +17,7 @@ var testConfig = Configuration{
 		OauthProvider:     "",
 		OAuthClientId:     "",
 		OAuthClientSecret: "",
+		OAuthPrompt:       "",
 		HeaderUsers:       nil,
 		OauthUsers:        nil,
 	},
@@ -48,4 +49,4 @@ func TestConfiguration_ToString(t *testing.T) {
 	test.IsEqualString(t, testConfig.ToString(), exptectedUnidentedOutput)
 }
 
-const exptectedUnidentedOutput = `{"Authentication":{"Method":0,"SaltAdmin":"saltadmin","SaltFiles":"saltfiles","Username":"admin","Password":"adminpwhashed","HeaderKey":"","OauthProvider":"","OAuthClientId":"","OAuthClientSecret":"","HeaderUsers":null,"OauthUsers":null},"Port":":12345","ServerUrl":"https://testserver.com/","RedirectUrl":"https://test.com","PublicName":"public-name","ConfigVersion":14,"LengthId":5,"DataDir":"test","MaxMemory":50,"UseSsl":true,"MaxFileSizeMB":20,"Encryption":{"Level":1,"Cipher":"AA==","Salt":"encsalt","Checksum":"encsum","ChecksumSalt":"encsumsalt"},"PicturesAlwaysLocal":true,"SaveIp":false}`
+const exptectedUnidentedOutput = `{"Authentication":{"Method":0,"SaltAdmin":"saltadmin","SaltFiles":"saltfiles","Username":"admin","Password":"adminpwhashed","HeaderKey":"","OauthProvider":"","OAuthClientId":"","OAuthClientSecret":"","OAuthPrompt":"","HeaderUsers":null,"OauthUsers":null},"Port":":12345","ServerUrl":"https://testserver.com/","RedirectUrl":"https://test.com","PublicName":"public-name","ConfigVersion":14,"LengthId":5,"DataDir":"test","MaxMemory":50,"UseSsl":true,"MaxFileSizeMB":20,"Encryption":{"Level":1,"Cipher":"AA==","Salt":"encsalt","Checksum":"encsum","ChecksumSalt":"encsumsalt"},"PicturesAlwaysLocal":true,"SaveIp":false}`
