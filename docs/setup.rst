@@ -41,9 +41,9 @@ Docker
 To download, run the following command, and replace YOURTAG with either *latest* (stable) or *latest-dev* (unstable).
 ::
 
-  docker pull f0rc3/gokapi:YOURTAG
+  docker pull docker.io/f0rc3/gokapi:latest
 
-Most of the time, you will need the *latest* tag. 
+If you want to install the unstable version, use ``latest-dev`` instead of ``latest``
 
 If you don't want to download the prebuilt image, you can find the Dockerfile on the `Github project page <https://github.com/Forceu/gokapi>`_. 
 
