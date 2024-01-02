@@ -1,13 +1,14 @@
 package configuration
 
 import (
+	"os"
+	"testing"
+
 	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
 	"github.com/forceu/gokapi/internal/configuration/configupgrade"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/test"
 	"github.com/forceu/gokapi/internal/test/testconfiguration"
-	"os"
-	"testing"
 )
 
 func TestMain(m *testing.M) {

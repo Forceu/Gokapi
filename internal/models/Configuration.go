@@ -15,6 +15,7 @@ type Configuration struct {
 	ConfigVersion       int                  `json:"ConfigVersion"`
 	LengthId            int                  `json:"LengthId"`
 	DataDir             string               `json:"DataDir"`
+	DatabaseDir         string               `json:"DatabaseDir"`
 	MaxMemory           int                  `json:"MaxMemory"`
 	UseSsl              bool                 `json:"UseSsl"`
 	MaxFileSizeMB       int                  `json:"MaxFileSizeMB"`

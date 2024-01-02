@@ -3,26 +3,29 @@ package database
 import (
 	"database/sql"
 	"fmt"
-	"github.com/forceu/gokapi/internal/helper"
 	"log"
+
+	"github.com/forceu/gokapi/internal/helper"
+
 	// Required for sqlite driver
-	_ "modernc.org/sqlite"
 	"os"
 	"path/filepath"
+
+	_ "modernc.org/sqlite"
 )
 
 var sqliteDb *sql.DB
 
 // Init creates the database files and connects to it
-func Init(dataDir, dbName string) {
+func Init(databaseDir, dbName string) {
 	if sqliteDb == nil {
-		dataDir = filepath.Clean(dataDir)
+		databaseDir = filepath.Clean(databaseDir)
 		var err error
-		if !helper.FolderExists(dataDir) {
-			err = os.MkdirAll(dataDir, 0700)
+		if !helper.FolderExists(databaseDir) {
+			err = os.MkdirAll(databaseDir, 0700)
 			helper.Check(err)
 		}
-		dbFullPath := dataDir + "/" + dbName
+		dbFullPath := databaseDir + "/" + dbName
 		sqliteDb, err = sql.Open("sqlite", dbFullPath+"?_pragma=busy_timeout=10000&_pragma=journal_mode=WAL")
 		if err != nil {
 			log.Fatal(err)

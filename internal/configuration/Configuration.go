@@ -11,6 +11,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"os"
+	"strings"
+
 	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
 	"github.com/forceu/gokapi/internal/configuration/configupgrade"
 	"github.com/forceu/gokapi/internal/configuration/database"
@@ -19,9 +23,6 @@ import (
 	log "github.com/forceu/gokapi/internal/logging"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage/filesystem"
-	"io"
-	"os"
-	"strings"
 )
 
 // Min length of admin password in characters
@@ -52,7 +53,7 @@ func Load() {
 	err = decoder.Decode(&serverSettings)
 	helper.Check(err)
 	file.Close()
-	database.Init(serverSettings.DataDir, Environment.DatabaseName)
+	database.Init(serverSettings.DatabaseDir, Environment.DatabaseName)
 	if configupgrade.DoUpgrade(&serverSettings, &Environment) {
 		save()
 	}
@@ -63,6 +64,7 @@ func Load() {
 	if serverSettings.PublicName == "" {
 		serverSettings.PublicName = "Gokapi"
 	}
+	helper.CreateDir(serverSettings.DatabaseDir)
 	helper.CreateDir(serverSettings.DataDir)
 	filesystem.Init(serverSettings.DataDir)
 	log.Init(Environment.DataDir)

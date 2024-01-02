@@ -5,14 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/forceu/gokapi/internal/configuration"
-	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
-	"github.com/forceu/gokapi/internal/configuration/database"
-	"github.com/forceu/gokapi/internal/environment"
-	"github.com/forceu/gokapi/internal/models"
-	"github.com/forceu/gokapi/internal/test"
-	"github.com/forceu/gokapi/internal/test/testconfiguration"
-	"github.com/forceu/gokapi/internal/webserver/authentication"
 	"log"
 	"net"
 	"net/http"
@@ -22,6 +14,15 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/forceu/gokapi/internal/configuration"
+	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
+	"github.com/forceu/gokapi/internal/configuration/database"
+	"github.com/forceu/gokapi/internal/environment"
+	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/test"
+	"github.com/forceu/gokapi/internal/test/testconfiguration"
+	"github.com/forceu/gokapi/internal/webserver/authentication"
 )
 
 var jsonForms []jsonFormObject
@@ -142,6 +143,7 @@ var config = models.Configuration{
 	ConfigVersion:  0,
 	LengthId:       0,
 	DataDir:        "",
+	DatabaseDir:    "",
 	MaxMemory:      0,
 	UseSsl:         false,
 	MaxFileSizeMB:  0,

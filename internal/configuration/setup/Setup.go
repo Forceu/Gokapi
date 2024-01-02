@@ -6,17 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/forceu/gokapi/internal/configuration"
-	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
-	"github.com/forceu/gokapi/internal/configuration/configupgrade"
-	"github.com/forceu/gokapi/internal/configuration/database"
-	"github.com/forceu/gokapi/internal/encryption"
-	"github.com/forceu/gokapi/internal/environment"
-	"github.com/forceu/gokapi/internal/helper"
-	"github.com/forceu/gokapi/internal/models"
-	"github.com/forceu/gokapi/internal/storage"
-	"github.com/forceu/gokapi/internal/storage/filesystem/s3filesystem/aws"
-	"github.com/forceu/gokapi/internal/webserver/authentication"
 	"html/template"
 	"io"
 	"io/fs"
@@ -29,6 +18,18 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/forceu/gokapi/internal/configuration"
+	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
+	"github.com/forceu/gokapi/internal/configuration/configupgrade"
+	"github.com/forceu/gokapi/internal/configuration/database"
+	"github.com/forceu/gokapi/internal/encryption"
+	"github.com/forceu/gokapi/internal/environment"
+	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/storage"
+	"github.com/forceu/gokapi/internal/storage/filesystem/s3filesystem/aws"
+	"github.com/forceu/gokapi/internal/webserver/authentication"
 )
 
 // webserverDir is the embedded version of the "static" folder
@@ -218,6 +219,7 @@ func toConfiguration(formObjects *[]jsonFormObject) (models.Configuration, *clou
 		LengthId:       parsedEnv.LengthId,
 		MaxMemory:      parsedEnv.MaxMemory,
 		DataDir:        parsedEnv.DataDir,
+		DatabaseDir:    parsedEnv.DatabaseDir,
 		ConfigVersion:  configupgrade.CurrentConfigVersion,
 		Authentication: models.AuthenticationConfig{},
 	}
