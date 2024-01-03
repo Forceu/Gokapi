@@ -1,16 +1,18 @@
 package legacydb
 
 import (
-	"github.com/forceu/gokapi/internal/models"
-	"github.com/forceu/gokapi/internal/test"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/test"
 )
 
 func TestMain(m *testing.M) {
 	os.Setenv("GOKAPI_CONFIG_DIR", "test")
 	os.Setenv("GOKAPI_DATA_DIR", "test")
+	os.Setenv("GOKAPI_DATABASE_DIR", "test")
 	os.Mkdir("test", 0777)
 	exitVal := m.Run()
 	os.RemoveAll("test")

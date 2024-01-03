@@ -4,6 +4,11 @@ package testconfiguration
 
 import (
 	"fmt"
+	"net/http/httptest"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
@@ -11,24 +16,21 @@ import (
 	"github.com/forceu/gokapi/internal/storage/filesystem/s3filesystem/aws"
 	"github.com/johannesboyne/gofakes3"
 	"github.com/johannesboyne/gofakes3/backend/s3mem"
-	"net/http/httptest"
-	"os"
-	"strings"
-	"time"
 )
 
 const (
-	baseDir    = "test"
-	dataDir    = baseDir + "/data"
-	configFile = baseDir + "/config.json"
+	baseDir     = "test"
+	dataDir     = baseDir + "/data"
+	databaseDir = baseDir + "/database"
+	configFile  = baseDir + "/config.json"
 )
 
 func SetDirEnv() {
 	os.Setenv("GOKAPI_CONFIG_DIR", baseDir)
 	os.Setenv("GOKAPI_DATA_DIR", dataDir)
+	os.Setenv("GOKAPI_DATABASE_DIR", databaseDir)
 	os.MkdirAll(baseDir, 0777)
 	os.MkdirAll(dataDir, 0777)
-
 }
 
 // Create creates a configuration for unit testing
