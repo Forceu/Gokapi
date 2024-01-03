@@ -62,6 +62,7 @@ func TestLoadFromSetup(t *testing.T) {
 		ConfigVersion:  configupgrade.CurrentConfigVersion,
 		LengthId:       10,
 		DataDir:        "test",
+		DatabaseDir:    "test",
 		MaxMemory:      10,
 		UseSsl:         true,
 		MaxFileSizeMB:  199,
