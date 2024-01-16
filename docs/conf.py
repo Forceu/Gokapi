@@ -18,11 +18,11 @@
 # -- Project information -----------------------------------------------------
 
 project = 'Gokapi Documentation'
-copyright = '2021, Marc Ole Bulling'
+copyright = '2024, Marc Ole Bulling'
 author = 'Marc Ole Bulling'
 
 # The full version, including alpha/beta/rc tags
-release = '1.2.1'
+release = '1.8.0'
 
 
 # -- General configuration ---------------------------------------------------

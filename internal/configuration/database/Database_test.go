@@ -182,6 +182,18 @@ func TestUploadDefaults(t *testing.T) {
 	test.IsEqualBool(t, defaults.UnlimitedTime, true)
 }
 
+func TestColumnExists(t *testing.T) {
+	exists, err := ColumnExists("invalid", "invalid")
+	test.IsEqualBool(t, exists, false)
+	test.IsNil(t, err)
+	exists, err = ColumnExists("FileMetaData", "invalid")
+	test.IsEqualBool(t, exists, false)
+	test.IsNil(t, err)
+	exists, err = ColumnExists("FileMetaData", "ExpireAt")
+	test.IsEqualBool(t, exists, true)
+	test.IsNil(t, err)
+}
+
 func TestGarbageCollectionUploads(t *testing.T) {
 	orgiginalFunc := currentTime
 	currentTime = func() time.Time {
