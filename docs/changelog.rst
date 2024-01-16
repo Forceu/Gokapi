@@ -7,6 +7,56 @@ Changelog
 Overview of all Changes
 -----------------------
 
+v1.8.0: 9 Dec 2023
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+* Changed Database to Sqlite3
+* Dropped Windows 32bit support
+* Only 4,000 parallel requests that are writing to the database are supported now, any requests above that limit may be rejected. Up to 500,000 parallel reading requests were tested.
+* According to the documentation, the GOKAPI_DATA_DIR environment variable should be persistent, however that was not the case. Now the data directory that was set on first start will be used. If you were using GOKAPI_DATA_DIR after the first start, make sure that the data directory is the one found in your config file.
+* By default, IP addresses of clients downloading files are not saved anymore to comply with GDPR. This can be enabled by re-running the setup
+* Existing API keys will be granted all API permissions except MODIFY_API, therefore cannot use /auth/friendlyname without having the permission granted first
+* The undocumented GOKAPI_FILE_DB environment variable was removed
+* Removed optional application for reading database content
+* Parameters of already uploaded files can be edited now
+* Added permission model for API tokens
+* Added /auth/modify and /files/modify API endpoint
+* Fixed "Powered by Gokapi" URL not clickable
+* Fixed the ASCII logo #108 Thanks to @Kwonunn
+* Improved UI
+* Fixed minor bugs
+* Updated dependencies
+* Updated documentation
+
+
+v1.7.2: 13 May 2023
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+* Added option to change the name in the setup
+* The filename is now shown in the title for downloads
+* SessionStorage is used instead of localStorage for e2e decryption
+* Replaced expiry image with dynamic SVG
+
+
+v1.7.1: 14 Apr 2023
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+* Fixed Gokapi not able to upload when running on a Windows system #95
+* Improved Upload UI
+* Added healthcheck for docker by @Jisagi in #89
+* Fixed upload counter not updating after upload #92
+* Fixed hotlink generation on files that required client-side decryption
+* Replaced go:generate code with native Go
+* Min Go version now 1.20
+* Updated dependencies
+* A lot of refactoring, minor changes
+* Fixed background not loading in 1.7.0 (unpublished release) #101
+
+v1.6.2: 14 Feb 2023
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+* Fixed timeout if a large file was uploaded to the cloud #81
+* File overview is now sortable and searchable
+* Added log viewer
+* Updated Go to 1.20
+* Other minor changes and fixes
+
 v1.6.1: 17 Aug 2022
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 * Fixed setup throwing error 500 on docker installation
@@ -127,6 +177,12 @@ v1.0: 12 Mar 2021
 
 Upgrading
 -----------------------
+
+Upgrading to 1.8
+^^^^^^^^^^^^^^^^^^
+
+* You need to update to Gokapi 1.7 before updating to Gokapi 1.8
+* With this release, the old key-value database was changed to sqlite3. Please backup all Gokapi data before installing this release. On first start, the old database will be migrated and all users will be logged out. 
 
 Upgrading to 1.5
 ^^^^^^^^^^^^^^^^^^
