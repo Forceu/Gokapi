@@ -30,7 +30,7 @@ func Init(baseUrl string, credentials models.AuthenticationConfig) {
 		ClientSecret: credentials.OAuthClientSecret,
 		Endpoint:     provider.Endpoint(),
 		RedirectURL:  baseUrl + "oauth-callback",
-		Scopes:       []string{oidc.ScopeOpenID, "profile", "email"},
+		Scopes:       []string{oidc.ScopeOpenID, "profile", "email", "groups"},
 	}
 }
 
@@ -38,7 +38,7 @@ func Init(baseUrl string, credentials models.AuthenticationConfig) {
 func HandlerLogin(w http.ResponseWriter, r *http.Request) {
 	state := helper.GenerateRandomString(16)
 	setCallbackCookie(w, state)
-	http.Redirect(w, r, config.AuthCodeURL(state)+"&prompt=select_account", http.StatusFound)
+	http.Redirect(w, r, config.AuthCodeURL(state)+"&prompt=consent", http.StatusFound)
 }
 
 // HandlerCallback is a handler for processing the oauth callback
