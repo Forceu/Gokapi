@@ -2,11 +2,12 @@ package environment
 
 import (
 	"fmt"
+	"os"
+	"path"
+
 	envParser "github.com/caarlos0/env/v6"
 	"github.com/forceu/gokapi/internal/environment/flagparser"
 	"github.com/forceu/gokapi/internal/helper"
-	"os"
-	"path"
 )
 
 // DefaultPort for the webserver
@@ -18,6 +19,7 @@ type Environment struct {
 	ConfigFile    string `env:"CONFIG_FILE" envDefault:"config.json"`
 	ConfigPath    string
 	DataDir       string `env:"DATA_DIR" envDefault:"data"`
+	DatabaseDir   string `env:"DATABASE_DIR" envDefault:"database"`
 	WebserverPort int    `env:"PORT" envDefault:"53842"`
 	LengthId      int    `env:"LENGTH_ID" envDefault:"15"`
 	MaxMemory     int    `env:"MAX_MEMORY_UPLOAD" envDefault:"40"`
