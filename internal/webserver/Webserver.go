@@ -108,6 +108,7 @@ func Start() {
 	mux.HandleFunc("/e2eSetup", requireLogin(showE2ESetup, false))
 	mux.HandleFunc("/error", showError)
 	mux.HandleFunc("/error-auth", showErrorAuth)
+	mux.HandleFunc("/error-oauth", showErrorIntOAuth)
 	mux.HandleFunc("/forgotpw", forgotPassword)
 	mux.HandleFunc("/hotlink/", showHotlink)
 	mux.HandleFunc("/index", showIndex)
@@ -244,6 +245,17 @@ func showError(w http.ResponseWriter, r *http.Request) {
 // Handling of /error-auth
 func showErrorAuth(w http.ResponseWriter, r *http.Request) {
 	err := templateFolder.ExecuteTemplate(w, "error_auth", genericView{PublicName: configuration.Get().PublicName})
+	helper.Check(err)
+}
+
+// Handling of /error-oauth
+func showErrorIntOAuth(w http.ResponseWriter, r *http.Request) {
+	view := oauthErrorView{PublicName: configuration.Get().PublicName}
+	view.IsAuthDenied = r.URL.Query().Get("isDenied") == "true"
+	view.ErrorProvidedName = r.URL.Query().Get("error")
+	view.ErrorProvidedMessage = r.URL.Query().Get("error_description")
+	view.ErrorGenericMessage = r.URL.Query().Get("error_generic")
+	err := templateFolder.ExecuteTemplate(w, "error_int_oauth", view)
 	helper.Check(err)
 }
 
@@ -728,4 +740,15 @@ type genericView struct {
 	PublicName     string
 	RedirectUrl    string
 	ErrorId        int
+}
+
+// A view containing parameters for an oauth error
+type oauthErrorView struct {
+	IsAdminView          bool
+	IsDownloadView       bool
+	PublicName           string
+	IsAuthDenied         bool
+	ErrorGenericMessage  string
+	ErrorProvidedName    string
+	ErrorProvidedMessage string
 }

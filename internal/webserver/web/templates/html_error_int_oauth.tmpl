@@ -1,0 +1,29 @@
+{{define "error_int_oauth"}}
+{{template "header" .}}
+
+      <div class="row">
+        <div class="col">
+{{ if eq .ErrorProvidedName "access_denied"}}
+		<div class="card" style="width: 18rem;">
+		  <div class="card-body">
+		    <h2 class="card-title">Access denied</h2>
+		    <br>
+		    <p class="card-text">The request was denied by the user or authentication provider.</p><br>
+{{ else }}
+		<div class="card" style="width: 65%;">
+		  <div class="card-body">
+		    <h2 class="card-title">OIDC Provider Error {{.ErrorProvidedName}}</h2>
+		    <br>
+		    <p class="card-text"><b>Login with OAuth provider was not sucessful, the following error was raised:</b></p>
+{{ if .ErrorProvidedMessage }}
+		 <p class="text-monospace">{{ .ErrorProvidedMessage }}</blockquote></p>
+{{ end}}
+		 <p class="text-monospace">{{ .ErrorGenericMessage }}</blockquote></p><br>
+{{ end }}
+		    <a href="./login" class="card-link">Try again</a>
+		  </div>
+		</div>
+	    </div>
+    </div>
+{{template "footer"}}
+{{end}}

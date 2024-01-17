@@ -45,23 +45,23 @@ func HandlerLogin(w http.ResponseWriter, r *http.Request) {
 func HandlerCallback(w http.ResponseWriter, r *http.Request) {
 	state, err := r.Cookie(authentication.CookieOauth)
 	if err != nil {
-		http.Error(w, "state not found", http.StatusBadRequest)
+		showOauthErrorPage(w, r, "Parameter state was not provided")
 		return
 	}
 	if r.URL.Query().Get("state") != state.Value {
-		http.Error(w, "state did not match", http.StatusBadRequest)
+		showOauthErrorPage(w, r, "Parameter state did not match")
 		return
 	}
 
 	oauth2Token, err := config.Exchange(ctx, r.URL.Query().Get("code"))
 	if err != nil {
-		http.Error(w, "Failed to exchange token: "+err.Error(), http.StatusInternalServerError)
+		showOauthErrorPage(w, r, "Failed to exchange token: "+err.Error())
 		return
 	}
 
 	userInfo, err := provider.UserInfo(ctx, oauth2.StaticTokenSource(oauth2Token))
 	if err != nil {
-		http.Error(w, "Failed to get userinfo: "+err.Error(), http.StatusInternalServerError)
+		showOauthErrorPage(w, r, "Failed to get userinfo: "+err.Error())
 		return
 	}
 
@@ -71,6 +71,14 @@ func HandlerCallback(w http.ResponseWriter, r *http.Request) {
 	}{oauth2Token, userInfo}
 
 	authentication.CheckOauthUser(resp.UserInfo, w)
+}
+
+func showOauthErrorPage(w http.ResponseWriter, r *http.Request, errorMessage string) {
+	// Extract the query parameters from the original URL
+	queryParams := r.URL.Query()
+	queryParams.Add("error_generic", errorMessage)
+	redirectURL := "./error-oauth?" + queryParams.Encode()
+	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }
 
 func setCallbackCookie(w http.ResponseWriter, value string) {
