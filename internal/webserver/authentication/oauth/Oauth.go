@@ -3,6 +3,7 @@ package oauth
 import (
 	"context"
 	"github.com/coreos/go-oidc/v3/oidc"
+	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/webserver/authentication"
@@ -20,9 +21,18 @@ var provider *oidc.Provider
 func Init(baseUrl string, credentials models.AuthenticationConfig) {
 	var err error
 	ctx = context.Background()
-	provider, err = oidc.NewProvider(ctx, credentials.OauthProvider)
+	provider, err = oidc.NewProvider(ctx, credentials.OAuthProvider)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	systemConfig := configuration.Get()
+	scopes := []string{oidc.ScopeOpenID, "profile"}
+	if systemConfig.Authentication.OAuthUserScope != "" {
+		scopes = append(scopes, systemConfig.Authentication.OAuthUserScope)
+	}
+	if systemConfig.Authentication.OAuthGroupScope != "" {
+		scopes = append(scopes, systemConfig.Authentication.OAuthGroupScope)
 	}
 
 	config = oauth2.Config{
@@ -30,15 +40,34 @@ func Init(baseUrl string, credentials models.AuthenticationConfig) {
 		ClientSecret: credentials.OAuthClientSecret,
 		Endpoint:     provider.Endpoint(),
 		RedirectURL:  baseUrl + "oauth-callback",
-		Scopes:       []string{oidc.ScopeOpenID, "profile", "email", "groups"},
+		Scopes:       scopes,
 	}
 }
 
 // HandlerLogin is a handler for showing the login screen
 func HandlerLogin(w http.ResponseWriter, r *http.Request) {
+	initLogin(w, r, false)
+}
+
+func initLogin(w http.ResponseWriter, r *http.Request, showConsentScreen bool) {
 	state := helper.GenerateRandomString(16)
 	setCallbackCookie(w, state)
-	http.Redirect(w, r, config.AuthCodeURL(state)+"&prompt=consent", http.StatusFound)
+	prompt := "none"
+	if showConsentScreen {
+		prompt = "consent"
+	}
+	http.Redirect(w, r, config.AuthCodeURL(state)+"&prompt="+prompt, http.StatusFound)
+}
+
+func isLoginRequired(r *http.Request) bool {
+	errorsRequiringLogin := []string{"login_required", "consent_required", "interaction_required"}
+	errorCode := r.URL.Query().Get("error")
+	for _, possibleError := range errorsRequiringLogin {
+		if errorCode == possibleError {
+			return true
+		}
+	}
+	return false
 }
 
 // HandlerCallback is a handler for processing the oauth callback
@@ -55,6 +84,10 @@ func HandlerCallback(w http.ResponseWriter, r *http.Request) {
 
 	oauth2Token, err := config.Exchange(ctx, r.URL.Query().Get("code"))
 	if err != nil {
+		if isLoginRequired(r) {
+			initLogin(w, r, true)
+			return
+		}
 		showOauthErrorPage(w, r, "Failed to exchange token: "+err.Error())
 		return
 	}
@@ -64,13 +97,10 @@ func HandlerCallback(w http.ResponseWriter, r *http.Request) {
 		showOauthErrorPage(w, r, "Failed to get userinfo: "+err.Error())
 		return
 	}
-
-	resp := struct {
-		OAuth2Token *oauth2.Token
-		UserInfo    *oidc.UserInfo
-	}{oauth2Token, userInfo}
-
-	authentication.CheckOauthUser(resp.UserInfo, w)
+	err = authentication.CheckOauthUserAndRedirect(userInfo, userInfo.Subject, w)
+	if err != nil {
+		showOauthErrorPage(w, r, "Failed to extract scope value: "+err.Error())
+	}
 }
 
 func showOauthErrorPage(w http.ResponseWriter, r *http.Request, errorMessage string) {

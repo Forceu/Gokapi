@@ -323,11 +323,11 @@ var configTestFile = []byte(`{
     "Username": "test",
     "Password": "10340aece68aa4fb14507ae45b05506026f276cf",
     "HeaderKey": "",
-    "OauthProvider": "",
+    "OAuthProvider": "",
     "OAuthClientId": "",
     "OAuthClientSecret": "",
     "HeaderUsers": null,
-    "OauthUsers": null
+    "OAuthUsers": null
   },
    "Port":"127.0.0.1:53843",
   "ServerUrl": "http://127.0.0.1:53843/",

@@ -186,12 +186,17 @@ func getFormValueString(formObjects *[]jsonFormObject, key string) (string, erro
 func getFormValueBool(formObjects *[]jsonFormObject, key string) (bool, error) {
 	value, err := getFormValueString(formObjects, key)
 	if err != nil {
-		return false, err
+		valueHidden, err2 := getFormValueString(formObjects, key+".unchecked")
+		if err2 != nil {
+			return false, err
+		} else {
+			value = valueHidden
+		}
 	}
-	if value == "0" {
+	if value == "0" || value == "false" {
 		return false, nil
 	}
-	if value == "1" {
+	if value == "1" || value == "true" {
 		return true, nil
 	}
 	return false, errors.New("could not convert " + key + " to bool, got: " + value)
@@ -285,9 +290,12 @@ func parseBasicAuthSettings(result *models.Configuration, formObjects *[]jsonFor
 
 func parseOAuthSettings(result *models.Configuration, formObjects *[]jsonFormObject) error {
 	var err error
-	result.Authentication.OauthProvider, err = getFormValueString(formObjects, "oauth_provider")
+	result.Authentication.OAuthProvider, err = getFormValueString(formObjects, "oauth_provider")
 	if err != nil {
 		return err
+	}
+	if strings.HasSuffix(result.Authentication.OAuthProvider, "/") {
+		result.Authentication.OAuthProvider = strings.TrimRight(result.Authentication.OAuthProvider, "/")
 	}
 
 	result.Authentication.OAuthClientId, err = getFormValueString(formObjects, "oauth_id")
@@ -300,11 +308,48 @@ func parseOAuthSettings(result *models.Configuration, formObjects *[]jsonFormObj
 		return err
 	}
 
-	oauthAllowedUsers, err := getFormValueString(formObjects, "oauth_header_users")
+	restrictUsers, err := getFormValueBool(formObjects, "oauth_restrict_users")
 	if err != nil {
 		return err
 	}
-	result.Authentication.OauthUsers = splitAndTrim(oauthAllowedUsers)
+
+	scopeUsers, err := getFormValueString(formObjects, "oauth_scope_users")
+	if err != nil {
+		return err
+	}
+
+	oauthAllowedUsers, err := getFormValueString(formObjects, "oauth_allowed_users")
+	if err != nil {
+		return err
+	}
+	if restrictUsers {
+		result.Authentication.OAuthUserScope = scopeUsers
+		result.Authentication.OAuthUsers = splitAndTrim(oauthAllowedUsers)
+	} else {
+		result.Authentication.OAuthUsers = []string{}
+		result.Authentication.OAuthUserScope = ""
+	}
+
+	restrictGroups, err := getFormValueBool(formObjects, "oauth_restrict_groups")
+	if err != nil {
+		return err
+	}
+	oauthAllowedGroups, err := getFormValueString(formObjects, "oauth_allowed_groups")
+	if err != nil {
+		return err
+	}
+	scopeGroups, err := getFormValueString(formObjects, "oauth_scope_groups")
+	if err != nil {
+		return err
+	}
+	if restrictGroups {
+		result.Authentication.OAuthGroupScope = scopeGroups
+		result.Authentication.OAuthGroups = splitAndTrim(oauthAllowedGroups)
+	} else {
+		result.Authentication.OAuthGroups = []string{}
+		result.Authentication.OAuthGroupScope = ""
+	}
+
 	return nil
 }
 
@@ -532,6 +577,7 @@ type setupView struct {
 	IsDocker       bool
 	Port           int
 	OAuthUsers     string
+	OAuthGroups    string
 	HeaderUsers    string
 	Auth           models.AuthenticationConfig
 	Settings       models.Configuration
@@ -552,7 +598,8 @@ func (v *setupView) loadFromConfig() {
 	v.Settings = *settings
 	v.Auth = settings.Authentication
 	v.CloudSettings, _ = cloudconfig.Load()
-	v.OAuthUsers = strings.Join(settings.Authentication.OauthUsers, ";")
+	v.OAuthUsers = strings.Join(settings.Authentication.OAuthUsers, ";")
+	v.OAuthGroups = strings.Join(settings.Authentication.OAuthGroups, ";")
 	v.HeaderUsers = strings.Join(settings.Authentication.HeaderUsers, ";")
 
 	if strings.Contains(settings.Port, "localhost") || strings.Contains(settings.Port, "127.0.0.1") {

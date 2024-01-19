@@ -325,10 +325,10 @@ func TestIntegration(t *testing.T) {
 	settings := configuration.Get()
 	test.IsEqualInt(t, settings.Authentication.Method, 0)
 	test.IsEqualString(t, settings.Authentication.Username, "admin")
-	test.IsEqualString(t, settings.Authentication.OauthProvider, "")
+	test.IsEqualString(t, settings.Authentication.OAuthProvider, "")
 	test.IsEqualString(t, settings.Authentication.OAuthClientId, "")
 	test.IsEqualString(t, settings.Authentication.OAuthClientSecret, "")
-	test.IsEqualInt(t, len(settings.Authentication.OauthUsers), 0)
+	test.IsEqualInt(t, len(settings.Authentication.OAuthUsers), 0)
 	test.IsEqualString(t, settings.Authentication.HeaderKey, "")
 	test.IsEqualInt(t, len(settings.Authentication.HeaderUsers), 0)
 	test.IsEqualBool(t, strings.Contains(settings.Port, "127.0.0.1"), true)
@@ -400,10 +400,10 @@ func TestIntegration(t *testing.T) {
 	settings = configuration.Get()
 	test.IsEqualInt(t, settings.Authentication.Method, 2)
 	test.IsEqualString(t, settings.Authentication.Username, "")
-	test.IsEqualString(t, settings.Authentication.OauthProvider, "")
+	test.IsEqualString(t, settings.Authentication.OAuthProvider, "")
 	test.IsEqualString(t, settings.Authentication.OAuthClientId, "")
 	test.IsEqualString(t, settings.Authentication.OAuthClientSecret, "")
-	test.IsEqualInt(t, len(settings.Authentication.OauthUsers), 0)
+	test.IsEqualInt(t, len(settings.Authentication.OAuthUsers), 0)
 	test.IsEqualString(t, settings.Authentication.HeaderKey, "testkey")
 	headerUsers := len(settings.Authentication.HeaderUsers)
 	test.IsEqualInt(t, headerUsers, 2)
@@ -445,43 +445,48 @@ func TestIntegration(t *testing.T) {
 	waitForServer(t, false)
 
 	test.IsEqualBool(t, settings.PicturesAlwaysLocal, true)
-	test.IsEqualString(t, settings.Authentication.OauthProvider, "provider")
+	test.IsEqualString(t, settings.Authentication.OAuthProvider, "provider")
 	test.IsEqualString(t, settings.Authentication.OAuthClientId, "id")
 	test.IsEqualString(t, settings.Authentication.OAuthClientSecret, "secret")
-	oauthUsers := len(settings.Authentication.OauthUsers)
+	oauthUsers := len(settings.Authentication.OAuthUsers)
 	test.IsEqualInt(t, oauthUsers, 2)
 	if oauthUsers == 2 {
-		test.IsEqualString(t, settings.Authentication.OauthUsers[0], "oatest1")
-		test.IsEqualString(t, settings.Authentication.OauthUsers[1], "oatest2")
+		test.IsEqualString(t, settings.Authentication.OAuthUsers[0], "oatest1")
+		test.IsEqualString(t, settings.Authentication.OAuthUsers[1], "oatest2")
 	}
 }
 
 type setupValues struct {
-	BindLocalhost        setupEntry `form:"localhost_sel" isBool:"true"`
-	UseSsl               setupEntry `form:"ssl_sel" isBool:"true"`
-	SaveIp               setupEntry `form:"logip_sel" isBool:"true"`
-	Port                 setupEntry `form:"port" isInt:"true"`
-	PublicName           setupEntry `form:"public_name"`
-	ExtUrl               setupEntry `form:"url"`
-	RedirectUrl          setupEntry `form:"url_redirection"`
-	AuthenticationMode   setupEntry `form:"authentication_sel" isInt:"true"`
-	AuthUsername         setupEntry `form:"auth_username"`
-	AuthPassword         setupEntry `form:"auth_pw"`
-	OAuthProvider        setupEntry `form:"oauth_provider"`
-	OAuthClientId        setupEntry `form:"oauth_id"`
-	OAuthClientSecret    setupEntry `form:"oauth_secret"`
-	OAuthAuthorisedUsers setupEntry `form:"oauth_header_users"`
-	AuthHeaderKey        setupEntry `form:"auth_headerkey"`
-	AuthHeaderUsers      setupEntry `form:"auth_header_users"`
-	StorageSelection     setupEntry `form:"storage_sel"`
-	PicturesAlwaysLocal  setupEntry `form:"storage_sel_image"`
-	S3Bucket             setupEntry `form:"s3_bucket"`
-	S3Region             setupEntry `form:"s3_region"`
-	S3ApiKey             setupEntry `form:"s3_api"`
-	S3ApiSecret          setupEntry `form:"s3_secret"`
-	S3Endpoint           setupEntry `form:"s3_endpoint"`
-	EncryptionLevel      setupEntry `form:"encrypt_sel" isInt:"true"`
-	EncryptionPassword   setupEntry `form:"enc_pw"`
+	BindLocalhost         setupEntry `form:"localhost_sel" isBool:"true"`
+	UseSsl                setupEntry `form:"ssl_sel" isBool:"true"`
+	SaveIp                setupEntry `form:"logip_sel" isBool:"true"`
+	Port                  setupEntry `form:"port" isInt:"true"`
+	PublicName            setupEntry `form:"public_name"`
+	ExtUrl                setupEntry `form:"url"`
+	RedirectUrl           setupEntry `form:"url_redirection"`
+	AuthenticationMode    setupEntry `form:"authentication_sel" isInt:"true"`
+	AuthUsername          setupEntry `form:"auth_username"`
+	AuthPassword          setupEntry `form:"auth_pw"`
+	OAuthProvider         setupEntry `form:"oauth_provider"`
+	OAuthClientId         setupEntry `form:"oauth_id"`
+	OAuthClientSecret     setupEntry `form:"oauth_secret"`
+	OAuthAuthorisedUsers  setupEntry `form:"oauth_allowed_users"`
+	OAuthAuthorisedGroups setupEntry `form:"oauth_allowed_groups"`
+	OAuthScopeUser        setupEntry `form:"oauth_scope_users"`
+	OAuthScopeGroup       setupEntry `form:"oauth_scope_groups"`
+	OAuthRestrictUser     setupEntry `form:"oauth_restrict_users" isBool:"true"`
+	OAuthRestrictGroups   setupEntry `form:"oauth_restrict_groups" isBool:"true"`
+	AuthHeaderKey         setupEntry `form:"auth_headerkey"`
+	AuthHeaderUsers       setupEntry `form:"auth_header_users"`
+	StorageSelection      setupEntry `form:"storage_sel"`
+	PicturesAlwaysLocal   setupEntry `form:"storage_sel_image"`
+	S3Bucket              setupEntry `form:"s3_bucket"`
+	S3Region              setupEntry `form:"s3_region"`
+	S3ApiKey              setupEntry `form:"s3_api"`
+	S3ApiSecret           setupEntry `form:"s3_secret"`
+	S3Endpoint            setupEntry `form:"s3_endpoint"`
+	EncryptionLevel       setupEntry `form:"encrypt_sel" isInt:"true"`
+	EncryptionPassword    setupEntry `form:"enc_pw"`
 }
 
 func (s *setupValues) init() {
@@ -529,13 +534,13 @@ func createInvalidSetupValues() []setupValues {
 	for i := 0; i < t.NumField(); i++ {
 		invalidSetup := input
 		v := reflect.ValueOf(&invalidSetup)
-		v.Elem().Field(i).FieldByName("FormName").SetString("invalid")
+		v.Elem().Field(i).FieldByName("FormName").SetString("XXXinvalidNameXXX")
 		result = append(result, invalidSetup)
 
 		tag := t.Field(i).Tag.Get("isInt")
 		if tag == "true" {
 			invalidSetup = input
-			v.Elem().Field(i).FieldByName("Value").SetString("notInt")
+			v.Elem().Field(i).FieldByName("Value").SetString("XXXnotIntXXX")
 			result = append(result, invalidSetup)
 		}
 		tag = t.Field(i).Tag.Get("isBool")
@@ -593,6 +598,8 @@ func createInputInternalAuth() setupValues {
 	values.EncryptionLevel.Value = "0"
 	values.PicturesAlwaysLocal.Value = "nochange"
 	values.SaveIp.Value = "0"
+	values.OAuthRestrictUser.Value = "false"
+	values.OAuthRestrictGroups.Value = "false"
 
 	return values
 }
@@ -613,6 +620,8 @@ func createInputHeaderAuth() setupValues {
 	values.StorageSelection.Value = "local"
 	values.EncryptionLevel.Value = "0"
 	values.SaveIp.Value = "1"
+	values.OAuthRestrictUser.Value = "false"
+	values.OAuthRestrictGroups.Value = "false"
 
 	return values
 }
@@ -623,7 +632,12 @@ func createInputOAuth() setupValues {
 	values.OAuthProvider.Value = "provider"
 	values.OAuthClientId.Value = "id"
 	values.OAuthClientSecret.Value = "secret"
+	values.OAuthRestrictUser.Value = "true"
+	values.OAuthRestrictGroups.Value = "true"
+	values.OAuthScopeUser.Value = "email"
 	values.OAuthAuthorisedUsers.Value = "oatest1; oatest2"
+	values.OAuthScopeGroup.Value = "groups"
+	values.OAuthAuthorisedGroups.Value = "group1; group2"
 	values.StorageSelection.Value = "local"
 	values.PicturesAlwaysLocal.Value = "local"
 	return values

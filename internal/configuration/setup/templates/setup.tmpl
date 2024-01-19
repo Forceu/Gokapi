@@ -36,6 +36,28 @@
 				margin-left: 15px; 
 				width: 90%;
 			}
+			
+			
+
+			    .oauthscopecontainer {
+			      margin: 0 auto;
+			    }
+
+			    .oauthscopes {
+				display: flex;
+				flex-wrap: wrap;
+				align-items: center; /* Align items vertically in the center */
+				margin-bottom: 5px;
+			    }
+
+			    #oauth_restrict_users, #oauth_restrict_groups {
+			      margin-right: 10px;
+			    }
+
+			    #label_ousers, #label_ogroups {
+			      margin-right: 10px;
+			    }
+
 		</style>
 		<!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
 		<!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
@@ -207,31 +229,47 @@
 					<div class="wizard-input-section">
 						<div class="form-group">
 					<p>
-						Please enter the OIDC client configuration. Add the allowed users to the list below (seperated by semicolon) or leave it blank if access is granted to all authenticated users.<br>
+						Please enter the OIDC client configuration. Multiple users and groups can be separated with a semicolon. The documentationTODO has examples on how to configure for different providers.<br>
 					</p>
 
-							<div class="col-sm-8">
+							<div class="col-sm-8" style="width:90%">
 							  <label for="oauth_provider">Provider URL:</label>
 								<input type="text" class="form-control" id="oauth_provider" name="oauth_provider" placeholder="Provider URL" data-min="1" required data-validate="validateMinLength">
 							</div>
 
-							<div class="col-sm-8">
+							<div class="col-sm-8" style="width:90%">
 							  <label for="oauth_id">Client ID:</label>
 								<input type="text" class="form-control" id="oauth_id" name="oauth_id" placeholder="Client ID" data-min="1" required data-validate="validateMinLength">
 							</div>
 
-							<div class="col-sm-8">
+							<div class="col-sm-8" style="width:90%">
 							  <label for="oauth_secret">Client Secret:</label>
 								<input type="text" class="form-control" id="oauth_secret" name="oauth_secret" placeholder="Client Secret" data-min="1" required data-validate="validateMinLength">
 							</div>
 							
-							<div class="col-sm-8">
-							  <label for="oauth_header_users">Authorised users:</label>
-								<input type="text" class="form-control" id="oauth_header_users" name="oauth_header_users" placeholder="Authorised users">
+							<div class="col-sm-8" style="width:90%">
+							<br>Restrict to:
+								  <div class="oauthscopecontainer">
+								    <div class="oauthscopes">
+								      <input type="hidden" name="oauth_restrict_users.unchecked" value="false"/>
+								      <input type="checkbox" id="oauth_restrict_users" name="oauth_restrict_users" onchange="handleOauthCheckboxChange(this)"  value="true">
+								      <label id="label_ousers" for="oauth_restrict_users" class="checkboxLabel">Users &nbsp;</label>
+								      <input type="text" id="oauth_scope_users" name="oauth_scope_users" class="input-field" placeholder="Scope identifier" data-min="1" data-validate="validateMinLength" disabled>&nbsp;
+								      <input type="text" id="oauth_allowed_users" name="oauth_allowed_users" class="input-field" placeholder="Authorised users" data-min="1" data-validate="validateMinLength" disabled>
+								    </div>
+
+								    <div class="oauthscopes">
+								      <input type="hidden" name="oauth_restrict_groups.unchecked" value="false"/>
+								      <input type="checkbox" id="oauth_restrict_groups" name="oauth_restrict_groups" onchange="handleOauthCheckboxChange(this)"  value="true">
+								      <label id="label_ogroups" for="oauth_restrict_groups" class="checkboxLabel">Groups</label>
+								      <input type="text" id="oauth_scope_groups" name="oauth_scope_groups" class="input-field" placeholder="Scope identifier" data-min="1" data-validate="validateMinLength" disabled>&nbsp;
+								      <input type="text" id="oauth_allowed_groups" name="oauth_allowed_groups" class="input-field" placeholder="Authorised groups" data-min="1" data-validate="validateMinLength" disabled>
+								    </div>
+								  </div>
 							</div>
 							
-							<div class="col-sm-8">
-							  <label for="oauth_redir">Redirection URL:</label>
+							<div class="col-sm-8" style="width:90%">
+							  <label for="oauth_redir"><br>Redirection URL:</label>
 {{ if .IsInitialSetup }}
 								<input type="text" class="form-control" id="oauth_redir" name="oauth_redir" disabled value="http://127.0.0.1:53842/oauth-callback">
 {{ else }}
@@ -509,6 +547,7 @@ function TestAWS(button) {
 							
 {{ if not .IsInitialSetup }}
 				     <div id="e2eclear"><br>
+				     <input type="hidden" name="cleare2e.unchecked" value="false"/>
 				     <input name="cleare2e" type="checkbox" value="true"/>
 				     <span>&nbsp;Reset end-to-end password (you will lose access to already encrypted files)</span>
 				     </div>
@@ -643,10 +682,23 @@ function TestAWS(button) {
 				    document.getElementById("auth_pw2").value = "unc";
 				    break;
 				  case 1:
-				    document.getElementById("oauth_provider").value = "{{ .Auth.OauthProvider }}";
+				    document.getElementById("oauth_provider").value = "{{ .Auth.OAuthProvider }}";
 				    document.getElementById("oauth_id").value = "{{ .Auth.OAuthClientId }}";
 				    document.getElementById("oauth_secret").value = "{{ .Auth.OAuthClientSecret }}";
-				    document.getElementById("oauth_header_users").value = "{{ .OAuthUsers }}";
+	{{ if ne .OAuthUsers "" }}
+				    document.getElementById("oauth_restrict_users").checked = true;
+				    document.getElementById("oauth_scope_users").disabled = false;
+				    document.getElementById("oauth_scope_users").value = "{{ .Auth.OAuthUserScope }}";
+				    document.getElementById("oauth_allowed_users").disabled = false;
+				    document.getElementById("oauth_allowed_users").value = "{{ .OAuthUsers }}";
+	{{ end }}
+	{{ if ne .OAuthGroups "" }}
+				    document.getElementById("oauth_restrict_groups").checked = true;
+				    document.getElementById("oauth_scope_groups").disabled = false;
+				    document.getElementById("oauth_scope_groups").value = "{{ .Auth.OAuthGroupScope }}";
+				    document.getElementById("oauth_allowed_groups").disabled = false;
+				    document.getElementById("oauth_allowed_groups").value = "{{ .OAuthGroups }}";
+	{{ end }}
 				    break;
 				  case 2:
 				    document.getElementById("auth_headerkey").value = "{{ .Auth.HeaderKey }}";
@@ -699,6 +751,11 @@ function TestAWS(button) {
 				let value = el.val();
 				let retValue = {};
 				
+				if (el.prop('disabled') == true) {
+					retValue.status = true;
+					return retValue;
+				}
+				
 				if (value.length == 0) {
 					retValue.status = false;
 					retValue.msg = "Please enter a value";
@@ -714,6 +771,17 @@ function TestAWS(button) {
 
 				return retValue;
 			}
+			
+			
+			   function handleOauthCheckboxChange(checkbox) {
+				// Find the next input fields relative to the checkbox
+				var inputFields = checkbox.parentElement.querySelectorAll("input[type='text']");
+
+				inputFields.forEach(function (inputField) {
+				    inputField.disabled = !checkbox.checked;
+				});
+			    }
+			
 			
 			function validateUrl(el) {
 				let value = el.val();

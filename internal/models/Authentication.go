@@ -8,9 +8,12 @@ type AuthenticationConfig struct {
 	Username          string   `json:"Username"`
 	Password          string   `json:"Password"`
 	HeaderKey         string   `json:"HeaderKey"`
-	OauthProvider     string   `json:"OauthProvider"`
+	OAuthProvider     string   `json:"OauthProvider"`
 	OAuthClientId     string   `json:"OAuthClientId"`
 	OAuthClientSecret string   `json:"OAuthClientSecret"`
+	OAuthUserScope    string   `json:"OauthUserScope"`
+	OAuthGroupScope   string   `json:"OauthGroupScope"`
 	HeaderUsers       []string `json:"HeaderUsers"`
-	OauthUsers        []string `json:"OauthUsers"`
+	OAuthGroups       []string `json:"OAuthGroups"`
+	OAuthUsers        []string `json:"OauthUsers"`
 }

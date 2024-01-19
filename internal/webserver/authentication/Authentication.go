@@ -2,7 +2,8 @@ package authentication
 
 import (
 	"crypto/subtle"
-	"github.com/coreos/go-oidc/v3/oidc"
+	"encoding/json"
+	"fmt"
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/webserver/authentication/sessionmanager"
@@ -64,34 +65,127 @@ func isGrantedHeader(r *http.Request) bool {
 	return isUserInArray(value, authSettings.HeaderUsers)
 }
 
-func isUserInArray(userEntered string, strArray []string) bool {
-	for _, user := range strArray {
-		if strings.ToLower(user) == strings.ToLower(userEntered) {
+func isUserInArray(userEntered string, allowedUsers []string) bool {
+	for _, allowedUser := range allowedUsers {
+		if strings.ToLower(allowedUser) == strings.ToLower(userEntered) {
 			return true
 		}
 	}
 	return false
 }
 
-// CheckOauthUser checks if the user is allowed to use the Gokapi instance
-func CheckOauthUser(userInfo *oidc.UserInfo, w http.ResponseWriter) {
-	if isValidOauthUser(userInfo.Email) {
+func isGroupInArray(userGroups []string, allowedGroups []string) bool {
+	for _, group := range userGroups {
+		for _, allowedGroup := range allowedGroups {
+			if strings.ToLower(allowedGroup) == strings.ToLower(group) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func extractOauthGroups(userInfo OAuthUserInfo, groupScope string) ([]string, error) {
+	var claims json.RawMessage
+	var data map[string]interface{}
+
+	err := userInfo.Claims(&claims)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(claims, &data)
+	if err != nil {
+		return nil, err
+	}
+
+	// Extract the "groups" field
+	groupsInterface, ok := data[groupScope]
+	if !ok {
+		return nil, fmt.Errorf("claim %s was not passed on", groupScope)
+	}
+
+	// Convert the interface{} to a []interface{} and then to []string
+	var groups []string
+	for _, group := range groupsInterface.([]interface{}) {
+		groups = append(groups, group.(string))
+	}
+
+	return groups, nil
+}
+
+func extractFieldValue(userInfo OAuthUserInfo, fieldName string) (string, error) {
+	var claims json.RawMessage
+
+	err := userInfo.Claims(&claims)
+	if err != nil {
+		return "", err
+	}
+	var fieldMap map[string]interface{}
+	err = json.Unmarshal(claims, &fieldMap)
+	if err != nil {
+		return "", err
+	}
+
+	// Extract the field value based on the provided fieldName
+	fieldValue, ok := fieldMap[fieldName]
+	if !ok {
+		return "", fmt.Errorf("%s scope not found in reply", fieldName)
+	}
+
+	strValue, ok := fieldValue.(string)
+	if !ok {
+		return "", fmt.Errorf("value of %s scope is not a string", fieldName)
+	}
+
+	return strValue, nil
+}
+
+// OAuthUserInfo is used to make testing easier. This results in an additional parameter for the subject unfortunately
+type OAuthUserInfo interface {
+	Claims(v interface{}) error
+}
+
+// CheckOauthUserAndRedirect checks if the user is allowed to use the Gokapi instance
+func CheckOauthUserAndRedirect(userInfo OAuthUserInfo, userInfoSubject string, w http.ResponseWriter) error {
+	var username string
+	var groups []string
+	var err error
+
+	if authSettings.OAuthUserScope != "" {
+		username, err = extractFieldValue(userInfo, authSettings.OAuthUserScope)
+		if err != nil {
+			return err
+		}
+	}
+	if authSettings.OAuthGroupScope != "" {
+		groups, err = extractOauthGroups(userInfo, authSettings.OAuthGroupScope)
+		if err != nil {
+			return err
+		}
+	}
+	if isValidOauthUser(userInfoSubject, username, groups) {
 		// TODO revoke session if oauth is not valid any more
 		sessionmanager.CreateSession(w)
 		redirect(w, "admin")
-		return
+		return nil
 	}
 	redirect(w, "error-auth")
+	return nil
 }
 
-func isValidOauthUser(name string) bool {
-	if name == "" {
+func isValidOauthUser(userInfoSubject string, username string, groups []string) bool {
+	if userInfoSubject == "" {
 		return false
 	}
-	if len(authSettings.OauthUsers) == 0 {
-		return true
+	isValidUser := true
+	if len(authSettings.OAuthUsers) > 0 {
+		isValidUser = isUserInArray(username, authSettings.OAuthUsers)
 	}
-	return isUserInArray(name, authSettings.OauthUsers)
+	isValidGroup := true
+	if len(authSettings.OAuthGroups) > 0 {
+		isValidGroup = isGroupInArray(groups, authSettings.OAuthGroups)
+	}
+	return isValidUser && isValidGroup
 }
 
 // isGrantedSession returns true if the user holds a valid internal session cookie
