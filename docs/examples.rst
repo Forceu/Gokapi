@@ -6,6 +6,49 @@ Examples
 ===========================
 
 
+
+*********************************
+Nginx  Configuration
+*********************************
+
+
+.. code-block:: nginx
+
+	server {
+		listen 80;
+		listen [::]:80;
+		listen 443 ssl;
+		listen [::]:443 ssl;
+		ssl_certificate /your/certificate/fullchain.pem;
+		ssl_certificate_key /your/certificate/privkey.pem;
+
+		client_max_body_size 500M;
+		client_body_buffer_size 128k;
+
+		server_name your.server.url;
+
+		location / {
+			# If using Cloudflare
+			proxy_set_header X-Forwarded-Host $http_cf_connecting_ip;
+			
+			proxy_set_header Host $http_host;
+			proxy_set_header X-Real-IP $remote_addr;
+			proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+			proxy_set_header X-Forwarded-Proto http;
+			proxy_pass http://127.0.0.1:53842;
+		}
+
+
+
+		# Always redirect to https
+		if ( $scheme = http ) {
+			return 301 https://$server_name$request_uri;
+		}
+	}
+
+
+
+
 *********************************
 OpenID Connect  Configuration
 *********************************
@@ -135,17 +178,15 @@ Creating the client
 
     * Client Type: OpenID Connect
     * Client ID: a unique ID, ``gokapi-dev`` is used in this example
+    
 #. Click ``Next``
 
     * Set ``Client authentication`` to on
     * Only select ``Standard flow`` in ``Authentication flow``
-#. Click ``Next``
+    
+#. Click ``Next``, add your redirect URL, e.g. ``https://gokapi.website.com/oauth-callback`` and click ``Save``
 
-    * Add your redirect URL, e.g. ``https://gokapi.website.com/oauth-callback``
-    * Click ``Save``
-#. Click ``Credentials``
-
-    * Note the ``Client Secret``
+#. Click ``Credentials`` and note the ``Client Secret``
 
 
 Addding a scope for exposing groups (optional)
@@ -163,7 +204,9 @@ Addding a scope for exposing groups (optional)
     * Click ``Add predefined mapper``
     * Search for ``groups`` and tick
     * Click ``Add``
+    
 #. In the realm click on ``[Manage] Clients`` and then ``gokapi-dev``
+
     * Click ``Client Scopes``
     * Click ``Add Client Scope``
     * Select ``groups`` and click ``Add / Optional``
