@@ -695,6 +695,7 @@ function TestAWS(button) {
 				    document.getElementById("oauth_provider").value = "{{ .Auth.OAuthProvider }}";
 				    document.getElementById("oauth_id").value = "{{ .Auth.OAuthClientId }}";
 				    document.getElementById("oauth_secret").value = "{{ .Auth.OAuthClientSecret }}";
+				    document.getElementById("oauth_recheck_interval").value = "{{ .Auth.OAuthRecheckInterval }}";
 	{{ if ne .OAuthUsers "" }}
 				    document.getElementById("oauth_restrict_users").checked = true;
 				    document.getElementById("oauth_scope_users").disabled = false;
@@ -708,7 +709,6 @@ function TestAWS(button) {
 				    document.getElementById("oauth_scope_groups").value = "{{ .Auth.OAuthGroupScope }}";
 				    document.getElementById("oauth_allowed_groups").disabled = false;
 				    document.getElementById("oauth_allowed_groups").value = "{{ .OAuthGroups }}";
-				    document.getElementById("oauth_recheck_interval").value = "{{ .Auth.OAuthRecheckInterval }}";
 	{{ end }}
 				    break;
 				  case 2:

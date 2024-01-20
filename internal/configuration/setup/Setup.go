@@ -313,6 +313,11 @@ func parseOAuthSettings(result *models.Configuration, formObjects *[]jsonFormObj
 		return err
 	}
 
+	result.Authentication.OAuthRecheckInterval, err = getFormValueInt(formObjects, "oauth_recheck_interval")
+	if err != nil {
+		return err
+	}
+
 	scopeUsers, err := getFormValueString(formObjects, "oauth_scope_users")
 	if err != nil {
 		return err

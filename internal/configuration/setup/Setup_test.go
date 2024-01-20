@@ -601,6 +601,7 @@ func createInputInternalAuth() setupValues {
 	values.SaveIp.Value = "0"
 	values.OAuthRestrictUser.Value = "false"
 	values.OAuthRestrictGroups.Value = "false"
+	values.OAuthRecheckInterval.Value = "12"
 
 	return values
 }
@@ -623,6 +624,7 @@ func createInputHeaderAuth() setupValues {
 	values.SaveIp.Value = "1"
 	values.OAuthRestrictUser.Value = "false"
 	values.OAuthRestrictGroups.Value = "false"
+	values.OAuthRecheckInterval.Value = "12"
 
 	return values
 }
