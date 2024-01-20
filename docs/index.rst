@@ -1,5 +1,6 @@
 .. _index:
 
+===========================
 Gokapi
 ===========================
 
@@ -14,11 +15,12 @@ Contents
 ========
 
 .. toctree::
-   :maxdepth: 2
+ :maxdepth: 2
 
-   setup
-   usage
-   update
-   advanced
-   contributions
-   changelog
+ setup
+ usage
+ update
+ advanced
+ examples
+ contributions
+ changelog

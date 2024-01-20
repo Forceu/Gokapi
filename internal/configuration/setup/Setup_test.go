@@ -476,6 +476,7 @@ type setupValues struct {
 	OAuthScopeGroup       setupEntry `form:"oauth_scope_groups"`
 	OAuthRestrictUser     setupEntry `form:"oauth_restrict_users" isBool:"true"`
 	OAuthRestrictGroups   setupEntry `form:"oauth_restrict_groups" isBool:"true"`
+	OAuthRecheckInterval  setupEntry `form:"oauth_recheck_interval" isInt:"true"`
 	AuthHeaderKey         setupEntry `form:"auth_headerkey"`
 	AuthHeaderUsers       setupEntry `form:"auth_header_users"`
 	StorageSelection      setupEntry `form:"storage_sel"`

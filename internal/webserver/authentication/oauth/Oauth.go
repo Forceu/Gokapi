@@ -45,8 +45,8 @@ func Init(baseUrl string, credentials models.AuthenticationConfig) {
 }
 
 // HandlerLogin is a handler for showing the login screen
-func HandlerLogin(w http.ResponseWriter, r *http.Request) {
-	initLogin(w, r, false)
+func HandlerLogin(w http.ResponseWriter, r *http.Request) { // If user clicked logout, force consent
+	initLogin(w, r, r.URL.Query().Has("consent"))
 }
 
 func initLogin(w http.ResponseWriter, r *http.Request, showConsentScreen bool) {
@@ -97,7 +97,12 @@ func HandlerCallback(w http.ResponseWriter, r *http.Request) {
 		showOauthErrorPage(w, r, "Failed to get userinfo: "+err.Error())
 		return
 	}
-	err = authentication.CheckOauthUserAndRedirect(userInfo, userInfo.Subject, w)
+	info := authentication.OAuthUserInfo{
+		Subject:    userInfo.Subject,
+		Email:      userInfo.Email,
+		ClaimsSent: userInfo,
+	}
+	err = authentication.CheckOauthUserAndRedirect(info, w)
 	if err != nil {
 		showOauthErrorPage(w, r, "Failed to extract scope value: "+err.Error())
 	}

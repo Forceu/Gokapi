@@ -11,7 +11,7 @@ import (
 )
 
 // CurrentConfigVersion is the version of the configuration structure. Used for upgrading
-const CurrentConfigVersion = 17
+const CurrentConfigVersion = 18
 
 // DoUpgrade checks if an old version is present and updates it to the current version if required
 func DoUpgrade(settings *models.Configuration, env *environment.Environment) bool {
@@ -59,10 +59,11 @@ func updateConfig(settings *models.Configuration, env *environment.Environment) 
 		}
 	}
 	// < v1.8.2
-	if settings.ConfigVersion < 17 {
+	if settings.ConfigVersion < 18 {
 		if len(settings.Authentication.OAuthUsers) > 0 {
 			settings.Authentication.OAuthUserScope = "email"
 		}
+		settings.Authentication.OAuthRecheckInterval = 168
 	}
 }
 

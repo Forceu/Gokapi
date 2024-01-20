@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/forceu/gokapi/internal/configuration"
+	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/webserver/authentication/sessionmanager"
 	"io"
 	"net/http"
+	"regexp"
 	"strings"
 )
 
@@ -21,7 +23,7 @@ const Internal = 0
 // OAuth2 authentication retrieves the users email with Open Connect ID
 const OAuth2 = 1
 
-// Header authentication relies on a header from a reverse proxy to parse the user name
+// Header authentication relies on a header from a reverse proxy to parse the username
 const Header = 2
 
 // Disabled authentication ignores all internal authentication procedures. A reverse proxy needs to restrict access
@@ -67,17 +69,40 @@ func isGrantedHeader(r *http.Request) bool {
 
 func isUserInArray(userEntered string, allowedUsers []string) bool {
 	for _, allowedUser := range allowedUsers {
-		if strings.ToLower(allowedUser) == strings.ToLower(userEntered) {
+		matches, err := matchesWithWildcard(strings.ToLower(allowedUser), strings.ToLower(userEntered))
+		helper.Check(err)
+		if matches {
 			return true
 		}
 	}
 	return false
 }
 
+func matchesWithWildcard(pattern, input string) (bool, error) {
+	components := strings.Split(pattern, "*")
+	if len(components) == 1 {
+		// if len is 1, there are no *'s, return exact match pattern
+		return regexp.MatchString("^"+pattern+"$", input)
+	}
+	var result strings.Builder
+	for i, literal := range components {
+		// Replace * with .*
+		if i > 0 {
+			result.WriteString(".*")
+		}
+		// Quote any regular expression meta characters in the
+		// literal text.
+		result.WriteString(regexp.QuoteMeta(literal))
+	}
+	return regexp.MatchString("^"+result.String()+"$", input)
+}
+
 func isGroupInArray(userGroups []string, allowedGroups []string) bool {
 	for _, group := range userGroups {
 		for _, allowedGroup := range allowedGroups {
-			if strings.ToLower(allowedGroup) == strings.ToLower(group) {
+			matches, err := matchesWithWildcard(strings.ToLower(allowedGroup), strings.ToLower(group))
+			helper.Check(err)
+			if matches {
 				return true
 			}
 		}
@@ -85,7 +110,7 @@ func isGroupInArray(userGroups []string, allowedGroups []string) bool {
 	return false
 }
 
-func extractOauthGroups(userInfo OAuthUserInfo, groupScope string) ([]string, error) {
+func extractOauthGroups(userInfo OAuthUserClaims, groupScope string) ([]string, error) {
 	var claims json.RawMessage
 	var data map[string]interface{}
 
@@ -113,7 +138,7 @@ func extractOauthGroups(userInfo OAuthUserInfo, groupScope string) ([]string, er
 	return groups, nil
 }
 
-func extractFieldValue(userInfo OAuthUserInfo, fieldName string) (string, error) {
+func extractFieldValue(userInfo OAuthUserClaims, fieldName string) (string, error) {
 	var claims json.RawMessage
 
 	err := userInfo.Claims(&claims)
@@ -141,31 +166,41 @@ func extractFieldValue(userInfo OAuthUserInfo, fieldName string) (string, error)
 }
 
 // OAuthUserInfo is used to make testing easier. This results in an additional parameter for the subject unfortunately
-type OAuthUserInfo interface {
+type OAuthUserInfo struct {
+	Subject    string
+	Email      string
+	ClaimsSent OAuthUserClaims
+}
+
+// OAuthUserClaims contains the claims
+type OAuthUserClaims interface {
 	Claims(v interface{}) error
 }
 
 // CheckOauthUserAndRedirect checks if the user is allowed to use the Gokapi instance
-func CheckOauthUserAndRedirect(userInfo OAuthUserInfo, userInfoSubject string, w http.ResponseWriter) error {
+func CheckOauthUserAndRedirect(userInfo OAuthUserInfo, w http.ResponseWriter) error {
 	var username string
 	var groups []string
 	var err error
 
 	if authSettings.OAuthUserScope != "" {
-		username, err = extractFieldValue(userInfo, authSettings.OAuthUserScope)
-		if err != nil {
-			return err
+		if authSettings.OAuthUserScope == "email" {
+			username = userInfo.Email
+		} else {
+			username, err = extractFieldValue(userInfo.ClaimsSent, authSettings.OAuthUserScope)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	if authSettings.OAuthGroupScope != "" {
-		groups, err = extractOauthGroups(userInfo, authSettings.OAuthGroupScope)
+		groups, err = extractOauthGroups(userInfo.ClaimsSent, authSettings.OAuthGroupScope)
 		if err != nil {
 			return err
 		}
 	}
-	if isValidOauthUser(userInfoSubject, username, groups) {
-		// TODO revoke session if oauth is not valid any more
-		sessionmanager.CreateSession(w)
+	if isValidOauthUser(userInfo, username, groups) {
+		sessionmanager.CreateSession(w, authSettings.Method == OAuth2, authSettings.OAuthRecheckInterval)
 		redirect(w, "admin")
 		return nil
 	}
@@ -173,8 +208,8 @@ func CheckOauthUserAndRedirect(userInfo OAuthUserInfo, userInfoSubject string, w
 	return nil
 }
 
-func isValidOauthUser(userInfoSubject string, username string, groups []string) bool {
-	if userInfoSubject == "" {
+func isValidOauthUser(userInfo OAuthUserInfo, username string, groups []string) bool {
+	if userInfo.Subject == "" {
 		return false
 	}
 	isValidUser := true
@@ -190,7 +225,7 @@ func isValidOauthUser(userInfoSubject string, username string, groups []string) 
 
 // isGrantedSession returns true if the user holds a valid internal session cookie
 func isGrantedSession(w http.ResponseWriter, r *http.Request) bool {
-	return sessionmanager.IsValidSession(w, r)
+	return sessionmanager.IsValidSession(w, r, authSettings.Method == OAuth2, authSettings.OAuthRecheckInterval)
 }
 
 // IsCorrectUsernameAndPassword checks if a provided username and password is correct
@@ -216,7 +251,11 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	if authSettings.Method == Internal || authSettings.Method == OAuth2 {
 		sessionmanager.LogoutSession(w, r)
 	}
-	redirect(w, "login")
+	if authSettings.Method == OAuth2 {
+		redirect(w, "login?consent=true")
+	} else {
+		redirect(w, "login")
+	}
 }
 
 // IsLogoutAvailable returns true if a logout button should be shown with the current form of authentication

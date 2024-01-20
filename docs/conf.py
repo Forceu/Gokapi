@@ -57,3 +57,7 @@ html_static_path = ['']
 
 master_doc = 'index'
 #autosectionlabel_prefix_document = True
+
+html_theme_options = {
+    'navigation_depth': 5,
+}

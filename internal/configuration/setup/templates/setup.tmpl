@@ -86,7 +86,7 @@
 					</p>
 {{ else }}
 					<p>
-						You can now change the Gokapi configuration. For further information please refer to the <a href="https://gokapi.readthedocs.io/en/stable/" title="Gokapi Documentation" target="_blank">documentation</a>.
+						You can now change the Gokapi configuration. For further information please refer to the <a href="https://gokapi.readthedocs.io/en/stable/" title="Gokapi Documentation" target="_blank" rel="noopener noreferrer">documentation</a>.
 					</p>
 {{ end }}
 
@@ -229,7 +229,7 @@
 					<div class="wizard-input-section">
 						<div class="form-group">
 					<p>
-						Please enter the OIDC client configuration. Multiple users and groups can be separated with a semicolon. The documentationTODO has examples on how to configure for different providers.<br>
+						Please enter the OIDC client configuration. Multiple users and groups can be separated with a semicolon. The <a href="https://gokapi.readthedocs.io/en/stable/setup.html#oauth2-openid-connect" target="_blank" rel="noopener noreferrer">documentation</a> has examples on how to configure for different providers.<br>
 					</p>
 
 							<div class="col-sm-8" style="width:90%">
@@ -246,7 +246,18 @@
 							  <label for="oauth_secret">Client Secret:</label>
 								<input type="text" class="form-control" id="oauth_secret" name="oauth_secret" placeholder="Client Secret" data-min="1" required data-validate="validateMinLength">
 							</div>
-							
+							<div class="col-sm-8" style="width:90%">
+							Recheck identity every 
+							<select name="oauth_recheck_interval" id="oauth_recheck_interval" style="width:350px;" class="select form-control">
+								<option value="6"> 6 hours</option>
+								<option value="12" selected>12 hours</option>
+								<option value="24">24 hours</option>
+								<option value="72"> 3 days</option>
+								<option value="168">7 days</option>
+								<option value="336">14 days</option>
+								<option value="720">30 days</option>
+						</select>
+							</div>
 							<div class="col-sm-8" style="width:90%">
 							<br>Restrict to:
 								  <div class="oauthscopecontainer">
@@ -266,16 +277,15 @@
 								      <input type="text" id="oauth_allowed_groups" name="oauth_allowed_groups" class="input-field" placeholder="Authorised groups" data-min="1" data-validate="validateMinLength" disabled>
 								    </div>
 								  </div>
-							</div>
-							
+							</div> 
 							<div class="col-sm-8" style="width:90%">
-							  <label for="oauth_redir"><br>Redirection URL:</label>
+							 <label for="oauth_redir"><br>Redirection URL:</label>
 {{ if .IsInitialSetup }}
 								<input type="text" class="form-control" id="oauth_redir" name="oauth_redir" disabled value="http://127.0.0.1:53842/oauth-callback">
 {{ else }}
 								<input type="text" class="form-control" id="oauth_redir" name="oauth_redir" disabled value="{{ .Settings.ServerUrl }}oauth-callback">
 {{ end }}
-							</div>
+							</div><br><br>
 
 					</div>
 
@@ -698,6 +708,7 @@ function TestAWS(button) {
 				    document.getElementById("oauth_scope_groups").value = "{{ .Auth.OAuthGroupScope }}";
 				    document.getElementById("oauth_allowed_groups").disabled = false;
 				    document.getElementById("oauth_allowed_groups").value = "{{ .OAuthGroups }}";
+				    document.getElementById("oauth_recheck_interval").value = "{{ .Auth.OAuthRecheckInterval }}";
 	{{ end }}
 				    break;
 				  case 2:
@@ -721,6 +732,12 @@ function TestAWS(button) {
 
 
 				wizard.on("submit", function(wizard) {
+				
+				    /* enable inputs again, otherwise they will not be submitted */
+				    document.getElementById("oauth_scope_groups").disabled = false;
+				    document.getElementById("oauth_scope_users").disabled = false;
+				    document.getElementById("oauth_allowed_users").disabled = false;
+				    document.getElementById("oauth_allowed_groups").disabled = false;
 					
 					 $.ajax({
 						type: "POST",

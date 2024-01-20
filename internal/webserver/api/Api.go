@@ -7,6 +7,7 @@ import (
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
+	"github.com/forceu/gokapi/internal/webserver/authentication"
 	"github.com/forceu/gokapi/internal/webserver/authentication/sessionmanager"
 	"github.com/forceu/gokapi/internal/webserver/fileupload"
 	"net/http"
@@ -285,7 +286,9 @@ func isAuthorisedForApi(w http.ResponseWriter, request apiRequest) bool {
 		sendError(w, http.StatusBadRequest, "Invalid request")
 		return false
 	}
-	if IsValidApiKey(request.apiKey, true, perm) || sessionmanager.IsValidSession(w, request.request) {
+	isOauth := configuration.Get().Authentication.Method == authentication.OAuth2
+	interval := configuration.Get().Authentication.OAuthRecheckInterval
+	if IsValidApiKey(request.apiKey, true, perm) || sessionmanager.IsValidSession(w, request.request, isOauth, interval) {
 		return true
 	}
 	sendError(w, http.StatusUnauthorized, "Unauthorized")

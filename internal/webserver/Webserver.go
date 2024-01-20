@@ -301,7 +301,12 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if configuration.Get().Authentication.Method == authentication.OAuth2 {
-		redirect(w, "oauth-login")
+		// If user clicked logout, force consent
+		if r.URL.Query().Has("consent") {
+			redirect(w, "oauth-login?consent=true")
+		} else {
+			redirect(w, "oauth-login")
+		}
 		return
 	}
 	err := r.ParseForm()
@@ -311,7 +316,9 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 	failedLogin := false
 	if pw != "" && user != "" {
 		if authentication.IsCorrectUsernameAndPassword(user, pw) {
-			sessionmanager.CreateSession(w)
+			isOauth := configuration.Get().Authentication.Method == authentication.OAuth2
+			interval := configuration.Get().Authentication.OAuthRecheckInterval
+			sessionmanager.CreateSession(w, isOauth, interval)
 			redirect(w, "admin")
 			return
 		}

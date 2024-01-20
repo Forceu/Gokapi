@@ -3,7 +3,7 @@ package authentication
 import (
 	"encoding/json"
 	"errors"
-	"github.com/coreos/go-oidc/v3/oidc"
+	"fmt"
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/test"
@@ -107,23 +107,90 @@ func TestRedirect(t *testing.T) {
 
 func TestIsValidOauthUser(t *testing.T) {
 	Init(modelOauth)
-	info := oidc.UserInfo{Subject: "randomid"}
-	test.IsEqualBool(t, isValidOauthUser(info.Subject, "", []string{}), true)
-	test.IsEqualBool(t, isValidOauthUser(info.Subject, "test1", []string{"test2"}), true)
+	info := OAuthUserInfo{Subject: "randomid"}
+	test.IsEqualBool(t, isValidOauthUser(info, "", []string{}), true)
+	test.IsEqualBool(t, isValidOauthUser(info, "test1", []string{"test2"}), true)
 	authSettings.OAuthUserScope = "user"
 	authSettings.OAuthUsers = []string{"otheruser"}
-	test.IsEqualBool(t, isValidOauthUser(info.Subject, "test1", []string{}), false)
-	test.IsEqualBool(t, isValidOauthUser(info.Subject, "otheruser", []string{}), true)
+	test.IsEqualBool(t, isValidOauthUser(info, "test1", []string{}), false)
+	test.IsEqualBool(t, isValidOauthUser(info, "otheruser", []string{}), true)
 	authSettings.OAuthGroupScope = "group"
 	authSettings.OAuthGroups = []string{"othergroup"}
-	test.IsEqualBool(t, isValidOauthUser(info.Subject, "test1", []string{}), false)
-	test.IsEqualBool(t, isValidOauthUser(info.Subject, "otheruser", []string{}), false)
-	test.IsEqualBool(t, isValidOauthUser(info.Subject, "test1", []string{"testgroup"}), false)
-	test.IsEqualBool(t, isValidOauthUser(info.Subject, "test1", []string{"testgroup", "othergroup"}), false)
-	test.IsEqualBool(t, isValidOauthUser(info.Subject, "otheruser", []string{"othergroup"}), true)
-	test.IsEqualBool(t, isValidOauthUser(info.Subject, "otheruser", []string{"testgroup", "othergroup"}), true)
+	test.IsEqualBool(t, isValidOauthUser(info, "test1", []string{}), false)
+	test.IsEqualBool(t, isValidOauthUser(info, "otheruser", []string{}), false)
+	test.IsEqualBool(t, isValidOauthUser(info, "test1", []string{"testgroup"}), false)
+	test.IsEqualBool(t, isValidOauthUser(info, "test1", []string{"testgroup", "othergroup"}), false)
+	test.IsEqualBool(t, isValidOauthUser(info, "otheruser", []string{"othergroup"}), true)
+	test.IsEqualBool(t, isValidOauthUser(info, "otheruser", []string{"testgroup", "othergroup"}), true)
 	info.Subject = ""
-	test.IsEqualBool(t, isValidOauthUser(info.Subject, "otheruser", []string{"testgroup", "othergroup"}), false)
+	test.IsEqualBool(t, isValidOauthUser(info, "otheruser", []string{"testgroup", "othergroup"}), false)
+}
+
+func TestWildcardMatch(t *testing.T) {
+	type testPattern struct {
+		Pattern string
+		Input   string
+		Result  bool
+	}
+	tests := []testPattern{{
+		Pattern: "test",
+		Input:   "test",
+		Result:  true,
+	}, {
+		Pattern: "test*",
+		Input:   "test",
+		Result:  true,
+	}, {
+		Pattern: "*test",
+		Input:   "test",
+		Result:  true,
+	}, {
+		Pattern: "te*st",
+		Input:   "test",
+		Result:  true,
+	}, {
+		Pattern: "test*",
+		Input:   "1test",
+		Result:  false,
+	}, {
+		Pattern: "*test",
+		Input:   "test1",
+		Result:  false,
+	}, {
+		Pattern: "te*st",
+		Input:   "teeeeeeeest",
+		Result:  true,
+	}, {
+		Pattern: "te*st",
+		Input:   "teast",
+		Result:  true,
+	}, {
+		Pattern: "te*st",
+		Input:   "te@st",
+		Result:  true,
+	}, {
+		Pattern: "*@github.com",
+		Input:   "email@github.com",
+		Result:  true,
+	}, {
+		Pattern: "@github.com",
+		Input:   "email@github.com",
+		Result:  false,
+	}, {
+		Pattern: "@github.com",
+		Input:   "email@gokapi.com",
+		Result:  false,
+	}, {
+		Pattern: "*@github.com",
+		Input:   "email@gokapi.com",
+		Result:  false,
+	}}
+	for _, patternTest := range tests {
+		fmt.Printf("Testing: %s == %s, expecting %v\n", patternTest.Pattern, patternTest.Input, patternTest.Result)
+		result, err := matchesWithWildcard(patternTest.Pattern, patternTest.Input)
+		test.IsNil(t, err)
+		test.IsEqualBool(t, result, patternTest.Result)
+	}
 }
 
 func TestLogout(t *testing.T) {
@@ -133,11 +200,10 @@ func TestLogout(t *testing.T) {
 }
 
 type testInfo struct {
-	Output  []byte
-	Subject string
+	Output []byte
 }
 
-func (t *testInfo) Claims(v interface{}) error {
+func (t testInfo) Claims(v interface{}) error {
 	if t.Output == nil {
 		return errors.New("oidc: claims not set")
 	}
@@ -146,32 +212,42 @@ func (t *testInfo) Claims(v interface{}) error {
 
 func TestCheckOauthUser(t *testing.T) {
 	Init(modelOauth)
-	info := testInfo{Output: []byte(`{"amr":["pwd","hwk","user","pin","mfa"],"aud":["gokapi-dev"],"auth_time":1705573822,"azp":"gokapi-dev","client_id":"gokapi-dev","email":"test@test.com","email_verified":true,"groups":["admins","dev"],"iat":1705577400,"iss":"https://auth.test.com","name":"gokapi","preferred_username":"gokapi","rat":1705577400,"sub":"944444cf3e-0546-44f2-acfa-a94444444360"}`)}
-	output, err := getOuthUserOutput(t, &info, info.Subject)
+	info := OAuthUserInfo{
+		ClaimsSent: testInfo{Output: []byte(`{"amr":["pwd","hwk","user","pin","mfa"],"aud":["gokapi-dev"],"auth_time":1705573822,"azp":"gokapi-dev","client_id":"gokapi-dev","email":"test@test.com","email_verified":true,"groups":["admins","dev"],"iat":1705577400,"iss":"https://auth.test.com","name":"gokapi","preferred_username":"gokapi","rat":1705577400,"sub":"944444cf3e-0546-44f2-acfa-a94444444360"}`)},
+	}
+	output, err := getOuthUserOutput(t, info)
 	test.IsNil(t, err)
 	test.IsEqualString(t, redirectsToSite(output), "error-auth")
+
 	info.Subject = "random"
-	output, err = getOuthUserOutput(t, &info, info.Subject)
+	output, err = getOuthUserOutput(t, info)
 	test.IsNil(t, err)
 	test.IsEqualString(t, redirectsToSite(output), "admin")
+
+	info.Email = "test@test.com"
 	authSettings.OAuthUserScope = "email"
 	authSettings.OAuthUsers = []string{"otheruser"}
-	output, err = getOuthUserOutput(t, &info, info.Subject)
+	output, err = getOuthUserOutput(t, info)
 	test.IsNil(t, err)
 	test.IsEqualString(t, redirectsToSite(output), "error-auth")
+
 	authSettings.OAuthUsers = []string{"test@test.com"}
-	output, err = getOuthUserOutput(t, &info, info.Subject)
+	output, err = getOuthUserOutput(t, info)
 	test.IsNil(t, err)
 	test.IsEqualString(t, redirectsToSite(output), "admin")
+
 	authSettings.OAuthUsers = []string{"otheruser@test"}
-	output, err = getOuthUserOutput(t, &info, info.Subject)
+	output, err = getOuthUserOutput(t, info)
 	test.IsNil(t, err)
 	test.IsEqualString(t, redirectsToSite(output), "error-auth")
+
 	authSettings.OAuthUserScope = "invalidScope"
-	output, err = getOuthUserOutput(t, &info, info.Subject)
+	output, err = getOuthUserOutput(t, info)
 	test.IsNotNil(t, err)
-	info.Output = []byte("{invalid")
-	output, err = getOuthUserOutput(t, &info, info.Subject)
+
+	newClaims := testInfo{Output: []byte("{invalid")}
+	info.ClaimsSent = newClaims
+	output, err = getOuthUserOutput(t, info)
 	test.IsNotNil(t, err)
 }
 
@@ -185,10 +261,10 @@ func redirectsToSite(input string) string {
 	return "other"
 }
 
-func getOuthUserOutput(t *testing.T, info OAuthUserInfo, infoSubject string) (string, error) {
+func getOuthUserOutput(t *testing.T, info OAuthUserInfo) (string, error) {
 	t.Helper()
 	w := httptest.NewRecorder()
-	err := CheckOauthUserAndRedirect(info, infoSubject, w)
+	err := CheckOauthUserAndRedirect(info, w)
 	if err != nil {
 		return "", err
 	}
