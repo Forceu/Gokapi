@@ -174,6 +174,7 @@ Tutorial for configuring OIDC servers and the correct client settings for Gokapi
 * :ref:`oidcconfig_authelia`
 * :ref:`oidcconfig_keycloak`
 * :ref:`oidcconfig_google`
+* :ref:`oidcconfig_entra`
 
 You can find a guide on how to create an OIDC client with Github at `Setting up GitHub OAuth 2.0 <https://docs.readme.com/docs/setting-up-github-oauth>`_ and a guide for Google at `Setting up OAuth 2.0 <https://support.google.com/cloud/answer/6158849>`_.
 

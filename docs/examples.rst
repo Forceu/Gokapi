@@ -301,3 +301,44 @@ Gokapi Configuration
 | Restrict to group       | Unsupported                                      | unchecked                        |
 +-------------------------+--------------------------------------------------+----------------------------------+
 
+
+
+.. _oidcconfig_entra:
+
+Microsoft Entra / Azure (WIP)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Server Configuration
+""""""""""""""""""""""
+
+.. note::
+   This guide is a work-in-progress. Filtering users by email or group is not possible yet with this guide. If you have experience with Entra, please let us know on how to configure it to pass email or group membership, so we can add it to the documentation.
+   
+#. Open https://entra.microsoft.com/
+#. Go to Applications / App registration / New registration
+#. Enter name and for redirect values ``Web`` and the Gokapi redirect URL shown in the setup
+#. In Manage / Authentication / Implicit grant and hybrid flows check ``ID Tokens``
+#. In Certificate & secrets / Client secrets click New client secret, enter the value of the secret in Gokapi setup
+#. In Application / API permissions / click Grant admin consent.
+#. The client ID shown in Application Overview / Application (client) ID
+#. The provider URL is ``https://login.microsoftonline.com/REALM/v2.0/``, replace ``REALM`` with the tenant id shown in Application Overview / Directory (tenant) ID (see also https://learn.microsoft.com/en-us/entra/identity-platform/v2-protocols-oidc for other options)
+
+
+Gokapi Configuration
+""""""""""""""""""""""
+
++----------------------+-------------------------------------------------------------------+-----------------------------------------------------------------------------+
+| Gokapi Configuration | Input                                                             | Example                                                                     |
++======================+===================================================================+=============================================================================+
+| Provider URL         | \https://login.microsoftonline.com/REALM/v2.0/, replace ``REALM`` | \https://login.microsoftonline.com/abcdef-1234-4678-9540-abcdefabcdef/v2.0/ |
++----------------------+-------------------------------------------------------------------+-----------------------------------------------------------------------------+
+| Client ID            | Client ID provided                                                | 11111122222-4444-55555-66666-abcdefabcdef                                   |
++----------------------+-------------------------------------------------------------------+-----------------------------------------------------------------------------+
+| Client Secret        | Client secret provided                                            | ach5sho3Ru-Heop7aMaez-example                                               |
++----------------------+-------------------------------------------------------------------+-----------------------------------------------------------------------------+
+| Recheck identity     | Use a low interval.                                               | 12 hours                                                                    |
++----------------------+-------------------------------------------------------------------+-----------------------------------------------------------------------------+
+| Restrict to user     | Unknown if supported                                              | unchecked                                                                   |
++----------------------+-------------------------------------------------------------------+-----------------------------------------------------------------------------+
+| Restrict to group    | Unknown if supported                                              | unchecked                                                                   |
++----------------------+-------------------------------------------------------------------+-----------------------------------------------------------------------------+
