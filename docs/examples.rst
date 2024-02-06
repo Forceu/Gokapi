@@ -305,14 +305,18 @@ Gokapi Configuration
 
 .. _oidcconfig_entra:
 
-Microsoft Entra / Azure (WIP)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Microsoft Entra / Azure 
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Server Configuration
 """"""""""""""""""""""
 
 .. note::
-   This guide is a work-in-progress. Filtering users by email or group is not possible yet with this guide. If you have experience with Entra, please let us know on how to configure it to pass email or group membership, so we can add it to the documentation.
+    This guide has been last updated in February 2024
+    
+    
+Creating the client
+**********************
    
 #. Open https://entra.microsoft.com/
 #. Go to Applications / App registration / New registration
@@ -322,6 +326,19 @@ Server Configuration
 #. In Application / API permissions / click Grant admin consent.
 #. The client ID shown in Application Overview / Application (client) ID
 #. The provider URL is ``https://login.microsoftonline.com/REALM/v2.0/``, replace ``REALM`` with the tenant id shown in Application Overview / Directory (tenant) ID (see also https://learn.microsoft.com/en-us/entra/identity-platform/v2-protocols-oidc for other options)
+
+
+
+Optional: Restricting Gokapi to specific users or groups:
+*************************************************************
+
+#. Open https://entra.microsoft.com/
+#. Go to Applications / Enterprise Applications and select Gokapi
+#. Go to Manage / Properties and check ``Assignment required?``
+#. Go to Manage / Users & Groups and add the allowed users / groups
+
+
+
 
 
 Gokapi Configuration
@@ -338,7 +355,7 @@ Gokapi Configuration
 +----------------------+-------------------------------------------------------------------+-----------------------------------------------------------------------------+
 | Recheck identity     | Use a low interval.                                               | 12 hours                                                                    |
 +----------------------+-------------------------------------------------------------------+-----------------------------------------------------------------------------+
-| Restrict to user     | Unknown if supported                                              | unchecked                                                                   |
+| Restrict to user     | Unsupported                                                       | unchecked                                                                   |
 +----------------------+-------------------------------------------------------------------+-----------------------------------------------------------------------------+
-| Restrict to group    | Unknown if supported                                              | unchecked                                                                   |
+| Restrict to group    | Unsupported                                                       | unchecked                                                                   |
 +----------------------+-------------------------------------------------------------------+-----------------------------------------------------------------------------+
