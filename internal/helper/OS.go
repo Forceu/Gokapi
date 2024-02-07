@@ -8,6 +8,7 @@ import (
 	"bufio"
 	"errors"
 	"golang.org/x/term"
+	"log"
 	"os"
 	"syscall"
 )
@@ -56,11 +57,23 @@ func ReadPassword() string {
 	return ReadLine()
 }
 
-// Check panics if error is not nil
-func Check(e error) {
-	if e != nil {
-		panic(e)
+// Check panics if err is not nil
+func Check(err error) {
+	if err != nil {
+		panic(err)
 	}
+}
+
+// CheckIgnoreTimeout panics if err is not nil and not a timeout
+func CheckIgnoreTimeout(err error) {
+	if err == nil {
+		return
+	}
+	if os.IsTimeout(err) {
+		log.Println(err)
+		return
+	}
+	Check(err)
 }
 
 // IsInArray returns true if value is in array
@@ -86,4 +99,4 @@ func GetFileSize(file *os.File) (int64, error) {
 var ErrPathDoesNotExist = errors.New("path does not exist")
 
 // ErrPathIsNotDir is raised if the requested path is not a directory
-var ErrPathIsNotDir = errors.New("path is not a directoryt")
+var ErrPathIsNotDir = errors.New("path is not a directory")

@@ -202,7 +202,7 @@ func serveDownloadWasm(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("content-type", "application/wasm")
 	file, err := wasmDownloadFile.ReadFile("web/main.wasm")
 	helper.Check(err)
-	w.Write(file)
+	_, _ = w.Write(file)
 }
 
 // Handling of /e2e.wasm
@@ -211,7 +211,7 @@ func serveE2EWasm(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("content-type", "application/wasm")
 	file, err := wasmE2EFile.ReadFile("web/e2e.wasm")
 	helper.Check(err)
-	w.Write(file)
+	_, _ = w.Write(file)
 }
 
 // Handling of /logout
@@ -222,7 +222,7 @@ func doLogout(w http.ResponseWriter, r *http.Request) {
 // Handling of /index and redirecting to globalConfig.RedirectUrl
 func showIndex(w http.ResponseWriter, r *http.Request) {
 	err := templateFolder.ExecuteTemplate(w, "index", genericView{RedirectUrl: configuration.Get().RedirectUrl, PublicName: configuration.Get().PublicName})
-	helper.Check(err)
+	helper.CheckIgnoreTimeout(err)
 }
 
 // Handling of /error
@@ -239,13 +239,13 @@ func showError(w http.ResponseWriter, r *http.Request) {
 		errorReason = wrongCipher
 	}
 	err := templateFolder.ExecuteTemplate(w, "error", genericView{ErrorId: errorReason, PublicName: configuration.Get().PublicName})
-	helper.Check(err)
+	helper.CheckIgnoreTimeout(err)
 }
 
 // Handling of /error-auth
 func showErrorAuth(w http.ResponseWriter, r *http.Request) {
 	err := templateFolder.ExecuteTemplate(w, "error_auth", genericView{PublicName: configuration.Get().PublicName})
-	helper.Check(err)
+	helper.CheckIgnoreTimeout(err)
 }
 
 // Handling of /error-oauth
@@ -256,20 +256,20 @@ func showErrorIntOAuth(w http.ResponseWriter, r *http.Request) {
 	view.ErrorProvidedMessage = r.URL.Query().Get("error_description")
 	view.ErrorGenericMessage = r.URL.Query().Get("error_generic")
 	err := templateFolder.ExecuteTemplate(w, "error_int_oauth", view)
-	helper.Check(err)
+	helper.CheckIgnoreTimeout(err)
 }
 
 // Handling of /forgotpw
 func forgotPassword(w http.ResponseWriter, r *http.Request) {
 	err := templateFolder.ExecuteTemplate(w, "forgotpw", genericView{PublicName: configuration.Get().PublicName})
-	helper.Check(err)
+	helper.CheckIgnoreTimeout(err)
 }
 
 // Handling of /api
 // If user is authenticated, this menu lists all uploads and enables uploading new files
 func showApiAdmin(w http.ResponseWriter, r *http.Request) {
 	err := templateFolder.ExecuteTemplate(w, "api", (&UploadView{}).convertGlobalConfig(ViewAPI))
-	helper.Check(err)
+	helper.CheckIgnoreTimeout(err)
 }
 
 // Handling of /apiNew
@@ -310,7 +310,11 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	err := r.ParseForm()
-	helper.Check(err)
+	if err != nil {
+		fmt.Println("Invalid form data sent to server for /login")
+		fmt.Println(err)
+		return
+	}
 	user := r.Form.Get("username")
 	pw := r.Form.Get("password")
 	failedLogin := false
@@ -333,7 +337,7 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 		IsAdminView:   false,
 		PublicName:    configuration.Get().PublicName,
 	})
-	helper.Check(err)
+	helper.CheckIgnoreTimeout(err)
 }
 
 // LoginView contains variables for the login template
@@ -389,7 +393,7 @@ func showDownload(w http.ResponseWriter, r *http.Request) {
 			}
 			view.IsPasswordView = true
 			err := templateFolder.ExecuteTemplate(w, "download_password", view)
-			helper.Check(err)
+			helper.CheckIgnoreTimeout(err)
 			return
 		}
 		if !isValidPwCookie(r, file) {
@@ -400,7 +404,7 @@ func showDownload(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	err := templateFolder.ExecuteTemplate(w, "download", view)
-	helper.Check(err)
+	helper.CheckIgnoreTimeout(err)
 }
 
 // Handling of /hotlink/
@@ -411,8 +415,7 @@ func showHotlink(w http.ResponseWriter, r *http.Request) {
 	file, ok := storage.GetFileByHotlink(hotlinkId)
 	if !ok {
 		w.Header().Set("Content-Type", "image/svg+xml")
-		_, err := w.Write(imageExpiredPicture)
-		helper.Check(err)
+		_, _ = w.Write(imageExpiredPicture)
 		return
 	}
 	storage.ServeFile(file, w, r, false)
@@ -464,9 +467,9 @@ func storeE2eInfo(w http.ResponseWriter, r *http.Request) {
 
 func getE2eInfo(w http.ResponseWriter) {
 	info := database.GetEnd2EndInfo()
-	bytes, err := json.Marshal(info)
+	bytesE2e, err := json.Marshal(info)
 	helper.Check(err)
-	_, _ = w.Write(bytes)
+	_, _ = w.Write(bytesE2e)
 }
 
 // Handling of /delete
@@ -505,14 +508,14 @@ func showAdminMenu(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	err := templateFolder.ExecuteTemplate(w, "admin", (&UploadView{}).convertGlobalConfig(ViewMain))
-	helper.Check(err)
+	helper.CheckIgnoreTimeout(err)
 }
 
 // Handling of /logs
 // If user is authenticated, this menu shows the stored logs
 func showLogs(w http.ResponseWriter, r *http.Request) {
 	err := templateFolder.ExecuteTemplate(w, "logs", (&UploadView{}).convertGlobalConfig(ViewLogs))
-	helper.Check(err)
+	helper.CheckIgnoreTimeout(err)
 }
 
 func showE2ESetup(w http.ResponseWriter, r *http.Request) {
@@ -522,7 +525,7 @@ func showE2ESetup(w http.ResponseWriter, r *http.Request) {
 	}
 	e2einfo := database.GetEnd2EndInfo()
 	err := templateFolder.ExecuteTemplate(w, "e2esetup", e2ESetupView{HasBeenSetup: e2einfo.HasBeenSetUp(), PublicName: configuration.Get().PublicName})
-	helper.Check(err)
+	helper.CheckIgnoreTimeout(err)
 }
 
 // DownloadView contains parameters for the download template
@@ -703,8 +706,7 @@ func requireLogin(next http.HandlerFunc, isUpload bool) http.HandlerFunc {
 			return
 		}
 		if isUpload {
-			_, err := io.WriteString(w, "{\"Result\":\"error\",\"ErrorMessage\":\"Not authenticated\"}")
-			helper.Check(err)
+			_, _ = io.WriteString(w, "{\"Result\":\"error\",\"ErrorMessage\":\"Not authenticated\"}")
 			return
 		}
 		redirect(w, "login")

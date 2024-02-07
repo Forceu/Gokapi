@@ -189,9 +189,8 @@ func getFormValueBool(formObjects *[]jsonFormObject, key string) (bool, error) {
 		valueHidden, err2 := getFormValueString(formObjects, key+".unchecked")
 		if err2 != nil {
 			return false, err
-		} else {
-			value = valueHidden
 		}
+		value = valueHidden
 	}
 	if value == "0" || value == "false" {
 		return false, nil

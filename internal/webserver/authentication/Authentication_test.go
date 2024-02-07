@@ -242,12 +242,12 @@ func TestCheckOauthUser(t *testing.T) {
 	test.IsEqualString(t, redirectsToSite(output), "error-auth")
 
 	authSettings.OAuthUserScope = "invalidScope"
-	output, err = getOuthUserOutput(t, info)
+	_, err = getOuthUserOutput(t, info)
 	test.IsNotNil(t, err)
 
 	newClaims := testInfo{Output: []byte("{invalid")}
 	info.ClaimsSent = newClaims
-	output, err = getOuthUserOutput(t, info)
+	_, err = getOuthUserOutput(t, info)
 	test.IsNotNil(t, err)
 }
 
