@@ -7,6 +7,16 @@ Changelog
 Overview of all Changes
 -----------------------
 
+v1.8.1: 7 Feb 2024
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* Reworked OIDC authentication, added support for Groups, use consent instead of selec_account, better error handling
+* Added wildcard support for OIDC groups and users
+* Fixed crash on client timeout #125
+* Added /auth/create API endpoint for creating API keys
+* Minor changes and fixes
+
+
 v1.8.0: 9 Dec 2023
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 * Changed Database to Sqlite3
