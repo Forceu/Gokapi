@@ -34,7 +34,7 @@
           "files"
         ],
         "summary": "Lists all files",
-        "description": "This API call lists all files that are not expired. Requires permission VIEW",
+        "description": "This API call lists all files that are not expired. Returns null, if no files are stored. Requires permission VIEW",
         "operationId": "list",
         "security": [
           {
@@ -51,6 +51,7 @@
               "application/json": {
                 "schema": {
                   "type": "array",
+                  "nullable": true,
                   "items": {
                     "$ref": "#/components/schemas/File"
                   }
@@ -237,7 +238,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UploadResult"
+                  "$ref": "#/components/schemas/File"
                 }
               }
             }
@@ -320,7 +321,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UploadResult"
+                  "$ref": "#/components/schemas/File"
                 }
               }
             }
@@ -369,6 +370,52 @@
           },
           "400": {
             "description": "Invalid ID supplied"
+          },
+          "401": {
+            "description": "Invalid API key provided or not logged in as admin"
+          }
+        }
+      }
+    },
+    "/auth/create": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Creates a new API key",
+        "description": "This API call returns a new API key. The new key does not have any permissions. Requires permission API_MOD",
+        "operationId": "create",
+        "security": [
+          {
+            "apikey": ["API_MANAGE"]
+          },
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "friendlyName",
+            "in": "header",
+            "description": "The friendly name of the key",
+            "required": false,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NewApiKey"
+                }
+              }
+            }
           },
           "401": {
             "description": "Invalid API key provided or not logged in as admin"
@@ -502,56 +549,72 @@
         "type": "object",
         "properties": {
           "Id": {
-            "type": "string"
+            "type": "string",
+            "example": "oNleRD3pUZgaDKn"
           },
           "Name": {
-            "type": "string"
+            "type": "string",
+            "example": "Test File.jpg"
           },
           "Size": {
-            "type": "string"
+            "type": "string",
+            "example": "395.4 kB"
           },
           "SizeBytes": {
             "type": "integer",
-            "format": "int64"
+            "format": "int64",
+            "example": "404843"
           },
           "HotlinkId": {
-            "type": "string"
+            "type": "string",
+            "example": "tDMs0U8MvRFwK69PfjagI7F87C13UVeQuOGDvtCG.jpg"
           },
           "ContentType": {
-            "type": "string"
+            "type": "string",
+            "example": "image/jpeg"
           },
           "ExpireAt": {
             "type": "integer",
-            "format": "int64"
+            "format": "int64",
+            "example": "1708175321"
           },
           "ExpireAtString": {
-            "type": "string"
+            "type": "string",
+            "example": "2024-02-17 14:08"
           },
           "DownloadsRemaining": {
             "type": "integer",
-            "format": "int64"
+            "format": "int64",
+            "example": "4"
           },
           "DownloadCount": {
             "type": "integer",
-            "format": "int64"
+            "format": "int64",
+            "example": "1"
           },
           "UnlimitedDownloads": {
-            "type": "boolean"
+            "type": "boolean",
+            "example": "false"
           },
           "UnlimitedTime": {
-            "type": "boolean"
+            "type": "boolean",
+            "example": "false"
           },
           "RequiresClientSideDecryption": {
-            "type": "boolean"
+            "type": "boolean",
+            "example": "false"
           },
           "IsEncrypted": {
-            "type": "boolean"
+            "type": "boolean",
+            "example": "false"
           },
           "IsPasswordProtected": {
-            "type": "boolean"
+            "type": "boolean",
+            "example": "false"
           },
           "IsSavedOnLocalStorage": {
-            "type": "boolean"
+            "type": "boolean",
+            "example": "true"
           }
         },
         "description": "File is a struct used for saving information about an uploaded file",
@@ -561,7 +624,8 @@
         "type": "object",
         "properties": {
           "Result": {
-            "type": "string"
+            "type": "string",
+            "example": "OK"
             }
         },
         "description": "Result after uploading a chunk",
@@ -571,22 +635,44 @@
         "type": "object",
         "properties": {
           "Result": {
-            "type": "string"
+            "type": "string",
+            "example": "OK"
           },
           "FileInfo": {
             "$ref": "#/components/schemas/File"
           },
           "HotlinkUrl": {
-            "type": "string"
+            "type": "string",
+            "description": "Always the base URL for all hotlinks",
+            "example": "http://localhost:53842/hotlink/"
           },
           "Url": {
-            "type": "string"
+            "type": "string",
+            "description": "Always the base URL for all regular downloads",
+            "example": "http://localhost:53842/d?id="
           },
           "GenericHotlinkUrl": {
-            "type": "string"
+            "type": "string",
+            "description": "Always the base URL for all hotlinks that are no pictures",
+            "example": "http://localhost:53842/downloadFile?id="
           }
         },
         "description": "UploadResult is the struct used for the result after an upload",
+        "x-go-package": "Gokapi/internal/models"
+      },
+      "NewApiKey": {
+        "type": "object",
+        "properties": {
+          "Result": {
+            "type": "string",
+            "example": "OK"
+          },
+          "Id": {
+            "type": "string",
+            "example": "ar3iecahghiethiemeeR"
+          }
+        },
+        "description": "NewApiKey is the struct used for the result after creating a new API key",
         "x-go-package": "Gokapi/internal/models"
       },
       "body": {

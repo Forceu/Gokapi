@@ -274,7 +274,7 @@ func showApiAdmin(w http.ResponseWriter, r *http.Request) {
 
 // Handling of /apiNew
 func newApiKey(w http.ResponseWriter, r *http.Request) {
-	api.NewKey()
+	api.NewKey(true)
 	redirect(w, "apiKeys")
 }
 

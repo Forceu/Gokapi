@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/helper"
@@ -39,6 +40,8 @@ func Process(w http.ResponseWriter, r *http.Request, maxMemory int) {
 		duplicateFile(w, request)
 	case "/files/modify":
 		editFile(w, request)
+	case "/auth/create":
+		createApiKey(w, request)
 	case "/auth/friendlyname":
 		changeFriendlyName(w, request)
 	case "/auth/modify":
@@ -105,6 +108,8 @@ func getApiPermissionRequired(requestUrl string) (uint8, bool) {
 		return models.ApiPermUpload, true
 	case "/files/modify":
 		return models.ApiPermEdit, true
+	case "/auth/create":
+		return models.ApiPermApiMod, true
 	case "/auth/friendlyname":
 		return models.ApiPermApiMod, true
 	case "/auth/modify":
@@ -124,12 +129,15 @@ func DeleteKey(id string) bool {
 }
 
 // NewKey generates a new API key
-func NewKey() string {
+func NewKey(defaultPermissions bool) string {
 	newKey := models.ApiKey{
 		Id:           helper.GenerateRandomString(30),
 		FriendlyName: "Unnamed key",
 		LastUsed:     0,
 		Permissions:  models.ApiPermAllNoApiMod,
+	}
+	if !defaultPermissions {
+		newKey.Permissions = models.ApiPermNone
 	}
 	database.SaveApiKey(newKey)
 	return newKey.Id
@@ -167,22 +175,47 @@ func isValidKeyForEditing(w http.ResponseWriter, request apiRequest) bool {
 	return true
 }
 
+func createApiKey(w http.ResponseWriter, request apiRequest) {
+	key := NewKey(false)
+	output := models.ApiKeyOutput{
+		Result: "OK",
+		Id:     key,
+	}
+	if request.apiInfo.friendlyName != "" {
+		err := renameApiKeyFriendlyName(key, request.apiInfo.friendlyName)
+		if err != nil {
+			sendError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+	result, err := json.Marshal(output)
+	helper.Check(err)
+	_, _ = w.Write(result)
+}
+
 func changeFriendlyName(w http.ResponseWriter, request apiRequest) {
 	if !isValidKeyForEditing(w, request) {
 		return
 	}
-	if request.apiInfo.friendlyName == "" {
-		request.apiInfo.friendlyName = "Unnamed key"
+	err := renameApiKeyFriendlyName(request.apiInfo.apiKeyToModify, request.apiInfo.friendlyName)
+	if err != nil {
+		sendError(w, http.StatusInternalServerError, err.Error())
 	}
-	key, ok := database.GetApiKey(request.apiInfo.apiKeyToModify)
+}
+
+func renameApiKeyFriendlyName(id string, newName string) error {
+	if newName == "" {
+		newName = "Unnamed key"
+	}
+	key, ok := database.GetApiKey(id)
 	if !ok {
-		sendError(w, http.StatusInternalServerError, "Could not modify API key")
-		return
+		return errors.New("could not modify API key")
 	}
-	if key.FriendlyName != request.apiInfo.friendlyName {
-		key.FriendlyName = request.apiInfo.friendlyName
+	if key.FriendlyName != newName {
+		key.FriendlyName = newName
 		database.SaveApiKey(key)
 	}
+	return nil
 }
 
 func deleteFile(w http.ResponseWriter, request apiRequest) {

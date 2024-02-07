@@ -39,10 +39,16 @@ const maxMemory = 20
 var newKeyId string
 
 func TestNewKey(t *testing.T) {
-	newKeyId = NewKey()
+	newKeyId = NewKey(true)
 	key, ok := database.GetApiKey(newKeyId)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualString(t, key.FriendlyName, "Unnamed key")
+	test.IsEqualBool(t, key.Permissions == models.ApiPermAllNoApiMod, true)
+
+	newKeyId = NewKey(false)
+	key, ok = database.GetApiKey(newKeyId)
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualBool(t, key.Permissions == models.ApiPermNone, true)
 }
 
 func TestDeleteKey(t *testing.T) {

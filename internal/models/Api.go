@@ -73,3 +73,8 @@ func (key *ApiKey) HasPermissionApiMod() bool {
 func (key *ApiKey) HasPermissionEdit() bool {
 	return key.HasPermission(ApiPermEdit)
 }
+
+type ApiKeyOutput struct {
+	Result string
+	Id     string
+}
