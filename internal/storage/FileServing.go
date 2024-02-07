@@ -296,7 +296,7 @@ func createNewMetaData(hash string, fileHeader chunking.FileHeader, uploadReques
 			aws.AddBucketName(&file)
 		}
 	}
-	addHotlink(&file)
+	AddHotlink(&file)
 	return file
 }
 
@@ -369,7 +369,7 @@ func DuplicateFile(file models.File, parametersToChange int, newFileName string,
 
 	newFile.Id = createNewId()
 	newFile.DownloadCount = 0
-	addHotlink(&file)
+	AddHotlink(&file)
 
 	database.SaveMetaData(newFile)
 	return newFile, nil
@@ -460,20 +460,27 @@ func isEncryptionRequested() bool {
 
 var imageFileExtensions = []string{".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg", ".tiff", ".tif", ".ico"}
 
-// If file is an image, create link for hotlinking
-func addHotlink(file *models.File) {
-	if file.RequiresClientDecryption() {
-		return
-	}
-	if file.PasswordHash != "" {
-		return
-	}
-	if !isPictureFile(file.Name) {
+// AddHotlink will first check if the file may use a hotlink (e.g. not encrypted or password-protected).
+// If file is an image, it will generate a new hotlink in the database and add it to the parameter file
+// Otherwise no changes will be made
+func AddHotlink(file *models.File) {
+	if !IsAbleHotlink(*file) {
 		return
 	}
 	link := helper.GenerateRandomString(40) + getFileExtension(file.Name)
 	file.HotlinkId = link
 	database.SaveHotlink(*file)
+}
+
+// IsAbleHotlink returns true, if the file may use hotlinks (e.g. an image file that is not encrypted or password-protected).
+func IsAbleHotlink(file models.File) bool {
+	if file.RequiresClientDecryption() {
+		return false
+	}
+	if file.PasswordHash != "" {
+		return false
+	}
+	return isPictureFile(file.Name)
 }
 
 func getFileExtension(filename string) string {
@@ -628,6 +635,7 @@ func CleanUp(periodic bool) {
 		CleanUp(false)
 	}
 	cleanOldTempFiles()
+	cleanHotlinks()
 	database.RunGarbageCollection()
 
 	if periodic {
@@ -637,6 +645,16 @@ func CleanUp(periodic bool) {
 				CleanUp(periodic)
 			}
 		}()
+	}
+}
+
+func cleanHotlinks() {
+	hotlinks := database.GetAllHotlinks()
+	for _, hotlink := range hotlinks {
+		_, ok := GetFileByHotlink(hotlink)
+		if !ok {
+			database.DeleteHotlink(hotlink)
+		}
 	}
 }
 

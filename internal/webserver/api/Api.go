@@ -58,13 +58,13 @@ func editFile(w http.ResponseWriter, request apiRequest) {
 		return
 	}
 	if request.filemodInfo.downloads != "" {
-		dowloadsInt, err := strconv.Atoi(request.filemodInfo.downloads)
+		downloadsInt, err := strconv.Atoi(request.filemodInfo.downloads)
 		if err != nil {
 			sendError(w, http.StatusBadRequest, "Invalid download count provided.")
 			return
 		}
-		if dowloadsInt != 0 {
-			file.DownloadsRemaining = dowloadsInt
+		if downloadsInt != 0 {
+			file.DownloadsRemaining = downloadsInt
 			file.UnlimitedDownloads = false
 		} else {
 			file.UnlimitedDownloads = true
@@ -88,6 +88,14 @@ func editFile(w http.ResponseWriter, request apiRequest) {
 	if !request.filemodInfo.originalPassword {
 		file.PasswordHash = configuration.HashPassword(request.filemodInfo.password, true)
 	}
+
+	if file.HotlinkId != "" && !storage.IsAbleHotlink(file) {
+		database.DeleteHotlink(file.HotlinkId)
+		file.HotlinkId = ""
+	} else if file.HotlinkId == "" && storage.IsAbleHotlink(file) {
+		storage.AddHotlink(&file)
+	}
+
 	database.SaveMetaData(file)
 	outputFileInfo(w, file)
 }
