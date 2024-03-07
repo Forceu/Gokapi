@@ -12,20 +12,18 @@ require (
 	github.com/juju/ratelimit v1.0.2
 	github.com/r3labs/sse/v2 v2.10.0
 	github.com/secure-io/sio-go v0.3.1
-	golang.org/x/crypto v0.18.0
+	golang.org/x/crypto v0.19.0
 	golang.org/x/oauth2 v0.16.0
 	golang.org/x/sync v0.6.0
-	golang.org/x/term v0.16.0
+	golang.org/x/term v0.17.0
 	gopkg.in/yaml.v3 v3.0.1
 	modernc.org/sqlite v1.28.0
-	github.com/tdewolff/minify/v2 v2.20.7
-	github.com/tdewolff/parse/v2 v2.7.5
 )
 
 require (
 	github.com/abcum/lcp v0.0.0-20201209214815-7a3f3840be81 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
-	github.com/go-jose/go-jose/v3 v3.0.1 // indirect
+	github.com/go-jose/go-jose/v3 v3.0.3 // indirect
 	github.com/gofrs/flock v0.8.1 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/uuid v1.5.0 // indirect
@@ -59,5 +57,5 @@ require (
 
 require (
 	github.com/coreos/go-oidc/v3 v3.9.0
-	golang.org/x/sys v0.16.0 // indirect
+	golang.org/x/sys v0.17.0 // indirect
 )
