@@ -1,0 +1,30 @@
+name: Docker Publish Custom Release Multiarch
+
+on:
+  workflow_dispatch:
+    inputs:
+      tagname:
+        description: 'Tag name to be built'
+        required: true
+
+
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v4
+        with:
+            fetch-depth: 0
+      - run: git checkout tags/${{ github.event.inputs.tagname }}
+      - name: install buildx
+        id: buildx
+        uses: crazy-max/ghaction-docker-buildx@v1
+        with:
+          version: latest
+      - name: login to docker hub
+        run: echo "${{ secrets.DOCKER_PW }}" | docker login -u "${{ secrets.DOCKER_USER }}" --password-stdin
+      - name: build and push the image
+        run: |
+          docker buildx build --push --tag f0rc3/gokapi:${{ github.event.inputs.tagname }} --platform linux/386,linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64 .

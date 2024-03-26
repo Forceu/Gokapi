@@ -1,4 +1,4 @@
-FROM golang:1.22.1 AS build_base
+FROM golang:1.22 AS build_base
 
 ## Usage:
 ## docker build . -t gokapi
@@ -12,7 +12,7 @@ COPY . /compile
 
 RUN cd /compile && go generate ./... && CGO_ENABLED=0 go build -ldflags="-s -w -X 'github.com/forceu/gokapi/internal/environment.IsDocker=true' -X 'github.com/forceu/gokapi/internal/environment.Builder=Project Docker File' -X 'github.com/forceu/gokapi/internal/environment.BuildTime=$(date)'" -o /compile/gokapi github.com/forceu/gokapi/cmd/gokapi
 
-FROM alpine:3.13
+FROM alpine:3.19
 
 
 RUN apk add ca-certificates curl && mkdir /app && touch /app/.isdocker
