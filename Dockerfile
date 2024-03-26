@@ -1,4 +1,4 @@
-FROM golang:1.22 AS build_base
+FROM golang:1.22.1-alpine AS build_base
 
 ## Usage:
 ## docker build . -t gokapi
