@@ -293,9 +293,6 @@ func parseOAuthSettings(result *models.Configuration, formObjects *[]jsonFormObj
 	if err != nil {
 		return err
 	}
-	if strings.HasSuffix(result.Authentication.OAuthProvider, "/") {
-		result.Authentication.OAuthProvider = strings.TrimRight(result.Authentication.OAuthProvider, "/")
-	}
 
 	result.Authentication.OAuthClientId, err = getFormValueString(formObjects, "oauth_id")
 	if err != nil {
