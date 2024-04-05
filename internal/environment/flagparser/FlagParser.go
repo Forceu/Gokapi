@@ -53,6 +53,8 @@ func ParseFlags() MainFlags {
 	})
 	disableCorsCheck := passedFlags.Bool("disable-cors-check", false, "Disables the CORS check on startup")
 
+	installService := passedFlags.Bool("install-service", false, "Installs Gokapi as a service")
+
 	passedFlags.Usage = showUsage(passedFlags, aliases)
 	err := passedFlags.Parse(os.Args[1:])
 
@@ -72,6 +74,7 @@ func ParseFlags() MainFlags {
 		DataDir:          getAliasedString(dataDirFlagLong, dataDirFlagShort),
 		Port:             getAliasedInt(portFlagLong, portFlagShort),
 		DisableCorsCheck: *disableCorsCheck,
+		InstallService:   *installService,
 	}
 	result.setBoolValues()
 	return result
@@ -127,6 +130,7 @@ type MainFlags struct {
 	IsDataDirSet     bool
 	IsPortSet        bool
 	DisableCorsCheck bool
+	InstallService   bool
 }
 
 func (mf *MainFlags) setBoolValues() {
