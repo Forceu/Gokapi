@@ -45,6 +45,7 @@ func main() {
 	passedFlags := flagparser.ParseFlags()
 	showVersion(passedFlags)
 	fmt.Println(logo)
+	installService(passedFlags)
 	fmt.Println("Gokapi v" + versionGokapi + " starting")
 	setup.RunIfFirstStart()
 	configuration.Load()
@@ -150,6 +151,12 @@ func reconfigureServer(passedFlags flagparser.MainFlags) {
 func createSsl(passedFlags flagparser.MainFlags) {
 	if passedFlags.CreateSsl {
 		ssl.GenerateIfInvalidCert(configuration.Get().ServerUrl, true)
+	}
+}
+
+func installService(passedFlags flagparser.MainFlags) {
+	if passedFlags.InstallService {
+		setup.InstallService()
 	}
 }
 

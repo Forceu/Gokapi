@@ -718,3 +718,35 @@ func handleTestAws(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Write([]byte("Test OK, CORS settings allow encrypted downloads."))
 }
+
+func InstallService() {
+	// Check if running as root
+	if os.Geteuid() != 0 {
+		fmt.Println("This feature requires root privileges.")
+		os.Exit(0)
+	}
+
+	// Check if current system is linux
+	if runtime.GOOS != "linux" {
+		fmt.Println("This feature is only available on Linux systems.")
+		os.Exit(0)
+	}
+	// Check if current system uses systemd
+	if _, err := os.Stat("/lib/systemd/system"); os.IsNotExist(err) {
+		fmt.Println("This feature is only available on systems using systemd.")
+		os.Exit(0)
+	}
+
+	fmt.Println("Installing Gokapi as a service...")
+
+	// Check if the service file already exists
+	if _, err := os.Stat("/lib/systemd/system/gokapi.service"); err == nil {
+		fmt.Println("Service file already exists. Reinstalling it")
+	}
+
+	// TODO Create the service file
+
+	// Exit the program
+	os.Exit(0)
+
+}

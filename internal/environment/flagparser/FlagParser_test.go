@@ -140,6 +140,15 @@ func TestParseFlags(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "InstallServiceFlag",
+			args: []string{"--install-service"},
+			assertion: func(flags MainFlags) {
+				if !flags.InstallService {
+					t.Errorf("Expected InstallService to be true, got false")
+				}
+			},
+		},
 	}
 
 	for _, testCase := range tests {
