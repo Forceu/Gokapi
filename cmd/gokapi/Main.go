@@ -46,6 +46,7 @@ func main() {
 	showVersion(passedFlags)
 	fmt.Println(logo)
 	installService(passedFlags)
+	uninstallService(passedFlags)
 	fmt.Println("Gokapi v" + versionGokapi + " starting")
 	setup.RunIfFirstStart()
 	configuration.Load()
@@ -157,6 +158,12 @@ func createSsl(passedFlags flagparser.MainFlags) {
 func installService(passedFlags flagparser.MainFlags) {
 	if passedFlags.InstallService {
 		setup.InstallService()
+	}
+}
+
+func uninstallService(passedFlags flagparser.MainFlags) {
+	if passedFlags.UninstallService {
+		setup.UninstallService()
 	}
 }
 

@@ -824,3 +824,68 @@ WantedBy=multi-user.target`
 	os.Exit(0)
 
 }
+
+// UninstallService uninstalls Gokapi as a systemd service
+func UninstallService() {
+	// Check if running as root
+	if os.Geteuid() != 0 {
+		fmt.Println("This feature requires root privileges.")
+		os.Exit(0)
+	}
+
+	// Check if current system is linux
+	if runtime.GOOS != "linux" {
+		fmt.Println("This feature is only available on Linux systems.")
+		os.Exit(0)
+	}
+	// Check if current system uses systemd
+	if _, err := os.Stat("/lib/systemd/system"); os.IsNotExist(err) {
+		fmt.Println("This feature is only available on systems using systemd.")
+		os.Exit(0)
+	}
+
+	fmt.Println("Uninstalling Gokapi as a service...")
+
+	// Check if the service file exists
+	if _, err := os.Stat("/lib/systemd/system/gokapi.service"); os.IsNotExist(err) {
+		fmt.Println("Service does not exist in systemd. Nothing to uninstall.")
+		os.Exit(0)
+	}
+
+	// Stop the service
+	fmt.Println("Stopping the service...")
+	err := exec.Command("systemctl", "stop", "gokapi.service").Run()
+	if err != nil {
+		fmt.Println("Error stopping service: ", err)
+		os.Exit(0)
+	}
+
+	// Disable the service
+	fmt.Println("Disabling the service...")
+	err = exec.Command("systemctl", "disable", "gokapi.service").Run()
+	if err != nil {
+		fmt.Println("Error disabling service: ", err)
+		os.Exit(0)
+	}
+
+	// Remove the service file
+	fmt.Println("Removing the service file...")
+	err = os.Remove("/lib/systemd/system/gokapi.service")
+	if err != nil {
+		fmt.Println("Error removing service file: ", err)
+		os.Exit(0)
+	}
+
+	// Reload systemd
+	fmt.Println("Reloading systemd...")
+	err = exec.Command("systemctl", "daemon-reload").Run()
+	if err != nil {
+		fmt.Println("Error reloading systemd: ", err)
+		os.Exit(0)
+	}
+
+	fmt.Println("Service uninstalled successfully.")
+
+	// Exit the program
+	os.Exit(0)
+}
