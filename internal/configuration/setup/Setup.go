@@ -24,6 +24,8 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -744,7 +746,59 @@ func InstallService() {
 		fmt.Println("Service file already exists. Reinstalling it")
 	}
 
-	// TODO Create the service file
+	// Find the path to the current executable and it's directory
+	executablePath, err := os.Executable()
+	executableDir := filepath.Dir(executablePath)
+
+	// Create the service file
+	serviceFileContents := `[Unit]
+Description=Gokapi
+After=network.target
+
+[Service]
+ExecStart=` + executablePath + `
+WorkingDirectory=` + executableDir + `
+User=yourusername
+Group=yourgroup
+Restart=always
+
+[Install]
+WantedBy=multi-user.target`
+
+	err = os.WriteFile("/lib/systemd/system/gokapi.service", []byte(serviceFileContents), 0644)
+	if err != nil {
+		fmt.Println("Error writing service data to file: ", err)
+		os.Exit(0)
+	}
+
+	// Reload systemd
+	fmt.Println("Reloading systemd...")
+	err = exec.Command("systemctl", "daemon-reload").Run()
+	if err != nil {
+		fmt.Println("Error reloading systemd: ", err)
+		os.Exit(0)
+	}
+
+	// Enable the service
+	fmt.Println("Enabling the service...")
+	err = exec.Command("systemctl", "enable", "gokapi.service").Run()
+	if err != nil {
+		fmt.Println("Error enabling service: ", err)
+		os.Exit(0)
+	}
+
+	// Start the service
+	fmt.Println("Starting the service...")
+	err = exec.Command("systemctl", "start", "gokapi.service").Run()
+	if err != nil {
+		fmt.Println("Error starting service: ", err)
+		os.Exit(0)
+	}
+
+	fmt.Println("Service installed and started successfully.")
+
+	fmt.Println("\nThe Gokapi executable found at " + executablePath + " will now run on startup.")
+	fmt.Println("Please do not remove the executable file from that location or the service will not start.")
 
 	// Exit the program
 	os.Exit(0)
