@@ -50,6 +50,8 @@ var isInitialSetup = true
 var username string
 var password string
 
+// debugDisableAuth can be set to true for testing purposes. It will disable the
+// password requirement for accessing the setup page
 const debugDisableAuth = false
 
 // RunIfFirstStart checks if config files exist and if not start a blocking webserver for setup
@@ -578,6 +580,7 @@ type setupView struct {
 	LocalhostOnly  bool
 	HasAwsFeature  bool
 	IsDocker       bool
+	S3EnvProvided  bool
 	Port           int
 	OAuthUsers     string
 	OAuthGroups    string
@@ -615,6 +618,8 @@ func (v *setupView) loadFromConfig() {
 	} else {
 		v.Port = environment.DefaultPort
 	}
+	env := environment.New()
+	v.S3EnvProvided = env.IsAwsProvided()
 }
 
 // Handling of /start
@@ -674,12 +679,13 @@ func verifyPortNumber(port int) int {
 }
 
 type testAwsRequest struct {
-	Bucket    string `json:"bucket"`
-	Region    string `json:"region"`
-	ApiKey    string `json:"apikey"`
-	ApiSecret string `json:"apisecret"`
-	Endpoint  string `json:"endpoint"`
-	GokapiUrl string `json:"exturl"`
+	Bucket      string `json:"bucket"`
+	Region      string `json:"region"`
+	ApiKey      string `json:"apikey"`
+	ApiSecret   string `json:"apisecret"`
+	Endpoint    string `json:"endpoint"`
+	GokapiUrl   string `json:"exturl"`
+	EnvProvided bool   `json:"isEnvProvided"`
 }
 
 // Handling of /testaws
@@ -691,34 +697,47 @@ func handleTestAws(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Error: " + err.Error()))
 		return
 	}
-	awsconfig := models.AwsConfig{
-		Bucket:    t.Bucket,
-		Region:    t.Region,
-		KeyId:     t.ApiKey,
-		KeySecret: t.ApiSecret,
-		Endpoint:  t.Endpoint,
+	var awsConfig models.AwsConfig
+
+	if !t.EnvProvided {
+		awsConfig = models.AwsConfig{
+			Bucket:    t.Bucket,
+			Region:    t.Region,
+			KeyId:     t.ApiKey,
+			KeySecret: t.ApiSecret,
+			Endpoint:  t.Endpoint,
+		}
+	} else {
+		env := environment.New()
+		awsConfig = models.AwsConfig{
+			Bucket:    env.AwsBucket,
+			Region:    env.AwsRegion,
+			KeyId:     env.AwsKeyId,
+			KeySecret: env.AwsKeySecret,
+			Endpoint:  env.AwsEndpoint,
+		}
 	}
-	ok, err := aws.IsValidLogin(awsconfig)
+	ok, err := aws.IsValidLogin(awsConfig)
 	if err != nil {
-		w.Write([]byte("Error: " + err.Error()))
+		_, _ = w.Write([]byte("Error: " + err.Error()))
 		return
 	}
 	if !ok {
-		w.Write([]byte("Error: Invalid or incomplete credentials provided"))
+		_, _ = w.Write([]byte("Error: Invalid or incomplete credentials provided"))
 		return
 	}
-	aws.Init(awsconfig)
+	aws.Init(awsConfig)
 	ok, err = aws.IsCorsCorrectlySet(t.Bucket, t.GokapiUrl)
 	aws.LogOut()
 	if err != nil {
-		w.Write([]byte("Could not check CORS settings. Error: " + err.Error()))
+		_, _ = w.Write([]byte("Could not check CORS settings. Error: " + err.Error()))
 		return
 	}
 	if !ok {
-		w.Write([]byte("Test OK, however CORS settings do not allow encrypted downloads."))
+		_, _ = w.Write([]byte("Test OK, however CORS settings do not allow encrypted downloads."))
 		return
 	}
-	w.Write([]byte("Test OK, CORS settings allow encrypted downloads."))
+	_, _ = w.Write([]byte("Test OK, CORS settings allow encrypted downloads."))
 }
 
 func InstallService() {

@@ -380,6 +380,7 @@
 				
 					<div class="form-group">
 							<div class="col-sm-8">
+{{ if not .S3EnvProvided }}
 							  <label for="s3_bucket">Bucket Name:</label>
 								<input type="text" class="form-control" id="s3_bucket" name="s3_bucket" placeholder="Bucket Name" data-min="1" data-validate="validateMinLength">
 							</div><br><br>
@@ -399,17 +400,29 @@
 							<div class="col-sm-8">
 							  <label for="s3_endpoint">Endpoint:</label>
 								<input type="text" class="form-control" id="s3_endpoint" name="s3_endpoint" placeholder="Endpoint (leave blank if AWS S3)">
+							<br><br>			  
+	  						 <button id="downloadbutton" class="btn btn-light" type="button" onclick="TestAWS(this, true);">
+			  					Test configuration
+			  				</button>	
+{{ else }}
+							Credentials have been provided with environment variables and cannot be changed.
 							<br><br>
-	  						 <button id="downloadbutton" class="btn btn-light" type="button" onclick="TestAWS(this);">
+	  						 <button id="downloadbutton" class="btn btn-light" type="button" onclick="TestAWS(this, false);">
 			  					Test configuration
 			  				</button>
+			  				<input type="hidden" id="s3_bucket" name="s3_bucket">
+			  				<input type="hidden" id="s3_region" name="s3_region" >
+			  				<input type="hidden" id="s3_api" name="s3_api">
+			  				<input type="hidden" id="s3_secret" name="s3_secret">
+			  				<input type="hidden" id="s3_endpoint" name="s3_endpoint">
+{{ end }}			
 							</div>
 						</div>
 				</div>
 			</div>
 
 <script>
-function TestAWS(button) {
+function TestAWS(button, isManual) {
 	button.disabled=true;
 	button.innerHTML="Connecting...";
 
@@ -421,21 +434,27 @@ function TestAWS(button) {
 				button.disabled=false;
 				alert(xhr.responseText);
 		    	} else {
-			alert("ey");
-			// Server Error
+				alert("Unable to connect to Gokapi server");
 			}
 		}
 	};
 
 	xhr.open("POST", "./testaws", true);
 	xhr.setRequestHeader('Content-Type', 'application/json');
-	xhr.send(JSON.stringify({
-	    bucket: document.getElementById("s3_bucket").value,
-	    region: document.getElementById("s3_region").value,
-	    apikey: document.getElementById("s3_api").value,
-	    apisecret: document.getElementById("s3_secret").value,
-	    endpoint: document.getElementById("s3_endpoint").value
-	}));
+	if (isManual) {
+		xhr.send(JSON.stringify({
+		    bucket: document.getElementById("s3_bucket").value,
+		    region: document.getElementById("s3_region").value,
+		    apikey: document.getElementById("s3_api").value,
+		    apisecret: document.getElementById("s3_secret").value,
+		    endpoint: document.getElementById("s3_endpoint").value,
+		    isEnvProvided: false
+		}));
+	} else {
+		xhr.send(JSON.stringify({
+		    isEnvProvided: true
+		}));
+	}
 
 }
 </script>
@@ -720,11 +739,13 @@ function TestAWS(button) {
 	{{ if .CloudSettings.Aws.Bucket }}				
 				document.getElementById("storage_sel").value = "cloud";
 				storageSelectionChanged(1);
+		{{ if not .S3EnvProvided }}
 				document.getElementById("s3_bucket").value = "{{ .CloudSettings.Aws.Bucket }}";
 				document.getElementById("s3_region").value =  "{{ .CloudSettings.Aws.Region }}";
 				document.getElementById("s3_api").value = "{{ .CloudSettings.Aws.KeyId }}";
 				document.getElementById("s3_secret").value =  "{{ .CloudSettings.Aws.KeySecret }}";
 				document.getElementById("s3_endpoint").value =  "{{ .CloudSettings.Aws.Endpoint }}";
+		{{ end }}
 	{{ end }}
 				
 				
