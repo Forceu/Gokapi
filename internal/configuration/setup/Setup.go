@@ -740,6 +740,7 @@ func handleTestAws(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write([]byte("Test OK, CORS settings allow encrypted downloads."))
 }
 
+// InstallService installs Gokapi as a systemd service
 func InstallService() {
 	// Check if running as root
 	if os.Geteuid() != 0 {
@@ -816,7 +817,7 @@ WantedBy=multi-user.target`
 
 	fmt.Println("Service installed and started successfully.")
 
-	fmt.Println("\nThe Gokapi executable found at " + executablePath + " will now run on startup.")
+	fmt.Println("\nThe Gokapi executable found at " + executablePath + " will now run on startup in the background.")
 	fmt.Println("Please do not remove the executable file from that location or the service will not start.")
 
 	// Exit the program
