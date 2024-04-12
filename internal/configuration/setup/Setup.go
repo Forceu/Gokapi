@@ -748,14 +748,9 @@ func InstallService() {
 		os.Exit(0)
 	}
 
-	// Check if current system is linux
-	if runtime.GOOS != "linux" {
-		fmt.Println("This feature is only available on Linux systems.")
-		os.Exit(0)
-	}
 	// Check if current system uses systemd
 	if _, err := os.Stat("/lib/systemd/system"); os.IsNotExist(err) {
-		fmt.Println("This feature is only available on systems using systemd.")
+		fmt.Println("This feature is only supported on systems using systemd.")
 		os.Exit(0)
 	}
 
@@ -833,14 +828,9 @@ func UninstallService() {
 		os.Exit(0)
 	}
 
-	// Check if current system is linux
-	if runtime.GOOS != "linux" {
-		fmt.Println("This feature is only available on Linux systems.")
-		os.Exit(0)
-	}
 	// Check if current system uses systemd
 	if _, err := os.Stat("/lib/systemd/system"); os.IsNotExist(err) {
-		fmt.Println("This feature is only available on systems using systemd.")
+		fmt.Println("This feature is only supported on systems using systemd.")
 		os.Exit(0)
 	}
 
