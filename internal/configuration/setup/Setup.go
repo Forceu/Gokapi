@@ -746,19 +746,19 @@ func InstallService() {
 	// Check if running as root
 	if os.Geteuid() != 0 {
 		fmt.Println("This feature requires root privileges.")
-		os.Exit(0)
+		os.Exit(1)
 	}
 
 	// Check if current system uses systemd
-	if _, err := os.Stat("/lib/systemd/system"); os.IsNotExist(err) {
+	if _, err := os.Stat("/usr/lib/systemd/system"); os.IsNotExist(err) {
 		fmt.Println("This feature is only supported on systems using systemd.")
-		os.Exit(0)
+		os.Exit(2)
 	}
 
 	fmt.Println("Installing Gokapi as a service...")
 
 	// Check if the service file already exists
-	if _, err := os.Stat("/lib/systemd/system/gokapi.service"); err == nil {
+	if _, err := os.Stat("/usr/lib/systemd/system/gokapi.service"); err == nil {
 		fmt.Println("Service file already exists. Reinstalling it")
 	}
 
@@ -770,7 +770,7 @@ func InstallService() {
 	currentUser, err := user.Current()
 	if err != nil {
 		fmt.Println("Error getting current user: ", err)
-		os.Exit(0)
+		os.Exit(5)
 
 	}
 
@@ -788,10 +788,10 @@ Restart=always
 [Install]
 WantedBy=multi-user.target`
 
-	err = os.WriteFile("/lib/systemd/system/gokapi.service", []byte(serviceFileContents), 0644)
+	err = os.WriteFile("/usr/lib/systemd/system/gokapi.service", []byte(serviceFileContents), 0644)
 	if err != nil {
 		fmt.Println("Error writing service data to file: ", err)
-		os.Exit(0)
+		os.Exit(3)
 	}
 
 	// Reload systemd
@@ -799,7 +799,7 @@ WantedBy=multi-user.target`
 	err = exec.Command("systemctl", "daemon-reload").Run()
 	if err != nil {
 		fmt.Println("Error reloading systemd: ", err)
-		os.Exit(0)
+		os.Exit(4)
 	}
 
 	// Enable the service
@@ -807,7 +807,7 @@ WantedBy=multi-user.target`
 	err = exec.Command("systemctl", "enable", "gokapi.service").Run()
 	if err != nil {
 		fmt.Println("Error enabling service: ", err)
-		os.Exit(0)
+		os.Exit(4)
 	}
 
 	// Start the service
@@ -815,12 +815,11 @@ WantedBy=multi-user.target`
 	err = exec.Command("systemctl", "start", "gokapi.service").Run()
 	if err != nil {
 		fmt.Println("Error starting service: ", err)
-		os.Exit(0)
+		os.Exit(4)
 	}
 
 	fmt.Println("Service installed and started successfully.")
-
-	fmt.Println("\nThe Gokapi executable found at " + executablePath + " will now run on startup in the background.")
+	fmt.Println("The Gokapi executable found at " + executablePath + " will now run on startup in the background.")
 	fmt.Println("Please do not remove the executable file from that location or the service will not start.")
 
 	// Exit the program
@@ -833,21 +832,21 @@ func UninstallService() {
 	// Check if running as root
 	if os.Geteuid() != 0 {
 		fmt.Println("This feature requires root privileges.")
-		os.Exit(0)
+		os.Exit(1)
 	}
 
 	// Check if current system uses systemd
-	if _, err := os.Stat("/lib/systemd/system"); os.IsNotExist(err) {
+	if _, err := os.Stat("/usr/lib/systemd/system"); os.IsNotExist(err) {
 		fmt.Println("This feature is only supported on systems using systemd.")
-		os.Exit(0)
+		os.Exit(2)
 	}
 
 	fmt.Println("Uninstalling Gokapi as a service...")
 
 	// Check if the service file exists
-	if _, err := os.Stat("/lib/systemd/system/gokapi.service"); os.IsNotExist(err) {
+	if _, err := os.Stat("/usr/lib/systemd/system/gokapi.service"); os.IsNotExist(err) {
 		fmt.Println("Service does not exist in systemd. Nothing to uninstall.")
-		os.Exit(0)
+		os.Exit(3)
 	}
 
 	// Stop the service
@@ -855,7 +854,7 @@ func UninstallService() {
 	err := exec.Command("systemctl", "stop", "gokapi.service").Run()
 	if err != nil {
 		fmt.Println("Error stopping service: ", err)
-		os.Exit(0)
+		os.Exit(4)
 	}
 
 	// Disable the service
@@ -863,15 +862,15 @@ func UninstallService() {
 	err = exec.Command("systemctl", "disable", "gokapi.service").Run()
 	if err != nil {
 		fmt.Println("Error disabling service: ", err)
-		os.Exit(0)
+		os.Exit(4)
 	}
 
 	// Remove the service file
 	fmt.Println("Removing the service file...")
-	err = os.Remove("/lib/systemd/system/gokapi.service")
+	err = os.Remove("/usr/lib/systemd/system/gokapi.service")
 	if err != nil {
 		fmt.Println("Error removing service file: ", err)
-		os.Exit(0)
+		os.Exit(4)
 	}
 
 	// Reload systemd
@@ -879,7 +878,7 @@ func UninstallService() {
 	err = exec.Command("systemctl", "daemon-reload").Run()
 	if err != nil {
 		fmt.Println("Error reloading systemd: ", err)
-		os.Exit(0)
+		os.Exit(4)
 	}
 
 	fmt.Println("Service uninstalled successfully.")
