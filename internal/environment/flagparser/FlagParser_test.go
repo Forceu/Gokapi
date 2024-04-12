@@ -149,6 +149,15 @@ func TestParseFlags(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "UninstallServiceFlag",
+			args: []string{"--uninstall-service"},
+			assertion: func(flags MainFlags) {
+				if !flags.UninstallService {
+					t.Errorf("Expected UninstallService to be true, got false")
+				}
+			},
+		},
 	}
 
 	for _, testCase := range tests {
