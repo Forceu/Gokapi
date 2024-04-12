@@ -34,26 +34,6 @@ Create a new folder and in this folder execute
 
 This will compile the source code and create an executable from the latest code.
 
-Install as a service
-"""""""""""""""""""""
-
-**Note:** This feature is currently only supported on UNIX-like systems that use systemd. If you're not sure, try the command anyway and it'll let you know if your system is not supported.
-
-**Important:** Only install Gokapi as a service *after* running it manually first and completing the setup steps under the `Initial Setup section <#initial-setup>`_.
-
-If you want to run Gokapi as a background service that starts on boot, you can use the following command:
-::
-
-  sudo [your_gokapi_executable] --install-service
-
-If you decide later to uninstall the service, you can use the following command:
-::
-
-  sudo [your_gokapi_executable] --uninstall-service
-
-**Note:** If you use either of these commands, all other command line flags will be ignored.
-
-
 Docker
 ^^^^^^^
 
@@ -316,6 +296,32 @@ If you are using Docker, shut down the running instance and create a new tempora
  
 .. note::
    After completing the setup, all users will be logged out
+
+
+
+
+**********************************
+Installing a systemd service
+**********************************
+
+.. warning::
+   Only install Gokapi as a service *after* running it manually first and completing the setup steps under the `Initial Setup section <#initial-setup>`_.
+
+.. note::
+   This feature is currently only supported on UNIX-like systems that use systemd, for unsupported systems an error message will be shown. 
+
+If you want to run Gokapi as a background service that starts on boot, you can use the following command:
+::
+
+  sudo ./gokapi --install-service
+
+If you decide later to uninstall the service, you can use the following command:
+::
+
+  sudo ./gokapi --uninstall-service
+
+By using either of these commands, all other command line flags will be ignored.
+
 
 
 
