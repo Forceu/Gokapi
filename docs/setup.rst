@@ -51,6 +51,8 @@ If you decide later to uninstall the service, you can use the following command:
 
   sudo [your_gokapi_executable] --uninstall-service
 
+**Note:** If you use either of these commands, all other command line flags will be ignored.
+
 
 Docker
 ^^^^^^^

@@ -156,14 +156,25 @@ func createSsl(passedFlags flagparser.MainFlags) {
 }
 
 func installService(passedFlags flagparser.MainFlags) {
-	if passedFlags.InstallService {
+	if passedFlags.InstallService && !passedFlags.UninstallService { // Making sure that both install and uninstall flags aren't both passed in the same command
 		setup.InstallService()
+	} else {
+		if passedFlags.InstallService && passedFlags.UninstallService {
+			fmt.Println("Error: Both install and uninstall flags are set. Please only use one.")
+			osExit(0)
+		}
 	}
 }
 
 func uninstallService(passedFlags flagparser.MainFlags) {
-	if passedFlags.UninstallService {
+	if passedFlags.UninstallService && !passedFlags.InstallService { // Making sure that both install and uninstall flags aren't both passed in the same command
 		setup.UninstallService()
+	} else {
+		if passedFlags.InstallService && passedFlags.UninstallService {
+			fmt.Println("Error: Both install and uninstall flags are set. Please only use one.")
+			osExit(0)
+		}
+
 	}
 }
 

@@ -25,6 +25,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"os/user"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -765,6 +766,14 @@ func InstallService() {
 	executablePath, err := os.Executable()
 	executableDir := filepath.Dir(executablePath)
 
+	// Get the name of the current user
+	currentUser, err := user.Current()
+	if err != nil {
+		fmt.Println("Error getting current user: ", err)
+		os.Exit(0)
+
+	}
+
 	// Create the service file
 	serviceFileContents := `[Unit]
 Description=Gokapi
@@ -773,8 +782,7 @@ After=network.target
 [Service]
 ExecStart=` + executablePath + `
 WorkingDirectory=` + executableDir + `
-User=yourusername
-Group=yourgroup
+User=` + currentUser.Username + `
 Restart=always
 
 [Install]
