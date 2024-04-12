@@ -43,10 +43,10 @@ const versionGokapi = "1.8.1"
 // Main routine that is called on startup
 func main() {
 	passedFlags := flagparser.ParseFlags()
+	handleServiceInstall(passedFlags)
+
 	showVersion(passedFlags)
 	fmt.Println(logo)
-	installService(passedFlags)
-	uninstallService(passedFlags)
 	fmt.Println("Gokapi v" + versionGokapi + " starting")
 	setup.RunIfFirstStart()
 	configuration.Load()
@@ -155,26 +155,18 @@ func createSsl(passedFlags flagparser.MainFlags) {
 	}
 }
 
-func installService(passedFlags flagparser.MainFlags) {
-	if passedFlags.InstallService && !passedFlags.UninstallService { // Making sure that both install and uninstall flags aren't both passed in the same command
-		setup.InstallService()
-	} else {
-		if passedFlags.InstallService && passedFlags.UninstallService {
-			fmt.Println("Error: Both install and uninstall flags are set. Please only use one.")
-			osExit(0)
-		}
+func handleServiceInstall(passedFlags flagparser.MainFlags) {
+	if passedFlags.InstallService && passedFlags.UninstallService {
+		fmt.Println("Error: Both install and uninstall flags are set.")
+		osExit(1)
 	}
-}
-
-func uninstallService(passedFlags flagparser.MainFlags) {
-	if passedFlags.UninstallService && !passedFlags.InstallService { // Making sure that both install and uninstall flags aren't both passed in the same command
+	if passedFlags.InstallService {
+		setup.InstallService()
+		osExit(0)
+	}
+	if passedFlags.UninstallService {
 		setup.UninstallService()
-	} else {
-		if passedFlags.InstallService && passedFlags.UninstallService {
-			fmt.Println("Error: Both install and uninstall flags are set. Please only use one.")
-			osExit(0)
-		}
-
+		osExit(0)
 	}
 }
 
