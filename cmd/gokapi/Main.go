@@ -124,7 +124,10 @@ func initCloudConfig(passedFlags flagparser.MainFlags) {
 		fmt.Println("Saving new files to cloud storage")
 		filesystem.SetAws()
 		encLevel := configuration.Get().Encryption.Level
-		if (encLevel == encryption.FullEncryptionStored || encLevel == encryption.FullEncryptionInput) && !passedFlags.DisableCorsCheck {
+		env := environment.New()
+		corsCheckDisabled := passedFlags.DisableCorsCheck || env.DisableCorsCheck
+		fmt.Println(corsCheckDisabled)
+		if !corsCheckDisabled && (encLevel == encryption.FullEncryptionStored || encLevel == encryption.FullEncryptionInput) {
 			ok, err := aws.IsCorsCorrectlySet(cConfig.Aws.Bucket, configuration.Get().ServerUrl)
 			if err != nil {
 				fmt.Println("Warning: Cannot check CORS settings. " + err.Error())

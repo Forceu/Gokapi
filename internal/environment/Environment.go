@@ -14,20 +14,21 @@ const DefaultPort = 53842
 
 // Environment is a struct containing available env variables
 type Environment struct {
-	ConfigDir     string `env:"CONFIG_DIR" envDefault:"config"`
-	ConfigFile    string `env:"CONFIG_FILE" envDefault:"config.json"`
-	ConfigPath    string
-	DataDir       string `env:"DATA_DIR" envDefault:"data"`
-	WebserverPort int    `env:"PORT" envDefault:"53842"`
-	LengthId      int    `env:"LENGTH_ID" envDefault:"15"`
-	MaxMemory     int    `env:"MAX_MEMORY_UPLOAD" envDefault:"40"`
-	MaxFileSize   int    `env:"MAX_FILESIZE" envDefault:"102400"` // 102400==100GB
-	AwsBucket     string `env:"AWS_BUCKET"`
-	AwsRegion     string `env:"AWS_REGION"`
-	AwsKeyId      string `env:"AWS_KEY"`
-	AwsKeySecret  string `env:"AWS_KEY_SECRET"`
-	AwsEndpoint   string `env:"AWS_ENDPOINT"`
-	DatabaseName  string `env:"DB_NAME" envDefault:"gokapi.sqlite"`
+	ConfigDir        string `env:"CONFIG_DIR" envDefault:"config"`
+	ConfigFile       string `env:"CONFIG_FILE" envDefault:"config.json"`
+	ConfigPath       string
+	DataDir          string `env:"DATA_DIR" envDefault:"data"`
+	WebserverPort    int    `env:"PORT" envDefault:"53842"`
+	LengthId         int    `env:"LENGTH_ID" envDefault:"15"`
+	MaxMemory        int    `env:"MAX_MEMORY_UPLOAD" envDefault:"40"`
+	MaxFileSize      int    `env:"MAX_FILESIZE" envDefault:"102400"` // 102400==100GB
+	AwsBucket        string `env:"AWS_BUCKET"`
+	AwsRegion        string `env:"AWS_REGION"`
+	AwsKeyId         string `env:"AWS_KEY"`
+	AwsKeySecret     string `env:"AWS_KEY_SECRET"`
+	AwsEndpoint      string `env:"AWS_ENDPOINT"`
+	DatabaseName     string `env:"DB_NAME" envDefault:"gokapi.sqlite"`
+	DisableCorsCheck bool   `env:"DISABLE_CORS_CHECK" envDefault:"false"`
 	// Deprecated: will be removed with 1.9
 	LegacyDbPath string
 	// Deprecated: will be removed with 1.9
