@@ -743,17 +743,8 @@ func handleTestAws(w http.ResponseWriter, r *http.Request) {
 
 // InstallService installs Gokapi as a systemd service
 func InstallService() {
-	// Check if running as root
-	if os.Geteuid() != 0 {
-		fmt.Println("This feature requires root privileges.")
-		os.Exit(1)
-	}
-
-	// Check if current system uses systemd
-	if _, err := os.Stat("/usr/lib/systemd/system"); os.IsNotExist(err) {
-		fmt.Println("This feature is only supported on systems using systemd.")
-		os.Exit(2)
-	}
+	checkRunAsRoot()
+	checkSystemdOs()
 
 	fmt.Println("Installing Gokapi as a service...")
 
@@ -775,48 +766,17 @@ func InstallService() {
 	}
 
 	// Create the service file
-	serviceFileContents := `[Unit]
-Description=Gokapi
-After=network.target
+	serviceFileContents := createSystemdFileContent(executablePath, executableDir, currentUser.Username)
 
-[Service]
-ExecStart=` + executablePath + `
-WorkingDirectory=` + executableDir + `
-User=` + currentUser.Username + `
-Restart=always
-
-[Install]
-WantedBy=multi-user.target`
-
-	err = os.WriteFile("/usr/lib/systemd/system/gokapi.service", []byte(serviceFileContents), 0644)
+	err = os.WriteFile("/usr/lib/systemd/system/gokapi.service", serviceFileContents, 0644)
 	if err != nil {
 		fmt.Println("Error writing service data to file: ", err)
 		os.Exit(3)
 	}
 
-	// Reload systemd
-	fmt.Println("Reloading systemd...")
-	err = exec.Command("systemctl", "daemon-reload").Run()
-	if err != nil {
-		fmt.Println("Error reloading systemd: ", err)
-		os.Exit(4)
-	}
-
-	// Enable the service
-	fmt.Println("Enabling the service...")
-	err = exec.Command("systemctl", "enable", "gokapi.service").Run()
-	if err != nil {
-		fmt.Println("Error enabling service: ", err)
-		os.Exit(4)
-	}
-
-	// Start the service
-	fmt.Println("Starting the service...")
-	err = exec.Command("systemctl", "start", "gokapi.service").Run()
-	if err != nil {
-		fmt.Println("Error starting service: ", err)
-		os.Exit(4)
-	}
+	systemctlCmd("daemon-reload")
+	systemctlCmd("enable", "gokapi.service")
+	systemctlCmd("start", "gokapi.service")
 
 	fmt.Println("Service installed and started successfully.")
 	fmt.Println("The Gokapi executable found at " + executablePath + " will now run on startup in the background.")
@@ -829,17 +789,8 @@ WantedBy=multi-user.target`
 
 // UninstallService uninstalls Gokapi as a systemd service
 func UninstallService() {
-	// Check if running as root
-	if os.Geteuid() != 0 {
-		fmt.Println("This feature requires root privileges.")
-		os.Exit(1)
-	}
-
-	// Check if current system uses systemd
-	if _, err := os.Stat("/usr/lib/systemd/system"); os.IsNotExist(err) {
-		fmt.Println("This feature is only supported on systems using systemd.")
-		os.Exit(2)
-	}
+	checkRunAsRoot()
+	checkSystemdOs()
 
 	fmt.Println("Uninstalling Gokapi as a service...")
 
@@ -848,41 +799,61 @@ func UninstallService() {
 		fmt.Println("Service does not exist in systemd. Nothing to uninstall.")
 		os.Exit(3)
 	}
-
-	// Stop the service
-	fmt.Println("Stopping the service...")
-	err := exec.Command("systemctl", "stop", "gokapi.service").Run()
-	if err != nil {
-		fmt.Println("Error stopping service: ", err)
-		os.Exit(4)
-	}
-
-	// Disable the service
-	fmt.Println("Disabling the service...")
-	err = exec.Command("systemctl", "disable", "gokapi.service").Run()
-	if err != nil {
-		fmt.Println("Error disabling service: ", err)
-		os.Exit(4)
-	}
-
+	systemctlCmd("stop", "gokapi.service")
+	systemctlCmd("disable", "gokapi.service")
 	// Remove the service file
 	fmt.Println("Removing the service file...")
-	err = os.Remove("/usr/lib/systemd/system/gokapi.service")
+	err := os.Remove("/usr/lib/systemd/system/gokapi.service")
 	if err != nil {
 		fmt.Println("Error removing service file: ", err)
 		os.Exit(4)
 	}
 
-	// Reload systemd
-	fmt.Println("Reloading systemd...")
-	err = exec.Command("systemctl", "daemon-reload").Run()
-	if err != nil {
-		fmt.Println("Error reloading systemd: ", err)
-		os.Exit(4)
-	}
-
+	systemctlCmd("daemon-reload")
 	fmt.Println("Service uninstalled successfully.")
 
 	// Exit the program
 	os.Exit(0)
+}
+
+// checkRunAsRoot displays an error message and exits the program if not run as root
+func checkRunAsRoot() {
+	if os.Geteuid() != 0 {
+		fmt.Println("This feature requires root privileges.")
+		os.Exit(1)
+	}
+}
+
+// checkSystemdOs displays an error message and exits the program if the OS is not systemd based
+func checkSystemdOs() {
+	if _, err := os.Stat("/usr/lib/systemd/system"); os.IsNotExist(err) {
+		fmt.Println("This feature is only supported on systems using systemd.")
+		os.Exit(2)
+	}
+}
+
+// systemctlCmd runs the command systemctl with the provided arguments. It displays an error message and exits the program
+// if an error is encountered
+func systemctlCmd(arg ...string) {
+	err := exec.Command("systemctl", arg...).Run()
+	if err != nil {
+		fmt.Println("Error executing systemctl "+arg[0]+": ", err)
+		os.Exit(4)
+	}
+}
+
+// createSystemdFileContent returns a byte array with the content of the systemd file to be written
+func createSystemdFileContent(executablePath, executableDir, username string) []byte {
+	return []byte(`[Unit]
+Description=Gokapi
+After=network.target
+
+[Service]
+ExecStart=` + executablePath + `
+WorkingDirectory=` + executableDir + `
+User=` + username + `
+Restart=always
+
+[Install]
+WantedBy=multi-user.target`)
 }
