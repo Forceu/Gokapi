@@ -8,6 +8,7 @@ Main routine
 
 import (
 	"fmt"
+	"github.com/forceu/gokapi/internal/helper/systemd"
 	"os"
 	"os/signal"
 	"runtime/debug"
@@ -161,11 +162,11 @@ func handleServiceInstall(passedFlags flagparser.MainFlags) {
 		osExit(1)
 	}
 	if passedFlags.InstallService {
-		setup.InstallService()
+		systemd.InstallService()
 		osExit(0)
 	}
 	if passedFlags.UninstallService {
-		setup.UninstallService()
+		systemd.UninstallService()
 		osExit(0)
 	}
 }
