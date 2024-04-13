@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"os/user"
 	"path/filepath"
+	"syscall"
 )
 
 // InstallService installs Gokapi as a systemd service
@@ -22,18 +23,17 @@ func InstallService() {
 
 	// Find the path to the current executable and it's directory
 	executablePath, err := os.Executable()
+	if err != nil {
+		fmt.Println("Error getting executable path: ", err)
+		os.Exit(6)
+	}
 	executableDir := filepath.Dir(executablePath)
 
-	// Get the name of the current user
-	currentUser, err := user.Current()
-	if err != nil {
-		fmt.Println("Error getting current user: ", err)
-		os.Exit(5)
-
-	}
+	username := getUserInvokingSudo(executablePath)
+	fmt.Println("Running service as user", username)
 
 	// Create the service file
-	serviceFileContents := createSystemdFileContent(executablePath, executableDir, currentUser.Username)
+	serviceFileContents := createSystemdFileContent(executablePath, executableDir, username)
 
 	err = os.WriteFile("/usr/lib/systemd/system/gokapi.service", serviceFileContents, 0644)
 	if err != nil {
@@ -107,6 +107,37 @@ func systemctlCmd(arg ...string) {
 		fmt.Println("Error executing systemctl "+arg[0]+": ", err)
 		os.Exit(4)
 	}
+}
+
+func getUserInvokingSudo(executablePath string) string {
+	username := os.Getenv("SUDO_USER")
+	if username == "" {
+		username = "root"
+	}
+	if username == "root" {
+		fmt.Println("WARNING! Could not determine user invoking sudo.")
+		usernameFromExecutable, err := getUsernameOfFileOwner(executablePath)
+		if err != nil {
+			fmt.Println("Could not determine username from file owner:", err)
+			os.Exit(6)
+		}
+		username = usernameFromExecutable
+	}
+	return username
+}
+
+func getUsernameOfFileOwner(filename string) (string, error) {
+	fileInfo, err := os.Stat(filename)
+	if err != nil {
+		return "", err
+	}
+
+	fileUid := fileInfo.Sys().(*syscall.Stat_t).Uid
+	fileUser, err := user.LookupId(fmt.Sprintf("%d", fileUid))
+	if err != nil {
+		return "", err
+	}
+	return fileUser.Username, nil
 }
 
 // createSystemdFileContent returns a byte array with the content of the systemd file to be written
