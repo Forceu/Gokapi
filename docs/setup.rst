@@ -23,7 +23,7 @@ Stable version
 Unstable version
 """""""""""""""""
 
-Only recommended if you have expierence with the command line. Go 1.20+ needs to be installed.
+Only recommended if you have experience with the command line. Go 1.20+ needs to be installed.
 
 Create a new folder and in this folder execute 
 ::
@@ -33,7 +33,6 @@ Create a new folder and in this folder execute
  go build Gokapi/cmd/gokapi
 
 This will compile the source code and create an executable from the latest code.
-
 
 Docker
 ^^^^^^^
@@ -297,6 +296,32 @@ If you are using Docker, shut down the running instance and create a new tempora
  
 .. note::
    After completing the setup, all users will be logged out
+
+
+
+
+**********************************
+Installing a systemd service
+**********************************
+
+.. warning::
+   Only install Gokapi as a service *after* running it manually first and completing the setup steps under the `Initial Setup section <#initial-setup>`_.
+
+.. note::
+   This feature is currently only supported on UNIX-like systems that use systemd, for unsupported systems an error message will be shown. 
+
+If you want to run Gokapi as a background service that starts on boot, you can use the following command:
+::
+
+  sudo ./gokapi --install-service
+
+If you decide later to uninstall the service, you can use the following command:
+::
+
+  sudo ./gokapi --uninstall-service
+
+By using either of these commands, all other command line flags will be ignored.
+
 
 
 

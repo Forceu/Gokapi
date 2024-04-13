@@ -8,6 +8,7 @@ Main routine
 
 import (
 	"fmt"
+	"github.com/forceu/gokapi/internal/helper/systemd"
 	"os"
 	"os/signal"
 	"runtime/debug"
@@ -43,6 +44,8 @@ const versionGokapi = "1.8.1"
 // Main routine that is called on startup
 func main() {
 	passedFlags := flagparser.ParseFlags()
+	handleServiceInstall(passedFlags)
+
 	showVersion(passedFlags)
 	fmt.Println(logo)
 	fmt.Println("Gokapi v" + versionGokapi + " starting")
@@ -153,6 +156,21 @@ func reconfigureServer(passedFlags flagparser.MainFlags) {
 func createSsl(passedFlags flagparser.MainFlags) {
 	if passedFlags.CreateSsl {
 		ssl.GenerateIfInvalidCert(configuration.Get().ServerUrl, true)
+	}
+}
+
+func handleServiceInstall(passedFlags flagparser.MainFlags) {
+	if passedFlags.InstallService && passedFlags.UninstallService {
+		fmt.Println("Error: Both install and uninstall flags are set.")
+		osExit(1)
+	}
+	if passedFlags.InstallService {
+		systemd.InstallService()
+		osExit(0)
+	}
+	if passedFlags.UninstallService {
+		systemd.UninstallService()
+		osExit(0)
 	}
 }
 
