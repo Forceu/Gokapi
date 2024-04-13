@@ -53,8 +53,8 @@ func ParseFlags() MainFlags {
 	})
 	disableCorsCheck := passedFlags.Bool("disable-cors-check", false, "Disables the CORS check on startup")
 
-	installService := passedFlags.Bool("install-service", false, "Installs Gokapi as a service")
-	uninstallService := passedFlags.Bool("uninstall-service", false, "Uninstalls Gokapi as a service")
+	installService := passedFlags.Bool("install-service", false, "Installs Gokapi as a systemd service")
+	uninstallService := passedFlags.Bool("uninstall-service", false, "Uninstalls the Gokapi systemd service")
 
 	passedFlags.Usage = showUsage(passedFlags, aliases)
 	err := passedFlags.Parse(os.Args[1:])
