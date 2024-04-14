@@ -59,7 +59,7 @@ func UninstallService() {
 	checkRunAsRoot()
 	checkSystemdOs()
 
-	fmt.Println("Uninstalling Gokapi as a service...")
+	fmt.Println("Uninstalling Gokapi systemd service...")
 
 	// Check if the service file exists
 	if _, err := os.Stat("/usr/lib/systemd/system/gokapi.service"); os.IsNotExist(err) {
@@ -111,10 +111,7 @@ func systemctlCmd(arg ...string) {
 
 func getUserInvokingSudo(executablePath string) string {
 	username := os.Getenv("SUDO_USER")
-	if username == "" {
-		username = "root"
-	}
-	if username == "root" {
+	if username == "root" || username == "" {
 		fmt.Println("WARNING! Could not determine user invoking sudo.")
 		usernameFromExecutable, err := getUsernameOfFileOwner(executablePath)
 		if err != nil {
@@ -122,6 +119,10 @@ func getUserInvokingSudo(executablePath string) string {
 			os.Exit(6)
 		}
 		username = usernameFromExecutable
+	}
+	if username == "root" {
+		fmt.Println("Could not determine username other than root. Not running service as root.")
+		os.Exit(6)
 	}
 	return username
 }

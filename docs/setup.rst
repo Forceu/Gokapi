@@ -320,7 +320,7 @@ If you decide later to uninstall the service, you can use the following command:
 
   sudo ./gokapi --uninstall-service
 
-By using either of these commands, all other command line flags will be ignored.
+By using either of these commands, all other command line flags will be ignored. Gokapi will try to determine the username of the user that invoked sudo, make sure that it is the correct user. It will not allow the service to be run as the root user.
 
 
 
