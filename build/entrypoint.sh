@@ -21,6 +21,6 @@ for target in $targets; do
 	rm $output
 done
 
-echo "----> Build is complete. List of files at $release_path:"
+echo "----> Build is complete. List of files at build/:"
 cd build/
 ls -l gokapi-*
