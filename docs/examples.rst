@@ -207,7 +207,7 @@ Addding a scope for exposing groups (optional)
 #. Click ``Mappers``
 
     * Click ``Add mapper``
-    * Select ``By configuration``
+    * Select ``Configure a new mapper``
     * Select ``Group Membership``
     * Enter a name and set ``Token Claim Name`` to a claim name, e.g. ``groups``
     * Deselect ``Full group path`` if you are only using a single realm. Otherwise use the full name for your groups in the Gokapi configuration, e.g. ``/admins`` instead of ``admins``
