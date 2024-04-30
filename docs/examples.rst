@@ -132,9 +132,9 @@ Gokapi Configuration
 +--------------------------+-----------------------------------------------------------+-----------------------------------------+
 | Client Secret            | Client secret provided in config                          | AhXeV7_EXAMPLE_KEY                      |
 +--------------------------+-----------------------------------------------------------+-----------------------------------------+
-| Recheck identity         | If mode is ``pre-configured``, use a low interval.        | 12 hours                                |
+| Recheck identity         | If mode is ``pre-configured``, use a low interval         | 12 hours                                |
 +--------------------------+-----------------------------------------------------------+-----------------------------------------+
-| Restrict to user         | Check this if only certain users shall be allowed to      | checked                                 |
+| Restrict to user         | Check this, if only certain users shall be allowed to     | checked                                 |
 |                          |                                                           |                                         |
 |                          | access Gokapi admin menu                                  |                                         |
 +--------------------------+-----------------------------------------------------------+-----------------------------------------+
@@ -146,7 +146,7 @@ Gokapi Configuration
 |                          |                                                           |                                         |
 |                          | ``*`` can be used as a wildcard                           |                                         |
 +--------------------------+-----------------------------------------------------------+-----------------------------------------+
-| Restrict to group        | Check this if only users from certain groups shall be     | checked                                 |
+| Restrict to group        | Check this, if only users from certain groups shall be    | checked                                 |
 |                          |                                                           |                                         |
 |                          | allowed to access Gokapi admin menu                       |                                         |
 +--------------------------+-----------------------------------------------------------+-----------------------------------------+
@@ -164,7 +164,10 @@ Keycloak
 ^^^^^^^^^^^^
 
 .. note::
-   This guide has been written for version 23.0.4
+   This guide has been written for version 24.0.3
+
+.. warning::
+   In a previous version of this guide, the client mapping was for the predefined mapper "Group memberships", which in some cases always returned the value "admin". Please make sure that you are using a custom mapper, as described in :ref:`oidcconfig_keycloak_opt`
 
 
 Server Configuration
@@ -189,65 +192,70 @@ Creating the client
 #. Click ``Credentials`` and note the ``Client Secret``
 
 
+.. _oidcconfig_keycloak_opt:
+
 Addding a scope for exposing groups (optional)
 *****************************************************
 
-#. In the realm click on ``[Manage] Client Scopes`` and then ``Create Scope``
+#. In the realm click on ``[Manage] Client Scopes`` and then ``Create Client Scope``
 
     * Name: groups
-    * Type: Optional
+    * Type: Default
     * Protocol: OpenID Connect
     * Click ``Save``
     
 #. Click ``Mappers``
 
-    * Click ``Add predefined mapper``
-    * Search for ``groups`` and tick
-    * Click ``Add``
+    * Click ``Add mapper``
+    * Select ``By configuration``
+    * Select ``Group Membership``
+    * Enter a name and set ``Token Claim Name`` to a claim name, e.g. ``groups``
+    * Deselect ``Full group path`` if you are only using a single realm. Otherwise use the full name for your groups in the Gokapi configuration, e.g. ``/admins`` instead of ``admins``
+    * Click ``Save``
     
 #. In the realm click on ``[Manage] Clients`` and then ``gokapi-dev``
 
     * Click ``Client Scopes``
     * Click ``Add Client Scope``
-    * Select ``groups`` and click ``Add / Optional``
+    * Select the new scope and click ``Add / Default``
 
 
 Gokapi Configuration
 """"""""""""""""""""""
 
-+--------------------------+-----------------------------------------------------------+--------------------------------------------+
-| Gokapi Configuration     | Input                                                     | Example                                    |
-+==========================+===========================================================+============================================+
-| Provider URL             | URL to Keycloak realm                                     | \http://keycloak.server.com/realms/master/ |
-+--------------------------+-----------------------------------------------------------+--------------------------------------------+
-| Client ID                | Client ID provided                                        | gokapi-dev                                 |
-+--------------------------+-----------------------------------------------------------+--------------------------------------------+
-| Client Secret            | Client secret provided                                    | AhXeV7_EXAMPLE_KEY                         |
-+--------------------------+-----------------------------------------------------------+--------------------------------------------+
-| Recheck identity         | If mode is ``pre-configured``, use a low interval.        | 12 hours                                   |
-+--------------------------+-----------------------------------------------------------+--------------------------------------------+
-| Restrict to user         | Check this if only certain users shall be allowed to      | checked                                    |
-|                          |                                                           |                                            |
-|                          | access Gokapi admin menu                                  |                                            |
-+--------------------------+-----------------------------------------------------------+--------------------------------------------+
-| Scope identifier (user)  | Use a scope that is unique to the user, e.g. the username | email                                      |
-|                          |                                                           |                                            |
-|                          | or the email                                              |                                            |
-+--------------------------+-----------------------------------------------------------+--------------------------------------------+
-| Authorised users         | Enter all users, separated by semicolon                   | \*\@company.com;admin\@othercompany.com    |
-|                          |                                                           |                                            |
-|                          | ``*`` can be used as a wildcard                           |                                            |
-+--------------------------+-----------------------------------------------------------+--------------------------------------------+
-| Restrict to group        | Check this if only users from certain groups shall be     | checked                                    |
-|                          |                                                           |                                            |
-|                          | allowed to access Gokapi admin menu                       |                                            |
-+--------------------------+-----------------------------------------------------------+--------------------------------------------+
-| Scope identifier (group) | Use a scope that lists the user's groups                  | groups                                     |
-+--------------------------+-----------------------------------------------------------+--------------------------------------------+
-| Authorised groups        | Enter all groups, separated by semicolon                  | dev;admins;gokapi-*                        |
-|                          |                                                           |                                            |
-|                          | ``*`` can be used as a wildcard                           |                                            |
-+--------------------------+-----------------------------------------------------------+--------------------------------------------+
++--------------------------+-----------------------------------------------------------------------+--------------------------------------------+
+| Gokapi Configuration     | Input                                                                 | Example                                    |
++==========================+=======================================================================+============================================+
+| Provider URL             | URL to Keycloak realm                                                 | \http://keycloak.server.com/realms/master  |
++--------------------------+-----------------------------------------------------------------------+--------------------------------------------+
+| Client ID                | Client ID provided                                                    | gokapi-dev                                 |
++--------------------------+-----------------------------------------------------------------------+--------------------------------------------+
+| Client Secret            | Client secret provided                                                | AhXeV7_EXAMPLE_KEY                         |
++--------------------------+-----------------------------------------------------------------------+--------------------------------------------+
+| Recheck identity         | If open ``Consent required`` is disabled, use a low interval          | 12 hours                                   |
++--------------------------+-----------------------------------------------------------------------+--------------------------------------------+
+| Restrict to user         | Check this, if only certain users shall be allowed to                 | checked                                    |
+|                          |                                                                       |                                            |
+|                          | access Gokapi admin menu                                              |                                            |
++--------------------------+-----------------------------------------------------------------------+--------------------------------------------+
+| Scope identifier (user)  | Use a scope that is unique to the user, e.g. the username             | email                                      |
+|                          |                                                                       |                                            |
+|                          | or the email                                                          |                                            |
++--------------------------+-----------------------------------------------------------------------+--------------------------------------------+
+| Authorised users         | Enter all users, separated by semicolon                               | \*\@company.com;admin\@othercompany.com    |
+|                          |                                                                       |                                            |
+|                          | ``*`` can be used as a wildcard                                       |                                            |
++--------------------------+-----------------------------------------------------------------------+--------------------------------------------+
+| Restrict to group        | Check this, if only users from certain groups shall be                | checked                                    |
+|                          |                                                                       |                                            |
+|                          | allowed to access Gokapi admin menu                                   |                                            |
++--------------------------+-----------------------------------------------------------------------+--------------------------------------------+
+| Scope identifier (group) | Use a scope that lists the user's groups                              | groups                                     |
++--------------------------+-----------------------------------------------------------------------+--------------------------------------------+
+| Authorised groups        | Enter all groups, separated by semicolon                              | dev;admins;gokapi-*                        |
+|                          |                                                                       |                                            |
+|                          | ``*`` can be used as a wildcard                                       |                                            |
++--------------------------+-----------------------------------------------------------------------+--------------------------------------------+
 
 
 .. note::
@@ -287,7 +295,7 @@ Gokapi Configuration
 +-------------------------+--------------------------------------------------+----------------------------------+
 | Client Secret           | Client secret provided                           | AhXeV7_EXAMPLE_KEY               |
 +-------------------------+--------------------------------------------------+----------------------------------+
-| Recheck identity        | Use a low interval.                              | 12 hours                         |
+| Recheck identity        | Use a low interval                               | 12 hours                         |
 +-------------------------+--------------------------------------------------+----------------------------------+
 | Restrict to user        | Check this, otherwise any Google user can access | checked                          |
 |                         |                                                  |                                  |
@@ -353,7 +361,7 @@ Gokapi Configuration
 +----------------------+-------------------------------------------------------------------+-----------------------------------------------------------------------------+
 | Client Secret        | Client secret provided                                            | ach5sho3Ru-Heop7aMaez-example                                               |
 +----------------------+-------------------------------------------------------------------+-----------------------------------------------------------------------------+
-| Recheck identity     | Use a low interval.                                               | 12 hours                                                                    |
+| Recheck identity     | Use a low interval                                                | 12 hours                                                                    |
 +----------------------+-------------------------------------------------------------------+-----------------------------------------------------------------------------+
 | Restrict to user     | Unsupported                                                       | unchecked                                                                   |
 +----------------------+-------------------------------------------------------------------+-----------------------------------------------------------------------------+

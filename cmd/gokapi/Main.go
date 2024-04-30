@@ -80,7 +80,7 @@ func showVersion(passedFlags flagparser.MainFlags) {
 		fmt.Println()
 		fmt.Println("Builder: " + environment.Builder)
 		fmt.Println("Build Date: " + environment.BuildTime)
-		fmt.Println("Docker Version: " + environment.IsDocker)
+		fmt.Println("Is Docker Version: " + environment.IsDocker)
 		info, ok := debug.ReadBuildInfo()
 		if ok {
 			fmt.Println("Go Version: " + info.GoVersion)
@@ -101,7 +101,7 @@ func parseBuildSettings(infos []debug.BuildSetting) {
 	lookups["GOOS"] = "Operating System"
 
 	for key, value := range lookups {
-		result := "Not found"
+		result := "None"
 		for _, buildSetting := range infos {
 			if buildSetting.Key == key {
 				result = buildSetting.Value
