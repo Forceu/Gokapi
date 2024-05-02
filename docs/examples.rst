@@ -115,7 +115,7 @@ See the `Authelia documentation <https://www.authelia.com/configuration/identity
 
 
 * Set ``authorization_policy`` to ``two_factor`` to use OTP or a hardware key.
-* If ``consent_mode`` is ``pre-configured``, the user has the option to remember consent. That way you can use a lower ``Recheck identity`` interval in Gokapi. Logout through the Gokapi interface will not be possible anymore, unless the user logs out their Authelia account. If the option is set to  ``explicit``, the user always has to grant the permission aftter the ``Recheck identity`` interval has passed
+* If ``consent_mode`` is ``pre-configured``, the user has the option to remember consent. That way you can use a lower ``Recheck identity`` interval in Gokapi. Logout through the Gokapi interface will not be possible anymore, unless the user logs out their Authelia account. If the option is set to  ``explicit``, the user always has to grant the permission after the ``Recheck identity`` interval has passed
 * ``scopes`` may exclude ``email`` and ``groups`` if these are not required for authentication, e.g. if all users registered with Authelia may access Gokapi.
 * Make sure ``redirect_uris`` is set to the correct value
 

@@ -71,7 +71,7 @@ To start the container, run the following command: ::
 
  docker run -v gokapi-data:/app/data -v gokapi-config:/app/config -p 127.0.0.1:53842:53842 f0rc3/gokapi:latest
 
-With the argument ``-p 127.0.0.1:53842:53842`` the service will only be accessible from the machine it is running on. In most usecases you will use a reverse proxy for SSL - if you want to make the service available to other computers in the network without a reverse proxy, replace the argument with ``-p 53842:53842``. Please note, unless you select SSL during the setup, the traffic will not be encrypted that way and data like passwords or transferred files can easily be read by third parties!
+With the argument ``-p 127.0.0.1:53842:53842`` the service will only be accessible from the machine it is running on. In most use-cases you will use a reverse proxy for SSL - if you want to make the service available to other computers in the network without a reverse proxy, replace the argument with ``-p 53842:53842``. Please note, unless you select SSL during the setup, the traffic will not be encrypted that way and data like passwords or transferred files can easily be read by third parties!
 
 
 Initial Setup
@@ -181,7 +181,7 @@ You can find a guide on how to create an OIDC client with Github at `Setting up 
 Header Authentication
 ************************
 
-Only use this if you are running Gokapi behind a reverse proxy that is capable of authenticating users, e.g. by using Authelia or Authentik. Keycloak does apparently not support this feauture.
+Only use this if you are running Gokapi behind a reverse proxy that is capable of authenticating users, e.g. by using Authelia or Authentik. Keycloak does apparently not support this feature.
 
 Enter the key of the header that returns the username. For Authelia this would be ``Remote-User`` and for Authentik ``X-authentik-username``.
 Separate users with a semicolon or leave blank to allow any authenticated user, e.g. ``gokapiuser@gmail.com;companyadmin@gmail.com``
@@ -260,7 +260,7 @@ Encryption
 .. warning::
    Encryption has not been audited.
 
-There are three different encryption levels, level 1 encrypts only local files and level 2 encrypts local and files stored on cloud storage (e.g. AWS S3). Decryption of files on remote storage is done client-side, for which a 2MB library needs to be downloaded on first visit. End-to-End encryption (level 3) encrypts the files client-side, therefore even if the Gokapi server has been compromised, no data should leak to the attacker. If the decryption is done client-side, the dowload on mobile devices may be significantly slower.
+There are three different encryption levels, level 1 encrypts only local files and level 2 encrypts local and files stored on cloud storage (e.g. AWS S3). Decryption of files on remote storage is done client-side, for which a 2MB library needs to be downloaded on first visit. End-to-End encryption (level 3) encrypts the files client-side, therefore even if the Gokapi server has been compromised, no data should leak to the attacker. If the decryption is done client-side, the download on mobile devices may be significantly slower.
 
 There are some drawbacks of using encryption:
 
@@ -288,16 +288,18 @@ If you are concerned that the configuration file can be read, you can also choos
 Changing Configuration
 ************************
 
-To change any settings set in the initial setup (e.g. your password or storage location), run Gokapi with the parameter ``--reconfigure`` and follow the instructions. A random username and password will be generated and displayed in the programm output to access the configuration webpage, as all entered information can be read in plain text (except the user password).
+To change any settings set in the initial setup (e.g. your password or storage location), run Gokapi with the parameter ``--reconfigure`` and follow the instructions. A random username and password will be generated and displayed in the program output to access the configuration webpage, as all entered information can be read in plain text (except the user password).
 
-If you are using Docker, shut down the running instance and create a new temporary container with the follwing command: ::
+If you are using Docker, shut down the running instance and create a new temporary container with the following command: ::
 
- docker run --rm -p 127.0.0.1:53842:53842 -v gokapi-data:/app/data -v gokapi-config:/app/config  f0rc3/gokapi:latest /app/gokapi --reconfigure
+ docker run --rm -p 127.0.0.1:53842:53842 -v gokapi-data:/app/data -v gokapi-config:/app/config  f0rc3/gokapi:latest /app/run.sh --reconfigure
  
 .. note::
    After completing the setup, all users will be logged out
 
 
+.. note::
+   If you are using Docker, make sure to stop the temporary container and to restart the original one after the setup is complete
 
 
 **********************************
