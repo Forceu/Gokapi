@@ -156,9 +156,13 @@ func isErrorAddressAlreadyInUse(err error) bool {
 }
 
 func resolveHostIp() string {
+	const localhost = "127.0.0.1"
+	if environment.IsDockerInstance() {
+		return localhost
+	}
 	netInterfaceAddresses, err := net.InterfaceAddrs()
 	if err != nil {
-		return "127.0.0.1"
+		return localhost
 	}
 
 	for _, netInterfaceAddress := range netInterfaceAddresses {
@@ -168,7 +172,7 @@ func resolveHostIp() string {
 			return ip
 		}
 	}
-	return "127.0.0.1"
+	return localhost
 }
 
 type jsonFormObject struct {
