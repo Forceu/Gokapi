@@ -37,7 +37,7 @@ Linux / Unix
 For Linux / Unix environments, execute the binary in this format:
 ::
 
-  GOKAPI_USERNAME=admin GOKAPI_PASSWORD=123456 [...] ./Gokapi
+  GOKAPI_PORT=12345 GOKAPI_DB_NAME=database.sqlite [...] ./Gokapi
 
 Windows
 """"""""
@@ -45,8 +45,8 @@ Windows
 For Windows environments, you need to run ``setx`` first, e.g.:
 ::
 
-  setx GOKAPI_USERNAME admin
-  setx GOKAPI_PASSWORD 123456
+  setx GOKAPI_PORT 12345
+  setx GOKAPI_DB_NAME database.sqlite
   [...]
   Gokapi.exe
 
