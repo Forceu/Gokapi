@@ -97,7 +97,11 @@ func TestLogin(t *testing.T) {
 	}
 	test.HttpPostRequest(t, config)
 
-	configuration.Get().Authentication.Method = authentication.OAuth2
+	oauthConfig := configuration.Get()
+	oauthConfig.Authentication.Method = authentication.OAuth2
+	oauthConfig.Authentication.OAuthProvider = "http://test.com"
+	oauthConfig.Authentication.OAuthClientSecret = "secret"
+	oauthConfig.Authentication.OAuthClientId = "client"
 	authentication.Init(configuration.Get().Authentication)
 	config.RequiredContent = []string{"\"Refresh\" content=\"0; URL=./oauth-login\""}
 	config.PostValues = []test.PostBody{}

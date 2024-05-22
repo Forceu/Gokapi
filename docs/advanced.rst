@@ -10,22 +10,22 @@ Advanced usage
 Environment variables
 ********************************
 
-Environment variables can be passed to Gokapi - that way you can set it up without any interaction and pass cloud storage credentials without saving them to the filesystem.
+Several environment variables can be passed to Gokapi. They can be used to modify settings that are not present during setup or to pass cloud storage credentials without saving them to the filesystem.
 
 
 .. _passingenv:
 
 Passing environment variables to Gokapi
-===============================================
+=========================================
 
 
 Docker
 ------
 
-Pass the variable with the ``-e`` argument. Example for setting the username to *admin* and the password to *123456*:
+Pass the variable with the ``-e`` argument. Example for setting the port in use to *12345* and the database filename to *database.sqlite*:
 ::
 
- docker run -it -e GOKAPI_USERNAME=admin -e GOKAPI_PASSWORD=123456 f0rc3/gokapi:latest
+ docker run -it -e GOKAPI_PORT=12345 -e GOKAPI_DB_NAME=database.sqlite f0rc3/gokapi:latest
 
 
 Bare Metal
@@ -90,21 +90,21 @@ Available environment variables
 
 
 
-All values that are described in :ref:`cloudstorage` can be passed as environment variables as well. No values are persistent, therefore need to be set on every start.
+All values that are described in :ref:`cloudstorage` can be passed as environment variables as well. No values are persistent; therefore, they need to be set on every start.
 
-+-----------------------+-------------------------+
-| Name                  | Action                  |
-+=======================+=========================+
-| GOKAPI_AWS_BUCKET     | Sets the bucket name    |
-+-----------------------+-------------------------+
-| GOKAPI_AWS_REGION     | Sets the region name    |
-+-----------------------+-------------------------+
-| GOKAPI_AWS_KEY        | Sets the API key        |
-+-----------------------+-------------------------+
-| GOKAPI_AWS_KEY_SECRET | Sets the API key secret |
-+-----------------------+-------------------------+
-| GOKAPI_AWS_ENDPOINT   | Sets the endpoint       |
-+-----------------------+-------------------------+
++-----------------------+-------------------------+-----------------------------+
+| Name                  | Action                  | Example                     |
++=======================+=========================+=============================+
+| GOKAPI_AWS_BUCKET     | Sets the bucket name    | gokapi                      |
++-----------------------+-------------------------+-----------------------------+
+| GOKAPI_AWS_REGION     | Sets the region name    | eu-central-000              |
++-----------------------+-------------------------+-----------------------------+
+| GOKAPI_AWS_KEY        | Sets the API key        | 123456789                   |
++-----------------------+-------------------------+-----------------------------+
+| GOKAPI_AWS_KEY_SECRET | Sets the API key secret | abcdefg123                  |
++-----------------------+-------------------------+-----------------------------+
+| GOKAPI_AWS_ENDPOINT   | Sets the endpoint       | eu-central-000.provider.com |
++-----------------------+-------------------------+-----------------------------+
 
 
 .. _api:
@@ -140,6 +140,61 @@ Example: Deleting a file
 
  curl -X DELETE "https://your.gokapi.url/api/files/delete" -H "accept: */*" -H "id: PFnh2DlQRS2PVKM" -H "apikey: secret"
 
+
+
+
+********************************
+Automatic Deployment
+********************************
+
+It is possible to deploy Gokapi without having to run the setup. You will need to complete the setup on a temporary instance first. This is to create the configuration files, which can then be used for deployment.
+
+
+Configuration Files
+============================
+
+
+The configuration consists of up to two files in the configuration directory (default: ``config``). All files can be read-only, however ``config.json`` might need write access in some situations.
+
+cloudconfig.yml
+------------------------
+
+Stores the access data for cloud storage. This can be reused without modification, however all fields can also be set with environment variables. The file does not exist if no cloud storage is used and can always be read-only.
+
+
+config.json
+------------------------
+
+Contains the server configuration. If you want to deploy Gokapi in multiple instances for redundancy  (e.g. all instances share the same data), then the configuration file can be reused without modification. Otherwise you need to modify it before deploying (see below). Can be read-only, but might need write access when upgrading Gokapi to a newer version. Needs write access when re-running setup or changing the admin password.
+
+
+Modifying config.json to deploy without setup
+====================================================
+
+If you want to deploy Gokapi to multiple instances that contain different data, you have to modify the config.json. Open it and change the following fields:
+
++-----------+------------------------------------------------------------+----------------------+
+| Field     | Operation                                                  | Example              |
++===========+============================================================+======================+
+| SaltAdmin | Change to empty value                                      | "SaltAdmin": "",     |
++-----------+------------------------------------------------------------+----------------------+
+| SaltFiles | Change to empty value                                      | "SaltFiles": "",     |
++-----------+------------------------------------------------------------+----------------------+
+| Password  | Change to empty value                                      | "Password": "",      |
++-----------+------------------------------------------------------------+----------------------+
+| Username  | Change to the username of your preference,                 | "Username": "admin", |
+|           |                                                            |                      |
+|           | if you are using internal username/password authentication |                      |
++-----------+------------------------------------------------------------+----------------------+
+
+Setting an admin password
+====================================================
+
+If you are using internal username/password authentication, run the binary with the parameter ``--deployment-password [YOUR_PASSWORD]``. This sets the password and also generates a new salt for the password. This has to be done before Gokapi is run for the first time on the new instance. Alternatively you can do this on the orchestrating machine and then copy the configuration file to the new instance.
+
+If you are using a Docker image, this has to be done by starting a container with the entrypoint ``/app/run.sh``, for example: ::
+
+ docker run --rm -v gokapi-data:/app/data -v gokapi-config:/app/config  f0rc3/gokapi:latest /app/run.sh --deployment-password newPassword
 
 
 ********************************

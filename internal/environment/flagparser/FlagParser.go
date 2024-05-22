@@ -55,6 +55,7 @@ func ParseFlags() MainFlags {
 
 	installService := passedFlags.Bool("install-service", false, "Installs Gokapi as a systemd service")
 	uninstallService := passedFlags.Bool("uninstall-service", false, "Uninstalls the Gokapi systemd service")
+	deploymentPassword := passedFlags.String("deployment-password", "", "Sets a new password. This should only be used for non-interactive deployment")
 
 	passedFlags.Usage = showUsage(passedFlags, aliases)
 	err := passedFlags.Parse(os.Args[1:])
@@ -67,16 +68,17 @@ func ParseFlags() MainFlags {
 	}
 
 	result := MainFlags{
-		ShowVersion:      *versionFlagShort || *versionFlagLong,
-		Reconfigure:      *reconfigureFlag,
-		CreateSsl:        *createSslFlag,
-		ConfigPath:       getAliasedString(configPathFlagLong, configPathFlagShort),
-		ConfigDir:        getAliasedString(configDirFlagLong, configDirFlagShort),
-		DataDir:          getAliasedString(dataDirFlagLong, dataDirFlagShort),
-		Port:             getAliasedInt(portFlagLong, portFlagShort),
-		DisableCorsCheck: *disableCorsCheck,
-		InstallService:   *installService,
-		UninstallService: *uninstallService,
+		ShowVersion:        *versionFlagShort || *versionFlagLong,
+		Reconfigure:        *reconfigureFlag,
+		CreateSsl:          *createSslFlag,
+		ConfigPath:         getAliasedString(configPathFlagLong, configPathFlagShort),
+		ConfigDir:          getAliasedString(configDirFlagLong, configDirFlagShort),
+		DataDir:            getAliasedString(dataDirFlagLong, dataDirFlagShort),
+		Port:               getAliasedInt(portFlagLong, portFlagShort),
+		DisableCorsCheck:   *disableCorsCheck,
+		InstallService:     *installService,
+		UninstallService:   *uninstallService,
+		DeploymentPassword: *deploymentPassword,
 	}
 	result.setBoolValues()
 	return result
@@ -120,20 +122,21 @@ func getAliasedInt(flag1, flag2 *int) int {
 
 // MainFlags holds info for the parsed program arguments
 type MainFlags struct {
-	ShowVersion      bool
-	Reconfigure      bool
-	CreateSsl        bool
-	ConfigPath       string
-	ConfigDir        string
-	DataDir          string
-	Port             int
-	IsConfigPathSet  bool
-	IsConfigDirSet   bool
-	IsDataDirSet     bool
-	IsPortSet        bool
-	DisableCorsCheck bool
-	InstallService   bool
-	UninstallService bool
+	ShowVersion        bool
+	Reconfigure        bool
+	CreateSsl          bool
+	ConfigPath         string
+	ConfigDir          string
+	DataDir            string
+	DeploymentPassword string
+	Port               int
+	IsConfigPathSet    bool
+	IsConfigDirSet     bool
+	IsDataDirSet       bool
+	IsPortSet          bool
+	DisableCorsCheck   bool
+	InstallService     bool
+	UninstallService   bool
 }
 
 func (mf *MainFlags) setBoolValues() {

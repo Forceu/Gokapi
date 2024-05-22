@@ -51,6 +51,7 @@ func main() {
 	fmt.Println("Gokapi v" + versionGokapi + " starting")
 	setup.RunIfFirstStart()
 	configuration.Load()
+	setDeploymentPassword(passedFlags)
 	reconfigureServer(passedFlags)
 	encryption.Init(*configuration.Get())
 	authentication.Init(configuration.Get().Authentication)
@@ -75,21 +76,22 @@ func shutdown() {
 
 // Checks for command line arguments that have to be parsed before loading the configuration
 func showVersion(passedFlags flagparser.MainFlags) {
-	if passedFlags.ShowVersion {
-		fmt.Println("Gokapi v" + versionGokapi)
-		fmt.Println()
-		fmt.Println("Builder: " + environment.Builder)
-		fmt.Println("Build Date: " + environment.BuildTime)
-		fmt.Println("Is Docker Version: " + environment.IsDocker)
-		info, ok := debug.ReadBuildInfo()
-		if ok {
-			fmt.Println("Go Version: " + info.GoVersion)
-		} else {
-			fmt.Println("Go Version: unknown")
-		}
-		parseBuildSettings(info.Settings)
-		osExit(0)
+	if !passedFlags.ShowVersion {
+		return
 	}
+	fmt.Println("Gokapi v" + versionGokapi)
+	fmt.Println()
+	fmt.Println("Builder: " + environment.Builder)
+	fmt.Println("Build Date: " + environment.BuildTime)
+	fmt.Println("Is Docker Version: " + environment.IsDocker)
+	info, ok := debug.ReadBuildInfo()
+	if ok {
+		fmt.Println("Go Version: " + info.GoVersion)
+	} else {
+		fmt.Println("Go Version: unknown")
+	}
+	parseBuildSettings(info.Settings)
+	osExit(0)
 }
 
 func parseBuildSettings(infos []debug.BuildSetting) {
@@ -171,6 +173,14 @@ func handleServiceInstall(passedFlags flagparser.MainFlags) {
 		systemd.UninstallService()
 		osExit(0)
 	}
+}
+
+func setDeploymentPassword(passedFlags flagparser.MainFlags) {
+	if passedFlags.DeploymentPassword == "" {
+		return
+	}
+	logging.AddString("Password has been changed for deployment")
+	configuration.SetDeploymentPassword(passedFlags.DeploymentPassword)
 }
 
 var osExit = os.Exit

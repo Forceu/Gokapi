@@ -24,8 +24,8 @@ import (
 	"strings"
 )
 
-// Min length of admin password in characters
-const minLengthPassword = 6
+// MinLengthPassword is the required length of admin password in characters
+const MinLengthPassword = 8
 
 // Environment is an object containing the environment variables
 var Environment environment.Environment
@@ -41,17 +41,42 @@ func Exists() bool {
 	return helper.FileExists(configPath)
 }
 
+// loadFromFile parses the given file and adds salts, if they are invalid
+func loadFromFile(path string) (models.Configuration, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return models.Configuration{}, err
+	}
+	decoder := json.NewDecoder(file)
+	settings := models.Configuration{}
+	err = decoder.Decode(&settings)
+	if err != nil {
+		return models.Configuration{}, err
+	}
+	err = file.Close()
+	if err != nil {
+		return models.Configuration{}, err
+	}
+	if len(settings.Authentication.SaltFiles) < 20 {
+		settings.Authentication.SaltFiles = helper.GenerateRandomString(30)
+		fmt.Println("Warning: Salt for file hash invalid, generating new salt")
+	}
+	if len(settings.Authentication.SaltAdmin) < 20 {
+		settings.Authentication.SaltAdmin = helper.GenerateRandomString(30)
+		if settings.Authentication.Method == 0 { // == authentication.Internal, but would create import cycle
+			fmt.Println("Warning: Salt for admin password invalid, generating new salt. You will need to reset the admin password.")
+		}
+	}
+	return settings, nil
+}
+
 // Load loads the configuration or creates the folder structure and a default configuration
 func Load() {
 	Environment = environment.New()
 	// No check if file exists, as this was checked earlier
-	file, err := os.Open(Environment.ConfigPath)
+	settings, err := loadFromFile(Environment.ConfigPath)
 	helper.Check(err)
-	decoder := json.NewDecoder(file)
-	serverSettings = models.Configuration{}
-	err = decoder.Decode(&serverSettings)
-	helper.Check(err)
-	file.Close()
+	serverSettings = settings
 	database.Init(serverSettings.DataDir, Environment.DatabaseName)
 	if configupgrade.DoUpgrade(&serverSettings, &Environment) {
 		save()
@@ -83,7 +108,7 @@ func Get() *models.Configuration {
 func save() {
 	file, err := os.OpenFile(Environment.ConfigPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
-		fmt.Println("Error reading configuration:", err)
+		fmt.Println("Error writing configuration:", err)
 		os.Exit(1)
 	}
 	defer file.Close()
@@ -123,11 +148,33 @@ func LoadFromSetup(config models.Configuration, cloudConfig *cloudconfig.CloudCo
 	Load()
 }
 
+// SetDeploymentPassword sets a new password. This should only be used for non-interactive deployment, but is not enforced
+func SetDeploymentPassword(newPassword string) {
+	if len(newPassword) < MinLengthPassword {
+		fmt.Printf("Password needs to be at least %d characters long\n", MinLengthPassword)
+		os.Exit(1)
+	}
+	serverSettings.Authentication.SaltAdmin = helper.GenerateRandomString(30)
+	serverSettings.Authentication.Password = hashUserPassword(newPassword)
+	database.DeleteAllSessions()
+	save()
+	fmt.Println("New password has been set successfully")
+	os.Exit(0)
+}
+
 // HashPassword hashes a string with SHA1 the file salt or admin user salt
 func HashPassword(password string, useFileSalt bool) string {
 	if useFileSalt {
-		return HashPasswordCustomSalt(password, serverSettings.Authentication.SaltFiles)
+		return hashFilePassword(password)
 	}
+	return hashUserPassword(password)
+}
+
+func hashFilePassword(password string) string {
+	return HashPasswordCustomSalt(password, serverSettings.Authentication.SaltFiles)
+}
+
+func hashUserPassword(password string) string {
 	return HashPasswordCustomSalt(password, serverSettings.Authentication.SaltAdmin)
 }
 
@@ -139,8 +186,8 @@ func HashPasswordCustomSalt(password, salt string) string {
 	if salt == "" {
 		panic(errors.New("no salt provided"))
 	}
-	bytes := []byte(password + salt)
+	pwBytes := []byte(password + salt)
 	hash := sha1.New()
-	hash.Write(bytes)
+	hash.Write(pwBytes)
 	return hex.EncodeToString(hash.Sum(nil))
 }

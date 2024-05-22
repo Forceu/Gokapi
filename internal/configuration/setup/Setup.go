@@ -131,7 +131,7 @@ func startSetupWebserver() {
 		log.Fatalf("Setup Webserver: %v", err)
 	}
 	err = srv.Serve(listener)
-	if err != nil && err != http.ErrServerClosed {
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Fatalf("Setup Webserver: %v", err)
 	}
 }
@@ -145,10 +145,11 @@ func isErrorAddressAlreadyInUse(err error) bool {
 	if !errors.As(eOsSyscall, &errErrno) {
 		return false
 	}
-	if errErrno == syscall.EADDRINUSE {
+	if errors.Is(errErrno, syscall.EADDRINUSE) {
 		return true
 	}
 	const WSAEADDRINUSE = 10048
+	//noinspection GoBoolExpressions
 	if runtime.GOOS == "windows" && errErrno == WSAEADDRINUSE {
 		return true
 	}
@@ -530,9 +531,8 @@ func parseEncryptionAndDelete(result *models.Configuration, formObjects *[]jsonF
 	if encLevel == encryption.LocalEncryptionInput || encLevel == encryption.FullEncryptionInput {
 		result.Encryption.Salt = helper.GenerateRandomString(30)
 		result.Encryption.ChecksumSalt = helper.GenerateRandomString(30)
-		const minLength = 8
-		if len(masterPw) < minLength {
-			return errors.New("password is less than " + strconv.Itoa(minLength) + " characters long")
+		if len(masterPw) < configuration.MinLengthPassword {
+			return errors.New("password is less than " + strconv.Itoa(configuration.MinLengthPassword) + " characters long")
 		}
 		result.Encryption.Checksum = encryption.PasswordChecksum(masterPw, result.Encryption.ChecksumSalt)
 	}
@@ -635,7 +635,7 @@ func handleShowSetup(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleShowMaintenance(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Server is in maintenance mode, please try again in a few minutes."))
+	_, _ = w.Write([]byte("Server is in maintenance mode, please try again in a few minutes."))
 }
 
 // Handling of /setupResult
@@ -653,16 +653,19 @@ func handleResult(w http.ResponseWriter, r *http.Request) {
 	}
 	configuration.LoadFromSetup(newConfig, cloudSettings, isInitialSetup)
 	w.WriteHeader(200)
-	w.Write([]byte("{ \"result\": \"OK\"}"))
+	_, _ = w.Write([]byte("{ \"result\": \"OK\"}"))
 	go func() {
 		time.Sleep(1500 * time.Millisecond)
-		srv.Shutdown(context.Background())
+		err = srv.Shutdown(context.Background())
+		if err != nil {
+			fmt.Println(err)
+		}
 	}()
 }
 
 func outputError(w http.ResponseWriter, err error) {
 	w.WriteHeader(500)
-	w.Write([]byte("{ \"result\": \"Error\", \"error\": \"" + err.Error() + "\"}"))
+	_, _ = w.Write([]byte("{ \"result\": \"Error\", \"error\": \"" + err.Error() + "\"}"))
 }
 
 // Adds a / character to the end of a URL if it does not exist
@@ -696,7 +699,7 @@ func handleTestAws(w http.ResponseWriter, r *http.Request) {
 	var t testAwsRequest
 	err := decoder.Decode(&t)
 	if err != nil {
-		w.Write([]byte("Error: " + err.Error()))
+		_, _ = w.Write([]byte("Error: " + err.Error()))
 		return
 	}
 	var awsConfig models.AwsConfig

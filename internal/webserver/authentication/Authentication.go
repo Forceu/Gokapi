@@ -3,12 +3,14 @@ package authentication
 import (
 	"crypto/subtle"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/webserver/authentication/sessionmanager"
 	"io"
+	"log"
 	"net/http"
 	"regexp"
 	"strings"
@@ -33,7 +35,46 @@ var authSettings models.AuthenticationConfig
 
 // Init needs to be called first to process the authentication configuration
 func Init(config models.AuthenticationConfig) {
+	valid, err := isValid(config)
+	if !valid {
+		log.Println("Error while initiating authentication method:")
+		log.Fatal(err)
+	}
 	authSettings = config
+}
+
+// isValid checks if the config is actually valid, and returns true or returns false and an error
+func isValid(config models.AuthenticationConfig) (bool, error) {
+	switch config.Method {
+	case Internal:
+		if len(config.Username) < 3 {
+			return false, errors.New("username too short")
+		}
+		if len(config.Password) != 40 {
+			return false, errors.New("password does not appear to be a SHA-1 hash")
+		}
+		return true, nil
+	case OAuth2:
+		if config.OAuthProvider == "" {
+			return false, errors.New("oauth provider was not set")
+		}
+		if config.OAuthClientId == "" {
+			return false, errors.New("oauth client id was not set")
+		}
+		if config.OAuthClientSecret == "" {
+			return false, errors.New("oauth client secret was not set")
+		}
+		return true, nil
+	case Header:
+		if config.HeaderKey == "" {
+			return false, errors.New("header key is not set")
+		}
+		return true, nil
+	case Disabled:
+		return true, nil
+	default:
+		return false, errors.New("unknown authentication selected")
+	}
 }
 
 // IsAuthenticated returns true if the user provides a valid authentication
@@ -53,7 +94,6 @@ func IsAuthenticated(w http.ResponseWriter, r *http.Request) bool {
 
 // isGrantedHeader returns true if the user was authenticated by a proxy header if enabled
 func isGrantedHeader(r *http.Request) bool {
-
 	if authSettings.HeaderKey == "" {
 		return false
 	}
