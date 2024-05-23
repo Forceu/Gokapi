@@ -2,6 +2,7 @@ package logging
 
 import (
 	"fmt"
+	"github.com/forceu/gokapi/internal/environment"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"net"
@@ -15,14 +16,22 @@ import (
 var logPath = "config/log.txt"
 var mutex sync.Mutex
 
+var outputToStdout = false
+
 // Init sets the path where to write the log file to
 func Init(filePath string) {
 	logPath = filePath + "/log.txt"
+	env := environment.New()
+	outputToStdout = env.LogToStdout
 }
 
 // AddString adds a line to the logfile including the current date. Non-Blocking
 func AddString(text string) {
-	go writeToFile(text)
+	output := formatDate(text)
+	if outputToStdout {
+		fmt.Println(output)
+	}
+	go writeToFile(output)
 }
 
 // GetLogPath returns the relative path to the log file
@@ -45,8 +54,12 @@ func writeToFile(text string) {
 	helper.Check(err)
 	defer file.Close()
 	defer mutex.Unlock()
-	_, err = file.WriteString(time.Now().UTC().Format(time.RFC1123) + "   " + text + "\n")
+	_, err = file.WriteString(text + "\n")
 	helper.Check(err)
+}
+
+func formatDate(input string) string {
+	return time.Now().UTC().Format(time.RFC1123) + "   " + input
 }
 
 func getIpAddress(r *http.Request) string {

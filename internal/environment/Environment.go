@@ -29,6 +29,7 @@ type Environment struct {
 	AwsEndpoint      string `env:"AWS_ENDPOINT"`
 	DatabaseName     string `env:"DB_NAME" envDefault:"gokapi.sqlite"`
 	DisableCorsCheck bool   `env:"DISABLE_CORS_CHECK" envDefault:"false"`
+	LogToStdout      bool   `env:"LOG_STDOUT" envDefault:"false"`
 	// Deprecated: will be removed with 1.9
 	LegacyDbPath string
 	// Deprecated: will be removed with 1.9

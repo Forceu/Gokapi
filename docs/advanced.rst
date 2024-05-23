@@ -80,6 +80,8 @@ Available environment variables
 +---------------------------+------------------------------------------------------------------------------+-----------------+-----------------------------+
 | GOKAPI_DISABLE_CORS_CHECK | Disables the CORS check on startup and during setup, if set to "true"        | No              | false                       |
 +---------------------------+------------------------------------------------------------------------------+-----------------+-----------------------------+
+| GOKAPI_LOG_STDOUT         | Also outputs all log file entries to the console output                      | No              | false                       |
++---------------------------+------------------------------------------------------------------------------+-----------------+-----------------------------+
 | TMPDIR                    | Sets the path which contains temporary files                                 | No              | Non-Docker: Default OS path |
 |                           |                                                                              |                 |                             |
 |                           |                                                                              |                 | Docker:     [DATA_DIR]      |
