@@ -537,7 +537,7 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 		// We are not setting a download complete status as there is no reliable way to
 		// confirm that the file has been completely downloaded. It expires automatically after 24 hours.
 		downloadstatus.SetDownload(file)
-		err := aws.RedirectToDownload(w, r, file, forceDownload)
+		err := aws.ServeFile(w, r, file, forceDownload)
 		helper.Check(err)
 		return
 	}

@@ -27,6 +27,7 @@ type Environment struct {
 	AwsKeyId         string `env:"AWS_KEY"`
 	AwsKeySecret     string `env:"AWS_KEY_SECRET"`
 	AwsEndpoint      string `env:"AWS_ENDPOINT"`
+	AwsProxyDownload bool   `env:"AWS_PROXY_DOWNLOAD" envDefault:"false"`
 	DatabaseName     string `env:"DB_NAME" envDefault:"gokapi.sqlite"`
 	DisableCorsCheck bool   `env:"DISABLE_CORS_CHECK" envDefault:"false"`
 	LogToStdout      bool   `env:"LOG_STDOUT" envDefault:"false"`

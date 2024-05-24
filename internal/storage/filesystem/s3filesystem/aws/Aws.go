@@ -119,6 +119,14 @@ func Download(writer io.WriterAt, file models.File) (int64, error) {
 	return size, nil
 }
 
+// ServeFile either redirects the user to a pre-signed download url (default) or downloads the file and serves it as a proxy (if request
+func ServeFile(w http.ResponseWriter, r *http.Request, file models.File, forceDownload bool) error {
+	if !awsConfig.ProxyDownload {
+		return RedirectToDownload(w, r, file, forceDownload)
+	}
+	return ProxyDownload(w, file, forceDownload)
+}
+
 // RedirectToDownload creates a presigned link that is valid for 15 seconds and redirects the
 // client to this url
 func RedirectToDownload(w http.ResponseWriter, r *http.Request, file models.File, forceDownload bool) error {
@@ -144,6 +152,37 @@ func RedirectToDownload(w http.ResponseWriter, r *http.Request, file models.File
 	}
 
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+	return nil
+}
+
+// ProxyDownload streams the file from S3 as a proxy
+func ProxyDownload(w http.ResponseWriter, file models.File, forceDownload bool) error {
+	sess := createSession()
+	s3svc := s3.New(sess)
+
+	contentDisposition := "inline; filename=\"" + file.Name + "\""
+	if forceDownload {
+		contentDisposition = "Attachment; filename=\"" + file.Name + "\""
+	}
+
+	req, _ := s3svc.GetObjectRequest(&s3.GetObjectInput{
+		Bucket:                     aws.String(file.AwsBucket),
+		Key:                        aws.String(file.SHA1),
+		ResponseContentDisposition: aws.String(contentDisposition),
+		ResponseCacheControl:       aws.String("no-store"),
+		ResponseContentType:        aws.String(file.ContentType),
+	})
+
+	url, err := req.Presign(15 * time.Second)
+	if err != nil {
+		return err
+	}
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	_, _ = io.Copy(w, resp.Body)
 	return nil
 }
 
