@@ -84,6 +84,7 @@ func Start() {
 
 	mux := http.NewServeMux()
 	sseServer = sse.New()
+	sseServer.Headers["X-Accel-Buffering"] = "no"
 	sseServer.CreateStream("changes")
 	processingstatus.Init(sseServer)
 
@@ -145,13 +146,13 @@ func Start() {
 		ssl.GenerateIfInvalidCert(configuration.Get().ServerUrl, false)
 		fmt.Println(infoMessage)
 		err = srv.ListenAndServeTLS(ssl.GetCertificateLocations())
-		if err != nil && err != http.ErrServerClosed {
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatal(err)
 		}
 	} else {
 		fmt.Println(infoMessage)
 		err = srv.ListenAndServe()
-		if err != nil && err != http.ErrServerClosed {
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatal(err)
 		}
 	}

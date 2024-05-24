@@ -14,10 +14,13 @@ type UploadStatus struct {
 	CurrentStatus int `json:"currentstatus"`
 	// LastUpdate indicates the last status change
 	LastUpdate int64 `json:"lastupdate"`
+	// Type is the type of the message and is always "uploadstatus"
+	Type string `json:"type"`
 }
 
 // ToJson returns the struct as a Json byte array
 func (u *UploadStatus) ToJson() ([]byte, error) {
+	u.Type = "uploadstatus"
 	return json.Marshal(u)
 
 }

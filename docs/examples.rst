@@ -26,6 +26,11 @@ Nginx  Configuration
 		client_body_buffer_size 128k;
 
 		server_name your.server.url;
+		
+		proxy_connect_timeout 300;
+		proxy_send_timeout 300;
+		proxy_read_timeout 300;
+		send_timeout 300;
 
 		location / {
 			# If using Cloudflare

@@ -226,22 +226,22 @@ function editFile() {
     button.disabled = true;
     let apiUrl = './api/files/modify';
 
-    let  allowedDownloads = document.getElementById('mi_edit_down').value;
-    let  expiryTimestamp = document.getElementById('mi_edit_expiry').value;
-    let  password = document.getElementById('mi_edit_pw').value;
-    let  originalPassword = (password === '(unchanged)');
-    
+    let allowedDownloads = document.getElementById('mi_edit_down').value;
+    let expiryTimestamp = document.getElementById('mi_edit_expiry').value;
+    let password = document.getElementById('mi_edit_pw').value;
+    let originalPassword = (password === '(unchanged)');
+
     if (!document.getElementById('mc_download').checked) {
-    	allowedDownloads = 0;
+        allowedDownloads = 0;
     }
     if (!document.getElementById('mc_expiry').checked) {
-    	expiryTimestamp = 0;
+        expiryTimestamp = 0;
     }
     if (!document.getElementById('mc_password').checked) {
-    	originalPassword = false;
-    	password = "";
-    } 
-    
+        originalPassword = false;
+        password = "";
+    }
+
     const requestOptions = {
         method: 'PUT',
         headers: {
@@ -360,14 +360,14 @@ function selectTextForPw(input) {
 }
 
 function add14DaysIfBeforeCurrentTime(unixTimestamp) {
-  let currentTime = Date.now();
-  let timestampInMilliseconds = unixTimestamp * 1000;
-  if (timestampInMilliseconds < currentTime) {
-    let newTimestamp = currentTime + (14 * 24 * 60 * 60 * 1000);
-    return Math.floor(newTimestamp / 1000);
-  } else {
-    return unixTimestamp;
-  }
+    let currentTime = Date.now();
+    let timestampInMilliseconds = unixTimestamp * 1000;
+    if (timestampInMilliseconds < currentTime) {
+        let newTimestamp = currentTime + (14 * 24 * 60 * 60 * 1000);
+        return Math.floor(newTimestamp / 1000);
+    } else {
+        return unixTimestamp;
+    }
 }
 
 function changeApiPermission(apiKey, permission, buttonId) {
@@ -454,9 +454,25 @@ function parseData(data) {
 function registerChangeHandler() {
     const source = new EventSource("./uploadStatus?stream=changes")
     source.onmessage = (event) => {
-        let eventData = JSON.parse(event.data);
-        setProgressStatus(eventData.chunkid, eventData.currentstatus);
+        try {
+            let eventData = JSON.parse(event.data);
+            setProgressStatus(eventData.chunkid, eventData.currentstatus);
+        } catch (e) {
+            console.error("Failed to parse event data:", e);
+        }
     }
+    source.onerror = (error) => {
+
+        // Check for net::ERR_HTTP2_PROTOCOL_ERROR 200 (OK) and ignore it
+        if (error.target.readyState !== EventSource.CLOSED) {
+            source.close();
+        }
+
+
+        console.log("Reconnecting to SSE...");
+        // Attempt to reconnect after a delay
+        setTimeout(registerChangeHandler, 1000);
+    };
 }
 
 var statusItemCount = 0;
