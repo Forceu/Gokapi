@@ -447,8 +447,12 @@ func parseCloudSettings(formObjects *[]jsonFormObject) (*cloudconfig.CloudConfig
 }
 
 func getCloudConfig(formObjects *[]jsonFormObject) (*cloudconfig.CloudConfig, error) {
-	var err error
 	awsConfig := cloudconfig.CloudConfig{}
+	proxyDownload, err := getFormValueString(formObjects, "storage_sel_proxy")
+	if err != nil {
+		return nil, err
+	}
+	awsConfig.Aws.ProxyDownload = proxyDownload == "proxy"
 	awsConfig.Aws.Bucket, err = getFormValueString(formObjects, "s3_bucket")
 	if err != nil {
 		return nil, err

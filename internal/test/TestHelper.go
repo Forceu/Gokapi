@@ -40,7 +40,8 @@ func IsEqualString(t MockT, got, want string) {
 // ResponseBodyContains fails test if http response does contain string
 func ResponseBodyContains(t MockT, got *httptest.ResponseRecorder, want string) {
 	t.Helper()
-	result, _ := io.ReadAll(got.Result().Body)
+	result, err := io.ReadAll(got.Result().Body)
+	IsNil(t, err)
 	if !strings.Contains(string(result), want) {
 		t.Errorf("Assertion failed, got: %s, want: %s.", got, want)
 	}

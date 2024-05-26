@@ -127,9 +127,11 @@ func isUploaded(file models.File) bool {
 	return false
 }
 
-// ServeFile either redirects the user to a pre-signed download url (default) or downloads the file and serves it as a proxy (if request
-func ServeFile(w http.ResponseWriter, r *http.Request, file models.File, forceDownload bool) error {
-	return RedirectToDownload(w, r, file, forceDownload)
+// ServeFile either redirects the user to a pre-signed download url (default) or downloads the file and serves it as a proxy (depending
+// on configuration). Returns true if blocking operation (in order to set download status) or false if non-blocking.
+func ServeFile(w http.ResponseWriter, r *http.Request, file models.File, forceDownload bool) (bool, error) {
+	// TODO implement proxy as well
+	return false, RedirectToDownload(w, r, file, forceDownload)
 }
 
 // RedirectToDownload creates a presigned link that is valid for 15 seconds and redirects the

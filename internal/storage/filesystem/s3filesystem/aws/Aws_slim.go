@@ -57,9 +57,10 @@ func RedirectToDownload(w http.ResponseWriter, r *http.Request, file models.File
 	return errors.New(errorString)
 }
 
-// ServeFile either redirects the user to a pre-signed download url (default) or downloads the file and serves it as a proxy (if request
-func ServeFile(w http.ResponseWriter, r *http.Request, file models.File, forceDownload bool) error {
-	return errors.New(errorString)
+// ServeFile either redirects the user to a pre-signed download url (default) or downloads the file and serves it as a proxy (depending
+// on configuration). Returns true if blocking operation (in order to set download status) or false if non-blocking.
+func ServeFile(w http.ResponseWriter, r *http.Request, file models.File, forceDownload bool) (bool, error) {
+	return false, errors.New(errorString)
 }
 
 // FileExists returns true if the object is stored in S3

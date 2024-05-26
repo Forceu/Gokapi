@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
 	"github.com/forceu/gokapi/internal/configuration/database"
@@ -35,6 +36,10 @@ func TestMain(m *testing.M) {
 
 func TestDebugNotSet(t *testing.T) {
 	test.IsEqualBool(t, debugDisableAuth, false)
+	if debugDisableAuth {
+		fmt.Println("Debug mode is still on! Exiting test")
+		os.Exit(1)
+	}
 }
 
 func TestInputToJson(t *testing.T) {
@@ -345,6 +350,7 @@ func TestIntegration(t *testing.T) {
 		test.IsEqualString(t, cconfig.Aws.KeyId, "testapi")
 		test.IsEqualString(t, cconfig.Aws.KeySecret, "testsecret")
 		test.IsEqualString(t, cconfig.Aws.Endpoint, "testendpoint")
+		test.IsEqualBool(t, cconfig.Aws.ProxyDownload, true)
 	}
 	test.FileExists(t, "test/cloudconfig.yml")
 
@@ -418,7 +424,7 @@ func TestIntegration(t *testing.T) {
 	test.IsEqualString(t, settings.ServerUrl, "http://127.0.0.1:53842/")
 	test.IsEqualString(t, settings.RedirectUrl, "https://test.com")
 	test.IsEqualBool(t, settings.PicturesAlwaysLocal, false)
-	_, ok = cloudconfig.Load()
+	cconfig, ok = cloudconfig.Load()
 	if os.Getenv("GOKAPI_AWS_BUCKET") == "" {
 		test.IsEqualBool(t, ok, false)
 	}
@@ -445,6 +451,7 @@ func TestIntegration(t *testing.T) {
 	waitForServer(t, false)
 
 	test.IsEqualBool(t, settings.PicturesAlwaysLocal, true)
+	test.IsEqualBool(t, cconfig.Aws.ProxyDownload, false)
 	test.IsEqualString(t, settings.Authentication.OAuthProvider, "provider")
 	test.IsEqualString(t, settings.Authentication.OAuthClientId, "id")
 	test.IsEqualString(t, settings.Authentication.OAuthClientSecret, "secret")
@@ -481,6 +488,7 @@ type setupValues struct {
 	AuthHeaderUsers       setupEntry `form:"auth_header_users"`
 	StorageSelection      setupEntry `form:"storage_sel"`
 	PicturesAlwaysLocal   setupEntry `form:"storage_sel_image"`
+	ProxyDownloads        setupEntry `form:"storage_sel_proxy"`
 	S3Bucket              setupEntry `form:"s3_bucket"`
 	S3Region              setupEntry `form:"s3_region"`
 	S3ApiKey              setupEntry `form:"s3_api"`
@@ -591,6 +599,7 @@ func createInputInternalAuth() setupValues {
 	values.AuthUsername.Value = "admin"
 	values.AuthPassword.Value = "adminadmin"
 	values.StorageSelection.Value = "cloud"
+	values.ProxyDownloads.Value = "proxy"
 	values.S3Bucket.Value = "testbucket"
 	values.S3Region.Value = "testregion"
 	values.S3ApiKey.Value = "testapi"
@@ -643,6 +652,7 @@ func createInputOAuth() setupValues {
 	values.OAuthAuthorisedGroups.Value = "group1; group2"
 	values.StorageSelection.Value = "local"
 	values.PicturesAlwaysLocal.Value = "local"
+	values.ProxyDownloads.Value = "default"
 	return values
 }
 

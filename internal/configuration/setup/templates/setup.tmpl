@@ -344,7 +344,7 @@
 
 				<div class="wizard-input-section">
 					<p>
-						Select if you want to store files locally or on an S3 compatible cloud infrastructure
+						Choose whether to store files locally or on an S3-compatible cloud infrastructure.
 					</p>
 
 					<select name="storage_sel" id="storage_sel" style="width:350px;" class="select form-control" onchange="storageSelectionChanged(this.selectedIndex);">
@@ -357,14 +357,25 @@
 					<p><br><br><i>This build has been compiled without AWS support, therefore cloud storage is not available.</i></p>
 {{ else }}
 
-					<br><p>
-						Select if you want to store pictures always locally. Choose this if you want to use full encryption but still be able to have hotlink support.
-					</p>
-					<select name="storage_sel_image" id="storage_sel_image" style="width:350px;" class="select form-control">
-							<option value="nochange" selected>As above</option>
-							<option value="local">Always local Storage</option>
+					<div id="cloudstorage_options" style="visibility: hidden">
 
-					</select>
+						<br><p>
+							Location for picture files: Select local storage if you require full encryption but still need hotlink support.
+						</p>
+						<select name="storage_sel_image" id="storage_sel_image" style="width:350px;" class="select form-control">
+								<option value="nochange" selected>Use cloud storage</option>
+								<option value="local">Use local storage for pictures</option>
+
+						</select>
+						<br><p>
+							To conserve bandwidth, Gokapi defaults to redirecting to pre-signed S3 download URLs. If you prefer not to use this feature or if your S3 server is only accessible from your internal network, select the "Proxy downloads" option below.
+						</p>
+						<select name="storage_sel_proxy" id="storage_sel_proxy" style="width:350px;" class="select form-control">
+								<option value="presigned" selected>Default</option>
+								<option value="proxy">Proxy downloads</option>
+
+						</select>
+					</div>
 {{ end }}
 					
 
@@ -651,7 +662,7 @@ function TestAWS(button, isManual) {
 					</div>
 					If you configured Gokapi to use a password during startup, please enter it now in the console before clicking on continue.<br><br>
 	
-					<a class="btn btn-success im-done">Continue</a>
+					<a id="bt_finishsetup" class="btn btn-success im-done">Continue</a>
 				</div>
 			</div>
 		</div>
@@ -676,7 +687,9 @@ function TestAWS(button, isManual) {
 				
 				
 				wizard.el.find(".wizard-success .im-done").click(function() {
-					window.location.href = $("#url").val()+"admin";
+					document.getElementById("bt_finishsetup").disabled=true;
+					document.getElementById("bt_finishsetup").text="Please wait";
+					setTimeout(function(){ window.location.href = $("#url").val()+"admin";}, 1500);
 				});
 			
 			
@@ -735,10 +748,20 @@ function TestAWS(button, isManual) {
 				    document.getElementById("auth_header_users").value = "{{ .HeaderUsers }}";
 				    break;
 				}
+				
 
 	{{ if .CloudSettings.Aws.Bucket }}				
 				document.getElementById("storage_sel").value = "cloud";
 				storageSelectionChanged(1);
+				
+		{{ if .CloudSettings.Aws.ProxyDownload }}
+				document.getElementById("storage_sel_proxy").value = "proxy";
+		{{ end }}
+		
+		{{ if .Settings.PicturesAlwaysLocal }}
+				document.getElementById("storage_sel_image").value = "local";
+		{{ end }}
+				
 		{{ if not .S3EnvProvided }}
 				document.getElementById("s3_bucket").value = "{{ .CloudSettings.Aws.Bucket }}";
 				document.getElementById("s3_region").value =  "{{ .CloudSettings.Aws.Region }}";
@@ -886,10 +909,15 @@ function TestAWS(button, isManual) {
 
 			function storageSelectionChanged(index) {
 				let card = wizard.cards["s3credentials"];
-				if (index==0) 
+				let storageOptDiv = document.getElementById("cloudstorage_options");
+				if (index==0) {
 					card.disable(true);
-				else if (index==1) 
+					storageOptDiv.style.visibility="hidden";
+				} else {
 					card.enable();
+					storageOptDiv.style.visibility="visible";
+				}
+					
 			}
 
 			$(function() {

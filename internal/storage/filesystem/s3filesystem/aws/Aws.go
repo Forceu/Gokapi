@@ -119,17 +119,16 @@ func Download(writer io.WriterAt, file models.File) (int64, error) {
 	return size, nil
 }
 
-// ServeFile either redirects the user to a pre-signed download url (default) or downloads the file and serves it as a proxy (if request
-func ServeFile(w http.ResponseWriter, r *http.Request, file models.File, forceDownload bool) error {
+// ServeFile either redirects the user to a pre-signed download url (default) or downloads the file and serves it as a proxy (depending
+// on configuration). Returns true if blocking operation (in order to set download status) or false if non-blocking.
+func ServeFile(w http.ResponseWriter, r *http.Request, file models.File, forceDownload bool) (bool, error) {
 	if !awsConfig.ProxyDownload {
-		return RedirectToDownload(w, r, file, forceDownload)
+		return false, redirectToDownload(w, r, file, forceDownload)
 	}
-	return ProxyDownload(w, file, forceDownload)
+	return true, proxyDownload(w, file, forceDownload)
 }
 
-// RedirectToDownload creates a presigned link that is valid for 15 seconds and redirects the
-// client to this url
-func RedirectToDownload(w http.ResponseWriter, r *http.Request, file models.File, forceDownload bool) error {
+func getPresignedUrl(file models.File, forceDownload bool) (string, error) {
 	sess := createSession()
 	s3svc := s3.New(sess)
 
@@ -146,7 +145,13 @@ func RedirectToDownload(w http.ResponseWriter, r *http.Request, file models.File
 		ResponseContentType:        aws.String(file.ContentType),
 	})
 
-	url, err := req.Presign(15 * time.Second)
+	return req.Presign(15 * time.Second)
+}
+
+// redirectToDownload creates a presigned link that is valid for 15 seconds and redirects the
+// client to this url
+func redirectToDownload(w http.ResponseWriter, r *http.Request, file models.File, forceDownload bool) error {
+	url, err := getPresignedUrl(file, forceDownload)
 	if err != nil {
 		return err
 	}
@@ -155,28 +160,13 @@ func RedirectToDownload(w http.ResponseWriter, r *http.Request, file models.File
 	return nil
 }
 
-// ProxyDownload streams the file from S3 as a proxy
-func ProxyDownload(w http.ResponseWriter, file models.File, forceDownload bool) error {
-	sess := createSession()
-	s3svc := s3.New(sess)
-
-	contentDisposition := "inline; filename=\"" + file.Name + "\""
-	if forceDownload {
-		contentDisposition = "Attachment; filename=\"" + file.Name + "\""
-	}
-
-	req, _ := s3svc.GetObjectRequest(&s3.GetObjectInput{
-		Bucket:                     aws.String(file.AwsBucket),
-		Key:                        aws.String(file.SHA1),
-		ResponseContentDisposition: aws.String(contentDisposition),
-		ResponseCacheControl:       aws.String("no-store"),
-		ResponseContentType:        aws.String(file.ContentType),
-	})
-
-	url, err := req.Presign(15 * time.Second)
+// proxyDownload streams the file from S3 as a proxy, by downloading a presigned url
+func proxyDownload(w http.ResponseWriter, file models.File, forceDownload bool) error {
+	url, err := getPresignedUrl(file, forceDownload)
 	if err != nil {
 		return err
 	}
+
 	resp, err := http.Get(url)
 	if err != nil {
 		return err
@@ -214,7 +204,8 @@ func fileExists(bucket, filename string) (bool, int64, error) {
 	})
 
 	if err != nil {
-		aerr, ok := err.(awserr.Error)
+		var aerr awserr.Error
+		ok := errors.As(err, &aerr)
 		if ok {
 			if aerr.Code() == "NotFound" {
 				return false, 0, nil
@@ -260,7 +251,8 @@ func IsCorsCorrectlySet(bucket, gokapiUrl string) (bool, error) {
 
 	result, err := svc.GetBucketCorsWithContext(ctx, input)
 	if err != nil {
-		aerr, ok := err.(awserr.Error)
+		var aerr awserr.Error
+		ok := errors.As(err, &aerr)
 		if ok && aerr.Code() == "NoSuchCorsConfiguration" {
 			return false, nil
 		}

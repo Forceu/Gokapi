@@ -534,11 +534,14 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 	logging.AddDownload(&file, r, configuration.Get().SaveIp)
 
 	if !file.IsLocalStorage() {
-		// We are not setting a download complete status as there is no reliable way to
+		// If non-blocking, we are not setting a download complete status as there is no reliable way to
 		// confirm that the file has been completely downloaded. It expires automatically after 24 hours.
-		downloadstatus.SetDownload(file)
-		err := aws.ServeFile(w, r, file, forceDownload)
+		statusId := downloadstatus.SetDownload(file)
+		isBlocking, err := aws.ServeFile(w, r, file, forceDownload)
 		helper.Check(err)
+		if isBlocking {
+			downloadstatus.SetComplete(statusId)
+		}
 		return
 	}
 	fileData, size := getFileHandler(file, configuration.Get().DataDir)
