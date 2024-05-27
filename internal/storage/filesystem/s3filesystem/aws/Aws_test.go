@@ -122,7 +122,11 @@ func testServing(t *testing.T, expectRedirect, forceDownload bool) {
 		test.IsEqualInt(t, w.Code, 200)
 		// content-disposition not implemented in s3mem
 		if isRealAwsServer {
-			// TODO
+			expectedContentDisposition := "inline; filename=\"" + testFile.Name + "\""
+			if forceDownload {
+				expectedContentDisposition = "Attachment; filename=\"" + testFile.Name + "\""
+			}
+			test.IsEqualString(t, w.Header().Get("Content-Disposition"), expectedContentDisposition)
 		}
 	} else {
 		for _, s := range []string{"<a href=\"http", "Testfile.jpg"} {
@@ -148,7 +152,11 @@ func testServing(t *testing.T, expectRedirect, forceDownload bool) {
 
 		// content-disposition not implemented in s3mem
 		if isRealAwsServer {
-			// TODO
+			expectedContentDisposition := "inline; filename=\"" + testFile.Name + "\""
+			if forceDownload {
+				expectedContentDisposition = "Attachment; filename=\"" + testFile.Name + "\""
+			}
+			test.IsEqualString(t, resp.Header.Get("Content-Disposition"), expectedContentDisposition)
 		}
 	}
 }

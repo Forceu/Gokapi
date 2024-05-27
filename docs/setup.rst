@@ -175,8 +175,6 @@ Tutorial for configuring OIDC servers and the correct client settings for Gokapi
 * :ref:`oidcconfig_google`
 * :ref:`oidcconfig_entra`
 
-You can find a guide on how to create an OIDC client with Github at `Setting up GitHub OAuth 2.0 <https://docs.readme.com/docs/setting-up-github-oauth>`_ and a guide for Google at `Setting up OAuth 2.0 <https://support.google.com/cloud/answer/6158849>`_.
-
 
 Header Authentication
 ************************
@@ -215,6 +213,8 @@ Storage
 """"""""""""""
 
 Here you can choose where uploaded files shall be stored. Use the option to always store image files to the local storage, if you want to use encryption for cloudstorage, but require hotlink support. 
+
+If using cloud storage, by default Gokapi creates a pre-signed download link for files to be downloaded (basically a URL that can only be used for a very short time). If your storage is not accessible from the internet or if you prefer to not expose any cloud storage URLs, you can choose to proxy the downloads. That way Gokapi downloads them and passes them to the user through the Gokapi service.
 
 Local Storage
 *********************
