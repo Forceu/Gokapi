@@ -677,7 +677,9 @@ func responseError(w http.ResponseWriter, err error) {
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = io.WriteString(w, "{\"Result\":\"error\",\"ErrorMessage\":\""+err.Error()+"\"}")
-		log.Println(err)
+		if !errors.Is(err, io.ErrUnexpectedEOF) {
+			log.Println(err)
+		}
 	}
 }
 
