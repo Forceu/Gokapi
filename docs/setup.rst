@@ -73,6 +73,9 @@ To start the container, run the following command: ::
 
 With the argument ``-p 127.0.0.1:53842:53842`` the service will only be accessible from the machine it is running on. In most use-cases you will use a reverse proxy for SSL - if you want to make the service available to other computers in the network without a reverse proxy, replace the argument with ``-p 53842:53842``. Please note, unless you select SSL during the setup, the traffic will not be encrypted that way and data like passwords or transferred files can easily be read by third parties!
 
+If you do not want the binary to run as the root user in the container, you can set the environment variable ``DOCKER_NONROOT`` to true.
+
+
 
 Initial Setup
 ^^^^^^^^^^^^^^^
