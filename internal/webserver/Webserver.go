@@ -573,6 +573,8 @@ type UploadView struct {
 	DefaultDownloads         int
 	DefaultExpiry            int
 	ActiveView               int
+	ChunkSize                int
+	MaxParallelUploads       int
 	TimeNow                  int64
 }
 
@@ -648,6 +650,8 @@ func (u *UploadView) convertGlobalConfig(view int) *UploadView {
 	u.DefaultUnlimitedDownload = defaultValues.UnlimitedDownload
 	u.DefaultUnlimitedTime = defaultValues.UnlimitedTime
 	u.EndToEndEncryption = config.Encryption.Level == encryption.EndToEndEncryption
+	u.MaxParallelUploads = config.MaxParallelUploads
+	u.ChunkSize = config.ChunkSize
 	return u
 }
 

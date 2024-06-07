@@ -14,10 +14,12 @@ type Configuration struct {
 	PublicName          string               `json:"PublicName"`
 	ConfigVersion       int                  `json:"ConfigVersion"`
 	LengthId            int                  `json:"LengthId"`
-	DataDir             string               `json:"DataDir"`
-	MaxMemory           int                  `json:"MaxMemory"`
-	UseSsl              bool                 `json:"UseSsl"`
 	MaxFileSizeMB       int                  `json:"MaxFileSizeMB"`
+	MaxMemory           int                  `json:"MaxMemory"`
+	ChunkSize           int                  `json:"ChunkSize"`
+	MaxParallelUploads  int                  `json:"MaxParallelUploads"`
+	DataDir             string               `json:"DataDir"`
+	UseSsl              bool                 `json:"UseSsl"`
 	Encryption          Encryption           `json:"Encryption"`
 	PicturesAlwaysLocal bool                 `json:"PicturesAlwaysLocal"`
 	SaveIp              bool                 `json:"SaveIp"`

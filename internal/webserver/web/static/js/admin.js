@@ -72,9 +72,11 @@ function updateProgressbar(file, progress, bytesSent) {
     }
     let millisSinceUpload = Date.now() - container.getAttribute('data-starttime');
     let megabytePerSecond = bytesSent / (millisSinceUpload / 1000) / 1024 / 1024;
-    let uploadSpeed = Math.round(megabytePerSecond * 10) / 10;
     document.getElementById(`us-progressbar-${chunkId}`).style.width = rounded + "%";
-    document.getElementById(`us-progress-info-${chunkId}`).innerText = rounded + "% - " + uploadSpeed + "MB/s";
+    
+    let uploadSpeed = Math.round(megabytePerSecond * 10) / 10;
+    if (!Number.isNaN(uploadSpeed))
+	    document.getElementById(`us-progress-info-${chunkId}`).innerText = rounded + "% - " + uploadSpeed + "MB/s";
 }
 
 function setProgressStatus(chunkId, progressCode) {

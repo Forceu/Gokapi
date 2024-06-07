@@ -7,6 +7,28 @@ Changelog
 Overview of all Changes
 -----------------------
 
+v1.8.4: 29 May 2024
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* Gokapi runs as root in Docker container by default (this was changed in 1.8.3). To run it as unprivileged user, set environment variable DOCKER_NONROOT to true.
+* Removed logging of errors when a user unexpectedly closed download or upload connection
+
+
+v1.8.3: 27 May 2024
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* Fixed Keycloak documentation. **Important:** If you have used the old example for configuration, please make sure that it is configure properly, as with the old example unauthorised access might have been possible! Documentation: Creating scopes for groups
+* The binary will no longer be run as root in the Docker image. Breaking change: If you want to reconfigure Gokapi, the argument to pass to Docker is now a different one: Documentation
+* If salts are empty, new ones will now be generated on startup. This is to aid automatic deployment
+* A new admin password can be set with --deployment-password newPassword, but this should only be used for automatic deployment
+* Env variable GOKAPI_LOG_STDOUT added, which also outputs all log entries to the terminal
+* Display error message, if a reverse proxy does not allow file upload, or has been set to accept a too low file size
+* Added header, so that nginx does not cache SSE
+* Cloud storage file downloads can now be proxied through Gokapi, e.g. if the storage server is on an internal network
+* Fixed a bug, where the option "Always save images locally" reverted back to default when re-running setup
+* Updated documentation
+
+
 v1.8.2: 20 Apr 2024
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

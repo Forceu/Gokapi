@@ -10,8 +10,8 @@ import (
 	"strings"
 )
 
-const versionJsAdmin = "2"
-const versionJsDropzone = "3"
+const versionJsAdmin = "3"
+const versionJsDropzone = "4"
 const versionJsE2EAdmin = "2"
 const versionCssMain = "2"
 

@@ -57,37 +57,41 @@ Available environment variables
 ==================================
 
 
-+---------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| Name                      | Action                                                                              | Persistent [*]_ | Default                     |
-+===========================+=====================================================================================+=================+=============================+
-| GOKAPI_CONFIG_DIR         | Sets the directory for the config file                                              | No              | config                      |
-+---------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| GOKAPI_CONFIG_FILE        | Sets the name of the config file                                                    | No              | config.json                 |
-+---------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| GOKAPI_DATA_DIR           | Sets the directory for the data                                                     | Yes             | data                        |
-+---------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| GOKAPI_DB_NAME            | Sets the name for the database file                                                 | No              | gokapi.sqlite               |
-+---------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| GOKAPI_LENGTH_ID          | Sets the length of the download IDs. Value needs to be 5 or more                    | Yes             | 15                          |
-+---------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| GOKAPI_MAX_FILESIZE       | Sets the maximum allowed file size in MB                                            | Yes             | 102400 (100GB)              |
-+---------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| GOKAPI_MAX_MEMORY_UPLOAD  | Sets the amount of RAM in MB that can be allocated for an upload.                   | Yes             | 20                          |
-|                           |                                                                                     |                 |                             |
-|                           | Any upload with a size greater than that will be written to a temporary file        |                 |                             |
-+---------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| GOKAPI_PORT               | Sets the webserver port                                                             | Yes             | 53842                       |
-+---------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| GOKAPI_DISABLE_CORS_CHECK | Disables the CORS check on startup and during setup, if set to "true"               | No              | false                       |
-+---------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| GOKAPI_LOG_STDOUT         | Also outputs all log file entries to the console output                             | No              | false                       |
-+---------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| DOCKER_NONROOT            | Docker only: Runs the binary in the container as a non-root user, if set to "true"  | No              | false                       |
-+---------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| TMPDIR                    | Sets the path which contains temporary files                                        | No              | Non-Docker: Default OS path |
-|                           |                                                                                     |                 |                             |
-|                           |                                                                                     |                 | Docker:     [DATA_DIR]      |
-+---------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
++-----------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
+| Name                        | Action                                                                              | Persistent [*]_ | Default                     |
++=============================+=====================================================================================+=================+=============================+
+| GOKAPI_CHUNK_SIZE_MB        | Sets the size of chunks that are uploaded in MB                                     | Yes             | 45                          |
++-----------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
+| GOKAPI_CONFIG_DIR           | Sets the directory for the config file                                              | No              | config                      |
++-----------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
+| GOKAPI_CONFIG_FILE          | Sets the name of the config file                                                    | No              | config.json                 |
++-----------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
+| GOKAPI_DATA_DIR             | Sets the directory for the data                                                     | Yes             | data                        |
++-----------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
+| GOKAPI_DB_NAME              | Sets the name for the database file                                                 | No              | gokapi.sqlite               |
++-----------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
+| GOKAPI_LENGTH_ID            | Sets the length of the download IDs. Value needs to be 5 or more                    | Yes             | 15                          |
++-----------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
+| GOKAPI_MAX_FILESIZE         | Sets the maximum allowed file size in MB                                            | Yes             | 102400 (100GB)              |
++-----------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
+| GOKAPI_MAX_MEMORY_UPLOAD    | Sets the amount of RAM in MB that can be allocated for an upload chunk or file      | Yes             | 50                          |
+|                             |                                                                                     |                 |                             |
+|                             | Any chunk or file with a size greater than that will be written to a temporary file |                 |                             |
++-----------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
+| GOKAPI_MAX_PARALLEL_UPLOADS | Set the amount of chunks that are uploaded in parallel for a single file            | Yes             | 4                           |
++-----------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
+| GOKAPI_PORT                 | Sets the webserver port                                                             | Yes             | 53842                       |
++-----------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
+| GOKAPI_DISABLE_CORS_CHECK   | Disables the CORS check on startup and during setup, if set to “true”               | No              | false                       |
++-----------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
+| GOKAPI_LOG_STDOUT           | Also outputs all log file entries to the console output                             | No              | false                       |
++-----------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
+| DOCKER_NONROOT              | Docker only: Runs the binary in the container as a non-root user, if set to “true”  | No              | false                       |
++-----------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
+| TMPDIR                      | Sets the path which contains temporary files                                        | No              | Non-Docker: Default OS path |
+|                             |                                                                                     |                 |                             |
+|                             |                                                                                     |                 | Docker: [DATA_DIR]          |
++-----------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
 
 
 .. [*] Variables that are persistent must be submitted during the first start when Gokapi creates a new config file. They can be omitted afterwards. Non-persistent variables need to be set on every start.
@@ -151,6 +155,64 @@ Example: Deleting a file
 ::
 
  curl -X DELETE "https://your.gokapi.url/api/files/delete" -H "accept: */*" -H "id: PFnh2DlQRS2PVKM" -H "apikey: secret"
+
+
+
+.. _chunksizes:
+
+*****************************************************************************
+Chunk Sizes / Considerations for servers with limited or high amount of RAM
+*****************************************************************************
+
+By default, Gokapi uploads files in 45MB chunks stored in RAM. Up to 4 chunks are sent in parallel to enhance upload speed, requiring up to 200MB of RAM per file during upload in the standard configuration.
+
+Servers with limited RAM
+================================
+
+To conserve RAM, you can either 
+
+* configure Gokapi to save the chunks on disk instead of RAM, by setting the ``MaxMemory`` setting to a value lower than your chunk size
+* reduce the chunk size by setting the ``ChunkSize`` to a lower value
+* decrease the amount of parallel uploads by setting ``MaxParallelUploads`` to a lower value
+
+Refer to :ref:`chunk_config` for instructions on changing these values.
+
+Servers with high amount of RAM
+================================
+
+If your server has a lot of available RAM, you can improve upload speed by increasing the chunk size, which reduces overhead during upload.
+
+* Increase the chunk size by setting the ``ChunkSize`` to a larger value
+* Make sure that the ``MaxMemory`` setting is a higher value than your chunk size
+* Consider increasing the amount of parallel uploads by setting ``MaxParallelUploads`` to a higher value
+
+
+Refer to :ref:`chunk_config` for instructions on changing these values.
+
+.. note::
+   Ensure your reverse proxy and CDN (if applicable) support the chosen chunk size. Cloudflare users on the free tier are limited to 100MB file chunks.
+
+
+.. _chunk_config:
+
+
+Changing the configuration
+============================
+
+If you have not completed the Gokapi setup yet, you can set all the values mentioned above using environment variables. See :ref:`passingenv` for instructions. If the setup is complete, Gokapi will ignore these environment variables, and you'll need to modify the configuration file (by default: ``config.json`` in the folder ``config``). See the table below on how to change the values:
+
+
++----------------------------------------+-----------------------------+--------------------------+---------+
+| Configuration                          | Environment Variable        | Configuration File Entry | Default |
++========================================+=============================+==========================+=========+
+| Chunk size for uploads                 | GOKAPI_CHUNK_SIZE_MB        | ChunkSize                | 45      |
++----------------------------------------+-----------------------------+--------------------------+---------+
+| Maximum size for chunks or whole files | GOKAPI_MAX_MEMORY_UPLOAD    | MaxMemory                | 50      |
+|                                        |                             |                          |         |
+| to store in RAM during upload          |                             |                          |         |
++----------------------------------------+-----------------------------+--------------------------+---------+
+| Parallel uploads per file              | GOKAPI_MAX_PARALLEL_UPLOADS | MaxParallelUploads       | 4       |
++----------------------------------------+-----------------------------+--------------------------+---------+
 
 
 
