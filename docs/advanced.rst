@@ -281,4 +281,4 @@ By default, all files are included in the executable. If you want to change the 
 2. Copy either the folder ``static``, ``templates`` or both from the ``internal/webserver/web`` folder to the directory where the executable is located (if you are using Docker, mount the folders into the the ``/app/`` directory, e.g. ``/app/templates``).
 3. Make changes to the folders. ``static`` contains images, CSS files and JavaScript. ``templates`` contains the HTML code.
 4. Restart the server. If the folders exist, the server will use the local files instead of the embedded files.
-5. Optional: To embed the files permanently, copy the modified files back to the original folders and recompile with ``go build Gokapi/cmd/gokapi``.
+5. Optional: To embed the files permanently, copy the modified files back to the original folders and recompile with ``go generate ./...`` and then ``go build github.com/forceu/gokapi/cmd/gokapi``.

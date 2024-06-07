@@ -37,7 +37,7 @@ This will compile the source code and create an executable from the latest code.
 Docker
 ^^^^^^^
 
-To download, run the following command, and replace YOURTAG with either *latest* (stable) or *latest-dev* (unstable).
+To download, run the following command:
 ::
 
   docker pull docker.io/f0rc3/gokapi:latest
@@ -52,7 +52,7 @@ If you don't want to download the prebuilt image, you can find the Dockerfile on
 First Start
 **************
 
-After the first start you will be redirected to a setup webpage. To change the port for the setup please set the GOKAPI_PORT env variable, see :ref:`envvar`
+After the first start you will be redirected to a setup webpage. If you require to change the port for the setup webserver, please set the ``GOKAPI_PORT`` env variable, see :ref:`envvar`
 
 
 Starting Gokapi
