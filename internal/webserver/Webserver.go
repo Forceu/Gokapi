@@ -121,6 +121,9 @@ func Start() {
 	mux.HandleFunc("/uploadStatus", requireLogin(sseServer.ServeHTTP, false))
 	mux.Handle("/main.wasm", gziphandler.GzipHandler(http.HandlerFunc(serveDownloadWasm)))
 	mux.Handle("/e2e.wasm", gziphandler.GzipHandler(http.HandlerFunc(serveE2EWasm)))
+
+	mux.HandleFunc("/id/{id}/{filename}", redirectFromFilename)
+
 	if configuration.Get().Authentication.Method == authentication.OAuth2 {
 		oauth.Init(configuration.Get().ServerUrl, configuration.Get().Authentication)
 		mux.HandleFunc("/oauth-login", oauth.HandlerLogin)
@@ -195,6 +198,15 @@ func initTemplates(templateFolderEmbedded embed.FS) {
 // Sends a redirect HTTP output to the client. Variable url is used to redirect to ./url
 func redirect(w http.ResponseWriter, url string) {
 	_, _ = io.WriteString(w, "<html><head><meta http-equiv=\"Refresh\" content=\"0; URL=./"+url+"\"></head></html>")
+}
+
+// Handling of /id/?/? - used when filename shall be displayed, will redirect to regular download URL
+func redirectFromFilename(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	err := templateFolder.ExecuteTemplate(w, "redirect_filename", struct {
+		FileId string
+	}{id})
+	helper.CheckIgnoreTimeout(err)
 }
 
 // Handling of /main.wasm
