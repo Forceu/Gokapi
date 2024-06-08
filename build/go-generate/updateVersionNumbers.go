@@ -10,9 +10,9 @@ import (
 	"strings"
 )
 
-const versionJsAdmin = "3"
+const versionJsAdmin = "4"
 const versionJsDropzone = "4"
-const versionJsE2EAdmin = "2"
+const versionJsE2EAdmin = "3"
 const versionCssMain = "2"
 
 const fileMain = "../../cmd/gokapi/Main.go"

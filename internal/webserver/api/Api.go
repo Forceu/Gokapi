@@ -265,7 +265,7 @@ func list(w http.ResponseWriter) {
 	config := configuration.Get()
 	for _, element := range database.GetAllMetadata() {
 		if !storage.IsExpiredFile(element, timeNow) {
-			file, err := element.ToFileApiOutput(config.ServerUrl, config.ShowFilename)
+			file, err := element.ToFileApiOutput(config.ServerUrl, config.IncludeFilename)
 			helper.Check(err)
 			validFiles = append(validFiles, file)
 		}
@@ -316,7 +316,7 @@ func duplicateFile(w http.ResponseWriter, request apiRequest) {
 
 func outputFileInfo(w http.ResponseWriter, file models.File) {
 	config := configuration.Get()
-	publicOutput, err := file.ToFileApiOutput(config.ServerUrl, config.ShowFilename)
+	publicOutput, err := file.ToFileApiOutput(config.ServerUrl, config.IncludeFilename)
 	helper.Check(err)
 	result, err := json.Marshal(publicOutput)
 	helper.Check(err)

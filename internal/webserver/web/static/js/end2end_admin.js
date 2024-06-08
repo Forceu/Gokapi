@@ -170,7 +170,7 @@ function decryptFileEntry(id, filename, cipher) {
             let urlLink = urlNode.querySelector("a");
             let url = urlLink.getAttribute("href");
             if (!url.includes(cipher)) {
-                if (showFilenames) {
+                if (IncludeFilename) {
                     url = url.replace("/Encrypted%20File", "/" + encodeURI(filename));
                 }
                 url = url + "#" + cipher;

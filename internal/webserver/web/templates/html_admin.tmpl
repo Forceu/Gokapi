@@ -182,10 +182,10 @@
         <script src="./js/min/wasm_exec.min.js"></script>
 	<script src="./js/min/end2end_admin.min.js?v={{ template "js_e2eversion"}}"></script>
 	<script>
-	{{ if .ShowFilename }} 
-		const showFilenames = true;
+	{{ if .IncludeFilename }} 
+		const IncludeFilename = true;
 	{{ else }}
-		const showFilenames = false;
+		const IncludeFilename = false;
 	{{ end }}
 		isE2EEnabled = true;
 	

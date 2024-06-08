@@ -584,7 +584,7 @@ type UploadView struct {
 	DefaultUnlimitedDownload bool
 	DefaultUnlimitedTime     bool
 	EndToEndEncryption       bool
-	ShowFilename             bool
+	IncludeFilename          bool
 	MaxFileSize              int
 	DefaultDownloads         int
 	DefaultExpiry            int
@@ -613,7 +613,7 @@ func (u *UploadView) convertGlobalConfig(view int) *UploadView {
 	switch view {
 	case ViewMain:
 		for _, element := range database.GetAllMetadata() {
-			fileInfo, err := element.ToFileApiOutput(config.ServerUrl, config.ShowFilename)
+			fileInfo, err := element.ToFileApiOutput(config.ServerUrl, config.IncludeFilename)
 			helper.Check(err)
 			result = append(result, fileInfo)
 		}
@@ -666,7 +666,7 @@ func (u *UploadView) convertGlobalConfig(view int) *UploadView {
 	u.EndToEndEncryption = config.Encryption.Level == encryption.EndToEndEncryption
 	u.MaxParallelUploads = config.MaxParallelUploads
 	u.ChunkSize = config.ChunkSize
-	u.ShowFilename = config.ShowFilename
+	u.IncludeFilename = config.IncludeFilename
 	return u
 }
 

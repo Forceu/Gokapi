@@ -418,7 +418,7 @@ func parseServerSettings(result *models.Configuration, formObjects *[]jsonFormOb
 	if err != nil {
 		return err
 	}
-	result.ShowFilename, err = getFormValueBool(formObjects, "showfilename_sel")
+	result.IncludeFilename, err = getFormValueBool(formObjects, "showfilename_sel")
 	if err != nil {
 		return err
 	}

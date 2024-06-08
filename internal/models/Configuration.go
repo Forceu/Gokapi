@@ -23,7 +23,7 @@ type Configuration struct {
 	UseSsl              bool                 `json:"UseSsl"`
 	PicturesAlwaysLocal bool                 `json:"PicturesAlwaysLocal"`
 	SaveIp              bool                 `json:"SaveIp"`
-	ShowFilename        bool                 `json:"ShowFilename"`
+	IncludeFilename     bool                 `json:"IncludeFilename"`
 }
 
 // Encryption hold information about the encryption used on this file

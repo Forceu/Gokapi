@@ -550,69 +550,95 @@
         "properties": {
           "Id": {
             "type": "string",
+            "description": "The internal ID of the file",
             "example": "oNleRD3pUZgaDKn"
           },
           "Name": {
             "type": "string",
+            "description": "The filename. Will be 'Encrypted file' for end-to-end encrypted files",
             "example": "Test File.jpg"
           },
           "Size": {
             "type": "string",
+            "description": "Filesize in a human readable format",
             "example": "395.4 kB"
+          },
+          "HotlinkId": {
+            "type": "string",
+            "description": "If file is a picture file and can be hotlinked, this is the ID for the hotlink",
+            "example": "tDMs0U8MvRFwK69PfjagI7F87C13UVeQuOGDvtCG.jpg"
+          },
+          "ContentType": {
+            "description": "The MIME type for the file",
+            "type": "string",
+            "example": "image/jpeg"
+          },
+          "ExpireAtString": {
+            "type": "string",
+            "description": "Time expiry in a human readable format in local time",
+            "example": "2024-02-17 14:08"
+          },
+          "UrlDownload": {
+            "type": "string",
+            "description": "The public download URL for the file",
+            "example": "https://gokapi.server/d?id=oNleRD3pUZgaDKn"
+          },
+          "UrlHotlink": {
+            "type": "string",
+            "description": "The public hotlink URL for the file",
+            "example": "https://gokapi.server/hotlink/tDMs0U8MvRFwK69PfjagI7F87C13UVeQuOGDvtCG.jpg"
+          },
+          "ExpireAt": {
+            "type": "integer",
+            "description": "UTC timestamp of file expiry",
+            "format": "int64",
+            "example": "1708175321"
           },
           "SizeBytes": {
             "type": "integer",
             "format": "int64",
+            "description": "Filesize in bytes",
             "example": "404843"
-          },
-          "HotlinkId": {
-            "type": "string",
-            "example": "tDMs0U8MvRFwK69PfjagI7F87C13UVeQuOGDvtCG.jpg"
-          },
-          "ContentType": {
-            "type": "string",
-            "example": "image/jpeg"
-          },
-          "ExpireAt": {
-            "type": "integer",
-            "format": "int64",
-            "example": "1708175321"
-          },
-          "ExpireAtString": {
-            "type": "string",
-            "example": "2024-02-17 14:08"
           },
           "DownloadsRemaining": {
             "type": "integer",
+            "description": "The remaining downloads for this file",
             "format": "int64",
             "example": "4"
           },
           "DownloadCount": {
             "type": "integer",
+            "description": "The amount of times the file has been downloaded",
             "format": "int64",
             "example": "1"
           },
           "UnlimitedDownloads": {
             "type": "boolean",
+            "description": "True if the uploader did not limit the downloads",
             "example": "false"
           },
           "UnlimitedTime": {
             "type": "boolean",
+            "description": "True if the uploader did not limit the time",
             "example": "false"
           },
           "RequiresClientSideDecryption": {
             "type": "boolean",
+            "description": "True if the file has to be decrypted client-side",
             "example": "false"
           },
           "IsEncrypted": {
+            "description": "True if the file is encrypted",
             "type": "boolean",
             "example": "false"
           },
           "IsPasswordProtected": {
             "type": "boolean",
+            "description": "True if a password has to be entered before downloading the file",
             "example": "false"
           },
           "IsSavedOnLocalStorage": {
+            "description": "True if the file does not use cloud storage",
             "type": "boolean",
             "example": "true"
           }
@@ -641,20 +667,10 @@
           "FileInfo": {
             "$ref": "#/components/schemas/File"
           },
-          "HotlinkUrl": {
-            "type": "string",
-            "description": "Always the base URL for all hotlinks",
-            "example": "http://localhost:53842/hotlink/"
-          },
-          "Url": {
-            "type": "string",
-            "description": "Always the base URL for all regular downloads",
-            "example": "http://localhost:53842/d?id="
-          },
-          "GenericHotlinkUrl": {
-            "type": "string",
-            "description": "Always the base URL for all hotlinks that are no pictures",
-            "example": "http://localhost:53842/downloadFile?id="
+          "IncludeFilename": {
+            "type": "boolean",
+            "description": "If true, the download URLs include the filename",
+            "example": "true"
           }
         },
         "description": "UploadResult is the struct used for the result after an upload",
