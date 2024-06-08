@@ -1,9 +1,3 @@
-Blob.prototype.arrayBuffer ??= function() {
-    return new Response(this).arrayBuffer()
-}
-isE2EEnabled = true;
-
-
 function displayError(err) {
     document.getElementById("errordiv").style.display = "block";
     document.getElementById("errormessage").innerHTML = "<b>Error: </b> " + err.toString().replace(/^Error:/gi, "");
@@ -176,20 +170,21 @@ function decryptFileEntry(id, filename, cipher) {
             let urlLink = urlNode.querySelector("a");
             let url = urlLink.getAttribute("href");
             if (!url.includes(cipher)) {
-                urlLink.setAttribute("href", url + "#" + cipher);
+                if (IncludeFilename) {
+                    url = url.replace("/Encrypted%20File", "/" + encodeURI(filename));
+                }
+                url = url + "#" + cipher;
+                urlLink.setAttribute("href", url);
             }
             datatable.cell(i, 5).node(urlNode);
 
 
             let buttonNode = datatable.cell(i, 6).node();
             let button = buttonNode.querySelector("button");
-            let urlButton = button.getAttribute("data-clipboard-text");
-            if (!urlButton.includes(cipher)) {
-                button.setAttribute("data-clipboard-text", urlButton + "#" + cipher);
-            }
-            document.getElementById("qrcode-"+id).onclick = function() {showQrCode(url+ "#" + cipher);};
-        datatable.cell(i, 6).node(buttonNode);
-        break;
+            button.setAttribute("data-clipboard-text", url);
+            document.getElementById("qrcode-"+id).onclick = function() {showQrCode(url);};
+            datatable.cell(i, 6).node(buttonNode);
+            break;
         }
     }
 }

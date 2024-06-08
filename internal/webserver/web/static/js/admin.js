@@ -578,19 +578,15 @@ function addRow(jsonText) {
         cellStoredUntil.innerText = item.ExpireAtString;
     }
     cellDownloadCount.innerHTML = '0';
-    cellUrl.innerHTML = '<a  target="_blank" style="color: inherit" id="url-href-' + item.Id + '" href="' + jsonObject.Url + item.Id + '">' + item.Id + '</a>' + lockIcon;
+    cellUrl.innerHTML = '<a  target="_blank" style="color: inherit" id="url-href-' + item.Id + '" href="' + item.UrlDownload + '">' + item.Id + '</a>' + lockIcon;
 
-    let buttons = '<button type="button" onclick="showToast()" id="url-button-' + item.Id + '"  data-clipboard-text="' + jsonObject.Url + item.Id + '" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> URL</button> ';
-    if (item.HotlinkId !== "") {
-        buttons = buttons + '<button type="button" onclick="showToast()" data-clipboard-text="' + jsonObject.HotlinkUrl + item.HotlinkId + '" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> Hotlink</button> ';
-    } else {
-        if (item.RequiresClientSideDecryption === true || item.IsPasswordProtected === true) {
+    let buttons = '<button type="button" onclick="showToast()" id="url-button-' + item.Id + '"  data-clipboard-text="' + item.UrlDownload + '" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> URL</button> ';
+        if (item.UrlHotlink === "") {
             buttons = buttons + '<button type="button"class="copyurl btn btn-outline-light btn-sm disabled"><i class="bi bi-copy"></i> Hotlink</button> ';
         } else {
-            buttons = buttons + '<button type="button" onclick="showToast()" data-clipboard-text="' + jsonObject.GenericHotlinkUrl + item.Id + '" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> Hotlink</button> ';
+            buttons = buttons + '<button type="button" onclick="showToast()" data-clipboard-text="' + item.UrlHotlink + '" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> Hotlink</button> ';
         }
-    }
-    buttons = buttons + '<button type="button" id="qrcode-'+item.Id+'" title="QR Code" class="btn btn-outline-light btn-sm" onclick="showQrCode(\'' + jsonObject.Url + item.Id + '\');"><i class="bi bi-qr-code"></i></button> ';
+    buttons = buttons + '<button type="button" id="qrcode-'+item.Id+'" title="QR Code" class="btn btn-outline-light btn-sm" onclick="showQrCode(\'' + item.UrlDownload + '\');"><i class="bi bi-qr-code"></i></button> ';
     buttons = buttons + '<button type="button" title="Edit" class="btn btn-outline-light btn-sm" onclick="showEditModal(\'' + item.Name + '\',\'' + item.Id + '\', ' + item.DownloadsRemaining + ', ' + item.ExpireAt + ', ' + item.IsPasswordProtected + ', ' + item.UnlimitedDownloads + ', ' + item.UnlimitedTime + ');"><i class="bi bi-pencil"></i></button> ';
     buttons = buttons + '<button type="button" title="Delete" class="btn btn-outline-danger btn-sm" onclick="window.location=\'./delete?id=' + item.Id + '\'"><i class="bi bi-trash3"></i></button>';
 
@@ -625,7 +621,6 @@ function hideQrCode() {
     document.getElementById("qroverlay").style.display = "none";
     document.getElementById("qrcode").innerHTML = "";
 }
-
 
 function showQrCode(url) {
     const overlay = document.getElementById("qroverlay");

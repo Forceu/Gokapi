@@ -12,17 +12,18 @@ type Configuration struct {
 	ServerUrl           string               `json:"ServerUrl"`
 	RedirectUrl         string               `json:"RedirectUrl"`
 	PublicName          string               `json:"PublicName"`
+	DataDir             string               `json:"DataDir"`
 	ConfigVersion       int                  `json:"ConfigVersion"`
 	LengthId            int                  `json:"LengthId"`
 	MaxFileSizeMB       int                  `json:"MaxFileSizeMB"`
 	MaxMemory           int                  `json:"MaxMemory"`
 	ChunkSize           int                  `json:"ChunkSize"`
 	MaxParallelUploads  int                  `json:"MaxParallelUploads"`
-	DataDir             string               `json:"DataDir"`
-	UseSsl              bool                 `json:"UseSsl"`
 	Encryption          Encryption           `json:"Encryption"`
+	UseSsl              bool                 `json:"UseSsl"`
 	PicturesAlwaysLocal bool                 `json:"PicturesAlwaysLocal"`
 	SaveIp              bool                 `json:"SaveIp"`
+	IncludeFilename     bool                 `json:"IncludeFilename"`
 }
 
 // Encryption hold information about the encryption used on this file

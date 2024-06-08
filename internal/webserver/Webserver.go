@@ -121,6 +121,10 @@ func Start() {
 	mux.HandleFunc("/uploadStatus", requireLogin(sseServer.ServeHTTP, false))
 	mux.Handle("/main.wasm", gziphandler.GzipHandler(http.HandlerFunc(serveDownloadWasm)))
 	mux.Handle("/e2e.wasm", gziphandler.GzipHandler(http.HandlerFunc(serveE2EWasm)))
+
+	mux.HandleFunc("/d/{id}/{filename}", redirectFromFilename)
+	mux.HandleFunc("/dh/{id}/{filename}", downloadFileWithNameInUrl)
+
 	if configuration.Get().Authentication.Method == authentication.OAuth2 {
 		oauth.Init(configuration.Get().ServerUrl, configuration.Get().Authentication)
 		mux.HandleFunc("/oauth-login", oauth.HandlerLogin)
@@ -195,6 +199,19 @@ func initTemplates(templateFolderEmbedded embed.FS) {
 // Sends a redirect HTTP output to the client. Variable url is used to redirect to ./url
 func redirect(w http.ResponseWriter, url string) {
 	_, _ = io.WriteString(w, "<html><head><meta http-equiv=\"Refresh\" content=\"0; URL=./"+url+"\"></head></html>")
+}
+
+type redirectValues struct {
+	FileId      string
+	RedirectUrl string
+}
+
+// Handling of /id/?/? - used when filename shall be displayed, will redirect to regular download URL
+func redirectFromFilename(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	err := templateFolder.ExecuteTemplate(w, "redirect_filename", redirectValues{
+		id, "d"})
+	helper.CheckIgnoreTimeout(err)
 }
 
 // Handling of /main.wasm
@@ -411,8 +428,8 @@ func showDownload(w http.ResponseWriter, r *http.Request) {
 // Handling of /hotlink/
 // Hotlinks an image or returns a static error image if image has expired
 func showHotlink(w http.ResponseWriter, r *http.Request) {
-	addNoCacheHeader(w)
 	hotlinkId := strings.Replace(r.URL.Path, "/hotlink/", "", 1)
+	addNoCacheHeader(w)
 	file, ok := storage.GetFileByHotlink(hotlinkId)
 	if !ok {
 		w.Header().Set("Content-Type", "image/svg+xml")
@@ -556,9 +573,7 @@ type e2ESetupView struct {
 type UploadView struct {
 	Items                    []models.FileApiOutput
 	ApiKeys                  []models.ApiKey
-	Url                      string
-	HotlinkUrl               string
-	GenericHotlinkUrl        string
+	ServerUrl                string
 	DefaultPassword          string
 	Logs                     string
 	PublicName               string
@@ -569,6 +584,7 @@ type UploadView struct {
 	DefaultUnlimitedDownload bool
 	DefaultUnlimitedTime     bool
 	EndToEndEncryption       bool
+	IncludeFilename          bool
 	MaxFileSize              int
 	DefaultDownloads         int
 	DefaultExpiry            int
@@ -592,10 +608,12 @@ const ViewAPI = 2
 func (u *UploadView) convertGlobalConfig(view int) *UploadView {
 	var result []models.FileApiOutput
 	var resultApi []models.ApiKey
+
+	config := configuration.Get()
 	switch view {
 	case ViewMain:
 		for _, element := range database.GetAllMetadata() {
-			fileInfo, err := element.ToFileApiOutput()
+			fileInfo, err := element.ToFileApiOutput(config.ServerUrl, config.IncludeFilename)
 			helper.Check(err)
 			result = append(result, fileInfo)
 		}
@@ -630,11 +648,7 @@ func (u *UploadView) convertGlobalConfig(view int) *UploadView {
 		}
 	}
 
-	config := configuration.Get()
-
-	u.Url = config.ServerUrl + "d?id="
-	u.HotlinkUrl = config.ServerUrl + "hotlink/"
-	u.GenericHotlinkUrl = config.ServerUrl + "downloadFile?id="
+	u.ServerUrl = config.ServerUrl
 	u.Items = result
 	u.PublicName = config.PublicName
 	u.ApiKeys = resultApi
@@ -652,6 +666,7 @@ func (u *UploadView) convertGlobalConfig(view int) *UploadView {
 	u.EndToEndEncryption = config.Encryption.Level == encryption.EndToEndEncryption
 	u.MaxParallelUploads = config.MaxParallelUploads
 	u.ChunkSize = config.ChunkSize
+	u.IncludeFilename = config.IncludeFilename
 	return u
 }
 
@@ -687,18 +702,38 @@ func responseError(w http.ResponseWriter, err error) {
 	}
 }
 
+// Handling of /dh/?/?
+// Hotlinks a file and has the filename in the URL
+func downloadFileWithNameInUrl(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	serveFile(id, false, w, r)
+}
+
+// Handling of /downloadFile
 // Outputs the file to the user and reduces the download remaining count for the file
 func downloadFile(w http.ResponseWriter, r *http.Request) {
+	id := queryUrl(w, r, "error")
+	serveFile(id, true, w, r)
+}
+
+func serveFile(id string, isRootUrl bool, w http.ResponseWriter, r *http.Request) {
 	addNoCacheHeader(w)
-	keyId := queryUrl(w, r, "error")
-	savedFile, ok := storage.GetFile(keyId)
+	savedFile, ok := storage.GetFile(id)
 	if !ok {
-		redirect(w, "error")
+		if isRootUrl {
+			redirect(w, "error")
+		} else {
+			redirect(w, "../../error")
+		}
 		return
 	}
 	if savedFile.PasswordHash != "" {
 		if !(isValidPwCookie(r, savedFile)) {
-			redirect(w, "d?id="+savedFile.Id)
+			if isRootUrl {
+				redirect(w, "d?id="+savedFile.Id)
+			} else {
+				redirect(w, "../../d?id="+savedFile.Id)
+			}
 			return
 		}
 	}
