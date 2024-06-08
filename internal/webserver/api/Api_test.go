@@ -205,8 +205,7 @@ func TestUploadAndDuplication(t *testing.T) {
 	test.IsEqualString(t, result.FileInfo.Size, "3 B")
 	test.IsEqualInt(t, result.FileInfo.DownloadsRemaining, 200)
 	test.IsEqualBool(t, result.FileInfo.IsPasswordProtected, true)
-	test.IsEqualString(t, result.Url, "http://127.0.0.1:53843/d?id="+result.FileInfo.Id)
-	test.IsEqualString(t, result.UrlFilename, "http://127.0.0.1:53843/d/"+result.FileInfo.Id+"/fileupload.jpg")
+	test.IsEqualString(t, result.FileInfo.UrlDownload, "http://127.0.0.1:53843/d?id="+result.FileInfo.Id)
 	newFileId := result.FileInfo.Id
 
 	w, r = test.GetRecorder("POST", "/api/files/add", nil, []test.Header{{
