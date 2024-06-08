@@ -590,7 +590,7 @@ function addRow(jsonText) {
             buttons = buttons + '<button type="button" onclick="showToast()" data-clipboard-text="' + jsonObject.GenericHotlinkUrl + item.Id + '" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> Hotlink</button> ';
         }
     }
-    buttons = buttons + '<button type="button" title="QR Code" class="btn btn-outline-light btn-sm" onclick="showQrCode(\'' + jsonObject.Url + item.Id + '\');"><i class="bi bi-qr-code"></i></button> ';
+    buttons = buttons + '<button type="button" id="qrcode-'+item.Id+'" title="QR Code" class="btn btn-outline-light btn-sm" onclick="showQrCode(\'' + jsonObject.Url + item.Id + '\');"><i class="bi bi-qr-code"></i></button> ';
     buttons = buttons + '<button type="button" title="Edit" class="btn btn-outline-light btn-sm" onclick="showEditModal(\'' + item.Name + '\',\'' + item.Id + '\', ' + item.DownloadsRemaining + ', ' + item.ExpireAt + ', ' + item.IsPasswordProtected + ', ' + item.UnlimitedDownloads + ', ' + item.UnlimitedTime + ');"><i class="bi bi-pencil"></i></button> ';
     buttons = buttons + '<button type="button" title="Delete" class="btn btn-outline-danger btn-sm" onclick="window.location=\'./delete?id=' + item.Id + '\'"><i class="bi bi-trash3"></i></button>';
 

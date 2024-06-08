@@ -187,6 +187,7 @@ function decryptFileEntry(id, filename, cipher) {
             if (!urlButton.includes(cipher)) {
                 button.setAttribute("data-clipboard-text", urlButton + "#" + cipher);
             }
+            document.getElementById("qrcode-"+id).onclick = function() {showQrCode(url+ "#" + cipher);};
         datatable.cell(i, 6).node(buttonNode);
         break;
         }
