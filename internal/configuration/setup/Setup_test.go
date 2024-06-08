@@ -328,6 +328,7 @@ func TestIntegration(t *testing.T) {
 	waitForServer(t, false)
 	test.FileExists(t, "test/config.json")
 	settings := configuration.Get()
+	test.IsEqualBool(t, settings.ShowFilename, true)
 	test.IsEqualInt(t, settings.Authentication.Method, 0)
 	test.IsEqualString(t, settings.Authentication.Username, "admin")
 	test.IsEqualString(t, settings.Authentication.OAuthProvider, "")
@@ -404,6 +405,7 @@ func TestIntegration(t *testing.T) {
 
 	test.FileExists(t, "test/config.json")
 	settings = configuration.Get()
+	test.IsEqualBool(t, settings.ShowFilename, false)
 	test.IsEqualInt(t, settings.Authentication.Method, 2)
 	test.IsEqualString(t, settings.Authentication.Username, "")
 	test.IsEqualString(t, settings.Authentication.OAuthProvider, "")
@@ -471,6 +473,7 @@ type setupValues struct {
 	PublicName            setupEntry `form:"public_name"`
 	ExtUrl                setupEntry `form:"url"`
 	RedirectUrl           setupEntry `form:"url_redirection"`
+	ShowFilename          setupEntry `form:"showfilename_sel" isBool:"true"`
 	AuthenticationMode    setupEntry `form:"authentication_sel" isInt:"true"`
 	AuthUsername          setupEntry `form:"auth_username"`
 	AuthPassword          setupEntry `form:"auth_pw"`
@@ -592,6 +595,7 @@ func createInputInternalAuth() setupValues {
 	values.BindLocalhost.Value = "1"
 	values.PublicName.Value = "Test Name"
 	values.UseSsl.Value = "0"
+	values.ShowFilename.Value = "1"
 	values.Port.Value = "53842"
 	values.ExtUrl.Value = "http://127.0.0.1:53842/"
 	values.RedirectUrl.Value = "https://github.com/Forceu/Gokapi/"
@@ -634,6 +638,7 @@ func createInputHeaderAuth() setupValues {
 	values.OAuthRestrictUser.Value = "false"
 	values.OAuthRestrictGroups.Value = "false"
 	values.OAuthRecheckInterval.Value = "12"
+	values.ShowFilename.Value = "0"
 
 	return values
 }

@@ -123,6 +123,12 @@
 						<select name="logip_sel" id="logip_sel" style="width:350px;" class="select form-control">
 								<option value="0" selected>No</option>
 								<option value="1">Yes</option>
+						</select><br>
+						
+							  <label for="showfilename_sel">Include filename in download URL</i></label>
+						<select name="showfilename_sel" id="showfilename_sel" style="width:350px;" class="select form-control">
+								<option value="0" selected>No</option>
+								<option value="1">Yes</option>
 						</select>
 					</div>
 				</div>
@@ -709,6 +715,9 @@ function TestAWS(button, isManual) {
 	{{ end }}
 	{{ if .Settings.SaveIp }}
 				document.getElementById("logip_sel").selectedIndex = 1;
+	{{ end }}
+	{{ if .Settings.ShowFilename }}
+				document.getElementById("showfilename_sel").selectedIndex = 1;
 	{{ end }}
 				document.getElementById("port").value = "{{ .Port }}";
 				document.getElementById("url").value = "{{ .Settings.ServerUrl }}";
