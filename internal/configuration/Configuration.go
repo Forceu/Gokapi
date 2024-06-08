@@ -81,12 +81,14 @@ func Load() {
 	if configupgrade.DoUpgrade(&serverSettings, &Environment) {
 		save()
 	}
-	envMaxMem := os.Getenv("GOKAPI_MAX_MEMORY_UPLOAD")
-	if envMaxMem != "" {
-		serverSettings.MaxMemory = Environment.MaxMemory
-	}
 	if serverSettings.PublicName == "" {
 		serverSettings.PublicName = "Gokapi"
+	}
+	if serverSettings.MaxParallelUploads == 0 {
+		serverSettings.MaxParallelUploads = 4
+	}
+	if serverSettings.ChunkSize == 0 {
+		serverSettings.ChunkSize = 45
 	}
 	helper.CreateDir(serverSettings.DataDir)
 	filesystem.Init(serverSettings.DataDir)
