@@ -173,14 +173,16 @@ function decryptFileEntry(id, filename, cipher) {
                 if (showFilenames) {
                     url = url.replace("/Encrypted%20File", "/" + encodeURI(filename));
                 }
-                urlLink.setAttribute("href", url + "#" + cipher);
+                url = url + "#" + cipher;
+                urlLink.setAttribute("href", url);
             }
             datatable.cell(i, 5).node(urlNode);
 
 
             let buttonNode = datatable.cell(i, 6).node();
             let button = buttonNode.querySelector("button");
-            button.setAttribute("data-clipboard-text", url + "#" + cipher);
+            button.setAttribute("data-clipboard-text", url);
+            document.getElementById("qrcode-"+id).onclick = function() {showQrCode(url);};
             datatable.cell(i, 6).node(buttonNode);
             break;
         }

@@ -225,12 +225,14 @@ func toConfiguration(formObjects *[]jsonFormObject) (models.Configuration, *clou
 	parsedEnv := environment.New()
 
 	result := models.Configuration{
-		MaxFileSizeMB:  parsedEnv.MaxFileSize,
-		LengthId:       parsedEnv.LengthId,
-		MaxMemory:      parsedEnv.MaxMemory,
-		DataDir:        parsedEnv.DataDir,
-		ConfigVersion:  configupgrade.CurrentConfigVersion,
-		Authentication: models.AuthenticationConfig{},
+		MaxFileSizeMB:      parsedEnv.MaxFileSize,
+		LengthId:           parsedEnv.LengthId,
+		MaxMemory:          parsedEnv.MaxMemory,
+		DataDir:            parsedEnv.DataDir,
+		MaxParallelUploads: parsedEnv.MaxParallelUploads,
+		ChunkSize:          parsedEnv.ChunkSizeMB,
+		ConfigVersion:      configupgrade.CurrentConfigVersion,
+		Authentication:     models.AuthenticationConfig{},
 	}
 
 	if isInitialSetup {

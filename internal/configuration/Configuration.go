@@ -84,6 +84,12 @@ func Load() {
 	if serverSettings.PublicName == "" {
 		serverSettings.PublicName = "Gokapi"
 	}
+	if serverSettings.MaxParallelUploads == 0 {
+		serverSettings.MaxParallelUploads = 4
+	}
+	if serverSettings.ChunkSize == 0 {
+		serverSettings.ChunkSize = 45
+	}
 	helper.CreateDir(serverSettings.DataDir)
 	filesystem.Init(serverSettings.DataDir)
 	log.Init(Environment.DataDir)
