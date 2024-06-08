@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/jinzhu/copier"
+	"net/url"
 )
 
 // File is a struct used for saving information about an uploaded file
@@ -76,18 +77,25 @@ func (f *File) ToFileApiOutput() (FileApiOutput, error) {
 }
 
 // ToJsonResult converts the file info to a json String used for returning a result for an upload
-func (f *File) ToJsonResult(serverUrl string) string {
+func (f *File) ToJsonResult(serverUrl string, showFilename bool) string {
 	info, err := f.ToFileApiOutput()
 	if err != nil {
 		return errorAsJson(err)
 	}
 	result := Result{
-		Result:            "OK",
-		Url:               serverUrl + "d?id=",
-		HotlinkUrl:        serverUrl + "hotlink/",
-		GenericHotlinkUrl: serverUrl + "downloadFile?id=",
-		FileInfo:          info,
+		Result:       "OK",
+		Url:          serverUrl + "d?id=" + info.Id,
+		UrlFilename:  serverUrl + "d/" + info.Id + "/" + url.QueryEscape(info.Name),
+		ShowFilename: showFilename,
+		FileInfo:     info,
 	}
+
+	if !info.RequiresClientSideDecryption && !info.IsPasswordProtected {
+		result.HotlinkUrl = serverUrl + "hotlink/" + info.HotlinkId
+		result.GenericHotlinkUrl = serverUrl + "downloadFile?id=" + info.Id
+		result.GenericHotlinkFilenameUrl = serverUrl + "dh/" + info.Id + "/" + url.QueryEscape(info.Name)
+	}
+
 	bytes, err := json.Marshal(result)
 	if err != nil {
 		return errorAsJson(err)
@@ -111,11 +119,14 @@ func errorAsJson(err error) string {
 // Result is the struct used for the result after an upload
 // swagger:model UploadResult
 type Result struct {
-	Result            string        `json:"Result"`
-	FileInfo          FileApiOutput `json:"FileInfo"`
-	Url               string        `json:"Url"`
-	HotlinkUrl        string        `json:"HotlinkUrl"`
-	GenericHotlinkUrl string        `json:"GenericHotlinkUrl"`
+	Result                    string        `json:"Result"`
+	FileInfo                  FileApiOutput `json:"FileInfo"`
+	UrlFilename               string        `json:"UrlFilename"`
+	Url                       string        `json:"Url"`
+	HotlinkUrl                string        `json:"HotlinkUrl"`
+	GenericHotlinkUrl         string        `json:"GenericHotlinkUrl"`
+	GenericHotlinkFilenameUrl string        `json:"GenericHotlinkFilenameUrl"`
+	ShowFilename              bool          `json:"ShowFilename"`
 }
 
 // DownloadStatus contains current downloads, so they do not get removed during cleanup

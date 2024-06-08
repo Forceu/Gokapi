@@ -1,7 +1,7 @@
 {{define "redirect_filename"}}
 <html><head></head>
 
-If you are not being redirected, click <a id="redirect" href="./../../d?id={{.FileId}}">here</a>
+If you are not being redirected, click <a id="redirect" href="./../../{{.RedirectUrl}}?id={{.FileId}}">here</a>
 
 
 <script>
@@ -9,7 +9,7 @@ let hash = window.location.hash.substr(1);
 let url = document.getElementById("redirect");
 
 url.href = url.href + "#"+hash;
-window.location.replace("./../../d?id={{.FileId}}#"+hash);
+window.location.replace("./../../{{.RedirectUrl}}?id={{.FileId}}#"+hash);
 </script>
 
 </html>
