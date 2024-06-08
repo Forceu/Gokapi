@@ -262,9 +262,10 @@ func chunkComplete(w http.ResponseWriter, request apiRequest) {
 func list(w http.ResponseWriter) {
 	var validFiles []models.FileApiOutput
 	timeNow := time.Now().Unix()
+	config := configuration.Get()
 	for _, element := range database.GetAllMetadata() {
 		if !storage.IsExpiredFile(element, timeNow) {
-			file, err := element.ToFileApiOutput()
+			file, err := element.ToFileApiOutput(config.ServerUrl, config.ShowFilename)
 			helper.Check(err)
 			validFiles = append(validFiles, file)
 		}
@@ -314,7 +315,8 @@ func duplicateFile(w http.ResponseWriter, request apiRequest) {
 }
 
 func outputFileInfo(w http.ResponseWriter, file models.File) {
-	publicOutput, err := file.ToFileApiOutput()
+	config := configuration.Get()
+	publicOutput, err := file.ToFileApiOutput(config.ServerUrl, config.ShowFilename)
 	helper.Check(err)
 	result, err := json.Marshal(publicOutput)
 	helper.Check(err)
@@ -327,8 +329,9 @@ func isAuthorisedForApi(w http.ResponseWriter, request apiRequest) bool {
 		sendError(w, http.StatusBadRequest, "Invalid request")
 		return false
 	}
-	isOauth := configuration.Get().Authentication.Method == authentication.OAuth2
-	interval := configuration.Get().Authentication.OAuthRecheckInterval
+	config := configuration.Get()
+	isOauth := config.Authentication.Method == authentication.OAuth2
+	interval := config.Authentication.OAuthRecheckInterval
 	if IsValidApiKey(request.apiKey, true, perm) || sessionmanager.IsValidSession(w, request.request, isOauth, interval) {
 		return true
 	}

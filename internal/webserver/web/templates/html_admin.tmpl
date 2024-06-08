@@ -78,18 +78,14 @@
 						<td>{{ .ExpireAtString }}</td>
 			{{ end }}
 						<td>{{ .DownloadCount }}</td>
-						<td><a id="url-href-{{ .Id }}" target="_blank" href="{{ $.Url }}{{ .Id }}">{{ .Id }}</a>{{ if .IsPasswordProtected }}  <i title="Password protected" class="bi bi-key"></i>{{ end }}</td>
-						<td><button id="url-button-{{ .Id }}" type="button" onclick="showToast()" data-clipboard-text="{{ $.Url }}{{ .Id }}" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> URL</button> 
-			{{ if ne .HotlinkId "" }}
- 						<button type="button" onclick="showToast()" data-clipboard-text="{{ $.HotlinkUrl }}{{ .HotlinkId }}" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> Hotlink</button>
+						<td><a id="url-href-{{ .Id }}" target="_blank" href="{{ .UrlDownload }}">{{ .Id }}</a>{{ if .IsPasswordProtected }}  <i title="Password protected" class="bi bi-key"></i>{{ end }}</td>
+						<td><button id="url-button-{{ .Id }}" type="button" onclick="showToast()" data-clipboard-text="{{ .UrlDownload }}" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> URL</button> 
+			{{ if ne .UrlHotlink "" }}
+ 						<button type="button" onclick="showToast()" data-clipboard-text="{{ .UrlHotlink }}" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> Hotlink</button>
 			{{ else }}
-				{{ if or (.IsPasswordProtected) (.RequiresClientSideDecryption)  }}
-	 						<button type="button"class="copyurl btn btn-outline-light btn-sm disabled"><i class="bi bi-copy"></i> Hotlink</button>
-				{{ else }}
- 							<button type="button" onclick="showToast()" data-clipboard-text="{{ $.GenericHotlinkUrl }}{{ .Id }}" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> Hotlink</button>
-				{{ end }}
+ 						<button type="button"class="copyurl btn btn-outline-light btn-sm disabled"><i class="bi bi-copy"></i> Hotlink</button>
 			{{ end }}
-						<button type="button" title="QR Code" class="btn btn-outline-light btn-sm" onclick="showQrCode('{{ $.Url }}{{ .Id }}');"><i class="bi bi-qr-code"></i></button>
+						<button type="button" title="QR Code" class="btn btn-outline-light btn-sm" onclick="showQrCode('{{ .UrlDownload }}');"><i class="bi bi-qr-code"></i></button>
 						<button type="button" title="Edit" class="btn btn-outline-light btn-sm" onclick="showEditModal('{{.Name }}','{{.Id}}', {{.DownloadsRemaining }}, {{.ExpireAt }}, {{.IsPasswordProtected}}, {{.UnlimitedDownloads }}, {{.UnlimitedTime}});"><i class="bi bi-pencil"></i></button>
 						<button type="button" title="Delete" class="btn btn-outline-danger btn-sm" onclick="window.location='./delete?id={{ .Id }}'"><i class="bi bi-trash3"></i></button></td>
 					</tr>
@@ -186,6 +182,17 @@
         <script src="./js/min/wasm_exec.min.js"></script>
 	<script src="./js/min/end2end_admin.min.js?v={{ template "js_e2eversion"}}"></script>
 	<script>
+	{{ if .ShowFilename }} 
+		const showFilenames = true;
+	{{ else }}
+		const showFilenames = false;
+	{{ end }}
+		isE2EEnabled = true;
+	
+		Blob.prototype.arrayBuffer ??= function() {
+		    return new Response(this).arrayBuffer()
+		}
+		
 		checkIfE2EKeyIsSet();
 	</script>
 {{ end }}

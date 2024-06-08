@@ -1,9 +1,3 @@
-Blob.prototype.arrayBuffer ??= function() {
-    return new Response(this).arrayBuffer()
-}
-isE2EEnabled = true;
-
-
 function displayError(err) {
     document.getElementById("errordiv").style.display = "block";
     document.getElementById("errormessage").innerHTML = "<b>Error: </b> " + err.toString().replace(/^Error:/gi, "");
@@ -176,6 +170,9 @@ function decryptFileEntry(id, filename, cipher) {
             let urlLink = urlNode.querySelector("a");
             let url = urlLink.getAttribute("href");
             if (!url.includes(cipher)) {
+                if (showFilenames) {
+                    url = url.replace("/Encrypted%20File", "/" + encodeURI(filename));
+                }
                 urlLink.setAttribute("href", url + "#" + cipher);
             }
             datatable.cell(i, 5).node(urlNode);
@@ -183,12 +180,9 @@ function decryptFileEntry(id, filename, cipher) {
 
             let buttonNode = datatable.cell(i, 6).node();
             let button = buttonNode.querySelector("button");
-            let urlButton = button.getAttribute("data-clipboard-text");
-            if (!urlButton.includes(cipher)) {
-                button.setAttribute("data-clipboard-text", urlButton + "#" + cipher);
-            }
-        datatable.cell(i, 6).node(buttonNode);
-        break;
+            button.setAttribute("data-clipboard-text", url + "#" + cipher);
+            datatable.cell(i, 6).node(buttonNode);
+            break;
         }
     }
 }

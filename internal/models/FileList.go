@@ -13,15 +13,15 @@ type File struct {
 	Name               string         `json:"Name"`
 	Size               string         `json:"Size"`
 	SHA1               string         `json:"SHA1"`
-	ExpireAt           int64          `json:"ExpireAt"`
-	SizeBytes          int64          `json:"SizeBytes"`
-	ExpireAtString     string         `json:"ExpireAtString"`
-	DownloadsRemaining int            `json:"DownloadsRemaining"`
-	DownloadCount      int            `json:"DownloadCount"`
 	PasswordHash       string         `json:"PasswordHash"`
 	HotlinkId          string         `json:"HotlinkId"`
 	ContentType        string         `json:"ContentType"`
 	AwsBucket          string         `json:"AwsBucket"`
+	ExpireAtString     string         `json:"ExpireAtString"`
+	ExpireAt           int64          `json:"ExpireAt"`
+	SizeBytes          int64          `json:"SizeBytes"`
+	DownloadsRemaining int            `json:"DownloadsRemaining"`
+	DownloadCount      int            `json:"DownloadCount"`
 	Encryption         EncryptionInfo `json:"Encryption"`
 	UnlimitedDownloads bool           `json:"UnlimitedDownloads"`
 	UnlimitedTime      bool           `json:"UnlimitedTime"`
@@ -34,9 +34,11 @@ type FileApiOutput struct {
 	Size                         string `json:"Size"`
 	HotlinkId                    string `json:"HotlinkId"`
 	ContentType                  string `json:"ContentType"`
+	ExpireAtString               string `json:"ExpireAtString"`
+	UrlDownload                  string `json:"UrlDownload"`
+	UrlHotlink                   string `json:"UrlHotlink"`
 	ExpireAt                     int64  `json:"ExpireAt"`
 	SizeBytes                    int64  `json:"SizeBytes"`
-	ExpireAtString               string `json:"ExpireAtString"`
 	DownloadsRemaining           int    `json:"DownloadsRemaining"`
 	DownloadCount                int    `json:"DownloadCount"`
 	UnlimitedDownloads           bool   `json:"UnlimitedDownloads"`
@@ -61,7 +63,7 @@ func (f *File) IsLocalStorage() bool {
 }
 
 // ToFileApiOutput returns a json object without sensitive information
-func (f *File) ToFileApiOutput() (FileApiOutput, error) {
+func (f *File) ToFileApiOutput(serverUrl string, useFilenameInUrl bool) (FileApiOutput, error) {
 	var result FileApiOutput
 	err := copier.Copy(&result, &f)
 	if err != nil {
@@ -73,27 +75,42 @@ func (f *File) ToFileApiOutput() (FileApiOutput, error) {
 	if f.Encryption.IsEndToEndEncrypted || f.RequiresClientDecryption() {
 		result.RequiresClientSideDecryption = true
 	}
+	result.UrlHotlink = getHotlinkUrl(result, serverUrl, useFilenameInUrl)
+	result.UrlDownload = getDownloadUrl(result, serverUrl, useFilenameInUrl)
+
 	return result, nil
+}
+
+func getDownloadUrl(input FileApiOutput, serverUrl string, useFilename bool) string {
+	if useFilename {
+		return serverUrl + "d/" + input.Id + "/" + url.PathEscape(input.Name)
+	}
+	return serverUrl + "d?id=" + input.Id
+}
+
+func getHotlinkUrl(input FileApiOutput, serverUrl string, useFilename bool) string {
+	if input.RequiresClientSideDecryption || input.IsPasswordProtected {
+		return ""
+	}
+	if input.HotlinkId != "" {
+		return serverUrl + "hotlink/" + input.HotlinkId
+	}
+	if useFilename {
+		return serverUrl + "dh/" + input.Id + "/" + url.PathEscape(input.Name)
+	}
+	return serverUrl + "downloadFile?id=" + input.Id
 }
 
 // ToJsonResult converts the file info to a json String used for returning a result for an upload
 func (f *File) ToJsonResult(serverUrl string, showFilename bool) string {
-	info, err := f.ToFileApiOutput()
+	info, err := f.ToFileApiOutput(serverUrl, showFilename)
 	if err != nil {
 		return errorAsJson(err)
 	}
 	result := Result{
 		Result:       "OK",
-		Url:          serverUrl + "d?id=" + info.Id,
-		UrlFilename:  serverUrl + "d/" + info.Id + "/" + url.QueryEscape(info.Name),
 		ShowFilename: showFilename,
 		FileInfo:     info,
-	}
-
-	if !info.RequiresClientSideDecryption && !info.IsPasswordProtected {
-		result.HotlinkUrl = serverUrl + "hotlink/" + info.HotlinkId
-		result.GenericHotlinkUrl = serverUrl + "downloadFile?id=" + info.Id
-		result.GenericHotlinkFilenameUrl = serverUrl + "dh/" + info.Id + "/" + url.QueryEscape(info.Name)
 	}
 
 	bytes, err := json.Marshal(result)
@@ -119,14 +136,9 @@ func errorAsJson(err error) string {
 // Result is the struct used for the result after an upload
 // swagger:model UploadResult
 type Result struct {
-	Result                    string        `json:"Result"`
-	FileInfo                  FileApiOutput `json:"FileInfo"`
-	UrlFilename               string        `json:"UrlFilename"`
-	Url                       string        `json:"Url"`
-	HotlinkUrl                string        `json:"HotlinkUrl"`
-	GenericHotlinkUrl         string        `json:"GenericHotlinkUrl"`
-	GenericHotlinkFilenameUrl string        `json:"GenericHotlinkFilenameUrl"`
-	ShowFilename              bool          `json:"ShowFilename"`
+	Result       string        `json:"Result"`
+	FileInfo     FileApiOutput `json:"FileInfo"`
+	ShowFilename bool          `json:"ShowFilename"`
 }
 
 // DownloadStatus contains current downloads, so they do not get removed during cleanup

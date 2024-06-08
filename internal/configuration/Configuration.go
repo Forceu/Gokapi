@@ -81,10 +81,6 @@ func Load() {
 	if configupgrade.DoUpgrade(&serverSettings, &Environment) {
 		save()
 	}
-	envMaxMem := os.Getenv("GOKAPI_MAX_MEMORY_UPLOAD")
-	if envMaxMem != "" {
-		serverSettings.MaxMemory = Environment.MaxMemory
-	}
 	if serverSettings.PublicName == "" {
 		serverSettings.PublicName = "Gokapi"
 	}

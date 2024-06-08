@@ -123,7 +123,7 @@ func Start() {
 	mux.Handle("/e2e.wasm", gziphandler.GzipHandler(http.HandlerFunc(serveE2EWasm)))
 
 	mux.HandleFunc("/d/{id}/{filename}", redirectFromFilename)
-	mux.HandleFunc("/dh/{id}/{filename}", showHotlinkFN)
+	mux.HandleFunc("/dh/{id}/{filename}", downloadFileWithNameInUrl)
 
 	if configuration.Get().Authentication.Method == authentication.OAuth2 {
 		oauth.Init(configuration.Get().ServerUrl, configuration.Get().Authentication)
@@ -573,9 +573,7 @@ type e2ESetupView struct {
 type UploadView struct {
 	Items                    []models.FileApiOutput
 	ApiKeys                  []models.ApiKey
-	Url                      string
-	HotlinkUrl               string
-	GenericHotlinkUrl        string
+	ServerUrl                string
 	DefaultPassword          string
 	Logs                     string
 	PublicName               string
@@ -586,6 +584,7 @@ type UploadView struct {
 	DefaultUnlimitedDownload bool
 	DefaultUnlimitedTime     bool
 	EndToEndEncryption       bool
+	ShowFilename             bool
 	MaxFileSize              int
 	DefaultDownloads         int
 	DefaultExpiry            int
@@ -609,10 +608,12 @@ const ViewAPI = 2
 func (u *UploadView) convertGlobalConfig(view int) *UploadView {
 	var result []models.FileApiOutput
 	var resultApi []models.ApiKey
+
+	config := configuration.Get()
 	switch view {
 	case ViewMain:
 		for _, element := range database.GetAllMetadata() {
-			fileInfo, err := element.ToFileApiOutput()
+			fileInfo, err := element.ToFileApiOutput(config.ServerUrl, config.ShowFilename)
 			helper.Check(err)
 			result = append(result, fileInfo)
 		}
@@ -647,11 +648,7 @@ func (u *UploadView) convertGlobalConfig(view int) *UploadView {
 		}
 	}
 
-	config := configuration.Get()
-
-	u.Url = config.ServerUrl + "d?id="
-	u.HotlinkUrl = config.ServerUrl + "hotlink/"
-	u.GenericHotlinkUrl = config.ServerUrl + "downloadFile?id="
+	u.ServerUrl = config.ServerUrl
 	u.Items = result
 	u.PublicName = config.PublicName
 	u.ApiKeys = resultApi
@@ -669,6 +666,7 @@ func (u *UploadView) convertGlobalConfig(view int) *UploadView {
 	u.EndToEndEncryption = config.Encryption.Level == encryption.EndToEndEncryption
 	u.MaxParallelUploads = config.MaxParallelUploads
 	u.ChunkSize = config.ChunkSize
+	u.ShowFilename = config.ShowFilename
 	return u
 }
 
@@ -705,8 +703,8 @@ func responseError(w http.ResponseWriter, err error) {
 }
 
 // Handling of /dh/?/?
-// Hotlinks an image or returns a static error image if image has expired
-func showHotlinkFN(w http.ResponseWriter, r *http.Request) {
+// Hotlinks a file and has the filename in the URL
+func downloadFileWithNameInUrl(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	serveFile(id, false, w, r)
 }
