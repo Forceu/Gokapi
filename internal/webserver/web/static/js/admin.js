@@ -623,17 +623,17 @@ function hideQrCode() {
 }
 
 function getDownloadLink(jsoninput) {
-	if (jsoninput.ShowFilename)
-		return jsoninput.UrlFilename;
-	return jsoninput.Url;
+    if (jsoninput.ShowFilename)
+        return jsoninput.UrlFilename;
+    return jsoninput.Url;
 }
 
 function getHotlinkUrl(jsoninput) {
-	if (jsoninput.FileInfo.HotlinkId !== "") 
-	return jsoninput.HotlinkUrl;
-	if (jsoninput.ShowFilename)
-		return jsoninput.GenericHotlinkFilenameUrl;
-	return jsoninput.GenericHotlinkUrl;
+    if (jsoninput.FileInfo.HotlinkId !== "")
+        return jsoninput.HotlinkUrl;
+    if (jsoninput.ShowFilename)
+        return jsoninput.GenericHotlinkFilenameUrl;
+    return jsoninput.GenericHotlinkUrl;
 }
 
 
