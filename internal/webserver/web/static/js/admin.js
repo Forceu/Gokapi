@@ -454,7 +454,7 @@ function parseData(data) {
 }
 
 function registerChangeHandler() {
-    const source = new EventSource("./uploadStatus?stream=changes")
+    const source = new EventSource("./uploadStatus")
     source.onmessage = (event) => {
         try {
             let eventData = JSON.parse(event.data);

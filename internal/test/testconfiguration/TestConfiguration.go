@@ -47,6 +47,7 @@ func Create(initFiles bool) {
 	writeTestFiles()
 	database.SaveHotlink(models.File{Id: "n1tSTAGj8zan9KaT4u6p", HotlinkId: "PhSs6mFtf8O5YGlLMfNw9rYXx9XRNkzCnJZpQBi7inunv3Z4A.jpg", ExpireAt: time.Now().Add(time.Hour).Unix()})
 	writeApiKeyys()
+	writeTestUploadStatus()
 	database.Close()
 
 	if initFiles {
@@ -169,6 +170,24 @@ func writeTestSessions() {
 		RenewAt:    0,
 		ValidUntil: 0,
 	})
+}
+func writeTestUploadStatus() {
+	database.SaveUploadStatus(models.UploadStatus{
+		ChunkId:       "expiredstatus",
+		CurrentStatus: 0,
+		LastUpdate:    100,
+	})
+	database.SaveUploadStatus(models.UploadStatus{
+		ChunkId:       "validstatus_0",
+		CurrentStatus: 0,
+		LastUpdate:    2065000681,
+	})
+	database.SaveUploadStatus(models.UploadStatus{
+		ChunkId:       "validstatus_1",
+		CurrentStatus: 1,
+		LastUpdate:    2065000681,
+	})
+
 }
 
 func writeApiKeyys() {

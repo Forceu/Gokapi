@@ -20,14 +20,13 @@ import (
 	"github.com/forceu/gokapi/internal/logging"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
-	"github.com/forceu/gokapi/internal/storage/processingstatus"
 	"github.com/forceu/gokapi/internal/webserver/api"
 	"github.com/forceu/gokapi/internal/webserver/authentication"
 	"github.com/forceu/gokapi/internal/webserver/authentication/oauth"
 	"github.com/forceu/gokapi/internal/webserver/authentication/sessionmanager"
 	"github.com/forceu/gokapi/internal/webserver/fileupload"
+	"github.com/forceu/gokapi/internal/webserver/sse"
 	"github.com/forceu/gokapi/internal/webserver/ssl"
-	"github.com/r3labs/sse/v2"
 	"html/template"
 	"io"
 	"io/fs"
@@ -74,7 +73,6 @@ var templateFolder *template.Template
 var imageExpiredPicture []byte
 
 var srv http.Server
-var sseServer *sse.Server
 
 // Start the webserver on the port set in the config
 func Start() {
@@ -83,10 +81,6 @@ func Start() {
 	var err error
 
 	mux := http.NewServeMux()
-	sseServer = sse.New()
-	sseServer.Headers["X-Accel-Buffering"] = "no"
-	sseServer.CreateStream("changes")
-	processingstatus.Init(sseServer)
 
 	if helper.FolderExists("static") {
 		fmt.Println("Found folder 'static', using local folder instead of internal static folder")
@@ -118,7 +112,7 @@ func Start() {
 	mux.HandleFunc("/logout", doLogout)
 	mux.HandleFunc("/uploadChunk", requireLogin(uploadChunk, true))
 	mux.HandleFunc("/uploadComplete", requireLogin(uploadComplete, true))
-	mux.HandleFunc("/uploadStatus", requireLogin(sseServer.ServeHTTP, false))
+	mux.HandleFunc("/uploadStatus", requireLogin(sse.GetStatusSSE, false))
 	mux.Handle("/main.wasm", gziphandler.GzipHandler(http.HandlerFunc(serveDownloadWasm)))
 	mux.Handle("/e2e.wasm", gziphandler.GzipHandler(http.HandlerFunc(serveE2EWasm)))
 
@@ -174,7 +168,7 @@ func loadExpiryImage() {
 
 // Shutdown closes the webserver gracefully
 func Shutdown() {
-	sseServer.Close()
+	sse.Shutdown()
 	err := srv.Shutdown(context.Background())
 	if err != nil {
 		log.Println(err)

@@ -15,6 +15,25 @@ type schemaUploadStatus struct {
 	CreationDate  int64
 }
 
+// GetAllUploadStatus returns all UploadStatus values from the past 24 hours
+func GetAllUploadStatus() []models.UploadStatus {
+	var result []models.UploadStatus
+	rows, err := sqliteDb.Query("SELECT * FROM UploadStatus")
+	helper.Check(err)
+	defer rows.Close()
+	for rows.Next() {
+		rowResult := schemaUploadStatus{}
+		err = rows.Scan(&rowResult.ChunkId, &rowResult.CurrentStatus, &rowResult.LastUpdate, &rowResult.CreationDate)
+		helper.Check(err)
+		result = append(result, models.UploadStatus{
+			ChunkId:       rowResult.ChunkId,
+			CurrentStatus: rowResult.CurrentStatus,
+			LastUpdate:    rowResult.LastUpdate,
+		})
+	}
+	return result
+}
+
 // GetUploadStatus returns a models.UploadStatus from the ID passed or false if the id is not valid
 func GetUploadStatus(id string) (models.UploadStatus, bool) {
 	result := models.UploadStatus{
