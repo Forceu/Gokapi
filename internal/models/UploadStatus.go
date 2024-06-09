@@ -12,8 +12,6 @@ type UploadStatus struct {
 	// hashing) or being moved/uploaded to the file storage
 	// See processingstatus for definition
 	CurrentStatus int `json:"currentstatus"`
-	// LastUpdate indicates the last status change
-	LastUpdate int64 `json:"lastupdate"`
 	// Type is the type of the message and is always "uploadstatus"
 	Type string `json:"type"`
 }

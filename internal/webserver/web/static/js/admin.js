@@ -473,7 +473,7 @@ function registerChangeHandler() {
 
         console.log("Reconnecting to SSE...");
         // Attempt to reconnect after a delay
-        setTimeout(registerChangeHandler, 1000);
+        setTimeout(registerChangeHandler, 5000);
     };
 }
 

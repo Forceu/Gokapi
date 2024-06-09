@@ -9,17 +9,15 @@ all: build
 
 # Build Gokapi binary
 build:
-	@echo "Generating code..."
-	@echo
-	go generate ./...
 	@echo "Building binary..."
 	@echo
+	go generate ./...
 	CGO_ENABLED=0 go build $(BUILD_FLAGS) -o $(OUTPUT_BIN) $(GOPACKAGE)/cmd/gokapi
 
 coverage:
 	@echo Generating coverage
 	@echo
-	go test ./... -parallel 8 --tags=test,awsmock -coverprofile=/tmp/coverage1.out && go tool cover -html=/tmp/coverage1.out
+	GOKAPI_AWS_BUCKET="gokapi" GOKAPI_AWS_REGION="eu-central-1" GOKAPI_AWS_KEY="keyid" GOKAPI_AWS_KEY_SECRET="secret" go test ./... -parallel 8 --tags=test,awstest -coverprofile=/tmp/coverage1.out && go tool cover -html=/tmp/coverage1.out
 
 coverage-specific:
 	@echo Generating coverage for "$(TEST_PACKAGE)"

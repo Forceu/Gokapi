@@ -38,7 +38,6 @@ func TestSetStatus(t *testing.T) {
 			initialStatus := models.UploadStatus{
 				ChunkId:       chunkID,
 				CurrentStatus: tc.initialStatus,
-				LastUpdate:    time.Now().Unix(),
 			}
 			database.SaveUploadStatus(initialStatus)
 

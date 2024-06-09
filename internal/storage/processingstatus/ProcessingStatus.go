@@ -5,7 +5,6 @@ import (
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/webserver/sse"
-	"time"
 )
 
 // StatusHashingOrEncrypting indicates that the file has been completely uploaded, but is now processed by Gokapi
@@ -25,7 +24,6 @@ func Set(id string, status int) {
 	newStatus := models.UploadStatus{
 		ChunkId:       id,
 		CurrentStatus: status,
-		LastUpdate:    time.Now().Unix(),
 	}
 	oldStatus, ok := database.GetUploadStatus(newStatus.ChunkId)
 	if ok && oldStatus.CurrentStatus > newStatus.CurrentStatus {

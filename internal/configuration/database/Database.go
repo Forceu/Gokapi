@@ -146,7 +146,6 @@ func createNewDatabase() {
 		CREATE TABLE "UploadStatus" (
 			"ChunkId"	TEXT NOT NULL UNIQUE,
 			"CurrentStatus"	INTEGER NOT NULL,
-			"LastUpdate"	INTEGER NOT NULL,
 			"CreationDate"	INTEGER NOT NULL,
 			PRIMARY KEY("ChunkId")
 		) WITHOUT ROWID;

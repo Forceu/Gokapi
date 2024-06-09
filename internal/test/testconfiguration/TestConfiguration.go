@@ -11,6 +11,7 @@ import (
 	"github.com/forceu/gokapi/internal/storage/filesystem/s3filesystem/aws"
 	"github.com/johannesboyne/gofakes3"
 	"github.com/johannesboyne/gofakes3/backend/s3mem"
+	"log"
 	"net/http/httptest"
 	"os"
 	"strings"
@@ -172,20 +173,20 @@ func writeTestSessions() {
 	})
 }
 func writeTestUploadStatus() {
-	database.SaveUploadStatus(models.UploadStatus{
-		ChunkId:       "expiredstatus",
-		CurrentStatus: 0,
-		LastUpdate:    100,
-	})
+	err := database.RawSqlite(`INSERT OR REPLACE INTO UploadStatus
+	("ChunkId", "CurrentStatus", "CreationDate")
+	VALUES ('expiredstatus', 0, 100);`)
+	if err != nil {
+		log.Println(err)
+		log.Fatal("Could not execute SQL")
+	}
 	database.SaveUploadStatus(models.UploadStatus{
 		ChunkId:       "validstatus_0",
 		CurrentStatus: 0,
-		LastUpdate:    2065000681,
 	})
 	database.SaveUploadStatus(models.UploadStatus{
 		ChunkId:       "validstatus_1",
 		CurrentStatus: 1,
-		LastUpdate:    2065000681,
 	})
 
 }
@@ -342,21 +343,31 @@ var configTestFile = []byte(`{
     "Username": "test",
     "Password": "10340aece68aa4fb14507ae45b05506026f276cf",
     "HeaderKey": "",
-    "OAuthProvider": "",
+    "OauthProvider": "",
     "OAuthClientId": "",
     "OAuthClientSecret": "",
+    "OauthUserScope": "",
+    "OauthGroupScope": "",
+    "OAuthRecheckInterval": 12,
     "HeaderUsers": null,
-    "OAuthUsers": null
+    "OAuthGroups": [],
+    "OauthUsers": []
   },
-   "Port":"127.0.0.1:53843",
+  "Port":"127.0.0.1:53843",
   "ServerUrl": "http://127.0.0.1:53843/",
   "RedirectUrl": "https://test.com/",
-  "ConfigVersion": 16,
+  "PublicName": "Gokapi Test Version",
+  "ConfigVersion": 20,
   "LengthId": 20,
   "DataDir": "test/data",
+  "MaxFileSizeMB": 25,
   "MaxMemory": 10,
+  "ChunkSize": 45,
+  "MaxParallelUploads": 4,
   "UseSsl": false,
-  "MaxFileSizeMB": 25
+  "PicturesAlwaysLocal": false,
+  "SaveIp": false,
+  "IncludeFilename": false
 }`)
 
 var sslCertValid = []byte(`-----BEGIN CERTIFICATE-----

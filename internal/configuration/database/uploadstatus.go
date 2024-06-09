@@ -23,12 +23,11 @@ func GetAllUploadStatus() []models.UploadStatus {
 	defer rows.Close()
 	for rows.Next() {
 		rowResult := schemaUploadStatus{}
-		err = rows.Scan(&rowResult.ChunkId, &rowResult.CurrentStatus, &rowResult.LastUpdate, &rowResult.CreationDate)
+		err = rows.Scan(&rowResult.ChunkId, &rowResult.CurrentStatus, &rowResult.CreationDate)
 		helper.Check(err)
 		result = append(result, models.UploadStatus{
 			ChunkId:       rowResult.ChunkId,
 			CurrentStatus: rowResult.CurrentStatus,
-			LastUpdate:    rowResult.LastUpdate,
 		})
 	}
 	return result
@@ -39,12 +38,11 @@ func GetUploadStatus(id string) (models.UploadStatus, bool) {
 	result := models.UploadStatus{
 		ChunkId:       id,
 		CurrentStatus: 0,
-		LastUpdate:    0,
 	}
 
 	var rowResult schemaUploadStatus
 	row := sqliteDb.QueryRow("SELECT * FROM UploadStatus WHERE ChunkId = ?", id)
-	err := row.Scan(&rowResult.ChunkId, &rowResult.CurrentStatus, &rowResult.LastUpdate, &rowResult.CreationDate)
+	err := row.Scan(&rowResult.ChunkId, &rowResult.CurrentStatus, &rowResult.CreationDate)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return models.UploadStatus{}, false
@@ -53,7 +51,6 @@ func GetUploadStatus(id string) (models.UploadStatus, bool) {
 		return models.UploadStatus{}, false
 	}
 	result.CurrentStatus = rowResult.CurrentStatus
-	result.LastUpdate = rowResult.LastUpdate
 	return result, true
 }
 
@@ -67,12 +64,11 @@ func SaveUploadStatus(status models.UploadStatus) {
 	newData := schemaUploadStatus{
 		ChunkId:       status.ChunkId,
 		CurrentStatus: status.CurrentStatus,
-		LastUpdate:    status.LastUpdate,
 		CreationDate:  currentTime().Unix(),
 	}
 
-	_, err := sqliteDb.Exec("INSERT OR REPLACE INTO UploadStatus (ChunkId, CurrentStatus, LastUpdate, CreationDate) VALUES (?, ?, ?, ?)",
-		newData.ChunkId, newData.CurrentStatus, newData.LastUpdate, newData.CreationDate)
+	_, err := sqliteDb.Exec("INSERT OR REPLACE INTO UploadStatus (ChunkId, CurrentStatus, CreationDate) VALUES (?, ?, ?)",
+		newData.ChunkId, newData.CurrentStatus, newData.CreationDate)
 	helper.Check(err)
 }
 

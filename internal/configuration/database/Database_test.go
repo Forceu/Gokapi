@@ -216,54 +216,44 @@ func TestGarbageCollectionUploads(t *testing.T) {
 	SaveUploadStatus(models.UploadStatus{
 		ChunkId:       "ctodelete1",
 		CurrentStatus: 0,
-		LastUpdate:    time.Now().Add(-24 * time.Hour).Unix(),
 	})
 	SaveUploadStatus(models.UploadStatus{
 		ChunkId:       "ctodelete2",
 		CurrentStatus: 1,
-		LastUpdate:    time.Now().Add(-24 * time.Hour).Unix(),
 	})
 	SaveUploadStatus(models.UploadStatus{
 		ChunkId:       "ctodelete3",
 		CurrentStatus: 0,
-		LastUpdate:    0,
 	})
 	SaveUploadStatus(models.UploadStatus{
 		ChunkId:       "ctodelete4",
 		CurrentStatus: 0,
-		LastUpdate:    time.Now().Add(-20 * time.Hour).Unix(),
 	})
 	SaveUploadStatus(models.UploadStatus{
 		ChunkId:       "ctodelete5",
 		CurrentStatus: 1,
-		LastUpdate:    time.Now().Add(40 * time.Hour).Unix(),
 	})
 	currentTime = orgiginalFunc
 
 	SaveUploadStatus(models.UploadStatus{
 		ChunkId:       "ctokeep1",
 		CurrentStatus: 0,
-		LastUpdate:    time.Now().Add(-24 * time.Hour).Unix(),
 	})
 	SaveUploadStatus(models.UploadStatus{
 		ChunkId:       "ctokeep2",
 		CurrentStatus: 1,
-		LastUpdate:    time.Now().Add(-24 * time.Hour).Unix(),
 	})
 	SaveUploadStatus(models.UploadStatus{
 		ChunkId:       "ctokeep3",
 		CurrentStatus: 0,
-		LastUpdate:    0,
 	})
 	SaveUploadStatus(models.UploadStatus{
 		ChunkId:       "ctokeep4",
 		CurrentStatus: 0,
-		LastUpdate:    time.Now().Add(-20 * time.Hour).Unix(),
 	})
 	SaveUploadStatus(models.UploadStatus{
 		ChunkId:       "ctokeep5",
 		CurrentStatus: 1,
-		LastUpdate:    time.Now().Add(40 * time.Hour).Unix(),
 	})
 	for _, item := range []string{"ctodelete1", "ctodelete2", "ctodelete3", "ctodelete4", "ctokeep1", "ctokeep2", "ctokeep3", "ctokeep4"} {
 		_, result := GetUploadStatus(item)
@@ -462,4 +452,30 @@ func TestParallelConnectionsReading(t *testing.T) {
 		}()
 	}
 	wg.Wait()
+}
+
+func TestUploadStatus(t *testing.T) {
+	allStatus := GetAllUploadStatus()
+	found := false
+	test.IsEqualInt(t, len(allStatus), 5)
+	for _, status := range allStatus {
+		if status.ChunkId == "ctokeep5" {
+			found = true
+		}
+	}
+	test.IsEqualBool(t, found, true)
+	newStatus := models.UploadStatus{
+		ChunkId:       "testid",
+		CurrentStatus: 1,
+	}
+	retrievedStatus, ok := GetUploadStatus("testid")
+	test.IsEqualBool(t, ok, false)
+	test.IsEqualBool(t, retrievedStatus == models.UploadStatus{}, true)
+	SaveUploadStatus(newStatus)
+	retrievedStatus, ok = GetUploadStatus("testid")
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualString(t, retrievedStatus.ChunkId, "testid")
+	test.IsEqualInt(t, retrievedStatus.CurrentStatus, 1)
+	allStatus = GetAllUploadStatus()
+	test.IsEqualInt(t, len(allStatus), 6)
 }
