@@ -7,11 +7,9 @@ import (
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/models"
-	"github.com/forceu/gokapi/internal/storage/processingstatus"
 	"github.com/forceu/gokapi/internal/test"
 	"github.com/forceu/gokapi/internal/test/testconfiguration"
 	"github.com/forceu/gokapi/internal/webserver/authentication"
-	"github.com/r3labs/sse/v2"
 	"io"
 	"mime/multipart"
 	"net/http/httptest"
@@ -26,7 +24,6 @@ import (
 func TestMain(m *testing.M) {
 	testconfiguration.Create(true)
 	configuration.Load()
-	processingstatus.Init(sse.New())
 	exitVal := m.Run()
 	testconfiguration.Delete()
 	os.Exit(exitVal)

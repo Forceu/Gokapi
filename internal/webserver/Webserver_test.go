@@ -6,11 +6,9 @@ import (
 	"errors"
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/database"
-	"github.com/forceu/gokapi/internal/storage/processingstatus"
 	"github.com/forceu/gokapi/internal/test"
 	"github.com/forceu/gokapi/internal/test/testconfiguration"
 	"github.com/forceu/gokapi/internal/webserver/authentication"
-	"github.com/r3labs/sse/v2"
 	"html/template"
 	"os"
 	"strings"
@@ -21,7 +19,6 @@ import (
 func TestMain(m *testing.M) {
 	testconfiguration.Create(true)
 	configuration.Load()
-	processingstatus.Init(sse.New())
 	go Start()
 	time.Sleep(1 * time.Second)
 	exitVal := m.Run()

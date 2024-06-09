@@ -61,3 +61,23 @@ func TestRequiresClientDecryption(t *testing.T) {
 	file.Encryption.IsEncrypted = true
 	test.IsEqualBool(t, file.RequiresClientDecryption(), false)
 }
+
+func TestGetHolinkUrl(t *testing.T) {
+	file := FileApiOutput{
+		Id:                           "testfile",
+		Name:                         "name",
+		Size:                         "1 B",
+		HotlinkId:                    "test",
+		RequiresClientSideDecryption: true,
+	}
+	url := getHotlinkUrl(file, "testserver/", false)
+	test.IsEqualString(t, url, "")
+	file.RequiresClientSideDecryption = false
+	url = getHotlinkUrl(file, "testserver/", false)
+	test.IsEqualString(t, url, "testserver/hotlink/test")
+	file.HotlinkId = ""
+	url = getHotlinkUrl(file, "testserver/", false)
+	test.IsEqualString(t, url, "testserver/downloadFile?id=testfile")
+	url = getHotlinkUrl(file, "testserver/", true)
+	test.IsEqualString(t, url, "testserver/dh/testfile/name")
+}

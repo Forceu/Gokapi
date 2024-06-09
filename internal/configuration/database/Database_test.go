@@ -4,6 +4,7 @@ import (
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/test"
+	"golang.org/x/exp/slices"
 	"math"
 	"os"
 	"sync"
@@ -57,11 +58,11 @@ func TestMetaData(t *testing.T) {
 }
 
 func TestHotlink(t *testing.T) {
-	SaveHotlink(models.File{Id: "testhfile", Name: "testh.txt", HotlinkId: "testlink", ExpireAt: time.Now().Add(time.Hour).Unix()})
+	SaveHotlink(models.File{Id: "testfile", Name: "test.txt", HotlinkId: "testlink", ExpireAt: time.Now().Add(time.Hour).Unix()})
 
 	hotlink, ok := GetHotlink("testlink")
 	test.IsEqualBool(t, ok, true)
-	test.IsEqualString(t, hotlink, "testhfile")
+	test.IsEqualString(t, hotlink, "testfile")
 	_, ok = GetHotlink("invalid")
 	test.IsEqualBool(t, ok, false)
 
@@ -72,10 +73,23 @@ func TestHotlink(t *testing.T) {
 	_, ok = GetHotlink("testlink")
 	test.IsEqualBool(t, ok, false)
 
-	SaveHotlink(models.File{Id: "testhfile", Name: "testh.txt", HotlinkId: "testlink", ExpireAt: 0, UnlimitedTime: true})
+	SaveHotlink(models.File{Id: "testfile", Name: "test.txt", HotlinkId: "testlink", ExpireAt: 0, UnlimitedTime: true})
 	hotlink, ok = GetHotlink("testlink")
 	test.IsEqualBool(t, ok, true)
-	test.IsEqualString(t, hotlink, "testhfile")
+	test.IsEqualString(t, hotlink, "testfile")
+
+	SaveHotlink(models.File{Id: "file2", Name: "file2.txt", HotlinkId: "link2", ExpireAt: time.Now().Add(time.Hour).Unix()})
+	SaveHotlink(models.File{Id: "file3", Name: "file3.txt", HotlinkId: "link3", ExpireAt: time.Now().Add(time.Hour).Unix()})
+
+	hotlinks := GetAllHotlinks()
+	test.IsEqualInt(t, len(hotlinks), 3)
+	test.IsEqualBool(t, slices.Contains(hotlinks, "testlink"), true)
+	test.IsEqualBool(t, slices.Contains(hotlinks, "link2"), true)
+	test.IsEqualBool(t, slices.Contains(hotlinks, "link3"), true)
+	DeleteHotlink("")
+	hotlinks = GetAllHotlinks()
+	test.IsEqualInt(t, len(hotlinks), 3)
+
 }
 
 func TestApiKey(t *testing.T) {

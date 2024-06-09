@@ -6,7 +6,6 @@ import (
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/test"
 	"github.com/forceu/gokapi/internal/test/testconfiguration"
-	"github.com/r3labs/sse/v2"
 	"os"
 	"testing"
 	"time"
@@ -21,8 +20,6 @@ func TestMain(m *testing.M) {
 }
 
 func TestSetStatus(t *testing.T) {
-
-	Init(sse.New())
 
 	chunkID := "testChunkID"
 	testCases := []struct {
@@ -58,9 +55,4 @@ func TestSetStatus(t *testing.T) {
 			test.IsEqualInt(t, tc.newStatus, updatedStatus.CurrentStatus)
 		})
 	}
-
-	sseServer = nil
-	defer test.ExpectPanic(t)
-	passNewStatus(models.UploadStatus{})
-
 }
