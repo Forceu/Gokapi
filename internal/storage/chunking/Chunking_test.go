@@ -273,6 +273,9 @@ func TestGetFileByChunkId(t *testing.T) {
 	file, err := GetFileByChunkId("testchunk")
 	test.IsEqualString(t, file.Name(), "test/data/chunk-testchunk")
 	test.IsNil(t, err)
+	err = os.Chmod("test/data/chunk-testchunk", 0222)
+	_, err = GetFileByChunkId("testchunk")
+	test.IsNotNil(t, err)
 	err = os.Remove(file.Name())
 	test.IsNil(t, err)
 }

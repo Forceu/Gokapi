@@ -16,7 +16,6 @@ import (
 	"github.com/forceu/gokapi/internal/webserver/downloadstatus"
 	"github.com/r3labs/sse/v2"
 	"io"
-	"io/ioutil"
 	"mime/multipart"
 	"net/http/httptest"
 	"net/textproto"
@@ -177,7 +176,7 @@ func createTestChunk() (string, chunking.FileHeader, models.UploadRequest, error
 		ContentType: header.Header.Get("Content-Type"),
 		Size:        header.Size,
 	}
-	err := ioutil.WriteFile("test/data/chunk-"+chunkId, content, 0600)
+	err := os.WriteFile("test/data/chunk-"+chunkId, content, 0600)
 	if err != nil {
 		return "", chunking.FileHeader{}, models.UploadRequest{}, err
 	}
