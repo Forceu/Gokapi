@@ -27,135 +27,105 @@ func TestParseFlags(t *testing.T) {
 			name: "ShowVersionFlagShort",
 			args: []string{"-v"},
 			assertion: func(flags MainFlags) {
-				if !flags.ShowVersion {
-					t.Errorf("Expected ShowVersion to be true, got false")
-				}
+				test.IsEqualBool(t, flags.ShowVersion, true)
 			},
 		},
 		{
 			name: "ShowVersionFlagLong",
 			args: []string{"--version"},
 			assertion: func(flags MainFlags) {
-				if !flags.ShowVersion {
-					t.Errorf("Expected ShowVersion to be true, got false")
-				}
+				test.IsEqualBool(t, flags.ShowVersion, true)
 			},
 		},
 		{
 			name: "ReconfigureFlag",
 			args: []string{"--reconfigure"},
 			assertion: func(flags MainFlags) {
-				if !flags.Reconfigure {
-					t.Errorf("Expected Reconfigure to be true, got false")
-				}
+				test.IsEqualBool(t, flags.Reconfigure, true)
 			},
 		},
 		{
 			name: "CreateSslFlagShort",
 			args: []string{"-create-ssl"},
 			assertion: func(flags MainFlags) {
-				if !flags.CreateSsl {
-					t.Errorf("Expected CreateSsl to be true, got false")
-				}
+				test.IsEqualBool(t, flags.CreateSsl, true)
 			},
 		},
 		{
 			name: "ConfigPathFlagShort",
 			args: []string{"-c", "/path/to/config"},
 			assertion: func(flags MainFlags) {
-				if flags.ConfigPath != "/path/to/config" {
-					t.Errorf("Expected ConfigPath to be '/path/to/config', got '%s'", flags.ConfigPath)
-				}
+				test.IsEqualString(t, flags.ConfigPath, "/path/to/config")
 			},
 		},
 		{
 			name: "ConfigPathFlagLong",
 			args: []string{"--config", "/path/to/config"},
 			assertion: func(flags MainFlags) {
-				if flags.ConfigPath != "/path/to/config" {
-					t.Errorf("Expected ConfigPath to be '/path/to/config', got '%s'", flags.ConfigPath)
-				}
+				test.IsEqualString(t, flags.ConfigPath, "/path/to/config")
 			},
 		},
 		{
 			name: "ConfigDirFlagShort",
 			args: []string{"-cd", "/path/to/config/dir"},
 			assertion: func(flags MainFlags) {
-				if flags.ConfigDir != "/path/to/config/dir" {
-					t.Errorf("Expected ConfigDir to be '/path/to/config/dir', got '%s'", flags.ConfigDir)
-				}
+				test.IsEqualString(t, flags.ConfigDir, "/path/to/config/dir")
 			},
 		},
 		{
 			name: "ConfigDirFlagLong",
 			args: []string{"--config-dir", "/path/to/config/dir"},
 			assertion: func(flags MainFlags) {
-				if flags.ConfigDir != "/path/to/config/dir" {
-					t.Errorf("Expected ConfigDir to be '/path/to/config/dir', got '%s'", flags.ConfigDir)
-				}
+				test.IsEqualString(t, flags.ConfigDir, "/path/to/config/dir")
 			},
 		},
 		{
 			name: "DataDirFlagShort",
 			args: []string{"-d", "/path/to/data"},
 			assertion: func(flags MainFlags) {
-				if flags.DataDir != "/path/to/data" {
-					t.Errorf("Expected DataDir to be '/path/to/data', got '%s'", flags.DataDir)
-				}
+				test.IsEqualString(t, flags.DataDir, "/path/to/data")
 			},
 		},
 		{
 			name: "DataDirFlagLong",
 			args: []string{"--data", "/path/to/data"},
 			assertion: func(flags MainFlags) {
-				if flags.DataDir != "/path/to/data" {
-					t.Errorf("Expected DataDir to be '/path/to/data', got '%s'", flags.DataDir)
-				}
+				test.IsEqualString(t, flags.DataDir, "/path/to/data")
 			},
 		},
 		{
 			name: "PortFlagShort",
 			args: []string{"-p", "8080"},
 			assertion: func(flags MainFlags) {
-				if flags.Port != 8080 {
-					t.Errorf("Expected Port to be 8080, got %d", flags.Port)
-				}
+				test.IsEqualInt(t, flags.Port, 8080)
 			},
 		},
 		{
 			name: "PortFlagLong",
 			args: []string{"--port", "9090"},
 			assertion: func(flags MainFlags) {
-				if flags.Port != 9090 {
-					t.Errorf("Expected Port to be 9090, got %d", flags.Port)
-				}
+				test.IsEqualInt(t, flags.Port, 9090)
 			},
 		},
 		{
 			name: "DisableCorsCheckFlag",
 			args: []string{"--disable-cors-check"},
 			assertion: func(flags MainFlags) {
-				if !flags.DisableCorsCheck {
-					t.Errorf("Expected DisableCorsCheck to be true, got false")
-				}
+				test.IsEqualBool(t, flags.DisableCorsCheck, true)
 			},
 		},
 		{
 			name: "InstallServiceFlag",
 			args: []string{"--install-service"},
 			assertion: func(flags MainFlags) {
-				if !flags.InstallService {
-					t.Errorf("Expected InstallService to be true, got false")
-				}
+				test.IsEqualBool(t, flags.InstallService, true)
 			},
 		},
 		{
 			name: "UninstallServiceFlag",
 			args: []string{"--uninstall-service"},
 			assertion: func(flags MainFlags) {
-				if !flags.UninstallService {
-					t.Errorf("Expected UninstallService to be true, got false")
-				}
+				test.IsEqualBool(t, flags.UninstallService, true)
 			},
 		},
 	}

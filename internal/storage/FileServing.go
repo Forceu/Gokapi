@@ -40,7 +40,7 @@ var ErrorFileTooLarge = errors.New("upload limit exceeded")
 // already exists, it is deduplicated. This function gathers information about the file, creates an ID and saves
 // it into the global configuration. It is now only used by the API, the web UI uses NewFileFromChunk
 func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequest models.UploadRequest) (models.File, error) {
-	if fileHeader.Size > int64(configuration.Get().MaxFileSizeMB)*1024*1024 {
+	if !isAllowedFileSize(fileHeader.Size) {
 		return models.File{}, ErrorFileTooLarge
 	}
 	var hasBeenRenamed bool
@@ -55,12 +55,10 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 	filename := configuration.Get().DataDir + "/" + file.SHA1
 	dataDir := configuration.Get().DataDir
 
+	fileWithHashExists := FileExists(file, configuration.Get().DataDir)
+
 	if !file.IsLocalStorage() {
-		exists, size, err := aws.FileExists(file)
-		if err != nil {
-			return models.File{}, err
-		}
-		if !exists || (size == 0 && file.Size != "0 B") {
+		if !fileWithHashExists {
 			_, err = aws.Upload(reader, file)
 			if err != nil {
 				return models.File{}, err
@@ -70,7 +68,6 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 		return file, nil
 	}
 
-	fileWithHashExists := FileExists(file, configuration.Get().DataDir)
 	if fileWithHashExists {
 		encryptionLevel := configuration.Get().Encryption.Level
 		previousEncryption, ok := getEncInfoFromExistingFile(file.SHA1)
@@ -107,9 +104,14 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 	return file, nil
 }
 
+// isAllowedFileSize returns true if the file is not greater than the allowed filesize
+func isAllowedFileSize(size int64) bool {
+	return size <= int64(configuration.Get().MaxFileSizeMB)*1024*1024
+}
+
+// validateChunkInfo checks if the filesize is allowed and if the submitted filesize (user input) is the actual filesize
 func validateChunkInfo(file *os.File, fileHeader chunking.FileHeader) error {
-	maxFileSizeB := int64(configuration.Get().MaxFileSizeMB) * 1024 * 1024
-	if fileHeader.Size > maxFileSizeB {
+	if !isAllowedFileSize(fileHeader.Size) {
 		return ErrorFileTooLarge
 	}
 	size, err := helper.GetFileSize(file)
@@ -126,12 +128,6 @@ func validateChunkInfo(file *os.File, fileHeader chunking.FileHeader) error {
 // already exists, it is deduplicated. This function gathers information about the file, creates an ID and saves
 // it into the global configuration.
 func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, uploadRequest models.UploadRequest) (models.File, error) {
-	if chunkId == "" {
-		return models.File{}, errors.New("empty chunk id provided")
-	}
-	if !chunking.FileExists(chunkId) {
-		return models.File{}, errors.New("chunk file does not exist")
-	}
 	file, err := chunking.GetFileByChunkId(chunkId)
 	if err != nil {
 		return models.File{}, err
@@ -300,6 +296,7 @@ func createNewMetaData(hash string, fileHeader chunking.FileHeader, uploadReques
 	return file
 }
 
+// createNewId returns a random ID
 func createNewId() string {
 	return helper.GenerateRandomString(configuration.Get().LengthId)
 }
@@ -459,6 +456,7 @@ func isEncryptionRequested() bool {
 	}
 }
 
+// imageFileExtensions contains all known image extensions that can be used for hotlinks
 var imageFileExtensions = []string{".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg", ".tiff", ".tif", ".ico"}
 
 // AddHotlink will first check if the file may use a hotlink (e.g. not encrypted or password-protected).
@@ -484,10 +482,12 @@ func IsAbleHotlink(file models.File) bool {
 	return isPictureFile(file.Name)
 }
 
+// getFileExtension returns the file extension of a filename in lowercase
 func getFileExtension(filename string) string {
 	return strings.ToLower(filepath.Ext(filename))
 }
 
+// isPictureFile returns true if it has one of supported extensions saved in imageFileExtensions
 func isPictureFile(filename string) bool {
 	extension := getFileExtension(filename)
 	return helper.IsInArray(imageFileExtensions, extension)
@@ -568,6 +568,8 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 	downloadstatus.SetComplete(statusId)
 }
 
+// writeDownloadHeaders sets headers to either display the file inline or to force download, the content type
+// and if the file is encrypted, the creation timestamp to now
 func writeDownloadHeaders(file models.File, w http.ResponseWriter, forceDownload bool) {
 	if forceDownload {
 		w.Header().Set("Content-Disposition", "attachment; filename=\""+file.Name+"\"")
@@ -652,6 +654,7 @@ func CleanUp(periodic bool) {
 	}
 }
 
+// cleanHotlinks removes hotlinks from the database where the file has expired
 func cleanHotlinks() {
 	hotlinks := database.GetAllHotlinks()
 	for _, hotlink := range hotlinks {
@@ -662,6 +665,7 @@ func cleanHotlinks() {
 	}
 }
 
+// cleanOldTempFiles removes temporary chunk or upload files that are older than 24 hours
 func cleanOldTempFiles() {
 	tmpfiles, err := os.ReadDir(configuration.Get().DataDir)
 	if err != nil {
@@ -678,7 +682,7 @@ func cleanOldTempFiles() {
 	}
 }
 
-// Returns true if a file is older than 24 hours and starts with the name upload or chunk
+// isOldTempFile returns true if a file is older than 24 hours and starts with the name upload or chunk
 func isOldTempFile(file os.DirEntry) bool {
 	if file.IsDir() {
 		return false
@@ -701,6 +705,7 @@ func IsExpiredFile(file models.File, timeNow int64) bool {
 		(file.DownloadsRemaining < 1 && !file.UnlimitedDownloads)
 }
 
+// isExpiredFileWithoutDownload returns true if there is no active download for an expired file
 func isExpiredFileWithoutDownload(file models.File, timeNow int64) bool {
 	if downloadstatus.IsCurrentlyDownloading(file) {
 		return false
@@ -708,6 +713,7 @@ func isExpiredFileWithoutDownload(file models.File, timeNow int64) bool {
 	return IsExpiredFile(file, timeNow)
 }
 
+// deleteSource removes the source file from the file system or cloud storage.
 func deleteSource(file models.File, dataDir string) {
 	var err error
 	if !file.IsLocalStorage() {

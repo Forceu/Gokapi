@@ -74,6 +74,7 @@ func (key *ApiKey) HasPermissionEdit() bool {
 	return key.HasPermission(ApiPermEdit)
 }
 
+// ApiKeyOutput is the output that is used after a new key is created
 type ApiKeyOutput struct {
 	Result string
 	Id     string

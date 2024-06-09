@@ -161,6 +161,12 @@ func getChunkFilePath(id string) string {
 
 // GetFileByChunkId returns a handle to the chunk file
 func GetFileByChunkId(id string) (*os.File, error) {
+	if id == "" {
+		return nil, errors.New("empty chunk id provided")
+	}
+	if !FileExists(id) {
+		return nil, errors.New("chunk file does not exist")
+	}
 	file, err := os.OpenFile(getChunkFilePath(id), os.O_RDWR, 0600)
 	if err != nil {
 		return nil, err
