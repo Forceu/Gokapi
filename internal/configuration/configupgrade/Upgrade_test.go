@@ -30,7 +30,7 @@ func TestUpgradeDb(t *testing.T) {
 		exitCode = code
 	}
 	env := environment.New()
-	oldConfigFile.ConfigVersion = 10
+	oldConfigFile.ConfigVersion = 15
 	upgradeDone := DoUpgrade(&oldConfigFile, &env)
 	test.IsEqualBool(t, upgradeDone, true)
 	test.IsEqualInt(t, exitCode, 1)
@@ -38,7 +38,7 @@ func TestUpgradeDb(t *testing.T) {
 
 	database.Init("./test", "gokapi.sqlite")
 	exitCode = 0
-	oldConfigFile.ConfigVersion = 13
+	oldConfigFile.ConfigVersion = 17
 	upgradeDone = DoUpgrade(&oldConfigFile, &env)
 	test.IsEqualBool(t, upgradeDone, true)
 	test.IsEqualInt(t, exitCode, 0)

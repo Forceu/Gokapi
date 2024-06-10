@@ -63,7 +63,8 @@ func TestLoad(t *testing.T) {
 }
 
 func TestWrite(t *testing.T) {
-	os.Remove("test/cloudconfig.yml")
+	err := os.Remove("test/cloudconfig.yml")
+	test.IsNil(t, err)
 	test.FileDoesNotExist(t, "test/cloudconfig.yml")
 	config := CloudConfig{Aws: models.AwsConfig{
 		Bucket:    "test1",
@@ -72,16 +73,23 @@ func TestWrite(t *testing.T) {
 		KeyId:     "test4",
 		KeySecret: "test5",
 	}}
-	Write(config)
+	err = Write(config)
+	test.IsNil(t, err)
 	test.FileExists(t, "test/cloudconfig.yml")
 	newConfig, ok := Load()
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, newConfig.Aws == config.Aws, true)
+	err = os.Chmod("test/cloudconfig.yml", 0000)
+	test.IsNil(t, err)
+	err = Write(config)
+	test.IsNotNil(t, err)
 }
 
 func TestDelete(t *testing.T) {
 	test.FileExists(t, "test/cloudconfig.yml")
-	err := Delete()
+	err := os.Chmod("test/cloudconfig.yml", 0000)
+	test.IsNil(t, err)
+	err = Delete()
 	test.IsNil(t, err)
 	test.FileDoesNotExist(t, "test/cloudconfig.yml")
 	_, result := loadFromFile("test/cloudconfig.yml")

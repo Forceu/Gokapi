@@ -41,9 +41,11 @@ func PublishNewStatus(reply string) {
 }
 
 func Shutdown() {
+	mutex.RLock()
 	for _, channel := range listeners {
 		channel.Shutdown()
 	}
+	mutex.RUnlock()
 }
 
 func GetStatusSSE(w http.ResponseWriter, r *http.Request) {
@@ -87,6 +89,7 @@ func GetStatusSSE(w http.ResponseWriter, r *http.Request) {
 			removeListener(channelId)
 			return
 		case <-shutdownChannel:
+			removeListener(channelId)
 			return
 		}
 		w.(http.Flusher).Flush()
