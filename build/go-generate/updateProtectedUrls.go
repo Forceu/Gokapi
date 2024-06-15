@@ -4,10 +4,11 @@ package main
 
 import (
 	"fmt"
-	"golang.org/x/exp/slices"
 	"os"
 	"regexp"
 	"strings"
+
+	"golang.org/x/exp/slices"
 )
 
 const fileSetup = "../../internal/webserver/Webserver.go"
@@ -95,7 +96,7 @@ func writeDocumentationFile(urls []string) {
 	for _, url := range urls {
 		output = output + "- ``" + url + "``\n"
 	}
-	regex := regexp.MustCompile(`proxy:\n+((?:- ` + "``" + `\/\w+` + "``" + `\n)+)`)
+	regex := regexp.MustCompile(`proxy:(?:\r?\n)+((?:- ` + "``" + `\/\w+` + "``" + `\r?\n)+)`)
 	matches := regex.FindAllIndex(documentationContent, -1)
 	if len(matches) != 1 {
 		fmt.Println("ERROR: Not one match found exactly for documentation")
