@@ -1,22 +1,16 @@
 # TODO
 
 ## Feature: Guest Uploading
-- [ ] New admin page to manage guest uploading
-  - [ ] Generate guest token with properties
-    - [ ] Max no. of files
-    - [ ] Upload quota
-  - [ ] View active tokens + their uploads
-    - [ ] Remaining files and quota
-    - [ ] Get links for guest uploads
-    - [ ] Also allow Updating/Deleting
-- [ ] New guest upload page /guestupload
-  - [ ] First, enter token
-  - [ ] Display remaining no. of files and quota
-  - [ ] Upload like admin
-    - [ ] Only accept if file isn't too big
+- [x] New admin page to manage guest uploading
+  - [x] View active tokens
+    - [x] Get links for guest uploads
+    - [x] Also allow deleting
+- [x] New guest upload page /guestupload
+  - [x] Upload like admin
+    - [x] Only accept if file isn't too big
 
-## Tasks
-- [ ] Add guest tokens to database
-- [ ] Add webserver endpoint for uploading
-- [ ] Create page to upload
-- [ ] Create admin panel page to make tokens
+## Remaining tasks for first release
+- [ ] Do a good check for security holes
+- [ ] Show the link to the uploaded file instead of immediately going to download page
+- [ ] Enable E2E encrypted uploading
+- [ ] Actually delete the token after it's been used
