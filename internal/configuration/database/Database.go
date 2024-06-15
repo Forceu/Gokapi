@@ -3,12 +3,15 @@ package database
 import (
 	"database/sql"
 	"fmt"
-	"github.com/forceu/gokapi/internal/helper"
 	"log"
+
+	"github.com/forceu/gokapi/internal/helper"
+
 	// Required for sqlite driver
-	_ "modernc.org/sqlite"
 	"os"
 	"path/filepath"
+
+	_ "modernc.org/sqlite"
 )
 
 var sqliteDb *sql.DB
@@ -97,6 +100,12 @@ func createNewDatabase() {
 			"LastUsed"	INTEGER NOT NULL,
 			"LastUsedString"	TEXT NOT NULL,
 			"Permissions"	INTEGER NOT NULL DEFAULT 0,
+			PRIMARY KEY("Id")
+		) WITHOUT ROWID;
+		CREATE TABLE "UploadTokens" (
+			"Id"	TEXT NOT NULL UNIQUE,
+			"LastUsed"	INTEGER NOT NULL,
+			"LastUsedString"	TEXT NOT NULL,
 			PRIMARY KEY("Id")
 		) WITHOUT ROWID;
 		CREATE TABLE "E2EConfig" (
