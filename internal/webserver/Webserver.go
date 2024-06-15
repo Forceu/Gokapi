@@ -12,6 +12,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html/template"
+	"io"
+	"io/fs"
+	"log"
+	"net/http"
+	"os"
+	"sort"
+	"strings"
+	templatetext "text/template"
+	"time"
+
 	"github.com/NYTimes/gziphandler"
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/database"
@@ -27,16 +38,6 @@ import (
 	"github.com/forceu/gokapi/internal/webserver/fileupload"
 	"github.com/forceu/gokapi/internal/webserver/sse"
 	"github.com/forceu/gokapi/internal/webserver/ssl"
-	"html/template"
-	"io"
-	"io/fs"
-	"log"
-	"net/http"
-	"os"
-	"sort"
-	"strings"
-	templatetext "text/template"
-	"time"
 )
 
 // TODO add 404 handler
@@ -105,6 +106,7 @@ func Start() {
 	mux.HandleFunc("/error-auth", showErrorAuth)
 	mux.HandleFunc("/error-oauth", showErrorIntOAuth)
 	mux.HandleFunc("/forgotpw", forgotPassword)
+	mux.HandleFunc("/guestUploads", showGuestUploadMenu)
 	mux.HandleFunc("/hotlink/", showHotlink)
 	mux.HandleFunc("/index", showIndex)
 	mux.HandleFunc("/login", showLogin)
@@ -523,6 +525,13 @@ func showAdminMenu(w http.ResponseWriter, r *http.Request) {
 	helper.CheckIgnoreTimeout(err)
 }
 
+// Handling of /guestUploads
+// If use is authenticated, this menu lists and allows creating guest upload tokens
+func showGuestUploadMenu(w http.ResponseWriter, r *http.Request) {
+	err := templateFolder.ExecuteTemplate(w, "guestuploads", (&UploadView{}).convertGlobalConfig(ViewGuestUploads))
+	helper.CheckIgnoreTimeout(err)
+}
+
 // Handling of /logs
 // If user is authenticated, this menu shows the stored logs
 func showLogs(w http.ResponseWriter, r *http.Request) {
@@ -568,6 +577,10 @@ type UploadView struct {
 	Items                    []models.FileApiOutput
 	ApiKeys                  []models.ApiKey
 	ServerUrl                string
+	UploadTokens             []models.UploadToken
+	Url                      string
+	HotlinkUrl               string
+	GenericHotlinkUrl        string
 	DefaultPassword          string
 	Logs                     string
 	PublicName               string
@@ -597,11 +610,15 @@ const ViewLogs = 1
 // ViewAPI is the identifier for the API menu
 const ViewAPI = 2
 
+// ViewGuestUploads is the identifier for the Guest Upload menu
+const ViewGuestUploads = 3
+
 // Converts the globalConfig variable to an UploadView struct to pass the infos to
 // the admin template
 func (u *UploadView) convertGlobalConfig(view int) *UploadView {
 	var result []models.FileApiOutput
 	var resultApi []models.ApiKey
+	var resultUploadTokens []models.UploadToken
 
 	config := configuration.Get()
 	switch view {
@@ -640,12 +657,28 @@ func (u *UploadView) convertGlobalConfig(view int) *UploadView {
 		} else {
 			u.Logs = "Warning: Log file not found!"
 		}
+	case ViewGuestUploads:
+		for _, element := range database.GetAllUploadTokens() {
+			if element.LastUsed == 0 {
+				element.LastUsedString = "Never"
+			} else {
+				element.LastUsedString = time.Unix(element.LastUsed, 0).Format("2006-01-02 15:04:05")
+			}
+			resultUploadTokens = append(resultUploadTokens, element)
+		}
+		sort.Slice(resultUploadTokens[:], func(i, j int) bool {
+			if resultUploadTokens[i].LastUsed == resultUploadTokens[j].LastUsed {
+				return resultUploadTokens[i].Id < resultUploadTokens[j].Id
+			}
+			return resultUploadTokens[i].LastUsed > resultUploadTokens[j].LastUsed
+		})
 	}
 
 	u.ServerUrl = config.ServerUrl
 	u.Items = result
 	u.PublicName = config.PublicName
 	u.ApiKeys = resultApi
+	u.UploadTokens = resultUploadTokens
 	u.TimeNow = time.Now().Unix()
 	u.IsAdminView = true
 	u.ActiveView = view

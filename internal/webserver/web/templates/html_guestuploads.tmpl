@@ -1,0 +1,96 @@
+{{ define "guestuploads" }}
+{{ template "header" . }}
+
+<div class="row">
+  <div class="col">
+    <div id="container" class="card" style="width: 80%">
+      <div class="card-body">
+        <h3 class="card-title">Guest Upload Tokens</h3>
+        <br>
+        <a href="./newUploadToken" class="btn btn-success">New Upload Token</a>
+
+        <br><br>
+        <div class="table-responsive">
+          <table id="maintable" class="table table-dark">
+            <thead>
+              <tr>
+                <th scope="col">Token</th>
+                <th scope="col">Last used</th>
+                <th scope="col">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="downloadtable">
+              {{ range .UploadTokens }}
+              {{ if or (gt .ExpireAt $.TimeNow) }}
+              <tr>
+                <td scope="col" id="cell-id-{{ .Id }}">{{ .Id }}</td>
+
+                <td scope="col">{{ .LastUsedString }}</td>
+
+                <td scope="col">
+                  <button id="url-button-{{ .Id }}" type="button" onclick="showToast()"
+                    data-clipboard-text="{{ $.Url }}{{ .Id }}" class="copyurl btn btn-outline-light btn-sm">Copy
+                    URL</button>
+                  <button type="button" class="btn btn-outline-light btn-sm"
+                    onclick="showQrCode('{{ $.Url }}{{ .Id }}');">QR</button>
+                  <button type="button" class="btn btn-outline-light btn-sm"
+                    onclick="window.location='./guestTokenDelete?token={{ .Id }}'">Delete</button>
+                </td>
+              </tr>
+              {{ end }}
+              {{ end }}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div id="toastnotification" class="toastnotification">URL copied to clipboard</div>
+<div id="qroverlay">
+  <div id="qrcode"></div>
+</div>
+
+<script src="./js/min/admin.min.js?v={{ template "js_admin_version"}}"></script>
+<script>
+  Dropzone.options.uploaddropzone["maxFilesize"] = {{ .MaxFileSize }};
+  Dropzone.options.uploaddropzone["timeout"] = 1200000;
+  Dropzone.options.uploaddropzone["chunking"] = true;
+  Dropzone.options.uploaddropzone["chunkSize"] = 10000000;
+  Dropzone.options.uploaddropzone["forceChunking"] = true;
+  Dropzone.options.uploaddropzone["retryChunksLimit"] = 3;
+  Dropzone.options.uploaddropzone["retryChunks"] = true;
+  Dropzone.options.uploaddropzone["previewsContainer"] = false;
+
+  $(document).ready(function () {
+    $('#maintable').DataTable({
+      "responsive": true,
+      "columnDefs": [{
+        "targets": 4,
+        "orderable": false
+      }],
+      "paging": false,
+      "language": {
+        "info": "Files stored: _TOTAL_",
+        "emptyTable": "No files stored yet",
+        "infoEmpty": "",
+      }
+    });
+  });
+  registerChangeHandler();
+</script>
+
+{{ if .EndToEndEncryption }}
+<script src="./js/min/wasm_exec.min.js"></script>
+<script src="./js/min/end2end_admin.min.js?v={{ template "js_e2eversion"}}"></script>
+<script>
+  checkIfE2EKeyIsSet();
+</script>
+{{ end }}
+
+
+
+{{ template "footer" }}
+{{ end }}
