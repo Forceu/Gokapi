@@ -15,14 +15,16 @@
 	<link rel="manifest" href="./site.webmanifest">
         <link href="css/min/gokapi.min.css?v={{ template "css_main"}}" rel="stylesheet">
 	<link href="./assets/dist/icons/bootstrap-icons.min.css" rel="stylesheet">
-{{ if .IsAdminView }}
-        <title>{{.PublicName}} Admin</title>
+{{ if .IsUploadView }}
 	<script src="./assets/dist/js/dropzone.min.js?v={{ template "js_dropzone_version"}}"></script>
 	<script src="./assets/dist/js/clipboard.min.js"></script>
+	<link  href="./assets/dist/css/dropzone.min.css" rel="stylesheet">
+{{ end }}
+{{ if .IsAdminView }}
+        <title>{{.PublicName}} Admin</title>
 	<script src="./assets/dist/js/datatables.min.js"></script>
 	<script src="./assets/dist/js/qrcode.min.js"></script>
 	<script src="./assets/dist/js/flatpickr.min.js"></script>
-	<link  href="./assets/dist/css/dropzone.min.css" rel="stylesheet">
 	<link  href="./assets/dist/css/datatables.min.css" rel="stylesheet">
 	<link  href="./assets/dist/css/flatpickr.min.css" rel="stylesheet">
 	<link  href="./assets/dist/css/flatpickr.dark.min.css" rel="stylesheet">

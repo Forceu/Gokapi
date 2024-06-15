@@ -110,6 +110,7 @@ func Start() {
 	mux.HandleFunc("/guestUploads", requireLogin(showGuestUploadMenu, false))
 	mux.HandleFunc("/newUploadToken", requireLogin(newUploadToken, false))
 	mux.HandleFunc("/deleteUploadToken", requireLogin(deleteUploadToken, false))
+	mux.HandleFunc("/guestUpload", showGuestUpload)
 	mux.HandleFunc("/hotlink/", showHotlink)
 	mux.HandleFunc("/index", showIndex)
 	mux.HandleFunc("/login", showLogin)
@@ -247,6 +248,7 @@ func showError(w http.ResponseWriter, r *http.Request) {
 	const invalidFile = 0
 	const noCipherSupplied = 1
 	const wrongCipher = 2
+	const guestUploadError = 3
 
 	errorReason := invalidFile
 	if r.URL.Query().Has("e2e") {
@@ -254,6 +256,9 @@ func showError(w http.ResponseWriter, r *http.Request) {
 	}
 	if r.URL.Query().Has("key") {
 		errorReason = wrongCipher
+	}
+	if r.URL.Query().Has("guestupload") {
+		errorReason = guestUploadError
 	}
 	err := templateFolder.ExecuteTemplate(w, "error", genericView{ErrorId: errorReason, PublicName: configuration.Get().PublicName})
 	helper.CheckIgnoreTimeout(err)
@@ -542,12 +547,29 @@ func newUploadToken(w http.ResponseWriter, r *http.Request) {
 	redirect(w, "guestUploads")
 }
 
+// Handling of /deleteUploadToken
+// Checks if uploadToken exists and deletes it
 func deleteUploadToken(w http.ResponseWriter, r *http.Request) {
 	tokens, ok := r.URL.Query()["token"]
 	if ok {
 		guestupload.DeleteUploadToken(tokens[0])
 	}
 	redirect(w, "guestUploads")
+}
+
+// Handling of /guestUpload
+// Allows a guest to upload one file
+func showGuestUpload(w http.ResponseWriter, r *http.Request) {
+	addNoCacheHeader(w)
+	tokens, ok := r.URL.Query()["token"]
+
+	if !ok || !guestupload.IsValidUploadToken(tokens[0]) {
+		redirect(w, "error?guestupload")
+		return
+	}
+
+	err := templateFolder.ExecuteTemplate(w, "guestupload", (&GuestUploadView{}).init(tokens[0]))
+	helper.CheckIgnoreTimeout(err)
 }
 
 // Handling of /logs
@@ -583,6 +605,15 @@ type DownloadView struct {
 	UsesHttps            bool
 }
 
+type GuestUploadView struct {
+	IsAdminView    bool
+	IsUploadView   bool
+	IsDownloadView bool
+	Token          string
+	PublicName     string
+	MaxFileSize    int
+}
+
 type e2ESetupView struct {
 	IsAdminView    bool
 	IsDownloadView bool
@@ -603,6 +634,7 @@ type UploadView struct {
 	DefaultPassword          string
 	Logs                     string
 	PublicName               string
+	IsUploadView             bool
 	IsAdminView              bool
 	IsDownloadView           bool
 	IsApiView                bool
@@ -704,6 +736,7 @@ func (u *UploadView) convertGlobalConfig(view int) *UploadView {
 	u.UploadTokens = resultUploadTokens
 	u.TimeNow = time.Now().Unix()
 	u.IsAdminView = true
+	u.IsUploadView = true
 	u.ActiveView = view
 	u.MaxFileSize = config.MaxFileSizeMB
 	u.IsLogoutAvailable = authentication.IsLogoutAvailable()
@@ -717,6 +750,18 @@ func (u *UploadView) convertGlobalConfig(view int) *UploadView {
 	u.MaxParallelUploads = config.MaxParallelUploads
 	u.ChunkSize = config.ChunkSize
 	u.IncludeFilename = config.IncludeFilename
+	return u
+}
+
+// Prepares the GuestUploadView
+func (u *GuestUploadView) init(token string) *GuestUploadView {
+	u.Token = token
+	u.PublicName = configuration.Get().PublicName
+	u.IsAdminView = false
+	u.IsUploadView = true
+	u.IsDownloadView = false
+	u.MaxFileSize = configuration.Get().MaxFileSizeMB
+
 	return u
 }
 
@@ -837,6 +882,7 @@ func addNoCacheHeader(w http.ResponseWriter) {
 // A view containing parameters for a generic template
 type genericView struct {
 	IsAdminView    bool
+	IsUploadView   bool
 	IsDownloadView bool
 	PublicName     string
 	RedirectUrl    string

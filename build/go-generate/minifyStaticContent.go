@@ -4,11 +4,12 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+
 	"github.com/tdewolff/minify/v2"
 	"github.com/tdewolff/minify/v2/css"
 	"github.com/tdewolff/minify/v2/js"
-	"os"
-	"path/filepath"
 )
 
 const pathPrefix = "../../internal/webserver/web/static/"
@@ -63,6 +64,12 @@ func getPaths() []converter {
 		OutputPath: pathPrefix + "js/min/wasm_exec.min.js",
 		Type:       "text/javascript",
 		Name:       "wasm_exec JS",
+	})
+	result = append(result, converter{
+		InputPath:  pathPrefix + "js/guestupload.js",
+		OutputPath: pathPrefix + "js/min/guestupload.min.js",
+		Type:       "text/javascript",
+		Name:       "GuestUpload JS",
 	})
 	return result
 }

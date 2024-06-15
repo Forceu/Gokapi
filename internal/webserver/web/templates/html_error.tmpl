@@ -17,6 +17,9 @@
 {{ if eq .ErrorId 2 }}
 		    This file is encrypted and an incorrect key has been passed.<br><br>If this file is end-to-end encrypted, please contact the uploader to give you the correct link, including the value after the hash.
 {{ end }}
+{{ if eq .ErrorId 3 }}
+			This guest upload link is invalid, or has already been used. Please ask for a new link.
+{{ end }}
 <br>&nbsp;
 		    </p>
 		  </div>
