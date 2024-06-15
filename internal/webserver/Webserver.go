@@ -531,7 +531,7 @@ func showAdminMenu(w http.ResponseWriter, r *http.Request) {
 // Handling of /guestUploads
 // If use is authenticated, this menu lists and allows creating guest upload tokens
 func showGuestUploadMenu(w http.ResponseWriter, r *http.Request) {
-	err := templateFolder.ExecuteTemplate(w, "guestuploads", (&UploadView{}).convertGlobalConfig(ViewGuestUploads))
+	err := templateFolder.ExecuteTemplate(w, "guestuploadmenu", (&UploadView{}).convertGlobalConfig(ViewGuestUploads))
 	helper.CheckIgnoreTimeout(err)
 }
 
@@ -596,9 +596,10 @@ type UploadView struct {
 	ApiKeys                  []models.ApiKey
 	ServerUrl                string
 	UploadTokens             []models.UploadToken
-	Url                      string
+	DownloadUrl              string
 	HotlinkUrl               string
 	GenericHotlinkUrl        string
+	GuestUploadUrl           string
 	DefaultPassword          string
 	Logs                     string
 	PublicName               string
@@ -693,6 +694,10 @@ func (u *UploadView) convertGlobalConfig(view int) *UploadView {
 	}
 
 	u.ServerUrl = config.ServerUrl
+	u.DownloadUrl = config.ServerUrl + "d?id="
+	u.HotlinkUrl = config.ServerUrl + "hotlink/"
+	u.GenericHotlinkUrl = config.ServerUrl + "downloadFile?id="
+	u.GuestUploadUrl = config.ServerUrl + "guestUpload?token="
 	u.Items = result
 	u.PublicName = config.PublicName
 	u.ApiKeys = resultApi

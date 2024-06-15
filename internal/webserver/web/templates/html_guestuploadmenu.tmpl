@@ -1,4 +1,4 @@
-{{ define "guestuploads" }}
+{{ define "guestuploadmenu" }}
 {{ template "header" . }}
 
 <div class="row">
@@ -28,10 +28,10 @@
 
                 <td scope="col">
                   <button id="url-button-{{ .Id }}" type="button" onclick="showToast()"
-                    data-clipboard-text="{{ $.Url }}{{ .Id }}" class="copyurl btn btn-outline-light btn-sm">Copy
+                    data-clipboard-text="{{ $.GuestUploadUrl }}{{ .Id }}" class="copyurl btn btn-outline-light btn-sm">Copy
                     URL</button>
                   <button type="button" class="btn btn-outline-light btn-sm"
-                    onclick="showQrCode('{{ $.Url }}{{ .Id }}');">QR</button>
+                    onclick="showQrCode('{{ $.GuestUploadUrl }}{{ .Id }}');">QR</button>
                   <button type="button" class="btn btn-outline-light btn-sm"
                     onclick="window.location='./deleteUploadToken?token={{ .Id }}'">Delete</button>
                 </td>
