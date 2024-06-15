@@ -119,6 +119,9 @@ func Start() {
 	mux.HandleFunc("/uploadChunk", requireLogin(uploadChunk, true))
 	mux.HandleFunc("/uploadComplete", requireLogin(uploadComplete, true))
 	mux.HandleFunc("/uploadStatus", requireLogin(sse.GetStatusSSE, false))
+	mux.HandleFunc("/guestUploadChunk", requireUploadToken(uploadChunk, true))
+	mux.HandleFunc("/guestUploadComplete", requireUploadToken(uploadComplete, true))
+	mux.HandleFunc("/guestUploadStatus", requireUploadToken(sse.GetStatusSSE, false))
 	mux.Handle("/main.wasm", gziphandler.GzipHandler(http.HandlerFunc(serveDownloadWasm)))
 	mux.Handle("/e2e.wasm", gziphandler.GzipHandler(http.HandlerFunc(serveE2EWasm)))
 
@@ -366,6 +369,7 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 type LoginView struct {
 	IsFailedLogin  bool
 	IsAdminView    bool
+	IsUploadView   bool
 	IsDownloadView bool
 	User           string
 	PublicName     string
@@ -572,6 +576,27 @@ func showGuestUpload(w http.ResponseWriter, r *http.Request) {
 	helper.CheckIgnoreTimeout(err)
 }
 
+// // Handling of /guestUploadChunk
+// // If the user is authenticated, this parses the uploaded chunk and stores it
+// func guestUploadChunk(w http.ResponseWriter, r *http.Request) {
+// 	maxUpload := int64(configuration.Get().MaxFileSizeMB) * 1024 * 1024
+// 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+// 	if r.ContentLength > maxUpload {
+// 		responseError(w, storage.ErrorFileTooLarge)
+// 	}
+// 	r.Body = http.MaxBytesReader(w, r.Body, maxUpload)
+// 	err := fileupload.ProcessNewChunk(w, r, false)
+// 	responseError(w, err)
+// }
+
+// // Handling of /guestUploadComplete
+// // If the user is authenticated, this parses the uploaded chunk and stores it
+// func guestUploadComplete(w http.ResponseWriter, r *http.Request) {
+// 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+// 	err := fileupload.CompleteChunk(w, r, false)
+// 	responseError(w, err)
+// }
+
 // Handling of /logs
 // If user is authenticated, this menu shows the stored logs
 func showLogs(w http.ResponseWriter, r *http.Request) {
@@ -598,6 +623,7 @@ type DownloadView struct {
 	PublicName           string
 	IsFailedLogin        bool
 	IsAdminView          bool
+	IsUploadView         bool
 	IsDownloadView       bool
 	IsPasswordView       bool
 	ClientSideDecryption bool
@@ -616,6 +642,7 @@ type GuestUploadView struct {
 
 type e2ESetupView struct {
 	IsAdminView    bool
+	IsUploadView   bool
 	IsDownloadView bool
 	HasBeenSetup   bool
 	PublicName     string
@@ -634,8 +661,8 @@ type UploadView struct {
 	DefaultPassword          string
 	Logs                     string
 	PublicName               string
-	IsUploadView             bool
 	IsAdminView              bool
+	IsUploadView             bool
 	IsDownloadView           bool
 	IsApiView                bool
 	IsLogoutAvailable        bool
@@ -850,6 +877,24 @@ func requireLogin(next http.HandlerFunc, isUpload bool) http.HandlerFunc {
 	}
 }
 
+func requireUploadToken(next http.HandlerFunc, isUpload bool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		addNoCacheHeader(w)
+
+		tokens, ok := r.URL.Query()["token"]
+
+		if ok && guestupload.IsValidUploadToken(tokens[0]) {
+			next.ServeHTTP(w, r)
+			return
+		}
+		if isUpload {
+			_, _ = io.WriteString(w, "{\"Result\":\"error\",\"ErrorMessage\":\"Not authenticated\"}")
+			return
+		}
+		redirect(w, "error?guestupload")
+	}
+}
+
 // Write a cookie if the user has entered a correct password for a password-protected file
 func writeFilePwCookie(w http.ResponseWriter, file models.File) {
 	http.SetCookie(w, &http.Cookie{
@@ -892,6 +937,7 @@ type genericView struct {
 // A view containing parameters for an oauth error
 type oauthErrorView struct {
 	IsAdminView          bool
+	IsUploadView         bool
 	IsDownloadView       bool
 	PublicName           string
 	IsAuthDenied         bool

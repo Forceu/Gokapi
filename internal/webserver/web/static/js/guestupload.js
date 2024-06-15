@@ -143,8 +143,9 @@ function urlencodeFormData(fd) {
 }
 
 function sendChunkComplete(file, done) {
+    const token = document.querySelector("#uploaddropzone").attributes.getNamedItem("data-token").value;
     var xhr = new XMLHttpRequest();
-    xhr.open("POST", "./uploadComplete", true);
+    xhr.open("POST", "./guestUploadComplete?token=" + token, true);
     xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
 
     let formData = new FormData();
@@ -170,7 +171,6 @@ function sendChunkComplete(file, done) {
     xhr.onreadystatechange = function () {
         if (this.readyState == 4) {
             if (this.status == 200) {
-                let fileId = addRow(xhr.response);
                 if (file.isEndToEndEncrypted === true) {
                     try {
                         let result = GokapiE2EAddFile(file.upload.uuid, fileId, file.name);
@@ -191,6 +191,8 @@ function sendChunkComplete(file, done) {
                 }
                 removeFileStatus(file.upload.uuid);
                 done();
+                const id = JSON.parse(xhr.response).FileInfo.Id
+                setTimeout(() => document.location = "/d?id=" + id, 1)
             } else {
                 file.accepted = false;
                 let errorMessage = getErrorMessage(xhr.responseText)

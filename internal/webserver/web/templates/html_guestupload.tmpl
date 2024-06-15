@@ -8,7 +8,7 @@
 				<h3 class="card-title">Guest Upload</h3>
 				<br>
 				<p class="card-text">
-				<form action="./uploadChunk" class="dropzone" id="uploaddropzone" data-token="{{ .Token }}"></form>
+				<form action="./guestUploadChunk?token={{ .Token }}" class="dropzone" id="uploaddropzone" data-token="{{ .Token }}"></form>
 
 				<div id="uploadstatus" class="container uploads-container">
 				</div>
