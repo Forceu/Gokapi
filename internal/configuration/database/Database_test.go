@@ -1,12 +1,18 @@
+//go:build test
+
 package database
 
 import (
+	"database/sql"
+	"errors"
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/test"
 	"golang.org/x/exp/slices"
 	"math"
 	"os"
+	"regexp"
 	"sync"
 	"testing"
 	"time"
@@ -22,16 +28,25 @@ func TestMain(m *testing.M) {
 }
 
 func TestInit(t *testing.T) {
-	Init("./test", "gokapi.sqlite")
+	test.IsEqualBool(t, sqliteDb == nil, true)
+	Init("./test/newfolder", "gokapi.sqlite")
 	test.IsEqualBool(t, sqliteDb != nil, true)
-	// Test that second init doesn't raise an error
-	Init("./test", "gokapi.sqlite")
+	test.FolderExists(t, "./test/newfolder")
+	Close()
+	test.IsEqualBool(t, sqliteDb == nil, true)
+	err := os.WriteFile("./test/newfolder/gokapi2.sqlite", []byte("invalid"), 0700)
+	test.IsNil(t, err)
+	Init("./test/newfolder", "gokapi2.sqlite")
 }
 
 func TestClose(t *testing.T) {
 	test.IsEqualBool(t, sqliteDb != nil, true)
 	Close()
 	test.IsEqualBool(t, sqliteDb == nil, true)
+	mock := setMockDb(t)
+	mock.ExpectClose().WillReturnError(errors.New("test"))
+	Close()
+	restoreDb()
 	Init("./test", "gokapi.sqlite")
 }
 
@@ -206,6 +221,21 @@ func TestColumnExists(t *testing.T) {
 	exists, err = ColumnExists("FileMetaData", "ExpireAt")
 	test.IsEqualBool(t, exists, true)
 	test.IsNil(t, err)
+	setMockDb(t).ExpectQuery(regexp.QuoteMeta("PRAGMA table_info(error)")).WillReturnError(errors.New("error"))
+	exists, err = ColumnExists("error", "error")
+	test.IsEqualBool(t, exists, false)
+	test.IsNotNil(t, err)
+	restoreDb()
+	mock := setMockDb(t)
+
+	rows := mock.NewRows([]string{"invalid"}).
+		AddRow(0).
+		AddRow(1)
+	mock.ExpectQuery(regexp.QuoteMeta("PRAGMA table_info(error)")).WillReturnRows(rows)
+	exists, err = ColumnExists("error", "error")
+	test.IsEqualBool(t, exists, false)
+	test.IsNotNil(t, err)
+	restoreDb()
 }
 
 func TestGarbageCollectionUploads(t *testing.T) {
@@ -478,4 +508,17 @@ func TestUploadStatus(t *testing.T) {
 	test.IsEqualInt(t, retrievedStatus.CurrentStatus, 1)
 	allStatus = GetAllUploadStatus()
 	test.IsEqualInt(t, len(allStatus), 6)
+}
+
+var originalDb *sql.DB
+
+func setMockDb(t *testing.T) sqlmock.Sqlmock {
+	originalDb = sqliteDb
+	db, mock, err := sqlmock.New()
+	test.IsNil(t, err)
+	sqliteDb = db
+	return mock
+}
+func restoreDb() {
+	sqliteDb = originalDb
 }

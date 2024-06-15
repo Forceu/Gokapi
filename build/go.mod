@@ -3,6 +3,7 @@ module github.com/forceu/gokapi
 go 1.22
 
 require (
+	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/aws/aws-sdk-go v1.53.19
 	github.com/caarlos0/env/v6 v6.10.1

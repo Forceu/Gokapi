@@ -133,6 +133,20 @@ func FileExists(t MockT, name string) {
 	}
 }
 
+// FolderExists fails test a folder does not exist
+func FolderExists(t MockT, name string) {
+	t.Helper()
+	_, err := os.Stat(name)
+	if err == nil {
+		return
+	}
+	if !os.IsNotExist(err) {
+		t.Errorf("Assertion failed, folder does not exist: %s, want: Exists.", name)
+	} else {
+		t.Errorf("Assertion failed, could not check if folder exist: %s.", name)
+	}
+}
+
 // FileDoesNotExist fails test a file exists
 func FileDoesNotExist(t MockT, name string) {
 	t.Helper()
