@@ -36,6 +36,7 @@ import (
 	"github.com/forceu/gokapi/internal/webserver/authentication/oauth"
 	"github.com/forceu/gokapi/internal/webserver/authentication/sessionmanager"
 	"github.com/forceu/gokapi/internal/webserver/fileupload"
+	"github.com/forceu/gokapi/internal/webserver/guestupload"
 	"github.com/forceu/gokapi/internal/webserver/sse"
 	"github.com/forceu/gokapi/internal/webserver/ssl"
 )
@@ -106,7 +107,9 @@ func Start() {
 	mux.HandleFunc("/error-auth", showErrorAuth)
 	mux.HandleFunc("/error-oauth", showErrorIntOAuth)
 	mux.HandleFunc("/forgotpw", forgotPassword)
-	mux.HandleFunc("/guestUploads", showGuestUploadMenu)
+	mux.HandleFunc("/guestUploads", requireLogin(showGuestUploadMenu, false))
+	mux.HandleFunc("/newUploadToken", requireLogin(newUploadToken, false))
+	mux.HandleFunc("/deleteUploadToken", requireLogin(deleteUploadToken, false))
 	mux.HandleFunc("/hotlink/", showHotlink)
 	mux.HandleFunc("/index", showIndex)
 	mux.HandleFunc("/login", showLogin)
@@ -530,6 +533,21 @@ func showAdminMenu(w http.ResponseWriter, r *http.Request) {
 func showGuestUploadMenu(w http.ResponseWriter, r *http.Request) {
 	err := templateFolder.ExecuteTemplate(w, "guestuploads", (&UploadView{}).convertGlobalConfig(ViewGuestUploads))
 	helper.CheckIgnoreTimeout(err)
+}
+
+// Handling of /newUploadToken
+// Creates a new upload token
+func newUploadToken(w http.ResponseWriter, r *http.Request) {
+	guestupload.NewUploadToken()
+	redirect(w, "guestUploads")
+}
+
+func deleteUploadToken(w http.ResponseWriter, r *http.Request) {
+	tokens, ok := r.URL.Query()["token"]
+	if ok {
+		guestupload.DeleteUploadToken(tokens[0])
+	}
+	redirect(w, "guestUploads")
 }
 
 // Handling of /logs

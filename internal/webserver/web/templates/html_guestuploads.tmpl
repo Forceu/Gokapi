@@ -21,7 +21,6 @@
             </thead>
             <tbody id="downloadtable">
               {{ range .UploadTokens }}
-              {{ if or (gt .ExpireAt $.TimeNow) }}
               <tr>
                 <td scope="col" id="cell-id-{{ .Id }}">{{ .Id }}</td>
 
@@ -34,10 +33,9 @@
                   <button type="button" class="btn btn-outline-light btn-sm"
                     onclick="showQrCode('{{ $.Url }}{{ .Id }}');">QR</button>
                   <button type="button" class="btn btn-outline-light btn-sm"
-                    onclick="window.location='./guestTokenDelete?token={{ .Id }}'">Delete</button>
+                    onclick="window.location='./deleteUploadToken?token={{ .Id }}'">Delete</button>
                 </td>
               </tr>
-              {{ end }}
               {{ end }}
             </tbody>
           </table>
@@ -68,13 +66,13 @@
     $('#maintable').DataTable({
       "responsive": true,
       "columnDefs": [{
-        "targets": 4,
+        "targets": 2,
         "orderable": false
       }],
       "paging": false,
       "language": {
-        "info": "Files stored: _TOTAL_",
-        "emptyTable": "No files stored yet",
+        "info": "Upload tokens stored: _TOTAL_",
+        "emptyTable": "No upload tokens created yet",
         "infoEmpty": "",
       }
     });
