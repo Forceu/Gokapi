@@ -300,6 +300,9 @@ If you are concerned that the configuration file can be read, you can also choos
 .. note::
    If you re-run the setup and enable encryption, unencrypted files will stay unencrypted. If you change any configuration related to encryption, all already encrypted files will be deleted.
 
+.. note::
+   Files uploaded using a Guest Upload link will never be End-to-End encrypted, even if Level 3 encryption is enabled for the server. In this case these files will be uploaded without any encryption.
+
 ************************
 Changing Configuration
 ************************

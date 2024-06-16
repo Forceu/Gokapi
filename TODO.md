@@ -10,9 +10,9 @@
     - [x] Only accept if file isn't too big
 
 ## Remaining tasks for first release
-- [ ] Do a good check for security holes
+- [x] Do a good check for security holes
 - [x] Show the link to the uploaded file instead of immediately going to download page
 - [ ] ~~Enable E2E encrypted uploading~~
-  - [ ] Remove E2E code from the guest upload page and JS
-  - [ ] Display notices that guest tokens cannot use E2E encryption
+  - [x] Remove E2E code from the guest upload page and JS
+  - [x] Display notices that guest tokens cannot use E2E encryption
 - [ ] Actually delete the token after it's been used
