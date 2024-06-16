@@ -44,14 +44,6 @@ Dropzone.options.uploaddropzone = {
         this.on("uploadprogress", function (file, progress, bytesSent) {
             updateProgressbar(file, progress, bytesSent);
         });
-
-        // This will be executed after the page has loaded. If e2e ist enabled, the end2end_admin.js has set isE2EEnabled to true
-        if (isE2EEnabled) {
-            dropzoneObject.disable();
-            dropzoneObject.options.dictDefaultMessage = "Loading end-to-end encryption...";
-            document.getElementsByClassName("dz-button")[0].innerText = "Loading end-to-end encryption...";
-            setE2eUpload();
-        }
     },
 };
 
@@ -171,28 +163,9 @@ function sendChunkComplete(file, done) {
     xhr.onreadystatechange = function () {
         if (this.readyState == 4) {
             if (this.status == 200) {
-                if (file.isEndToEndEncrypted === true) {
-                    try {
-                        let result = GokapiE2EAddFile(file.upload.uuid, fileId, file.name);
-                        if (result instanceof Error) {
-                            throw result;
-                        }
-                        let info = GokapiE2EInfoEncrypt();
-                        if (info instanceof Error) {
-                            throw info;
-                        }
-                        storeE2EInfo(info);
-                    } catch (err) {
-                        file.accepted = false;
-                        dropzoneObject._errorProcessing([file], err);
-                        return;
-                    }
-                    GokapiE2EDecryptMenu();
-                }
                 removeFileStatus(file.upload.uuid);
+                showUploadResult(xhr.response)
                 done();
-                const id = JSON.parse(xhr.response).FileInfo.Id
-                setTimeout(() => document.location = "/d?id=" + id, 1)
             } else {
                 file.accepted = false;
                 let errorMessage = getErrorMessage(xhr.responseText)
@@ -202,6 +175,24 @@ function sendChunkComplete(file, done) {
         }
     };
     xhr.send(urlencodeFormData(formData));
+}
+
+function showUploadResult(response) {
+    const result = JSON.parse(response)
+
+    document.querySelector("#card-title").textContent = "Guest Upload Succeeded"
+
+    document.querySelector("#upload-interface").style.display = "none";
+    document.querySelector("#result-interface").style.display = "inline";
+
+    document.querySelector("#result-name").textContent = result.FileInfo.Name;
+
+    const link = document.createElement("a");
+    link.setAttribute("href", result.Url + result.FileInfo.Id);
+    link.textContent = result.Url + result.FileInfo.Id;
+    document.querySelector("#result-link").appendChild(link);
+    document.querySelector("#qr-button").addEventListener("click", () => showQrCode(result.Url + result.FileInfo.Id))
+    document.querySelector("#url-button").setAttribute("data-clipboard-text", result.Url + result.FileInfo.Id)
 }
 
 function getErrorMessage(response) {

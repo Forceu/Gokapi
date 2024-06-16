@@ -5,57 +5,78 @@
 	<div class="col">
 		<div id="container" class="card" style="width: 80%">
 			<div class="card-body">
-				<h3 class="card-title">Guest Upload</h3>
+				<h3 class="card-title" id="card-title">Guest Upload</h3>
 				<br>
-				<p class="card-text">
-				<form action="./guestUploadChunk?token={{ .Token }}" class="dropzone" id="uploaddropzone" data-token="{{ .Token }}"></form>
 
-				<div id="uploadstatus" class="container uploads-container">
-				</div>
-				<p></p>
-		
-				<br>
-				<div class="container-md">
-					<div class="row">
-						<div class="form-group col">
-							<input class="form-check-input" type="checkbox" name="enableDownloadLimit" id="enableDownloadLimit"
-								onchange="checkBoxChanged(this, 'allowedDownloads')" value="" aria-label="Enable Download Limit">
-							<label class="control-label small" for="allowedDownloads">Limit Downloads</label>
-							<div class="input-group mb-3">
-								<input type="number" class="form-control admin-input" value="1"
-									name="allowedDownloads" id="allowedDownloads" min="1" disabled style="text-align: right;">
-								<span class="input-group-text">Downloads</span>
+				<span id="upload-interface">
+					<p class="card-text">
+					<form action="./guestUploadChunk?token={{ .Token }}" class="dropzone" id="uploaddropzone" data-token="{{ .Token }}"></form>
+
+					<div id="uploadstatus" class="container uploads-container">
+					</div>
+					<p></p>
+			
+					<br>
+					<div class="container-md">
+						<div class="row">
+							<div class="form-group col">
+								<input class="form-check-input" type="checkbox" name="enableDownloadLimit" id="enableDownloadLimit"
+									onchange="checkBoxChanged(this, 'allowedDownloads')" value="" aria-label="Enable Download Limit">
+								<label class="control-label small" for="allowedDownloads">Limit Downloads</label>
+								<div class="input-group mb-3">
+									<input type="number" class="form-control admin-input" value="1"
+										name="allowedDownloads" id="allowedDownloads" min="1" disabled style="text-align: right;">
+									<span class="input-group-text">Downloads</span>
+								</div>
 							</div>
-						</div>
-						<div class="break"></div>
-						<div class="form-group col">
-							<input class="form-check-input" type="checkbox" name="enableTimeLimit" id="enableTimeLimit"
-								onchange="checkBoxChanged(this, 'expiryDays')" value="" aria-label="Enable Time Limit">
-							<label class="control-label  small" for="expiryDays">Expiry</label>
-							<div class="input-group mb-3">
-								<input type="number" class="form-control admin-input" value="7" name="expiryDays"
-									id="expiryDays" min="1" disabled
-									style="text-align: right;">
-								<span class="input-group-text">Days</span>
+							<div class="break"></div>
+							<div class="form-group col">
+								<input class="form-check-input" type="checkbox" name="enableTimeLimit" id="enableTimeLimit"
+									onchange="checkBoxChanged(this, 'expiryDays')" value="" aria-label="Enable Time Limit">
+								<label class="control-label  small" for="expiryDays">Expiry</label>
+								<div class="input-group mb-3">
+									<input type="number" class="form-control admin-input" value="7" name="expiryDays"
+										id="expiryDays" min="1" disabled
+										style="text-align: right;">
+									<span class="input-group-text">Days</span>
+								</div>
 							</div>
-						</div>
-						<div class="break"></div>
-						<div class="form-group col">
-							<input class="form-check-input" type="checkbox" name="enablePassword" id="enablePassword"
-								onchange="checkBoxChanged(this, 'password')" value="" aria-label="Enable Password Protection">
-							<label class="control-label  small" for="password">Password</label>
-							<input class="form-control admin-input" value="" name="password" id="password"
-								placeholder="None" disabled>
-						</div>
-						<div id="errordiv" class="alert alert-danger" style="display:none">
-							<span id="errormessage"></span>
+							<div class="break"></div>
+							<div class="form-group col">
+								<input class="form-check-input" type="checkbox" name="enablePassword" id="enablePassword"
+									onchange="checkBoxChanged(this, 'password')" value="" aria-label="Enable Password Protection">
+								<label class="control-label  small" for="password">Password</label>
+								<input class="form-control admin-input" value="" name="password" id="password"
+									placeholder="None" disabled>
+							</div>
+							<div id="errordiv" class="alert alert-danger" style="display:none">
+								<span id="errormessage"></span>
+							</div>
 						</div>
 					</div>
-				</div>
-
+				</span>
+				<span id="result-interface", style="display: none">
+					<div>
+						Name:
+						<span id="result-name"></span>
+					</div>
+					<div>
+						Link:
+						<span id="result-link"></span>
+					</div>
+					<div>
+						<button id="url-button" type="button" onclick="showToast()" data-clipboard-text="" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> URL</button> 
+						<button id="qr-button" type="button" title="QR Code" class="btn btn-outline-light btn-sm"><i class="bi bi-qr-code"></i></button>
+					</div>
+				</span>
 			</div>
 		</div>
 	</div>
+</div>
+
+<div id="toastnotification" class="toastnotification">URL copied to clipboard</div>
+<div id="qroverlay">
+	<div id="qrcode"></div>
 </div>
 
 <script src="./js/min/guestupload.min.js?v={{ template "js_guestupload_version"}}"></script>
@@ -71,16 +92,6 @@
 
 	registerChangeHandler();
 </script>
-
-{{/* {{ if .EndToEndEncryption }}
-<script src="./js/min/wasm_exec.min.js"></script>
-<script src="./js/min/end2end_admin.min.js?v={{ template "js_e2eversion"}}"></script>
-<script>
-	checkIfE2EKeyIsSet();
-</script>
-{{ end }} */}}
-
-
 
 {{ template "footer" }}
 {{ end }}
