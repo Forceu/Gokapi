@@ -188,11 +188,11 @@ function showUploadResult(response) {
     document.querySelector("#result-name").textContent = result.FileInfo.Name;
 
     const link = document.createElement("a");
-    link.setAttribute("href", result.Url + result.FileInfo.Id);
-    link.textContent = result.Url + result.FileInfo.Id;
+    link.setAttribute("href", result.FileInfo.UrlDownload);
+    link.textContent = result.FileInfo.UrlDownload;
     document.querySelector("#result-link").appendChild(link);
-    document.querySelector("#qr-button").addEventListener("click", () => showQrCode(result.Url + result.FileInfo.Id))
-    document.querySelector("#url-button").setAttribute("data-clipboard-text", result.Url + result.FileInfo.Id)
+    document.querySelector("#qr-button").addEventListener("click", () => showQrCode(result.FileInfo.UrlDownload))
+    document.querySelector("#url-button").setAttribute("data-clipboard-text", result.FileInfo.UrlDownload)
 }
 
 function getErrorMessage(response) {
