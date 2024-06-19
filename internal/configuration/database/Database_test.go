@@ -5,17 +5,19 @@ package database
 import (
 	"database/sql"
 	"errors"
-	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/forceu/gokapi/internal/helper"
-	"github.com/forceu/gokapi/internal/models"
-	"github.com/forceu/gokapi/internal/test"
-	"golang.org/x/exp/slices"
 	"math"
 	"os"
 	"regexp"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/DATA-DOG/go-sqlmock"
+	"golang.org/x/exp/slices"
+
+	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/test"
 )
 
 func TestMain(m *testing.M) {
@@ -150,6 +152,44 @@ func TestApiKey(t *testing.T) {
 	key, ok = GetApiKey("newkey")
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualString(t, key.FriendlyName, "Old Key")
+}
+
+func TestGuestUploadToken(t *testing.T) {
+	SaveUploadToken(models.UploadToken{
+		Id:             "newtoken",
+		LastUsedString: "LastUsed",
+		LastUsed:       100,
+	})
+	SaveUploadToken(models.UploadToken{
+		Id:             "newtoken2",
+		LastUsedString: "LastUsed2",
+		LastUsed:       200,
+	})
+
+	tokens := GetAllUploadTokens()
+	test.IsEqualInt(t, len(tokens), 2)
+	test.IsEqualString(t, tokens["newtoken"].Id, "newtoken")
+	test.IsEqualString(t, tokens["newtoken"].LastUsedString, "LastUsed")
+	test.IsEqualInt64(t, tokens["newtoken"].LastUsed, 100)
+
+	test.IsEqualInt(t, len(GetAllUploadTokens()), 2)
+	DeleteUploadToken("newtoken2")
+	test.IsEqualInt(t, len(GetAllUploadTokens()), 1)
+
+	token, ok := GetUploadToken("newtoken")
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualString(t, token.Id, "newtoken")
+	_, ok = GetUploadToken("newtoken2")
+	test.IsEqualBool(t, ok, false)
+
+	SaveUploadToken(models.UploadToken{
+		Id:             "newtoken",
+		LastUsed:       100,
+		LastUsedString: "RecentlyUsed",
+	})
+	token, ok = GetUploadToken("newtoken")
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualString(t, token.LastUsedString, "RecentlyUsed")
 }
 
 func TestSession(t *testing.T) {

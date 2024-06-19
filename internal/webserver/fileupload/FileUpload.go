@@ -1,15 +1,17 @@
 package fileupload
 
 import (
+	"io"
+	"net/http"
+	"strconv"
+	"time"
+
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
 	"github.com/forceu/gokapi/internal/storage/chunking"
-	"io"
-	"net/http"
-	"strconv"
-	"time"
+	"github.com/forceu/gokapi/internal/webserver/guestupload"
 )
 
 // Process processes a file upload request
@@ -83,6 +85,13 @@ func CompleteChunk(w http.ResponseWriter, r *http.Request, isApiCall bool) error
 		return err
 	}
 	_, _ = io.WriteString(w, result.ToJsonResult(config.ExternalUrl, configuration.Get().IncludeFilename))
+
+	// If an UploadToken was used, delete it
+	tokens, ok := r.URL.Query()["token"]
+	if ok && guestupload.IsValidUploadToken(tokens[0]) {
+		guestupload.DeleteUploadToken(tokens[0])
+	}
+
 	return nil
 }
 

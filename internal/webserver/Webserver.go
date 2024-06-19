@@ -12,6 +12,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html/template"
+	"io"
+	"io/fs"
+	"log"
+	"net/http"
+	"os"
+	"sort"
+	"strings"
+	templatetext "text/template"
+	"time"
+
 	"github.com/NYTimes/gziphandler"
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/database"
@@ -25,18 +36,9 @@ import (
 	"github.com/forceu/gokapi/internal/webserver/authentication/oauth"
 	"github.com/forceu/gokapi/internal/webserver/authentication/sessionmanager"
 	"github.com/forceu/gokapi/internal/webserver/fileupload"
+	"github.com/forceu/gokapi/internal/webserver/guestupload"
 	"github.com/forceu/gokapi/internal/webserver/sse"
 	"github.com/forceu/gokapi/internal/webserver/ssl"
-	"html/template"
-	"io"
-	"io/fs"
-	"log"
-	"net/http"
-	"os"
-	"sort"
-	"strings"
-	templatetext "text/template"
-	"time"
 )
 
 // TODO add 404 handler
@@ -105,6 +107,10 @@ func Start() {
 	mux.HandleFunc("/error-auth", showErrorAuth)
 	mux.HandleFunc("/error-oauth", showErrorIntOAuth)
 	mux.HandleFunc("/forgotpw", forgotPassword)
+	mux.HandleFunc("/guestUploads", requireLogin(showGuestUploadMenu, false))
+	mux.HandleFunc("/newUploadToken", requireLogin(newUploadToken, false))
+	mux.HandleFunc("/deleteUploadToken", requireLogin(deleteUploadToken, false))
+	mux.HandleFunc("/guestUpload", showGuestUpload)
 	mux.HandleFunc("/hotlink/", showHotlink)
 	mux.HandleFunc("/index", showIndex)
 	mux.HandleFunc("/login", showLogin)
@@ -113,6 +119,9 @@ func Start() {
 	mux.HandleFunc("/uploadChunk", requireLogin(uploadChunk, true))
 	mux.HandleFunc("/uploadComplete", requireLogin(uploadComplete, true))
 	mux.HandleFunc("/uploadStatus", requireLogin(sse.GetStatusSSE, false))
+	mux.HandleFunc("/guestUploadChunk", requireUploadToken(uploadChunk, true))
+	mux.HandleFunc("/guestUploadComplete", requireUploadToken(uploadComplete, true))
+	mux.HandleFunc("/guestUploadStatus", requireUploadToken(sse.GetStatusSSE, false))
 	mux.Handle("/main.wasm", gziphandler.GzipHandler(http.HandlerFunc(serveDownloadWasm)))
 	mux.Handle("/e2e.wasm", gziphandler.GzipHandler(http.HandlerFunc(serveE2EWasm)))
 
@@ -242,6 +251,7 @@ func showError(w http.ResponseWriter, r *http.Request) {
 	const invalidFile = 0
 	const noCipherSupplied = 1
 	const wrongCipher = 2
+	const guestUploadError = 3
 
 	errorReason := invalidFile
 	if r.URL.Query().Has("e2e") {
@@ -249,6 +259,9 @@ func showError(w http.ResponseWriter, r *http.Request) {
 	}
 	if r.URL.Query().Has("key") {
 		errorReason = wrongCipher
+	}
+	if r.URL.Query().Has("guestupload") {
+		errorReason = guestUploadError
 	}
 	err := templateFolder.ExecuteTemplate(w, "error", genericView{ErrorId: errorReason, PublicName: configuration.Get().PublicName})
 	helper.CheckIgnoreTimeout(err)
@@ -356,6 +369,7 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 type LoginView struct {
 	IsFailedLogin  bool
 	IsAdminView    bool
+	IsUploadView   bool
 	IsDownloadView bool
 	User           string
 	PublicName     string
@@ -523,6 +537,66 @@ func showAdminMenu(w http.ResponseWriter, r *http.Request) {
 	helper.CheckIgnoreTimeout(err)
 }
 
+// Handling of /guestUploads
+// If use is authenticated, this menu lists and allows creating guest upload tokens
+func showGuestUploadMenu(w http.ResponseWriter, r *http.Request) {
+	err := templateFolder.ExecuteTemplate(w, "guestuploadmenu", (&UploadView{}).convertGlobalConfig(ViewGuestUploads))
+	helper.CheckIgnoreTimeout(err)
+}
+
+// Handling of /newUploadToken
+// Creates a new upload token
+func newUploadToken(w http.ResponseWriter, r *http.Request) {
+	guestupload.NewUploadToken()
+	redirect(w, "guestUploads")
+}
+
+// Handling of /deleteUploadToken
+// Checks if uploadToken exists and deletes it
+func deleteUploadToken(w http.ResponseWriter, r *http.Request) {
+	tokens, ok := r.URL.Query()["token"]
+	if ok {
+		guestupload.DeleteUploadToken(tokens[0])
+	}
+	redirect(w, "guestUploads")
+}
+
+// Handling of /guestUpload
+// Allows a guest to upload one file
+func showGuestUpload(w http.ResponseWriter, r *http.Request) {
+	addNoCacheHeader(w)
+	tokens, ok := r.URL.Query()["token"]
+
+	if !ok || !guestupload.IsValidUploadToken(tokens[0]) {
+		redirect(w, "error?guestupload")
+		return
+	}
+
+	err := templateFolder.ExecuteTemplate(w, "guestupload", (&GuestUploadView{}).init(tokens[0]))
+	helper.CheckIgnoreTimeout(err)
+}
+
+// // Handling of /guestUploadChunk
+// // If the user is authenticated, this parses the uploaded chunk and stores it
+// func guestUploadChunk(w http.ResponseWriter, r *http.Request) {
+// 	maxUpload := int64(configuration.Get().MaxFileSizeMB) * 1024 * 1024
+// 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+// 	if r.ContentLength > maxUpload {
+// 		responseError(w, storage.ErrorFileTooLarge)
+// 	}
+// 	r.Body = http.MaxBytesReader(w, r.Body, maxUpload)
+// 	err := fileupload.ProcessNewChunk(w, r, false)
+// 	responseError(w, err)
+// }
+
+// // Handling of /guestUploadComplete
+// // If the user is authenticated, this parses the uploaded chunk and stores it
+// func guestUploadComplete(w http.ResponseWriter, r *http.Request) {
+// 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+// 	err := fileupload.CompleteChunk(w, r, false)
+// 	responseError(w, err)
+// }
+
 // Handling of /logs
 // If user is authenticated, this menu shows the stored logs
 func showLogs(w http.ResponseWriter, r *http.Request) {
@@ -549,6 +623,7 @@ type DownloadView struct {
 	PublicName           string
 	IsFailedLogin        bool
 	IsAdminView          bool
+	IsUploadView         bool
 	IsDownloadView       bool
 	IsPasswordView       bool
 	ClientSideDecryption bool
@@ -556,8 +631,18 @@ type DownloadView struct {
 	UsesHttps            bool
 }
 
+type GuestUploadView struct {
+	IsAdminView    bool
+	IsUploadView   bool
+	IsDownloadView bool
+	Token          string
+	PublicName     string
+	MaxFileSize    int
+}
+
 type e2ESetupView struct {
 	IsAdminView    bool
+	IsUploadView   bool
 	IsDownloadView bool
 	HasBeenSetup   bool
 	PublicName     string
@@ -568,10 +653,16 @@ type UploadView struct {
 	Items                    []models.FileApiOutput
 	ApiKeys                  []models.ApiKey
 	ServerUrl                string
+	UploadTokens             []models.UploadToken
+	DownloadUrl              string
+	HotlinkUrl               string
+	GenericHotlinkUrl        string
+	GuestUploadUrl           string
 	DefaultPassword          string
 	Logs                     string
 	PublicName               string
 	IsAdminView              bool
+	IsUploadView             bool
 	IsDownloadView           bool
 	IsApiView                bool
 	IsLogoutAvailable        bool
@@ -597,11 +688,15 @@ const ViewLogs = 1
 // ViewAPI is the identifier for the API menu
 const ViewAPI = 2
 
+// ViewGuestUploads is the identifier for the Guest Upload menu
+const ViewGuestUploads = 3
+
 // Converts the globalConfig variable to an UploadView struct to pass the infos to
 // the admin template
 func (u *UploadView) convertGlobalConfig(view int) *UploadView {
 	var result []models.FileApiOutput
 	var resultApi []models.ApiKey
+	var resultUploadTokens []models.UploadToken
 
 	config := configuration.Get()
 	switch view {
@@ -640,14 +735,35 @@ func (u *UploadView) convertGlobalConfig(view int) *UploadView {
 		} else {
 			u.Logs = "Warning: Log file not found!"
 		}
+	case ViewGuestUploads:
+		for _, element := range database.GetAllUploadTokens() {
+			if element.LastUsed == 0 {
+				element.LastUsedString = "Never"
+			} else {
+				element.LastUsedString = time.Unix(element.LastUsed, 0).Format("2006-01-02 15:04:05")
+			}
+			resultUploadTokens = append(resultUploadTokens, element)
+		}
+		sort.Slice(resultUploadTokens[:], func(i, j int) bool {
+			if resultUploadTokens[i].LastUsed == resultUploadTokens[j].LastUsed {
+				return resultUploadTokens[i].Id < resultUploadTokens[j].Id
+			}
+			return resultUploadTokens[i].LastUsed > resultUploadTokens[j].LastUsed
+		})
 	}
 
 	u.ServerUrl = config.ServerUrl
+	u.DownloadUrl = config.ServerUrl + "d?id="
+	u.HotlinkUrl = config.ServerUrl + "hotlink/"
+	u.GenericHotlinkUrl = config.ServerUrl + "downloadFile?id="
+	u.GuestUploadUrl = config.ServerUrl + "guestUpload?token="
 	u.Items = result
 	u.PublicName = config.PublicName
 	u.ApiKeys = resultApi
+	u.UploadTokens = resultUploadTokens
 	u.TimeNow = time.Now().Unix()
 	u.IsAdminView = true
+	u.IsUploadView = true
 	u.ActiveView = view
 	u.MaxFileSize = config.MaxFileSizeMB
 	u.IsLogoutAvailable = authentication.IsLogoutAvailable()
@@ -661,6 +777,18 @@ func (u *UploadView) convertGlobalConfig(view int) *UploadView {
 	u.MaxParallelUploads = config.MaxParallelUploads
 	u.ChunkSize = config.ChunkSize
 	u.IncludeFilename = config.IncludeFilename
+	return u
+}
+
+// Prepares the GuestUploadView
+func (u *GuestUploadView) init(token string) *GuestUploadView {
+	u.Token = token
+	u.PublicName = configuration.Get().PublicName
+	u.IsAdminView = false
+	u.IsUploadView = true
+	u.IsDownloadView = false
+	u.MaxFileSize = configuration.Get().MaxFileSizeMB
+
 	return u
 }
 
@@ -749,6 +877,24 @@ func requireLogin(next http.HandlerFunc, isUpload bool) http.HandlerFunc {
 	}
 }
 
+func requireUploadToken(next http.HandlerFunc, isUpload bool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		addNoCacheHeader(w)
+
+		tokens, ok := r.URL.Query()["token"]
+
+		if ok && guestupload.IsValidUploadToken(tokens[0]) {
+			next.ServeHTTP(w, r)
+			return
+		}
+		if isUpload {
+			_, _ = io.WriteString(w, "{\"Result\":\"error\",\"ErrorMessage\":\"Not authenticated\"}")
+			return
+		}
+		redirect(w, "error?guestupload")
+	}
+}
+
 // Write a cookie if the user has entered a correct password for a password-protected file
 func writeFilePwCookie(w http.ResponseWriter, file models.File) {
 	http.SetCookie(w, &http.Cookie{
@@ -781,6 +927,7 @@ func addNoCacheHeader(w http.ResponseWriter) {
 // A view containing parameters for a generic template
 type genericView struct {
 	IsAdminView    bool
+	IsUploadView   bool
 	IsDownloadView bool
 	PublicName     string
 	RedirectUrl    string
@@ -790,6 +937,7 @@ type genericView struct {
 // A view containing parameters for an oauth error
 type oauthErrorView struct {
 	IsAdminView          bool
+	IsUploadView         bool
 	IsDownloadView       bool
 	PublicName           string
 	IsAuthDenied         bool
