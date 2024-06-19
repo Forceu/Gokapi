@@ -5,6 +5,8 @@ package testconfiguration
 import (
 	"fmt"
 	"github.com/forceu/gokapi/internal/configuration/database"
+	"github.com/forceu/gokapi/internal/configuration/database/dbabstraction"
+	"github.com/forceu/gokapi/internal/configuration/database/provider/sqlite"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage/filesystem"
@@ -36,7 +38,12 @@ func SetDirEnv() {
 func Create(initFiles bool) {
 	SetDirEnv()
 	os.WriteFile(configFile, configTestFile, 0777)
-	database.Init(dataDir, "gokapi.sqlite")
+	// TODO
+	database.Init(models.DbConnection{
+		SqliteDataDir:  dataDir,
+		SqliteFileName: "gokapi.sqlite",
+		Type:           dbabstraction.TypeSqlite,
+	})
 	writeTestSessions()
 	database.SaveUploadDefaults(models.LastUploadValues{
 		Downloads:         3,
@@ -173,7 +180,7 @@ func writeTestSessions() {
 	})
 }
 func writeTestUploadStatus() {
-	err := database.RawSqlite(`INSERT OR REPLACE INTO UploadStatus
+	err := sqlite.RawSqlite(`INSERT OR REPLACE INTO UploadStatus
 	("ChunkId", "CurrentStatus", "CreationDate")
 	VALUES ('expiredstatus', 0, 100);`)
 	if err != nil {

@@ -1,4 +1,4 @@
-package database
+package sqlite
 
 import (
 	"database/sql"
@@ -18,7 +18,7 @@ type schemaUploadConfig struct {
 
 // GetUploadDefaults returns the last used setting for amount of downloads allowed, last expiry in days and
 // a password for the file
-func GetUploadDefaults() models.LastUploadValues {
+func (p DatabaseProvider) GetUploadDefaults() models.LastUploadValues {
 	defaultValues := models.LastUploadValues{
 		Downloads:         1,
 		TimeExpiry:        14,
@@ -49,7 +49,7 @@ func GetUploadDefaults() models.LastUploadValues {
 }
 
 // SaveUploadDefaults saves the last used setting for an upload
-func SaveUploadDefaults(values models.LastUploadValues) {
+func (p DatabaseProvider) SaveUploadDefaults(values models.LastUploadValues) {
 
 	newData := schemaUploadConfig{
 		Downloads:  values.Downloads,

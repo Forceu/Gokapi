@@ -1,4 +1,4 @@
-package database
+package sqlite
 
 import (
 	"database/sql"
@@ -15,7 +15,7 @@ type schemaSessions struct {
 }
 
 // GetSession returns the session with the given ID or false if not a valid ID
-func GetSession(id string) (models.Session, bool) {
+func (p DatabaseProvider) GetSession(id string) (models.Session, bool) {
 	var rowResult schemaSessions
 	row := sqliteDb.QueryRow("SELECT * FROM Sessions WHERE Id = ?", id)
 	err := row.Scan(&rowResult.Id, &rowResult.RenewAt, &rowResult.ValidUntil)
@@ -34,7 +34,7 @@ func GetSession(id string) (models.Session, bool) {
 }
 
 // SaveSession stores the given session. After the expiry passed, it will be deleted automatically
-func SaveSession(id string, session models.Session) {
+func (p DatabaseProvider) SaveSession(id string, session models.Session) {
 	newData := schemaSessions{
 		Id:         id,
 		RenewAt:    session.RenewAt,
@@ -47,19 +47,19 @@ func SaveSession(id string, session models.Session) {
 }
 
 // DeleteSession deletes a session with the given ID
-func DeleteSession(id string) {
+func (p DatabaseProvider) DeleteSession(id string) {
 	_, err := sqliteDb.Exec("DELETE FROM Sessions WHERE Id = ?", id)
 	helper.Check(err)
 }
 
 // DeleteAllSessions logs all users out
-func DeleteAllSessions() {
+func (p DatabaseProvider) DeleteAllSessions() {
 	//goland:noinspection SqlWithoutWhere
 	_, err := sqliteDb.Exec("DELETE FROM Sessions")
 	helper.Check(err)
 }
 
-func cleanExpiredSessions() {
+func (p DatabaseProvider) cleanExpiredSessions() {
 	_, err := sqliteDb.Exec("DELETE FROM Sessions WHERE Sessions.ValidUntil < ?", time.Now().Unix())
 	helper.Check(err)
 }

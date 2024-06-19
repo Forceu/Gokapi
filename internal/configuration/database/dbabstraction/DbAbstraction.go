@@ -1,0 +1,93 @@
+package dbabstraction
+
+import (
+	"github.com/forceu/gokapi/internal/configuration/database/provider/sqlite"
+	"github.com/forceu/gokapi/internal/models"
+)
+
+const (
+	TypeSqlite = iota
+	TypeRedis
+)
+
+type Database interface {
+	// Init creates the database files and connects to it
+	Init(dbConfig models.DbConnection)
+	// Upgrade migrates the DB to a new Gokapi version, if required
+	Upgrade(currentVersion int)
+	// RunGarbageCollection runs the databases GC
+	RunGarbageCollection()
+	// Close the database connection
+	Close()
+
+	// GetAllApiKeys returns a map with all API keys
+	GetAllApiKeys() map[string]models.ApiKey
+	// GetApiKey returns a models.ApiKey if valid or false if the ID is not valid
+	GetApiKey(id string) (models.ApiKey, bool)
+	// SaveApiKey saves the API key to the database
+	SaveApiKey(apikey models.ApiKey)
+	// UpdateTimeApiKey writes the content of LastUsage to the database
+	UpdateTimeApiKey(apikey models.ApiKey)
+	// DeleteApiKey deletes an API key with the given ID
+	DeleteApiKey(id string)
+
+	// SaveEnd2EndInfo stores the encrypted e2e info
+	SaveEnd2EndInfo(info models.E2EInfoEncrypted)
+	// GetEnd2EndInfo retrieves the encrypted e2e info
+	GetEnd2EndInfo() models.E2EInfoEncrypted
+	// DeleteEnd2EndInfo resets the encrypted e2e info
+	DeleteEnd2EndInfo()
+
+	// GetHotlink returns the id of the file associated or false if not found
+	GetHotlink(id string) (string, bool)
+	// GetAllHotlinks returns an array with all hotlink ids
+	GetAllHotlinks() []string
+	// SaveHotlink stores the hotlink associated with the file in the database
+	SaveHotlink(file models.File)
+	// DeleteHotlink deletes a hotlink with the given hotlink ID
+	DeleteHotlink(id string)
+
+	// GetAllMetadata returns a map of all available files
+	GetAllMetadata() map[string]models.File
+	// GetAllMetaDataIds returns all Ids that contain metadata
+	GetAllMetaDataIds() []string
+	// GetMetaDataById returns a models.File from the ID passed or false if the id is not valid
+	GetMetaDataById(id string) (models.File, bool)
+	// SaveMetaData stores the metadata of a file to the disk
+	SaveMetaData(file models.File)
+	// DeleteMetaData deletes information about a file
+	DeleteMetaData(id string)
+
+	// GetSession returns the session with the given ID or false if not a valid ID
+	GetSession(id string) (models.Session, bool)
+	// SaveSession stores the given session. After the expiry passed, it will be deleted automatically
+	SaveSession(id string, session models.Session)
+	// DeleteSession deletes a session with the given ID
+	DeleteSession(id string)
+	// DeleteAllSessions logs all users out
+	DeleteAllSessions()
+
+	// GetUploadDefaults returns the last used setting for amount of downloads allowed, last expiry in days and
+	// a password for the file
+	GetUploadDefaults() models.LastUploadValues
+	// SaveUploadDefaults saves the last used setting for an upload
+	SaveUploadDefaults(values models.LastUploadValues)
+	// GetUploadStatus returns a models.UploadStatus from the ID passed or false if the id is not valid
+	GetUploadStatus(id string) (models.UploadStatus, bool)
+	// GetAllUploadStatus returns all UploadStatus values from the past 24 hours
+	GetAllUploadStatus() []models.UploadStatus
+	// SaveUploadStatus stores the upload status of a new file for 24 hours
+	SaveUploadStatus(status models.UploadStatus)
+}
+
+func GetNew(config models.DbConnection) Database {
+	switch config.Type {
+	case TypeSqlite:
+		return sqlite.New()
+		// TODO
+	// case TypeRedis:
+	//  return redis.New()
+	default:
+		panic("Unsupported database type")
+	}
+}

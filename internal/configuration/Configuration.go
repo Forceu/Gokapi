@@ -14,6 +14,7 @@ import (
 	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
 	"github.com/forceu/gokapi/internal/configuration/configupgrade"
 	"github.com/forceu/gokapi/internal/configuration/database"
+	"github.com/forceu/gokapi/internal/configuration/database/dbabstraction"
 	"github.com/forceu/gokapi/internal/environment"
 	"github.com/forceu/gokapi/internal/helper"
 	log "github.com/forceu/gokapi/internal/logging"
@@ -77,7 +78,12 @@ func Load() {
 	settings, err := loadFromFile(Environment.ConfigPath)
 	helper.Check(err)
 	serverSettings = settings
-	database.Init(serverSettings.DataDir, Environment.DatabaseName)
+	// TODO
+	database.Init(models.DbConnection{
+		SqliteDataDir:  serverSettings.DataDir,
+		SqliteFileName: Environment.DatabaseName,
+		Type:           dbabstraction.TypeSqlite,
+	})
 	if configupgrade.DoUpgrade(&serverSettings, &Environment) {
 		save()
 	}

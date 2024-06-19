@@ -1,4 +1,4 @@
-package database
+package sqlite
 
 import (
 	"bytes"
@@ -55,7 +55,7 @@ func (rowData schemaMetaData) ToFileModel() (models.File, error) {
 }
 
 // GetAllMetadata returns a map of all available files
-func GetAllMetadata() map[string]models.File {
+func (p DatabaseProvider) GetAllMetadata() map[string]models.File {
 	if sqliteDb == nil {
 		panic("Database not loaded!")
 	}
@@ -79,7 +79,7 @@ func GetAllMetadata() map[string]models.File {
 }
 
 // GetAllMetaDataIds returns all Ids that contain metadata
-func GetAllMetaDataIds() []string {
+func (p DatabaseProvider) GetAllMetaDataIds() []string {
 	if sqliteDb == nil {
 		panic("Database not loaded!")
 	}
@@ -97,7 +97,7 @@ func GetAllMetaDataIds() []string {
 }
 
 // GetMetaDataById returns a models.File from the ID passed or false if the id is not valid
-func GetMetaDataById(id string) (models.File, bool) {
+func (p DatabaseProvider) GetMetaDataById(id string) (models.File, bool) {
 	result := models.File{}
 	rowData := schemaMetaData{}
 
@@ -119,7 +119,7 @@ func GetMetaDataById(id string) (models.File, bool) {
 }
 
 // SaveMetaData stores the metadata of a file to the disk
-func SaveMetaData(file models.File) {
+func (p DatabaseProvider) SaveMetaData(file models.File) {
 	newData := schemaMetaData{
 		Id:                 file.Id,
 		Name:               file.Name,
@@ -159,7 +159,7 @@ func SaveMetaData(file models.File) {
 }
 
 // DeleteMetaData deletes information about a file
-func DeleteMetaData(id string) {
+func (p DatabaseProvider) DeleteMetaData(id string) {
 	_, err := sqliteDb.Exec("DELETE FROM FileMetaData WHERE Id = ?", id)
 	helper.Check(err)
 }

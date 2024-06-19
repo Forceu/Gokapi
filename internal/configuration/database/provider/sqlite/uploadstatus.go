@@ -1,4 +1,4 @@
-package database
+package sqlite
 
 import (
 	"database/sql"
@@ -16,7 +16,7 @@ type schemaUploadStatus struct {
 }
 
 // GetAllUploadStatus returns all UploadStatus values from the past 24 hours
-func GetAllUploadStatus() []models.UploadStatus {
+func (p DatabaseProvider) GetAllUploadStatus() []models.UploadStatus {
 	var result []models.UploadStatus
 	rows, err := sqliteDb.Query("SELECT * FROM UploadStatus")
 	helper.Check(err)
@@ -34,7 +34,7 @@ func GetAllUploadStatus() []models.UploadStatus {
 }
 
 // GetUploadStatus returns a models.UploadStatus from the ID passed or false if the id is not valid
-func GetUploadStatus(id string) (models.UploadStatus, bool) {
+func (p DatabaseProvider) GetUploadStatus(id string) (models.UploadStatus, bool) {
 	result := models.UploadStatus{
 		ChunkId:       id,
 		CurrentStatus: 0,
@@ -60,7 +60,7 @@ var currentTime = func() time.Time {
 }
 
 // SaveUploadStatus stores the upload status of a new file for 24 hours
-func SaveUploadStatus(status models.UploadStatus) {
+func (p DatabaseProvider) SaveUploadStatus(status models.UploadStatus) {
 	newData := schemaUploadStatus{
 		ChunkId:       status.ChunkId,
 		CurrentStatus: status.CurrentStatus,
@@ -72,7 +72,7 @@ func SaveUploadStatus(status models.UploadStatus) {
 	helper.Check(err)
 }
 
-func cleanUploadStatus() {
+func (p DatabaseProvider) cleanUploadStatus() {
 	_, err := sqliteDb.Exec("DELETE FROM UploadStatus WHERE CreationDate < ?", currentTime().Add(-time.Hour*24).Unix())
 	helper.Check(err)
 }

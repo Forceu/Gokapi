@@ -1,4 +1,4 @@
-package database
+package sqlite
 
 import (
 	"database/sql"
@@ -13,7 +13,7 @@ type schemaHotlinks struct {
 }
 
 // GetHotlink returns the id of the file associated or false if not found
-func GetHotlink(id string) (string, bool) {
+func (p DatabaseProvider) GetHotlink(id string) (string, bool) {
 	var rowResult schemaHotlinks
 	row := sqliteDb.QueryRow("SELECT FileId FROM Hotlinks WHERE Id = ?", id)
 	err := row.Scan(&rowResult.FileId)
@@ -28,7 +28,7 @@ func GetHotlink(id string) (string, bool) {
 }
 
 // GetAllHotlinks returns an array with all hotlink ids
-func GetAllHotlinks() []string {
+func (p DatabaseProvider) GetAllHotlinks() []string {
 	var ids []string
 	rows, err := sqliteDb.Query("SELECT Id FROM Hotlinks")
 	helper.Check(err)
@@ -43,7 +43,7 @@ func GetAllHotlinks() []string {
 }
 
 // SaveHotlink stores the hotlink associated with the file in the database
-func SaveHotlink(file models.File) {
+func (p DatabaseProvider) SaveHotlink(file models.File) {
 	newData := schemaHotlinks{
 		Id:     file.HotlinkId,
 		FileId: file.Id,
@@ -55,7 +55,7 @@ func SaveHotlink(file models.File) {
 }
 
 // DeleteHotlink deletes a hotlink with the given hotlink ID
-func DeleteHotlink(id string) {
+func (p DatabaseProvider) DeleteHotlink(id string) {
 	if id == "" {
 		return
 	}

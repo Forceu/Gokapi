@@ -1,4 +1,4 @@
-package database
+package sqlite
 
 import (
 	"database/sql"
@@ -16,7 +16,7 @@ type schemaApiKeys struct {
 }
 
 // GetAllApiKeys returns a map with all API keys
-func GetAllApiKeys() map[string]models.ApiKey {
+func (p DatabaseProvider) GetAllApiKeys() map[string]models.ApiKey {
 	result := make(map[string]models.ApiKey)
 
 	rows, err := sqliteDb.Query("SELECT * FROM ApiKeys")
@@ -38,7 +38,7 @@ func GetAllApiKeys() map[string]models.ApiKey {
 }
 
 // GetApiKey returns a models.ApiKey if valid or false if the ID is not valid
-func GetApiKey(id string) (models.ApiKey, bool) {
+func (p DatabaseProvider) GetApiKey(id string) (models.ApiKey, bool) {
 	var rowResult schemaApiKeys
 	row := sqliteDb.QueryRow("SELECT * FROM ApiKeys WHERE Id = ?", id)
 	err := row.Scan(&rowResult.Id, &rowResult.FriendlyName, &rowResult.LastUsed, &rowResult.LastUsedString, &rowResult.Permissions)
@@ -62,21 +62,21 @@ func GetApiKey(id string) (models.ApiKey, bool) {
 }
 
 // SaveApiKey saves the API key to the database
-func SaveApiKey(apikey models.ApiKey) {
+func (p DatabaseProvider) SaveApiKey(apikey models.ApiKey) {
 	_, err := sqliteDb.Exec("INSERT OR REPLACE INTO ApiKeys (Id, FriendlyName, LastUsed, LastUsedString, Permissions) VALUES (?, ?, ?, ?, ?)",
 		apikey.Id, apikey.FriendlyName, apikey.LastUsed, apikey.LastUsedString, apikey.Permissions)
 	helper.Check(err)
 }
 
 // UpdateTimeApiKey writes the content of LastUsage to the database
-func UpdateTimeApiKey(apikey models.ApiKey) {
+func (p DatabaseProvider) UpdateTimeApiKey(apikey models.ApiKey) {
 	_, err := sqliteDb.Exec("UPDATE ApiKeys SET LastUsed = ?, LastUsedString = ? WHERE Id = ?",
 		apikey.LastUsed, apikey.LastUsedString, apikey.Id)
 	helper.Check(err)
 }
 
 // DeleteApiKey deletes an API key with the given ID
-func DeleteApiKey(id string) {
+func (p DatabaseProvider) DeleteApiKey(id string) {
 	_, err := sqliteDb.Exec("DELETE FROM ApiKeys WHERE Id = ?", id)
 	helper.Check(err)
 }

@@ -1,4 +1,4 @@
-package database
+package sqlite
 
 import (
 	"bytes"
@@ -15,8 +15,7 @@ type schemaE2EConfig struct {
 }
 
 // SaveEnd2EndInfo stores the encrypted e2e info
-func SaveEnd2EndInfo(info models.E2EInfoEncrypted) {
-
+func (p DatabaseProvider) SaveEnd2EndInfo(info models.E2EInfoEncrypted) {
 	info.AvailableFiles = nil
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
@@ -34,7 +33,7 @@ func SaveEnd2EndInfo(info models.E2EInfoEncrypted) {
 }
 
 // GetEnd2EndInfo retrieves the encrypted e2e info
-func GetEnd2EndInfo() models.E2EInfoEncrypted {
+func (p DatabaseProvider) GetEnd2EndInfo() models.E2EInfoEncrypted {
 	result := models.E2EInfoEncrypted{}
 	rowResult := schemaE2EConfig{}
 
@@ -53,12 +52,12 @@ func GetEnd2EndInfo() models.E2EInfoEncrypted {
 	err = dec.Decode(&result)
 	helper.Check(err)
 
-	result.AvailableFiles = GetAllMetaDataIds()
+	result.AvailableFiles = p.GetAllMetaDataIds()
 	return result
 }
 
 // DeleteEnd2EndInfo resets the encrypted e2e info
-func DeleteEnd2EndInfo() {
+func (p DatabaseProvider) DeleteEnd2EndInfo() {
 	//goland:noinspection SqlWithoutWhere
 	_, err := sqliteDb.Exec("DELETE FROM E2EConfig")
 	helper.Check(err)

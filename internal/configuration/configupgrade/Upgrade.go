@@ -2,7 +2,7 @@ package configupgrade
 
 import (
 	"fmt"
-	"github.com/forceu/gokapi/internal/configuration/database"
+	"github.com/forceu/gokapi/internal/configuration/database/provider/sqlite"
 	"github.com/forceu/gokapi/internal/environment"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
@@ -49,7 +49,7 @@ func updateConfig(settings *models.Configuration, env *environment.Environment) 
 	}
 	// < v1.8.5
 	if settings.ConfigVersion < 20 {
-		err := database.RawSqlite(`DROP TABLE UploadStatus; CREATE TABLE "UploadStatus" (
+		err := sqlite.RawSqlite(`DROP TABLE UploadStatus; CREATE TABLE "UploadStatus" (
 	"ChunkId"	TEXT NOT NULL UNIQUE,
 	"CurrentStatus"	INTEGER NOT NULL,
 	"CreationDate"	INTEGER NOT NULL,
