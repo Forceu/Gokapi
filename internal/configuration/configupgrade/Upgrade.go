@@ -50,16 +50,16 @@ func updateConfig(settings *models.Configuration, env *environment.Environment) 
 	// < v1.8.5
 	if settings.ConfigVersion < 20 {
 		err := database.RawSqlite(`DROP TABLE UploadStatus; CREATE TABLE "UploadStatus" (
-	"ChunkId"	TEXT NOT NULL UNIQUE,
-	"CurrentStatus"	INTEGER NOT NULL,
-	"CreationDate"	INTEGER NOT NULL,
-	PRIMARY KEY("ChunkId")
-) WITHOUT ROWID;`)
+		"ChunkId"	TEXT NOT NULL UNIQUE,
+		"CurrentStatus"	INTEGER NOT NULL,
+		"CreationDate"	INTEGER NOT NULL,
+		PRIMARY KEY("ChunkId")
+	) WITHOUT ROWID;`)
 		helper.Check(err)
 	}
 	// < v1.8.6
 	if settings.ConfigVersion < 21 {
-		err := database.RawSqlite(`CREATE TABLE "UploadTokens" (
+		err := database.RawSqlite(`CREATE TABLE IF NOT EXISTS "UploadTokens" (
 			"Id"	TEXT NOT NULL UNIQUE,
 			"LastUsed"	INTEGER NOT NULL,
 			"LastUsedString"	TEXT NOT NULL,
