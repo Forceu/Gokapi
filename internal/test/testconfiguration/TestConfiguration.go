@@ -356,7 +356,7 @@ var configTestFile = []byte(`{
   "ServerUrl": "http://127.0.0.1:53843/",
   "RedirectUrl": "https://test.com/",
   "PublicName": "Gokapi Test Version",
-  "ConfigVersion": 20,
+  "ConfigVersion": 21,
   "LengthId": 20,
   "DataDir": "test/data",
   "MaxFileSizeMB": 25,
