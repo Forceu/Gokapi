@@ -180,7 +180,7 @@ func writeTestSessions() {
 	})
 }
 func writeTestUploadStatus() {
-	err := sqlite.RawSqlite(`INSERT OR REPLACE INTO UploadStatus
+	err := sqlite.rawSqlite(`INSERT OR REPLACE INTO UploadStatus
 	("ChunkId", "CurrentStatus", "CreationDate")
 	VALUES ('expiredstatus', 0, 100);`)
 	if err != nil {

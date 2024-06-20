@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
-	"log"
 	"os"
 	"path/filepath"
 )
@@ -15,37 +14,49 @@ var sqliteDb *sql.DB
 type DatabaseProvider struct {
 }
 
+// New returns an instance
 func New() DatabaseProvider {
 	return DatabaseProvider{}
 }
 
 // Upgrade migrates the DB to a new Gokapi version, if required
 func (p DatabaseProvider) Upgrade(currentVersion int) {
-	// Currently no upgrade necessary
-	return
+	// < v1.8.5
+	if currentVersion < 20 {
+		err := rawSqlite(`DROP TABLE UploadStatus; CREATE TABLE "UploadStatus" (
+			"ChunkId"	TEXT NOT NULL UNIQUE,
+			"CurrentStatus"	INTEGER NOT NULL,
+			"CreationDate"	INTEGER NOT NULL,
+			PRIMARY KEY("ChunkId")
+		) WITHOUT ROWID;`)
+		helper.Check(err)
+	}
 }
 
-// Init creates the database files and connects to it
-func (p DatabaseProvider) Init(dbConfig models.DbConnection) {
+// Init connects to the database and creates the table structure, if necessary
+func (p DatabaseProvider) Init(dbConfig models.DbConnection) error {
 	if sqliteDb == nil {
 		dataDir := filepath.Clean(dbConfig.SqliteDataDir)
 		var err error
 		if !helper.FolderExists(dataDir) {
 			err = os.MkdirAll(dataDir, 0700)
-			helper.Check(err)
+			if err != nil {
+				return err
+			}
 		}
 		dbFullPath := dataDir + "/" + dbConfig.SqliteFileName
 		sqliteDb, err = sql.Open("sqlite", dbFullPath+"?_pragma=busy_timeout=10000&_pragma=journal_mode=WAL")
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 		sqliteDb.SetMaxOpenConns(10000)
 		sqliteDb.SetMaxIdleConns(10000)
 
 		if !helper.FileExists(dbFullPath) {
-			createNewDatabase()
+			return createNewDatabase()
 		}
 	}
+	return nil
 }
 
 // Close the database connection
@@ -98,7 +109,7 @@ func ColumnExists(tableName, columnName string) (bool, error) {
 	return false, nil
 }
 
-func createNewDatabase() {
+func createNewDatabase() error {
 	sqlStmt := `
 		CREATE TABLE "ApiKeys" (
 			"Id"	TEXT NOT NULL UNIQUE,
@@ -159,12 +170,12 @@ func createNewDatabase() {
 			PRIMARY KEY("ChunkId")
 		) WITHOUT ROWID;
 `
-	err := RawSqlite(sqlStmt)
-	helper.Check(err)
+	err := rawSqlite(sqlStmt)
+	return err
 }
 
-// RawSqlite runs a raw SQL statement. Should only be used for upgrading
-func RawSqlite(statement string) error {
+// rawSqlite runs a raw SQL statement. Should only be used for upgrading
+func rawSqlite(statement string) error {
 	if sqliteDb == nil {
 		panic("Sqlite not initialised")
 	}

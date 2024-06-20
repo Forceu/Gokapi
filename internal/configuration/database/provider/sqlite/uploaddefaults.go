@@ -18,24 +18,16 @@ type schemaUploadConfig struct {
 
 // GetUploadDefaults returns the last used setting for amount of downloads allowed, last expiry in days and
 // a password for the file
-func (p DatabaseProvider) GetUploadDefaults() models.LastUploadValues {
-	defaultValues := models.LastUploadValues{
-		Downloads:         1,
-		TimeExpiry:        14,
-		Password:          "",
-		UnlimitedDownload: false,
-		UnlimitedTime:     false,
-	}
-
+func (p DatabaseProvider) GetUploadDefaults() (models.LastUploadValues, bool) {
 	rowResult := schemaUploadConfig{}
 	row := sqliteDb.QueryRow("SELECT * FROM UploadConfig WHERE id = 1")
 	err := row.Scan(&rowResult.Id, &rowResult.Downloads, &rowResult.TimeExpiry, &rowResult.Password, &rowResult.UnlimitedDownloads, &rowResult.UnlimitedTime)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return defaultValues
+			return models.LastUploadValues{}, false
 		}
 		helper.Check(err)
-		return defaultValues
+		return models.LastUploadValues{}, false
 	}
 
 	result := models.LastUploadValues{
@@ -45,7 +37,7 @@ func (p DatabaseProvider) GetUploadDefaults() models.LastUploadValues {
 		UnlimitedDownload: rowResult.UnlimitedDownloads == 1,
 		UnlimitedTime:     rowResult.UnlimitedTime == 1,
 	}
-	return result
+	return result, true
 }
 
 // SaveUploadDefaults saves the last used setting for an upload

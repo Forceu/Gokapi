@@ -9,15 +9,26 @@ import (
 
 var db dbabstraction.Database
 
+// Init connects to the database and creates the table structure, if necessary
 func Init(config models.DbConnection) {
 	db = dbabstraction.GetNew(config)
-	db.Init(config)
+	err := db.Init(config)
+	if err != nil {
+		panic(err)
+	}
 }
 
+// RunGarbageCollection runs the databases GC
 func RunGarbageCollection() {
 	db.RunGarbageCollection()
 }
 
+// Upgrade migrates the DB to a new Gokapi version, if required
+func Upgrade(currentVersion int) {
+	db.Upgrade(currentVersion)
+}
+
+// Close the database connection
 func Close() {
 	db.Close()
 }
@@ -142,7 +153,18 @@ func DeleteAllSessions() {
 // GetUploadDefaults returns the last used setting for amount of downloads allowed, last expiry in days and
 // a password for the file
 func GetUploadDefaults() models.LastUploadValues {
-	return db.GetUploadDefaults()
+	values, ok := db.GetUploadDefaults()
+	if ok {
+		return values
+	}
+	defaultValues := models.LastUploadValues{
+		Downloads:         1,
+		TimeExpiry:        14,
+		Password:          "",
+		UnlimitedDownload: false,
+		UnlimitedTime:     false,
+	}
+	return defaultValues
 }
 
 // SaveUploadDefaults saves the last used setting for an upload

@@ -11,7 +11,6 @@ import (
 type schemaUploadStatus struct {
 	ChunkId       string
 	CurrentStatus int
-	LastUpdate    int64
 	CreationDate  int64
 }
 

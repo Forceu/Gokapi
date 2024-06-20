@@ -11,8 +11,8 @@ const (
 )
 
 type Database interface {
-	// Init creates the database files and connects to it
-	Init(dbConfig models.DbConnection)
+	// Init connects to the database and creates the table structure, if necessary
+	Init(dbConfig models.DbConnection) error
 	// Upgrade migrates the DB to a new Gokapi version, if required
 	Upgrade(currentVersion int)
 	// RunGarbageCollection runs the databases GC
@@ -69,7 +69,7 @@ type Database interface {
 
 	// GetUploadDefaults returns the last used setting for amount of downloads allowed, last expiry in days and
 	// a password for the file
-	GetUploadDefaults() models.LastUploadValues
+	GetUploadDefaults() (models.LastUploadValues, bool)
 	// SaveUploadDefaults saves the last used setting for an upload
 	SaveUploadDefaults(values models.LastUploadValues)
 	// GetUploadStatus returns a models.UploadStatus from the ID passed or false if the id is not valid
