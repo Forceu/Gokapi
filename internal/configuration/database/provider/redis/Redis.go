@@ -1,7 +1,6 @@
 package redis
 
 import (
-	"errors"
 	"fmt"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
@@ -9,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 )
+
+// TODO use pools instead
 
 var redisConnection redigo.Conn
 var dbPrefix string
@@ -49,8 +50,8 @@ func (p DatabaseProvider) RunGarbageCollection() {
 }
 
 // Function to get all hashmaps with a given prefix
-func getAllStringWithPrefix(prefix string) map[string]string {
-	var result map[string]string
+func getAllValuesWithPrefix(prefix string) map[string]any {
+	result := make(map[string]any)
 	fullPrefix := dbPrefix + prefix
 	cursor := 0
 	for {
@@ -63,7 +64,7 @@ func getAllStringWithPrefix(prefix string) map[string]string {
 		keys, _ := redigo.Strings(values[1], nil)
 
 		for _, key := range keys {
-			content, err := redigo.String(redisConnection.Do("GET", key))
+			content, err := redisConnection.Do("GET", key)
 			helper.Check(err)
 			cleanKey := strings.Replace(key, fullPrefix, "", 1)
 			result[cleanKey] = content
@@ -147,10 +148,19 @@ func getKeyString(id string) (string, bool) {
 
 func getKeyInt(id string) (int, bool) {
 	result, err := redisConnection.Do("GET", dbPrefix+id)
-	if errors.Is(err, redigo.ErrNil) {
+	if result == nil {
 		return 0, false
 	}
 	resultInt, err2 := redigo.Int(result, err)
+	helper.Check(err2)
+	return resultInt, true
+}
+func getKeyBytes(id string) ([]byte, bool) {
+	result, err := redisConnection.Do("GET", dbPrefix+id)
+	if result == nil {
+		return nil, false
+	}
+	resultInt, err2 := redigo.Bytes(result, err)
 	helper.Check(err2)
 	return resultInt, true
 }

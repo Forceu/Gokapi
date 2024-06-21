@@ -3,7 +3,7 @@ package redis
 import (
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
-	"strconv"
+	redigo "github.com/gomodule/redigo/redis"
 )
 
 const (
@@ -13,8 +13,8 @@ const (
 // GetAllUploadStatus returns all UploadStatus values from the past 24 hours
 func (p DatabaseProvider) GetAllUploadStatus() []models.UploadStatus {
 	var result []models.UploadStatus
-	for k, v := range getAllStringWithPrefix(prefixUploadStatus) {
-		status, err := strconv.Atoi(v)
+	for k, v := range getAllValuesWithPrefix(prefixUploadStatus) {
+		status, err := redigo.Int(v, nil)
 		helper.Check(err)
 		result = append(result, models.UploadStatus{
 			ChunkId:       k,
