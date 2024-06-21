@@ -15,16 +15,12 @@ func (p DatabaseProvider) GetHotlink(id string) (string, bool) {
 
 // GetAllHotlinks returns an array with all hotlink ids
 func (p DatabaseProvider) GetAllHotlinks() []string {
-	var result []string
-	for _, key := range getAllStringWithPrefix(prefixHotlinks) {
-		result = append(result, key)
-	}
-	return result
+	return getAllKeynamesWithPrefix(prefixHotlinks)
 }
 
 // SaveHotlink stores the hotlink associated with the file in the database
 func (p DatabaseProvider) SaveHotlink(file models.File) {
-	setKeyString(prefixHotlinks+file.HotlinkId, file.Id)
+	setKey(prefixHotlinks+file.HotlinkId, file.Id)
 }
 
 // DeleteHotlink deletes a hotlink with the given hotlink ID

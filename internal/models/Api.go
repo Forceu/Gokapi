@@ -24,11 +24,11 @@ const ApiPermAll = 31
 
 // ApiKey contains data of a single api key
 type ApiKey struct {
-	Id             string `json:"Id"`
-	FriendlyName   string `json:"FriendlyName"`
-	LastUsedString string `json:"LastUsedString"`
-	LastUsed       int64  `json:"LastUsed"`
-	Permissions    uint8  `json:"Permissions"`
+	Id             string `json:"Id" redis:"Id"`
+	FriendlyName   string `json:"FriendlyName" redis:"FriendlyName"`
+	LastUsedString string `json:"LastUsedString" redis:"LastUsedString"`
+	LastUsed       int64  `json:"LastUsed" redis:"LastUsed"`
+	Permissions    uint8  `json:"Permissions" redis:"Permissions"`
 }
 
 // SetPermission grants one or more permissions

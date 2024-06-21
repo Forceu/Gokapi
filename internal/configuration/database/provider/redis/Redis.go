@@ -7,6 +7,7 @@ import (
 	"github.com/forceu/gokapi/internal/models"
 	redigo "github.com/gomodule/redigo/redis"
 	"strconv"
+	"strings"
 )
 
 var redisConnection redigo.Conn
@@ -47,29 +48,25 @@ func (p DatabaseProvider) RunGarbageCollection() {
 	// No cleanup required
 }
 
+// Function to get all hashmaps with a given prefix
 func getAllStringWithPrefix(prefix string) map[string]string {
-	var result = make(map[string]string)
+	var result map[string]string
+	fullPrefix := dbPrefix + prefix
 	cursor := 0
-
 	for {
-		values, err := redigo.Values(redisConnection.Do("SCAN", cursor, "MATCH", dbPrefix+prefix+"*", "COUNT", 100))
-		if err != nil {
-			helper.Check(err)
-			return nil // Return nil or handle error appropriately
-		}
+		// Use SCAN to get keys matching the prefix
+		values, err := redigo.Values(redisConnection.Do("SCAN", cursor, "MATCH", fullPrefix+"*", "COUNT", 100))
+		helper.Check(err)
 
 		// Get the new cursor and the keys from the response
 		cursor, _ = redigo.Int(values[0], nil)
 		keys, _ := redigo.Strings(values[1], nil)
 
-		// Retrieve the value for each key and store in the result map
 		for _, key := range keys {
-			value, err := redigo.String(redisConnection.Do("GET", key))
-			if err != nil {
-				helper.Check(err)
-				continue // Skip keys that cannot be retrieved
-			}
-			result[key] = value
+			content, err := redigo.String(redisConnection.Do("GET", key))
+			helper.Check(err)
+			cleanKey := strings.Replace(key, fullPrefix, "", 1)
+			result[cleanKey] = content
 		}
 
 		// If cursor is 0, the iteration is complete
@@ -81,39 +78,30 @@ func getAllStringWithPrefix(prefix string) map[string]string {
 }
 
 type redisHash struct {
-	Key  string
-	Hash map[string]string
+	Key    string
+	Values []any
 }
 
 // Function to get all hashmaps with a given prefix
 func getAllHashesWithPrefix(prefix string) []redisHash {
 	var result []redisHash
+	fullPrefix := dbPrefix + prefix
 	cursor := 0
 	for {
 		// Use SCAN to get keys matching the prefix
-		values, err := redigo.Values(redisConnection.Do("SCAN", cursor, "MATCH", dbPrefix+prefix+"*", "COUNT", 100))
+		values, err := redigo.Values(redisConnection.Do("SCAN", cursor, "MATCH", fullPrefix+"*", "COUNT", 100))
 		helper.Check(err)
 
 		// Get the new cursor and the keys from the response
 		cursor, _ = redigo.Int(values[0], nil)
 		keys, _ := redigo.Strings(values[1], nil)
 
-		// Iterate through the keys and get the hashmaps
 		for _, key := range keys {
-			// Use HGETALL to get the hashmap stored at the key
 			hashValues, err := redigo.Values(redisConnection.Do("HGETALL", key))
 			helper.Check(err)
-
-			// Convert the returned values to a map[string]string
-			hashMap := make(map[string]string)
-			for i := 0; i < len(hashValues); i += 2 {
-				field := string(hashValues[i].([]byte))
-				value := string(hashValues[i+1].([]byte))
-				hashMap[field] = value
-			}
 			result = append(result, redisHash{
-				Key:  key,
-				Hash: hashMap,
+				Key:    strings.Replace(key, fullPrefix, "", 1),
+				Values: hashValues,
 			})
 		}
 
@@ -125,6 +113,29 @@ func getAllHashesWithPrefix(prefix string) []redisHash {
 	return result
 }
 
+func getAllKeynamesWithPrefix(prefix string) []string {
+	var keys []string
+	cursor := 0
+	for {
+		reply, err := redigo.Values(redisConnection.Do("SCAN", cursor, "MATCH", dbPrefix+prefix+"*", "COUNT", 100))
+		helper.Check(err)
+
+		cursor, _ = redigo.Int(reply[0], nil)
+		k, _ := redigo.Strings(reply[1], nil)
+		keys = append(keys, k...)
+
+		if cursor == 0 {
+			break
+		}
+	}
+	return keys
+}
+
+func setKey(id string, content any) {
+	_, err := redisConnection.Do("SET", dbPrefix+id, content)
+	helper.Check(err)
+}
+
 func getKeyString(id string) (string, bool) {
 	result, err := redigo.String(redisConnection.Do("GET", dbPrefix+id))
 	helper.Check(err)
@@ -132,11 +143,6 @@ func getKeyString(id string) (string, bool) {
 		return "", false
 	}
 	return result, true
-}
-
-func setKeyString(id, content string) {
-	_, err := redisConnection.Do("SET", dbPrefix+id, content)
-	helper.Check(err)
 }
 
 func getKeyInt(id string) (int, bool) {
@@ -149,13 +155,8 @@ func getKeyInt(id string) (int, bool) {
 	return resultInt, true
 }
 
-func setKeyInt(id string, content int) {
-	_, err := redisConnection.Do("SET", dbPrefix+id, content)
-	helper.Check(err)
-}
-
-func getHashMap(id string) (map[string]string, bool) {
-	result, err := redigo.StringMap(redisConnection.Do("HGETALL", dbPrefix+id))
+func getHashMap(id string) ([]any, bool) {
+	result, err := redigo.Values(redisConnection.Do("HGETALL", dbPrefix+id))
 	helper.Check(err)
 	if len(result) == 0 {
 		return nil, false
@@ -163,13 +164,12 @@ func getHashMap(id string) (map[string]string, bool) {
 	return result, true
 }
 
-func setHashMap(id string, content map[string]string) {
-	args := redigo.Args{}.Add(dbPrefix + id)
-	for k, v := range content {
-		args = args.Add(k, v)
-	}
+func buildArgs(id string) redigo.Args {
+	return redigo.Args{}.Add(dbPrefix + id)
+}
 
-	_, err := redisConnection.Do("HMSET", args...)
+func setHashMapArgs(content redigo.Args) {
+	_, err := redisConnection.Do("HMSET", content...)
 	helper.Check(err)
 }
 

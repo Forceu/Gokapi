@@ -16,7 +16,6 @@ type schemaE2EConfig struct {
 
 // SaveEnd2EndInfo stores the encrypted e2e info
 func (p DatabaseProvider) SaveEnd2EndInfo(info models.E2EInfoEncrypted) {
-	info.AvailableFiles = nil
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
 	err := enc.Encode(info)
@@ -51,8 +50,6 @@ func (p DatabaseProvider) GetEnd2EndInfo() models.E2EInfoEncrypted {
 	dec := gob.NewDecoder(buf)
 	err = dec.Decode(&result)
 	helper.Check(err)
-
-	result.AvailableFiles = p.GetAllMetaDataIds()
 	return result
 }
 

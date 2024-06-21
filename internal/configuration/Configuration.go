@@ -82,7 +82,9 @@ func Load() {
 	database.Init(models.DbConnection{
 		SqliteDataDir:  serverSettings.DataDir,
 		SqliteFileName: Environment.DatabaseName,
-		Type:           dbabstraction.TypeSqlite,
+		Type:           dbabstraction.TypeRedis,
+		RedisPrefix:    "test_",
+		RedisUrl:       "localhost:6379",
 	})
 	if configupgrade.DoUpgrade(&serverSettings, &Environment) {
 		save()

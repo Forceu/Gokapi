@@ -1,6 +1,7 @@
 package dbabstraction
 
 import (
+	"github.com/forceu/gokapi/internal/configuration/database/provider/redis"
 	"github.com/forceu/gokapi/internal/configuration/database/provider/sqlite"
 	"github.com/forceu/gokapi/internal/models"
 )
@@ -84,9 +85,8 @@ func GetNew(config models.DbConnection) Database {
 	switch config.Type {
 	case TypeSqlite:
 		return sqlite.New()
-		// TODO
-	// case TypeRedis:
-	//  return redis.New()
+	case TypeRedis:
+		return redis.New()
 	default:
 		panic("Unsupported database type")
 	}

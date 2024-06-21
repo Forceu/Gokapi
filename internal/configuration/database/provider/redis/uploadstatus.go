@@ -43,5 +43,6 @@ func (p DatabaseProvider) SaveUploadStatus(status models.UploadStatus) {
 	if ok && existingStatus.CurrentStatus >= status.CurrentStatus {
 		return
 	}
-	setKeyInt(prefixUploadStatus+status.ChunkId, status.CurrentStatus)
+	setKey(prefixUploadStatus+status.ChunkId, status.CurrentStatus)
+	setExpiryInSeconds(prefixUploadStatus+status.ChunkId, 24*60*60) // 24h
 }

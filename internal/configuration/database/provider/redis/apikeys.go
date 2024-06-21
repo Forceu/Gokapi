@@ -3,52 +3,28 @@ package redis
 import (
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
-	"strconv"
+	redigo "github.com/gomodule/redigo/redis"
 )
 
 const (
-	prefixApiKeys               = "apikey:"
-	hashmapApiKeyFriendlyName   = "fn:"
-	hashmapApiKeyLastUsed       = "lu:"
-	hashmapApiKeyLastUsedString = "lus:"
-	hashmapApiKeyPermissions    = "perm:"
+	prefixApiKeys = "apikey:"
 )
 
-func dbToApiKey(id string, input map[string]string) (models.ApiKey, error) {
-	lastUsed, err := strconv.ParseInt(input[hashmapApiKeyLastUsed], 10, 64)
-	if err != nil {
-		return models.ApiKey{}, err
-	}
-	permissions, err := strconv.ParseInt(input[hashmapApiKeyPermissions], 10, 8)
-	if err != nil {
-		return models.ApiKey{}, err
-	}
-	return models.ApiKey{
-		Id:             id,
-		FriendlyName:   input[hashmapApiKeyFriendlyName],
-		LastUsedString: input[hashmapApiKeyLastUsedString],
-		LastUsed:       lastUsed,
-		Permissions:    uint8(permissions),
-	}, nil
-}
-
-func apiKeyToDb(input models.ApiKey) map[string]string {
-	return map[string]string{
-		hashmapApiKeyFriendlyName:   input.FriendlyName,
-		hashmapApiKeyLastUsed:       strconv.FormatInt(input.LastUsed, 10),
-		hashmapApiKeyLastUsedString: input.LastUsedString,
-		hashmapApiKeyPermissions:    strconv.Itoa(int(input.Permissions)),
-	}
+func dbToApiKey(id string, input []any) (models.ApiKey, error) {
+	var result models.ApiKey
+	err := redigo.ScanStruct(input, &result)
+	result.Id = id
+	return result, err
 }
 
 // GetAllApiKeys returns a map with all API keys
 func (p DatabaseProvider) GetAllApiKeys() map[string]models.ApiKey {
-	var result map[string]models.ApiKey
+	result := make(map[string]models.ApiKey)
 	maps := getAllHashesWithPrefix(prefixApiKeys)
 	for _, m := range maps {
-		apiKey, err := dbToApiKey(m.Key, m.Hash)
+		apiKey, err := dbToApiKey(m.Key, m.Values)
 		helper.Check(err)
-		result[m.Key] = apiKey
+		result[apiKey.Id] = apiKey
 	}
 	return result
 }
@@ -66,12 +42,12 @@ func (p DatabaseProvider) GetApiKey(id string) (models.ApiKey, bool) {
 
 // SaveApiKey saves the API key to the database
 func (p DatabaseProvider) SaveApiKey(apikey models.ApiKey) {
-	setHashMap(prefixApiKeys+apikey.Id, apiKeyToDb(apikey))
+	setHashMapArgs(buildArgs(prefixApiKeys + apikey.Id).AddFlat(apikey))
 }
 
 // UpdateTimeApiKey writes the content of LastUsage to the database
 func (p DatabaseProvider) UpdateTimeApiKey(apikey models.ApiKey) {
-	setHashMap(prefixApiKeys+apikey.Id, apiKeyToDb(apikey))
+	p.SaveApiKey(apikey)
 }
 
 // DeleteApiKey deletes an API key with the given ID

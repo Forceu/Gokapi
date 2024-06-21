@@ -64,12 +64,15 @@ func DeleteApiKey(id string) {
 
 // SaveEnd2EndInfo stores the encrypted e2e info
 func SaveEnd2EndInfo(info models.E2EInfoEncrypted) {
+	info.AvailableFiles = nil
 	db.SaveEnd2EndInfo(info)
 }
 
 // GetEnd2EndInfo retrieves the encrypted e2e info
 func GetEnd2EndInfo() models.E2EInfoEncrypted {
-	return db.GetEnd2EndInfo()
+	info := db.GetEnd2EndInfo()
+	info.AvailableFiles = GetAllMetaDataIds()
+	return info
 }
 
 // DeleteEnd2EndInfo resets the encrypted e2e info
