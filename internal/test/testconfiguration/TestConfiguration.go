@@ -6,14 +6,12 @@ import (
 	"fmt"
 	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/configuration/database/dbabstraction"
-	"github.com/forceu/gokapi/internal/configuration/database/provider/sqlite"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage/filesystem"
 	"github.com/forceu/gokapi/internal/storage/filesystem/s3filesystem/aws"
 	"github.com/johannesboyne/gofakes3"
 	"github.com/johannesboyne/gofakes3/backend/s3mem"
-	"log"
 	"net/http/httptest"
 	"os"
 	"strings"
@@ -38,7 +36,6 @@ func SetDirEnv() {
 func Create(initFiles bool) {
 	SetDirEnv()
 	os.WriteFile(configFile, configTestFile, 0777)
-	// TODO
 	database.Init(models.DbConnection{
 		SqliteDataDir:  dataDir,
 		SqliteFileName: "gokapi.sqlite",
@@ -180,13 +177,6 @@ func writeTestSessions() {
 	})
 }
 func writeTestUploadStatus() {
-	err := sqlite.rawSqlite(`INSERT OR REPLACE INTO UploadStatus
-	("ChunkId", "CurrentStatus", "CreationDate")
-	VALUES ('expiredstatus', 0, 100);`)
-	if err != nil {
-		log.Println(err)
-		log.Fatal("Could not execute SQL")
-	}
 	database.SaveUploadStatus(models.UploadStatus{
 		ChunkId:       "validstatus_0",
 		CurrentStatus: 0,

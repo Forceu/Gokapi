@@ -82,7 +82,7 @@ func Load() {
 	database.Init(models.DbConnection{
 		SqliteDataDir:  serverSettings.DataDir,
 		SqliteFileName: Environment.DatabaseName,
-		Type:           dbabstraction.TypeRedis,
+		Type:           dbabstraction.TypeSqlite,
 		RedisPrefix:    "test_",
 		RedisUrl:       "localhost:6379",
 	})

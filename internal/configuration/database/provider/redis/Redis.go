@@ -21,26 +21,39 @@ func New() DatabaseProvider {
 	return DatabaseProvider{}
 }
 
-// TODO add redis auth
-
 // Init connects to the database and creates the table structure, if necessary
 func (p DatabaseProvider) Init(config models.DbConnection) error {
 	dbPrefix = config.RedisPrefix
-	pool = newPool(config.RedisUrl)
+	pool = newPool(config)
 	conn := pool.Get()
 	defer conn.Close()
 	_, err := redigo.String(conn.Do("PING"))
 	return err
 }
 
-func newPool(server string) *redigo.Pool {
+func newPool(config models.DbConnection) *redigo.Pool {
+
+	dialOptions := []redigo.DialOption{redigo.DialClientName("gokapi")}
+	if config.RedisUsername != "" {
+		dialOptions = append(dialOptions, redigo.DialUsername(config.RedisUsername))
+	}
+	if config.RedisPassword != "" {
+		dialOptions = append(dialOptions, redigo.DialPassword(config.RedisPassword))
+	}
+	if config.RedisUseSsl {
+		dialOptions = append(dialOptions, redigo.DialUseTLS(true))
+	}
+
 	newRedisPool := &redigo.Pool{
 
 		MaxIdle:     10,
-		IdleTimeout: 240 * time.Second,
+		IdleTimeout: 2 * time.Minute,
 
 		Dial: func() (redigo.Conn, error) {
-			c, err := redigo.Dial("tcp", server)
+			c, err := redigo.Dial("tcp", config.RedisUrl, dialOptions...)
+			if err != nil {
+				fmt.Println("Error connecting to redis")
+			}
 			helper.Check(err)
 			return c, err
 		},

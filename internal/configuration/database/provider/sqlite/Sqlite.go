@@ -7,6 +7,8 @@ import (
 	"github.com/forceu/gokapi/internal/models"
 	"os"
 	"path/filepath"
+	// Required for sqlite driver
+	_ "modernc.org/sqlite"
 )
 
 var sqliteDb *sql.DB

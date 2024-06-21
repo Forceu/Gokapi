@@ -4,7 +4,9 @@ package testconfiguration
 
 import (
 	"github.com/forceu/gokapi/internal/configuration/database"
+	"github.com/forceu/gokapi/internal/configuration/database/dbabstraction"
 	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage/filesystem/s3filesystem/aws"
 	"github.com/forceu/gokapi/internal/test"
 	"os"
@@ -24,7 +26,11 @@ func TestDelete(t *testing.T) {
 }
 
 func TestWriteEncryptedFile(t *testing.T) {
-	database.Init("./test", "gokapi.sqlite")
+	database.Init(models.DbConnection{
+		SqliteDataDir:  "./test",
+		SqliteFileName: "gokapi.sqlite",
+		Type:           dbabstraction.TypeSqlite,
+	})
 	fileId := WriteEncryptedFile()
 	file, ok := database.GetMetaDataById(fileId)
 	test.IsEqualBool(t, ok, true)

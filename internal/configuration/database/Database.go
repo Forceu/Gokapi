@@ -3,8 +3,6 @@ package database
 import (
 	"github.com/forceu/gokapi/internal/configuration/database/dbabstraction"
 	"github.com/forceu/gokapi/internal/models"
-	// Required for sqlite driver
-	_ "modernc.org/sqlite"
 )
 
 var db dbabstraction.Database
