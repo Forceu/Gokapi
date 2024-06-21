@@ -15,7 +15,7 @@ func (p DatabaseProvider) GetHotlink(id string) (string, bool) {
 
 // GetAllHotlinks returns an array with all hotlink ids
 func (p DatabaseProvider) GetAllHotlinks() []string {
-	return getAllKeynamesWithPrefix(prefixHotlinks)
+	return getAllKeysWithPrefix(prefixHotlinks)
 }
 
 // SaveHotlink stores the hotlink associated with the file in the database

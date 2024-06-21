@@ -7,11 +7,10 @@ import (
 	redigo "github.com/gomodule/redigo/redis"
 	"strconv"
 	"strings"
+	"time"
 )
 
-// TODO use pools instead
-
-var redisConnection redigo.Conn
+var pool *redigo.Pool
 var dbPrefix string
 
 type DatabaseProvider struct {
@@ -22,12 +21,36 @@ func New() DatabaseProvider {
 	return DatabaseProvider{}
 }
 
+// TODO add redis auth
+
 // Init connects to the database and creates the table structure, if necessary
 func (p DatabaseProvider) Init(config models.DbConnection) error {
-	var err error
-	redisConnection, err = redigo.Dial("tcp", config.RedisUrl)
 	dbPrefix = config.RedisPrefix
+	pool = newPool(config.RedisUrl)
+	conn := pool.Get()
+	defer conn.Close()
+	_, err := redigo.String(conn.Do("PING"))
 	return err
+}
+
+func newPool(server string) *redigo.Pool {
+	newRedisPool := &redigo.Pool{
+
+		MaxIdle:     10,
+		IdleTimeout: 240 * time.Second,
+
+		Dial: func() (redigo.Conn, error) {
+			c, err := redigo.Dial("tcp", server)
+			helper.Check(err)
+			return c, err
+		},
+
+		TestOnBorrow: func(c redigo.Conn, t time.Time) error {
+			_, err := c.Do("PING")
+			return err
+		},
+	}
+	return newRedisPool
 }
 
 // Upgrade migrates the DB to a new Gokapi version, if required
@@ -38,7 +61,7 @@ func (p DatabaseProvider) Upgrade(currentVersion int) {
 
 // Close the database connection
 func (p DatabaseProvider) Close() {
-	err := redisConnection.Close()
+	err := pool.Close()
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -51,12 +74,14 @@ func (p DatabaseProvider) RunGarbageCollection() {
 
 // Function to get all hashmaps with a given prefix
 func getAllValuesWithPrefix(prefix string) map[string]any {
+	conn := pool.Get()
+	defer conn.Close()
 	result := make(map[string]any)
 	fullPrefix := dbPrefix + prefix
 	cursor := 0
 	for {
 		// Use SCAN to get keys matching the prefix
-		values, err := redigo.Values(redisConnection.Do("SCAN", cursor, "MATCH", fullPrefix+"*", "COUNT", 100))
+		values, err := redigo.Values(conn.Do("SCAN", cursor, "MATCH", fullPrefix+"*", "COUNT", 100))
 		helper.Check(err)
 
 		// Get the new cursor and the keys from the response
@@ -64,7 +89,7 @@ func getAllValuesWithPrefix(prefix string) map[string]any {
 		keys, _ := redigo.Strings(values[1], nil)
 
 		for _, key := range keys {
-			content, err := redisConnection.Do("GET", key)
+			content, err := conn.Do("GET", key)
 			helper.Check(err)
 			cleanKey := strings.Replace(key, fullPrefix, "", 1)
 			result[cleanKey] = content
@@ -86,11 +111,13 @@ type redisHash struct {
 // Function to get all hashmaps with a given prefix
 func getAllHashesWithPrefix(prefix string) []redisHash {
 	var result []redisHash
+	conn := pool.Get()
+	defer conn.Close()
 	fullPrefix := dbPrefix + prefix
 	cursor := 0
 	for {
 		// Use SCAN to get keys matching the prefix
-		values, err := redigo.Values(redisConnection.Do("SCAN", cursor, "MATCH", fullPrefix+"*", "COUNT", 100))
+		values, err := redigo.Values(conn.Do("SCAN", cursor, "MATCH", fullPrefix+"*", "COUNT", 100))
 		helper.Check(err)
 
 		// Get the new cursor and the keys from the response
@@ -98,7 +125,7 @@ func getAllHashesWithPrefix(prefix string) []redisHash {
 		keys, _ := redigo.Strings(values[1], nil)
 
 		for _, key := range keys {
-			hashValues, err := redigo.Values(redisConnection.Do("HGETALL", key))
+			hashValues, err := redigo.Values(conn.Do("HGETALL", key))
 			helper.Check(err)
 			result = append(result, redisHash{
 				Key:    strings.Replace(key, fullPrefix, "", 1),
@@ -114,11 +141,13 @@ func getAllHashesWithPrefix(prefix string) []redisHash {
 	return result
 }
 
-func getAllKeynamesWithPrefix(prefix string) []string {
+func getAllKeysWithPrefix(prefix string) []string {
 	var keys []string
+	conn := pool.Get()
+	defer conn.Close()
 	cursor := 0
 	for {
-		reply, err := redigo.Values(redisConnection.Do("SCAN", cursor, "MATCH", dbPrefix+prefix+"*", "COUNT", 100))
+		reply, err := redigo.Values(conn.Do("SCAN", cursor, "MATCH", dbPrefix+prefix+"*", "COUNT", 100))
 		helper.Check(err)
 
 		cursor, _ = redigo.Int(reply[0], nil)
@@ -133,12 +162,20 @@ func getAllKeynamesWithPrefix(prefix string) []string {
 }
 
 func setKey(id string, content any) {
-	_, err := redisConnection.Do("SET", dbPrefix+id, content)
+	conn := pool.Get()
+	defer conn.Close()
+	_, err := conn.Do("SET", dbPrefix+id, content)
 	helper.Check(err)
 }
 
+func getKeyRaw(id string) (any, error) {
+	conn := pool.Get()
+	defer conn.Close()
+	return conn.Do("GET", dbPrefix+id)
+}
+
 func getKeyString(id string) (string, bool) {
-	result, err := redigo.String(redisConnection.Do("GET", dbPrefix+id))
+	result, err := redigo.String(getKeyRaw(id))
 	helper.Check(err)
 	if result == "" {
 		return "", false
@@ -147,7 +184,7 @@ func getKeyString(id string) (string, bool) {
 }
 
 func getKeyInt(id string) (int, bool) {
-	result, err := redisConnection.Do("GET", dbPrefix+id)
+	result, err := getKeyRaw(id)
 	if result == nil {
 		return 0, false
 	}
@@ -156,7 +193,7 @@ func getKeyInt(id string) (int, bool) {
 	return resultInt, true
 }
 func getKeyBytes(id string) ([]byte, bool) {
-	result, err := redisConnection.Do("GET", dbPrefix+id)
+	result, err := getKeyRaw(id)
 	if result == nil {
 		return nil, false
 	}
@@ -166,7 +203,9 @@ func getKeyBytes(id string) ([]byte, bool) {
 }
 
 func getHashMap(id string) ([]any, bool) {
-	result, err := redigo.Values(redisConnection.Do("HGETALL", dbPrefix+id))
+	conn := pool.Get()
+	defer conn.Close()
+	result, err := redigo.Values(conn.Do("HGETALL", dbPrefix+id))
 	helper.Check(err)
 	if len(result) == 0 {
 		return nil, false
@@ -179,26 +218,36 @@ func buildArgs(id string) redigo.Args {
 }
 
 func setHashMapArgs(content redigo.Args) {
-	_, err := redisConnection.Do("HMSET", content...)
+	conn := pool.Get()
+	defer conn.Close()
+	_, err := conn.Do("HMSET", content...)
 	helper.Check(err)
 }
 
 func setExpiryAt(id string, expiry int64) {
-	_, err := redisConnection.Do("EXPIREAT", dbPrefix+id, strconv.FormatInt(expiry, 10))
+	conn := pool.Get()
+	defer conn.Close()
+	_, err := conn.Do("EXPIREAT", dbPrefix+id, strconv.FormatInt(expiry, 10))
 	helper.Check(err)
 }
 func setExpiryInSeconds(id string, expiry int64) {
-	_, err := redisConnection.Do("EXPIRE", dbPrefix+id, strconv.FormatInt(expiry, 10))
+	conn := pool.Get()
+	defer conn.Close()
+	_, err := conn.Do("EXPIRE", dbPrefix+id, strconv.FormatInt(expiry, 10))
 	helper.Check(err)
 }
 
 func deleteKey(id string) {
-	_, err := redisConnection.Do("DEL", dbPrefix+id)
+	conn := pool.Get()
+	defer conn.Close()
+	_, err := conn.Do("DEL", dbPrefix+id)
 	helper.Check(err)
 }
 
 func runEval(cmd string) {
-	_, err := redisConnection.Do("EVAL", cmd, "0")
+	conn := pool.Get()
+	defer conn.Close()
+	_, err := conn.Do("EVAL", cmd, "0")
 	helper.Check(err)
 }
 

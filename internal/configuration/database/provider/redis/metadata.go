@@ -36,7 +36,7 @@ func (p DatabaseProvider) GetAllMetadata() map[string]models.File {
 
 // GetAllMetaDataIds returns all Ids that contain metadata
 func (p DatabaseProvider) GetAllMetaDataIds() []string {
-	return getAllKeynamesWithPrefix(prefixMetaData)
+	return getAllKeysWithPrefix(prefixMetaData)
 }
 
 // GetMetaDataById returns a models.File from the ID passed or false if the id is not valid

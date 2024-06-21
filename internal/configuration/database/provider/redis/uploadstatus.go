@@ -39,10 +39,6 @@ func (p DatabaseProvider) GetUploadStatus(id string) (models.UploadStatus, bool)
 
 // SaveUploadStatus stores the upload status of a new file for 24 hours
 func (p DatabaseProvider) SaveUploadStatus(status models.UploadStatus) {
-	existingStatus, ok := p.GetUploadStatus(status.ChunkId)
-	if ok && existingStatus.CurrentStatus >= status.CurrentStatus {
-		return
-	}
 	setKey(prefixUploadStatus+status.ChunkId, status.CurrentStatus)
 	setExpiryInSeconds(prefixUploadStatus+status.ChunkId, 24*60*60) // 24h
 }
