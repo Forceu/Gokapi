@@ -194,11 +194,10 @@ func writeApiKeys() {
 		Permissions:  models.ApiPermAll, // TODO
 	})
 	database.SaveApiKey(models.ApiKey{
-		Id:             "GAh1IhXDvYnqfYLazWBqMB9HSFmNPO",
-		FriendlyName:   "Second Key",
-		LastUsed:       1620671580,
-		LastUsedString: "used",
-		Permissions:    models.ApiPermAll, // TODO
+		Id:           "GAh1IhXDvYnqfYLazWBqMB9HSFmNPO",
+		FriendlyName: "Second Key",
+		LastUsed:     1620671580,
+		Permissions:  models.ApiPermAll, // TODO
 	})
 	database.SaveApiKey(models.ApiKey{
 		Id:           "jiREglQJW0bOqJakfjdVfe8T1EM8n8",

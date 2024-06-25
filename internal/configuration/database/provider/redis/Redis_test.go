@@ -206,4 +206,23 @@ func TestApiKeys(t *testing.T) {
 	test.IsEqualBool(t, retrievedKey.LastUsed == newKey.LastUsed, true)
 	test.IsEqualBool(t, retrievedKey.Permissions == newKey.Permissions, true)
 
+	dbInstance.SaveApiKey(models.ApiKey{
+		Id:           "123",
+		FriendlyName: "34",
+		LastUsed:     0,
+		Permissions:  0,
+	})
+
+	keys = dbInstance.GetAllApiKeys()
+	test.IsEqualInt(t, len(keys), 2)
+
+	dbInstance.DeleteApiKey("newkey")
+	_, ok = dbInstance.GetApiKey("newkey")
+	test.IsEqualBool(t, ok, false)
+
+	newKey.LastUsed = 10
+	dbInstance.UpdateTimeApiKey(newKey)
+	key, ok := dbInstance.GetApiKey("newkey")
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualBool(t, key.LastUsed == 10, true)
 }
