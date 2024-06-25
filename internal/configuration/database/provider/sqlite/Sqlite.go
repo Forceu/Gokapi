@@ -30,12 +30,28 @@ func (p DatabaseProvider) GetType() int {
 func (p DatabaseProvider) Upgrade(currentVersion int) {
 	// < v1.8.5
 	if currentVersion < 20 {
+		// Remove Column LastUpdate, deleting old data
 		err := rawSqlite(`DROP TABLE UploadStatus; CREATE TABLE "UploadStatus" (
 			"ChunkId"	TEXT NOT NULL UNIQUE,
 			"CurrentStatus"	INTEGER NOT NULL,
 			"CreationDate"	INTEGER NOT NULL,
 			PRIMARY KEY("ChunkId")
 		) WITHOUT ROWID;`)
+		helper.Check(err)
+
+		// Remove Column LastUsedString, keeping old data
+		err = rawSqlite(`CREATE TABLE "ApiKeys_New" (
+			"Id" TEXT NOT NULL UNIQUE,
+			"FriendlyName" TEXT NOT NULL,
+			"LastUsed" INTEGER NOT NULL,
+			"Permissions" INTEGER NOT NULL DEFAULT 0,
+			PRIMARY KEY("Id")
+		) WITHOUT ROWID;
+		INSERT INTO "ApiKeys_New" (Id, FriendlyName, LastUsed, Permissions)
+		SELECT Id, FriendlyName, LastUsed, Permissions
+		FROM "ApiKeys";
+		DROP TABLE "ApiKeys";
+		ALTER TABLE "ApiKeys_New" RENAME TO "ApiKeys";`)
 		helper.Check(err)
 	}
 }
@@ -93,12 +109,10 @@ type schemaPragma struct {
 }
 
 func createNewDatabase() error {
-	sqlStmt := `
-		CREATE TABLE "ApiKeys" (
+	sqlStmt := `CREATE TABLE "ApiKeys" (
 			"Id"	TEXT NOT NULL UNIQUE,
 			"FriendlyName"	TEXT NOT NULL,
 			"LastUsed"	INTEGER NOT NULL,
-			"LastUsedString"	TEXT NOT NULL,
 			"Permissions"	INTEGER NOT NULL DEFAULT 0,
 			PRIMARY KEY("Id")
 		) WITHOUT ROWID;

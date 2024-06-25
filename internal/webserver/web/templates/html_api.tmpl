@@ -26,7 +26,7 @@
                             <tr>
                                 <td scope="col" id="{{ .Id }}" class="apiname">{{ .FriendlyName }}</td>
                                 <td scope="col">{{ .Id }}</td>
-                                <td scope="col">{{ .LastUsedString }}</td>
+                                <td scope="col">{{ .GetReadableDate }}</td>
                                             <td scope="col">
 						<i id="perm_view_{{ .Id }}" class="bi bi-eye {{if not .HasPermissionView}}apiperm-notgranted{{else}}apiperm-granted{{end}}" title="List Uploads" onclick='changeApiPermission("{{ .Id }}","PERM_VIEW", "perm_view_{{ .Id }}");'></i>
 						<i id="perm_upload_{{ .Id }}" class="bi bi-file-earmark-arrow-up {{if not .HasPermissionUpload}}apiperm-notgranted{{else}}apiperm-granted{{end}}" title="Upload" onclick='changeApiPermission("{{ .Id }}","PERM_UPLOAD", "perm_upload_{{ .Id }}");'></i>

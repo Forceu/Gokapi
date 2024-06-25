@@ -170,25 +170,22 @@ func TestHotlink(t *testing.T) {
 
 func TestApiKey(t *testing.T) {
 	dbInstance.SaveApiKey(models.ApiKey{
-		Id:             "newkey",
-		FriendlyName:   "New Key",
-		LastUsedString: "LastUsed",
-		LastUsed:       100,
-		Permissions:    20,
+		Id:           "newkey",
+		FriendlyName: "New Key",
+		LastUsed:     100,
+		Permissions:  20,
 	})
 	dbInstance.SaveApiKey(models.ApiKey{
-		Id:             "newkey2",
-		FriendlyName:   "New Key2",
-		LastUsedString: "LastUsed2",
-		LastUsed:       200,
-		Permissions:    40,
+		Id:           "newkey2",
+		FriendlyName: "New Key2",
+		LastUsed:     200,
+		Permissions:  40,
 	})
 
 	keys := dbInstance.GetAllApiKeys()
 	test.IsEqualInt(t, len(keys), 2)
 	test.IsEqualString(t, keys["newkey"].FriendlyName, "New Key")
 	test.IsEqualString(t, keys["newkey"].Id, "newkey")
-	test.IsEqualString(t, keys["newkey"].LastUsedString, "LastUsed")
 	test.IsEqualInt64(t, keys["newkey"].LastUsed, 100)
 	test.IsEqualBool(t, keys["newkey"].Permissions == 20, true)
 
@@ -203,10 +200,9 @@ func TestApiKey(t *testing.T) {
 	test.IsEqualBool(t, ok, false)
 
 	dbInstance.SaveApiKey(models.ApiKey{
-		Id:             "newkey",
-		FriendlyName:   "Old Key",
-		LastUsed:       100,
-		LastUsedString: "LastUsed",
+		Id:           "newkey",
+		FriendlyName: "Old Key",
+		LastUsed:     100,
 	})
 	key, ok = dbInstance.GetApiKey("newkey")
 	test.IsEqualBool(t, ok, true)
@@ -408,17 +404,15 @@ func TestUpdateTimeApiKey(t *testing.T) {
 	test.IsEqualString(t, retrievedKey.Id, "")
 
 	key := models.ApiKey{
-		Id:             "key1",
-		FriendlyName:   "key1",
-		LastUsed:       100,
-		LastUsedString: "last1",
+		Id:           "key1",
+		FriendlyName: "key1",
+		LastUsed:     100,
 	}
 	dbInstance.SaveApiKey(key)
 	key = models.ApiKey{
-		Id:             "key2",
-		FriendlyName:   "key2",
-		LastUsed:       200,
-		LastUsedString: "last2",
+		Id:           "key2",
+		FriendlyName: "key2",
+		LastUsed:     200,
 	}
 	dbInstance.SaveApiKey(key)
 
@@ -426,27 +420,22 @@ func TestUpdateTimeApiKey(t *testing.T) {
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualString(t, retrievedKey.Id, "key1")
 	test.IsEqualInt64(t, retrievedKey.LastUsed, 100)
-	test.IsEqualString(t, retrievedKey.LastUsedString, "last1")
 	retrievedKey, ok = dbInstance.GetApiKey("key2")
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualString(t, retrievedKey.Id, "key2")
 	test.IsEqualInt64(t, retrievedKey.LastUsed, 200)
-	test.IsEqualString(t, retrievedKey.LastUsedString, "last2")
 
 	key.LastUsed = 300
-	key.LastUsedString = "last2_1"
 	dbInstance.UpdateTimeApiKey(key)
 
 	retrievedKey, ok = dbInstance.GetApiKey("key1")
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualString(t, retrievedKey.Id, "key1")
 	test.IsEqualInt64(t, retrievedKey.LastUsed, 100)
-	test.IsEqualString(t, retrievedKey.LastUsedString, "last1")
 	retrievedKey, ok = dbInstance.GetApiKey("key2")
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualString(t, retrievedKey.Id, "key2")
 	test.IsEqualInt64(t, retrievedKey.LastUsed, 300)
-	test.IsEqualString(t, retrievedKey.LastUsedString, "last2_1")
 }
 
 func TestParallelConnectionsWritingAndReading(t *testing.T) {
@@ -494,10 +483,9 @@ func TestParallelConnectionsReading(t *testing.T) {
 	var wg sync.WaitGroup
 
 	dbInstance.SaveApiKey(models.ApiKey{
-		Id:             "readtest",
-		FriendlyName:   "readtest",
-		LastUsed:       40000,
-		LastUsedString: "readtest",
+		Id:           "readtest",
+		FriendlyName: "readtest",
+		LastUsed:     40000,
 	})
 	simulatedConnection := func(t *testing.T) {
 		_, ok := dbInstance.GetApiKey("readtest")

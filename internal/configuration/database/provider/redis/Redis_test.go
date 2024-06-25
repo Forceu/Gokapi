@@ -184,5 +184,26 @@ func TestGetHashmap(t *testing.T) {
 
 	maps := getAllHashesWithPrefix("newmap")
 	test.IsEqualInt(t, len(maps), 2)
+}
+
+func TestApiKeys(t *testing.T) {
+	keys := dbInstance.GetAllApiKeys()
+	test.IsEqualInt(t, len(keys), 0)
+	_, ok := dbInstance.GetApiKey("newkey")
+	test.IsEqualBool(t, ok, false)
+
+	newKey := models.ApiKey{
+		Id:           "newkey",
+		FriendlyName: "New Key",
+		LastUsed:     1234,
+		Permissions:  1,
+	}
+	dbInstance.SaveApiKey(newKey)
+	retrievedKey, ok := dbInstance.GetApiKey("newkey")
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualBool(t, retrievedKey.Id == newKey.Id, true)
+	test.IsEqualBool(t, retrievedKey.FriendlyName == newKey.FriendlyName, true)
+	test.IsEqualBool(t, retrievedKey.LastUsed == newKey.LastUsed, true)
+	test.IsEqualBool(t, retrievedKey.Permissions == newKey.Permissions, true)
 
 }
