@@ -10,7 +10,7 @@ const idE2EInfo = "e2einfo"
 
 // SaveEnd2EndInfo stores the encrypted e2e info
 func (p DatabaseProvider) SaveEnd2EndInfo(info models.E2EInfoEncrypted) {
-	setHashMapArgs(buildArgs(idE2EInfo).AddFlat(info))
+	setHashMap(buildArgs(idE2EInfo).AddFlat(info))
 }
 
 // GetEnd2EndInfo retrieves the encrypted e2e info

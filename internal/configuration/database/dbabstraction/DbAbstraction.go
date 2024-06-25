@@ -12,6 +12,9 @@ const (
 )
 
 type Database interface {
+	// GetType returns identifier of the underlying interface
+	GetType() int
+
 	// Init connects to the database and creates the table structure, if necessary
 	Init(dbConfig models.DbConnection) error
 	// Upgrade migrates the DB to a new Gokapi version, if required

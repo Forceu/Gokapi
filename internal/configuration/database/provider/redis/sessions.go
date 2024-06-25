@@ -24,7 +24,7 @@ func (p DatabaseProvider) GetSession(id string) (models.Session, bool) {
 
 // SaveSession stores the given session. After the expiry passed, it will be deleted automatically
 func (p DatabaseProvider) SaveSession(id string, session models.Session) {
-	setHashMapArgs(buildArgs(prefixSessions + id).AddFlat(session))
+	setHashMap(buildArgs(prefixSessions + id).AddFlat(session))
 	setExpiryAt(prefixSessions+id, session.ValidUntil)
 }
 

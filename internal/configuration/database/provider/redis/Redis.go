@@ -1,6 +1,7 @@
 package redis
 
 import (
+	"errors"
 	"fmt"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
@@ -21,6 +22,11 @@ func New() DatabaseProvider {
 	return DatabaseProvider{}
 }
 
+// GetType returns 1, for being a Redis interface
+func (p DatabaseProvider) GetType() int {
+	return 1 // dbabstraction.Redis
+}
+
 // Init connects to the database and creates the table structure, if necessary
 func (p DatabaseProvider) Init(config models.DbConnection) error {
 	dbPrefix = config.RedisPrefix
@@ -31,8 +37,7 @@ func (p DatabaseProvider) Init(config models.DbConnection) error {
 	return err
 }
 
-func newPool(config models.DbConnection) *redigo.Pool {
-
+func getDialOptions(config models.DbConnection) []redigo.DialOption {
 	dialOptions := []redigo.DialOption{redigo.DialClientName("gokapi")}
 	if config.RedisUsername != "" {
 		dialOptions = append(dialOptions, redigo.DialUsername(config.RedisUsername))
@@ -43,14 +48,17 @@ func newPool(config models.DbConnection) *redigo.Pool {
 	if config.RedisUseSsl {
 		dialOptions = append(dialOptions, redigo.DialUseTLS(true))
 	}
+	return dialOptions
+}
+
+func newPool(config models.DbConnection) *redigo.Pool {
 
 	newRedisPool := &redigo.Pool{
-
 		MaxIdle:     10,
 		IdleTimeout: 2 * time.Minute,
 
 		Dial: func() (redigo.Conn, error) {
-			c, err := redigo.Dial("tcp", config.RedisUrl, dialOptions...)
+			c, err := redigo.Dial("tcp", config.RedisUrl, getDialOptions(config)...)
 			if err != nil {
 				fmt.Println("Error connecting to redis")
 			}
@@ -87,91 +95,54 @@ func (p DatabaseProvider) RunGarbageCollection() {
 
 // Function to get all hashmaps with a given prefix
 func getAllValuesWithPrefix(prefix string) map[string]any {
-	conn := pool.Get()
-	defer conn.Close()
 	result := make(map[string]any)
-	fullPrefix := dbPrefix + prefix
-	cursor := 0
-	for {
-		// Use SCAN to get keys matching the prefix
-		values, err := redigo.Values(conn.Do("SCAN", cursor, "MATCH", fullPrefix+"*", "COUNT", 100))
+	allKeys := getAllKeysWithPrefix(prefix)
+	for _, key := range allKeys {
+		value, err := getKeyRaw(key)
+		if errors.Is(err, redigo.ErrNil) {
+			continue
+		}
 		helper.Check(err)
-
-		// Get the new cursor and the keys from the response
-		cursor, _ = redigo.Int(values[0], nil)
-		keys, _ := redigo.Strings(values[1], nil)
-
-		for _, key := range keys {
-			content, err := conn.Do("GET", key)
-			helper.Check(err)
-			cleanKey := strings.Replace(key, fullPrefix, "", 1)
-			result[cleanKey] = content
-		}
-
-		// If cursor is 0, the iteration is complete
-		if cursor == 0 {
-			break
-		}
+		result[key] = value
 	}
 	return result
 }
 
-type redisHash struct {
-	Key    string
-	Values []any
-}
-
 // Function to get all hashmaps with a given prefix
-func getAllHashesWithPrefix(prefix string) []redisHash {
-	var result []redisHash
-	conn := pool.Get()
-	defer conn.Close()
-	fullPrefix := dbPrefix + prefix
-	cursor := 0
-	for {
-		// Use SCAN to get keys matching the prefix
-		values, err := redigo.Values(conn.Do("SCAN", cursor, "MATCH", fullPrefix+"*", "COUNT", 100))
-		helper.Check(err)
-
-		// Get the new cursor and the keys from the response
-		cursor, _ = redigo.Int(values[0], nil)
-		keys, _ := redigo.Strings(values[1], nil)
-
-		for _, key := range keys {
-			hashValues, err := redigo.Values(conn.Do("HGETALL", key))
-			helper.Check(err)
-			result = append(result, redisHash{
-				Key:    strings.Replace(key, fullPrefix, "", 1),
-				Values: hashValues,
-			})
+func getAllHashesWithPrefix(prefix string) map[string][]any {
+	result := make(map[string][]any)
+	allKeys := getAllKeysWithPrefix(prefix)
+	for _, key := range allKeys {
+		hashMap, ok := getHashMap(key)
+		if !ok {
+			continue
 		}
-
-		// If cursor is 0, the iteration is complete
-		if cursor == 0 {
-			break
-		}
+		result[key] = hashMap
 	}
 	return result
 }
 
 func getAllKeysWithPrefix(prefix string) []string {
-	var keys []string
+	var result []string
 	conn := pool.Get()
 	defer conn.Close()
+	fullPrefix := dbPrefix + prefix
 	cursor := 0
 	for {
-		reply, err := redigo.Values(conn.Do("SCAN", cursor, "MATCH", dbPrefix+prefix+"*", "COUNT", 100))
+		reply, err := redigo.Values(conn.Do("SCAN", cursor, "MATCH", fullPrefix+"*", "COUNT", 100))
 		helper.Check(err)
 
 		cursor, _ = redigo.Int(reply[0], nil)
-		k, _ := redigo.Strings(reply[1], nil)
-		keys = append(keys, k...)
+		keys, _ := redigo.Strings(reply[1], nil)
+		for _, key := range keys {
+			result = append(result, strings.Replace(key, dbPrefix, "", 1))
+		}
 
 		if cursor == 0 {
 			break
 		}
 	}
-	return keys
+	return result
 }
 
 func setKey(id string, content any) {
@@ -189,10 +160,10 @@ func getKeyRaw(id string) (any, error) {
 
 func getKeyString(id string) (string, bool) {
 	result, err := redigo.String(getKeyRaw(id))
-	helper.Check(err)
 	if result == "" {
 		return "", false
 	}
+	helper.Check(err)
 	return result, true
 }
 
@@ -230,7 +201,7 @@ func buildArgs(id string) redigo.Args {
 	return redigo.Args{}.Add(dbPrefix + id)
 }
 
-func setHashMapArgs(content redigo.Args) {
+func setHashMap(content redigo.Args) {
 	conn := pool.Get()
 	defer conn.Close()
 	_, err := conn.Do("HMSET", content...)

@@ -26,5 +26,5 @@ func (p DatabaseProvider) GetUploadDefaults() (models.LastUploadValues, bool) {
 
 // SaveUploadDefaults saves the last used setting for an upload
 func (p DatabaseProvider) SaveUploadDefaults(values models.LastUploadValues) {
-	setHashMapArgs(buildArgs(idUploadDefaults).AddFlat(values))
+	setHashMap(buildArgs(idUploadDefaults).AddFlat(values))
 }

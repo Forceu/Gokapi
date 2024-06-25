@@ -11,7 +11,6 @@ import (
 	"github.com/forceu/gokapi/internal/test"
 	"math"
 	"os"
-	"regexp"
 	"slices"
 	"sync"
 	"testing"
@@ -81,11 +80,60 @@ func TestMetaData(t *testing.T) {
 	test.IsEqualInt(t, len(dbInstance.GetAllMetadata()), 1)
 	dbInstance.DeleteMetaData("invalid")
 	test.IsEqualInt(t, len(dbInstance.GetAllMetadata()), 1)
+
+	test.IsEqualBool(t, file.UnlimitedDownloads, false)
+	test.IsEqualBool(t, file.UnlimitedTime, false)
+
 	dbInstance.DeleteMetaData("testfile")
 	test.IsEqualInt(t, len(dbInstance.GetAllMetadata()), 0)
+
+	dbInstance.SaveMetaData(models.File{
+		Id:                 "test2",
+		Name:               "test2",
+		UnlimitedDownloads: true,
+		UnlimitedTime:      false,
+	})
+
+	file, ok = dbInstance.GetMetaDataById("test2")
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualBool(t, file.UnlimitedDownloads, true)
+	test.IsEqualBool(t, file.UnlimitedTime, false)
+
+	dbInstance.SaveMetaData(models.File{
+		Id:                 "test3",
+		Name:               "test3",
+		UnlimitedDownloads: false,
+		UnlimitedTime:      true,
+	})
+	file, ok = dbInstance.GetMetaDataById("test3")
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualBool(t, file.UnlimitedDownloads, false)
+	test.IsEqualBool(t, file.UnlimitedTime, true)
+	dbInstance.Close()
+	defer test.ExpectPanic(t)
+	_ = dbInstance.GetAllMetadata()
+}
+
+func TestDatabaseProvider_GetType(t *testing.T) {
+	test.IsEqualInt(t, dbInstance.GetType(), 0)
+}
+
+func TestGetAllMetaDataIds(t *testing.T) {
+	err := dbInstance.Init(config)
+	test.IsNil(t, err)
+
+	ids := dbInstance.GetAllMetaDataIds()
+	test.IsEqualString(t, ids[0], "test2")
+	test.IsEqualString(t, ids[1], "test3")
+
+	dbInstance.Close()
+	defer test.ExpectPanic(t)
+	_ = dbInstance.GetAllMetaDataIds()
 }
 
 func TestHotlink(t *testing.T) {
+	err := dbInstance.Init(config)
+	test.IsNil(t, err)
 	dbInstance.SaveHotlink(models.File{Id: "testfile", Name: "test.txt", HotlinkId: "testlink", ExpireAt: time.Now().Add(time.Hour).Unix()})
 
 	hotlink, ok := dbInstance.GetHotlink("testlink")
@@ -218,33 +266,6 @@ func TestUploadDefaults(t *testing.T) {
 	test.IsEqualString(t, defaults.Password, "abcd")
 	test.IsEqualBool(t, defaults.UnlimitedDownload, true)
 	test.IsEqualBool(t, defaults.UnlimitedTime, true)
-}
-
-func TestColumnExists(t *testing.T) {
-	exists, err := ColumnExists("invalid", "invalid")
-	test.IsEqualBool(t, exists, false)
-	test.IsNil(t, err)
-	exists, err = ColumnExists("FileMetaData", "invalid")
-	test.IsEqualBool(t, exists, false)
-	test.IsNil(t, err)
-	exists, err = ColumnExists("FileMetaData", "ExpireAt")
-	test.IsEqualBool(t, exists, true)
-	test.IsNil(t, err)
-	setMockDb(t).ExpectQuery(regexp.QuoteMeta("PRAGMA table_info(error)")).WillReturnError(errors.New("error"))
-	exists, err = ColumnExists("error", "error")
-	test.IsEqualBool(t, exists, false)
-	test.IsNotNil(t, err)
-	restoreDb()
-	mock := setMockDb(t)
-
-	rows := mock.NewRows([]string{"invalid"}).
-		AddRow(0).
-		AddRow(1)
-	mock.ExpectQuery(regexp.QuoteMeta("PRAGMA table_info(error)")).WillReturnRows(rows)
-	exists, err = ColumnExists("error", "error")
-	test.IsEqualBool(t, exists, false)
-	test.IsNotNil(t, err)
-	restoreDb()
 }
 
 func TestGarbageCollectionUploads(t *testing.T) {
@@ -530,4 +551,14 @@ func setMockDb(t *testing.T) sqlmock.Sqlmock {
 }
 func restoreDb() {
 	sqliteDb = originalDb
+}
+
+func TestDatabaseProvider_Upgrade(t *testing.T) {
+	dbInstance.Upgrade(19)
+}
+
+func TestRawSql(t *testing.T) {
+	dbInstance.Close()
+	defer test.ExpectPanic(t)
+	_ = rawSqlite("Select * from Sessions")
 }

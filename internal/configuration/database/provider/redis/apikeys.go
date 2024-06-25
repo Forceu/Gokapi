@@ -21,8 +21,8 @@ func dbToApiKey(id string, input []any) (models.ApiKey, error) {
 func (p DatabaseProvider) GetAllApiKeys() map[string]models.ApiKey {
 	result := make(map[string]models.ApiKey)
 	maps := getAllHashesWithPrefix(prefixApiKeys)
-	for _, m := range maps {
-		apiKey, err := dbToApiKey(m.Key, m.Values)
+	for k, v := range maps {
+		apiKey, err := dbToApiKey(k, v)
 		helper.Check(err)
 		result[apiKey.Id] = apiKey
 	}
@@ -42,7 +42,7 @@ func (p DatabaseProvider) GetApiKey(id string) (models.ApiKey, bool) {
 
 // SaveApiKey saves the API key to the database
 func (p DatabaseProvider) SaveApiKey(apikey models.ApiKey) {
-	setHashMapArgs(buildArgs(prefixApiKeys + apikey.Id).AddFlat(apikey))
+	setHashMap(buildArgs(prefixApiKeys + apikey.Id).AddFlat(apikey))
 }
 
 // UpdateTimeApiKey writes the content of LastUsage to the database

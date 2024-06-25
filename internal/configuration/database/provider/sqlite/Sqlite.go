@@ -21,6 +21,11 @@ func New() DatabaseProvider {
 	return DatabaseProvider{}
 }
 
+// GetType returns 0, for being a Sqlite interface
+func (p DatabaseProvider) GetType() int {
+	return 0 // dbabstraction.Sqlite
+}
+
 // Upgrade migrates the DB to a new Gokapi version, if required
 func (p DatabaseProvider) Upgrade(currentVersion int) {
 	// < v1.8.5
@@ -85,30 +90,6 @@ type schemaPragma struct {
 	NotNull    int
 	DefaultVal sql.NullString
 	Pk         int
-}
-
-// ColumnExists returns true if a column with the name columnName exists in table tableName
-// Should only be used for upgrading
-func ColumnExists(tableName, columnName string) (bool, error) {
-	if sqliteDb == nil {
-		panic("Sqlite not initialised")
-	}
-	rows, err := sqliteDb.Query("PRAGMA table_info(" + tableName + ")")
-	if err != nil {
-		return false, err
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var pragmaInfo schemaPragma
-		err = rows.Scan(&pragmaInfo.Cid, &pragmaInfo.Name, &pragmaInfo.Type, &pragmaInfo.NotNull, &pragmaInfo.DefaultVal, &pragmaInfo.Pk)
-		if err != nil {
-			return false, err
-		}
-		if pragmaInfo.Name == columnName {
-			return true, nil
-		}
-	}
-	return false, nil
 }
 
 func createNewDatabase() error {
