@@ -6,6 +6,7 @@ import (
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	redigo "github.com/gomodule/redigo/redis"
+	"strings"
 )
 
 const (
@@ -36,7 +37,11 @@ func (p DatabaseProvider) GetAllMetadata() map[string]models.File {
 
 // GetAllMetaDataIds returns all Ids that contain metadata
 func (p DatabaseProvider) GetAllMetaDataIds() []string {
-	return getAllKeysWithPrefix(prefixMetaData)
+	result := make([]string, 0)
+	for _, key := range getAllKeysWithPrefix(prefixMetaData) {
+		result = append(result, strings.Replace(key, prefixMetaData, "", 1))
+	}
+	return result
 }
 
 // GetMetaDataById returns a models.File from the ID passed or false if the id is not valid

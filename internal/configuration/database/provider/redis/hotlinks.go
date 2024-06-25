@@ -2,6 +2,7 @@ package redis
 
 import (
 	"github.com/forceu/gokapi/internal/models"
+	"strings"
 )
 
 const (
@@ -15,7 +16,11 @@ func (p DatabaseProvider) GetHotlink(id string) (string, bool) {
 
 // GetAllHotlinks returns an array with all hotlink ids
 func (p DatabaseProvider) GetAllHotlinks() []string {
-	return getAllKeysWithPrefix(prefixHotlinks)
+	result := make([]string, 0)
+	for _, key := range getAllKeysWithPrefix(prefixHotlinks) {
+		result = append(result, strings.Replace(key, prefixHotlinks, "", 1))
+	}
+	return result
 }
 
 // SaveHotlink stores the hotlink associated with the file in the database

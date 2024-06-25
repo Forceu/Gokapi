@@ -165,7 +165,6 @@ func TestHotlink(t *testing.T) {
 	dbInstance.DeleteHotlink("")
 	hotlinks = dbInstance.GetAllHotlinks()
 	test.IsEqualInt(t, len(hotlinks), 3)
-
 }
 
 func TestApiKey(t *testing.T) {
@@ -398,7 +397,6 @@ func TestEnd2EndInfo(t *testing.T) {
 }
 
 func TestUpdateTimeApiKey(t *testing.T) {
-
 	retrievedKey, ok := dbInstance.GetApiKey("key1")
 	test.IsEqualBool(t, ok, false)
 	test.IsEqualString(t, retrievedKey.Id, "")

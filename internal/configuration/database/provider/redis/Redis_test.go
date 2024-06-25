@@ -7,6 +7,7 @@ import (
 	redigo "github.com/gomodule/redigo/redis"
 	"log"
 	"os"
+	"slices"
 	"testing"
 	"time"
 )
@@ -162,7 +163,7 @@ func TestGetHashmap(t *testing.T) {
 	test.IsEqualBool(t, ok, false)
 
 	content := make(map[string]string)
-	content["alTest"] = "test"
+	content["alTest1"] = "test"
 	content["alTest2"] = "test2"
 	content["alTest3"] = "test3"
 	content["alTest4"] = "test4"
@@ -225,4 +226,196 @@ func TestApiKeys(t *testing.T) {
 	key, ok := dbInstance.GetApiKey("newkey")
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, key.LastUsed == 10, true)
+}
+
+func TestE2EConfig(t *testing.T) {
+	e2econfig := models.E2EInfoEncrypted{
+		Version:        1,
+		Nonce:          []byte("testnonce"),
+		Content:        []byte("testcontent"),
+		AvailableFiles: nil,
+	}
+	dbInstance.SaveEnd2EndInfo(e2econfig)
+	retrieved := dbInstance.GetEnd2EndInfo()
+	test.IsEqualInt(t, retrieved.Version, 1)
+	test.IsEqualString(t, string(retrieved.Nonce), "testnonce")
+	test.IsEqualString(t, string(retrieved.Content), "testcontent")
+	dbInstance.DeleteEnd2EndInfo()
+	retrieved = dbInstance.GetEnd2EndInfo()
+	test.IsEqualInt(t, retrieved.Version, 0)
+}
+
+func TestHotlink(t *testing.T) {
+	err := dbInstance.Init(config)
+	test.IsNil(t, err)
+	dbInstance.SaveHotlink(models.File{Id: "testfile", Name: "test.txt", HotlinkId: "testlink", ExpireAt: time.Now().Add(time.Hour).Unix()})
+
+	hotlink, ok := dbInstance.GetHotlink("testlink")
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualString(t, hotlink, "testfile")
+	_, ok = dbInstance.GetHotlink("invalid")
+	test.IsEqualBool(t, ok, false)
+
+	dbInstance.DeleteHotlink("invalid")
+	_, ok = dbInstance.GetHotlink("testlink")
+	test.IsEqualBool(t, ok, true)
+	dbInstance.DeleteHotlink("testlink")
+	_, ok = dbInstance.GetHotlink("testlink")
+	test.IsEqualBool(t, ok, false)
+
+	dbInstance.SaveHotlink(models.File{Id: "testfile", Name: "test.txt", HotlinkId: "testlink", ExpireAt: 0, UnlimitedTime: true})
+	hotlink, ok = dbInstance.GetHotlink("testlink")
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualString(t, hotlink, "testfile")
+
+	dbInstance.SaveHotlink(models.File{Id: "file2", Name: "file2.txt", HotlinkId: "link2", ExpireAt: time.Now().Add(time.Hour).Unix()})
+	dbInstance.SaveHotlink(models.File{Id: "file3", Name: "file3.txt", HotlinkId: "link3", ExpireAt: time.Now().Add(time.Hour).Unix()})
+
+	hotlinks := dbInstance.GetAllHotlinks()
+	test.IsEqualInt(t, len(hotlinks), 3)
+	test.IsEqualBool(t, slices.Contains(hotlinks, "testlink"), true)
+	test.IsEqualBool(t, slices.Contains(hotlinks, "link2"), true)
+	test.IsEqualBool(t, slices.Contains(hotlinks, "link3"), true)
+	dbInstance.DeleteHotlink("")
+	hotlinks = dbInstance.GetAllHotlinks()
+	test.IsEqualInt(t, len(hotlinks), 3)
+}
+
+func TestSession(t *testing.T) {
+	renewAt := time.Now().Add(1 * time.Hour).Unix()
+	dbInstance.SaveSession("newsession", models.Session{
+		RenewAt:    renewAt,
+		ValidUntil: time.Now().Add(2 * time.Hour).Unix(),
+	})
+
+	session, ok := dbInstance.GetSession("newsession")
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualBool(t, session.RenewAt == renewAt, true)
+
+	dbInstance.DeleteSession("newsession")
+	_, ok = dbInstance.GetSession("newsession")
+	test.IsEqualBool(t, ok, false)
+
+	dbInstance.SaveSession("newsession", models.Session{
+		RenewAt:    renewAt,
+		ValidUntil: time.Now().Add(2 * time.Hour).Unix(),
+	})
+
+	dbInstance.SaveSession("anothersession", models.Session{
+		RenewAt:    renewAt,
+		ValidUntil: time.Now().Add(2 * time.Hour).Unix(),
+	})
+	_, ok = dbInstance.GetSession("newsession")
+	test.IsEqualBool(t, ok, true)
+	_, ok = dbInstance.GetSession("anothersession")
+	test.IsEqualBool(t, ok, true)
+
+	dbInstance.DeleteAllSessions()
+	_, ok = dbInstance.GetSession("newsession")
+	test.IsEqualBool(t, ok, false)
+	_, ok = dbInstance.GetSession("anothersession")
+	test.IsEqualBool(t, ok, false)
+}
+
+func TestUploadDefaults(t *testing.T) {
+	defaults, ok := dbInstance.GetUploadDefaults()
+	test.IsEqualBool(t, ok, false)
+	dbInstance.SaveUploadDefaults(models.LastUploadValues{
+		Downloads:         20,
+		TimeExpiry:        30,
+		Password:          "abcd",
+		UnlimitedDownload: true,
+		UnlimitedTime:     true,
+	})
+	defaults, ok = dbInstance.GetUploadDefaults()
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualInt(t, defaults.Downloads, 20)
+	test.IsEqualInt(t, defaults.TimeExpiry, 30)
+	test.IsEqualString(t, defaults.Password, "abcd")
+	test.IsEqualBool(t, defaults.UnlimitedDownload, true)
+	test.IsEqualBool(t, defaults.UnlimitedTime, true)
+}
+
+func TestUploadStatus(t *testing.T) {
+	allStatus := dbInstance.GetAllUploadStatus()
+	test.IsEqualInt(t, len(allStatus), 0)
+	newStatus := models.UploadStatus{
+		ChunkId:       "testid",
+		CurrentStatus: 1,
+	}
+	retrievedStatus, ok := dbInstance.GetUploadStatus("testid")
+	test.IsEqualBool(t, ok, false)
+	test.IsEqualBool(t, retrievedStatus == models.UploadStatus{}, true)
+	dbInstance.SaveUploadStatus(newStatus)
+	retrievedStatus, ok = dbInstance.GetUploadStatus("testid")
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualString(t, retrievedStatus.ChunkId, "testid")
+	test.IsEqualInt(t, retrievedStatus.CurrentStatus, 1)
+	allStatus = dbInstance.GetAllUploadStatus()
+	test.IsEqualInt(t, len(allStatus), 1)
+}
+
+func TestMetaData(t *testing.T) {
+	files := dbInstance.GetAllMetadata()
+	test.IsEqualInt(t, len(files), 0)
+
+	dbInstance.SaveMetaData(models.File{Id: "testfile", Name: "test.txt", ExpireAt: time.Now().Add(time.Hour).Unix()})
+	files = dbInstance.GetAllMetadata()
+	test.IsEqualInt(t, len(files), 1)
+	test.IsEqualString(t, files["testfile"].Name, "test.txt")
+
+	file, ok := dbInstance.GetMetaDataById("testfile")
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualString(t, file.Id, "testfile")
+	_, ok = dbInstance.GetMetaDataById("invalid")
+	test.IsEqualBool(t, ok, false)
+
+	test.IsEqualInt(t, len(dbInstance.GetAllMetadata()), 1)
+	dbInstance.DeleteMetaData("invalid")
+	test.IsEqualInt(t, len(dbInstance.GetAllMetadata()), 1)
+
+	test.IsEqualBool(t, file.UnlimitedDownloads, false)
+	test.IsEqualBool(t, file.UnlimitedTime, false)
+
+	dbInstance.DeleteMetaData("testfile")
+	test.IsEqualInt(t, len(dbInstance.GetAllMetadata()), 0)
+
+	dbInstance.SaveMetaData(models.File{
+		Id:                 "test2",
+		Name:               "test2",
+		UnlimitedDownloads: true,
+		UnlimitedTime:      false,
+	})
+
+	file, ok = dbInstance.GetMetaDataById("test2")
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualBool(t, file.UnlimitedDownloads, true)
+	test.IsEqualBool(t, file.UnlimitedTime, false)
+
+	dbInstance.SaveMetaData(models.File{
+		Id:                 "test3",
+		Name:               "test3",
+		UnlimitedDownloads: false,
+		UnlimitedTime:      true,
+	})
+	file, ok = dbInstance.GetMetaDataById("test3")
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualBool(t, file.UnlimitedDownloads, false)
+	test.IsEqualBool(t, file.UnlimitedTime, true)
+	dbInstance.Close()
+	defer test.ExpectPanic(t)
+	_ = dbInstance.GetAllMetadata()
+}
+
+func TestGetAllMetaDataIds(t *testing.T) {
+	err := dbInstance.Init(config)
+	test.IsNil(t, err)
+
+	ids := dbInstance.GetAllMetaDataIds()
+	test.IsEqualString(t, ids[0], "test2")
+	test.IsEqualString(t, ids[1], "test3")
+
+	dbInstance.Close()
+	defer test.ExpectPanic(t)
+	_ = dbInstance.GetAllMetaDataIds()
 }
