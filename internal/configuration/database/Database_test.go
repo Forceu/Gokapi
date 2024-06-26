@@ -36,12 +36,9 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatal("Could not start miniredis")
 	}
-	defer func() {
-		mRedis.Close()
-		os.RemoveAll("./test")
-	}()
-
 	exitVal := m.Run()
+	mRedis.Close()
+	os.RemoveAll("./test/")
 	os.Exit(exitVal)
 }
 
