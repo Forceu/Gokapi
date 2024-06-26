@@ -16,7 +16,7 @@ type schemaUploadStatus struct {
 
 // GetAllUploadStatus returns all UploadStatus values from the past 24 hours
 func (p DatabaseProvider) GetAllUploadStatus() []models.UploadStatus {
-	var result []models.UploadStatus
+	var result = make([]models.UploadStatus, 0)
 	rows, err := sqliteDb.Query("SELECT * FROM UploadStatus")
 	helper.Check(err)
 	defer rows.Close()

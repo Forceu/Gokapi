@@ -29,7 +29,7 @@ func (p DatabaseProvider) GetHotlink(id string) (string, bool) {
 
 // GetAllHotlinks returns an array with all hotlink ids
 func (p DatabaseProvider) GetAllHotlinks() []string {
-	var ids []string
+	ids := make([]string, 0)
 	rows, err := sqliteDb.Query("SELECT Id FROM Hotlinks")
 	helper.Check(err)
 	defer rows.Close()

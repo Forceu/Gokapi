@@ -83,7 +83,7 @@ func (p DatabaseProvider) GetAllMetaDataIds() []string {
 	if sqliteDb == nil {
 		panic("Database not loaded!")
 	}
-	var keys []string
+	keys := make([]string, 0)
 	rows, err := sqliteDb.Query("SELECT Id FROM FileMetaData")
 	helper.Check(err)
 	defer rows.Close()

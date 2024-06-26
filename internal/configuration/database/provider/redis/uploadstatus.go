@@ -4,6 +4,7 @@ import (
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	redigo "github.com/gomodule/redigo/redis"
+	"strings"
 )
 
 const (
@@ -12,12 +13,12 @@ const (
 
 // GetAllUploadStatus returns all UploadStatus values from the past 24 hours
 func (p DatabaseProvider) GetAllUploadStatus() []models.UploadStatus {
-	var result []models.UploadStatus
+	var result = make([]models.UploadStatus, 0)
 	for k, v := range getAllValuesWithPrefix(prefixUploadStatus) {
 		status, err := redigo.Int(v, nil)
 		helper.Check(err)
 		result = append(result, models.UploadStatus{
-			ChunkId:       k,
+			ChunkId:       strings.Replace(k, prefixUploadStatus, "", 1),
 			CurrentStatus: status,
 		})
 	}

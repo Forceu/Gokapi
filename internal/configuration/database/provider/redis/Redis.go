@@ -137,7 +137,6 @@ func getAllKeysWithPrefix(prefix string) []string {
 		for _, key := range keys {
 			result = append(result, strings.Replace(key, dbPrefix, "", 1))
 		}
-
 		if cursor == 0 {
 			break
 		}

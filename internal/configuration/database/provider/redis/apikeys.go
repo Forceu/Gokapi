@@ -4,6 +4,7 @@ import (
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	redigo "github.com/gomodule/redigo/redis"
+	"strings"
 )
 
 const (
@@ -13,7 +14,7 @@ const (
 func dbToApiKey(id string, input []any) (models.ApiKey, error) {
 	var result models.ApiKey
 	err := redigo.ScanStruct(input, &result)
-	result.Id = id
+	result.Id = strings.Replace(id, prefixApiKeys, "", 1)
 	return result, err
 }
 
