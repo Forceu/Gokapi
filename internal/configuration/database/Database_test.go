@@ -147,7 +147,40 @@ func TestHotlinks(t *testing.T) {
 }
 
 func TestMetaData(t *testing.T) {
-	// TODO
+	runAllTypesCompareOutput(t, func() any { return GetAllMetaDataIds() }, []string{})
+	runAllTypesCompareOutput(t, func() any { return GetAllMetadata() }, map[string]models.File{})
+	runAllTypesCompareTwoOutputs(t, func() (any, any) { return GetMetaDataById("testid") }, models.File{}, false)
+	file := models.File{
+		Id:                 "testid",
+		Name:               "Testname",
+		Size:               "3Kb",
+		SHA1:               "12345556",
+		PasswordHash:       "sfffwefwe",
+		HotlinkId:          "hotlink",
+		ContentType:        "none",
+		AwsBucket:          "aws1",
+		ExpireAtString:     "In 10 seconds",
+		ExpireAt:           time.Now().Add(10 * time.Second).Unix(),
+		SizeBytes:          3 * 1024,
+		DownloadsRemaining: 2,
+		DownloadCount:      5,
+		Encryption: models.EncryptionInfo{
+			IsEncrypted:         true,
+			IsEndToEndEncrypted: true,
+			DecryptionKey:       []byte("dekey"),
+			Nonce:               []byte("nonce"),
+		},
+		UnlimitedDownloads: true,
+		UnlimitedTime:      true,
+	}
+	runAllTypesNoOutput(t, func() { SaveMetaData(file) })
+	runAllTypesCompareTwoOutputs(t, func() (any, any) { return GetMetaDataById("testid") }, file, true)
+	runAllTypesCompareOutput(t, func() any { return GetAllMetaDataIds() }, []string{"testid"})
+	runAllTypesCompareOutput(t, func() any { return GetAllMetadata() }, map[string]models.File{"testid": file})
+	runAllTypesNoOutput(t, func() { DeleteMetaData("testid") })
+	runAllTypesCompareOutput(t, func() any { return GetAllMetaDataIds() }, []string{})
+	runAllTypesCompareOutput(t, func() any { return GetAllMetadata() }, map[string]models.File{})
+	runAllTypesCompareTwoOutputs(t, func() (any, any) { return GetMetaDataById("testid") }, models.File{}, false)
 }
 
 func TestUpgrade(t *testing.T) {
