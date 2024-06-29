@@ -10,13 +10,13 @@ const idE2EInfo = "e2einfo"
 
 // SaveEnd2EndInfo stores the encrypted e2e info
 func (p DatabaseProvider) SaveEnd2EndInfo(info models.E2EInfoEncrypted) {
-	setHashMap(buildArgs(idE2EInfo).AddFlat(info))
+	p.setHashMap(p.buildArgs(idE2EInfo).AddFlat(info))
 }
 
 // GetEnd2EndInfo retrieves the encrypted e2e info
 func (p DatabaseProvider) GetEnd2EndInfo() models.E2EInfoEncrypted {
 	result := models.E2EInfoEncrypted{}
-	value, ok := getHashMap(idE2EInfo)
+	value, ok := p.getHashMap(idE2EInfo)
 	if !ok {
 		return models.E2EInfoEncrypted{}
 	}
@@ -27,5 +27,5 @@ func (p DatabaseProvider) GetEnd2EndInfo() models.E2EInfoEncrypted {
 
 // DeleteEnd2EndInfo resets the encrypted e2e info
 func (p DatabaseProvider) DeleteEnd2EndInfo() {
-	deleteKey(idE2EInfo)
+	p.deleteKey(idE2EInfo)
 }

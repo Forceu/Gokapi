@@ -21,7 +21,7 @@ func dbToApiKey(id string, input []any) (models.ApiKey, error) {
 // GetAllApiKeys returns a map with all API keys
 func (p DatabaseProvider) GetAllApiKeys() map[string]models.ApiKey {
 	result := make(map[string]models.ApiKey)
-	maps := getAllHashesWithPrefix(prefixApiKeys)
+	maps := p.getAllHashesWithPrefix(prefixApiKeys)
 	for k, v := range maps {
 		apiKey, err := dbToApiKey(k, v)
 		helper.Check(err)
@@ -32,7 +32,7 @@ func (p DatabaseProvider) GetAllApiKeys() map[string]models.ApiKey {
 
 // GetApiKey returns a models.ApiKey if valid or false if the ID is not valid
 func (p DatabaseProvider) GetApiKey(id string) (models.ApiKey, bool) {
-	result, ok := getHashMap(prefixApiKeys + id)
+	result, ok := p.getHashMap(prefixApiKeys + id)
 	if !ok {
 		return models.ApiKey{}, false
 	}
@@ -43,7 +43,7 @@ func (p DatabaseProvider) GetApiKey(id string) (models.ApiKey, bool) {
 
 // SaveApiKey saves the API key to the database
 func (p DatabaseProvider) SaveApiKey(apikey models.ApiKey) {
-	setHashMap(buildArgs(prefixApiKeys + apikey.Id).AddFlat(apikey))
+	p.setHashMap(p.buildArgs(prefixApiKeys + apikey.Id).AddFlat(apikey))
 }
 
 // UpdateTimeApiKey writes the content of LastUsage to the database
@@ -53,5 +53,5 @@ func (p DatabaseProvider) UpdateTimeApiKey(apikey models.ApiKey) {
 
 // DeleteApiKey deletes an API key with the given ID
 func (p DatabaseProvider) DeleteApiKey(id string) {
-	deleteKey(prefixApiKeys + id)
+	p.deleteKey(prefixApiKeys + id)
 }

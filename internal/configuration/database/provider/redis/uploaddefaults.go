@@ -14,7 +14,7 @@ const (
 // a password for the file
 func (p DatabaseProvider) GetUploadDefaults() (models.LastUploadValues, bool) {
 	var result models.LastUploadValues
-	values, ok := getHashMap(idUploadDefaults)
+	values, ok := p.getHashMap(idUploadDefaults)
 	if !ok {
 		return models.LastUploadValues{}, false
 	}
@@ -26,5 +26,5 @@ func (p DatabaseProvider) GetUploadDefaults() (models.LastUploadValues, bool) {
 
 // SaveUploadDefaults saves the last used setting for an upload
 func (p DatabaseProvider) SaveUploadDefaults(values models.LastUploadValues) {
-	setHashMap(buildArgs(idUploadDefaults).AddFlat(values))
+	p.setHashMap(p.buildArgs(idUploadDefaults).AddFlat(values))
 }

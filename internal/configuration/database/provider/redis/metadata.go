@@ -25,7 +25,7 @@ func dbToMetaData(input []byte) models.File {
 // GetAllMetadata returns a map of all available files
 func (p DatabaseProvider) GetAllMetadata() map[string]models.File {
 	result := make(map[string]models.File)
-	allMetaData := getAllValuesWithPrefix(prefixMetaData)
+	allMetaData := p.getAllValuesWithPrefix(prefixMetaData)
 	for _, metaData := range allMetaData {
 		content, err := redigo.Bytes(metaData, nil)
 		helper.Check(err)
@@ -38,7 +38,7 @@ func (p DatabaseProvider) GetAllMetadata() map[string]models.File {
 // GetAllMetaDataIds returns all Ids that contain metadata
 func (p DatabaseProvider) GetAllMetaDataIds() []string {
 	result := make([]string, 0)
-	for _, key := range getAllKeysWithPrefix(prefixMetaData) {
+	for _, key := range p.getAllKeysWithPrefix(prefixMetaData) {
 		result = append(result, strings.Replace(key, prefixMetaData, "", 1))
 	}
 	return result
@@ -46,7 +46,7 @@ func (p DatabaseProvider) GetAllMetaDataIds() []string {
 
 // GetMetaDataById returns a models.File from the ID passed or false if the id is not valid
 func (p DatabaseProvider) GetMetaDataById(id string) (models.File, bool) {
-	input, ok := getKeyBytes(prefixMetaData + id)
+	input, ok := p.getKeyBytes(prefixMetaData + id)
 	if !ok {
 		return models.File{}, false
 	}
@@ -59,10 +59,10 @@ func (p DatabaseProvider) SaveMetaData(file models.File) {
 	enc := gob.NewEncoder(&buf)
 	err := enc.Encode(file)
 	helper.Check(err)
-	setKey(prefixMetaData+file.Id, buf.Bytes())
+	p.setKey(prefixMetaData+file.Id, buf.Bytes())
 }
 
 // DeleteMetaData deletes information about a file
 func (p DatabaseProvider) DeleteMetaData(id string) {
-	deleteKey(prefixMetaData + id)
+	p.deleteKey(prefixMetaData + id)
 }

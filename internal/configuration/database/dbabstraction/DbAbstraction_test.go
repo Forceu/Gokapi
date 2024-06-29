@@ -15,11 +15,13 @@ var configRedis = models.DbConnection{
 }
 
 func TestGetNew(t *testing.T) {
-	result := GetNew(configSqlite)
+	result, err := GetNew(configSqlite)
+	test.IsNotNil(t, err)
 	test.IsEqualInt(t, result.GetType(), 0)
-	result = GetNew(configRedis)
+	result, err = GetNew(configRedis)
+	test.IsNotNil(t, err)
 	test.IsEqualInt(t, result.GetType(), 1)
 
-	defer test.ExpectPanic(t)
-	_ = GetNew(models.DbConnection{Type: 2})
+	_, err = GetNew(models.DbConnection{Type: 2})
+	test.IsNotNil(t, err)
 }

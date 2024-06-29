@@ -18,7 +18,7 @@ type schemaApiKeys struct {
 func (p DatabaseProvider) GetAllApiKeys() map[string]models.ApiKey {
 	result := make(map[string]models.ApiKey)
 
-	rows, err := sqliteDb.Query("SELECT * FROM ApiKeys")
+	rows, err := p.sqliteDb.Query("SELECT * FROM ApiKeys")
 	helper.Check(err)
 	defer rows.Close()
 	for rows.Next() {
@@ -38,7 +38,7 @@ func (p DatabaseProvider) GetAllApiKeys() map[string]models.ApiKey {
 // GetApiKey returns a models.ApiKey if valid or false if the ID is not valid
 func (p DatabaseProvider) GetApiKey(id string) (models.ApiKey, bool) {
 	var rowResult schemaApiKeys
-	row := sqliteDb.QueryRow("SELECT * FROM ApiKeys WHERE Id = ?", id)
+	row := p.sqliteDb.QueryRow("SELECT * FROM ApiKeys WHERE Id = ?", id)
 	err := row.Scan(&rowResult.Id, &rowResult.FriendlyName, &rowResult.LastUsed, &rowResult.Permissions)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -60,20 +60,20 @@ func (p DatabaseProvider) GetApiKey(id string) (models.ApiKey, bool) {
 
 // SaveApiKey saves the API key to the database
 func (p DatabaseProvider) SaveApiKey(apikey models.ApiKey) {
-	_, err := sqliteDb.Exec("INSERT OR REPLACE INTO ApiKeys (Id, FriendlyName, LastUsed, Permissions) VALUES (?, ?, ?, ?)",
+	_, err := p.sqliteDb.Exec("INSERT OR REPLACE INTO ApiKeys (Id, FriendlyName, LastUsed, Permissions) VALUES (?, ?, ?, ?)",
 		apikey.Id, apikey.FriendlyName, apikey.LastUsed, apikey.Permissions)
 	helper.Check(err)
 }
 
 // UpdateTimeApiKey writes the content of LastUsage to the database
 func (p DatabaseProvider) UpdateTimeApiKey(apikey models.ApiKey) {
-	_, err := sqliteDb.Exec("UPDATE ApiKeys SET LastUsed = ? WHERE Id = ?",
+	_, err := p.sqliteDb.Exec("UPDATE ApiKeys SET LastUsed = ? WHERE Id = ?",
 		apikey.LastUsed, apikey.Id)
 	helper.Check(err)
 }
 
 // DeleteApiKey deletes an API key with the given ID
 func (p DatabaseProvider) DeleteApiKey(id string) {
-	_, err := sqliteDb.Exec("DELETE FROM ApiKeys WHERE Id = ?", id)
+	_, err := p.sqliteDb.Exec("DELETE FROM ApiKeys WHERE Id = ?", id)
 	helper.Check(err)
 }

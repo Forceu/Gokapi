@@ -14,14 +14,13 @@ import (
 )
 
 var configSqlite = models.DbConnection{
-	SqliteDataDir:  "./test/",
-	SqliteFileName: "gokapi.sqlite",
-	Type:           0, // dbabstraction.TypeSqlite
+	HostUrl: "./test/gokapi.sqlite",
+	Type:    0, // dbabstraction.TypeSqlite
 }
 
 var configRedis = models.DbConnection{
 	RedisPrefix: "test_",
-	RedisUrl:    "127.0.0.1:26379",
+	HostUrl:     "127.0.0.1:26379",
 	Type:        1, // dbabstraction.TypeRedis
 }
 

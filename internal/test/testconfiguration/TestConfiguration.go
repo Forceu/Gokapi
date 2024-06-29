@@ -37,9 +37,8 @@ func Create(initFiles bool) {
 	SetDirEnv()
 	os.WriteFile(configFile, configTestFile, 0777)
 	database.Init(models.DbConnection{
-		SqliteDataDir:  dataDir,
-		SqliteFileName: "gokapi.sqlite",
-		Type:           dbabstraction.TypeSqlite,
+		HostUrl: dataDir + "/gokapi.sqlite",
+		Type:    dbabstraction.TypeSqlite,
 	})
 	writeTestSessions()
 	database.SaveUploadDefaults(models.LastUploadValues{

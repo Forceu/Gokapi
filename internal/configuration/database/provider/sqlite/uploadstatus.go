@@ -17,7 +17,7 @@ type schemaUploadStatus struct {
 // GetAllUploadStatus returns all UploadStatus values from the past 24 hours
 func (p DatabaseProvider) GetAllUploadStatus() []models.UploadStatus {
 	var result = make([]models.UploadStatus, 0)
-	rows, err := sqliteDb.Query("SELECT * FROM UploadStatus")
+	rows, err := p.sqliteDb.Query("SELECT * FROM UploadStatus")
 	helper.Check(err)
 	defer rows.Close()
 	for rows.Next() {
@@ -40,7 +40,7 @@ func (p DatabaseProvider) GetUploadStatus(id string) (models.UploadStatus, bool)
 	}
 
 	var rowResult schemaUploadStatus
-	row := sqliteDb.QueryRow("SELECT * FROM UploadStatus WHERE ChunkId = ?", id)
+	row := p.sqliteDb.QueryRow("SELECT * FROM UploadStatus WHERE ChunkId = ?", id)
 	err := row.Scan(&rowResult.ChunkId, &rowResult.CurrentStatus, &rowResult.CreationDate)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -66,12 +66,12 @@ func (p DatabaseProvider) SaveUploadStatus(status models.UploadStatus) {
 		CreationDate:  currentTime().Unix(),
 	}
 
-	_, err := sqliteDb.Exec("INSERT OR REPLACE INTO UploadStatus (ChunkId, CurrentStatus, CreationDate) VALUES (?, ?, ?)",
+	_, err := p.sqliteDb.Exec("INSERT OR REPLACE INTO UploadStatus (ChunkId, CurrentStatus, CreationDate) VALUES (?, ?, ?)",
 		newData.ChunkId, newData.CurrentStatus, newData.CreationDate)
 	helper.Check(err)
 }
 
 func (p DatabaseProvider) cleanUploadStatus() {
-	_, err := sqliteDb.Exec("DELETE FROM UploadStatus WHERE CreationDate < ?", currentTime().Add(-time.Hour*24).Unix())
+	_, err := p.sqliteDb.Exec("DELETE FROM UploadStatus WHERE CreationDate < ?", currentTime().Add(-time.Hour*24).Unix())
 	helper.Check(err)
 }

@@ -15,7 +15,7 @@ type schemaHotlinks struct {
 // GetHotlink returns the id of the file associated or false if not found
 func (p DatabaseProvider) GetHotlink(id string) (string, bool) {
 	var rowResult schemaHotlinks
-	row := sqliteDb.QueryRow("SELECT FileId FROM Hotlinks WHERE Id = ?", id)
+	row := p.sqliteDb.QueryRow("SELECT FileId FROM Hotlinks WHERE Id = ?", id)
 	err := row.Scan(&rowResult.FileId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -30,7 +30,7 @@ func (p DatabaseProvider) GetHotlink(id string) (string, bool) {
 // GetAllHotlinks returns an array with all hotlink ids
 func (p DatabaseProvider) GetAllHotlinks() []string {
 	ids := make([]string, 0)
-	rows, err := sqliteDb.Query("SELECT Id FROM Hotlinks")
+	rows, err := p.sqliteDb.Query("SELECT Id FROM Hotlinks")
 	helper.Check(err)
 	defer rows.Close()
 	for rows.Next() {
@@ -49,7 +49,7 @@ func (p DatabaseProvider) SaveHotlink(file models.File) {
 		FileId: file.Id,
 	}
 
-	_, err := sqliteDb.Exec("INSERT OR REPLACE INTO Hotlinks (Id, FileId) VALUES (?, ?)",
+	_, err := p.sqliteDb.Exec("INSERT OR REPLACE INTO Hotlinks (Id, FileId) VALUES (?, ?)",
 		newData.Id, newData.FileId)
 	helper.Check(err)
 }
@@ -59,6 +59,6 @@ func (p DatabaseProvider) DeleteHotlink(id string) {
 	if id == "" {
 		return
 	}
-	_, err := sqliteDb.Exec("DELETE FROM Hotlinks WHERE Id = ?", id)
+	_, err := p.sqliteDb.Exec("DELETE FROM Hotlinks WHERE Id = ?", id)
 	helper.Check(err)
 }

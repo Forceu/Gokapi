@@ -38,9 +38,8 @@ func TestUpgradeDb(t *testing.T) {
 	database.Close()
 
 	database.Init(models.DbConnection{
-		SqliteDataDir:  "./test",
-		SqliteFileName: "gokapi.sqlite",
-		Type:           dbabstraction.TypeSqlite,
+		HostUrl: "./test/gokapi.sqlite",
+		Type:    dbabstraction.TypeSqlite,
 	})
 	exitCode = 0
 	oldConfigFile.ConfigVersion = 17

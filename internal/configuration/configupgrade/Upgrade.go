@@ -9,7 +9,7 @@ import (
 )
 
 // CurrentConfigVersion is the version of the configuration structure. Used for upgrading
-const CurrentConfigVersion = 20
+const CurrentConfigVersion = 21
 
 // DoUpgrade checks if an old version is present and updates it to the current version if required
 func DoUpgrade(settings *models.Configuration, env *environment.Environment) bool {
@@ -45,6 +45,10 @@ func updateConfig(settings *models.Configuration, env *environment.Environment) 
 		}
 		settings.ChunkSize = env.ChunkSizeMB
 		settings.MaxParallelUploads = env.MaxParallelUploads
+	}
+	// < v1.9.0
+	if settings.ConfigVersion < 21 {
+		settings.DatabaseUrl = env.DataDir + "/" + env.DatabaseName
 	}
 	database.Upgrade(settings.ConfigVersion)
 }

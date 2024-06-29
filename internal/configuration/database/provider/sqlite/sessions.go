@@ -17,7 +17,7 @@ type schemaSessions struct {
 // GetSession returns the session with the given ID or false if not a valid ID
 func (p DatabaseProvider) GetSession(id string) (models.Session, bool) {
 	var rowResult schemaSessions
-	row := sqliteDb.QueryRow("SELECT * FROM Sessions WHERE Id = ?", id)
+	row := p.sqliteDb.QueryRow("SELECT * FROM Sessions WHERE Id = ?", id)
 	err := row.Scan(&rowResult.Id, &rowResult.RenewAt, &rowResult.ValidUntil)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -41,25 +41,25 @@ func (p DatabaseProvider) SaveSession(id string, session models.Session) {
 		ValidUntil: session.ValidUntil,
 	}
 
-	_, err := sqliteDb.Exec("INSERT OR REPLACE INTO Sessions (Id, RenewAt, ValidUntil) VALUES (?, ?, ?)",
+	_, err := p.sqliteDb.Exec("INSERT OR REPLACE INTO Sessions (Id, RenewAt, ValidUntil) VALUES (?, ?, ?)",
 		newData.Id, newData.RenewAt, newData.ValidUntil)
 	helper.Check(err)
 }
 
 // DeleteSession deletes a session with the given ID
 func (p DatabaseProvider) DeleteSession(id string) {
-	_, err := sqliteDb.Exec("DELETE FROM Sessions WHERE Id = ?", id)
+	_, err := p.sqliteDb.Exec("DELETE FROM Sessions WHERE Id = ?", id)
 	helper.Check(err)
 }
 
 // DeleteAllSessions logs all users out
 func (p DatabaseProvider) DeleteAllSessions() {
 	//goland:noinspection SqlWithoutWhere
-	_, err := sqliteDb.Exec("DELETE FROM Sessions")
+	_, err := p.sqliteDb.Exec("DELETE FROM Sessions")
 	helper.Check(err)
 }
 
 func (p DatabaseProvider) cleanExpiredSessions() {
-	_, err := sqliteDb.Exec("DELETE FROM Sessions WHERE Sessions.ValidUntil < ?", time.Now().Unix())
+	_, err := p.sqliteDb.Exec("DELETE FROM Sessions WHERE Sessions.ValidUntil < ?", time.Now().Unix())
 	helper.Check(err)
 }

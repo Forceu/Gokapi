@@ -1,19 +1,79 @@
 package database
 
 import (
+	"fmt"
 	"github.com/forceu/gokapi/internal/configuration/database/dbabstraction"
+	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
+	"net/url"
+	"strings"
 )
 
 var db dbabstraction.Database
 
 // Init connects to the database and creates the table structure, if necessary
 func Init(config models.DbConnection) {
-	db = dbabstraction.GetNew(config)
-	err := db.Init(config)
+	var err error
+	db, err = dbabstraction.GetNew(config)
 	if err != nil {
 		panic(err)
 	}
+}
+
+func ParseUrl(dbUrl string, mustExist bool) (models.DbConnection, error) {
+	u, err := url.Parse(dbUrl)
+	if err != nil {
+		return models.DbConnection{}, fmt.Errorf("unsupported database URL - expected format is: type://username:password@server: %v", err)
+	}
+	result := models.DbConnection{}
+	switch strings.ToLower(u.Scheme) {
+	case "sqlite":
+		result.Type = dbabstraction.TypeSqlite
+		result.HostUrl = strings.TrimPrefix(dbUrl, "sqlite://")
+		if mustExist && !helper.FileExists(result.HostUrl) {
+			return models.DbConnection{}, fmt.Errorf("file %s does not exist\n", result.HostUrl)
+		}
+	case "redis":
+		result.Type = dbabstraction.TypeRedis
+		result.HostUrl = u.Host
+	default:
+		return models.DbConnection{}, fmt.Errorf("unsupported database type: %s\n", dbUrl)
+	}
+
+	query := u.Query()
+
+	result.Username = u.User.Username()
+	result.Password, _ = u.User.Password()
+	result.RedisUseSsl = query.Has("ssl")
+	result.RedisPrefix = query.Get("prefix")
+
+	return result, nil
+}
+
+func Migrate(configOld, configNew models.DbConnection) {
+	dbOld, err := dbabstraction.GetNew(configOld)
+	helper.Check(err)
+	dbNew, err := dbabstraction.GetNew(configNew)
+	helper.Check(err)
+
+	apiKeys := dbOld.GetAllApiKeys()
+	for _, apiKey := range apiKeys {
+		dbNew.SaveApiKey(apiKey)
+	}
+	dbNew.SaveEnd2EndInfo(dbOld.GetEnd2EndInfo())
+	files := dbOld.GetAllMetadata()
+	for _, file := range files {
+		dbNew.SaveMetaData(file)
+		if file.HotlinkId != "" {
+			dbNew.SaveHotlink(file)
+		}
+	}
+	defaults, ok := dbOld.GetUploadDefaults()
+	if ok {
+		dbNew.SaveUploadDefaults(defaults)
+	}
+	dbOld.Close()
+	dbNew.Close()
 }
 
 // RunGarbageCollection runs the databases GC

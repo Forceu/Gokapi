@@ -1,6 +1,7 @@
 package dbabstraction
 
 import (
+	"fmt"
 	"github.com/forceu/gokapi/internal/configuration/database/provider/redis"
 	"github.com/forceu/gokapi/internal/configuration/database/provider/sqlite"
 	"github.com/forceu/gokapi/internal/models"
@@ -15,8 +16,6 @@ type Database interface {
 	// GetType returns identifier of the underlying interface
 	GetType() int
 
-	// Init connects to the database and creates the table structure, if necessary
-	Init(dbConfig models.DbConnection) error
 	// Upgrade migrates the DB to a new Gokapi version, if required
 	Upgrade(currentVersion int)
 	// RunGarbageCollection runs the databases GC
@@ -84,13 +83,13 @@ type Database interface {
 	SaveUploadStatus(status models.UploadStatus)
 }
 
-func GetNew(config models.DbConnection) Database {
+func GetNew(config models.DbConnection) (Database, error) {
 	switch config.Type {
 	case TypeSqlite:
-		return sqlite.New()
+		return sqlite.New(config)
 	case TypeRedis:
-		return redis.New()
+		return redis.New(config)
 	default:
-		panic("Unsupported database type")
+		return nil, fmt.Errorf("unsupported database: type %v", config.Type)
 	}
 }

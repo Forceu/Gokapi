@@ -2,6 +2,7 @@ package sqlite
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
@@ -11,14 +12,13 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-var sqliteDb *sql.DB
-
 type DatabaseProvider struct {
+	sqliteDb *sql.DB
 }
 
 // New returns an instance
-func New() DatabaseProvider {
-	return DatabaseProvider{}
+func New(dbConfig models.DbConnection) (DatabaseProvider, error) {
+	return DatabaseProvider{}.init(dbConfig)
 }
 
 // GetType returns 0, for being a Sqlite interface
@@ -31,7 +31,7 @@ func (p DatabaseProvider) Upgrade(currentVersion int) {
 	// < v1.8.5
 	if currentVersion < 20 {
 		// Remove Column LastUpdate, deleting old data
-		err := rawSqlite(`DROP TABLE UploadStatus; CREATE TABLE "UploadStatus" (
+		err := p.rawSqlite(`DROP TABLE UploadStatus; CREATE TABLE "UploadStatus" (
 			"ChunkId"	TEXT NOT NULL UNIQUE,
 			"CurrentStatus"	INTEGER NOT NULL,
 			"CreationDate"	INTEGER NOT NULL,
@@ -40,7 +40,7 @@ func (p DatabaseProvider) Upgrade(currentVersion int) {
 		helper.Check(err)
 
 		// Remove Column LastUsedString, keeping old data
-		err = rawSqlite(`CREATE TABLE "ApiKeys_New" (
+		err = p.rawSqlite(`CREATE TABLE "ApiKeys_New" (
 			"Id" TEXT NOT NULL UNIQUE,
 			"FriendlyName" TEXT NOT NULL,
 			"LastUsed" INTEGER NOT NULL,
@@ -57,40 +57,45 @@ func (p DatabaseProvider) Upgrade(currentVersion int) {
 }
 
 // Init connects to the database and creates the table structure, if necessary
-func (p DatabaseProvider) Init(dbConfig models.DbConnection) error {
-	if sqliteDb == nil {
-		dataDir := filepath.Clean(dbConfig.SqliteDataDir)
+func (p DatabaseProvider) init(dbConfig models.DbConnection) (DatabaseProvider, error) {
+	if dbConfig.HostUrl == "" {
+		return DatabaseProvider{}, errors.New("empty database url was provided")
+	}
+	if p.sqliteDb == nil {
+		cleanPath := filepath.Clean(dbConfig.HostUrl)
+		dataDir := filepath.Dir(cleanPath)
 		var err error
 		if !helper.FolderExists(dataDir) {
 			err = os.MkdirAll(dataDir, 0700)
 			if err != nil {
-				return err
+				return DatabaseProvider{}, err
 			}
 		}
-		dbFullPath := dataDir + "/" + dbConfig.SqliteFileName
-		sqliteDb, err = sql.Open("sqlite", dbFullPath+"?_pragma=busy_timeout=10000&_pragma=journal_mode=WAL")
+		p.sqliteDb, err = sql.Open("sqlite", cleanPath+"?_pragma=busy_timeout=10000&_pragma=journal_mode=WAL")
 		if err != nil {
-			return err
+			return DatabaseProvider{}, err
 		}
-		sqliteDb.SetMaxOpenConns(10000)
-		sqliteDb.SetMaxIdleConns(10000)
+		p.sqliteDb.SetMaxOpenConns(10000)
+		p.sqliteDb.SetMaxIdleConns(10000)
 
-		if !helper.FileExists(dbFullPath) {
-			return createNewDatabase()
+		if !helper.FileExists(dbConfig.HostUrl) {
+			return p, p.createNewDatabase()
 		}
+		err = p.sqliteDb.Ping()
+		return p, err
 	}
-	return nil
+	return p, nil
 }
 
 // Close the database connection
 func (p DatabaseProvider) Close() {
-	if sqliteDb != nil {
-		err := sqliteDb.Close()
+	if p.sqliteDb != nil {
+		err := p.sqliteDb.Close()
 		if err != nil {
 			fmt.Println(err)
 		}
 	}
-	sqliteDb = nil
+	p.sqliteDb = nil
 }
 
 // RunGarbageCollection runs the databases GC
@@ -99,16 +104,7 @@ func (p DatabaseProvider) RunGarbageCollection() {
 	p.cleanUploadStatus()
 }
 
-type schemaPragma struct {
-	Cid        string
-	Name       string
-	Type       string
-	NotNull    int
-	DefaultVal sql.NullString
-	Pk         int
-}
-
-func createNewDatabase() error {
+func (p DatabaseProvider) createNewDatabase() error {
 	sqlStmt := `CREATE TABLE "ApiKeys" (
 			"Id"	TEXT NOT NULL UNIQUE,
 			"FriendlyName"	TEXT NOT NULL,
@@ -167,15 +163,15 @@ func createNewDatabase() error {
 			PRIMARY KEY("ChunkId")
 		) WITHOUT ROWID;
 `
-	err := rawSqlite(sqlStmt)
+	err := p.rawSqlite(sqlStmt)
 	return err
 }
 
 // rawSqlite runs a raw SQL statement. Should only be used for upgrading
-func rawSqlite(statement string) error {
-	if sqliteDb == nil {
+func (p DatabaseProvider) rawSqlite(statement string) error {
+	if p.sqliteDb == nil {
 		panic("Sqlite not initialised")
 	}
-	_, err := sqliteDb.Exec(statement)
+	_, err := p.sqliteDb.Exec(statement)
 	return err
 }

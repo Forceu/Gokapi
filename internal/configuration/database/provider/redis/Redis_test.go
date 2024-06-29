@@ -14,7 +14,7 @@ import (
 
 var config = models.DbConnection{
 	RedisPrefix: "test_",
-	RedisUrl:    "127.0.0.1:16379",
+	HostUrl:     "127.0.0.1:16379",
 	Type:        1, // dbabstraction.TypeRedis
 }
 
@@ -35,14 +35,13 @@ func TestMain(m *testing.M) {
 var dbInstance DatabaseProvider
 
 func TestDatabaseProvider_Init(t *testing.T) {
-	dbInstance = New()
-	err := dbInstance.Init(config)
+	instance, err := New(config)
 	test.IsNil(t, err)
-	dbInstance.Close()
+	instance.Close()
 	defer test.ExpectPanic(t)
-	err = dbInstance.Init(models.DbConnection{
+	_, err = New(models.DbConnection{
 		RedisPrefix: "test_",
-		RedisUrl:    "invalid:11",
+		HostUrl:     "invalid:11",
 		Type:        1, // dbabstraction.TypeRedis
 	})
 	test.IsNotNil(t, err)
@@ -53,8 +52,8 @@ func TestDatabaseProvider_GetType(t *testing.T) {
 }
 
 func TestDatabaseProvider_Upgrade(t *testing.T) {
-	dbInstance = New()
-	err := dbInstance.Init(config)
+	var err error
+	dbInstance, err = New(config)
 	test.IsNil(t, err)
 	dbInstance.Upgrade(19)
 }
@@ -67,75 +66,75 @@ func TestGetDialOptions(t *testing.T) {
 	result := getDialOptions(config)
 	test.IsEqualInt(t, len(result), 1)
 	newConfig := config
-	newConfig.RedisUsername = "123"
-	newConfig.RedisPassword = "456"
+	newConfig.Username = "123"
+	newConfig.Password = "456"
 	newConfig.RedisUseSsl = true
 	result = getDialOptions(newConfig)
 	test.IsEqualInt(t, len(result), 4)
 }
 
 func TestGetKey(t *testing.T) {
-	key, ok := getKeyString("test1")
+	key, ok := dbInstance.getKeyString("test1")
 	test.IsEqualString(t, key, "")
 	test.IsEqualBool(t, ok, false)
-	setKey("test1", "content")
-	key, ok = getKeyString("test1")
+	dbInstance.setKey("test1", "content")
+	key, ok = dbInstance.getKeyString("test1")
 	test.IsEqualString(t, key, "content")
 	test.IsEqualBool(t, ok, true)
-	deleteKey("test1")
-	key, ok = getKeyString("test1")
+	dbInstance.deleteKey("test1")
+	key, ok = dbInstance.getKeyString("test1")
 	test.IsEqualString(t, key, "")
 
-	keyInt, ok := getKeyInt("test2")
+	keyInt, ok := dbInstance.getKeyInt("test2")
 	test.IsEqualInt(t, keyInt, 0)
 	test.IsEqualBool(t, ok, false)
-	setKey("test2", 2)
-	keyInt, ok = getKeyInt("test2")
+	dbInstance.setKey("test2", 2)
+	keyInt, ok = dbInstance.getKeyInt("test2")
 	test.IsEqualInt(t, keyInt, 2)
 	test.IsEqualBool(t, ok, true)
-	setKey("test2", 0)
-	keyInt, ok = getKeyInt("test2")
+	dbInstance.setKey("test2", 0)
+	keyInt, ok = dbInstance.getKeyInt("test2")
 	test.IsEqualInt(t, keyInt, 0)
 	test.IsEqualBool(t, ok, true)
 
-	bytes, ok := getKeyBytes("test3")
+	bytes, ok := dbInstance.getKeyBytes("test3")
 	test.IsEqualInt(t, len(bytes), 0)
 	test.IsEqualBool(t, ok, false)
-	setKey("test3", []byte("test"))
-	bytes, ok = getKeyBytes("test3")
+	dbInstance.setKey("test3", []byte("test"))
+	bytes, ok = dbInstance.getKeyBytes("test3")
 	test.IsEqualString(t, string(bytes), "test")
 	test.IsEqualBool(t, ok, true)
 }
 
 func TestExpiration(t *testing.T) {
-	setKey("expTest", "test")
-	setKey("expTest2", "test2")
-	_, ok := getKeyString("expTest")
+	dbInstance.setKey("expTest", "test")
+	dbInstance.setKey("expTest2", "test2")
+	_, ok := dbInstance.getKeyString("expTest")
 	test.IsEqualBool(t, ok, true)
-	_, ok = getKeyString("expTest2")
+	_, ok = dbInstance.getKeyString("expTest2")
 	test.IsEqualBool(t, ok, true)
-	setExpiryInSeconds("expTest", 1)
-	setExpiryAt("expTest2", time.Now().Add(1*time.Second).Unix())
-	_, ok = getKeyString("expTest")
+	dbInstance.setExpiryInSeconds("expTest", 1)
+	dbInstance.setExpiryAt("expTest2", time.Now().Add(1*time.Second).Unix())
+	_, ok = dbInstance.getKeyString("expTest")
 	test.IsEqualBool(t, ok, true)
-	_, ok = getKeyString("expTest2")
+	_, ok = dbInstance.getKeyString("expTest2")
 	test.IsEqualBool(t, ok, true)
 	mRedis.FastForward(2 * time.Second)
-	_, ok = getKeyString("expTest")
+	_, ok = dbInstance.getKeyString("expTest")
 	test.IsEqualBool(t, ok, false)
-	_, ok = getKeyString("expTest2")
+	_, ok = dbInstance.getKeyString("expTest2")
 	test.IsEqualBool(t, ok, false)
 }
 
 func TestDeleteAll(t *testing.T) {
-	setKey("delTest", "test")
-	setKey("delTest2", "test2")
-	setKey("delTest3", "test2")
+	dbInstance.setKey("delTest", "test")
+	dbInstance.setKey("delTest2", "test2")
+	dbInstance.setKey("delTest3", "test2")
 
-	keys := getAllKeysWithPrefix("delTest")
+	keys := dbInstance.getAllKeysWithPrefix("delTest")
 	test.IsEqualInt(t, len(keys), 3)
-	deleteAllWithPrefix("delTest")
-	keys = getAllKeysWithPrefix("delTest")
+	dbInstance.deleteAllWithPrefix("delTest")
+	keys = dbInstance.getAllKeysWithPrefix("delTest")
 	test.IsEqualInt(t, len(keys), 0)
 }
 
@@ -146,9 +145,9 @@ func TestGetAllValuesWithPrefix(t *testing.T) {
 	content["alTest3"] = "test3"
 	content["alTest4"] = "test4"
 	for k, v := range content {
-		setKey(k, v)
+		dbInstance.setKey(k, v)
 	}
-	keys := getAllValuesWithPrefix("alTest")
+	keys := dbInstance.getAllValuesWithPrefix("alTest")
 	test.IsEqualInt(t, len(keys), 4)
 	for k, v := range keys {
 		result, err := redigo.String(v, nil)
@@ -158,7 +157,7 @@ func TestGetAllValuesWithPrefix(t *testing.T) {
 }
 
 func TestGetHashmap(t *testing.T) {
-	hmap, ok := getHashMap("newmap")
+	hmap, ok := dbInstance.getHashMap("newmap")
 	test.IsEqualBool(t, hmap == nil, true)
 	test.IsEqualBool(t, ok, false)
 
@@ -167,8 +166,8 @@ func TestGetHashmap(t *testing.T) {
 	content["alTest2"] = "test2"
 	content["alTest3"] = "test3"
 	content["alTest4"] = "test4"
-	setHashMap(buildArgs("newmap").AddFlat(content))
-	hmap, ok = getHashMap("newmap")
+	dbInstance.setHashMap(dbInstance.buildArgs("newmap").AddFlat(content))
+	hmap, ok = dbInstance.getHashMap("newmap")
 	test.IsEqualBool(t, ok, true)
 	hmapString, err := redigo.StringMap(hmap, nil)
 	test.IsNil(t, err)
@@ -181,9 +180,9 @@ func TestGetHashmap(t *testing.T) {
 	content2["alTest5"] = "test5"
 	content2["alTest6"] = "test6"
 	content2["alTest7"] = "test7"
-	setHashMap(buildArgs("newmap2").AddFlat(content2))
+	dbInstance.setHashMap(dbInstance.buildArgs("newmap2").AddFlat(content2))
 
-	maps := getAllHashesWithPrefix("newmap")
+	maps := dbInstance.getAllHashesWithPrefix("newmap")
 	test.IsEqualInt(t, len(maps), 2)
 }
 
@@ -246,8 +245,9 @@ func TestE2EConfig(t *testing.T) {
 }
 
 func TestHotlink(t *testing.T) {
-	err := dbInstance.Init(config)
+	instance, err := New(config)
 	test.IsNil(t, err)
+	dbInstance = instance
 	dbInstance.SaveHotlink(models.File{Id: "testfile", Name: "test.txt", HotlinkId: "testlink", ExpireAt: time.Now().Add(time.Hour).Unix()})
 
 	hotlink, ok := dbInstance.GetHotlink("testlink")
@@ -408,14 +408,14 @@ func TestMetaData(t *testing.T) {
 }
 
 func TestGetAllMetaDataIds(t *testing.T) {
-	err := dbInstance.Init(config)
+	instance, err := New(config)
 	test.IsNil(t, err)
 
-	ids := dbInstance.GetAllMetaDataIds()
+	ids := instance.GetAllMetaDataIds()
 	test.IsEqualString(t, ids[0], "test2")
 	test.IsEqualString(t, ids[1], "test3")
 
-	dbInstance.Close()
+	instance.Close()
 	defer test.ExpectPanic(t)
-	_ = dbInstance.GetAllMetaDataIds()
+	_ = instance.GetAllMetaDataIds()
 }

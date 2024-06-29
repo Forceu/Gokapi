@@ -3,9 +3,6 @@
 package sqlite
 
 import (
-	"database/sql"
-	"errors"
-	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/test"
@@ -18,9 +15,8 @@ import (
 )
 
 var config = models.DbConnection{
-	SqliteDataDir:  "./test/newfolder",
-	SqliteFileName: "gokapi.sqlite",
-	Type:           0, // dbabstraction.TypeSqlite
+	HostUrl: "./test/newfolder/gokapi.sqlite",
+	Type:    0, // dbabstraction.TypeSqlite
 }
 
 func TestMain(m *testing.M) {
@@ -33,33 +29,26 @@ func TestMain(m *testing.M) {
 var dbInstance DatabaseProvider
 
 func TestInit(t *testing.T) {
-	test.IsEqualBool(t, sqliteDb == nil, true)
-	dbInstance = New()
-	err := dbInstance.Init(config)
+	instance, err := New(config)
 	test.IsNil(t, err)
-	test.IsEqualBool(t, sqliteDb != nil, true)
 	test.FolderExists(t, "./test/newfolder")
-	dbInstance.Close()
-	test.IsEqualBool(t, sqliteDb == nil, true)
+	instance.Close()
 	err = os.WriteFile("./test/newfolder/gokapi2.sqlite", []byte("invalid"), 0700)
 	test.IsNil(t, err)
-	dbInstance.Init(models.DbConnection{
-		SqliteDataDir:  "./test/newfolder",
-		SqliteFileName: "gokapi2.sqlite",
-		Type:           0, // dbabstraction.TypeSqlite
+	instance, err = New(models.DbConnection{
+		HostUrl: "./test/newfolder/gokapi2.sqlite",
+		Type:    0, // dbabstraction.TypeSqlite
 	})
+	test.IsNotNil(t, err)
 }
 
 func TestClose(t *testing.T) {
-	test.IsEqualBool(t, sqliteDb != nil, true)
-	dbInstance.Close()
-	test.IsEqualBool(t, sqliteDb == nil, true)
-	mock := setMockDb(t)
-	mock.ExpectClose().WillReturnError(errors.New("test"))
-	dbInstance.Close()
-	restoreDb()
-	err := dbInstance.Init(config)
+	instance, err := New(config)
 	test.IsNil(t, err)
+	instance.Close()
+	instance, err = New(config)
+	test.IsNil(t, err)
+	dbInstance = instance
 }
 
 func TestMetaData(t *testing.T) {
@@ -119,8 +108,9 @@ func TestDatabaseProvider_GetType(t *testing.T) {
 }
 
 func TestGetAllMetaDataIds(t *testing.T) {
-	err := dbInstance.Init(config)
+	instance, err := New(config)
 	test.IsNil(t, err)
+	dbInstance = instance
 
 	ids := dbInstance.GetAllMetaDataIds()
 	test.IsEqualString(t, ids[0], "test2")
@@ -132,8 +122,10 @@ func TestGetAllMetaDataIds(t *testing.T) {
 }
 
 func TestHotlink(t *testing.T) {
-	err := dbInstance.Init(config)
+	instance, err := New(config)
 	test.IsNil(t, err)
+	dbInstance = instance
+
 	dbInstance.SaveHotlink(models.File{Id: "testfile", Name: "test.txt", HotlinkId: "testlink", ExpireAt: time.Now().Add(time.Hour).Unix()})
 
 	hotlink, ok := dbInstance.GetHotlink("testlink")
@@ -526,25 +518,13 @@ func TestUploadStatus(t *testing.T) {
 	test.IsEqualInt(t, len(allStatus), 6)
 }
 
-var originalDb *sql.DB
-
-func setMockDb(t *testing.T) sqlmock.Sqlmock {
-	originalDb = sqliteDb
-	db, mock, err := sqlmock.New()
-	test.IsNil(t, err)
-	sqliteDb = db
-	return mock
-}
-func restoreDb() {
-	sqliteDb = originalDb
-}
-
 func TestDatabaseProvider_Upgrade(t *testing.T) {
 	dbInstance.Upgrade(19)
 }
 
 func TestRawSql(t *testing.T) {
 	dbInstance.Close()
+	dbInstance.sqliteDb = nil
 	defer test.ExpectPanic(t)
-	_ = rawSqlite("Select * from Sessions")
+	_ = dbInstance.rawSqlite("Select * from Sessions")
 }

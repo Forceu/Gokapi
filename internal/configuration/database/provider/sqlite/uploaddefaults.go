@@ -20,7 +20,7 @@ type schemaUploadConfig struct {
 // a password for the file
 func (p DatabaseProvider) GetUploadDefaults() (models.LastUploadValues, bool) {
 	rowResult := schemaUploadConfig{}
-	row := sqliteDb.QueryRow("SELECT * FROM UploadConfig WHERE id = 1")
+	row := p.sqliteDb.QueryRow("SELECT * FROM UploadConfig WHERE id = 1")
 	err := row.Scan(&rowResult.Id, &rowResult.Downloads, &rowResult.TimeExpiry, &rowResult.Password, &rowResult.UnlimitedDownloads, &rowResult.UnlimitedTime)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -55,7 +55,7 @@ func (p DatabaseProvider) SaveUploadDefaults(values models.LastUploadValues) {
 		newData.UnlimitedTime = 1
 	}
 
-	_, err := sqliteDb.Exec("INSERT OR REPLACE INTO UploadConfig (id, Downloads,TimeExpiry,Password,UnlimitedDownloads,UnlimitedTime) VALUES (1, ?, ?, ?, ?, ?)",
+	_, err := p.sqliteDb.Exec("INSERT OR REPLACE INTO UploadConfig (id, Downloads,TimeExpiry,Password,UnlimitedDownloads,UnlimitedTime) VALUES (1, ?, ?, ?, ?, ?)",
 		newData.Downloads, newData.TimeExpiry, newData.Password, newData.UnlimitedDownloads, newData.UnlimitedTime)
 	helper.Check(err)
 }

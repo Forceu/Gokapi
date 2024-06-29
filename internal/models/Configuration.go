@@ -13,6 +13,7 @@ type Configuration struct {
 	RedirectUrl         string               `json:"RedirectUrl"`
 	PublicName          string               `json:"PublicName"`
 	DataDir             string               `json:"DataDir"`
+	DatabaseUrl         string               `json:"DatabaseUrl"`
 	ConfigVersion       int                  `json:"ConfigVersion"`
 	LengthId            int                  `json:"LengthId"`
 	MaxFileSizeMB       int                  `json:"MaxFileSizeMB"`

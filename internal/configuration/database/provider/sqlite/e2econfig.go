@@ -26,7 +26,7 @@ func (p DatabaseProvider) SaveEnd2EndInfo(info models.E2EInfoEncrypted) {
 		Config: buf.Bytes(),
 	}
 
-	_, err = sqliteDb.Exec("INSERT OR REPLACE INTO E2EConfig (id, Config) VALUES (?, ?)",
+	_, err = p.sqliteDb.Exec("INSERT OR REPLACE INTO E2EConfig (id, Config) VALUES (?, ?)",
 		newData.Id, newData.Config)
 	helper.Check(err)
 }
@@ -36,7 +36,7 @@ func (p DatabaseProvider) GetEnd2EndInfo() models.E2EInfoEncrypted {
 	result := models.E2EInfoEncrypted{}
 	rowResult := schemaE2EConfig{}
 
-	row := sqliteDb.QueryRow("SELECT Config FROM E2EConfig WHERE id = 1")
+	row := p.sqliteDb.QueryRow("SELECT Config FROM E2EConfig WHERE id = 1")
 	err := row.Scan(&rowResult.Config)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -56,6 +56,6 @@ func (p DatabaseProvider) GetEnd2EndInfo() models.E2EInfoEncrypted {
 // DeleteEnd2EndInfo resets the encrypted e2e info
 func (p DatabaseProvider) DeleteEnd2EndInfo() {
 	//goland:noinspection SqlWithoutWhere
-	_, err := sqliteDb.Exec("DELETE FROM E2EConfig")
+	_, err := p.sqliteDb.Exec("DELETE FROM E2EConfig")
 	helper.Check(err)
 }
