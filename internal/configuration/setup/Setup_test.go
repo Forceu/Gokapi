@@ -92,6 +92,7 @@ func TestEncryptionSetup(t *testing.T) {
 
 	testconfiguration.Create(false)
 	configuration.Load()
+	configuration.ConnectDatabase()
 	configuration.Get().Encryption.Level = 3
 	id := testconfiguration.WriteEncryptedFile()
 	file, ok := database.GetMetaDataById(id)

@@ -77,10 +77,8 @@ func Load() {
 	settings, err := loadFromFile(Environment.ConfigPath)
 	helper.Check(err)
 	serverSettings = settings
-	configupgrade.DoPreUpgrade(&serverSettings, &Environment)
-	dbConfig, err := database.ParseUrl(serverSettings.DatabaseUrl, false)
-	helper.Check(err)
-	database.Init(dbConfig)
+	usesHttps = strings.HasPrefix(strings.ToLower(serverSettings.ServerUrl), "https://")
+
 	if configupgrade.DoUpgrade(&serverSettings, &Environment) {
 		save()
 	}
@@ -96,7 +94,13 @@ func Load() {
 	helper.CreateDir(serverSettings.DataDir)
 	filesystem.Init(serverSettings.DataDir)
 	log.Init(Environment.DataDir)
-	usesHttps = strings.HasPrefix(strings.ToLower(serverSettings.ServerUrl), "https://")
+}
+
+func ConnectDatabase() {
+	dbConfig, err := database.ParseUrl(serverSettings.DatabaseUrl, false)
+	helper.Check(err)
+	database.Connect(dbConfig)
+	database.Upgrade()
 }
 
 // UsesHttps returns true if Gokapi URL is set to a secure URL
@@ -130,10 +134,6 @@ func save() {
 func LoadFromSetup(config models.Configuration, cloudConfig *cloudconfig.CloudConfig, isInitialSetup bool) {
 	Environment = environment.New()
 	helper.CreateDir(Environment.ConfigDir)
-	if !isInitialSetup {
-		Load()
-		database.DeleteAllSessions()
-	}
 
 	serverSettings = config
 	if cloudConfig != nil {
@@ -151,6 +151,8 @@ func LoadFromSetup(config models.Configuration, cloudConfig *cloudconfig.CloudCo
 	}
 	save()
 	Load()
+	ConnectDatabase()
+	database.DeleteAllSessions()
 }
 
 // SetDeploymentPassword sets a new password. This should only be used for non-interactive deployment, but is not enforced

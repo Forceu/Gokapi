@@ -43,12 +43,12 @@ func TestMain(m *testing.M) {
 
 func TestInit(t *testing.T) {
 	availableDatabases = make([]dbabstraction.Database, 0)
-	Init(configRedis)
+	Connect(configRedis)
 	availableDatabases = append(availableDatabases, db)
-	Init(configSqlite)
+	Connect(configSqlite)
 	availableDatabases = append(availableDatabases, db)
 	defer test.ExpectPanic(t)
-	Init(models.DbConnection{Type: 2})
+	Connect(models.DbConnection{Type: 2})
 }
 
 func TestApiKeys(t *testing.T) {
@@ -183,7 +183,12 @@ func TestMetaData(t *testing.T) {
 }
 
 func TestUpgrade(t *testing.T) {
-	runAllTypesNoOutput(t, func() { Upgrade(19) })
+	actualDbVersion := currentDbVersion
+	currentDbVersion = 99
+	runAllTypesNoOutput(t, func() { db.SetDbVersion(1) })
+	runAllTypesNoOutput(t, func() { Upgrade() })
+	runAllTypesNoOutput(t, func() { test.IsEqualInt(t, db.GetDbVersion(), 99) })
+	currentDbVersion = actualDbVersion
 }
 
 func TestRunGarbageCollection(t *testing.T) {

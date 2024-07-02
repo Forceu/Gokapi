@@ -11,8 +11,10 @@ import (
 
 var db dbabstraction.Database
 
-// Init connects to the database and creates the table structure, if necessary
-func Init(config models.DbConnection) {
+var currentDbVersion = 2
+
+// Connect establishes a connection to the database and creates the table structure, if necessary
+func Connect(config models.DbConnection) {
 	var err error
 	db, err = dbabstraction.GetNew(config)
 	if err != nil {
@@ -82,8 +84,12 @@ func RunGarbageCollection() {
 }
 
 // Upgrade migrates the DB to a new Gokapi version, if required
-func Upgrade(currentVersion int) {
-	db.Upgrade(currentVersion)
+func Upgrade() {
+	dbVersion := db.GetDbVersion()
+	if dbVersion < currentDbVersion {
+		db.Upgrade(currentDbVersion)
+		db.SetDbVersion(currentDbVersion)
+	}
 }
 
 // Close the database connection

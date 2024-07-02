@@ -79,9 +79,19 @@ func newPool(config models.DbConnection) *redigo.Pool {
 }
 
 // Upgrade migrates the DB to a new Gokapi version, if required
-func (p DatabaseProvider) Upgrade(currentVersion int) {
+func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 	// Currently no upgrade necessary
 	return
+}
+
+const keyDbVersion = "dbversion"
+
+func (p DatabaseProvider) GetDbVersion() int {
+	key, _ := p.getKeyInt(keyDbVersion)
+	return key
+}
+func (p DatabaseProvider) SetDbVersion(currentVersion int) {
+	p.setKey(keyDbVersion, currentVersion)
 }
 
 // Close the database connection

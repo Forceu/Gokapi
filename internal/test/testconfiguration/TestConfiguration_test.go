@@ -26,7 +26,7 @@ func TestDelete(t *testing.T) {
 }
 
 func TestWriteEncryptedFile(t *testing.T) {
-	database.Init(models.DbConnection{
+	database.Connect(models.DbConnection{
 		HostUrl: "./test/gokapi.sqlite",
 		Type:    dbabstraction.TypeSqlite,
 	})

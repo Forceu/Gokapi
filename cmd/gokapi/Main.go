@@ -54,7 +54,9 @@ func main() {
 	setup.RunIfFirstStart()
 	configuration.Load()
 	setDeploymentPassword(passedFlags)
-	reconfigureServer(passedFlags)
+	if !reconfigureServer(passedFlags) {
+		configuration.ConnectDatabase()
+	}
 	encryption.Init(*configuration.Get())
 	authentication.Init(configuration.Get().Authentication)
 	createSsl(passedFlags)
@@ -150,10 +152,12 @@ func initCloudConfig(passedFlags flagparser.MainFlags) {
 }
 
 // Checks for command line arguments that have to be parsed after loading the configuration
-func reconfigureServer(passedFlags flagparser.MainFlags) {
+func reconfigureServer(passedFlags flagparser.MainFlags) bool {
 	if passedFlags.Reconfigure {
 		setup.RunConfigModification()
+		return true
 	}
+	return false
 }
 
 func createSsl(passedFlags flagparser.MainFlags) {

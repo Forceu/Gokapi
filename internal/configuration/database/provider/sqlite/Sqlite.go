@@ -27,9 +27,9 @@ func (p DatabaseProvider) GetType() int {
 }
 
 // Upgrade migrates the DB to a new Gokapi version, if required
-func (p DatabaseProvider) Upgrade(currentVersion int) {
-	// < v1.8.5
-	if currentVersion < 20 {
+func (p DatabaseProvider) Upgrade(currentDbVersion int) {
+	// < v1.9.0
+	if currentDbVersion < 2 {
 		// Remove Column LastUpdate, deleting old data
 		err := p.rawSqlite(`DROP TABLE UploadStatus; CREATE TABLE "UploadStatus" (
 			"ChunkId"	TEXT NOT NULL UNIQUE,
@@ -54,6 +54,18 @@ func (p DatabaseProvider) Upgrade(currentVersion int) {
 		ALTER TABLE "ApiKeys_New" RENAME TO "ApiKeys";`)
 		helper.Check(err)
 	}
+}
+
+func (p DatabaseProvider) GetDbVersion() int {
+	var userVersion int
+	row := p.sqliteDb.QueryRow("PRAGMA user_version;")
+	err := row.Scan(&userVersion)
+	helper.Check(err)
+	return userVersion
+}
+func (p DatabaseProvider) SetDbVersion(newVersion int) {
+	_, err := p.sqliteDb.Exec(fmt.Sprintf("PRAGMA user_version = %d;", newVersion))
+	helper.Check(err)
 }
 
 // Init connects to the database and creates the table structure, if necessary

@@ -39,7 +39,7 @@ func Create(initFiles bool) {
 	if err != nil {
 		panic(err)
 	}
-	database.Init(config)
+	database.Connect(config)
 	writeTestSessions()
 	database.SaveUploadDefaults(models.LastUploadValues{
 		Downloads:         3,

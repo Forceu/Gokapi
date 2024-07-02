@@ -17,11 +17,14 @@ type Database interface {
 	GetType() int
 
 	// Upgrade migrates the DB to a new Gokapi version, if required
-	Upgrade(currentVersion int)
+	Upgrade(currentDbVersion int)
 	// RunGarbageCollection runs the databases GC
 	RunGarbageCollection()
 	// Close the database connection
 	Close()
+
+	GetDbVersion() int
+	SetDbVersion(newVersion int)
 
 	// GetAllApiKeys returns a map with all API keys
 	GetAllApiKeys() map[string]models.ApiKey
