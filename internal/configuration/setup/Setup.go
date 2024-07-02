@@ -50,7 +50,7 @@ var password string
 
 // debugDisableAuth can be set to true for testing purposes. It will disable the
 // password requirement for accessing the setup page
-const debugDisableAuth = false
+const debugDisableAuth = true
 
 // RunIfFirstStart checks if config files exist and if not start a blocking webserver for setup
 func RunIfFirstStart() {
@@ -588,19 +588,20 @@ func splitAndTrim(input string) []string {
 }
 
 type setupView struct {
-	IsInitialSetup bool
-	LocalhostOnly  bool
-	HasAwsFeature  bool
-	IsDocker       bool
-	S3EnvProvided  bool
-	Port           int
-	OAuthUsers     string
-	OAuthGroups    string
-	HeaderUsers    string
-	Auth           models.AuthenticationConfig
-	Settings       models.Configuration
-	CloudSettings  cloudconfig.CloudConfig
-	ProtectedUrls  []string
+	IsInitialSetup   bool
+	LocalhostOnly    bool
+	HasAwsFeature    bool
+	IsDocker         bool
+	S3EnvProvided    bool
+	Port             int
+	OAuthUsers       string
+	OAuthGroups      string
+	HeaderUsers      string
+	Auth             models.AuthenticationConfig
+	Settings         models.Configuration
+	CloudSettings    cloudconfig.CloudConfig
+	DatabaseSettings models.DbConnection
+	ProtectedUrls    []string
 }
 
 func (v *setupView) loadFromConfig() {
@@ -632,6 +633,10 @@ func (v *setupView) loadFromConfig() {
 	}
 	env := environment.New()
 	v.S3EnvProvided = env.IsAwsProvided()
+
+	dbSettings, err := database.ParseUrl(settings.DatabaseUrl, false)
+	helper.Check(err)
+	v.DatabaseSettings = dbSettings
 }
 
 // Handling of /start

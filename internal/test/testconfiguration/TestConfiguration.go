@@ -5,7 +5,6 @@ package testconfiguration
 import (
 	"fmt"
 	"github.com/forceu/gokapi/internal/configuration/database"
-	"github.com/forceu/gokapi/internal/configuration/database/dbabstraction"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage/filesystem"
@@ -36,10 +35,11 @@ func SetDirEnv() {
 func Create(initFiles bool) {
 	SetDirEnv()
 	os.WriteFile(configFile, configTestFile, 0777)
-	database.Init(models.DbConnection{
-		HostUrl: dataDir + "/gokapi.sqlite",
-		Type:    dbabstraction.TypeSqlite,
-	})
+	config, err := database.ParseUrl("sqlite://"+dataDir+"/gokapi.sqlite", false)
+	if err != nil {
+		panic(err)
+	}
+	database.Init(config)
 	writeTestSessions()
 	database.SaveUploadDefaults(models.LastUploadValues{
 		Downloads:         3,
