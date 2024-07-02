@@ -88,7 +88,7 @@ func TestGetStatusSSE(t *testing.T) {
 	body, err := io.ReadAll(rr.Body)
 	test.IsNil(t, err)
 
-	test.IsEqualString(t, string(body), "{\"chunkid\":\"expiredstatus\",\"currentstatus\":0,\"type\":\"uploadstatus\"}\n{\"chunkid\":\"validstatus_0\",\"currentstatus\":0,\"type\":\"uploadstatus\"}\n{\"chunkid\":\"validstatus_1\",\"currentstatus\":1,\"type\":\"uploadstatus\"}\n")
+	test.IsEqualString(t, string(body), "{\"chunkid\":\"validstatus_0\",\"currentstatus\":0,\"type\":\"uploadstatus\"}\n{\"chunkid\":\"validstatus_1\",\"currentstatus\":1,\"type\":\"uploadstatus\"}\n")
 
 	// Test ping message
 	time.Sleep(3 * time.Second)

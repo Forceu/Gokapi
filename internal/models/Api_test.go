@@ -1,8 +1,18 @@
 package models
 
 import (
+	"github.com/forceu/gokapi/internal/test"
 	"testing"
+	"time"
 )
+
+func TestApiKey_GetReadableDate(t *testing.T) {
+	key := &ApiKey{}
+	test.IsEqualString(t, key.GetReadableDate(), "Never")
+	now := time.Now()
+	key.LastUsed = now.Unix()
+	test.IsEqualString(t, key.GetReadableDate(), now.Format("2006-01-02 15:04:05"))
+}
 
 func TestSetPermission(t *testing.T) {
 	key := &ApiKey{}

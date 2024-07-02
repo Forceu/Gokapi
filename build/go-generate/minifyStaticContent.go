@@ -4,7 +4,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/tdewolff/minify/v2"
+	minify "github.com/tdewolff/minify/v2"
 	"github.com/tdewolff/minify/v2/css"
 	"github.com/tdewolff/minify/v2/js"
 	"os"

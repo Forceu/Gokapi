@@ -77,7 +77,10 @@ func Load() {
 	settings, err := loadFromFile(Environment.ConfigPath)
 	helper.Check(err)
 	serverSettings = settings
-	database.Init(serverSettings.DataDir, Environment.DatabaseName)
+	configupgrade.DoPreUpgrade(&serverSettings, &Environment)
+	dbConfig, err := database.ParseUrl(serverSettings.DatabaseUrl, false)
+	helper.Check(err)
+	database.Init(dbConfig)
 	if configupgrade.DoUpgrade(&serverSettings, &Environment) {
 		save()
 	}

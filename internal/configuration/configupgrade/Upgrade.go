@@ -4,13 +4,12 @@ import (
 	"fmt"
 	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/environment"
-	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"os"
 )
 
 // CurrentConfigVersion is the version of the configuration structure. Used for upgrading
-const CurrentConfigVersion = 20
+const CurrentConfigVersion = 21
 
 // DoUpgrade checks if an old version is present and updates it to the current version if required
 func DoUpgrade(settings *models.Configuration, env *environment.Environment) bool {
@@ -21,6 +20,14 @@ func DoUpgrade(settings *models.Configuration, env *environment.Environment) boo
 		return true
 	}
 	return false
+}
+
+// DoPreUpgrade checks if an old version is present and updates it to the current version before loading the DB
+func DoPreUpgrade(settings *models.Configuration, env *environment.Environment) {
+	// < v1.9.0
+	if settings.ConfigVersion < 21 {
+		settings.DatabaseUrl = "sqlite://" + env.DataDir + "/" + env.DatabaseName
+	}
 }
 
 // Upgrades the settings if saved with a previous version
@@ -47,16 +54,7 @@ func updateConfig(settings *models.Configuration, env *environment.Environment) 
 		settings.ChunkSize = env.ChunkSizeMB
 		settings.MaxParallelUploads = env.MaxParallelUploads
 	}
-	// < v1.8.5
-	if settings.ConfigVersion < 20 {
-		err := database.RawSqlite(`DROP TABLE UploadStatus; CREATE TABLE "UploadStatus" (
-	"ChunkId"	TEXT NOT NULL UNIQUE,
-	"CurrentStatus"	INTEGER NOT NULL,
-	"CreationDate"	INTEGER NOT NULL,
-	PRIMARY KEY("ChunkId")
-) WITHOUT ROWID;`)
-		helper.Check(err)
-	}
+	database.Upgrade(settings.ConfigVersion)
 }
 
 var osExit = os.Exit

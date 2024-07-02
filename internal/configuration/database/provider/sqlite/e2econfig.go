@@ -1,4 +1,4 @@
-package database
+package sqlite
 
 import (
 	"bytes"
@@ -15,9 +15,7 @@ type schemaE2EConfig struct {
 }
 
 // SaveEnd2EndInfo stores the encrypted e2e info
-func SaveEnd2EndInfo(info models.E2EInfoEncrypted) {
-
-	info.AvailableFiles = nil
+func (p DatabaseProvider) SaveEnd2EndInfo(info models.E2EInfoEncrypted) {
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
 	err := enc.Encode(info)
@@ -28,17 +26,17 @@ func SaveEnd2EndInfo(info models.E2EInfoEncrypted) {
 		Config: buf.Bytes(),
 	}
 
-	_, err = sqliteDb.Exec("INSERT OR REPLACE INTO E2EConfig (id, Config) VALUES (?, ?)",
+	_, err = p.sqliteDb.Exec("INSERT OR REPLACE INTO E2EConfig (id, Config) VALUES (?, ?)",
 		newData.Id, newData.Config)
 	helper.Check(err)
 }
 
 // GetEnd2EndInfo retrieves the encrypted e2e info
-func GetEnd2EndInfo() models.E2EInfoEncrypted {
+func (p DatabaseProvider) GetEnd2EndInfo() models.E2EInfoEncrypted {
 	result := models.E2EInfoEncrypted{}
 	rowResult := schemaE2EConfig{}
 
-	row := sqliteDb.QueryRow("SELECT Config FROM E2EConfig WHERE id = 1")
+	row := p.sqliteDb.QueryRow("SELECT Config FROM E2EConfig WHERE id = 1")
 	err := row.Scan(&rowResult.Config)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -52,14 +50,12 @@ func GetEnd2EndInfo() models.E2EInfoEncrypted {
 	dec := gob.NewDecoder(buf)
 	err = dec.Decode(&result)
 	helper.Check(err)
-
-	result.AvailableFiles = GetAllMetaDataIds()
 	return result
 }
 
 // DeleteEnd2EndInfo resets the encrypted e2e info
-func DeleteEnd2EndInfo() {
+func (p DatabaseProvider) DeleteEnd2EndInfo() {
 	//goland:noinspection SqlWithoutWhere
-	_, err := sqliteDb.Exec("DELETE FROM E2EConfig")
+	_, err := p.sqliteDb.Exec("DELETE FROM E2EConfig")
 	helper.Check(err)
 }

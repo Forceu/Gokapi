@@ -161,10 +161,16 @@ func TestShowUsage(t *testing.T) {
 		showUsage(*flagSet, aliases)()
 	})
 
-	expectedOutput := "Usage:\n\n" +
-		"-c, --config <string>          Use provided config file\n" +
-		"-d, --data <string>            Sets the data directory\n" +
-		"-v, --version                  Show version info\n"
+	expectedOutput := `Usage:
+
+-c, --config <string>          Use provided config file
+-d, --data <string>            Sets the data directory
+-v, --version                  Show version info
+
+migrate-database               Migrate an old database to a new database (e.g. SQLite to Redis)
+--source                       Original database path
+--destination                  New database path
+`
 
 	test.IsEqualString(t, capturedOutput, expectedOutput)
 }

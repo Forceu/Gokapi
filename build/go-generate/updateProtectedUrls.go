@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"strings"
 
-	"golang.org/x/exp/slices"
+	slices "golang.org/x/exp/slices"
 )
 
 const fileSetup = "../../internal/webserver/Webserver.go"

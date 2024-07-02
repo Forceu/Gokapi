@@ -11,7 +11,6 @@ import (
 	"github.com/forceu/gokapi/internal/storage/filesystem/s3filesystem/aws"
 	"github.com/johannesboyne/gofakes3"
 	"github.com/johannesboyne/gofakes3/backend/s3mem"
-	"log"
 	"net/http/httptest"
 	"os"
 	"strings"
@@ -36,7 +35,11 @@ func SetDirEnv() {
 func Create(initFiles bool) {
 	SetDirEnv()
 	os.WriteFile(configFile, configTestFile, 0777)
-	database.Init(dataDir, "gokapi.sqlite")
+	config, err := database.ParseUrl("sqlite://"+dataDir+"/gokapi.sqlite", false)
+	if err != nil {
+		panic(err)
+	}
+	database.Init(config)
 	writeTestSessions()
 	database.SaveUploadDefaults(models.LastUploadValues{
 		Downloads:         3,
@@ -173,13 +176,6 @@ func writeTestSessions() {
 	})
 }
 func writeTestUploadStatus() {
-	err := database.RawSqlite(`INSERT OR REPLACE INTO UploadStatus
-	("ChunkId", "CurrentStatus", "CreationDate")
-	VALUES ('expiredstatus', 0, 100);`)
-	if err != nil {
-		log.Println(err)
-		log.Fatal("Could not execute SQL")
-	}
 	database.SaveUploadStatus(models.UploadStatus{
 		ChunkId:       "validstatus_0",
 		CurrentStatus: 0,
@@ -197,11 +193,10 @@ func writeApiKeys() {
 		Permissions:  models.ApiPermAll, // TODO
 	})
 	database.SaveApiKey(models.ApiKey{
-		Id:             "GAh1IhXDvYnqfYLazWBqMB9HSFmNPO",
-		FriendlyName:   "Second Key",
-		LastUsed:       1620671580,
-		LastUsedString: "used",
-		Permissions:    models.ApiPermAll, // TODO
+		Id:           "GAh1IhXDvYnqfYLazWBqMB9HSFmNPO",
+		FriendlyName: "Second Key",
+		LastUsed:     1620671580,
+		Permissions:  models.ApiPermAll, // TODO
 	})
 	database.SaveApiKey(models.ApiKey{
 		Id:           "jiREglQJW0bOqJakfjdVfe8T1EM8n8",

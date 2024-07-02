@@ -8,6 +8,7 @@ Main routine
 
 import (
 	"fmt"
+	"github.com/forceu/gokapi/internal/configuration/database/migration"
 	"github.com/forceu/gokapi/internal/helper/systemd"
 	"os"
 	"os/signal"
@@ -45,6 +46,7 @@ const versionGokapi = "1.8.4"
 func main() {
 	passedFlags := flagparser.ParseFlags()
 	handleServiceInstall(passedFlags)
+	handleDbMigration(passedFlags)
 
 	showVersion(passedFlags)
 	fmt.Println(logo)
@@ -158,6 +160,14 @@ func createSsl(passedFlags flagparser.MainFlags) {
 	if passedFlags.CreateSsl {
 		ssl.GenerateIfInvalidCert(configuration.Get().ServerUrl, true)
 	}
+}
+
+func handleDbMigration(passedFlags flagparser.MainFlags) {
+	if !passedFlags.Migration.DoMigration {
+		return
+	}
+	migration.Do(passedFlags.Migration)
+	osExit(0)
 }
 
 func handleServiceInstall(passedFlags flagparser.MainFlags) {
