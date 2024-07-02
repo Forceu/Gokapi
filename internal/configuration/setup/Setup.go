@@ -10,6 +10,7 @@ import (
 	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
 	"github.com/forceu/gokapi/internal/configuration/configupgrade"
 	"github.com/forceu/gokapi/internal/configuration/database"
+	"github.com/forceu/gokapi/internal/configuration/database/dbabstraction"
 	"github.com/forceu/gokapi/internal/encryption"
 	"github.com/forceu/gokapi/internal/environment"
 	"github.com/forceu/gokapi/internal/helper"
@@ -23,6 +24,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"runtime"
 	"strconv"
@@ -50,7 +52,7 @@ var password string
 
 // debugDisableAuth can be set to true for testing purposes. It will disable the
 // password requirement for accessing the setup page
-const debugDisableAuth = true
+const debugDisableAuth = false
 
 // RunIfFirstStart checks if config files exist and if not start a blocking webserver for setup
 func RunIfFirstStart() {
@@ -242,6 +244,11 @@ func toConfiguration(formObjects *[]jsonFormObject) (models.Configuration, *clou
 		result.Authentication = configuration.Get().Authentication
 	}
 
+	err = parseDatabaseSettings(&result, formObjects)
+	if err != nil {
+		return models.Configuration{}, nil, err
+	}
+
 	err = parseBasicAuthSettings(&result, formObjects)
 	if err != nil {
 		return models.Configuration{}, nil, err
@@ -274,6 +281,80 @@ func toConfiguration(formObjects *[]jsonFormObject) (models.Configuration, *clou
 	}
 
 	return result, cloudSettings, nil
+}
+
+func parseDatabaseSettings(result *models.Configuration, formObjects *[]jsonFormObject) error {
+	dbType, err := getFormValueInt(formObjects, "dbtype_sel")
+	if err != nil {
+		return err
+	}
+	err = checkForAllDbValues(formObjects)
+	if err != nil {
+		return err
+	}
+	switch dbType {
+	case dbabstraction.TypeSqlite:
+		location, err := getFormValueString(formObjects, "sqlite_location")
+		if err != nil {
+			return err
+		}
+		result.DatabaseUrl = "sqlite://" + location
+		return nil
+	case dbabstraction.TypeRedis:
+		host, err := getFormValueString(formObjects, "redis_location")
+		if err != nil {
+			return err
+		}
+		prefix, err := getFormValueString(formObjects, "redis_prefix")
+		if err != nil {
+			return err
+		}
+		rUser, err := getFormValueString(formObjects, "redis_user")
+		if err != nil {
+			return err
+		}
+		rPassword, err := getFormValueString(formObjects, "redis_password")
+		if err != nil {
+			return err
+		}
+		useSsl, err := getFormValueBool(formObjects, "redis_ssl_sel")
+		if err != nil {
+			return err
+		}
+		dbUrl := url.URL{
+			Scheme: "redis",
+			Host:   host,
+		}
+		query := url.Values{}
+		if prefix != "" {
+			query.Set("prefix", prefix)
+		}
+		if useSsl {
+			query.Set("ssl", "true")
+		}
+		if rUser != "" || rPassword != "" {
+			dbUrl.User = url.UserPassword(rUser, rPassword)
+		}
+		dbUrl.RawQuery = query.Encode()
+		result.DatabaseUrl = dbUrl.String()
+		return nil
+	default:
+		return errors.New("unsupported database selected")
+	}
+}
+
+// checkForAllDbValues tests if all values were passed, even if they were not required for this particular database
+// This is done to ensure that no invalid form was passed and makes testing easier
+func checkForAllDbValues(formObjects *[]jsonFormObject) error {
+	expectedValues := []string{"dbtype_sel", "sqlite_location", "redis_location", "redis_prefix", "redis_user", "redis_password"}
+	for _, value := range expectedValues {
+		_, err := getFormValueString(formObjects, value)
+		if err != nil {
+			return err
+		}
+	}
+	_, err := getFormValueBool(formObjects, "redis_ssl_sel")
+	return err
 }
 
 func parseBasicAuthSettings(result *models.Configuration, formObjects *[]jsonFormObject) error {

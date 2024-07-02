@@ -101,8 +101,8 @@
 
 							  <label for="dbtype_sel">Type of database</label>
 						<select name="dbtype_sel" id="dbtype_sel"  style="width:350px;" class="select form-control"  onChange="dbChanged()">	
-								<option value="sqlite" selected>SQLite</option>
-								<option value="redis">Redis</option>
+								<option value="0" selected>SQLite</option>
+								<option value="1">Redis (experimental)</option>
 
 						</select><br>
 						<div id="divsqlite">
@@ -116,7 +116,7 @@
 							<input type="text" class="form-control" id="redis_prefix" name="redis_prefix" value="gokapi_" placeholder="(optional)"><br>				
 							<label for="redis_user">Username:</label>
 							<input type="text" class="form-control" id="redis_user" name="redis_user" value="" placeholder="(optional)"><br>				
-							<label for="redis_password">Password:</label>
+							<label for="redis_password">Password (stored in plain text):</label>
 							<input type="text" class="form-control" id="redis_password" name="redis_password" value="" placeholder="(optional)"><br>				
 							<label for="redis_ssl_sel">Use SSL</label>
 							<select name="redis_ssl_sel" id="redis_ssl_sel" style="width:350px;" class="select form-control">
@@ -1044,7 +1044,7 @@ function TestAWS(button, isManual) {
 				let divRedis = document.getElementById("divredis");
 				let dbType = document.getElementById("dbtype_sel").value;
 				
-				if (dbType == "sqlite") {
+				if (dbType == "0") {
 					divSqlite.style.display = "block";
 					divRedis.style.display = "none";
 				} else {
