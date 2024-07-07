@@ -2,7 +2,7 @@
 
 set -e
 
-targets=${@-"darwin/amd64 darwin/arm64 linux/amd64 linux/386 linux/arm linux/arm64 windows/amd64"}
+targets=${@-"darwin/amd64 darwin/arm64 linux/amd64 linux/386 linux/arm linux/arm64 windows/amd64 windows/arm64"}
 
 cd /usr/src/myapp
 go generate ./...

@@ -2,7 +2,7 @@
 IMAGE_NAME=gokapi-builder
 CONTAINER_WORK_DIR=/usr/src/myapp
 #To use podman, use make CONTAINER_TOOL=podman
-CONTAINER_TOOL?=docker
+CONTAINER_TOOL?=podman
 
 # Default target
 all: compile
