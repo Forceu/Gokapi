@@ -96,6 +96,7 @@ func Load() {
 	log.Init(Environment.DataDir)
 }
 
+// ConnectDatabase loads the database that is defined in the configuration
 func ConnectDatabase() {
 	dbConfig, err := database.ParseUrl(serverSettings.DatabaseUrl, false)
 	helper.Check(err)

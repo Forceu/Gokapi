@@ -11,6 +11,7 @@ import (
 	"time"
 )
 
+// DatabaseProvider contains the database instance
 type DatabaseProvider struct {
 	pool     *redigo.Pool
 	dbPrefix string
@@ -86,10 +87,13 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 
 const keyDbVersion = "dbversion"
 
+// GetDbVersion gets the version number of the database
 func (p DatabaseProvider) GetDbVersion() int {
 	key, _ := p.getKeyInt(keyDbVersion)
 	return key
 }
+
+// SetDbVersion sets the version number of the database
 func (p DatabaseProvider) SetDbVersion(currentVersion int) {
 	p.setKey(keyDbVersion, currentVersion)
 }

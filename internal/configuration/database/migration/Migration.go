@@ -8,6 +8,7 @@ import (
 	"os"
 )
 
+// Do checks the passed flags for a migration and then executes it
 func Do(flags flagparser.MigrateFlags) {
 	oldDb, err := database.ParseUrl(flags.Source, true)
 	if err != nil {

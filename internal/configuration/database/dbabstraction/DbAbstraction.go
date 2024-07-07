@@ -8,10 +8,13 @@ import (
 )
 
 const (
+	// TypeSqlite specifies to use an SQLite database
 	TypeSqlite = iota
+	// TypeRedis specifies to use a Redis database
 	TypeRedis
 )
 
+// Database declares the required functions for a database connection
 type Database interface {
 	// GetType returns identifier of the underlying interface
 	GetType() int
@@ -23,7 +26,9 @@ type Database interface {
 	// Close the database connection
 	Close()
 
+	// GetDbVersion gets the version number of the database
 	GetDbVersion() int
+	// SetDbVersion sets the version number of the database
 	SetDbVersion(newVersion int)
 
 	// GetAllApiKeys returns a map with all API keys
@@ -86,6 +91,7 @@ type Database interface {
 	SaveUploadStatus(status models.UploadStatus)
 }
 
+// GetNew connects to the given database and initialises it
 func GetNew(config models.DbConnection) (Database, error) {
 	switch config.Type {
 	case TypeSqlite:

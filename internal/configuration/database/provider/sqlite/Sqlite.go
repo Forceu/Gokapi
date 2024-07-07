@@ -12,6 +12,7 @@ import (
 	_ "modernc.org/sqlite"
 )
 
+// DatabaseProvider contains the database instance
 type DatabaseProvider struct {
 	sqliteDb *sql.DB
 }
@@ -56,6 +57,7 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 	}
 }
 
+// GetDbVersion gets the version number of the database
 func (p DatabaseProvider) GetDbVersion() int {
 	var userVersion int
 	row := p.sqliteDb.QueryRow("PRAGMA user_version;")
@@ -63,6 +65,8 @@ func (p DatabaseProvider) GetDbVersion() int {
 	helper.Check(err)
 	return userVersion
 }
+
+// SetDbVersion sets the version number of the database
 func (p DatabaseProvider) SetDbVersion(newVersion int) {
 	_, err := p.sqliteDb.Exec(fmt.Sprintf("PRAGMA user_version = %d;", newVersion))
 	helper.Check(err)

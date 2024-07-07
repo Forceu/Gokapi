@@ -51,6 +51,9 @@ func TestMigration(t *testing.T) {
 	test.IsEqualInt(t, exitCode, 2)
 	exitCode = 0
 
+	err = os.Remove("tempfile")
+	test.IsNil(t, err)
+
 	dbUrl := testconfiguration.GetSqliteUrl()
 	dbUrlNew := dbUrl + "2"
 	Do(flagparser.MigrateFlags{

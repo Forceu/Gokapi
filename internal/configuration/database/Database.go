@@ -23,6 +23,7 @@ func Connect(config models.DbConnection) {
 	}
 }
 
+// ParseUrl converts a database URL to a models.DbConnection struct
 func ParseUrl(dbUrl string, mustExist bool) (models.DbConnection, error) {
 	if dbUrl == "" {
 		return models.DbConnection{}, errors.New("dbUrl is empty")
@@ -56,6 +57,7 @@ func ParseUrl(dbUrl string, mustExist bool) (models.DbConnection, error) {
 	return result, nil
 }
 
+// Migrate copies a database to a new location
 func Migrate(configOld, configNew models.DbConnection) {
 	dbOld, err := dbabstraction.GetNew(configOld)
 	helper.Check(err)

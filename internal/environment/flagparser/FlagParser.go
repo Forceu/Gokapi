@@ -140,6 +140,7 @@ func parseMigrateFlags(args []string) MigrateFlags {
 	}
 }
 
+// MigrateFlags contains flags passed if migration is requested
 type MigrateFlags struct {
 	DoMigration bool
 	Source      string
