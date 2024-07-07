@@ -40,6 +40,11 @@ func TestInit(t *testing.T) {
 		Type:    0, // dbabstraction.TypeSqlite
 	})
 	test.IsNotNil(t, err)
+	_, err = New(models.DbConnection{
+		HostUrl: "",
+		Type:    0, // dbabstraction.TypeSqlite
+	})
+	test.IsNotNil(t, err)
 }
 
 func TestClose(t *testing.T) {
@@ -49,6 +54,14 @@ func TestClose(t *testing.T) {
 	instance, err = New(config)
 	test.IsNil(t, err)
 	dbInstance = instance
+}
+
+func TestDatabaseProvider_GetDbVersion(t *testing.T) {
+	version := dbInstance.GetDbVersion()
+	test.IsEqualInt(t, version, 0)
+	dbInstance.SetDbVersion(99)
+	test.IsEqualInt(t, dbInstance.GetDbVersion(), 99)
+	dbInstance.SetDbVersion(0)
 }
 
 func TestMetaData(t *testing.T) {
@@ -519,7 +532,7 @@ func TestUploadStatus(t *testing.T) {
 }
 
 func TestDatabaseProvider_Upgrade(t *testing.T) {
-	dbInstance.Upgrade(19)
+	dbInstance.Upgrade(0)
 }
 
 func TestRawSql(t *testing.T) {

@@ -8,7 +8,6 @@ import (
 	"github.com/forceu/gokapi/internal/test"
 	"log"
 	"os"
-	"reflect"
 	"testing"
 	"time"
 )
@@ -212,25 +211,100 @@ func runAllTypesCompareOutput(t *testing.T, functionToRun func() any, expectedOu
 	for _, database := range availableDatabases {
 		db = database
 		output := functionToRun()
-		isEqual(t, output, expectedOutput)
+		test.IsEqual(t, output, expectedOutput)
 	}
 }
+
 func runAllTypesCompareTwoOutputs(t *testing.T, functionToRun func() (any, any), expectedOutput1, expectedOutput2 any) {
 	t.Helper()
 	for _, database := range availableDatabases {
 		db = database
 		output1, output2 := functionToRun()
-		isEqual(t, output1, expectedOutput1)
-		isEqual(t, output2, expectedOutput2)
+		test.IsEqual(t, output1, expectedOutput1)
+		test.IsEqual(t, output2, expectedOutput2)
 	}
 }
 
-func isEqual(t *testing.T, v1, v2 any) {
-	t.Helper()
-	if !reflect.DeepEqual(v1, v2) {
-		fmt.Println("Values are not as expected: ")
-		fmt.Printf("%+v\n", v1)
-		fmt.Printf("%+v\n", v2)
-		t.Fatal("Unexpected value")
+func TestParseUrl(t *testing.T) {
+	expectedOutput := models.DbConnection{}
+	output, err := ParseUrl("invalid", false)
+	test.IsNotNil(t, err)
+	test.IsEqual(t, output, expectedOutput)
+
+	_, err = ParseUrl("", false)
+	test.IsNotNil(t, err)
+	_, err = ParseUrl("inv\r\nalid", false)
+	test.IsNotNil(t, err)
+	_, err = ParseUrl("", false)
+	test.IsNotNil(t, err)
+
+	expectedOutput = models.DbConnection{
+		HostUrl: "./test",
+		Type:    dbabstraction.TypeSqlite,
 	}
+	output, err = ParseUrl("sqlite://./test", false)
+	test.IsNil(t, err)
+	test.IsEqual(t, output, expectedOutput)
+
+	_, err = ParseUrl("sqlite:///invalid", true)
+	test.IsNotNil(t, err)
+	output, err = ParseUrl("sqlite:///invalid", false)
+	test.IsNil(t, err)
+	test.IsEqualString(t, output.HostUrl, "/invalid")
+
+	expectedOutput = models.DbConnection{
+		HostUrl:     "127.0.0.1:1234",
+		RedisPrefix: "",
+		Username:    "",
+		Password:    "",
+		RedisUseSsl: false,
+		Type:        dbabstraction.TypeRedis,
+	}
+	output, err = ParseUrl("redis://127.0.0.1:1234", false)
+	test.IsNil(t, err)
+	test.IsEqual(t, output, expectedOutput)
+
+	expectedOutput = models.DbConnection{
+		HostUrl:     "127.0.0.1:1234",
+		RedisPrefix: "tpref",
+		Username:    "tuser",
+		Password:    "tpw",
+		RedisUseSsl: true,
+		Type:        dbabstraction.TypeRedis,
+	}
+	output, err = ParseUrl("redis://tuser:tpw@127.0.0.1:1234/?ssl=true&prefix=tpref", false)
+	test.IsNil(t, err)
+	test.IsEqual(t, output, expectedOutput)
+}
+
+func TestMigration(t *testing.T) {
+	configNew := models.DbConnection{
+		RedisPrefix: "testmigrate_",
+		HostUrl:     "127.0.0.1:26379",
+		Type:        1, // dbabstraction.TypeRedis
+	}
+	dbOld, err := dbabstraction.GetNew(configSqlite)
+	test.IsNil(t, err)
+	testFile := models.File{Id: "file1234", HotlinkId: "hotlink123"}
+	dbOld.SaveMetaData(testFile)
+	dbOld.SaveHotlink(testFile)
+	dbOld.SaveApiKey(models.ApiKey{Id: "api123"})
+	dbOld.SaveUploadDefaults(models.LastUploadValues{Password: "pw123"})
+	dbOld.SaveHotlink(testFile)
+	dbOld.Close()
+
+	Migrate(configSqlite, configNew)
+
+	dbNew, err := dbabstraction.GetNew(configNew)
+	test.IsNil(t, err)
+	_, ok := dbNew.GetHotlink("hotlink123")
+	test.IsEqualBool(t, ok, true)
+	_, ok = dbNew.GetApiKey("api123")
+	test.IsEqualBool(t, ok, true)
+	defaults, ok := dbNew.GetUploadDefaults()
+	test.IsEqualBool(t, ok, true)
+	fmt.Printf("defaults: %+v\n", defaults)
+	test.IsEqualString(t, defaults.Password, "pw123")
+	_, ok = dbNew.GetMetaDataById("file1234")
+	test.IsEqualBool(t, ok, true)
 }

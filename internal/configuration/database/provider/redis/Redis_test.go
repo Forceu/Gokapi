@@ -38,6 +38,8 @@ func TestDatabaseProvider_Init(t *testing.T) {
 	instance, err := New(config)
 	test.IsNil(t, err)
 	instance.Close()
+	_, err = New(models.DbConnection{})
+	test.IsNotNil(t, err)
 	defer test.ExpectPanic(t)
 	_, err = New(models.DbConnection{
 		RedisPrefix: "test_",
@@ -56,6 +58,14 @@ func TestDatabaseProvider_Upgrade(t *testing.T) {
 	dbInstance, err = New(config)
 	test.IsNil(t, err)
 	dbInstance.Upgrade(19)
+}
+
+func TestDatabaseProvider_GetDbVersion(t *testing.T) {
+	version := dbInstance.GetDbVersion()
+	test.IsEqualInt(t, version, 0)
+	dbInstance.SetDbVersion(99)
+	test.IsEqualInt(t, dbInstance.GetDbVersion(), 99)
+	dbInstance.SetDbVersion(0)
 }
 
 func TestDatabaseProvider_RunGarbageCollection(t *testing.T) {

@@ -1,6 +1,7 @@
 package database
 
 import (
+	"errors"
 	"fmt"
 	"github.com/forceu/gokapi/internal/configuration/database/dbabstraction"
 	"github.com/forceu/gokapi/internal/helper"
@@ -23,6 +24,9 @@ func Connect(config models.DbConnection) {
 }
 
 func ParseUrl(dbUrl string, mustExist bool) (models.DbConnection, error) {
+	if dbUrl == "" {
+		return models.DbConnection{}, errors.New("dbUrl is empty")
+	}
 	u, err := url.Parse(dbUrl)
 	if err != nil {
 		return models.DbConnection{}, fmt.Errorf("unsupported database URL - expected format is: type://username:password@server: %v", err)

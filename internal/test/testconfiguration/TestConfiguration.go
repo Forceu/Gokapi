@@ -26,16 +26,28 @@ const (
 func SetDirEnv() {
 	os.Setenv("GOKAPI_CONFIG_DIR", baseDir)
 	os.Setenv("GOKAPI_DATA_DIR", dataDir)
-	os.MkdirAll(baseDir, 0777)
-	os.MkdirAll(dataDir, 0777)
-
+	err := os.MkdirAll(baseDir, 0777)
+	if err != nil {
+		panic(err)
+	}
+	err = os.MkdirAll(dataDir, 0777)
+	if err != nil {
+		panic(err)
+	}
 }
 
-// Create creates a configuration for unit testing
+func GetSqliteUrl() string {
+	return "sqlite://" + dataDir + "/gokapi.sqlite"
+}
+
+// Create creates a configuration for unit testing. If initFiles is set, test metaData and content is created
 func Create(initFiles bool) {
 	SetDirEnv()
-	os.WriteFile(configFile, configTestFile, 0777)
-	config, err := database.ParseUrl("sqlite://"+dataDir+"/gokapi.sqlite", false)
+	err := os.WriteFile(configFile, configTestFile, 0777)
+	if err != nil {
+		panic(err)
+	}
+	config, err := database.ParseUrl(GetSqliteUrl(), false)
 	if err != nil {
 		panic(err)
 	}

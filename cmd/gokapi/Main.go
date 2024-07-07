@@ -53,10 +53,10 @@ func main() {
 	fmt.Println("Gokapi v" + versionGokapi + " starting")
 	setup.RunIfFirstStart()
 	configuration.Load()
-	setDeploymentPassword(passedFlags)
 	if !reconfigureServer(passedFlags) {
 		configuration.ConnectDatabase()
 	}
+	setDeploymentPassword(passedFlags)
 	encryption.Init(*configuration.Get())
 	authentication.Init(configuration.Get().Authentication)
 	createSsl(passedFlags)
