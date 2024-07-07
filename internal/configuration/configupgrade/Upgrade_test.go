@@ -1,7 +1,6 @@
 package configupgrade
 
 import (
-	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/environment"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/test"
@@ -34,9 +33,7 @@ func TestUpgradeDb(t *testing.T) {
 	upgradeDone := DoUpgrade(&oldConfigFile, &env)
 	test.IsEqualBool(t, upgradeDone, true)
 	test.IsEqualInt(t, exitCode, 1)
-	database.Close()
 
-	database.Init("./test", "gokapi.sqlite")
 	exitCode = 0
 	oldConfigFile.ConfigVersion = 17
 	upgradeDone = DoUpgrade(&oldConfigFile, &env)

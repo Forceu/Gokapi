@@ -172,6 +172,13 @@ func IsNotNil(t MockT, got any) {
 	}
 }
 
+func IsEqual(t MockT, got, expected any) {
+	t.Helper()
+	if !reflect.DeepEqual(got, expected) {
+		t.Errorf("Assertion failed, not equal: %v and %v", got, expected)
+	}
+}
+
 // IsNotNilWithMessage fails test if error is nil and displays name of test
 func IsNotNilWithMessage(t MockT, got error, name string) {
 	t.Helper()

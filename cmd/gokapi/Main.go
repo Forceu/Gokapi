@@ -8,6 +8,7 @@ Main routine
 
 import (
 	"fmt"
+	"github.com/forceu/gokapi/internal/configuration/database/migration"
 	"github.com/forceu/gokapi/internal/helper/systemd"
 	"os"
 	"os/signal"
@@ -45,14 +46,17 @@ const versionGokapi = "1.8.4"
 func main() {
 	passedFlags := flagparser.ParseFlags()
 	handleServiceInstall(passedFlags)
+	handleDbMigration(passedFlags)
 
 	showVersion(passedFlags)
 	fmt.Println(logo)
 	fmt.Println("Gokapi v" + versionGokapi + " starting")
 	setup.RunIfFirstStart()
 	configuration.Load()
+	if !reconfigureServer(passedFlags) {
+		configuration.ConnectDatabase()
+	}
 	setDeploymentPassword(passedFlags)
-	reconfigureServer(passedFlags)
 	encryption.Init(*configuration.Get())
 	authentication.Init(configuration.Get().Authentication)
 	createSsl(passedFlags)
@@ -148,16 +152,26 @@ func initCloudConfig(passedFlags flagparser.MainFlags) {
 }
 
 // Checks for command line arguments that have to be parsed after loading the configuration
-func reconfigureServer(passedFlags flagparser.MainFlags) {
+func reconfigureServer(passedFlags flagparser.MainFlags) bool {
 	if passedFlags.Reconfigure {
 		setup.RunConfigModification()
+		return true
 	}
+	return false
 }
 
 func createSsl(passedFlags flagparser.MainFlags) {
 	if passedFlags.CreateSsl {
 		ssl.GenerateIfInvalidCert(configuration.Get().ServerUrl, true)
 	}
+}
+
+func handleDbMigration(passedFlags flagparser.MainFlags) {
+	if !passedFlags.Migration.DoMigration {
+		return
+	}
+	migration.Do(passedFlags.Migration)
+	osExit(0)
 }
 
 func handleServiceInstall(passedFlags flagparser.MainFlags) {

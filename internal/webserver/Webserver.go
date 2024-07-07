@@ -619,11 +619,6 @@ func (u *UploadView) convertGlobalConfig(view int) *UploadView {
 		})
 	case ViewAPI:
 		for _, element := range database.GetAllApiKeys() {
-			if element.LastUsed == 0 {
-				element.LastUsedString = "Never"
-			} else {
-				element.LastUsedString = time.Unix(element.LastUsed, 0).Format("2006-01-02 15:04:05")
-			}
 			resultApi = append(resultApi, element)
 		}
 		sort.Slice(resultApi[:], func(i, j int) bool {

@@ -11,7 +11,6 @@ import (
 	"github.com/forceu/gokapi/internal/storage/filesystem/s3filesystem/aws"
 	"github.com/johannesboyne/gofakes3"
 	"github.com/johannesboyne/gofakes3/backend/s3mem"
-	"log"
 	"net/http/httptest"
 	"os"
 	"strings"
@@ -27,16 +26,32 @@ const (
 func SetDirEnv() {
 	os.Setenv("GOKAPI_CONFIG_DIR", baseDir)
 	os.Setenv("GOKAPI_DATA_DIR", dataDir)
-	os.MkdirAll(baseDir, 0777)
-	os.MkdirAll(dataDir, 0777)
-
+	err := os.MkdirAll(baseDir, 0777)
+	if err != nil {
+		panic(err)
+	}
+	err = os.MkdirAll(dataDir, 0777)
+	if err != nil {
+		panic(err)
+	}
 }
 
-// Create creates a configuration for unit testing
+func GetSqliteUrl() string {
+	return "sqlite://" + dataDir + "/gokapi.sqlite"
+}
+
+// Create creates a configuration for unit testing. If initFiles is set, test metaData and content is created
 func Create(initFiles bool) {
 	SetDirEnv()
-	os.WriteFile(configFile, configTestFile, 0777)
-	database.Init(dataDir, "gokapi.sqlite")
+	err := os.WriteFile(configFile, configTestFile, 0777)
+	if err != nil {
+		panic(err)
+	}
+	config, err := database.ParseUrl(GetSqliteUrl(), false)
+	if err != nil {
+		panic(err)
+	}
+	database.Connect(config)
 	writeTestSessions()
 	database.SaveUploadDefaults(models.LastUploadValues{
 		Downloads:         3,
@@ -173,13 +188,6 @@ func writeTestSessions() {
 	})
 }
 func writeTestUploadStatus() {
-	err := database.RawSqlite(`INSERT OR REPLACE INTO UploadStatus
-	("ChunkId", "CurrentStatus", "CreationDate")
-	VALUES ('expiredstatus', 0, 100);`)
-	if err != nil {
-		log.Println(err)
-		log.Fatal("Could not execute SQL")
-	}
 	database.SaveUploadStatus(models.UploadStatus{
 		ChunkId:       "validstatus_0",
 		CurrentStatus: 0,
@@ -197,11 +205,10 @@ func writeApiKeys() {
 		Permissions:  models.ApiPermAll, // TODO
 	})
 	database.SaveApiKey(models.ApiKey{
-		Id:             "GAh1IhXDvYnqfYLazWBqMB9HSFmNPO",
-		FriendlyName:   "Second Key",
-		LastUsed:       1620671580,
-		LastUsedString: "used",
-		Permissions:    models.ApiPermAll, // TODO
+		Id:           "GAh1IhXDvYnqfYLazWBqMB9HSFmNPO",
+		FriendlyName: "Second Key",
+		LastUsed:     1620671580,
+		Permissions:  models.ApiPermAll, // TODO
 	})
 	database.SaveApiKey(models.ApiKey{
 		Id:           "jiREglQJW0bOqJakfjdVfe8T1EM8n8",

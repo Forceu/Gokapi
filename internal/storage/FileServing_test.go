@@ -25,6 +25,7 @@ import (
 func TestMain(m *testing.M) {
 	testconfiguration.Create(true)
 	configuration.Load()
+	configuration.ConnectDatabase()
 	var testserver *httptest.Server
 	if testconfiguration.UseMockS3Server() {
 		testserver = testconfiguration.StartS3TestServer()
@@ -687,6 +688,7 @@ func TestCleanUp(t *testing.T) {
 func TestDeleteFile(t *testing.T) {
 	testconfiguration.Create(true)
 	configuration.Load()
+	configuration.ConnectDatabase()
 	files := database.GetAllMetadata()
 	test.IsEqualString(t, files["n1tSTAGj8zan9KaT4u6p"].Name, "picture.jpg")
 	test.FileExists(t, "test/data/a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd0")

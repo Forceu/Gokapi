@@ -1,4 +1,4 @@
-package database
+package sqlite
 
 import (
 	"bytes"
@@ -55,12 +55,12 @@ func (rowData schemaMetaData) ToFileModel() (models.File, error) {
 }
 
 // GetAllMetadata returns a map of all available files
-func GetAllMetadata() map[string]models.File {
-	if sqliteDb == nil {
+func (p DatabaseProvider) GetAllMetadata() map[string]models.File {
+	if p.sqliteDb == nil {
 		panic("Database not loaded!")
 	}
 	result := make(map[string]models.File)
-	rows, err := sqliteDb.Query("SELECT * FROM FileMetaData")
+	rows, err := p.sqliteDb.Query("SELECT * FROM FileMetaData")
 	helper.Check(err)
 	defer rows.Close()
 	for rows.Next() {
@@ -79,12 +79,12 @@ func GetAllMetadata() map[string]models.File {
 }
 
 // GetAllMetaDataIds returns all Ids that contain metadata
-func GetAllMetaDataIds() []string {
-	if sqliteDb == nil {
+func (p DatabaseProvider) GetAllMetaDataIds() []string {
+	if p.sqliteDb == nil {
 		panic("Database not loaded!")
 	}
-	var keys []string
-	rows, err := sqliteDb.Query("SELECT Id FROM FileMetaData")
+	keys := make([]string, 0)
+	rows, err := p.sqliteDb.Query("SELECT Id FROM FileMetaData")
 	helper.Check(err)
 	defer rows.Close()
 	for rows.Next() {
@@ -97,11 +97,11 @@ func GetAllMetaDataIds() []string {
 }
 
 // GetMetaDataById returns a models.File from the ID passed or false if the id is not valid
-func GetMetaDataById(id string) (models.File, bool) {
+func (p DatabaseProvider) GetMetaDataById(id string) (models.File, bool) {
 	result := models.File{}
 	rowData := schemaMetaData{}
 
-	row := sqliteDb.QueryRow("SELECT * FROM FileMetaData WHERE Id = ?", id)
+	row := p.sqliteDb.QueryRow("SELECT * FROM FileMetaData WHERE Id = ?", id)
 	err := row.Scan(&rowData.Id, &rowData.Name, &rowData.Size, &rowData.SHA1, &rowData.ExpireAt, &rowData.SizeBytes,
 		&rowData.ExpireAtString, &rowData.DownloadsRemaining, &rowData.DownloadCount, &rowData.PasswordHash,
 		&rowData.HotlinkId, &rowData.ContentType, &rowData.AwsBucket, &rowData.Encryption,
@@ -119,7 +119,7 @@ func GetMetaDataById(id string) (models.File, bool) {
 }
 
 // SaveMetaData stores the metadata of a file to the disk
-func SaveMetaData(file models.File) {
+func (p DatabaseProvider) SaveMetaData(file models.File) {
 	newData := schemaMetaData{
 		Id:                 file.Id,
 		Name:               file.Name,
@@ -149,7 +149,7 @@ func SaveMetaData(file models.File) {
 	helper.Check(err)
 	newData.Encryption = buf.Bytes()
 
-	_, err = sqliteDb.Exec(`INSERT OR REPLACE INTO FileMetaData (Id, Name, Size, SHA1, ExpireAt, SizeBytes, ExpireAtString, 
+	_, err = p.sqliteDb.Exec(`INSERT OR REPLACE INTO FileMetaData (Id, Name, Size, SHA1, ExpireAt, SizeBytes, ExpireAtString, 
                                    DownloadsRemaining, DownloadCount, PasswordHash, HotlinkId, ContentType, AwsBucket, Encryption,
                                    UnlimitedDownloads, UnlimitedTime) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		newData.Id, newData.Name, newData.Size, newData.SHA1, newData.ExpireAt, newData.SizeBytes, newData.ExpireAtString,
@@ -159,7 +159,7 @@ func SaveMetaData(file models.File) {
 }
 
 // DeleteMetaData deletes information about a file
-func DeleteMetaData(id string) {
-	_, err := sqliteDb.Exec("DELETE FROM FileMetaData WHERE Id = ?", id)
+func (p DatabaseProvider) DeleteMetaData(id string) {
+	_, err := p.sqliteDb.Exec("DELETE FROM FileMetaData WHERE Id = ?", id)
 	helper.Check(err)
 }

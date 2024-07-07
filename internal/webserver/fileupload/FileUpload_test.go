@@ -22,6 +22,7 @@ import (
 func TestMain(m *testing.M) {
 	testconfiguration.Create(false)
 	configuration.Load()
+	configuration.ConnectDatabase()
 	exitVal := m.Run()
 	testconfiguration.Delete()
 	os.Exit(exitVal)

@@ -92,9 +92,44 @@
 
 				</div>
 			</div>
+			<!-- Step 1 DB Location -->
+			<div class="wizard-card wizard-card-overlay" data-cardname="dblocation">
+				<h3>Database</h3>
+
+				<div class="wizard-input-section">
+					<div class="form-group">
+
+							  <label for="dbtype_sel">Type of database</label>
+						<select name="dbtype_sel" id="dbtype_sel"  style="width:350px;" class="select form-control"  onChange="dbChanged()">	
+								<option value="0" selected>SQLite</option>
+								<option value="1">Redis (experimental)</option>
+
+						</select><br>
+						<div id="divsqlite">
+							<label for="sqlite_location">Database location:</label>
+							<input type="text" class="form-control" id="sqlite_location" name="sqlite_location" value="./data/gokapi.sqlite" placeholder="Database location" required><br>
+						</div>
+						<div id="divredis" style="display: none;">
+							<label for="redis_location">Database host:</label>
+							<input type="text" class="form-control" id="redis_location" name="redis_location" value="127.0.0.1:6379" placeholder="Database host" required><br>
+							<label for="redis_prefix">Key prefix:</label>
+							<input type="text" class="form-control" id="redis_prefix" name="redis_prefix" value="gokapi_" placeholder="(optional)"><br>				
+							<label for="redis_user">Username:</label>
+							<input type="text" class="form-control" id="redis_user" name="redis_user" value="" placeholder="(optional)"><br>				
+							<label for="redis_password">Password (stored in plain text):</label>
+							<input type="text" class="form-control" id="redis_password" name="redis_password" value="" placeholder="(optional)"><br>				
+							<label for="redis_ssl_sel">Use SSL</label>
+							<select name="redis_ssl_sel" id="redis_ssl_sel" style="width:350px;" class="select form-control">
+								<option value="0" selected>No</option>
+								<option value="1">Yes</option>
+							</select>
+						</div>
+					</div>
+				</div>
+			</div>
+						
 			
-			
-			<!-- Step 1 Webserver -->
+			<!-- Step 2 Webserver -->
 			<div class="wizard-card wizard-card-overlay" data-cardname="webserver1">
 				<h3>Webserver 1/2</h3>
 
@@ -134,7 +169,7 @@
 				</div>
 			</div>
 			
-			<!-- Step 2 Webserver 2 -->
+			<!-- Step 3 Webserver 2 -->
 			<div class="wizard-card wizard-card-overlay" data-cardname="webserver2">
 				<h3>Webserver 2/2</h3>
 
@@ -174,7 +209,7 @@
 			
 
 
-			<!-- Step 3 Auth -->
+			<!-- Step 4 Auth -->
 			<div class="wizard-card wizard-card-overlay" data-cardname="authentication">
 				<h3>Authentication</h3>
 
@@ -201,7 +236,7 @@
 				</div>
 			</div>
 
-			<!-- Step 4 Credentials PW -->
+			<!-- Step 5a Credentials PW -->
 			<div class="wizard-card wizard-card-overlay" data-cardname="credentials">
 				<h3>Credentials</h3>
 
@@ -227,7 +262,7 @@
 				</div>
 			</div>
 			
-			<!-- Step 4 Credentials Oauth -->
+			<!-- Step 5b Credentials Oauth -->
 			<div class="wizard-card wizard-card-overlay" data-cardname="credentials-oauth">
 				<h3>Credentials</h3>
 
@@ -298,7 +333,7 @@
 				</div>
 			</div>
 			
-			<!-- Step 4 Credentials Header -->
+			<!-- Step 5c Credentials Header -->
 			<div class="wizard-card wizard-card-overlay" data-cardname="credentials-header">
 				<h3>Credentials</h3>
 
@@ -321,7 +356,7 @@
 					</div>
 				</div>
 			</div>
-			<!-- Step 4 Credentials Disbabled -->
+			<!-- Step 5d Credentials Disbabled -->
 			<div class="wizard-card wizard-card-overlay" data-cardname="credentials-disabled">
 				<h3>Credentials</h3>
 
@@ -344,7 +379,7 @@
 
 
 
-			<!-- Step 5 Storage -->
+			<!-- Step 6 Storage -->
 			<div class="wizard-card wizard-card-overlay" data-cardname="storage">
 				<h3>Storage</h3>
 
@@ -389,7 +424,7 @@
 			</div>
 			
 			
-			<!-- Step 6 S3 Credentials -->
+			<!-- Step 7 S3 Credentials -->
 			<div class="wizard-card wizard-card-overlay" data-cardname="s3credentials">
 				<h3>S3 Credentials</h3>
 
@@ -707,6 +742,21 @@ function TestAWS(button, isManual) {
 				
 					
 {{ if not .IsInitialSetup }}
+
+	{{ if eq .DatabaseSettings.Type 0}}
+				document.getElementById("sqlite_location").value = {{.DatabaseSettings.HostUrl}};
+	{{ else }}
+				document.getElementById("dbtype_sel").selectedIndex = 1;
+				document.getElementById("redis_location").value = {{.DatabaseSettings.HostUrl}};
+				document.getElementById("redis_prefix").value = {{.DatabaseSettings.RedisPrefix}};
+				document.getElementById("redis_user").value = {{.DatabaseSettings.Username}};
+				document.getElementById("redis_password").value = {{.DatabaseSettings.Password}};
+	{{ end }}
+	{{ if .DatabaseSettings.RedisUseSsl }}
+				document.getElementById("redis_ssl_sel").selectedIndex = 1;
+	{{ end }}
+				dbChanged();
+
 	{{ if and (.LocalhostOnly) (not .IsDocker) }}
 				document.getElementById("localhost_sel").selectedIndex = 1;
 	{{ end }}
@@ -816,6 +866,9 @@ function TestAWS(button, isManual) {
 
 			});
 			
+			
+			function parseAndSetDbString(input) {
+			}
 			
 			function validateMinLength(el) {
 				let value = el.val();
@@ -982,6 +1035,22 @@ function TestAWS(button, isManual) {
 						document.getElementById("url").value = "https://127.0.0.1:" + port + "/";
 				}
 				previousPort = port;
+			}
+			
+			
+			
+			function dbChanged() {
+				let divSqlite = document.getElementById("divsqlite");
+				let divRedis = document.getElementById("divredis");
+				let dbType = document.getElementById("dbtype_sel").value;
+				
+				if (dbType == "0") {
+					divSqlite.style.display = "block";
+					divRedis.style.display = "none";
+				} else {
+					divSqlite.style.display = "none";
+					divRedis.style.display = "block";
+				}
 			}
 				
 				

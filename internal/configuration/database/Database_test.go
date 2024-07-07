@@ -1,524 +1,310 @@
-//go:build test
-
 package database
 
 import (
-	"database/sql"
-	"errors"
-	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/forceu/gokapi/internal/helper"
+	"fmt"
+	"github.com/alicebob/miniredis/v2"
+	"github.com/forceu/gokapi/internal/configuration/database/dbabstraction"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/test"
-	"golang.org/x/exp/slices"
-	"math"
+	"log"
 	"os"
-	"regexp"
-	"sync"
 	"testing"
 	"time"
 )
 
+var configSqlite = models.DbConnection{
+	HostUrl: "./test/gokapi.sqlite",
+	Type:    0, // dbabstraction.TypeSqlite
+}
+
+var configRedis = models.DbConnection{
+	RedisPrefix: "test_",
+	HostUrl:     "127.0.0.1:26379",
+	Type:        1, // dbabstraction.TypeRedis
+}
+
+var mRedis *miniredis.Miniredis
+
+var availableDatabases []dbabstraction.Database
+
 func TestMain(m *testing.M) {
-	os.Setenv("GOKAPI_CONFIG_DIR", "test")
-	os.Setenv("GOKAPI_DATA_DIR", "test")
-	os.Mkdir("test", 0777)
+
+	mRedis = miniredis.NewMiniRedis()
+	err := mRedis.StartAddr("127.0.0.1:26379")
+	if err != nil {
+		log.Fatal("Could not start miniredis")
+	}
 	exitVal := m.Run()
-	os.RemoveAll("test")
+	mRedis.Close()
+	os.RemoveAll("./test/")
 	os.Exit(exitVal)
 }
 
 func TestInit(t *testing.T) {
-	test.IsEqualBool(t, sqliteDb == nil, true)
-	Init("./test/newfolder", "gokapi.sqlite")
-	test.IsEqualBool(t, sqliteDb != nil, true)
-	test.FolderExists(t, "./test/newfolder")
-	Close()
-	test.IsEqualBool(t, sqliteDb == nil, true)
-	err := os.WriteFile("./test/newfolder/gokapi2.sqlite", []byte("invalid"), 0700)
-	test.IsNil(t, err)
-	Init("./test/newfolder", "gokapi2.sqlite")
+	availableDatabases = make([]dbabstraction.Database, 0)
+	Connect(configRedis)
+	availableDatabases = append(availableDatabases, db)
+	Connect(configSqlite)
+	availableDatabases = append(availableDatabases, db)
+	defer test.ExpectPanic(t)
+	Connect(models.DbConnection{Type: 2})
 }
 
-func TestClose(t *testing.T) {
-	test.IsEqualBool(t, sqliteDb != nil, true)
-	Close()
-	test.IsEqualBool(t, sqliteDb == nil, true)
-	mock := setMockDb(t)
-	mock.ExpectClose().WillReturnError(errors.New("test"))
-	Close()
-	restoreDb()
-	Init("./test", "gokapi.sqlite")
+func TestApiKeys(t *testing.T) {
+	runAllTypesCompareOutput(t, func() any { return GetAllApiKeys() }, map[string]models.ApiKey{})
+	newApiKey := models.ApiKey{
+		Id:           "test",
+		FriendlyName: "testKey",
+		LastUsed:     1000,
+		Permissions:  10,
+	}
+	runAllTypesNoOutput(t, func() { SaveApiKey(newApiKey) })
+	runAllTypesCompareTwoOutputs(t, func() (any, any) {
+		return GetApiKey("test")
+	}, newApiKey, true)
+	newApiKey.LastUsed = 2000
+	runAllTypesNoOutput(t, func() { UpdateTimeApiKey(newApiKey) })
+	runAllTypesCompareOutput(t, func() any { return GetAllApiKeys() }, map[string]models.ApiKey{"test": newApiKey})
+	runAllTypesNoOutput(t, func() { DeleteApiKey("test") })
+	runAllTypesCompareTwoOutputs(t, func() (any, any) {
+		return GetApiKey("test")
+	}, models.ApiKey{}, false)
 }
 
-func TestMetaData(t *testing.T) {
-	files := GetAllMetadata()
-	test.IsEqualInt(t, len(files), 0)
-
-	SaveMetaData(models.File{Id: "testfile", Name: "test.txt", ExpireAt: time.Now().Add(time.Hour).Unix()})
-	files = GetAllMetadata()
-	test.IsEqualInt(t, len(files), 1)
-	test.IsEqualString(t, files["testfile"].Name, "test.txt")
-
-	file, ok := GetMetaDataById("testfile")
-	test.IsEqualBool(t, ok, true)
-	test.IsEqualString(t, file.Id, "testfile")
-	_, ok = GetMetaDataById("invalid")
-	test.IsEqualBool(t, ok, false)
-
-	test.IsEqualInt(t, len(GetAllMetadata()), 1)
-	DeleteMetaData("invalid")
-	test.IsEqualInt(t, len(GetAllMetadata()), 1)
-	DeleteMetaData("testfile")
-	test.IsEqualInt(t, len(GetAllMetadata()), 0)
+func TestE2E(t *testing.T) {
+	input := models.E2EInfoEncrypted{
+		Version:        1,
+		Nonce:          []byte("test"),
+		Content:        []byte("test2"),
+		AvailableFiles: []string{"should", "not", "be", "saved"},
+	}
+	runAllTypesNoOutput(t, func() { SaveEnd2EndInfo(input) })
+	input.AvailableFiles = []string{}
+	runAllTypesCompareOutput(t, func() any { return GetEnd2EndInfo() }, input)
+	runAllTypesNoOutput(t, func() { DeleteEnd2EndInfo() })
+	runAllTypesCompareOutput(t, func() any { return GetEnd2EndInfo() }, models.E2EInfoEncrypted{AvailableFiles: []string{}})
 }
 
-func TestHotlink(t *testing.T) {
-	SaveHotlink(models.File{Id: "testfile", Name: "test.txt", HotlinkId: "testlink", ExpireAt: time.Now().Add(time.Hour).Unix()})
-
-	hotlink, ok := GetHotlink("testlink")
-	test.IsEqualBool(t, ok, true)
-	test.IsEqualString(t, hotlink, "testfile")
-	_, ok = GetHotlink("invalid")
-	test.IsEqualBool(t, ok, false)
-
-	DeleteHotlink("invalid")
-	_, ok = GetHotlink("testlink")
-	test.IsEqualBool(t, ok, true)
-	DeleteHotlink("testlink")
-	_, ok = GetHotlink("testlink")
-	test.IsEqualBool(t, ok, false)
-
-	SaveHotlink(models.File{Id: "testfile", Name: "test.txt", HotlinkId: "testlink", ExpireAt: 0, UnlimitedTime: true})
-	hotlink, ok = GetHotlink("testlink")
-	test.IsEqualBool(t, ok, true)
-	test.IsEqualString(t, hotlink, "testfile")
-
-	SaveHotlink(models.File{Id: "file2", Name: "file2.txt", HotlinkId: "link2", ExpireAt: time.Now().Add(time.Hour).Unix()})
-	SaveHotlink(models.File{Id: "file3", Name: "file3.txt", HotlinkId: "link3", ExpireAt: time.Now().Add(time.Hour).Unix()})
-
-	hotlinks := GetAllHotlinks()
-	test.IsEqualInt(t, len(hotlinks), 3)
-	test.IsEqualBool(t, slices.Contains(hotlinks, "testlink"), true)
-	test.IsEqualBool(t, slices.Contains(hotlinks, "link2"), true)
-	test.IsEqualBool(t, slices.Contains(hotlinks, "link3"), true)
-	DeleteHotlink("")
-	hotlinks = GetAllHotlinks()
-	test.IsEqualInt(t, len(hotlinks), 3)
-
-}
-
-func TestApiKey(t *testing.T) {
-	SaveApiKey(models.ApiKey{
-		Id:             "newkey",
-		FriendlyName:   "New Key",
-		LastUsedString: "LastUsed",
-		LastUsed:       100,
-		Permissions:    20,
-	})
-	SaveApiKey(models.ApiKey{
-		Id:             "newkey2",
-		FriendlyName:   "New Key2",
-		LastUsedString: "LastUsed2",
-		LastUsed:       200,
-		Permissions:    40,
-	})
-
-	keys := GetAllApiKeys()
-	test.IsEqualInt(t, len(keys), 2)
-	test.IsEqualString(t, keys["newkey"].FriendlyName, "New Key")
-	test.IsEqualString(t, keys["newkey"].Id, "newkey")
-	test.IsEqualString(t, keys["newkey"].LastUsedString, "LastUsed")
-	test.IsEqualInt64(t, keys["newkey"].LastUsed, 100)
-	test.IsEqualBool(t, keys["newkey"].Permissions == 20, true)
-
-	test.IsEqualInt(t, len(GetAllApiKeys()), 2)
-	DeleteApiKey("newkey2")
-	test.IsEqualInt(t, len(GetAllApiKeys()), 1)
-
-	key, ok := GetApiKey("newkey")
-	test.IsEqualBool(t, ok, true)
-	test.IsEqualString(t, key.FriendlyName, "New Key")
-	_, ok = GetApiKey("newkey2")
-	test.IsEqualBool(t, ok, false)
-
-	SaveApiKey(models.ApiKey{
-		Id:             "newkey",
-		FriendlyName:   "Old Key",
-		LastUsed:       100,
-		LastUsedString: "LastUsed",
-	})
-	key, ok = GetApiKey("newkey")
-	test.IsEqualBool(t, ok, true)
-	test.IsEqualString(t, key.FriendlyName, "Old Key")
-}
-
-func TestSession(t *testing.T) {
-	renewAt := time.Now().Add(1 * time.Hour).Unix()
-	SaveSession("newsession", models.Session{
-		RenewAt:    renewAt,
-		ValidUntil: time.Now().Add(2 * time.Hour).Unix(),
-	})
-
-	session, ok := GetSession("newsession")
-	test.IsEqualBool(t, ok, true)
-	test.IsEqualBool(t, session.RenewAt == renewAt, true)
-
-	DeleteSession("newsession")
-	_, ok = GetSession("newsession")
-	test.IsEqualBool(t, ok, false)
-
-	SaveSession("newsession", models.Session{
-		RenewAt:    renewAt,
-		ValidUntil: time.Now().Add(2 * time.Hour).Unix(),
-	})
-
-	SaveSession("anothersession", models.Session{
-		RenewAt:    renewAt,
-		ValidUntil: time.Now().Add(2 * time.Hour).Unix(),
-	})
-	_, ok = GetSession("newsession")
-	test.IsEqualBool(t, ok, true)
-	_, ok = GetSession("anothersession")
-	test.IsEqualBool(t, ok, true)
-
-	DeleteAllSessions()
-	_, ok = GetSession("newsession")
-	test.IsEqualBool(t, ok, false)
-	_, ok = GetSession("anothersession")
-	test.IsEqualBool(t, ok, false)
+func TestSessions(t *testing.T) {
+	runAllTypesCompareTwoOutputs(t, func() (any, any) { return GetSession("newsession") }, models.Session{}, false)
+	input := models.Session{
+		RenewAt:    time.Now().Add(10 * time.Second).Unix(),
+		ValidUntil: time.Now().Add(20 * time.Second).Unix(),
+	}
+	runAllTypesNoOutput(t, func() { SaveSession("newsession", input) })
+	runAllTypesCompareTwoOutputs(t, func() (any, any) { return GetSession("newsession") }, input, true)
+	runAllTypesNoOutput(t, func() { DeleteSession("newsession") })
+	runAllTypesCompareTwoOutputs(t, func() (any, any) { return GetSession("newsession") }, models.Session{}, false)
+	runAllTypesNoOutput(t, func() { SaveSession("newsession", input) })
+	runAllTypesCompareTwoOutputs(t, func() (any, any) { return GetSession("newsession") }, input, true)
+	runAllTypesNoOutput(t, func() { DeleteAllSessions() })
+	runAllTypesCompareTwoOutputs(t, func() (any, any) { return GetSession("newsession") }, models.Session{}, false)
 }
 
 func TestUploadDefaults(t *testing.T) {
-	defaults := GetUploadDefaults()
-	test.IsEqualInt(t, defaults.Downloads, 1)
-	test.IsEqualInt(t, defaults.TimeExpiry, 14)
-	test.IsEqualString(t, defaults.Password, "")
-	test.IsEqualBool(t, defaults.UnlimitedDownload, false)
-	test.IsEqualBool(t, defaults.UnlimitedTime, false)
-
-	SaveUploadDefaults(models.LastUploadValues{
-		Downloads:         20,
-		TimeExpiry:        30,
-		Password:          "abcd",
+	defaultValues := models.LastUploadValues{
+		Downloads:         1,
+		TimeExpiry:        14,
+		Password:          "",
+		UnlimitedDownload: false,
+		UnlimitedTime:     false,
+	}
+	runAllTypesCompareOutput(t, func() any { return GetUploadDefaults() }, defaultValues)
+	newValues := models.LastUploadValues{
+		Downloads:         5,
+		TimeExpiry:        20,
+		Password:          "123",
 		UnlimitedDownload: true,
 		UnlimitedTime:     true,
-	})
-	defaults = GetUploadDefaults()
-	test.IsEqualInt(t, defaults.Downloads, 20)
-	test.IsEqualInt(t, defaults.TimeExpiry, 30)
-	test.IsEqualString(t, defaults.Password, "abcd")
-	test.IsEqualBool(t, defaults.UnlimitedDownload, true)
-	test.IsEqualBool(t, defaults.UnlimitedTime, true)
-}
-
-func TestColumnExists(t *testing.T) {
-	exists, err := ColumnExists("invalid", "invalid")
-	test.IsEqualBool(t, exists, false)
-	test.IsNil(t, err)
-	exists, err = ColumnExists("FileMetaData", "invalid")
-	test.IsEqualBool(t, exists, false)
-	test.IsNil(t, err)
-	exists, err = ColumnExists("FileMetaData", "ExpireAt")
-	test.IsEqualBool(t, exists, true)
-	test.IsNil(t, err)
-	setMockDb(t).ExpectQuery(regexp.QuoteMeta("PRAGMA table_info(error)")).WillReturnError(errors.New("error"))
-	exists, err = ColumnExists("error", "error")
-	test.IsEqualBool(t, exists, false)
-	test.IsNotNil(t, err)
-	restoreDb()
-	mock := setMockDb(t)
-
-	rows := mock.NewRows([]string{"invalid"}).
-		AddRow(0).
-		AddRow(1)
-	mock.ExpectQuery(regexp.QuoteMeta("PRAGMA table_info(error)")).WillReturnRows(rows)
-	exists, err = ColumnExists("error", "error")
-	test.IsEqualBool(t, exists, false)
-	test.IsNotNil(t, err)
-	restoreDb()
-}
-
-func TestGarbageCollectionUploads(t *testing.T) {
-	orgiginalFunc := currentTime
-	currentTime = func() time.Time {
-		return time.Now().Add(-25 * time.Hour)
 	}
-	SaveUploadStatus(models.UploadStatus{
-		ChunkId:       "ctodelete1",
-		CurrentStatus: 0,
-	})
-	SaveUploadStatus(models.UploadStatus{
-		ChunkId:       "ctodelete2",
-		CurrentStatus: 1,
-	})
-	SaveUploadStatus(models.UploadStatus{
-		ChunkId:       "ctodelete3",
-		CurrentStatus: 0,
-	})
-	SaveUploadStatus(models.UploadStatus{
-		ChunkId:       "ctodelete4",
-		CurrentStatus: 0,
-	})
-	SaveUploadStatus(models.UploadStatus{
-		ChunkId:       "ctodelete5",
-		CurrentStatus: 1,
-	})
-	currentTime = orgiginalFunc
-
-	SaveUploadStatus(models.UploadStatus{
-		ChunkId:       "ctokeep1",
-		CurrentStatus: 0,
-	})
-	SaveUploadStatus(models.UploadStatus{
-		ChunkId:       "ctokeep2",
-		CurrentStatus: 1,
-	})
-	SaveUploadStatus(models.UploadStatus{
-		ChunkId:       "ctokeep3",
-		CurrentStatus: 0,
-	})
-	SaveUploadStatus(models.UploadStatus{
-		ChunkId:       "ctokeep4",
-		CurrentStatus: 0,
-	})
-	SaveUploadStatus(models.UploadStatus{
-		ChunkId:       "ctokeep5",
-		CurrentStatus: 1,
-	})
-	for _, item := range []string{"ctodelete1", "ctodelete2", "ctodelete3", "ctodelete4", "ctokeep1", "ctokeep2", "ctokeep3", "ctokeep4"} {
-		_, result := GetUploadStatus(item)
-		test.IsEqualBool(t, result, true)
-	}
-	RunGarbageCollection()
-	for _, item := range []string{"ctodelete1", "ctodelete2", "ctodelete3", "ctodelete4"} {
-		_, result := GetUploadStatus(item)
-		test.IsEqualBool(t, result, false)
-	}
-	for _, item := range []string{"ctokeep1", "ctokeep2", "ctokeep3", "ctokeep4"} {
-		_, result := GetUploadStatus(item)
-		test.IsEqualBool(t, result, true)
-	}
-}
-
-func TestGarbageCollectionSessions(t *testing.T) {
-	SaveSession("todelete1", models.Session{
-		RenewAt:    time.Now().Add(-10 * time.Second).Unix(),
-		ValidUntil: time.Now().Add(-10 * time.Second).Unix(),
-	})
-	SaveSession("todelete2", models.Session{
-		RenewAt:    time.Now().Add(10 * time.Second).Unix(),
-		ValidUntil: time.Now().Add(-10 * time.Second).Unix(),
-	})
-	SaveSession("tokeep1", models.Session{
-		RenewAt:    time.Now().Add(-10 * time.Second).Unix(),
-		ValidUntil: time.Now().Add(10 * time.Second).Unix(),
-	})
-	SaveSession("tokeep2", models.Session{
-		RenewAt:    time.Now().Add(10 * time.Second).Unix(),
-		ValidUntil: time.Now().Add(10 * time.Second).Unix(),
-	})
-	for _, item := range []string{"todelete1", "todelete2", "tokeep1", "tokeep2"} {
-		_, result := GetSession(item)
-		test.IsEqualBool(t, result, true)
-	}
-	RunGarbageCollection()
-	for _, item := range []string{"todelete1", "todelete2"} {
-		_, result := GetSession(item)
-		test.IsEqualBool(t, result, false)
-	}
-	for _, item := range []string{"tokeep1", "tokeep2"} {
-		_, result := GetSession(item)
-		test.IsEqualBool(t, result, true)
-	}
-}
-
-func TestEnd2EndInfo(t *testing.T) {
-	info := GetEnd2EndInfo()
-	test.IsEqualInt(t, info.Version, 0)
-	test.IsEqualBool(t, info.HasBeenSetUp(), false)
-
-	SaveEnd2EndInfo(models.E2EInfoEncrypted{
-		Version:        1,
-		Nonce:          []byte("testNonce1"),
-		Content:        []byte("testContent1"),
-		AvailableFiles: []string{"file1_0", "file1_1"},
-	})
-
-	info = GetEnd2EndInfo()
-	test.IsEqualInt(t, info.Version, 1)
-	test.IsEqualBool(t, info.HasBeenSetUp(), true)
-	test.IsEqualByteSlice(t, info.Nonce, []byte("testNonce1"))
-	test.IsEqualByteSlice(t, info.Content, []byte("testContent1"))
-	test.IsEqualBool(t, len(info.AvailableFiles) == 0, true)
-
-	SaveEnd2EndInfo(models.E2EInfoEncrypted{
-		Version:        2,
-		Nonce:          []byte("testNonce2"),
-		Content:        []byte("testContent2"),
-		AvailableFiles: []string{"file2_0", "file2_1"},
-	})
-
-	info = GetEnd2EndInfo()
-	test.IsEqualInt(t, info.Version, 2)
-	test.IsEqualBool(t, info.HasBeenSetUp(), true)
-	test.IsEqualByteSlice(t, info.Nonce, []byte("testNonce2"))
-	test.IsEqualByteSlice(t, info.Content, []byte("testContent2"))
-	test.IsEqualBool(t, len(info.AvailableFiles) == 0, true)
-
-	DeleteEnd2EndInfo()
-	info = GetEnd2EndInfo()
-	test.IsEqualInt(t, info.Version, 0)
-	test.IsEqualBool(t, info.HasBeenSetUp(), false)
-}
-
-func TestUpdateTimeApiKey(t *testing.T) {
-
-	retrievedKey, ok := GetApiKey("key1")
-	test.IsEqualBool(t, ok, false)
-	test.IsEqualString(t, retrievedKey.Id, "")
-
-	key := models.ApiKey{
-		Id:             "key1",
-		FriendlyName:   "key1",
-		LastUsed:       100,
-		LastUsedString: "last1",
-	}
-	SaveApiKey(key)
-	key = models.ApiKey{
-		Id:             "key2",
-		FriendlyName:   "key2",
-		LastUsed:       200,
-		LastUsedString: "last2",
-	}
-	SaveApiKey(key)
-
-	retrievedKey, ok = GetApiKey("key1")
-	test.IsEqualBool(t, ok, true)
-	test.IsEqualString(t, retrievedKey.Id, "key1")
-	test.IsEqualInt64(t, retrievedKey.LastUsed, 100)
-	test.IsEqualString(t, retrievedKey.LastUsedString, "last1")
-	retrievedKey, ok = GetApiKey("key2")
-	test.IsEqualBool(t, ok, true)
-	test.IsEqualString(t, retrievedKey.Id, "key2")
-	test.IsEqualInt64(t, retrievedKey.LastUsed, 200)
-	test.IsEqualString(t, retrievedKey.LastUsedString, "last2")
-
-	key.LastUsed = 300
-	key.LastUsedString = "last2_1"
-	UpdateTimeApiKey(key)
-
-	retrievedKey, ok = GetApiKey("key1")
-	test.IsEqualBool(t, ok, true)
-	test.IsEqualString(t, retrievedKey.Id, "key1")
-	test.IsEqualInt64(t, retrievedKey.LastUsed, 100)
-	test.IsEqualString(t, retrievedKey.LastUsedString, "last1")
-	retrievedKey, ok = GetApiKey("key2")
-	test.IsEqualBool(t, ok, true)
-	test.IsEqualString(t, retrievedKey.Id, "key2")
-	test.IsEqualInt64(t, retrievedKey.LastUsed, 300)
-	test.IsEqualString(t, retrievedKey.LastUsedString, "last2_1")
-}
-
-func TestParallelConnectionsWritingAndReading(t *testing.T) {
-	var wg sync.WaitGroup
-
-	simulatedConnection := func(t *testing.T) {
-		file := models.File{
-			Id:                 helper.GenerateRandomString(10),
-			Name:               helper.GenerateRandomString(10),
-			Size:               "10B",
-			SHA1:               "1289423794287598237489",
-			ExpireAt:           math.MaxInt,
-			SizeBytes:          10,
-			ExpireAtString:     "Never",
-			DownloadsRemaining: 10,
-			DownloadCount:      10,
-			PasswordHash:       "",
-			HotlinkId:          "",
-			ContentType:        "",
-			AwsBucket:          "",
-			Encryption:         models.EncryptionInfo{},
-			UnlimitedDownloads: false,
-			UnlimitedTime:      false,
-		}
-		SaveMetaData(file)
-		retrievedFile, ok := GetMetaDataById(file.Id)
-		test.IsEqualBool(t, ok, true)
-		test.IsEqualString(t, retrievedFile.Name, file.Name)
-		DeleteMetaData(file.Id)
-		_, ok = GetMetaDataById(file.Id)
-		test.IsEqualBool(t, ok, false)
-	}
-
-	for i := 1; i <= 100; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			simulatedConnection(t)
-		}()
-	}
-	wg.Wait()
-}
-
-func TestParallelConnectionsReading(t *testing.T) {
-	var wg sync.WaitGroup
-
-	SaveApiKey(models.ApiKey{
-		Id:             "readtest",
-		FriendlyName:   "readtest",
-		LastUsed:       40000,
-		LastUsedString: "readtest",
-	})
-	simulatedConnection := func(t *testing.T) {
-		_, ok := GetApiKey("readtest")
-		test.IsEqualBool(t, ok, true)
-	}
-
-	for i := 1; i <= 1000; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			simulatedConnection(t)
-		}()
-	}
-	wg.Wait()
+	runAllTypesNoOutput(t, func() { SaveUploadDefaults(newValues) })
+	runAllTypesCompareOutput(t, func() any { return GetUploadDefaults() }, newValues)
 }
 
 func TestUploadStatus(t *testing.T) {
-	allStatus := GetAllUploadStatus()
-	found := false
-	test.IsEqualInt(t, len(allStatus), 5)
-	for _, status := range allStatus {
-		if status.ChunkId == "ctokeep5" {
-			found = true
-		}
-	}
-	test.IsEqualBool(t, found, true)
+	runAllTypesCompareTwoOutputs(t, func() (any, any) { return GetUploadStatus("newstatus") }, models.UploadStatus{}, false)
+	runAllTypesCompareOutput(t, func() any { return GetAllUploadStatus() }, []models.UploadStatus{})
 	newStatus := models.UploadStatus{
-		ChunkId:       "testid",
+		ChunkId:       "newstatus",
 		CurrentStatus: 1,
 	}
-	retrievedStatus, ok := GetUploadStatus("testid")
-	test.IsEqualBool(t, ok, false)
-	test.IsEqualBool(t, retrievedStatus == models.UploadStatus{}, true)
-	SaveUploadStatus(newStatus)
-	retrievedStatus, ok = GetUploadStatus("testid")
-	test.IsEqualBool(t, ok, true)
-	test.IsEqualString(t, retrievedStatus.ChunkId, "testid")
-	test.IsEqualInt(t, retrievedStatus.CurrentStatus, 1)
-	allStatus = GetAllUploadStatus()
-	test.IsEqualInt(t, len(allStatus), 6)
+	runAllTypesNoOutput(t, func() { SaveUploadStatus(newStatus) })
+	runAllTypesCompareTwoOutputs(t, func() (any, any) { return GetUploadStatus("newstatus") }, newStatus, true)
+	runAllTypesCompareOutput(t, func() any { return GetAllUploadStatus() }, []models.UploadStatus{newStatus})
 }
 
-var originalDb *sql.DB
+func TestHotlinks(t *testing.T) {
+	runAllTypesCompareTwoOutputs(t, func() (any, any) { return GetHotlink("newhotlink") }, "", false)
+	newFile := models.File{Id: "testfile",
+		HotlinkId: "newhotlink"}
+	runAllTypesNoOutput(t, func() { SaveHotlink(newFile) })
+	runAllTypesCompareTwoOutputs(t, func() (any, any) { return GetHotlink("newhotlink") }, "testfile", true)
+	runAllTypesCompareOutput(t, func() any { return GetAllHotlinks() }, []string{"newhotlink"})
+	runAllTypesNoOutput(t, func() { DeleteHotlink("newhotlink") })
+	runAllTypesCompareOutput(t, func() any { return GetAllHotlinks() }, []string{})
+}
 
-func setMockDb(t *testing.T) sqlmock.Sqlmock {
-	originalDb = sqliteDb
-	db, mock, err := sqlmock.New()
+func TestMetaData(t *testing.T) {
+	runAllTypesCompareOutput(t, func() any { return GetAllMetaDataIds() }, []string{})
+	runAllTypesCompareOutput(t, func() any { return GetAllMetadata() }, map[string]models.File{})
+	runAllTypesCompareTwoOutputs(t, func() (any, any) { return GetMetaDataById("testid") }, models.File{}, false)
+	file := models.File{
+		Id:                 "testid",
+		Name:               "Testname",
+		Size:               "3Kb",
+		SHA1:               "12345556",
+		PasswordHash:       "sfffwefwe",
+		HotlinkId:          "hotlink",
+		ContentType:        "none",
+		AwsBucket:          "aws1",
+		ExpireAtString:     "In 10 seconds",
+		ExpireAt:           time.Now().Add(10 * time.Second).Unix(),
+		SizeBytes:          3 * 1024,
+		DownloadsRemaining: 2,
+		DownloadCount:      5,
+		Encryption: models.EncryptionInfo{
+			IsEncrypted:         true,
+			IsEndToEndEncrypted: true,
+			DecryptionKey:       []byte("dekey"),
+			Nonce:               []byte("nonce"),
+		},
+		UnlimitedDownloads: true,
+		UnlimitedTime:      true,
+	}
+	runAllTypesNoOutput(t, func() { SaveMetaData(file) })
+	runAllTypesCompareTwoOutputs(t, func() (any, any) { return GetMetaDataById("testid") }, file, true)
+	runAllTypesCompareOutput(t, func() any { return GetAllMetaDataIds() }, []string{"testid"})
+	runAllTypesCompareOutput(t, func() any { return GetAllMetadata() }, map[string]models.File{"testid": file})
+	runAllTypesNoOutput(t, func() { DeleteMetaData("testid") })
+	runAllTypesCompareOutput(t, func() any { return GetAllMetaDataIds() }, []string{})
+	runAllTypesCompareOutput(t, func() any { return GetAllMetadata() }, map[string]models.File{})
+	runAllTypesCompareTwoOutputs(t, func() (any, any) { return GetMetaDataById("testid") }, models.File{}, false)
+}
+
+func TestUpgrade(t *testing.T) {
+	actualDbVersion := currentDbVersion
+	currentDbVersion = 99
+	runAllTypesNoOutput(t, func() { db.SetDbVersion(1) })
+	runAllTypesNoOutput(t, func() { Upgrade() })
+	runAllTypesNoOutput(t, func() { test.IsEqualInt(t, db.GetDbVersion(), 99) })
+	currentDbVersion = actualDbVersion
+}
+
+func TestRunGarbageCollection(t *testing.T) {
+	runAllTypesNoOutput(t, func() { RunGarbageCollection() })
+}
+
+func TestClose(t *testing.T) {
+	runAllTypesNoOutput(t, func() { Close() })
+}
+
+func runAllTypesNoOutput(t *testing.T, functionToRun func()) {
+	t.Helper()
+	for _, database := range availableDatabases {
+		db = database
+		functionToRun()
+	}
+}
+
+func runAllTypesCompareOutput(t *testing.T, functionToRun func() any, expectedOutput any) {
+	t.Helper()
+	for _, database := range availableDatabases {
+		db = database
+		output := functionToRun()
+		test.IsEqual(t, output, expectedOutput)
+	}
+}
+
+func runAllTypesCompareTwoOutputs(t *testing.T, functionToRun func() (any, any), expectedOutput1, expectedOutput2 any) {
+	t.Helper()
+	for _, database := range availableDatabases {
+		db = database
+		output1, output2 := functionToRun()
+		test.IsEqual(t, output1, expectedOutput1)
+		test.IsEqual(t, output2, expectedOutput2)
+	}
+}
+
+func TestParseUrl(t *testing.T) {
+	expectedOutput := models.DbConnection{}
+	output, err := ParseUrl("invalid", false)
+	test.IsNotNil(t, err)
+	test.IsEqual(t, output, expectedOutput)
+
+	_, err = ParseUrl("", false)
+	test.IsNotNil(t, err)
+	_, err = ParseUrl("inv\r\nalid", false)
+	test.IsNotNil(t, err)
+	_, err = ParseUrl("", false)
+	test.IsNotNil(t, err)
+
+	expectedOutput = models.DbConnection{
+		HostUrl: "./test",
+		Type:    dbabstraction.TypeSqlite,
+	}
+	output, err = ParseUrl("sqlite://./test", false)
 	test.IsNil(t, err)
-	sqliteDb = db
-	return mock
+	test.IsEqual(t, output, expectedOutput)
+
+	_, err = ParseUrl("sqlite:///invalid", true)
+	test.IsNotNil(t, err)
+	output, err = ParseUrl("sqlite:///invalid", false)
+	test.IsNil(t, err)
+	test.IsEqualString(t, output.HostUrl, "/invalid")
+
+	expectedOutput = models.DbConnection{
+		HostUrl:     "127.0.0.1:1234",
+		RedisPrefix: "",
+		Username:    "",
+		Password:    "",
+		RedisUseSsl: false,
+		Type:        dbabstraction.TypeRedis,
+	}
+	output, err = ParseUrl("redis://127.0.0.1:1234", false)
+	test.IsNil(t, err)
+	test.IsEqual(t, output, expectedOutput)
+
+	expectedOutput = models.DbConnection{
+		HostUrl:     "127.0.0.1:1234",
+		RedisPrefix: "tpref",
+		Username:    "tuser",
+		Password:    "tpw",
+		RedisUseSsl: true,
+		Type:        dbabstraction.TypeRedis,
+	}
+	output, err = ParseUrl("redis://tuser:tpw@127.0.0.1:1234/?ssl=true&prefix=tpref", false)
+	test.IsNil(t, err)
+	test.IsEqual(t, output, expectedOutput)
 }
-func restoreDb() {
-	sqliteDb = originalDb
+
+func TestMigration(t *testing.T) {
+	configNew := models.DbConnection{
+		RedisPrefix: "testmigrate_",
+		HostUrl:     "127.0.0.1:26379",
+		Type:        1, // dbabstraction.TypeRedis
+	}
+	dbOld, err := dbabstraction.GetNew(configSqlite)
+	test.IsNil(t, err)
+	testFile := models.File{Id: "file1234", HotlinkId: "hotlink123"}
+	dbOld.SaveMetaData(testFile)
+	dbOld.SaveHotlink(testFile)
+	dbOld.SaveApiKey(models.ApiKey{Id: "api123"})
+	dbOld.SaveUploadDefaults(models.LastUploadValues{Password: "pw123"})
+	dbOld.SaveHotlink(testFile)
+	dbOld.Close()
+
+	Migrate(configSqlite, configNew)
+
+	dbNew, err := dbabstraction.GetNew(configNew)
+	test.IsNil(t, err)
+	_, ok := dbNew.GetHotlink("hotlink123")
+	test.IsEqualBool(t, ok, true)
+	_, ok = dbNew.GetApiKey("api123")
+	test.IsEqualBool(t, ok, true)
+	defaults, ok := dbNew.GetUploadDefaults()
+	test.IsEqualBool(t, ok, true)
+	fmt.Printf("defaults: %+v\n", defaults)
+	test.IsEqualString(t, defaults.Password, "pw123")
+	_, ok = dbNew.GetMetaDataById("file1234")
+	test.IsEqualBool(t, ok, true)
 }

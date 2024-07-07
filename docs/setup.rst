@@ -86,6 +86,23 @@ During the first start, a new configuration file will be created and you will be
 
 
 
+Database
+""""""""""""""
+By default, Gokapi stores its data in a database located in the ``data`` directory. You can specify a different database location in this menu. If no changes are needed, you can proceed as is. Experimental Redis support is also available.
+
+You can configure the following settings:
+
+-  **Type of database** Choose either SQLite or Redis.
+-  **Database location** Specify the path to the SQLite database.
+-  **Database host** Provide the host and port number for the Redis database.
+-  **Key prefix (optional)** This prefix will be added to all keys to prevent conflicts if the database is shared with other applications.
+-  **Username (optional)** Enter the username for database connection.
+-  **Password (optional)** Enter the password for database connection.
+-  **Use SSL** Select this option to establish an SSL connection.
+
+.. warning::
+   The Redis password will be stored in plain text and can be viewed when re-running the setup.
+
 Webserver
 """"""""""""""
 

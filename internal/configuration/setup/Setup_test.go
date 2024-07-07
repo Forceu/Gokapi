@@ -92,6 +92,7 @@ func TestEncryptionSetup(t *testing.T) {
 
 	testconfiguration.Create(false)
 	configuration.Load()
+	configuration.ConnectDatabase()
 	configuration.Get().Encryption.Level = 3
 	id := testconfiguration.WriteEncryptedFile()
 	file, ok := database.GetMetaDataById(id)
@@ -230,6 +231,65 @@ func TestInitialSetup(t *testing.T) {
 	}()
 	RunIfFirstStart()
 	test.IsEqualBool(t, isInitialSetup, true)
+}
+
+type dbFormTest struct {
+	DatabaseType   string `form:"dbtype_sel"`
+	SqliteLocation string `form:"sqlite_location"`
+	RedisLocation  string `form:"redis_location"`
+	RedisPrefix    string `form:"redis_prefix"`
+	RedisUser      string `form:"redis_user"`
+	RedisPw        string `form:"redis_password"`
+	RedisUseSsl    string `form:"redis_ssl_sel"`
+}
+
+func generateDbFormValues(input dbFormTest) []jsonFormObject {
+	result := make([]jsonFormObject, 0)
+	v := reflect.ValueOf(input)
+	t := v.Type()
+	for i := 0; i < v.NumField(); i++ {
+		result = append(result, jsonFormObject{
+			Name:  t.Field(i).Tag.Get("form"),
+			Value: v.Field(i).Interface().(string),
+		})
+	}
+	return result
+}
+
+func TestParseDatabaseSettings(t *testing.T) {
+	output := models.Configuration{}
+	input := generateDbFormValues(dbFormTest{
+		DatabaseType:   "0",
+		SqliteLocation: "./data/test.sqlite",
+		RedisUseSsl:    "0",
+	})
+	expected := "sqlite://./data/test.sqlite"
+	err := parseDatabaseSettings(&output, &input)
+	test.IsNil(t, err)
+	test.IsEqualString(t, output.DatabaseUrl, expected)
+
+	input = generateDbFormValues(dbFormTest{
+		DatabaseType:  "1",
+		RedisLocation: "127.0.0.1:1234",
+		RedisUseSsl:   "0",
+	})
+	expected = "redis://127.0.0.1:1234"
+	err = parseDatabaseSettings(&output, &input)
+	test.IsNil(t, err)
+	test.IsEqualString(t, output.DatabaseUrl, expected)
+
+	input = generateDbFormValues(dbFormTest{
+		DatabaseType:  "1",
+		RedisLocation: "127.0.0.1:1234",
+		RedisPrefix:   "pre_",
+		RedisUser:     "testuser",
+		RedisPw:       "testpw",
+		RedisUseSsl:   "1",
+	})
+	expected = "redis://testuser:testpw@127.0.0.1:1234?prefix=pre_&ssl=true"
+	err = parseDatabaseSettings(&output, &input)
+	test.IsNil(t, err)
+	test.IsEqualString(t, output.DatabaseUrl, expected)
 }
 
 func TestRunConfigModification(t *testing.T) {
@@ -499,6 +559,13 @@ type setupValues struct {
 	S3Endpoint            setupEntry `form:"s3_endpoint"`
 	EncryptionLevel       setupEntry `form:"encrypt_sel" isInt:"true"`
 	EncryptionPassword    setupEntry `form:"enc_pw"`
+	DatabaseType          setupEntry `form:"dbtype_sel" isInt:"true"`
+	SqliteLocation        setupEntry `form:"sqlite_location"`
+	RedisLocation         setupEntry `form:"redis_location"`
+	RedisPrefix           setupEntry `form:"redis_prefix"`
+	RedisUser             setupEntry `form:"redis_user"`
+	RedisPw               setupEntry `form:"redis_password"`
+	RedisUseSsl           setupEntry `form:"redis_ssl_sel" isBool:"true"`
 }
 
 func (s *setupValues) init() {
@@ -615,6 +682,9 @@ func createInputInternalAuth() setupValues {
 	values.OAuthRestrictUser.Value = "false"
 	values.OAuthRestrictGroups.Value = "false"
 	values.OAuthRecheckInterval.Value = "12"
+	values.DatabaseType.Value = "0"
+	values.SqliteLocation.Value = "./test/gokapi.sqlite"
+	values.RedisUseSsl.Value = "0"
 
 	return values
 }
@@ -639,6 +709,9 @@ func createInputHeaderAuth() setupValues {
 	values.OAuthRestrictGroups.Value = "false"
 	values.OAuthRecheckInterval.Value = "12"
 	values.IncludeFilename.Value = "0"
+	values.DatabaseType.Value = "0"
+	values.SqliteLocation.Value = "./test/gokapi.sqlite"
+	values.RedisUseSsl.Value = "0"
 
 	return values
 }

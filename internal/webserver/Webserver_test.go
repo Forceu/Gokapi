@@ -19,6 +19,7 @@ import (
 func TestMain(m *testing.M) {
 	testconfiguration.Create(true)
 	configuration.Load()
+	configuration.ConnectDatabase()
 	go Start()
 	time.Sleep(1 * time.Second)
 	exitVal := m.Run()

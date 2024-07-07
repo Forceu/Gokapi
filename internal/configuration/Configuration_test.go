@@ -60,6 +60,7 @@ func TestLoadFromSetup(t *testing.T) {
 		MaxMemory:      10,
 		UseSsl:         true,
 		MaxFileSizeMB:  199,
+		DatabaseUrl:    "sqlite://./test/gokapi.sqlite",
 	}
 	newCloudConfig := cloudconfig.CloudConfig{Aws: models.AwsConfig{
 		Bucket:    "bucket",

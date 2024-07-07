@@ -7,6 +7,7 @@ import (
 	"github.com/forceu/gokapi/internal/helper"
 	"os"
 	"path"
+	"strings"
 )
 
 // DefaultPort for the webserver
@@ -14,30 +15,28 @@ const DefaultPort = 53842
 
 // Environment is a struct containing available env variables
 type Environment struct {
+	ChunkSizeMB        int    `env:"CHUNK_SIZE_MB" envDefault:"45"`
 	ConfigDir          string `env:"CONFIG_DIR" envDefault:"config"`
 	ConfigFile         string `env:"CONFIG_FILE" envDefault:"config.json"`
 	ConfigPath         string
 	DataDir            string `env:"DATA_DIR" envDefault:"data"`
-	WebserverPort      int    `env:"PORT" envDefault:"53842"`
+	DatabaseUrl        string `env:"DATABASE_URL" envDefault:"sqlite://[data]/gokapi.sqlite"`
 	LengthId           int    `env:"LENGTH_ID" envDefault:"15"`
-	MaxMemory          int    `env:"MAX_MEMORY_UPLOAD" envDefault:"50"`
 	MaxFileSize        int    `env:"MAX_FILESIZE" envDefault:"102400"` // 102400==100GB
+	MaxMemory          int    `env:"MAX_MEMORY_UPLOAD" envDefault:"50"`
 	MaxParallelUploads int    `env:"MAX_PARALLEL_UPLOADS" envDefault:"4"`
-	ChunkSizeMB        int    `env:"CHUNK_SIZE_MB" envDefault:"45"`
+	WebserverPort      int    `env:"PORT" envDefault:"53842"`
+	DisableCorsCheck   bool   `env:"DISABLE_CORS_CHECK" envDefault:"false"`
+	LogToStdout        bool   `env:"LOG_STDOUT" envDefault:"false"`
 	AwsBucket          string `env:"AWS_BUCKET"`
 	AwsRegion          string `env:"AWS_REGION"`
 	AwsKeyId           string `env:"AWS_KEY"`
 	AwsKeySecret       string `env:"AWS_KEY_SECRET"`
 	AwsEndpoint        string `env:"AWS_ENDPOINT"`
 	AwsProxyDownload   bool   `env:"AWS_PROXY_DOWNLOAD" envDefault:"false"`
-	DatabaseName       string `env:"DB_NAME" envDefault:"gokapi.sqlite"`
-	DisableCorsCheck   bool   `env:"DISABLE_CORS_CHECK" envDefault:"false"`
-	LogToStdout        bool   `env:"LOG_STDOUT" envDefault:"false"`
-	// Deprecated: will be removed with 1.9
-	LegacyDbPath string
-	// Deprecated: will be removed with 1.9
-	// Previously undocumented env "FILE_DB"
-	LegacyDbFolderName string `env:"LEGACY_FILE_DB" envDefault:"filestorage.db"`
+	// deprecated
+	// Will be removed with version 1.10.0
+	DatabaseName string `env:"DB_NAME" envDefault:"gokapi.sqlite"`
 }
 
 // New parses the env variables
@@ -70,7 +69,6 @@ func New() Environment {
 	if flags.IsConfigPathSet {
 		result.ConfigPath = flags.ConfigPath
 	}
-	result.LegacyDbPath = result.DataDir + "/" + result.LegacyDbFolderName
 	if IsDockerInstance() && os.Getenv("TMPDIR") == "" {
 		err = os.Setenv("TMPDIR", result.DataDir)
 		helper.Check(err)
@@ -84,6 +82,11 @@ func New() Environment {
 	if result.MaxFileSize < 1 {
 		result.MaxFileSize = 5
 	}
+
+	if flags.IsDatabaseUrlSet {
+		result.DatabaseUrl = flags.DatabaseUrl
+	}
+	result.DatabaseUrl = strings.Replace(result.DatabaseUrl, "[data]", result.DataDir, 1)
 
 	return result
 }
