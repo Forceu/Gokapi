@@ -57,41 +57,45 @@ Available environment variables
 ==================================
 
 
-+-----------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| Name                        | Action                                                                              | Persistent [*]_ | Default                     |
-+=============================+=====================================================================================+=================+=============================+
-| GOKAPI_CHUNK_SIZE_MB        | Sets the size of chunks that are uploaded in MB                                     | Yes             | 45                          |
-+-----------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| GOKAPI_CONFIG_DIR           | Sets the directory for the config file                                              | No              | config                      |
-+-----------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| GOKAPI_CONFIG_FILE          | Sets the name of the config file                                                    | No              | config.json                 |
-+-----------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| GOKAPI_DATA_DIR             | Sets the directory for the data                                                     | Yes             | data                        |
-+-----------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| GOKAPI_DB_NAME              | Sets the name for the database file                                                 | No              | gokapi.sqlite               |
-+-----------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| GOKAPI_LENGTH_ID            | Sets the length of the download IDs. Value needs to be 5 or more                    | Yes             | 15                          |
-+-----------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| GOKAPI_MAX_FILESIZE         | Sets the maximum allowed file size in MB                                            | Yes             | 102400 (100GB)              |
-+-----------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| GOKAPI_MAX_MEMORY_UPLOAD    | Sets the amount of RAM in MB that can be allocated for an upload chunk or file      | Yes             | 50                          |
-|                             |                                                                                     |                 |                             |
-|                             | Any chunk or file with a size greater than that will be written to a temporary file |                 |                             |
-+-----------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| GOKAPI_MAX_PARALLEL_UPLOADS | Set the amount of chunks that are uploaded in parallel for a single file            | Yes             | 4                           |
-+-----------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| GOKAPI_PORT                 | Sets the webserver port                                                             | Yes             | 53842                       |
-+-----------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| GOKAPI_DISABLE_CORS_CHECK   | Disables the CORS check on startup and during setup, if set to “true”               | No              | false                       |
-+-----------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| GOKAPI_LOG_STDOUT           | Also outputs all log file entries to the console output                             | No              | false                       |
-+-----------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| DOCKER_NONROOT              | Docker only: Runs the binary in the container as a non-root user, if set to “true”  | No              | false                       |
-+-----------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| TMPDIR                      | Sets the path which contains temporary files                                        | No              | Non-Docker: Default OS path |
-|                             |                                                                                     |                 |                             |
-|                             |                                                                                     |                 | Docker: [DATA_DIR]          |
-+-----------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
++-------------------------------+-------------------------------------------------------------------------------------+-----------------+--------------------------------------+
+| Name                          | Action                                                                              | Persistent [*]_ | Default                              |
++===============================+=====================================================================================+=================+======================================+
+| GOKAPI_CHUNK_SIZE_MB          | Sets the size of chunks that are uploaded in MB                                     | Yes             | 45                                   |
++-------------------------------+-------------------------------------------------------------------------------------+-----------------+--------------------------------------+
+| GOKAPI_CONFIG_DIR             | Sets the directory for the config file                                              | No              | config                               |
++-------------------------------+-------------------------------------------------------------------------------------+-----------------+--------------------------------------+
+| GOKAPI_CONFIG_FILE            | Sets the name of the config file                                                    | No              | config.json                          |
++-------------------------------+-------------------------------------------------------------------------------------+-----------------+--------------------------------------+
+| GOKAPI_DATA_DIR               | Sets the directory for the data                                                     | Yes             | data                                 |
++-------------------------------+-------------------------------------------------------------------------------------+-----------------+--------------------------------------+
+| GOKAPI_DATABASE_URL           | Sets the type and location of the database. See :ref:`Databases`                    | Yes             | sqlite://[data folder]/gokapi.sqlite |
++-------------------------------+-------------------------------------------------------------------------------------+-----------------+--------------------------------------+
+| GOKAPI_LENGTH_ID              | Sets the length of the download IDs. Value needs to be 5 or more                    | Yes             | 15                                   |
++-------------------------------+-------------------------------------------------------------------------------------+-----------------+--------------------------------------+
+| GOKAPI_MAX_FILESIZE           | Sets the maximum allowed file size in MB                                            | Yes             | 102400 (100GB)                       |
++-------------------------------+-------------------------------------------------------------------------------------+-----------------+--------------------------------------+
+| GOKAPI_MAX_MEMORY_UPLOAD      | Sets the amount of RAM in MB that can be allocated for an upload chunk or file      | Yes             | 50                                   |
+|                               |                                                                                     |                 |                                      |
+|                               | Any chunk or file with a size greater than that will be written to a temporary file |                 |                                      |
++-------------------------------+-------------------------------------------------------------------------------------+-----------------+--------------------------------------+
+| GOKAPI_MAX_PARALLEL_UPLOADS   | Set the amount of chunks that are uploaded in parallel for a single file            | Yes             | 4                                    |
++-------------------------------+-------------------------------------------------------------------------------------+-----------------+--------------------------------------+
+| GOKAPI_PORT                   | Sets the webserver port                                                             | Yes             | 53842                                |
++-------------------------------+-------------------------------------------------------------------------------------+-----------------+--------------------------------------+
+| GOKAPI_DISABLE_CORS_CHECK     | Disables the CORS check on startup and during setup, if set to "true"               | No              | false                                |
++-------------------------------+-------------------------------------------------------------------------------------+-----------------+--------------------------------------+
+| GOKAPI_LOG_STDOUT             | Also outputs all log file entries to the console output                             | No              | false                                |
++-------------------------------+-------------------------------------------------------------------------------------+-----------------+--------------------------------------+
+| DOCKER_NONROOT                | Docker only: Runs the binary in the container as a non-root user, if set to "true"  | No              | false                                |
++-------------------------------+-------------------------------------------------------------------------------------+-----------------+--------------------------------------+
+| TMPDIR                        | Sets the path which contains temporary files                                        | No              | Non-Docker: Default OS path          |
+|                               |                                                                                     |                 |                                      |
+|                               |                                                                                     |                 | Docker: [DATA_DIR]                   |
++-------------------------------+-------------------------------------------------------------------------------------+-----------------+--------------------------------------+
+| GOKAPI_DB_NAME *(deprecated)* | Sets the name for the database file.                                                | No              | gokapi.sqlite                        |
+|                               |                                                                                     |                 |                                      |
+|                               | *Deprecated: Only used during update. Will be removed with v1.10.0*                 |                 |                                      |
++-------------------------------+-------------------------------------------------------------------------------------+-----------------+--------------------------------------+
 
 
 .. [*] Variables that are persistent must be submitted during the first start when Gokapi creates a new config file. They can be omitted afterwards. Non-persistent variables need to be set on every start.
@@ -122,6 +126,85 @@ All values that are described in :ref:`cloudstorage` can be passed as environmen
 |                           | and proxy it to the user                |                             |
 +---------------------------+-----------------------------------------+-----------------------------+
 
+
+
+.. _databases:
+
+
+********************************
+Databases
+********************************
+
+By default, Gokapi uses an SQLite database for data storage, which should suffice for most use cases. Additionally, Redis is available as an experimental option.
+
+
+
+Migrating to a different database
+=================================
+
+To switch to a different database, Gokapi provides a migration tool. By running:
+
+::
+
+ gokapi --migrate [old Database URL] [new Database URL]
+ 
+all existing data, except for user sessions, will be transferred to the new database. After the migration, you will need to rerun the setup and specify the new database location. For details on the correct database URL format, refer to the section :ref:`databaseUrl`.
+
+For Docker users, the command is:
+::
+
+ docker run --rm -v gokapi-data:/app/data f0rc3/gokapi:latest /app/run.sh [old Database URL] [new Database URL]
+
+
+.. _databaseUrl:
+
+Database URL format
+---------------------------------
+
+Database URLs must start with either ``sqlite://`` or ``redis://``.
+
+For SQLite, the path to the database follows the prefix. No additional options are allowed.
+
+For Redis, the URL can include authentication credentials (username and password), an optional prefix for keys, and parameter to use SSL.
+
+
+Redis URL Format
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A Redis URL has the following structure:
+::
+
+ redis://[username:password@]host[:port][?options]
+ 
+* username: (optional) The username for authentication.
+* password: (optional) The password for authentication.
+* host: (required) The address of the Redis server.
+* port: (optional) The port of the Redis server (default is 6379).
+* options: (optional) Additional options such as SSL (``ssl=true``) and key prefix (``prefix=``).
+
+
+Examples
+---------------------------------
+
+Migrating SQLite (``/app/data/gokapi.sqlite``) to Redis (``127.0.0.1:6379``):
+
+
+::
+
+ gokapi --migrate sqlite:///app/data/gokapi.sqlite redis://127.0.0.1:6379
+
+Migrating SQLite (``/app/data/gokapi.sqlite``) to SQLite (``./data/gokapi.sqlite``):
+
+::
+
+ gokapi --migrate sqlite:///app/data/gokapi.sqlite sqlite://./data/gokapi.sqlite
+ 
+Migrating Redis (``127.0.0.1:6379, User: test, Password: 1234, Prefix: gokapi_, using SSL``) to SQLite (``./data/gokapi.sqlite``):
+
+
+::
+
+ gokapi --migrate "redis://test:1234@127.0.0.1:6379?prefix=gokapi_&ssl=true" sqlite://./data/gokapi.sqlite
 
 .. _api:
 
