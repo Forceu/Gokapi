@@ -17,7 +17,7 @@ type DatabaseProvider struct {
 	sqliteDb *sql.DB
 }
 
-const DatabaseSchemeVersion = 2
+const DatabaseSchemeVersion = 3
 
 // New returns an instance
 func New(dbConfig models.DbConnection) (DatabaseProvider, error) {
