@@ -17,6 +17,8 @@ type DatabaseProvider struct {
 	sqliteDb *sql.DB
 }
 
+const DatabaseSchemeVersion = 2
+
 // New returns an instance
 func New(dbConfig models.DbConnection) (DatabaseProvider, error) {
 	return DatabaseProvider{}.init(dbConfig)
@@ -70,6 +72,11 @@ func (p DatabaseProvider) GetDbVersion() int {
 func (p DatabaseProvider) SetDbVersion(newVersion int) {
 	_, err := p.sqliteDb.Exec(fmt.Sprintf("PRAGMA user_version = %d;", newVersion))
 	helper.Check(err)
+}
+
+// GetSchemaVersion returns the version number, that the database should be if fully upgraded
+func (p DatabaseProvider) GetSchemaVersion() int {
+	return DatabaseSchemeVersion
 }
 
 // Init connects to the database and creates the table structure, if necessary
@@ -180,7 +187,11 @@ func (p DatabaseProvider) createNewDatabase() error {
 		) WITHOUT ROWID;
 `
 	err := p.rawSqlite(sqlStmt)
-	return err
+	if err != nil {
+		return err
+	}
+	p.SetDbVersion(DatabaseSchemeVersion)
+	return nil
 }
 
 // rawSqlite runs a raw SQL statement. Should only be used for upgrading

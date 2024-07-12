@@ -30,6 +30,8 @@ type Database interface {
 	GetDbVersion() int
 	// SetDbVersion sets the version number of the database
 	SetDbVersion(newVersion int)
+	// GetSchemaVersion returns the version number, that the database should be if fully upgraded
+	GetSchemaVersion() int
 
 	// GetAllApiKeys returns a map with all API keys
 	GetAllApiKeys() map[string]models.ApiKey

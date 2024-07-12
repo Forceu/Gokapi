@@ -182,12 +182,11 @@ func TestMetaData(t *testing.T) {
 }
 
 func TestUpgrade(t *testing.T) {
-	actualDbVersion := currentDbVersion
-	currentDbVersion = 99
+	runAllTypesNoOutput(t, func() { test.IsEqualBool(t, db.GetDbVersion() != 1, true) })
 	runAllTypesNoOutput(t, func() { db.SetDbVersion(1) })
+	runAllTypesNoOutput(t, func() { test.IsEqualInt(t, db.GetDbVersion(), 1) })
 	runAllTypesNoOutput(t, func() { Upgrade() })
-	runAllTypesNoOutput(t, func() { test.IsEqualInt(t, db.GetDbVersion(), 99) })
-	currentDbVersion = actualDbVersion
+	runAllTypesNoOutput(t, func() { test.IsEqualInt(t, db.GetDbVersion(), db.GetSchemaVersion()) })
 }
 
 func TestRunGarbageCollection(t *testing.T) {

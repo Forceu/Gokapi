@@ -12,8 +12,6 @@ import (
 
 var db dbabstraction.Database
 
-var currentDbVersion = 2
-
 // Connect establishes a connection to the database and creates the table structure, if necessary
 func Connect(config models.DbConnection) {
 	var err error
@@ -92,9 +90,11 @@ func RunGarbageCollection() {
 // Upgrade migrates the DB to a new Gokapi version, if required
 func Upgrade() {
 	dbVersion := db.GetDbVersion()
-	if dbVersion < currentDbVersion {
-		db.Upgrade(currentDbVersion)
-		db.SetDbVersion(currentDbVersion)
+	expectedVersion := db.GetSchemaVersion()
+	if dbVersion < expectedVersion {
+		db.Upgrade(expectedVersion)
+		db.SetDbVersion(expectedVersion)
+		fmt.Printf("Successfully upgraded database to version %d\n", expectedVersion)
 	}
 }
 

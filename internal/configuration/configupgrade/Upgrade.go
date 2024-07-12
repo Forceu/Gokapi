@@ -14,7 +14,7 @@ const CurrentConfigVersion = 21
 func DoUpgrade(settings *models.Configuration, env *environment.Environment) bool {
 	if settings.ConfigVersion < CurrentConfigVersion {
 		updateConfig(settings, env)
-		fmt.Println("Successfully upgraded configuration")
+		fmt.Printf("Successfully upgraded configuration to version %d\n", CurrentConfigVersion)
 		settings.ConfigVersion = CurrentConfigVersion
 		return true
 	}

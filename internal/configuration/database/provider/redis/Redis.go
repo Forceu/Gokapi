@@ -17,6 +17,8 @@ type DatabaseProvider struct {
 	dbPrefix string
 }
 
+const DatabaseSchemeVersion = 2
+
 // New returns an instance
 func New(dbConfig models.DbConnection) (DatabaseProvider, error) {
 	return DatabaseProvider{}.init(dbConfig)
@@ -39,7 +41,15 @@ func (p DatabaseProvider) init(config models.DbConnection) (DatabaseProvider, er
 	conn := p.pool.Get()
 	defer conn.Close()
 	_, err := redigo.String(conn.Do("PING"))
-	return p, err
+	if err != nil {
+		return DatabaseProvider{}, err
+	}
+	// If DB version is 0, the DB is new and therefore set version to latest one.
+	// Otherwise, Upgrade() would be called after loading
+	if p.GetDbVersion() == 0 {
+		p.SetDbVersion(DatabaseSchemeVersion)
+	}
+	return p, nil
 }
 
 func getDialOptions(config models.DbConnection) []redigo.DialOption {
@@ -96,6 +106,11 @@ func (p DatabaseProvider) GetDbVersion() int {
 // SetDbVersion sets the version number of the database
 func (p DatabaseProvider) SetDbVersion(currentVersion int) {
 	p.setKey(keyDbVersion, currentVersion)
+}
+
+// GetSchemaVersion returns the version number, that the database should be if fully upgraded
+func (p DatabaseProvider) GetSchemaVersion() int {
+	return DatabaseSchemeVersion
 }
 
 // Close the database connection

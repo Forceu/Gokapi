@@ -58,10 +58,10 @@ func TestClose(t *testing.T) {
 
 func TestDatabaseProvider_GetDbVersion(t *testing.T) {
 	version := dbInstance.GetDbVersion()
-	test.IsEqualInt(t, version, 0)
+	test.IsEqualInt(t, version, DatabaseSchemeVersion)
 	dbInstance.SetDbVersion(99)
 	test.IsEqualInt(t, dbInstance.GetDbVersion(), 99)
-	dbInstance.SetDbVersion(0)
+	dbInstance.SetDbVersion(DatabaseSchemeVersion)
 }
 
 func TestMetaData(t *testing.T) {
