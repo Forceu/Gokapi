@@ -92,7 +92,7 @@ func Upgrade() {
 	dbVersion := db.GetDbVersion()
 	expectedVersion := db.GetSchemaVersion()
 	if dbVersion < expectedVersion {
-		db.Upgrade(expectedVersion)
+		db.Upgrade(dbVersion)
 		db.SetDbVersion(expectedVersion)
 		fmt.Printf("Successfully upgraded database to version %d\n", expectedVersion)
 	}
