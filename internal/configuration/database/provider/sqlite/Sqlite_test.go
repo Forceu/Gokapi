@@ -64,6 +64,10 @@ func TestDatabaseProvider_GetDbVersion(t *testing.T) {
 	dbInstance.SetDbVersion(DatabaseSchemeVersion)
 }
 
+func TestDatabaseProvider_GetSchemaVersion(t *testing.T) {
+	test.IsEqualInt(t, dbInstance.GetSchemaVersion(), DatabaseSchemeVersion)
+}
+
 func TestMetaData(t *testing.T) {
 	files := dbInstance.GetAllMetadata()
 	test.IsEqualInt(t, len(files), 0)

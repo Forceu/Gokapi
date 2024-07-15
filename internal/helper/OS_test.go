@@ -65,3 +65,10 @@ func TestCheck(t *testing.T) {
 	err = errors.New("test")
 	Check(err)
 }
+
+func TestCheckIgnoreTimeout(t *testing.T) {
+	CheckIgnoreTimeout(nil)
+	CheckIgnoreTimeout(os.ErrDeadlineExceeded)
+	defer test.ExpectPanic(t)
+	CheckIgnoreTimeout(errors.New("other"))
+}

@@ -3,12 +3,10 @@ package processingstatus
 import (
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/database"
-	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/test"
 	"github.com/forceu/gokapi/internal/test/testconfiguration"
 	"os"
 	"testing"
-	"time"
 )
 
 func TestMain(m *testing.M) {
@@ -21,38 +19,19 @@ func TestMain(m *testing.M) {
 }
 
 func TestSetStatus(t *testing.T) {
+	const id = "testchunk"
+	status, ok := database.GetUploadStatus(id)
+	test.IsEqualBool(t, ok, false)
+	test.IsEmpty(t, status.ChunkId)
+	Set(id, 2)
+	status, ok = database.GetUploadStatus(id)
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualString(t, status.ChunkId, id)
+	test.IsEqualInt(t, status.CurrentStatus, 2)
+	Set(id, 1)
+	status, ok = database.GetUploadStatus(id)
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualString(t, status.ChunkId, id)
+	test.IsEqualInt(t, status.CurrentStatus, 2)
 
-	chunkID := "testChunkID"
-	testCases := []struct {
-		name          string
-		initialStatus int
-		newStatus     int
-	}{
-		{"SetNewStatus", -1, StatusHashingOrEncrypting},
-		{"SetSameStatus", StatusUploading, StatusUploading},
-		// Add more test cases as needed
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			// Set the initial status for the chunk ID
-			initialStatus := models.UploadStatus{
-				ChunkId:       chunkID,
-				CurrentStatus: tc.initialStatus,
-			}
-			database.SaveUploadStatus(initialStatus)
-
-			// Set the new status
-			Set(chunkID, tc.newStatus)
-
-			// Wait for SSE event to be published
-			time.Sleep(100 * time.Millisecond)
-
-			// Retrieve the updated status from the database
-			updatedStatus, _ := database.GetUploadStatus(chunkID)
-
-			// Check if the status was updated
-			test.IsEqualInt(t, tc.newStatus, updatedStatus.CurrentStatus)
-		})
-	}
 }

@@ -29,6 +29,6 @@ func Set(id string, status int) {
 	if ok && oldStatus.CurrentStatus > newStatus.CurrentStatus {
 		return
 	}
-	passNewStatus(newStatus)
 	database.SaveUploadStatus(newStatus)
+	go passNewStatus(newStatus)
 }

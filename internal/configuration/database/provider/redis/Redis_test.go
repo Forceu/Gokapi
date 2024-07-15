@@ -53,6 +53,10 @@ func TestDatabaseProvider_GetType(t *testing.T) {
 	test.IsEqualInt(t, dbInstance.GetType(), 1)
 }
 
+func TestDatabaseProvider_GetSchemaVersion(t *testing.T) {
+	test.IsEqualInt(t, dbInstance.GetSchemaVersion(), DatabaseSchemeVersion)
+}
+
 func TestDatabaseProvider_Upgrade(t *testing.T) {
 	var err error
 	dbInstance, err = New(config)

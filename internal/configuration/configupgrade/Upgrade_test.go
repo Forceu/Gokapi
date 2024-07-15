@@ -36,8 +36,12 @@ func TestUpgradeDb(t *testing.T) {
 
 	exitCode = 0
 	oldConfigFile.ConfigVersion = 17
+	oldConfigFile.Authentication.OAuthUsers = []string{"test"}
+	oldConfigFile.MaxMemory = 40
 	upgradeDone = DoUpgrade(&oldConfigFile, &env)
 	test.IsEqualBool(t, upgradeDone, true)
+	test.IsEqualString(t, oldConfigFile.Authentication.OAuthUserScope, "email")
+	test.IsEqualInt(t, oldConfigFile.MaxMemory, 50)
 	test.IsEqualInt(t, exitCode, 0)
 
 	exitCode = 0
