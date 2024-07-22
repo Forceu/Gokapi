@@ -35,7 +35,7 @@ func removeListener(id string) {
 func PublishNewStatus(reply string) {
 	mutex.RLock()
 	for _, channel := range listeners {
-		go channel.Reply(reply)
+		go channel.Reply("event: message\ndata: " + reply + "\n\n")
 	}
 	mutex.RUnlock()
 }
@@ -71,7 +71,7 @@ func GetStatusSSE(w http.ResponseWriter, r *http.Request) {
 	for _, status := range allStatus {
 		jsonOutput, err := status.ToJson()
 		helper.Check(err)
-		_, _ = io.WriteString(w, string(jsonOutput)+"\n")
+		_, _ = io.WriteString(w, "event: message\ndata: "+string(jsonOutput)+"\n\n")
 	}
 	w.(http.Flusher).Flush()
 	for {
@@ -84,7 +84,7 @@ func GetStatusSSE(w http.ResponseWriter, r *http.Request) {
 		case reply := <-replyChannel:
 			_, _ = io.WriteString(w, reply)
 		case <-time.After(pingInterval):
-			_, _ = io.WriteString(w, "{\"type\":\"ping\"}\n")
+			_, _ = io.WriteString(w, "event: ping\n\n")
 		case <-ctx.Done():
 			removeListener(channelId)
 			return

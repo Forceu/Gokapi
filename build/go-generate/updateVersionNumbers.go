@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-const versionJsAdmin = "4"
+const versionJsAdmin = "5"
 const versionJsDropzone = "4"
 const versionJsE2EAdmin = "3"
 const versionCssMain = "2"
@@ -76,7 +76,7 @@ func parseGokapiVersion() string {
 	return ""
 }
 
-const templateVersions = `// Change these for rebranding
+const templateVersions = `// File contains auto-generated values. Do not change manually
 {{define "version"}}%gokapiversion%{{end}}
 
 // Specifies the version of JS files, so that the browser doesn't

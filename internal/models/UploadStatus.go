@@ -12,13 +12,10 @@ type UploadStatus struct {
 	// hashing) or being moved/uploaded to the file storage
 	// See processingstatus for definition
 	CurrentStatus int `json:"currentstatus"`
-	// Type is the type of the message and is always "uploadstatus"
-	Type string `json:"type"`
 }
 
 // ToJson returns the struct as a Json byte array
 func (u *UploadStatus) ToJson() ([]byte, error) {
-	u.Type = "uploadstatus"
 	return json.Marshal(u)
 
 }

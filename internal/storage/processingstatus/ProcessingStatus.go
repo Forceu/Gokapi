@@ -16,7 +16,7 @@ const StatusUploading = 1
 func passNewStatus(newStatus models.UploadStatus) {
 	status, err := newStatus.ToJson()
 	helper.Check(err)
-	sse.PublishNewStatus(string(status) + "\n")
+	sse.PublishNewStatus(string(status))
 }
 
 // Set sets the status for an id

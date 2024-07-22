@@ -458,7 +458,7 @@ function registerChangeHandler() {
     source.onmessage = (event) => {
         try {
             let eventData = JSON.parse(event.data);
-            setProgressStatus(eventData.chunkid, eventData.currentstatus);
+	    setProgressStatus(eventData.chunkid, eventData.currentstatus);
         } catch (e) {
             console.error("Failed to parse event data:", e);
         }
@@ -469,8 +469,6 @@ function registerChangeHandler() {
         if (error.target.readyState !== EventSource.CLOSED) {
             source.close();
         }
-
-
         console.log("Reconnecting to SSE...");
         // Attempt to reconnect after a delay
         setTimeout(registerChangeHandler, 5000);
