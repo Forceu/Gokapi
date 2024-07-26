@@ -13,7 +13,7 @@
 	<link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png">
 	<link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png">
 	<link rel="manifest" href="./site.webmanifest">
-        <link href="css/min/gokapi.min.css?v={{ template "css_main"}}" rel="stylesheet">
+        <link href="css/min/gokapi.min.{{ template "css_main"}}.css" rel="stylesheet">
 	<link href="./assets/dist/icons/bootstrap-icons.min.css" rel="stylesheet">
 {{ if .IsAdminView }}
         <title>{{.PublicName}} Admin</title>
@@ -50,7 +50,7 @@
 	  box-shadow: inset 0 0 5rem rgba(0, 0, 0, .5);
 	}
 	</style>
-	<script src="./js/min/end2end_download.min.js"></script>
+	<script src="./js/min/end2end_download.min.{{ template "js_e2eversion"}}.js"></script>
 {{end}}
   </head>
   <body class="d-flex h-100 text-center text-white bg-dark">

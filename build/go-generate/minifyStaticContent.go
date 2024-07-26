@@ -9,15 +9,17 @@ import (
 	"github.com/tdewolff/minify/v2/js"
 	"os"
 	"path/filepath"
+	"strconv"
 )
 
 const pathPrefix = "../../internal/webserver/web/static/"
 
 type converter struct {
-	InputPath  string
-	OutputPath string
-	Type       string
-	Name       string
+	InputPath       string
+	OutputPath      string
+	PreviousVersion string
+	Type            string
+	Name            string
 }
 
 func main() {
@@ -29,28 +31,32 @@ func main() {
 func getPaths() []converter {
 	var result []converter
 	result = append(result, converter{
-		InputPath:  pathPrefix + "css/*.css",
-		OutputPath: pathPrefix + "css/min/gokapi.min.css",
-		Type:       "text/css",
-		Name:       "Main CSS",
+		InputPath:       pathPrefix + "css/*.css",
+		OutputPath:      pathPrefix + "css/min/gokapi.min." + strconv.Itoa(cssMainVersion) + ".css",
+		PreviousVersion: pathPrefix + "css/min/gokapi.min." + strconv.Itoa(cssMainVersion-1) + ".css",
+		Type:            "text/css",
+		Name:            "Main CSS",
 	})
 	result = append(result, converter{
-		InputPath:  pathPrefix + "js/admin.js",
-		OutputPath: pathPrefix + "js/min/admin.min.js",
-		Type:       "text/javascript",
-		Name:       "Admin JS",
+		InputPath:       pathPrefix + "js/admin.js",
+		OutputPath:      pathPrefix + "js/min/admin.min." + strconv.Itoa(jsAdminVersion) + ".js",
+		PreviousVersion: pathPrefix + "js/min/admin.min." + strconv.Itoa(jsAdminVersion-1) + ".js",
+		Type:            "text/javascript",
+		Name:            "Admin JS",
 	})
 	result = append(result, converter{
-		InputPath:  pathPrefix + "js/end2end_admin.js",
-		OutputPath: pathPrefix + "js/min/end2end_admin.min.js",
-		Type:       "text/javascript",
-		Name:       "Admin E2E JS",
+		InputPath:       pathPrefix + "js/end2end_admin.js",
+		OutputPath:      pathPrefix + "js/min/end2end_admin.min." + strconv.Itoa(jsE2EVersion) + ".js",
+		PreviousVersion: pathPrefix + "js/min/end2end_admin.min." + strconv.Itoa(jsE2EVersion-1) + ".js",
+		Type:            "text/javascript",
+		Name:            "Admin E2E JS",
 	})
 	result = append(result, converter{
-		InputPath:  pathPrefix + "js/end2end_download.js",
-		OutputPath: pathPrefix + "js/min/end2end_download.min.js",
-		Type:       "text/javascript",
-		Name:       "Download E2E JS",
+		InputPath:       pathPrefix + "js/end2end_download.js",
+		OutputPath:      pathPrefix + "js/min/end2end_download.min." + strconv.Itoa(jsE2EVersion) + ".js",
+		PreviousVersion: pathPrefix + "js/min/end2end_download.min." + strconv.Itoa(jsE2EVersion-1) + ".js",
+		Type:            "text/javascript",
+		Name:            "Download E2E JS",
 	})
 	result = append(result, converter{
 		InputPath:  pathPrefix + "js/streamsaver.js",
@@ -84,6 +90,15 @@ func minifyContent(conv converter) {
 		os.Exit(5)
 	}
 	fmt.Println("Minified " + conv.Name)
+	if conv.PreviousVersion != "" && fileExists(conv.PreviousVersion) {
+		fmt.Println("Removing old version of " + conv.Name)
+		err = os.Remove(conv.PreviousVersion)
+		if err != nil {
+			fmt.Println("Could not remove old " + conv.Name + " file")
+			fmt.Println(err)
+			os.Exit(6)
+		}
+	}
 }
 
 func getAllFiles(pattern string) []byte {
@@ -110,3 +125,18 @@ func getAllFiles(pattern string) []byte {
 	}
 	return result
 }
+
+func fileExists(filename string) bool {
+	info, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return !info.IsDir()
+}
+
+// Auto-generated content below, do not modify
+// Version codes can be changed in updateVersionNumbers.go
+
+const jsAdminVersion = 5
+const jsE2EVersion = 3
+const cssMainVersion = 2

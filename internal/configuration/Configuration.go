@@ -132,7 +132,7 @@ func save() {
 
 // LoadFromSetup creates a new configuration file after a user completed the setup. If cloudConfig is not nil, a new
 // cloud config file is created. If it is nil an existing cloud config file will be deleted.
-func LoadFromSetup(config models.Configuration, cloudConfig *cloudconfig.CloudConfig, isInitialSetup bool) {
+func LoadFromSetup(config models.Configuration, cloudConfig *cloudconfig.CloudConfig, e2eConfig End2EndReconfigParameters) {
 	Environment = environment.New()
 	helper.CreateDir(Environment.ConfigDir)
 
@@ -154,6 +154,23 @@ func LoadFromSetup(config models.Configuration, cloudConfig *cloudconfig.CloudCo
 	Load()
 	ConnectDatabase()
 	database.DeleteAllSessions()
+	if e2eConfig.DeleteEnd2EndEncryption {
+		database.DeleteEnd2EndInfo()
+	}
+	if e2eConfig.DeleteEncryptedStorage {
+		deleteAllEncryptedStorage()
+	}
+}
+
+func deleteAllEncryptedStorage() {
+	files := database.GetAllMetadata()
+	for _, file := range files {
+		if file.Encryption.IsEncrypted {
+			file.UnlimitedTime = false
+			file.ExpireAt = 0
+			database.SaveMetaData(file)
+		}
+	}
 }
 
 // SetDeploymentPassword sets a new password. This should only be used for non-interactive deployment, but is not enforced
@@ -198,4 +215,9 @@ func HashPasswordCustomSalt(password, salt string) string {
 	hash := sha1.New()
 	hash.Write(pwBytes)
 	return hex.EncodeToString(hash.Sum(nil))
+}
+
+type End2EndReconfigParameters struct {
+	DeleteEnd2EndEncryption bool
+	DeleteEncryptedStorage  bool
 }

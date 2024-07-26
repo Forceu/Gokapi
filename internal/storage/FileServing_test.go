@@ -775,13 +775,6 @@ func TestDeleteAllEncrypted(t *testing.T) {
 	data, ok = database.GetMetaDataById("testEncDelUn")
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, data.UnlimitedTime, true)
-	DeleteAllEncrypted()
-	data, ok = database.GetMetaDataById("testEncDelEnc")
-	test.IsEqualBool(t, ok, true)
-	test.IsEqualBool(t, data.UnlimitedTime, false)
-	data, ok = database.GetMetaDataById("testEncDelUn")
-	test.IsEqualBool(t, ok, true)
-	test.IsEqualBool(t, data.UnlimitedTime, true)
 }
 
 func TestWriteDownloadHeaders(t *testing.T) {

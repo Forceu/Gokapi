@@ -71,11 +71,11 @@ func TestLoadFromSetup(t *testing.T) {
 	}}
 
 	testconfiguration.WriteCloudConfigFile(true)
-	LoadFromSetup(newConfig, nil, false)
+	LoadFromSetup(newConfig, nil, End2EndReconfigParameters{})
 	test.FileDoesNotExist(t, "test/cloudconfig.yml")
 	test.IsEqualString(t, serverSettings.RedirectUrl, "redirect")
 
-	LoadFromSetup(newConfig, &newCloudConfig, false)
+	LoadFromSetup(newConfig, &newCloudConfig, End2EndReconfigParameters{})
 	test.FileExists(t, "test/cloudconfig.yml")
 	config, ok := cloudconfig.Load()
 	test.IsEqualBool(t, ok, true)

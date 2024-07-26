@@ -15,7 +15,6 @@ import (
 	"github.com/forceu/gokapi/internal/environment"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
-	"github.com/forceu/gokapi/internal/storage"
 	"github.com/forceu/gokapi/internal/storage/filesystem/s3filesystem/aws"
 	"github.com/forceu/gokapi/internal/webserver/authentication"
 	"html/template"
@@ -222,8 +221,9 @@ func getFormValueInt(formObjects *[]jsonFormObject, key string) (int, error) {
 	return result, nil
 }
 
-func toConfiguration(formObjects *[]jsonFormObject) (models.Configuration, *cloudconfig.CloudConfig, error) {
+func toConfiguration(formObjects *[]jsonFormObject) (models.Configuration, *cloudconfig.CloudConfig, configuration.End2EndReconfigParameters, error) {
 	var err error
+	var e2eConfig configuration.End2EndReconfigParameters
 	parsedEnv := environment.New()
 
 	result := models.Configuration{
@@ -246,41 +246,41 @@ func toConfiguration(formObjects *[]jsonFormObject) (models.Configuration, *clou
 
 	err = parseDatabaseSettings(&result, formObjects)
 	if err != nil {
-		return models.Configuration{}, nil, err
+		return models.Configuration{}, nil, configuration.End2EndReconfigParameters{}, err
 	}
 
 	err = parseBasicAuthSettings(&result, formObjects)
 	if err != nil {
-		return models.Configuration{}, nil, err
+		return models.Configuration{}, nil, configuration.End2EndReconfigParameters{}, err
 	}
 
 	err = parseOAuthSettings(&result, formObjects)
 	if err != nil {
-		return models.Configuration{}, nil, err
+		return models.Configuration{}, nil, configuration.End2EndReconfigParameters{}, err
 	}
 
 	err = parseHeaderAuthSettings(&result, formObjects)
 	if err != nil {
-		return models.Configuration{}, nil, err
+		return models.Configuration{}, nil, configuration.End2EndReconfigParameters{}, err
 	}
 
 	err = parseServerSettings(&result, formObjects)
 	if err != nil {
-		return models.Configuration{}, nil, err
+		return models.Configuration{}, nil, configuration.End2EndReconfigParameters{}, err
 	}
 
-	err = parseEncryptionAndDelete(&result, formObjects)
+	e2eConfig, err = parseEncryptionAndDelete(&result, formObjects)
 	if err != nil {
-		return models.Configuration{}, nil, err
+		return models.Configuration{}, nil, configuration.End2EndReconfigParameters{}, err
 	}
 
 	var cloudSettings *cloudconfig.CloudConfig
 	cloudSettings, err = parseCloudSettings(formObjects)
 	if err != nil {
-		return models.Configuration{}, nil, err
+		return models.Configuration{}, nil, configuration.End2EndReconfigParameters{}, err
 	}
 
-	return result, cloudSettings, nil
+	return result, cloudSettings, e2eConfig, nil
 }
 
 func parseDatabaseSettings(result *models.Configuration, formObjects *[]jsonFormObject) error {
@@ -577,10 +577,11 @@ func encryptionHasChanged(encLevel int, formObjects *[]jsonFormObject) (bool, er
 	return false, nil
 }
 
-func parseEncryptionAndDelete(result *models.Configuration, formObjects *[]jsonFormObject) error {
+func parseEncryptionAndDelete(result *models.Configuration, formObjects *[]jsonFormObject) (configuration.End2EndReconfigParameters, error) {
+	var e2eConfig configuration.End2EndReconfigParameters
 	encLevel, err := parseEncryptionLevel(formObjects)
 	if err != nil {
-		return err
+		return e2eConfig, err
 	}
 
 	generateNewEncConfig := true
@@ -588,47 +589,47 @@ func parseEncryptionAndDelete(result *models.Configuration, formObjects *[]jsonF
 	if !isInitialSetup {
 		generateNewEncConfig, err = encryptionHasChanged(encLevel, formObjects)
 		if err != nil {
-			return err
+			return configuration.End2EndReconfigParameters{}, err
 		}
 		if encLevel == encryption.EndToEndEncryption {
 			deleteE2eInfo, _ := getFormValueString(formObjects, "cleare2e")
 			if deleteE2eInfo == "true" {
-				database.DeleteEnd2EndInfo()
+				e2eConfig.DeleteEnd2EndEncryption = true
 			}
 		}
 	}
 
 	if !generateNewEncConfig {
 		result.Encryption = configuration.Get().Encryption
-		return nil
+		return e2eConfig, nil
 	}
 	if !isInitialSetup {
-		storage.DeleteAllEncrypted()
+		e2eConfig.DeleteEncryptedStorage = true
 	}
 
 	result.Encryption = models.Encryption{}
 	if encLevel == encryption.LocalEncryptionStored || encLevel == encryption.FullEncryptionStored {
 		cipher, err := encryption.GetRandomCipher()
 		if err != nil {
-			return err
+			return configuration.End2EndReconfigParameters{}, err
 		}
 		result.Encryption.Cipher = cipher
 	}
 
 	masterPw, err := getFormValueString(formObjects, "enc_pw")
 	if err != nil {
-		return err
+		return configuration.End2EndReconfigParameters{}, err
 	}
 	if encLevel == encryption.LocalEncryptionInput || encLevel == encryption.FullEncryptionInput {
 		result.Encryption.Salt = helper.GenerateRandomString(30)
 		result.Encryption.ChecksumSalt = helper.GenerateRandomString(30)
 		if len(masterPw) < configuration.MinLengthPassword {
-			return errors.New("password is less than " + strconv.Itoa(configuration.MinLengthPassword) + " characters long")
+			return configuration.End2EndReconfigParameters{}, errors.New("password is less than " + strconv.Itoa(configuration.MinLengthPassword) + " characters long")
 		}
 		result.Encryption.Checksum = encryption.PasswordChecksum(masterPw, result.Encryption.ChecksumSalt)
 	}
 	result.Encryption.Level = encLevel
-	return nil
+	return e2eConfig, nil
 }
 
 func parseEncryptionLevel(formObjects *[]jsonFormObject) (int, error) {
@@ -742,12 +743,12 @@ func handleResult(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newConfig, cloudSettings, err := toConfiguration(&setupResult)
+	newConfig, cloudSettings, e2eConfig, err := toConfiguration(&setupResult)
 	if err != nil {
 		outputError(w, err)
 		return
 	}
-	configuration.LoadFromSetup(newConfig, cloudSettings, isInitialSetup)
+	configuration.LoadFromSetup(newConfig, cloudSettings, e2eConfig)
 	w.WriteHeader(200)
 	_, _ = w.Write([]byte("{ \"result\": \"OK\"}"))
 	go func() {

@@ -7,28 +7,79 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
-const versionJsAdmin = "5"
-const versionJsDropzone = "4"
-const versionJsE2EAdmin = "3"
-const versionCssMain = "2"
+const versionJsAdmin = 5
+const versionJsDropzone = 4
+const versionJsE2EAdmin = 3
+const versionCssMain = 2
 
 const fileMain = "../../cmd/gokapi/Main.go"
+const fileMinify = "../../build/go-generate/minifyStaticContent.go"
 const fileVersionConstants = "../../internal/webserver/web/templates/string_constants.tmpl"
 
 func main() {
 	checkFileExists(fileMain)
+	checkFileExists(fileMinify)
 	checkFileExists(fileVersionConstants)
-	template := getTemplate()
+	writeVersionTemplates()
+	writeMinify()
+}
+
+func writeVersionTemplates() {
+	template := insertVersionNumbers(templateVersions)
 	err := os.WriteFile(fileVersionConstants, []byte(template), 0664)
 	if err != nil {
-		fmt.Println("FAIL: Updating version numbers")
+		fmt.Println("FAIL: Updating version template")
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	fmt.Println("Updated version numbers")
+	fmt.Println("Updated version template")
+}
+
+func writeMinify() {
+	file, err := os.Open(fileMinify)
+	if err != nil {
+		fmt.Println("FAIL: Opening minify go file")
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	defer file.Close()
+
+	var lines []string
+	scanner := bufio.NewScanner(file)
+	foundAutoGencomment := false
+	for scanner.Scan() {
+		line := scanner.Text()
+		lines = append(lines, line)
+		if strings.Contains(line, autoGenComment) {
+			foundAutoGencomment = true
+			break
+		}
+	}
+	err = scanner.Err()
+	if err != nil {
+		fmt.Println("FAIL: Reading minify go file")
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	if !foundAutoGencomment {
+		fmt.Println("FAIL: Minify go file did not contain auto-gen comment")
+		fmt.Println(err)
+		os.Exit(2)
+	}
+	lines = append(lines, insertVersionNumbers(templateMinify))
+
+	err = os.WriteFile(fileMinify, []byte(strings.Join(lines, "\n")), 0664)
+	if err != nil {
+		fmt.Println("FAIL: Wrining minify go file")
+		fmt.Println(err)
+		os.Exit(3)
+	}
+	fmt.Println("Updated minify go file")
 }
 
 func checkFileExists(filename string) {
@@ -43,13 +94,13 @@ func checkFileExists(filename string) {
 	}
 }
 
-func getTemplate() string {
+func insertVersionNumbers(input string) string {
 	versionGokapi := parseGokapiVersion()
-	result := strings.ReplaceAll(templateVersions, "%gokapiversion%", versionGokapi)
-	result = strings.ReplaceAll(result, "%jsadmin%", versionJsAdmin)
-	result = strings.ReplaceAll(result, "%jsdropzone%", versionJsDropzone)
-	result = strings.ReplaceAll(result, "%jse2e%", versionJsE2EAdmin)
-	result = strings.ReplaceAll(result, "%css_main%", versionCssMain)
+	result := strings.ReplaceAll(input, "%gokapiversion%", versionGokapi)
+	result = strings.ReplaceAll(result, "%jsadmin%", strconv.Itoa(versionJsAdmin))
+	result = strings.ReplaceAll(result, "%jsdropzone%", strconv.Itoa(versionJsDropzone))
+	result = strings.ReplaceAll(result, "%jse2e%", strconv.Itoa(versionJsE2EAdmin))
+	result = strings.ReplaceAll(result, "%css_main%", strconv.Itoa(versionCssMain))
 	return result
 }
 
@@ -85,3 +136,11 @@ const templateVersions = `// File contains auto-generated values. Do not change 
 {{define "js_dropzone_version"}}%jsdropzone%{{end}}
 {{define "js_e2eversion"}}%jse2e%{{end}}
 {{define "css_main"}}%css_main%{{end}}`
+
+const autoGenComment = "// Auto-generated content below, do not modify"
+const templateMinify = `// Version codes can be changed in updateVersionNumbers.go
+
+const jsAdminVersion = %jsadmin%
+const jsE2EVersion = %jse2e%
+const cssMainVersion = %css_main%
+`

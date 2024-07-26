@@ -64,26 +64,29 @@ func TestMissingSetupValues(t *testing.T) {
 	for _, invalid := range invalidInputs {
 		formObjects, err := invalid.toFormObject()
 		test.IsNil(t, err)
-		_, _, err = toConfiguration(&formObjects)
+		_, _, _, err = toConfiguration(&formObjects)
 		test.IsNotNilWithMessage(t, err, invalid.toJson())
 	}
 }
 
 func TestEncryptionSetup(t *testing.T) {
+	var e2eConfig configuration.End2EndReconfigParameters
 	input := createInputOAuth()
 	input.EncryptionLevel.Value = "1"
 	formObjects, err := input.toFormObject()
 	test.IsNil(t, err)
-	config, _, err = toConfiguration(&formObjects)
+	config, _, e2eConfig, err = toConfiguration(&formObjects)
 	test.IsNil(t, err)
 	test.IsEqualInt(t, len(config.Encryption.Cipher), 32)
 	test.IsEqualString(t, config.Encryption.Checksum, "")
+	test.IsEqualBool(t, e2eConfig.DeleteEncryptedStorage, false)
+	test.IsEqualBool(t, e2eConfig.DeleteEnd2EndEncryption, false)
 
 	input.EncryptionLevel.Value = "2"
 	input.EncryptionPassword.Value = "testpw12"
 	formObjects, err = input.toFormObject()
 	test.IsNil(t, err)
-	config, _, err = toConfiguration(&formObjects)
+	config, _, _, err = toConfiguration(&formObjects)
 	test.IsNil(t, err)
 	test.IsEqualString(t, string(config.Encryption.Cipher), "")
 	test.IsEqualInt(t, len(config.Encryption.Checksum), 64)
@@ -100,11 +103,10 @@ func TestEncryptionSetup(t *testing.T) {
 	test.IsEqualBool(t, file.UnlimitedTime, true)
 	formObjects, err = input.toFormObject()
 	test.IsNil(t, err)
-	config, _, err = toConfiguration(&formObjects)
+	config, _, e2eConfig, err = toConfiguration(&formObjects)
 	test.IsNil(t, err)
-	file, ok = database.GetMetaDataById(id)
-	test.IsEqualBool(t, ok, true)
-	test.IsEqualBool(t, file.UnlimitedTime, false)
+	test.IsEqualBool(t, e2eConfig.DeleteEncryptedStorage, true)
+	test.IsEqualBool(t, e2eConfig.DeleteEnd2EndEncryption, false)
 
 	configuration.Get().Encryption.Level = 2
 	input.EncryptionPassword.Value = "unc"
@@ -113,7 +115,7 @@ func TestEncryptionSetup(t *testing.T) {
 	test.IsEqualBool(t, ok, true)
 	formObjects, err = input.toFormObject()
 	test.IsNil(t, err)
-	config, _, err = toConfiguration(&formObjects)
+	config, _, _, err = toConfiguration(&formObjects)
 	test.IsNil(t, err)
 	file, ok = database.GetMetaDataById(id)
 	test.IsEqualBool(t, ok, true)
@@ -128,11 +130,10 @@ func TestEncryptionSetup(t *testing.T) {
 	test.IsEqualBool(t, ok, true)
 	formObjects, err = input.toFormObject()
 	test.IsNil(t, err)
-	config, _, err = toConfiguration(&formObjects)
+	config, _, e2eConfig, err = toConfiguration(&formObjects)
 	test.IsNil(t, err)
-	file, ok = database.GetMetaDataById(id)
-	test.IsEqualBool(t, ok, true)
-	test.IsEqualBool(t, file.UnlimitedTime, false)
+	test.IsEqualBool(t, e2eConfig.DeleteEncryptedStorage, true)
+	test.IsEqualBool(t, e2eConfig.DeleteEnd2EndEncryption, false)
 
 	database.Close()
 	testconfiguration.Delete()
@@ -154,7 +155,7 @@ var config = models.Configuration{
 }
 
 func TestToConfiguration(t *testing.T) {
-	output, cloudConfig, err := toConfiguration(&jsonForms)
+	output, cloudConfig, _, err := toConfiguration(&jsonForms)
 	test.IsNil(t, err)
 	test.IsEqualInt(t, output.Authentication.Method, authentication.Internal)
 	test.IsEqualString(t, cloudConfig.Aws.KeyId, "testapi")

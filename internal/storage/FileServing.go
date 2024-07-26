@@ -372,16 +372,6 @@ func DuplicateFile(file models.File, parametersToChange int, newFileName string,
 	return newFile, nil
 }
 
-// DeleteAllEncrypted marks all encrypted files for deletion on next cleanup
-func DeleteAllEncrypted() {
-	files := database.GetAllMetadata()
-	for _, file := range files {
-		if file.Encryption.IsEncrypted {
-			DeleteFile(file.Id, false)
-		}
-	}
-}
-
 func hashFile(input io.Reader, useSalt bool) (string, error) {
 	hash := sha1.New()
 	_, err := io.Copy(hash, input)
