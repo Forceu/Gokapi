@@ -169,9 +169,16 @@ func extractOauthGroups(userInfo OAuthUserClaims, groupScope string) ([]string, 
 		return nil, fmt.Errorf("claim %s was not passed on", groupScope)
 	}
 
-	// Convert the interface{} to a []interface{} and then to []string
+	// Convert the interface{} to a []string
+	if groupsInterface == nil {
+		return []string{}, nil
+	}
+	groupsCast, ok := groupsInterface.([]any)
+	if !ok {
+		return nil, fmt.Errorf("scope %s is not an array", groupScope)
+	}
 	var groups []string
-	for _, group := range groupsInterface.([]interface{}) {
+	for _, group := range groupsCast {
 		groups = append(groups, group.(string))
 	}
 
