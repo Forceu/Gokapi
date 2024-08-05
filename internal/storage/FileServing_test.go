@@ -776,18 +776,3 @@ func TestDeleteAllEncrypted(t *testing.T) {
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, data.UnlimitedTime, true)
 }
-
-func TestWriteDownloadHeaders(t *testing.T) {
-	file := models.File{Name: "testname", ContentType: "testtype"}
-	w, _ := test.GetRecorder("GET", "/test", nil, nil, nil)
-	writeDownloadHeaders(file, w, true)
-	test.IsEqualString(t, w.Result().Header.Get("Content-Disposition"), "attachment; filename=\"testname\"")
-	w, _ = test.GetRecorder("GET", "/test", nil, nil, nil)
-	writeDownloadHeaders(file, w, false)
-	test.IsEqualString(t, w.Result().Header.Get("Content-Disposition"), "inline; filename=\"testname\"")
-	test.IsEqualString(t, w.Result().Header.Get("Content-Type"), "testtype")
-	file.Encryption.IsEncrypted = true
-	w, _ = test.GetRecorder("GET", "/test", nil, nil, nil)
-	writeDownloadHeaders(file, w, false)
-	test.IsEqualString(t, w.Result().Header.Get("Accept-Ranges"), "bytes")
-}

@@ -544,7 +544,7 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 		}
 	}
 	statusId := downloadstatus.SetDownload(file)
-	headers.WriteDownloadHeaders(file, w, forceDownload)
+	headers.Write(file, w, forceDownload)
 	if file.Encryption.IsEncrypted && !file.RequiresClientDecryption() {
 		err := encryption.DecryptReader(file.Encryption, fileData, w)
 		if err != nil {

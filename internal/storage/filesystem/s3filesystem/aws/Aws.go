@@ -173,7 +173,7 @@ func proxyDownload(w http.ResponseWriter, file models.File, forceDownload bool) 
 		return err
 	}
 	defer resp.Body.Close()
-	headers.WriteDownloadHeaders(file, w, forceDownload)
+	headers.Write(file, w, forceDownload)
 	_, _ = io.Copy(w, resp.Body)
 	return nil
 }
