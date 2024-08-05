@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/webserver/headers"
 	"io"
 	"net/http"
 	"strings"
@@ -172,6 +173,7 @@ func proxyDownload(w http.ResponseWriter, file models.File, forceDownload bool) 
 		return err
 	}
 	defer resp.Body.Close()
+	headers.WriteDownloadHeaders(file, w, forceDownload)
 	_, _ = io.Copy(w, resp.Body)
 	return nil
 }

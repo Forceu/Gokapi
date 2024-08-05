@@ -21,6 +21,7 @@ import (
 	"github.com/forceu/gokapi/internal/storage/filesystem/s3filesystem/aws"
 	"github.com/forceu/gokapi/internal/storage/processingstatus"
 	"github.com/forceu/gokapi/internal/webserver/downloadstatus"
+	"github.com/forceu/gokapi/internal/webserver/headers"
 	"github.com/jinzhu/copier"
 	"io"
 	"log"
@@ -543,7 +544,7 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 		}
 	}
 	statusId := downloadstatus.SetDownload(file)
-	writeDownloadHeaders(file, w, forceDownload)
+	headers.WriteDownloadHeaders(file, w, forceDownload)
 	if file.Encryption.IsEncrypted && !file.RequiresClientDecryption() {
 		err := encryption.DecryptReader(file.Encryption, fileData, w)
 		if err != nil {
@@ -556,22 +557,6 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 		http.ServeContent(w, r, file.Name, time.Now(), fileData)
 	}
 	downloadstatus.SetComplete(statusId)
-}
-
-// writeDownloadHeaders sets headers to either display the file inline or to force download, the content type
-// and if the file is encrypted, the creation timestamp to now
-func writeDownloadHeaders(file models.File, w http.ResponseWriter, forceDownload bool) {
-	if forceDownload {
-		w.Header().Set("Content-Disposition", "attachment; filename=\""+file.Name+"\"")
-	} else {
-		w.Header().Set("Content-Disposition", "inline; filename=\""+file.Name+"\"")
-	}
-	w.Header().Set("Content-Type", file.ContentType)
-
-	if file.Encryption.IsEncrypted {
-		w.Header().Set("Accept-Ranges", "bytes")
-		w.Header().Set("Last-Modified", time.Now().UTC().Format(http.TimeFormat))
-	}
 }
 
 func getFileHandler(file models.File, dataDir string) (*os.File, int64) {
