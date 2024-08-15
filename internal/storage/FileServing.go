@@ -448,7 +448,7 @@ func isEncryptionRequested() bool {
 }
 
 // imageFileExtensions contains all known image extensions that can be used for hotlinks
-var imageFileExtensions = []string{".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg", ".tiff", ".tif", ".ico"}
+var imageFileExtensions = []string{".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg", ".tiff", ".tif", ".ico", ".avif", ".avifs", ".apng"}
 
 // AddHotlink will first check if the file may use a hotlink (e.g. not encrypted or password-protected).
 // If file is an image, it will generate a new hotlink in the database and add it to the parameter file
