@@ -3,7 +3,6 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="">
 
 
 	<script src="./assets/dist/js/jquery.min.js"></script>
@@ -39,8 +38,12 @@
    {{ if .IsDownloadView }}
        {{ if .IsPasswordView }}
           <title>{{.PublicName}}: Password required</title>
+	  <meta name="title" content="{{.PublicName}}">
+    	  <meta name="description" content="Password required">
        {{ else }}
           <title>{{.PublicName}}: {{.Name}}</title>
+	  <meta name="title" content="{{.PublicName}}">
+    	  <meta name="description" content="{{.Name}}">
        {{end }}
    {{ else }}
         <title>{{.PublicName}}</title>
