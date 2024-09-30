@@ -196,15 +196,34 @@ func redirect(w http.ResponseWriter, url string) {
 }
 
 type redirectValues struct {
-	FileId      string
-	RedirectUrl string
+	FileId           string
+	RedirectUrl      string
+	Name             string
+	Size             string
+	PublicName       string
+	BaseUrl          string
+	PasswordRequired bool
 }
 
 // Handling of /id/?/? - used when filename shall be displayed, will redirect to regular download URL
 func redirectFromFilename(w http.ResponseWriter, r *http.Request) {
+	addNoCacheHeader(w)
 	id := r.PathValue("id")
+	file, ok := storage.GetFile(id)
+	if !ok {
+		redirect(w, "../../error")
+		return
+	}
+
+	config := configuration.Get()
 	err := templateFolder.ExecuteTemplate(w, "redirect_filename", redirectValues{
-		id, "d"})
+		FileId:           id,
+		RedirectUrl:      "d",
+		Name:             file.Name,
+		Size:             file.Size,
+		PublicName:       config.PublicName,
+		BaseUrl:          config.ServerUrl,
+		PasswordRequired: file.PasswordHash != ""})
 	helper.CheckIgnoreTimeout(err)
 }
 
@@ -373,13 +392,16 @@ func showDownload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	config := configuration.Get()
+
 	view := DownloadView{
 		Name:               file.Name,
 		Size:               file.Size,
 		Id:                 file.Id,
 		IsDownloadView:     true,
 		EndToEndEncryption: file.Encryption.IsEndToEndEncrypted,
-		PublicName:         configuration.Get().PublicName,
+		PublicName:         config.PublicName,
+		BaseUrl:            config.ServerUrl,
 		IsFailedLogin:      false,
 		UsesHttps:          configuration.UsesHttps(),
 	}
@@ -547,6 +569,7 @@ type DownloadView struct {
 	Id                   string
 	Cipher               string
 	PublicName           string
+	BaseUrl              string
 	IsFailedLogin        bool
 	IsAdminView          bool
 	IsDownloadView       bool
