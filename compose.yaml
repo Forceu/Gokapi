@@ -1,0 +1,16 @@
+services:
+  gokapi:
+    build: .
+    container_name: gokapi
+    restart: always
+    ports:
+      - 53842:53842
+    volumes:
+      - type: bind
+        source: ./mine/data
+        target: /app/data
+      - type: bind
+        source: ./mine/config
+        target: /app/config
+
+
