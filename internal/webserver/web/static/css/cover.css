@@ -16,7 +16,8 @@
  */
 
 body {
-    background: url("../../assets/background.jpg") no-repeat center center fixed;
+    background: url("../../assets/background.png") no-repeat center
+        center fixed;
     -webkit-background-size: cover;
     -moz-background-size: cover;
     -o-background-size: cover;
@@ -27,6 +28,13 @@ body {
     -ms-flex-pack: center;
     -webkit-box-pack: center;
     justify-content: center;
+}
+
+.body-blur {
+    background: rgb(0 0 0 / 66%);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
 }
 
 td {
@@ -59,12 +67,20 @@ a:hover {
     margin: 0 auto;
     float: none;
     margin-bottom: 10px;
-    border: 2px solid rgb(51, 57, 63);
+
+    border: none;
+    background: none;
 }
 
 .card-body {
     background-color: rgb(33, 37, 41);
     color: #ddd;
+
+    border: 2px solid hsl(0deg 0% 69%);
+    border-radius: 16px;
+
+    padding: 1.5rem;
+    padding-bottom: 1.75rem;
 }
 
 .card-title {
@@ -127,7 +143,7 @@ a:hover {
     border-bottom-color: rgba(255, 255, 255, 0.25);
 }
 
-.nav-masthead .nav-link+.nav-link {
+.nav-masthead .nav-link + .nav-link {
     margin-left: 1rem;
 }
 
@@ -135,7 +151,6 @@ a:hover {
     color: #fff;
     border-bottom-color: #fff;
 }
-
 
 #qroverlay {
     display: none;

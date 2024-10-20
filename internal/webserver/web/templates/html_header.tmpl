@@ -81,7 +81,7 @@
   </head>
   <body class="d-flex h-100 text-center text-white bg-dark">
 {{ if .IsAdminView }}
-  <div class="d-flex w-100 h-100 p-3 mx-auto flex-column">
+  <div class="d-flex w-100 h-100 p-3 mx-auto flex-column body-blur">
       <header class="masthead mb-auto">
         <div  style="max-width: 80em;  margin: 0 auto;"  class="inner">
           <h1>{{.PublicName}}</h1>
@@ -95,7 +95,7 @@
       </header>
   <main style="margin-top: 2rem">
 {{ else }}
-  <div class="d-flex w-100 h-100 p-3 mx-auto flex-column">
+  <div class="d-flex w-100 h-100 p-3 mx-auto flex-column body-blur">
   <header class="mb-auto">
     <div>
       <h1><a href="/index" style="text-decoration: none;display: block;">{{.PublicName}}</a></h1>
