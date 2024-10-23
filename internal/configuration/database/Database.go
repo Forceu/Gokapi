@@ -226,16 +226,16 @@ func DeleteAllSessions() {
 // GetUploadDefaults returns the last used setting for amount of downloads allowed, last expiry in days and
 // a password for the file
 func GetUploadDefaults() models.LastUploadValues {
-	values, ok := db.GetUploadDefaults()
-	if ok {
-		return values
-	}
+	// values, ok := db.GetUploadDefaults()
+	// if ok {
+	// 	return values
+	// }
 	defaultValues := models.LastUploadValues{
-		Downloads:         1,
-		TimeExpiry:        14,
+		Downloads:         99999,
+		TimeExpiry:        99999,
 		Password:          "",
-		UnlimitedDownload: false,
-		UnlimitedTime:     false,
+		UnlimitedDownload: true,
+		UnlimitedTime:     true,
 	}
 	return defaultValues
 }
