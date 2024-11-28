@@ -227,7 +227,6 @@ This option disables Gokapis internal authentication completely, except for API 
 
 - ``/admin``
 - ``/apiKeys``
-- ``/delete``
 - ``/e2eInfo``
 - ``/e2eSetup``
 - ``/logs``

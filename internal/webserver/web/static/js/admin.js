@@ -249,6 +249,7 @@ function editFile() {
         headers: {
             'Content-Type': 'application/json',
             'id': button.getAttribute('data-fileid'),
+            'apikey': systemKey,
             'allowedDownloads': allowedDownloads,
             'expiryTimestamp': expiryTimestamp,
             'password': password,
@@ -401,7 +402,6 @@ function changeApiPermission(apiKey, permission, buttonId) {
         },
     };
 
-    // Send the request
     fetch(apiUrl, requestOptions)
         .then(response => {
             if (!response.ok) {
@@ -441,7 +441,6 @@ function deleteApiKey(apiKey) {
         },
     };
 
-    // Send the request
     fetch(apiUrl, requestOptions)
         .then(response => {
             if (!response.ok) {
@@ -472,7 +471,6 @@ function newApiKey() {
         },
     };
 
-    // Send the request
     fetch(apiUrl, requestOptions)
         .then(response => {
             if (!response.ok) {
@@ -484,6 +482,35 @@ function newApiKey() {
         })
         .catch(error => {
             alert("Unable to create API key: " + error);
+            console.error('Error:', error);
+        });
+}
+
+
+function deleteFile(id) {
+
+    document.getElementById("button-delete-"+id).disabled = true;
+    var apiUrl = './api/files/delete';
+    const requestOptions = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'apikey': systemKey,
+            'id': id
+        },
+    };
+
+    fetch(apiUrl, requestOptions)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Request failed with status: ${response.status}`);
+            }
+        })
+        .then(data => {
+  	  location.reload();
+        })
+        .catch(error => {
+            alert("Unable to delete file: " + error);
             console.error('Error:', error);
         });
 }
@@ -611,6 +638,7 @@ function addRow(jsonText) {
     let item = jsonObject.FileInfo;
     let table = document.getElementById("downloadtable");
     let row = table.insertRow(0);
+    row.id = "row-"+ item.Id;
     let cellFilename = row.insertCell(0);
     let cellFileSize = row.insertCell(1);
     let cellRemainingDownloads = row.insertCell(2);
@@ -647,7 +675,7 @@ function addRow(jsonText) {
         }
     buttons = buttons + '<button type="button" id="qrcode-'+item.Id+'" title="QR Code" class="btn btn-outline-light btn-sm" onclick="showQrCode(\'' + item.UrlDownload + '\');"><i class="bi bi-qr-code"></i></button> ';
     buttons = buttons + '<button type="button" title="Edit" class="btn btn-outline-light btn-sm" onclick="showEditModal(\'' + item.Name + '\',\'' + item.Id + '\', ' + item.DownloadsRemaining + ', ' + item.ExpireAt + ', ' + item.IsPasswordProtected + ', ' + item.UnlimitedDownloads + ', ' + item.UnlimitedTime + ');"><i class="bi bi-pencil"></i></button> ';
-    buttons = buttons + '<button type="button" title="Delete" class="btn btn-outline-danger btn-sm" onclick="window.location=\'./delete?id=' + item.Id + '\'"><i class="bi bi-trash3"></i></button>';
+    buttons = buttons + '<button type="button" id="button-delete-' + item.Id + '" title="Delete" class="btn btn-outline-danger btn-sm" onclick="deleteFile(\'' + item.Id + '\')"><i class="bi bi-trash3"></i></button>';
 
     cellButtons.innerHTML = buttons;
 

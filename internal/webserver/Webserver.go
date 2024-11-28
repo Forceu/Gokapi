@@ -94,7 +94,6 @@ func Start() {
 	mux.HandleFunc("/api/", processApi)
 	mux.HandleFunc("/apiKeys", requireLogin(showApiAdmin, false))
 	mux.HandleFunc("/d", showDownload)
-	mux.HandleFunc("/delete", requireLogin(deleteFile, false))
 	mux.HandleFunc("/downloadFile", downloadFile)
 	mux.HandleFunc("/e2eInfo", requireLogin(e2eInfo, true))
 	mux.HandleFunc("/e2eSetup", requireLogin(showE2ESetup, false))
@@ -486,17 +485,6 @@ func getE2eInfo(w http.ResponseWriter) {
 	bytesE2e, err := json.Marshal(info)
 	helper.Check(err)
 	_, _ = w.Write(bytesE2e)
-}
-
-// Handling of /delete
-// User needs to be admin. Deletes the requested file
-func deleteFile(w http.ResponseWriter, r *http.Request) {
-	keyId := queryUrl(w, r, "admin")
-	if keyId == "" {
-		return
-	}
-	storage.DeleteFile(keyId, true)
-	redirect(w, "admin")
 }
 
 // Checks if a file is associated with the GET parameter from the current URL
