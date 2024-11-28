@@ -220,7 +220,7 @@ Interacting with the API
 ============================
 
 
-All API calls will need an API key as authentication or a valid admin session cookie. An API key can be generated in the web UI in the menu "API". The API key needs to be passed as a header.
+All API calls will need an API key as authentication. An API key can be generated in the web UI in the menu "API". The API key needs to be passed as a header.
 
 Example: Getting a list of all stored files with curl
 ::

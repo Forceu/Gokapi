@@ -17,7 +17,7 @@ type DatabaseProvider struct {
 	sqliteDb *sql.DB
 }
 
-const DatabaseSchemeVersion = 3
+const DatabaseSchemeVersion = 4
 
 // New returns an instance
 func New(dbConfig models.DbConnection) (DatabaseProvider, error) {
@@ -55,6 +55,14 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 		FROM "ApiKeys";
 		DROP TABLE "ApiKeys";
 		ALTER TABLE "ApiKeys_New" RENAME TO "ApiKeys";`)
+		helper.Check(err)
+	}
+	// < v1.9.0
+	if currentDbVersion < 4 {
+		// Add Column LastUsedString, keeping old data
+		err := p.rawSqlite(`ALTER TABLE "ApiKeys"  ADD COLUMN "Expiry" INTEGER;`)
+		helper.Check(err)
+		err = p.rawSqlite(`ALTER TABLE "ApiKeys"  ADD COLUMN "IsSystemKey" INTEGER;`)
 		helper.Check(err)
 	}
 }
@@ -125,6 +133,7 @@ func (p DatabaseProvider) Close() {
 func (p DatabaseProvider) RunGarbageCollection() {
 	p.cleanExpiredSessions()
 	p.cleanUploadStatus()
+	p.cleanApiKeys()
 }
 
 func (p DatabaseProvider) createNewDatabase() error {
@@ -133,6 +142,8 @@ func (p DatabaseProvider) createNewDatabase() error {
 			"FriendlyName"	TEXT NOT NULL,
 			"LastUsed"	INTEGER NOT NULL,
 			"Permissions"	INTEGER NOT NULL DEFAULT 0,
+			"Expiry"	INTEGER,
+			"IsSystemKey"	INTEGER,
 			PRIMARY KEY("Id")
 		) WITHOUT ROWID;
 		CREATE TABLE "E2EConfig" (

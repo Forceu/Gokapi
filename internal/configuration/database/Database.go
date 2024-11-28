@@ -130,6 +130,11 @@ func DeleteApiKey(id string) {
 	db.DeleteApiKey(id)
 }
 
+// GetSystemKey returns the latest UI API key
+func GetSystemKey() (models.ApiKey, bool) {
+	return db.GetSystemKey()
+}
+
 // E2E Section
 
 // SaveEnd2EndInfo stores the encrypted e2e info

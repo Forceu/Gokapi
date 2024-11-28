@@ -41,9 +41,32 @@ func (p DatabaseProvider) GetApiKey(id string) (models.ApiKey, bool) {
 	return apikey, true
 }
 
+// GetSystemKey returns the latest UI API key
+func (p DatabaseProvider) GetSystemKey() (models.ApiKey, bool) {
+	keys := p.GetAllApiKeys()
+	foundKey := ""
+	var latestExpiry int64
+	for _, key := range keys {
+		if !key.IsSystemKey {
+			continue
+		}
+		if key.Expiry > latestExpiry {
+			foundKey = key.Id
+			latestExpiry = key.Expiry
+		}
+	}
+	if foundKey == "" {
+		return models.ApiKey{}, false
+	}
+	return keys[foundKey], true
+}
+
 // SaveApiKey saves the API key to the database
 func (p DatabaseProvider) SaveApiKey(apikey models.ApiKey) {
 	p.setHashMap(p.buildArgs(prefixApiKeys + apikey.Id).AddFlat(apikey))
+	if apikey.Expiry != 0 {
+		p.setExpiryAt(prefixApiKeys+apikey.Id, apikey.Expiry)
+	}
 }
 
 // UpdateTimeApiKey writes the content of LastUsage to the database

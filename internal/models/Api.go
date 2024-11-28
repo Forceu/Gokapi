@@ -30,6 +30,8 @@ type ApiKey struct {
 	FriendlyName string `json:"FriendlyName" redis:"FriendlyName"`
 	LastUsed     int64  `json:"LastUsed" redis:"LastUsed"`
 	Permissions  uint8  `json:"Permissions" redis:"Permissions"`
+	Expiry       int64  `json:"Expiry" redis:"Expiry"` // Does not expire if 0
+	IsSystemKey  bool   `json:"IsSystemKey" redis:"IsSystemKey"`
 }
 
 func (key *ApiKey) GetReadableDate() string {
