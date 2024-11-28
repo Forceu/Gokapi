@@ -393,6 +393,7 @@ function changeApiPermission(apiKey, permission, buttonId) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            'apikey': systemKey,
             'apiKeyToModify': apiKey,
             'permission': permission,
             'permissionModifier': modifier

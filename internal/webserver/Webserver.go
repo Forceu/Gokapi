@@ -593,6 +593,7 @@ type UploadView struct {
 	DefaultPassword          string
 	Logs                     string
 	PublicName               string
+	SystemKey                string
 	IsAdminView              bool
 	IsDownloadView           bool
 	IsApiView                bool
@@ -678,6 +679,7 @@ func (u *UploadView) convertGlobalConfig(view int) *UploadView {
 	u.MaxParallelUploads = config.MaxParallelUploads
 	u.ChunkSize = config.ChunkSize
 	u.IncludeFilename = config.IncludeFilename
+	u.SystemKey = api.GetSystemKey()
 	return u
 }
 

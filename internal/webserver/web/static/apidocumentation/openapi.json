@@ -812,11 +812,6 @@
         "type": "apiKey",
         "name": "apikey",
         "in": "header"
-      },
-      "session": {
-        "type": "apiKey",
-        "name": "session_token",
-        "in": "cookie"
       }
     }
   }

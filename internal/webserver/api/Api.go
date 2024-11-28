@@ -8,8 +8,6 @@ import (
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
-	"github.com/forceu/gokapi/internal/webserver/authentication"
-	"github.com/forceu/gokapi/internal/webserver/authentication/sessionmanager"
 	"github.com/forceu/gokapi/internal/webserver/fileupload"
 	"net/http"
 	"strconv"
@@ -143,12 +141,39 @@ func NewKey(defaultPermissions bool) string {
 		FriendlyName: "Unnamed key",
 		LastUsed:     0,
 		Permissions:  models.ApiPermAllNoApiMod,
+		Expiry:       0,
+		IsSystemKey:  false,
 	}
 	if !defaultPermissions {
 		newKey.Permissions = models.ApiPermNone
 	}
 	database.SaveApiKey(newKey)
 	return newKey.Id
+}
+
+// newSystemKey generates a new API key that is only used internally for the GUI
+// and will be valid for 48 hours
+func newSystemKey() string {
+	newKey := models.ApiKey{
+		Id:           helper.GenerateRandomString(30),
+		FriendlyName: "Internal System Key",
+		LastUsed:     0,
+		Permissions:  models.ApiPermAll,
+		Expiry:       time.Now().Add(time.Hour * 48).Unix(),
+		IsSystemKey:  true,
+	}
+	database.SaveApiKey(newKey)
+	return newKey.Id
+}
+
+// GetSystemKey returns the latest System API key or generates a new one, if none exists or the current one expires
+// within the next 24 hours
+func GetSystemKey() string {
+	key, ok := database.GetSystemKey()
+	if !ok || key.Expiry < time.Now().Add(time.Hour*24).Unix() {
+		return newSystemKey()
+	}
+	return key.Id
 }
 
 func modifyApiPermission(w http.ResponseWriter, request apiRequest) {
@@ -329,10 +354,7 @@ func isAuthorisedForApi(w http.ResponseWriter, request apiRequest) bool {
 		sendError(w, http.StatusBadRequest, "Invalid request")
 		return false
 	}
-	config := configuration.Get()
-	isOauth := config.Authentication.Method == authentication.OAuth2
-	interval := config.Authentication.OAuthRecheckInterval
-	if IsValidApiKey(request.apiKey, true, perm) || sessionmanager.IsValidSession(w, request.request, isOauth, interval) {
+	if IsValidApiKey(request.apiKey, true, perm) {
 		return true
 	}
 	sendError(w, http.StatusUnauthorized, "Unauthorized")
@@ -494,7 +516,7 @@ func IsValidApiKey(key string, modifyTime bool, requiredPermission uint8) bool {
 		return false
 	}
 	savedKey, ok := database.GetApiKey(key)
-	if ok && savedKey.Id != "" {
+	if ok && savedKey.Id != "" && (savedKey.Expiry == 0 || savedKey.Expiry > time.Now().Unix()) {
 		if modifyTime {
 			savedKey.LastUsed = time.Now().Unix()
 			database.UpdateTimeApiKey(savedKey)
