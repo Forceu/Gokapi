@@ -28,8 +28,8 @@ Pass the variable with the ``-e`` argument. Example for setting the port in use 
  docker run -it -e GOKAPI_PORT=12345 -e GOKAPI_DB_NAME=database.sqlite f0rc3/gokapi:latest
 
 
-Bare Metal
-----------
+Native Deployment
+-------------------
 
 Linux / Unix
 """""""""""""

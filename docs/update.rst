@@ -15,9 +15,9 @@ To update, run the following command:
 
 Then stop the running container and follow the same steps as in SETUP. All userdata will be preserved, as it is saved to the ``gokapi-data`` and ``gokapi-data`` volume (``-v`` argument during creation) 
 
-**********
-Bare Metal
-**********
+*******************
+Native deployment
+*******************
 
 Stable version
 ==============

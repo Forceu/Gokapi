@@ -4,35 +4,15 @@
 Setup
 =====
 
-There are two different ways to setup Gokapi: Either a bare metal approach or docker.
+There are two different ways to set up Gokapi: either a native deployment approach or a containerised installation using Docker/Podman.
 
-Also there are two different versions: *Stable* indicates that you are using the latest release which should work without any bugs. *Unstable* is the latest developer version, which might include more features, but could also contain bugs.
+Also, there are two different versions: *Stable* indicates that you are using the latest release, which should work without any major bugs. *Unstable* is the latest developer version, which might include more features but could also contain bugs.
 
 
 **************
 Installation
 **************
 
-Bare Metal
-^^^^^^^^^^^^
-
-Stable version
-"""""""""""""""""
-`Download the latest release <https://github.com/Forceu/gokapi/releases/latest>`_ and copy the executable into a new folder with write permissions. Select the executable according to your system. If you are using Windows, select ``gokapi-windows_amd64``, for Mac either ``gokapi-darwin_amd64`` or ``gokapi-darwin_arm64`` and for Linux the ``gokapi-linux_`` file matching your system.
-
-Unstable version
-"""""""""""""""""
-
-Only recommended if you have experience with the command line. Go 1.20+ needs to be installed.
-
-Create a new folder and in this folder execute 
-::
-
- git clone https://github.com/Forceu/Gokapi.git .
- go generate ./...
- go build Gokapi/cmd/gokapi
-
-This will compile the source code and create an executable from the latest code.
 
 Docker
 ^^^^^^^
@@ -48,6 +28,28 @@ If you don't want to download the prebuilt image, you can find the Dockerfile on
 
 
 
+
+
+Native Deployment
+^^^^^^^^^^^^^^^^^^
+
+Stable version
+"""""""""""""""""
+`Download the latest release <https://github.com/Forceu/gokapi/releases/latest>`_ and copy the executable into a new folder with write permissions. Select the executable according to your system. If you are using Windows, select ``gokapi-windows_amd64``, for Mac either ``gokapi-darwin_amd64`` or ``gokapi-darwin_arm64`` and for Linux the ``gokapi-linux_`` file matching your system.
+
+Unstable version
+"""""""""""""""""
+
+Only recommended if you have experience with the command line. Go 1.20+ needs to be installed.
+
+Create a new folder and in this folder execute 
+::
+
+ git clone https://github.com/Forceu/Gokapi.git .
+ make
+
+This will compile the source code and create an executable from the latest code.
+
 **************
 First Start
 **************
@@ -57,11 +59,6 @@ After the first start you will be redirected to a setup webpage. If you require 
 
 Starting Gokapi
 ^^^^^^^^^^^^^^^^
-
-Bare Metal
-""""""""""
-
-To start Gokapi, execute the binary with your command line or by double clicking.
 
 
 Docker
@@ -76,6 +73,12 @@ With the argument ``-p 127.0.0.1:53842:53842`` the service will only be accessib
 Set ``-e TZ=UTC`` to the timezone you are in, e.g. ``-e TZ=Europe/Berlin``.
 
 If you do not want the binary to run as the root user in the container, you can set the environment variable ``DOCKER_NONROOT`` to true.
+
+
+Native Deployment
+""""""""""""""""""
+
+To start Gokapi, execute the binary with your command line or by double clicking.
 
 
 
