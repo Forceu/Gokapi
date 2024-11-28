@@ -226,9 +226,7 @@ Only use this if you are running Gokapi behind a reverse proxy that is capable o
 This option disables Gokapis internal authentication completely, except for API calls. The following URLs need to be restricted by the reverse proxy:
 
 - ``/admin``
-- ``/apiDelete``
 - ``/apiKeys``
-- ``/apiNew``
 - ``/delete``
 - ``/e2eInfo``
 - ``/e2eSetup``

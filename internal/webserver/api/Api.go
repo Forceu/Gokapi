@@ -44,6 +44,8 @@ func Process(w http.ResponseWriter, r *http.Request, maxMemory int) {
 		changeFriendlyName(w, request)
 	case "/auth/modify":
 		modifyApiPermission(w, request)
+	case "/auth/delete":
+		deleteApiKey(w, request)
 	default:
 		sendError(w, http.StatusBadRequest, "Invalid request")
 	}
@@ -120,6 +122,8 @@ func getApiPermissionRequired(requestUrl string) (uint8, bool) {
 		return models.ApiPermApiMod, true
 	case "/auth/modify":
 		return models.ApiPermApiMod, true
+	case "/auth/delete":
+		return models.ApiPermApiMod, true
 	default:
 		return models.ApiPermNone, false
 	}
@@ -176,6 +180,13 @@ func GetSystemKey() string {
 	return key.Id
 }
 
+func deleteApiKey(w http.ResponseWriter, request apiRequest) {
+	if !isValidKeyForEditing(w, request) {
+		return
+	}
+	database.DeleteApiKey(request.apiInfo.apiKeyToModify)
+}
+
 func modifyApiPermission(w http.ResponseWriter, request apiRequest) {
 	if !isValidKeyForEditing(w, request) {
 		return
@@ -209,7 +220,7 @@ func isValidKeyForEditing(w http.ResponseWriter, request apiRequest) bool {
 }
 
 func createApiKey(w http.ResponseWriter, request apiRequest) {
-	key := NewKey(false)
+	key := NewKey(request.apiInfo.basicPermissions)
 	output := models.ApiKeyOutput{
 		Result: "OK",
 		Id:     key,
@@ -406,10 +417,11 @@ type fileInfo struct {
 }
 
 type apiInfo struct {
-	friendlyName    string
-	apiKeyToModify  string
-	permission      uint8
-	grantPermission bool
+	friendlyName     string
+	apiKeyToModify   string
+	permission       uint8
+	grantPermission  bool
+	basicPermissions bool
 }
 type filemodInfo struct {
 	id               string
@@ -446,10 +458,12 @@ func parseRequest(r *http.Request) apiRequest {
 			originalPassword: r.Header.Get("originalPassword") == "true",
 		},
 		apiInfo: apiInfo{
-			friendlyName:    r.Header.Get("friendlyName"),
-			apiKeyToModify:  r.Header.Get("apiKeyToModify"),
-			permission:      uint8(permission),
-			grantPermission: r.Header.Get("permissionModifier") == "GRANT"},
+			friendlyName:     r.Header.Get("friendlyName"),
+			apiKeyToModify:   r.Header.Get("apiKeyToModify"),
+			permission:       uint8(permission),
+			grantPermission:  r.Header.Get("permissionModifier") == "GRANT",
+			basicPermissions: r.Header.Get("basicPermissions") == "true",
+		},
 	}
 }
 

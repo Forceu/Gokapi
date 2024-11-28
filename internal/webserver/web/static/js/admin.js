@@ -428,6 +428,66 @@ function changeApiPermission(apiKey, permission, buttonId) {
         });
 }
 
+function deleteApiKey(apiKey) {
+
+    document.getElementById("delete-"+apiKey).disabled = true;
+    var apiUrl = './api/auth/delete';
+    const requestOptions = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'apikey': systemKey,
+            'apiKeyToModify': apiKey,
+        },
+    };
+
+    // Send the request
+    fetch(apiUrl, requestOptions)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Request failed with status: ${response.status}`);
+            }
+        })
+        .then(data => {
+  	  document.getElementById("row-"+apiKey).remove();
+        })
+        .catch(error => {
+            alert("Unable to delete API key: " + error);
+            console.error('Error:', error);
+        });
+}
+
+
+
+function newApiKey() {
+
+    document.getElementById("button-newapi").disabled = true;
+    var apiUrl = './api/auth/create';
+    const requestOptions = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'apikey': systemKey,
+            'basicPermissions': 'true'
+        },
+    };
+
+    // Send the request
+    fetch(apiUrl, requestOptions)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Request failed with status: ${response.status}`);
+            }
+        })
+        .then(data => {
+  	  location.reload();
+        })
+        .catch(error => {
+            alert("Unable to create API key: " + error);
+            console.error('Error:', error);
+        });
+}
+
 
 function checkBoxChanged(checkBox, correspondingInput) {
     let disable = !checkBox.checked;

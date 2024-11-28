@@ -92,9 +92,7 @@ func Start() {
 
 	mux.HandleFunc("/admin", requireLogin(showAdminMenu, false))
 	mux.HandleFunc("/api/", processApi)
-	mux.HandleFunc("/apiDelete", requireLogin(deleteApiKey, false))
 	mux.HandleFunc("/apiKeys", requireLogin(showApiAdmin, false))
-	mux.HandleFunc("/apiNew", requireLogin(newApiKey, false))
 	mux.HandleFunc("/d", showDownload)
 	mux.HandleFunc("/delete", requireLogin(deleteFile, false))
 	mux.HandleFunc("/downloadFile", downloadFile)
@@ -300,21 +298,6 @@ func forgotPassword(w http.ResponseWriter, r *http.Request) {
 func showApiAdmin(w http.ResponseWriter, r *http.Request) {
 	err := templateFolder.ExecuteTemplate(w, "api", (&UploadView{}).convertGlobalConfig(ViewAPI))
 	helper.CheckIgnoreTimeout(err)
-}
-
-// Handling of /apiNew
-func newApiKey(w http.ResponseWriter, r *http.Request) {
-	api.NewKey(true)
-	redirect(w, "apiKeys")
-}
-
-// Handling of /apiDelete
-func deleteApiKey(w http.ResponseWriter, r *http.Request) {
-	keys, ok := r.URL.Query()["id"]
-	if ok {
-		api.DeleteKey(keys[0])
-	}
-	redirect(w, "apiKeys")
 }
 
 // Handling of /api/
