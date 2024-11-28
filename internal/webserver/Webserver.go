@@ -87,7 +87,6 @@ func Start() {
 		mux.Handle("/", http.FileServer(http.Dir("static")))
 	} else {
 		mux.Handle("/", http.FileServer(http.FS(webserverDir)))
-		helper.Check(err)
 	}
 	loadExpiryImage()
 
