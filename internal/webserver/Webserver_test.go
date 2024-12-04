@@ -5,7 +5,6 @@ package webserver
 import (
 	"errors"
 	"github.com/forceu/gokapi/internal/configuration"
-	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/test"
 	"github.com/forceu/gokapi/internal/test/testconfiguration"
 	"github.com/forceu/gokapi/internal/webserver/authentication"
@@ -428,37 +427,6 @@ func TestDownloadCorrectPassword(t *testing.T) {
 	})
 }
 
-func TestDeleteFileNonAuth(t *testing.T) {
-	t.Parallel()
-	test.HttpPageResult(t, test.HttpTestConfig{
-		Url:             "http://127.0.0.1:53843/delete?id=e4TjE7CokWK0giiLNxDL",
-		IsHtml:          true,
-		RequiredContent: []string{"URL=./login"},
-	})
-}
-
-func TestDeleteFileInvalidKey(t *testing.T) {
-	t.Parallel()
-	test.HttpPageResult(t, test.HttpTestConfig{
-		Url:             "http://127.0.0.1:53843/delete",
-		IsHtml:          true,
-		RequiredContent: []string{"URL=./admin"},
-		Cookies: []test.Cookie{{
-			Name:  "session_token",
-			Value: "validsession",
-		}},
-	})
-	test.HttpPageResult(t, test.HttpTestConfig{
-		Url:             "http://127.0.0.1:53843/delete?id=",
-		IsHtml:          true,
-		RequiredContent: []string{"URL=./admin"},
-		Cookies: []test.Cookie{{
-			Name:  "session_token",
-			Value: "validsession",
-		}},
-	})
-}
-
 func TestPostUploadNoAuth(t *testing.T) {
 	t.Parallel()
 	test.HttpPostUploadRequest(t, test.HttpTestConfig{
@@ -522,18 +490,6 @@ func TestPostUpload(t *testing.T) {
 	})
 }
 
-func TestDeleteFile(t *testing.T) {
-	test.HttpPageResult(t, test.HttpTestConfig{
-		Url:             "http://127.0.0.1:53843/delete?id=e4TjE7CokWK0giiLNxDL",
-		IsHtml:          true,
-		RequiredContent: []string{"URL=./admin"},
-		Cookies: []test.Cookie{{
-			Name:  "session_token",
-			Value: "validsession",
-		}},
-	})
-}
-
 func TestApiPageAuthorized(t *testing.T) {
 	t.Parallel()
 	test.HttpPageResult(t, test.HttpTestConfig{
@@ -560,78 +516,6 @@ func TestApiPageNotAuthorized(t *testing.T) {
 	})
 }
 
-func TestNewApiKey(t *testing.T) {
-	// Authorised
-	amountKeys := len(database.GetAllApiKeys())
-	test.HttpPageResult(t, test.HttpTestConfig{
-		Url:             "http://127.0.0.1:53843/apiNew",
-		IsHtml:          true,
-		RequiredContent: []string{"URL=./apiKeys"},
-		ExcludedContent: []string{"URL=./login"},
-		Cookies: []test.Cookie{{
-			Name:  "session_token",
-			Value: "validsession",
-		}},
-	})
-	amountKeysAfter := len(database.GetAllApiKeys())
-	test.IsEqualInt(t, amountKeysAfter, amountKeys+1)
-	test.IsEqualInt(t, amountKeysAfter, 5)
-
-	// Not authorised
-	amountKeys++
-	test.HttpPageResult(t, test.HttpTestConfig{
-		Url:             "http://127.0.0.1:53843/apiNew",
-		IsHtml:          true,
-		RequiredContent: []string{"URL=./login"},
-		ExcludedContent: []string{"URL=./apiKeys"},
-		Cookies: []test.Cookie{{
-			Name:  "session_token",
-			Value: "invalid",
-		}},
-	})
-	amountKeysAfter = len(database.GetAllApiKeys())
-	test.IsEqualInt(t, amountKeysAfter, amountKeys)
-	test.IsEqualInt(t, amountKeysAfter, 5)
-}
-
-func TestDeleteApiKey(t *testing.T) {
-	// Not authorised
-	amountKeys := len(database.GetAllApiKeys())
-	test.HttpPageResult(t, test.HttpTestConfig{
-		Url:             "http://127.0.0.1:53843/apiDelete?id=jiREglQJW0bOqJakfjdVfe8T1EM8n8",
-		IsHtml:          true,
-		RequiredContent: []string{"URL=./login"},
-		ExcludedContent: []string{"URL=./apiKeys"},
-		Cookies: []test.Cookie{{
-			Name:  "session_token",
-			Value: "invalid",
-		}},
-	})
-	amountKeysAfter := len(database.GetAllApiKeys())
-	key, ok := database.GetApiKey("jiREglQJW0bOqJakfjdVfe8T1EM8n8")
-	test.IsEqualBool(t, ok, true)
-	test.IsEqualString(t, key.Id, "jiREglQJW0bOqJakfjdVfe8T1EM8n8")
-	test.IsEqualInt(t, amountKeysAfter, amountKeys)
-	test.IsEqualInt(t, amountKeysAfter, 5)
-
-	// Authorised
-	test.HttpPageResult(t, test.HttpTestConfig{
-		Url:             "http://127.0.0.1:53843/apiDelete?id=jiREglQJW0bOqJakfjdVfe8T1EM8n8",
-		IsHtml:          true,
-		RequiredContent: []string{"URL=./apiKeys"},
-		ExcludedContent: []string{"URL=./login"},
-		Cookies: []test.Cookie{{
-			Name:  "session_token",
-			Value: "validsession",
-		}},
-	})
-	amountKeysAfter = len(database.GetAllApiKeys())
-	_, ok = database.GetApiKey("jiREglQJW0bOqJakfjdVfe8T1EM8n8")
-	test.IsEqualBool(t, ok, false)
-	test.IsEqualInt(t, amountKeysAfter, amountKeys-1)
-	test.IsEqualInt(t, amountKeysAfter, 4)
-}
-
 func TestProcessApi(t *testing.T) {
 	// Not authorised
 	test.HttpPageResult(t, test.HttpTestConfig{
@@ -652,11 +536,12 @@ func TestProcessApi(t *testing.T) {
 		Headers:         []test.Header{{"apikey", "invalid"}},
 	})
 
-	// Authorised
+	// Valid session does not grant API access
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/api/files/list",
-		RequiredContent: []string{"smallfile2"},
-		ExcludedContent: []string{"Unauthorized"},
+		RequiredContent: []string{"{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}"},
+		ExcludedContent: []string{"smallfile2"},
+		ResultCode:      401,
 		Cookies: []test.Cookie{{
 			Name:  "session_token",
 			Value: "validsession",
