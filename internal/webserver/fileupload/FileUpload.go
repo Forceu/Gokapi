@@ -13,13 +13,13 @@ import (
 )
 
 // Process processes a file upload request
-func Process(w http.ResponseWriter, r *http.Request, isWeb bool, maxMemory int) error {
+func Process(w http.ResponseWriter, r *http.Request, maxMemory int) error {
 	err := r.ParseMultipartForm(int64(maxMemory) * 1024 * 1024)
 	if err != nil {
 		return err
 	}
 	defer r.MultipartForm.RemoveAll()
-	config, err := parseConfig(r.Form, isWeb)
+	config, err := parseConfig(r.Form, false)
 	if err != nil {
 		return err
 	}

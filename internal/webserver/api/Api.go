@@ -319,7 +319,7 @@ func upload(w http.ResponseWriter, request apiRequest, maxMemory int) {
 	}
 
 	request.request.Body = http.MaxBytesReader(w, request.request.Body, maxUpload)
-	err := fileupload.Process(w, request.request, false, maxMemory)
+	err := fileupload.Process(w, request.request, maxMemory)
 	if err != nil {
 		sendError(w, http.StatusBadRequest, err.Error())
 		return
