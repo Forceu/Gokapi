@@ -1,6 +1,7 @@
 package setup
 
 import (
+	"bufio"
 	"context"
 	"embed"
 	"encoding/json"
@@ -670,25 +671,31 @@ func splitAndTrim(input string) []string {
 }
 
 type setupView struct {
-	IsInitialSetup   bool
-	LocalhostOnly    bool
-	HasAwsFeature    bool
-	IsDocker         bool
-	S3EnvProvided    bool
-	Port             int
-	OAuthUsers       string
-	OAuthGroups      string
-	HeaderUsers      string
-	Auth             models.AuthenticationConfig
-	Settings         models.Configuration
-	CloudSettings    cloudconfig.CloudConfig
-	DatabaseSettings models.DbConnection
-	ProtectedUrls    []string
+	IsInitialSetup     bool
+	LocalhostOnly      bool
+	HasAwsFeature      bool
+	IsDocker           bool
+	S3EnvProvided      bool
+	IsDataNotMounted   bool
+	IsConfigNotMounted bool
+	Port               int
+	OAuthUsers         string
+	OAuthGroups        string
+	HeaderUsers        string
+	Auth               models.AuthenticationConfig
+	Settings           models.Configuration
+	CloudSettings      cloudconfig.CloudConfig
+	DatabaseSettings   models.DbConnection
+	ProtectedUrls      []string
 }
 
 func (v *setupView) loadFromConfig() {
 	v.IsInitialSetup = isInitialSetup
-	v.IsDocker = environment.IsDockerInstance()
+	if environment.IsDockerInstance() {
+		v.IsDocker = true
+		v.IsDataNotMounted = !isVolumeMounted("/app/data")
+		v.IsConfigNotMounted = !isVolumeMounted("/app/config")
+	}
 	v.HasAwsFeature = aws.IsIncludedInBuild
 	v.ProtectedUrls = protectedUrls
 	if isInitialSetup {
@@ -719,6 +726,25 @@ func (v *setupView) loadFromConfig() {
 	dbSettings, err := database.ParseUrl(settings.DatabaseUrl, false)
 	helper.Check(err)
 	v.DatabaseSettings = dbSettings
+}
+
+func isVolumeMounted(path string) bool {
+	file, err := os.Open("/proc/mounts")
+	if err != nil {
+		fmt.Println(err)
+		return false
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		fields := strings.Fields(line)
+		if len(fields) > 1 && fields[1] == path {
+			return true
+		}
+	}
+	return false
 }
 
 // Handling of /start

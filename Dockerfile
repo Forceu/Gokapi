@@ -16,7 +16,8 @@ FROM alpine:3.19
 
 
 RUN addgroup -S gokapi && adduser -S gokapi -G gokapi
-RUN apk update && apk add --no-cache su-exec tini ca-certificates curl tzdata && mkdir /app && touch /app/.isdocker
+RUN apk update && apk add --no-cache su-exec tini ca-certificates curl tzdata && \
+	 mkdir /app && touch /app/.isdocker
 
 COPY dockerentry.sh /app/run.sh
 

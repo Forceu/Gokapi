@@ -89,6 +89,17 @@
 						You can now change the Gokapi configuration. For further information please refer to the <a href="https://gokapi.readthedocs.io/en/stable/" title="Gokapi Documentation" target="_blank" rel="noopener noreferrer">documentation</a>.
 					</p>
 {{ end }}
+					<br>
+{{ if .IsDataNotMounted }}
+					<p>
+					<span style="color:#FF0000;"><b>Warning:</b> It appears that your <code>/app/data</code> directory has not been mounted as a volume. This will result in complete data loss once you update or rebuild this container!</span>
+					</p>
+{{ end }}
+{{ if .IsConfigNotMounted }}
+					<p>
+					<span style="color:#FF0000;"><b>Warning:</b> It appears that your <code>/app/config</code> directory has not been mounted as a volume. This will result in complete data loss once you update or rebuild this container!</span>
+					</p>
+{{ end }}
 
 				</div>
 			</div>

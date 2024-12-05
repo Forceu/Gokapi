@@ -74,6 +74,8 @@ Set ``-e TZ=UTC`` to the timezone you are in, e.g. ``-e TZ=Europe/Berlin``.
 
 If you do not want the binary to run as the root user in the container, you can set the environment variable ``DOCKER_NONROOT`` to true.
 
+Please make sure that ``/app/data`` and ``/app/config`` are mounted as volumes (see example above), otherwise you will lose all your data after rebuilding or updating your container.
+
 
 Native Deployment
 """"""""""""""""""
