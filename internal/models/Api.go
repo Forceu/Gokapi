@@ -18,11 +18,12 @@ const (
 // ApiPermNone means no permission granted
 const ApiPermNone = 0
 
-// ApiPermAllNoApiMod means all permission granted, except ApiPermApiMod
-const ApiPermAllNoApiMod = 23
-
 // ApiPermAll means all permission granted
 const ApiPermAll = 31
+
+// ApiPermAllNoApiMod means all permission granted, except ApiPermApiMod
+// This is the default for new API keys that are created from the UI
+const ApiPermAllNoApiMod = ApiPermAll - ApiPermApiMod
 
 // ApiKey contains data of a single api key
 type ApiKey struct {

@@ -184,7 +184,7 @@ func deleteApiKey(w http.ResponseWriter, request apiRequest) {
 	if !isValidKeyForEditing(w, request) {
 		return
 	}
-	database.DeleteApiKey(request.apiInfo.apiKeyToModify)
+	DeleteKey(request.apiInfo.apiKeyToModify)
 }
 
 func modifyApiPermission(w http.ResponseWriter, request apiRequest) {
