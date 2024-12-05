@@ -92,11 +92,8 @@ func Start() {
 
 	mux.HandleFunc("/admin", requireLogin(showAdminMenu, false))
 	mux.HandleFunc("/api/", processApi)
-	mux.HandleFunc("/apiDelete", requireLogin(deleteApiKey, false))
 	mux.HandleFunc("/apiKeys", requireLogin(showApiAdmin, false))
-	mux.HandleFunc("/apiNew", requireLogin(newApiKey, false))
 	mux.HandleFunc("/d", showDownload)
-	mux.HandleFunc("/delete", requireLogin(deleteFile, false))
 	mux.HandleFunc("/downloadFile", downloadFile)
 	mux.HandleFunc("/e2eInfo", requireLogin(e2eInfo, true))
 	mux.HandleFunc("/e2eSetup", requireLogin(showE2ESetup, false))
@@ -302,21 +299,6 @@ func showApiAdmin(w http.ResponseWriter, r *http.Request) {
 	helper.CheckIgnoreTimeout(err)
 }
 
-// Handling of /apiNew
-func newApiKey(w http.ResponseWriter, r *http.Request) {
-	api.NewKey(true)
-	redirect(w, "apiKeys")
-}
-
-// Handling of /apiDelete
-func deleteApiKey(w http.ResponseWriter, r *http.Request) {
-	keys, ok := r.URL.Query()["id"]
-	if ok {
-		api.DeleteKey(keys[0])
-	}
-	redirect(w, "apiKeys")
-}
-
 // Handling of /api/
 func processApi(w http.ResponseWriter, r *http.Request) {
 	api.Process(w, r, configuration.Get().MaxMemory)
@@ -505,17 +487,6 @@ func getE2eInfo(w http.ResponseWriter) {
 	_, _ = w.Write(bytesE2e)
 }
 
-// Handling of /delete
-// User needs to be admin. Deletes the requested file
-func deleteFile(w http.ResponseWriter, r *http.Request) {
-	keyId := queryUrl(w, r, "admin")
-	if keyId == "" {
-		return
-	}
-	storage.DeleteFile(keyId, true)
-	redirect(w, "admin")
-}
-
 // Checks if a file is associated with the GET parameter from the current URL
 // Stops for 500ms to limit brute forcing if invalid key and redirects to redirectUrl
 func queryUrl(w http.ResponseWriter, r *http.Request, redirectUrl string) string {
@@ -593,6 +564,7 @@ type UploadView struct {
 	DefaultPassword          string
 	Logs                     string
 	PublicName               string
+	SystemKey                string
 	IsAdminView              bool
 	IsDownloadView           bool
 	IsApiView                bool
@@ -678,6 +650,7 @@ func (u *UploadView) convertGlobalConfig(view int) *UploadView {
 	u.MaxParallelUploads = config.MaxParallelUploads
 	u.ChunkSize = config.ChunkSize
 	u.IncludeFilename = config.IncludeFilename
+	u.SystemKey = api.GetSystemKey()
 	return u
 }
 

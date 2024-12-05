@@ -18,11 +18,12 @@ const (
 // ApiPermNone means no permission granted
 const ApiPermNone = 0
 
-// ApiPermAllNoApiMod means all permission granted, except ApiPermApiMod
-const ApiPermAllNoApiMod = 23
-
 // ApiPermAll means all permission granted
 const ApiPermAll = 31
+
+// ApiPermAllNoApiMod means all permission granted, except ApiPermApiMod
+// This is the default for new API keys that are created from the UI
+const ApiPermAllNoApiMod = ApiPermAll - ApiPermApiMod
 
 // ApiKey contains data of a single api key
 type ApiKey struct {
@@ -30,6 +31,8 @@ type ApiKey struct {
 	FriendlyName string `json:"FriendlyName" redis:"FriendlyName"`
 	LastUsed     int64  `json:"LastUsed" redis:"LastUsed"`
 	Permissions  uint8  `json:"Permissions" redis:"Permissions"`
+	Expiry       int64  `json:"Expiry" redis:"Expiry"` // Does not expire if 0
+	IsSystemKey  bool   `json:"IsSystemKey" redis:"IsSystemKey"`
 }
 
 func (key *ApiKey) GetReadableDate() string {

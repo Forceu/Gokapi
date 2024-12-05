@@ -64,7 +64,7 @@
 {{ range .Items }}
 	{{ if  or (gt .ExpireAt $.TimeNow) (.UnlimitedTime) }}
 		{{ if or (gt .DownloadsRemaining 0) (.UnlimitedDownloads) }}
-					<tr>
+					<tr id="row-{{ .Id }}">
 						<td id="cell-name-{{ .Id }}">{{ .Name }}</td>
 						<td data-order="{{ .SizeBytes }}">{{ .Size }}</td>
 			{{ if .UnlimitedDownloads }}
@@ -87,7 +87,7 @@
 			{{ end }}
 						<button type="button" id="qrcode-{{ .Id }}" title="QR Code" class="btn btn-outline-light btn-sm" onclick="showQrCode('{{ .UrlDownload }}');"><i class="bi bi-qr-code"></i></button>
 						<button type="button" title="Edit" class="btn btn-outline-light btn-sm" onclick="showEditModal('{{.Name }}','{{.Id}}', {{.DownloadsRemaining }}, {{.ExpireAt }}, {{.IsPasswordProtected}}, {{.UnlimitedDownloads }}, {{.UnlimitedTime}});"><i class="bi bi-pencil"></i></button>
-						<button type="button" title="Delete" class="btn btn-outline-danger btn-sm" onclick="window.location='./delete?id={{ .Id }}'"><i class="bi bi-trash3"></i></button></td>
+						<button id="button-delete-{{ .Id }}" type="button" title="Delete" class="btn btn-outline-danger btn-sm" onclick="deleteFile('{{ .Id }}')"><i class="bi bi-trash3"></i></button></td>
 					</tr>
 		{{ end }}
 	{{ end }}
@@ -176,6 +176,7 @@
 		    });
 		});
 		registerChangeHandler();
+	var systemKey = "{{.SystemKey}}";
 	</script>
 
 {{ if .EndToEndEncryption }}

@@ -15,9 +15,6 @@
     {
       "apikey": ["VIEW","UPLOAD","DELETE", "API_MANAGE"]
     },
-    {
-      "session": []
-    }
   ],
   "tags": [
     {
@@ -40,9 +37,6 @@
           {
             "apikey": ["VIEW"]
           },
-          {
-            "session": []
-          }
         ],
         "responses": {
           "200": {
@@ -80,9 +74,6 @@
           {
             "apikey": ["UPLOAD"]
           },
-          {
-            "session": []
-          }
         ],
         "requestBody": {
           "content": {
@@ -126,9 +117,6 @@
           {
             "apikey": ["UPLOAD"]
           },
-          {
-            "session": []
-          }
         ],
         "requestBody": {
           "content": {
@@ -172,9 +160,6 @@
           {
             "apikey": ["UPLOAD"]
           },
-          {
-            "session": []
-          }
         ],
         "requestBody": {
           "content": {
@@ -218,9 +203,6 @@
           {
             "apikey": ["VIEW","UPLOAD"]
           },
-          {
-            "session": []
-          }
         ],
         "requestBody": {
           "content": {
@@ -264,9 +246,6 @@
           {
             "apikey": ["API_EDIT"]
           },
-          {
-            "session": []
-          }
         ],
             "parameters": [
       {
@@ -346,9 +325,6 @@
         "security": [
           {
             "apikey": ["DELETE"]
-          },
-          {
-            "session": []
           }
         ],
         "parameters": [
@@ -383,14 +359,11 @@
           "auth"
         ],
         "summary": "Creates a new API key",
-        "description": "This API call returns a new API key. The new key does not have any permissions. Requires permission API_MOD",
+        "description": "This API call returns a new API key. The new key does not have any permissions, unless specified. Requires permission API_MOD",
         "operationId": "create",
         "security": [
           {
             "apikey": ["API_MANAGE"]
-          },
-          {
-            "session": []
           }
         ],
         "parameters": [
@@ -403,6 +376,17 @@
             "explode": false,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "basicPermissions",
+            "in": "header",
+            "description": "If true, basic permissions are automatically granted",
+            "required": false,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "boolean"
             }
           }
         ],
@@ -434,9 +418,6 @@
         "security": [
           {
             "apikey": ["API_MANAGE"]
-          },
-          {
-            "session": []
           }
         ],
         "parameters": [
@@ -487,9 +468,6 @@
         "security": [
           {
             "apikey": ["API_MANAGE"]
-          },
-          {
-            "session": []
           }
         ],
         "parameters": [
@@ -526,6 +504,45 @@
             "schema": {
               "type": "string",
               "enum": ["GRANT", "REVOKE"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Invalid ID supplied"
+          },
+          "401": {
+            "description": "Invalid API key provided or not logged in as admin"
+          }
+        }
+      }
+    },
+    "/auth/delete": {
+      "delete": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Deletes an API key",
+        "description": "This API call deletes the given API key. Requires permission API_MOD",
+        "operationId": "apidelete",
+        "security": [
+          {
+            "apikey": ["API_MANAGE"]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "apiKeyToModify",
+            "in": "header",
+            "description": "The API key to delete",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -812,11 +829,6 @@
         "type": "apiKey",
         "name": "apikey",
         "in": "header"
-      },
-      "session": {
-        "type": "apiKey",
-        "name": "session_token",
-        "in": "cookie"
       }
     }
   }

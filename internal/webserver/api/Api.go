@@ -8,8 +8,6 @@ import (
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
-	"github.com/forceu/gokapi/internal/webserver/authentication"
-	"github.com/forceu/gokapi/internal/webserver/authentication/sessionmanager"
 	"github.com/forceu/gokapi/internal/webserver/fileupload"
 	"net/http"
 	"strconv"
@@ -46,6 +44,8 @@ func Process(w http.ResponseWriter, r *http.Request, maxMemory int) {
 		changeFriendlyName(w, request)
 	case "/auth/modify":
 		modifyApiPermission(w, request)
+	case "/auth/delete":
+		deleteApiKey(w, request)
 	default:
 		sendError(w, http.StatusBadRequest, "Invalid request")
 	}
@@ -122,6 +122,8 @@ func getApiPermissionRequired(requestUrl string) (uint8, bool) {
 		return models.ApiPermApiMod, true
 	case "/auth/modify":
 		return models.ApiPermApiMod, true
+	case "/auth/delete":
+		return models.ApiPermApiMod, true
 	default:
 		return models.ApiPermNone, false
 	}
@@ -143,12 +145,46 @@ func NewKey(defaultPermissions bool) string {
 		FriendlyName: "Unnamed key",
 		LastUsed:     0,
 		Permissions:  models.ApiPermAllNoApiMod,
+		Expiry:       0,
+		IsSystemKey:  false,
 	}
 	if !defaultPermissions {
 		newKey.Permissions = models.ApiPermNone
 	}
 	database.SaveApiKey(newKey)
 	return newKey.Id
+}
+
+// newSystemKey generates a new API key that is only used internally for the GUI
+// and will be valid for 48 hours
+func newSystemKey() string {
+	newKey := models.ApiKey{
+		Id:           helper.GenerateRandomString(30),
+		FriendlyName: "Internal System Key",
+		LastUsed:     0,
+		Permissions:  models.ApiPermAll,
+		Expiry:       time.Now().Add(time.Hour * 48).Unix(),
+		IsSystemKey:  true,
+	}
+	database.SaveApiKey(newKey)
+	return newKey.Id
+}
+
+// GetSystemKey returns the latest System API key or generates a new one, if none exists or the current one expires
+// within the next 24 hours
+func GetSystemKey() string {
+	key, ok := database.GetSystemKey()
+	if !ok || key.Expiry < time.Now().Add(time.Hour*24).Unix() {
+		return newSystemKey()
+	}
+	return key.Id
+}
+
+func deleteApiKey(w http.ResponseWriter, request apiRequest) {
+	if !isValidKeyForEditing(w, request) {
+		return
+	}
+	DeleteKey(request.apiInfo.apiKeyToModify)
 }
 
 func modifyApiPermission(w http.ResponseWriter, request apiRequest) {
@@ -184,7 +220,7 @@ func isValidKeyForEditing(w http.ResponseWriter, request apiRequest) bool {
 }
 
 func createApiKey(w http.ResponseWriter, request apiRequest) {
-	key := NewKey(false)
+	key := NewKey(request.apiInfo.basicPermissions)
 	output := models.ApiKeyOutput{
 		Result: "OK",
 		Id:     key,
@@ -283,7 +319,7 @@ func upload(w http.ResponseWriter, request apiRequest, maxMemory int) {
 	}
 
 	request.request.Body = http.MaxBytesReader(w, request.request.Body, maxUpload)
-	err := fileupload.Process(w, request.request, false, maxMemory)
+	err := fileupload.Process(w, request.request, maxMemory)
 	if err != nil {
 		sendError(w, http.StatusBadRequest, err.Error())
 		return
@@ -329,10 +365,7 @@ func isAuthorisedForApi(w http.ResponseWriter, request apiRequest) bool {
 		sendError(w, http.StatusBadRequest, "Invalid request")
 		return false
 	}
-	config := configuration.Get()
-	isOauth := config.Authentication.Method == authentication.OAuth2
-	interval := config.Authentication.OAuthRecheckInterval
-	if IsValidApiKey(request.apiKey, true, perm) || sessionmanager.IsValidSession(w, request.request, isOauth, interval) {
+	if IsValidApiKey(request.apiKey, true, perm) {
 		return true
 	}
 	sendError(w, http.StatusUnauthorized, "Unauthorized")
@@ -384,10 +417,11 @@ type fileInfo struct {
 }
 
 type apiInfo struct {
-	friendlyName    string
-	apiKeyToModify  string
-	permission      uint8
-	grantPermission bool
+	friendlyName     string
+	apiKeyToModify   string
+	permission       uint8
+	grantPermission  bool
+	basicPermissions bool
 }
 type filemodInfo struct {
 	id               string
@@ -424,10 +458,12 @@ func parseRequest(r *http.Request) apiRequest {
 			originalPassword: r.Header.Get("originalPassword") == "true",
 		},
 		apiInfo: apiInfo{
-			friendlyName:    r.Header.Get("friendlyName"),
-			apiKeyToModify:  r.Header.Get("apiKeyToModify"),
-			permission:      uint8(permission),
-			grantPermission: r.Header.Get("permissionModifier") == "GRANT"},
+			friendlyName:     r.Header.Get("friendlyName"),
+			apiKeyToModify:   r.Header.Get("apiKeyToModify"),
+			permission:       uint8(permission),
+			grantPermission:  r.Header.Get("permissionModifier") == "GRANT",
+			basicPermissions: r.Header.Get("basicPermissions") == "true",
+		},
 	}
 }
 
@@ -494,7 +530,7 @@ func IsValidApiKey(key string, modifyTime bool, requiredPermission uint8) bool {
 		return false
 	}
 	savedKey, ok := database.GetApiKey(key)
-	if ok && savedKey.Id != "" {
+	if ok && savedKey.Id != "" && (savedKey.Expiry == 0 || savedKey.Expiry > time.Now().Unix()) {
 		if modifyTime {
 			savedKey.LastUsed = time.Now().Unix()
 			database.UpdateTimeApiKey(savedKey)

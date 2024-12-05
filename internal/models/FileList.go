@@ -107,17 +107,16 @@ func (f *File) ToJsonResult(serverUrl string, includeFilename bool) string {
 	if err != nil {
 		return errorAsJson(err)
 	}
-	result := Result{
+
+	byteOutput, err := json.Marshal(Result{
 		Result:          "OK",
 		IncludeFilename: includeFilename,
 		FileInfo:        info,
-	}
-
-	bytes, err := json.Marshal(result)
+	})
 	if err != nil {
 		return errorAsJson(err)
 	}
-	return string(bytes)
+	return string(byteOutput)
 }
 
 // RequiresClientDecryption checks if the file needs to be decrypted by the client
