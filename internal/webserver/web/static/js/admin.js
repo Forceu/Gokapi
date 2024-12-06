@@ -23,6 +23,7 @@ Dropzone.options.uploaddropzone = {
     init: function() {
         dropzoneObject = this;
         this.on("addedfile", file => {
+            saveUploadDefaults();
             addFileProgress(file);
         });
         this.on("queuecomplete", function() {
@@ -128,6 +129,52 @@ document.onpaste = function(event) {
             });
         }
     }
+}
+
+function setUploadDefaults() {
+	let defaultDownloads = getLocalStorageWithDefault("defaultDownloads", 1);
+	let defaultExpiry = getLocalStorageWithDefault("defaultExpiry", 14);
+	let defaultPassword = getLocalStorageWithDefault("defaultPassword", "");
+	let defaultUnlimitedDownloads = getLocalStorageWithDefault("defaultUnlimitedDownloads", false) === "true";
+	let defaultUnlimitedTime = getLocalStorageWithDefault("defaultUnlimitedTime", false) === "true";
+	
+	 document.getElementById("allowedDownloads").value = defaultDownloads;
+	 document.getElementById("expiryDays").value = defaultExpiry;
+	 document.getElementById("password").value = defaultPassword;
+	 document.getElementById("enableDownloadLimit").checked = !defaultUnlimitedDownloads;
+	 document.getElementById("enableTimeLimit").checked = !defaultUnlimitedTime;
+	 
+	 if (defaultPassword === "") {
+	 	document.getElementById("enablePassword").checked = false;
+	 	document.getElementById("password").disabled = true;
+	 } else {
+	 	document.getElementById("enablePassword").checked = true;
+	 	document.getElementById("password").disabled = false;
+	 }
+	 
+	 if (defaultUnlimitedDownloads) {
+	 	document.getElementById("allowedDownloads").disabled = true;
+	 }
+	 if (defaultUnlimitedTime) {
+	 	document.getElementById("expiryDays").disabled = true;
+	 }
+	
+}
+
+function saveUploadDefaults() {
+	localStorage.setItem("defaultDownloads", document.getElementById("allowedDownloads").value);
+	localStorage.setItem("defaultExpiry", document.getElementById("expiryDays").value);
+	localStorage.setItem("defaultPassword", document.getElementById("password").value);
+	localStorage.setItem("defaultUnlimitedDownloads", !document.getElementById("enableDownloadLimit").checked);
+	localStorage.setItem("defaultUnlimitedTime", !document.getElementById("enableTimeLimit").checked);
+}
+
+function getLocalStorageWithDefault(key, default_value){
+  var value = localStorage.getItem(key);
+  if (value === null){
+    return default_value;
+  }
+  return value;
 }
 
 function urlencodeFormData(fd) {

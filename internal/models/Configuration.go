@@ -36,15 +36,6 @@ type Encryption struct {
 	ChecksumSalt string
 }
 
-// LastUploadValues is used to save the last used values for uploads in the database
-type LastUploadValues struct {
-	Downloads         int    `redis:"downloads"`
-	TimeExpiry        int    `redis:"time_expiry"`
-	Password          string `redis:"password"`
-	UnlimitedDownload bool   `redis:"unlimited_download"`
-	UnlimitedTime     bool   `redis:"unlimited_time"`
-}
-
 // ToJson returns an idented JSon representation
 func (c Configuration) ToJson() []byte {
 	result, err := json.MarshalIndent(c, "", "  ")

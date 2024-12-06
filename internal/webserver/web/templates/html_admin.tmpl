@@ -19,27 +19,27 @@
 		<div class="container-md">
 		  <div class="row">
 			  <div class="form-group col">
-				<input class="form-check-input" type="checkbox" name="enableDownloadLimit" id="enableDownloadLimit" onchange="checkBoxChanged(this, 'allowedDownloads')" value="" aria-label="Enable Download Limit" {{ if not .DefaultUnlimitedDownload }} checked {{ end }}>
+				<input class="form-check-input" type="checkbox" name="enableDownloadLimit" id="enableDownloadLimit" onchange="checkBoxChanged(this, 'allowedDownloads')" value="" aria-label="Enable Download Limit" checked>
 	     			<label class="control-label small" for="allowedDownloads">Limit Downloads</label>
 				<div class="input-group mb-3">
-					<input type="number" class="form-control admin-input" value="{{ .DefaultDownloads }}" name="allowedDownloads" id="allowedDownloads" min="1"  {{ if .DefaultUnlimitedDownload }} disabled {{ end }}  style="text-align: right;">
+					<input type="number" class="form-control admin-input" value="1" name="allowedDownloads" id="allowedDownloads" min="1" style="text-align: right;">
 	  				<span class="input-group-text">Downloads</span>
 				</div>
 			 </div>
   			 <div class="break"></div>
 	   		 <div class="form-group col">
-				<input class="form-check-input" type="checkbox" name="enableTimeLimit" id="enableTimeLimit" onchange="checkBoxChanged(this, 'expiryDays')" value="" aria-label="Enable Time Limit"  {{ if not .DefaultUnlimitedTime }} checked {{ end }}>
+				<input class="form-check-input" type="checkbox" name="enableTimeLimit" id="enableTimeLimit" onchange="checkBoxChanged(this, 'expiryDays')" value="" aria-label="Enable Time Limit" checked>
 	     			<label class="control-label  small" for="expiryDays">Expiry</label>
 				<div class="input-group mb-3">
-					<input type="number" class="form-control admin-input" value="{{ .DefaultExpiry }}" name="expiryDays" id="expiryDays" min="1"  {{ if .DefaultUnlimitedTime }} disabled {{ end }} style="text-align: right;">
+					<input type="number" class="form-control admin-input" value="14" name="expiryDays" id="expiryDays" min="1" style="text-align: right;">
 	  				<span class="input-group-text">Days</span>
 				</div>
 			 </div>
   			 <div class="break"></div>
 	    		 <div class="form-group col">
-				<input class="form-check-input" type="checkbox" name="enablePassword" id="enablePassword" onchange="checkBoxChanged(this, 'password')" value="" aria-label="Enable Password Protection" {{ if ne .DefaultPassword "" }} checked {{ end }}>
+				<input class="form-check-input" type="checkbox" name="enablePassword" id="enablePassword" onchange="checkBoxChanged(this, 'password')" value="" aria-label="Enable Password Protection">
 	     			<label class="control-label  small" for="password">Password</label>
-				<input class="form-control admin-input" value="{{ .DefaultPassword }}" name="password" id="password" placeholder="None" {{ if eq .DefaultPassword "" }} disabled {{ end }}>
+				<input class="form-control admin-input" value="" name="password" id="password" placeholder="None" disabled>
 			  </div>
 <div id="errordiv" class="alert alert-danger" style="display:none">
   <span id="errormessage" ></span>
@@ -177,6 +177,7 @@
 		});
 		registerChangeHandler();
 	var systemKey = "{{.SystemKey}}";
+	setUploadDefaults();
 	</script>
 
 {{ if .EndToEndEncryption }}

@@ -82,12 +82,6 @@ type Database interface {
 	// DeleteAllSessions logs all users out
 	DeleteAllSessions()
 
-	// GetUploadDefaults returns the last used setting for amount of downloads allowed, last expiry in days and
-	// a password for the file
-	GetUploadDefaults() (models.LastUploadValues, bool)
-	// SaveUploadDefaults saves the last used setting for an upload
-	SaveUploadDefaults(values models.LastUploadValues)
-	// GetUploadStatus returns a models.UploadStatus from the ID passed or false if the id is not valid
 	GetUploadStatus(id string) (models.UploadStatus, bool)
 	// GetAllUploadStatus returns all UploadStatus values from the past 24 hours
 	GetAllUploadStatus() []models.UploadStatus

@@ -331,25 +331,6 @@ func TestSession(t *testing.T) {
 	test.IsEqualBool(t, ok, false)
 }
 
-func TestUploadDefaults(t *testing.T) {
-	defaults, ok := dbInstance.GetUploadDefaults()
-	test.IsEqualBool(t, ok, false)
-	dbInstance.SaveUploadDefaults(models.LastUploadValues{
-		Downloads:         20,
-		TimeExpiry:        30,
-		Password:          "abcd",
-		UnlimitedDownload: true,
-		UnlimitedTime:     true,
-	})
-	defaults, ok = dbInstance.GetUploadDefaults()
-	test.IsEqualBool(t, ok, true)
-	test.IsEqualInt(t, defaults.Downloads, 20)
-	test.IsEqualInt(t, defaults.TimeExpiry, 30)
-	test.IsEqualString(t, defaults.Password, "abcd")
-	test.IsEqualBool(t, defaults.UnlimitedDownload, true)
-	test.IsEqualBool(t, defaults.UnlimitedTime, true)
-}
-
 func TestUploadStatus(t *testing.T) {
 	allStatus := dbInstance.GetAllUploadStatus()
 	test.IsEqualInt(t, len(allStatus), 0)

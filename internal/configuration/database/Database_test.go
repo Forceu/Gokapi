@@ -1,7 +1,6 @@
 package database
 
 import (
-	"fmt"
 	"github.com/alicebob/miniredis/v2"
 	"github.com/forceu/gokapi/internal/configuration/database/dbabstraction"
 	"github.com/forceu/gokapi/internal/models"
@@ -99,26 +98,6 @@ func TestSessions(t *testing.T) {
 	runAllTypesCompareTwoOutputs(t, func() (any, any) { return GetSession("newsession") }, input, true)
 	runAllTypesNoOutput(t, func() { DeleteAllSessions() })
 	runAllTypesCompareTwoOutputs(t, func() (any, any) { return GetSession("newsession") }, models.Session{}, false)
-}
-
-func TestUploadDefaults(t *testing.T) {
-	defaultValues := models.LastUploadValues{
-		Downloads:         1,
-		TimeExpiry:        14,
-		Password:          "",
-		UnlimitedDownload: false,
-		UnlimitedTime:     false,
-	}
-	runAllTypesCompareOutput(t, func() any { return GetUploadDefaults() }, defaultValues)
-	newValues := models.LastUploadValues{
-		Downloads:         5,
-		TimeExpiry:        20,
-		Password:          "123",
-		UnlimitedDownload: true,
-		UnlimitedTime:     true,
-	}
-	runAllTypesNoOutput(t, func() { SaveUploadDefaults(newValues) })
-	runAllTypesCompareOutput(t, func() any { return GetUploadDefaults() }, newValues)
 }
 
 func TestUploadStatus(t *testing.T) {
@@ -288,7 +267,6 @@ func TestMigration(t *testing.T) {
 	dbOld.SaveMetaData(testFile)
 	dbOld.SaveHotlink(testFile)
 	dbOld.SaveApiKey(models.ApiKey{Id: "api123"})
-	dbOld.SaveUploadDefaults(models.LastUploadValues{Password: "pw123"})
 	dbOld.SaveHotlink(testFile)
 	dbOld.Close()
 
@@ -300,10 +278,6 @@ func TestMigration(t *testing.T) {
 	test.IsEqualBool(t, ok, true)
 	_, ok = dbNew.GetApiKey("api123")
 	test.IsEqualBool(t, ok, true)
-	defaults, ok := dbNew.GetUploadDefaults()
-	test.IsEqualBool(t, ok, true)
-	fmt.Printf("defaults: %+v\n", defaults)
-	test.IsEqualString(t, defaults.Password, "pw123")
 	_, ok = dbNew.GetMetaDataById("file1234")
 	test.IsEqualBool(t, ok, true)
 }

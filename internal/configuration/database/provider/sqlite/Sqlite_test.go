@@ -253,27 +253,8 @@ func TestSession(t *testing.T) {
 	test.IsEqualBool(t, ok, false)
 }
 
-func TestUploadDefaults(t *testing.T) {
-	defaults, ok := dbInstance.GetUploadDefaults()
-	test.IsEqualBool(t, ok, false)
-	dbInstance.SaveUploadDefaults(models.LastUploadValues{
-		Downloads:         20,
-		TimeExpiry:        30,
-		Password:          "abcd",
-		UnlimitedDownload: true,
-		UnlimitedTime:     true,
-	})
-	defaults, ok = dbInstance.GetUploadDefaults()
-	test.IsEqualBool(t, ok, true)
-	test.IsEqualInt(t, defaults.Downloads, 20)
-	test.IsEqualInt(t, defaults.TimeExpiry, 30)
-	test.IsEqualString(t, defaults.Password, "abcd")
-	test.IsEqualBool(t, defaults.UnlimitedDownload, true)
-	test.IsEqualBool(t, defaults.UnlimitedTime, true)
-}
-
 func TestGarbageCollectionUploads(t *testing.T) {
-	orgiginalFunc := currentTime
+	originalFunc := currentTime
 	currentTime = func() time.Time {
 		return time.Now().Add(-25 * time.Hour)
 	}
@@ -297,7 +278,7 @@ func TestGarbageCollectionUploads(t *testing.T) {
 		ChunkId:       "ctodelete5",
 		CurrentStatus: 1,
 	})
-	currentTime = orgiginalFunc
+	currentTime = originalFunc
 
 	dbInstance.SaveUploadStatus(models.UploadStatus{
 		ChunkId:       "ctokeep1",

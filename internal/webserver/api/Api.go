@@ -289,7 +289,7 @@ func chunkComplete(w http.ResponseWriter, request apiRequest) {
 		return
 	}
 	request.request.Form.Set("chunkid", request.request.Form.Get("uuid"))
-	err = fileupload.CompleteChunk(w, request.request, true)
+	err = fileupload.CompleteChunk(w, request.request)
 	if err != nil {
 		sendError(w, http.StatusBadRequest, err.Error())
 	}
