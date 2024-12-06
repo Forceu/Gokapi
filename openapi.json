@@ -721,11 +721,11 @@
           },
           "allowedDownloads": {
             "type": "integer",
-            "description": "How many downloads are allowed. Last used value from web interface will be used if empty. Unlimited if 0 is passed."
+            "description": "How many downloads are allowed. Default of 1 will be used if empty. Unlimited if 0 is passed."
           },
           "expiryDays": {
             "type": "integer",
-            "description": "How many days the file will be stored. Last used value from web interface will be used if empty. Unlimited if 0 is passed."
+            "description": "How many days the file will be stored. Default of 14 will be used if empty. Unlimited if 0 is passed."
           },
           "password": {
             "type": "string",
@@ -811,11 +811,11 @@
           },
           "allowedDownloads": {
             "type": "integer",
-            "description": "How many downloads are allowed. Last used value from web interface will be used if empty. Unlimited if 0 is passed."
+            "description": "How many downloads are allowed. Default of 1 will be used if empty. Unlimited if 0 is passed."
           },
           "expiryDays": {
             "type": "integer",
-            "description": "How many days the file will be stored. Last used value from web interface will be used if empty. Unlimited if 0 is passed."
+            "description": "How many days the file will be stored. Default of 14 will be used if empty. Unlimited if 0 is passed."
           },
           "password": {
             "type": "string",
