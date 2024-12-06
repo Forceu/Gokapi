@@ -37,7 +37,7 @@ Dropzone.options.uploaddropzone = {
             if (xhr && xhr.status === 413) {
                 showError(file, "File too large to upload. If you are using a reverse proxy, make sure that the allowed body size is at least 70MB.");
             } else {
-                showError(file, "Server responded with code " + xhr.status);
+                showError(file, "Error: " + errorMessage);
             }
         });
 
