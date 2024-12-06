@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/forceu/gokapi/internal/configuration"
-	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/test"
 	"github.com/forceu/gokapi/internal/test/testconfiguration"
@@ -36,43 +35,38 @@ func TestParseConfig(t *testing.T) {
 		isE2E:            "",
 		realSize:         "",
 	}
-	config, err := parseConfig(data, false)
+	config, err := parseConfig(data)
 	test.IsNil(t, err)
 	test.IsEqualBool(t, config.IsEndToEndEncrypted, false)
 	test.IsEqualInt64(t, config.RealSize, 0)
 
-	defaults := database.GetUploadDefaults()
 	test.IsEqualInt(t, config.AllowedDownloads, 9)
 	test.IsEqualString(t, config.Password, "123")
 	test.IsEqualInt(t, config.Expiry, 5)
-	test.IsEqualInt(t, defaults.Downloads, 3)
 
-	config, err = parseConfig(data, true)
+	config, err = parseConfig(data)
 	test.IsNil(t, err)
-	defaults = database.GetUploadDefaults()
-	test.IsEqualInt(t, defaults.Downloads, 9)
-	database.SaveUploadDefaults(models.LastUploadValues{Downloads: 3, TimeExpiry: 20})
 
 	data.allowedDownloads = ""
 	data.expiryDays = "invalid"
 
-	config, err = parseConfig(data, false)
+	config, err = parseConfig(data)
 	test.IsNil(t, err)
-	test.IsEqualInt(t, config.AllowedDownloads, 3)
-	test.IsEqualInt(t, config.Expiry, 20)
+	test.IsEqualInt(t, config.AllowedDownloads, 1)
+	test.IsEqualInt(t, config.Expiry, 14)
 	test.IsEqualBool(t, config.UnlimitedTime, false)
 	test.IsEqualBool(t, config.UnlimitedDownload, false)
 
 	data.allowedDownloads = "0"
 	data.expiryDays = "0"
-	config, err = parseConfig(data, false)
+	config, err = parseConfig(data)
 	test.IsNil(t, err)
 	test.IsEqualBool(t, config.UnlimitedTime, true)
 	test.IsEqualBool(t, config.UnlimitedDownload, true)
 
 	data.isE2E = "true"
 	data.realSize = "200"
-	config, err = parseConfig(data, false)
+	config, err = parseConfig(data)
 	test.IsNil(t, err)
 	test.IsEqualBool(t, config.IsEndToEndEncrypted, true)
 	test.IsEqualInt64(t, config.RealSize, 200)
@@ -122,12 +116,12 @@ func TestProcessNewChunk(t *testing.T) {
 
 func TestCompleteChunk(t *testing.T) {
 	w, r := test.GetRecorder("POST", "/uploadComplete", nil, nil, strings.NewReader("invalid§$%&%§"))
-	err := CompleteChunk(w, r, false)
+	err := CompleteChunk(w, r)
 	test.IsNotNil(t, err)
 
 	w = httptest.NewRecorder()
 	r = getFileUploadRecorder(false)
-	err = CompleteChunk(w, r, false)
+	err = CompleteChunk(w, r)
 	test.IsNotNil(t, err)
 
 	data := url.Values{}
@@ -139,7 +133,7 @@ func TestCompleteChunk(t *testing.T) {
 	data.Set("filesize", "13")
 	w, r = test.GetRecorder("POST", "/uploadComplete", nil, nil, strings.NewReader(data.Encode()))
 	r.Header.Set("Content-type", "application/x-www-form-urlencoded")
-	err = CompleteChunk(w, r, false)
+	err = CompleteChunk(w, r)
 	test.IsNil(t, err)
 
 	result := struct {
@@ -154,7 +148,7 @@ func TestCompleteChunk(t *testing.T) {
 	data.Set("chunkid", "invalid")
 	w, r = test.GetRecorder("POST", "/uploadComplete", nil, nil, strings.NewReader(data.Encode()))
 	r.Header.Set("Content-type", "application/x-www-form-urlencoded")
-	err = CompleteChunk(w, r, false)
+	err = CompleteChunk(w, r)
 	test.IsNotNil(t, err)
 }
 
