@@ -74,10 +74,6 @@ func Migrate(configOld, configNew models.DbConnection) {
 			dbNew.SaveHotlink(file)
 		}
 	}
-	defaults, ok := dbOld.GetUploadDefaults()
-	if ok {
-		dbNew.SaveUploadDefaults(defaults)
-	}
 	dbOld.Close()
 	dbNew.Close()
 }
@@ -224,30 +220,6 @@ func DeleteSession(id string) {
 // DeleteAllSessions logs all users out
 func DeleteAllSessions() {
 	db.DeleteAllSessions()
-}
-
-// Upload Defaults Section
-
-// GetUploadDefaults returns the last used setting for amount of downloads allowed, last expiry in days and
-// a password for the file
-func GetUploadDefaults() models.LastUploadValues {
-	values, ok := db.GetUploadDefaults()
-	if ok {
-		return values
-	}
-	defaultValues := models.LastUploadValues{
-		Downloads:         1,
-		TimeExpiry:        14,
-		Password:          "",
-		UnlimitedDownload: false,
-		UnlimitedTime:     false,
-	}
-	return defaultValues
-}
-
-// SaveUploadDefaults saves the last used setting for an upload
-func SaveUploadDefaults(values models.LastUploadValues) {
-	db.SaveUploadDefaults(values)
 }
 
 // Upload Status Section

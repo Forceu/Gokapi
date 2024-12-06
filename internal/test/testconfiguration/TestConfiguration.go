@@ -53,13 +53,6 @@ func Create(initFiles bool) {
 	}
 	database.Connect(config)
 	writeTestSessions()
-	database.SaveUploadDefaults(models.LastUploadValues{
-		Downloads:         3,
-		TimeExpiry:        20,
-		Password:          "123",
-		UnlimitedDownload: false,
-		UnlimitedTime:     false,
-	})
 	writeTestFiles()
 	database.SaveHotlink(models.File{Id: "n1tSTAGj8zan9KaT4u6p", HotlinkId: "PhSs6mFtf8O5YGlLMfNw9rYXx9XRNkzCnJZpQBi7inunv3Z4A.jpg", ExpireAt: time.Now().Add(time.Hour).Unix()})
 	writeApiKeys()

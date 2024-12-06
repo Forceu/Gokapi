@@ -68,8 +68,6 @@ func TestMigration(t *testing.T) {
 	test.IsEqualBool(t, ok, true)
 	_, ok = database.GetApiKey("validkey")
 	test.IsEqualBool(t, ok, true)
-	defaults := database.GetUploadDefaults()
-	test.IsEqualString(t, defaults.Password, "123")
 	_, ok = database.GetMetaDataById("Wzol7LyY2QVczXynJtVo")
 	test.IsEqualBool(t, ok, true)
 }

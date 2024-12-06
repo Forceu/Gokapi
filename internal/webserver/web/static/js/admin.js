@@ -23,6 +23,7 @@ Dropzone.options.uploaddropzone = {
     init: function() {
         dropzoneObject = this;
         this.on("addedfile", file => {
+            saveUploadDefaults();
             addFileProgress(file);
         });
         this.on("queuecomplete", function() {
@@ -73,10 +74,10 @@ function updateProgressbar(file, progress, bytesSent) {
     let millisSinceUpload = Date.now() - container.getAttribute('data-starttime');
     let megabytePerSecond = bytesSent / (millisSinceUpload / 1000) / 1024 / 1024;
     document.getElementById(`us-progressbar-${chunkId}`).style.width = rounded + "%";
-    
+
     let uploadSpeed = Math.round(megabytePerSecond * 10) / 10;
     if (!Number.isNaN(uploadSpeed))
-	    document.getElementById(`us-progress-info-${chunkId}`).innerText = rounded + "% - " + uploadSpeed + "MB/s";
+        document.getElementById(`us-progress-info-${chunkId}`).innerText = rounded + "% - " + uploadSpeed + "MB/s";
 }
 
 function setProgressStatus(chunkId, progressCode) {
@@ -128,6 +129,52 @@ document.onpaste = function(event) {
             });
         }
     }
+}
+
+function setUploadDefaults() {
+    let defaultDownloads = getLocalStorageWithDefault("defaultDownloads", 1);
+    let defaultExpiry = getLocalStorageWithDefault("defaultExpiry", 14);
+    let defaultPassword = getLocalStorageWithDefault("defaultPassword", "");
+    let defaultUnlimitedDownloads = getLocalStorageWithDefault("defaultUnlimitedDownloads", false) === "true";
+    let defaultUnlimitedTime = getLocalStorageWithDefault("defaultUnlimitedTime", false) === "true";
+
+    document.getElementById("allowedDownloads").value = defaultDownloads;
+    document.getElementById("expiryDays").value = defaultExpiry;
+    document.getElementById("password").value = defaultPassword;
+    document.getElementById("enableDownloadLimit").checked = !defaultUnlimitedDownloads;
+    document.getElementById("enableTimeLimit").checked = !defaultUnlimitedTime;
+
+    if (defaultPassword === "") {
+        document.getElementById("enablePassword").checked = false;
+        document.getElementById("password").disabled = true;
+    } else {
+        document.getElementById("enablePassword").checked = true;
+        document.getElementById("password").disabled = false;
+    }
+
+    if (defaultUnlimitedDownloads) {
+        document.getElementById("allowedDownloads").disabled = true;
+    }
+    if (defaultUnlimitedTime) {
+        document.getElementById("expiryDays").disabled = true;
+    }
+
+}
+
+function saveUploadDefaults() {
+    localStorage.setItem("defaultDownloads", document.getElementById("allowedDownloads").value);
+    localStorage.setItem("defaultExpiry", document.getElementById("expiryDays").value);
+    localStorage.setItem("defaultPassword", document.getElementById("password").value);
+    localStorage.setItem("defaultUnlimitedDownloads", !document.getElementById("enableDownloadLimit").checked);
+    localStorage.setItem("defaultUnlimitedTime", !document.getElementById("enableTimeLimit").checked);
+}
+
+function getLocalStorageWithDefault(key, default_value) {
+    var value = localStorage.getItem(key);
+    if (value === null) {
+        return default_value;
+    }
+    return value;
 }
 
 function urlencodeFormData(fd) {
@@ -430,7 +477,7 @@ function changeApiPermission(apiKey, permission, buttonId) {
 
 function deleteApiKey(apiKey) {
 
-    document.getElementById("delete-"+apiKey).disabled = true;
+    document.getElementById("delete-" + apiKey).disabled = true;
     var apiUrl = './api/auth/delete';
     const requestOptions = {
         method: 'POST',
@@ -448,7 +495,7 @@ function deleteApiKey(apiKey) {
             }
         })
         .then(data => {
-  	  document.getElementById("row-"+apiKey).remove();
+            document.getElementById("row-" + apiKey).remove();
         })
         .catch(error => {
             alert("Unable to delete API key: " + error);
@@ -478,7 +525,7 @@ function newApiKey() {
             }
         })
         .then(data => {
-  	  location.reload();
+            location.reload();
         })
         .catch(error => {
             alert("Unable to create API key: " + error);
@@ -489,7 +536,7 @@ function newApiKey() {
 
 function deleteFile(id) {
 
-    document.getElementById("button-delete-"+id).disabled = true;
+    document.getElementById("button-delete-" + id).disabled = true;
     var apiUrl = './api/files/delete';
     const requestOptions = {
         method: 'POST',
@@ -507,7 +554,7 @@ function deleteFile(id) {
             }
         })
         .then(data => {
-  	  location.reload();
+            location.reload();
         })
         .catch(error => {
             alert("Unable to delete file: " + error);
@@ -546,7 +593,7 @@ function registerChangeHandler() {
     source.onmessage = (event) => {
         try {
             let eventData = JSON.parse(event.data);
-	    setProgressStatus(eventData.chunkid, eventData.currentstatus);
+            setProgressStatus(eventData.chunkid, eventData.currentstatus);
         } catch (e) {
             console.error("Failed to parse event data:", e);
         }
@@ -638,7 +685,7 @@ function addRow(jsonText) {
     let item = jsonObject.FileInfo;
     let table = document.getElementById("downloadtable");
     let row = table.insertRow(0);
-    row.id = "row-"+ item.Id;
+    row.id = "row-" + item.Id;
     let cellFilename = row.insertCell(0);
     let cellFileSize = row.insertCell(1);
     let cellRemainingDownloads = row.insertCell(2);
@@ -668,12 +715,12 @@ function addRow(jsonText) {
     cellUrl.innerHTML = '<a  target="_blank" style="color: inherit" id="url-href-' + item.Id + '" href="' + item.UrlDownload + '">' + item.Id + '</a>' + lockIcon;
 
     let buttons = '<button type="button" onclick="showToast()" id="url-button-' + item.Id + '"  data-clipboard-text="' + item.UrlDownload + '" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> URL</button> ';
-        if (item.UrlHotlink === "") {
-            buttons = buttons + '<button type="button"class="copyurl btn btn-outline-light btn-sm disabled"><i class="bi bi-copy"></i> Hotlink</button> ';
-        } else {
-            buttons = buttons + '<button type="button" onclick="showToast()" data-clipboard-text="' + item.UrlHotlink + '" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> Hotlink</button> ';
-        }
-    buttons = buttons + '<button type="button" id="qrcode-'+item.Id+'" title="QR Code" class="btn btn-outline-light btn-sm" onclick="showQrCode(\'' + item.UrlDownload + '\');"><i class="bi bi-qr-code"></i></button> ';
+    if (item.UrlHotlink === "") {
+        buttons = buttons + '<button type="button"class="copyurl btn btn-outline-light btn-sm disabled"><i class="bi bi-copy"></i> Hotlink</button> ';
+    } else {
+        buttons = buttons + '<button type="button" onclick="showToast()" data-clipboard-text="' + item.UrlHotlink + '" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> Hotlink</button> ';
+    }
+    buttons = buttons + '<button type="button" id="qrcode-' + item.Id + '" title="QR Code" class="btn btn-outline-light btn-sm" onclick="showQrCode(\'' + item.UrlDownload + '\');"><i class="bi bi-qr-code"></i></button> ';
     buttons = buttons + '<button type="button" title="Edit" class="btn btn-outline-light btn-sm" onclick="showEditModal(\'' + item.Name + '\',\'' + item.Id + '\', ' + item.DownloadsRemaining + ', ' + item.ExpireAt + ', ' + item.IsPasswordProtected + ', ' + item.UnlimitedDownloads + ', ' + item.UnlimitedTime + ');"><i class="bi bi-pencil"></i></button> ';
     buttons = buttons + '<button type="button" id="button-delete-' + item.Id + '" title="Delete" class="btn btn-outline-danger btn-sm" onclick="deleteFile(\'' + item.Id + '\')"><i class="bi bi-trash3"></i></button>';
 

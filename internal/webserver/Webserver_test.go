@@ -481,7 +481,7 @@ func TestPostUpload(t *testing.T) {
 			Key:   "filesize",
 			Value: "50",
 		}},
-		RequiredContent: []string{"{\"Result\":\"OK\"", "\"Name\":\"fileupload.jpg\"", "DownloadsRemaining\":3"},
+		RequiredContent: []string{"{\"Result\":\"OK\"", "\"Name\":\"fileupload.jpg\"", "DownloadsRemaining\":1"},
 		ExcludedContent: []string{"\"Id\":\"\"", "HotlinkId\":\"\"", "ErrorMessage"},
 		Cookies: []test.Cookie{{
 			Name:  "session_token",

@@ -2,7 +2,6 @@ package fileupload
 
 import (
 	"github.com/forceu/gokapi/internal/configuration"
-	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
 	"github.com/forceu/gokapi/internal/storage/chunking"
@@ -19,7 +18,7 @@ func Process(w http.ResponseWriter, r *http.Request, maxMemory int) error {
 		return err
 	}
 	defer r.MultipartForm.RemoveAll()
-	config, err := parseConfig(r.Form, false)
+	config, err := parseConfig(r.Form)
 	if err != nil {
 		return err
 	}
@@ -63,13 +62,13 @@ func ProcessNewChunk(w http.ResponseWriter, r *http.Request, isApiCall bool) err
 }
 
 // CompleteChunk processes a file after all the chunks have been completed
-func CompleteChunk(w http.ResponseWriter, r *http.Request, isApiCall bool) error {
+func CompleteChunk(w http.ResponseWriter, r *http.Request) error {
 	err := r.ParseForm()
 	if err != nil {
 		return err
 	}
 	chunkId := r.Form.Get("chunkid")
-	config, err := parseConfig(r.Form, !isApiCall)
+	config, err := parseConfig(r.Form)
 	if err != nil {
 		return err
 	}
@@ -86,19 +85,17 @@ func CompleteChunk(w http.ResponseWriter, r *http.Request, isApiCall bool) error
 	return nil
 }
 
-func parseConfig(values formOrHeader, setNewDefaults bool) (models.UploadRequest, error) {
+func parseConfig(values formOrHeader) (models.UploadRequest, error) {
 	allowedDownloads := values.Get("allowedDownloads")
 	expiryDays := values.Get("expiryDays")
 	password := values.Get("password")
 	allowedDownloadsInt, err := strconv.Atoi(allowedDownloads)
 	if err != nil {
-		previousValues := database.GetUploadDefaults()
-		allowedDownloadsInt = previousValues.Downloads
+		allowedDownloadsInt = 1
 	}
 	expiryDaysInt, err := strconv.Atoi(expiryDays)
 	if err != nil {
-		previousValues := database.GetUploadDefaults()
-		expiryDaysInt = previousValues.TimeExpiry
+		expiryDaysInt = 14
 	}
 
 	unlimitedDownload := values.Get("isUnlimitedDownload") == "true"
@@ -111,16 +108,6 @@ func parseConfig(values formOrHeader, setNewDefaults bool) (models.UploadRequest
 		unlimitedTime = true
 	}
 
-	if setNewDefaults {
-		values := models.LastUploadValues{
-			Downloads:         allowedDownloadsInt,
-			TimeExpiry:        expiryDaysInt,
-			Password:          password,
-			UnlimitedDownload: unlimitedDownload,
-			UnlimitedTime:     unlimitedTime,
-		}
-		database.SaveUploadDefaults(values)
-	}
 	var isEnd2End bool
 	var realSize int64
 	if values.Get("isE2E") == "true" {

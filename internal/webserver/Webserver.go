@@ -558,28 +558,23 @@ type e2ESetupView struct {
 
 // UploadView contains parameters for the admin menu template
 type UploadView struct {
-	Items                    []models.FileApiOutput
-	ApiKeys                  []models.ApiKey
-	ServerUrl                string
-	DefaultPassword          string
-	Logs                     string
-	PublicName               string
-	SystemKey                string
-	IsAdminView              bool
-	IsDownloadView           bool
-	IsApiView                bool
-	IsLogoutAvailable        bool
-	DefaultUnlimitedDownload bool
-	DefaultUnlimitedTime     bool
-	EndToEndEncryption       bool
-	IncludeFilename          bool
-	MaxFileSize              int
-	DefaultDownloads         int
-	DefaultExpiry            int
-	ActiveView               int
-	ChunkSize                int
-	MaxParallelUploads       int
-	TimeNow                  int64
+	Items              []models.FileApiOutput
+	ApiKeys            []models.ApiKey
+	ServerUrl          string
+	Logs               string
+	PublicName         string
+	SystemKey          string
+	IsAdminView        bool
+	IsDownloadView     bool
+	IsApiView          bool
+	IsLogoutAvailable  bool
+	EndToEndEncryption bool
+	IncludeFilename    bool
+	MaxFileSize        int
+	ActiveView         int
+	ChunkSize          int
+	MaxParallelUploads int
+	TimeNow            int64
 }
 
 // ViewMain is the identifier for the main menu
@@ -640,12 +635,6 @@ func (u *UploadView) convertGlobalConfig(view int) *UploadView {
 	u.ActiveView = view
 	u.MaxFileSize = config.MaxFileSizeMB
 	u.IsLogoutAvailable = authentication.IsLogoutAvailable()
-	defaultValues := database.GetUploadDefaults()
-	u.DefaultDownloads = defaultValues.Downloads
-	u.DefaultExpiry = defaultValues.TimeExpiry
-	u.DefaultPassword = defaultValues.Password
-	u.DefaultUnlimitedDownload = defaultValues.UnlimitedDownload
-	u.DefaultUnlimitedTime = defaultValues.UnlimitedTime
 	u.EndToEndEncryption = config.Encryption.Level == encryption.EndToEndEncryption
 	u.MaxParallelUploads = config.MaxParallelUploads
 	u.ChunkSize = config.ChunkSize
@@ -671,7 +660,7 @@ func uploadChunk(w http.ResponseWriter, r *http.Request) {
 // If the user is authenticated, this parses the uploaded chunk and stores it
 func uploadComplete(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	err := fileupload.CompleteChunk(w, r, false)
+	err := fileupload.CompleteChunk(w, r)
 	responseError(w, err)
 }
 
