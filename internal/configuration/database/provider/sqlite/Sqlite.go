@@ -17,7 +17,7 @@ type DatabaseProvider struct {
 	sqliteDb *sql.DB
 }
 
-const DatabaseSchemeVersion = 4
+const DatabaseSchemeVersion = 5
 
 // New returns an instance
 func New(dbConfig models.DbConnection) (DatabaseProvider, error) {
@@ -41,29 +41,27 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 			PRIMARY KEY("ChunkId")
 		) WITHOUT ROWID;`)
 		helper.Check(err)
-
-		// Remove Column LastUsedString, keeping old data
-		err = p.rawSqlite(`CREATE TABLE "ApiKeys_New" (
-			"Id" TEXT NOT NULL UNIQUE,
-			"FriendlyName" TEXT NOT NULL,
-			"LastUsed" INTEGER NOT NULL,
-			"Permissions" INTEGER NOT NULL DEFAULT 0,
-			PRIMARY KEY("Id")
-		) WITHOUT ROWID;
-		INSERT INTO "ApiKeys_New" (Id, FriendlyName, LastUsed, Permissions)
-		SELECT Id, FriendlyName, LastUsed, Permissions
-		FROM "ApiKeys";
-		DROP TABLE "ApiKeys";
-		ALTER TABLE "ApiKeys_New" RENAME TO "ApiKeys";`)
-		helper.Check(err)
 	}
-	// < v1.9.0
-	if currentDbVersion < 4 {
+	// < v1.9.4
+	// there might be an instance where the LastUsedString column still exists. This reads all
+	// API keys, drops the table and then recreates it.
+	if currentDbVersion < 5 {
 		// Add Column LastUsedString, keeping old data
-		err := p.rawSqlite(`ALTER TABLE "ApiKeys"  ADD COLUMN "Expiry" INTEGER;`)
+		apiKeys := p.GetAllApiKeys()
+		err := p.rawSqlite(`DROP TABLE "ApiKeys";
+				CREATE TABLE "ApiKeys" (
+				    "Id"	TEXT NOT NULL UNIQUE,
+				    "FriendlyName"	TEXT NOT NULL,
+				    "LastUsed"	INTEGER NOT NULL,
+				    "Permissions"	INTEGER NOT NULL DEFAULT 0,
+				    "Expiry"	INTEGER,
+				    "IsSystemKey"	INTEGER,
+				     PRIMARY KEY("Id")
+				) WITHOUT ROWID;`)
 		helper.Check(err)
-		err = p.rawSqlite(`ALTER TABLE "ApiKeys"  ADD COLUMN "IsSystemKey" INTEGER;`)
-		helper.Check(err)
+		for _, apiKey := range apiKeys {
+			p.SaveApiKey(apiKey)
+		}
 	}
 }
 
