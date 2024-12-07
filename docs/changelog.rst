@@ -7,6 +7,60 @@ Changelog
 Overview of all Changes
 -----------------------
 
+
+v1.9.3: 07 Dec 2024
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* Fixed editing of API permissions or existing files not working, when using external authentication #210
+* Fixed not showing an error message if file is larger than allowed file size #213
+* Upload defaults are now saved locally instead of server-side #196
+* Internal API key is now used for all API actions on the GUI
+* Added API endpoint ``/auth/delete`` to delete API key
+* Added parameter in ``/auth/create`` to include basic permissions
+* Added warning in docker container, if data or config volume are not mounted
+* Minor changes
+* Breaking Changes
+   * API: Session authentication has been removed, an API key is now required
+   * API: When not adding a parameter for maximum downloads or expiry, the default values of 1 download or 14 days are used instead of previous used values for calls ``/files/add`` and ``/chunk/complete``
+
+v1.9.2: 30 Sep 2024
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* Added preview meta-data, enabling preview for services like WhatsApp
+* Added hotlink support for avif and apng format
+* Fixed headers not set when proxying S3 storage, resulting in incorrect filename and not forcing download
+
+v1.9.1: 31 Jul 2024
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* Fixed processing/uploading status not showing after upload #193 
+* Fixed crash when OIDC returns nil for groups #198
+* Fixed crash after running setup and changing encryption #197 
+* Changed versioning of css/js files to prevent caching of old versions #195
+* Other minor changes
+* Breaking Changes
+   * If you are using a custom theme, make sure that you change the CSS and JS filenames. Instead of e.g. main.min.css, the files are versioned now to include the version number in the filename, in this example the filename would be main.min.5.css
+
+
+v1.9.0: 15 Jul 2024
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* Fixed upload speeds being very low in some cases
+* Fixed Docker image having the incorrect timezone
+* Added Redis support. If you want to use Redis instead of SQLite, re-run the setup to change your database type. Refer to the `documentation <https://gokapi.readthedocs.io/en/stable/advanced.html#databases>`_ on how to migrate your data to a different database
+* Database location can now be changed with the setup
+* Fixed QR code not having decryption key when end-to-end encryption was enabled 
+* Added option to display filenames in URL
+* Added makefile for development
+* Replaced SSE library with more efficient code
+* Fixed ``go generate`` not working on Windows
+* Gokapi version number will not be displayed on public pages anymore 
+* Added ``windows/arm64`` target
+* Breaking Changes
+   * API: The output for the schema ``File`` has changed. The base URL was removed and now the complete URL for to download or hotlink the file is added. The additional key ``IncludeFilename`` indicates if the URLs contain the filename.
+   * Configuration: Env variable ``GOKAPI_DB_NAME`` deprecated. On first start the database location will be saved as an URL string to the configuration file. For automatic deployment ``GOKAPI_DATABASE_URL`` can also be used
+
+
 v1.8.4: 29 May 2024
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -51,14 +105,7 @@ v1.8.1: 7 Feb 2024
 
 v1.8.0: 9 Dec 2023
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-* Changed Database to Sqlite3
-* Dropped Windows 32bit support
-* Only 4,000 parallel requests that are writing to the database are supported now, any requests above that limit may be rejected. Up to 500,000 parallel reading requests were tested.
-* According to the documentation, the GOKAPI_DATA_DIR environment variable should be persistent, however that was not the case. Now the data directory that was set on first start will be used. If you were using GOKAPI_DATA_DIR after the first start, make sure that the data directory is the one found in your config file.
-* By default, IP addresses of clients downloading files are not saved anymore to comply with GDPR. This can be enabled by re-running the setup
-* Existing API keys will be granted all API permissions except MODIFY_API, therefore cannot use /auth/friendlyname without having the permission granted first
-* The undocumented GOKAPI_FILE_DB environment variable was removed
-* Removed optional application for reading database content
+
 * Parameters of already uploaded files can be edited now
 * Added permission model for API tokens
 * Added /auth/modify and /files/modify API endpoint
@@ -68,6 +115,15 @@ v1.8.0: 9 Dec 2023
 * Fixed minor bugs
 * Updated dependencies
 * Updated documentation
+* Breaking Changes
+   * Changed Database to Sqlite3
+   * Dropped Windows 32bit support
+   * Only 4,000 parallel requests that are writing to the database are supported now, any requests above that limit may be rejected. Up to 500,000 parallel reading requests were tested.
+   * According to the documentation, the GOKAPI_DATA_DIR environment variable should be persistent, however that was not the case. Now the data directory that was set on first start will be used. If you were using GOKAPI_DATA_DIR after the first start, make sure that the data directory is the one found in your config file.
+   * By default, IP addresses of clients downloading files are not saved anymore to comply with GDPR. This can be enabled by re-running the setup
+   * Existing API keys will be granted all API permissions except MODIFY_API, therefore cannot use /auth/friendlyname without having the permission granted first
+   * The undocumented GOKAPI_FILE_DB environment variable was removed
+   * Removed optional application for reading database content
 
 
 v1.7.2: 13 May 2023
@@ -85,7 +141,7 @@ v1.7.1: 14 Apr 2023
 * Added healthcheck for docker by @Jisagi in #89
 * Fixed upload counter not updating after upload #92
 * Fixed hotlink generation on files that required client-side decryption
-* Replaced go:generate code with native Go
+* Replaced ``go:generate`` code with native Go
 * Min Go version now 1.20
 * Updated dependencies
 * A lot of refactoring, minor changes
@@ -101,6 +157,7 @@ v1.6.2: 14 Feb 2023
 
 v1.6.1: 17 Aug 2022
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 * Fixed setup throwing error 500 on docker installation
 
 
@@ -117,6 +174,19 @@ v1.6.0: 17 Aug 2022
 * Added flag to disable CORS check on startup
 * Service worker for insecure connections is now hosted on Github
 * "Noaws" version is not included as binary build anymore, but can be generated manually
+* Breaking Changes
+   * API output for fileuploads are less verbose and have changed parameters, please see updated OpenApi documentation
+   * If you disabled authentication, the following endpoints need to be secured:
+   
+      * /admin
+      * /apiDelete
+      * /apiKeys
+      * /apiNew
+      * /delete
+      * /e2eInfo
+      * /e2eSetup
+      * /uploadChunk
+      * /uploadComplete
 
 
 v1.5.2: 08 Jun 2022
@@ -219,6 +289,13 @@ v1.0: 12 Mar 2021
 
 Upgrading
 -----------------------
+
+Upgrading to 1.9
+^^^^^^^^^^^^^^^^^^
+
+* You need to update to Gokapi 1.8.4 before updating to Gokapi 1.9
+* You might need to change permissions on the docker volumes, if you want the content to be readable by the host user. (Only applicable if you were running 1.8.3 before)
+* If you have used the old Keycloak example for configuration, please make sure that it is configure properly, as with the old example unauthorised access might have been possible! `Documentation: Creating scopes for groups <https://gokapi.readthedocs.io/en/stable/examples.html#addding-a-scope-for-exposing-groups-optional>`_
 
 Upgrading to 1.8
 ^^^^^^^^^^^^^^^^^^
