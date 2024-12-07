@@ -8,6 +8,11 @@ Overview of all Changes
 -----------------------
 
 
+v1.9.4: 07 Dec 2024
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* Fixed a crash caused by an incorrectly upgraded database version #215
+
 v1.9.3: 07 Dec 2024
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
