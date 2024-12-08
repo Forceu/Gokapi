@@ -76,7 +76,7 @@ type legacySchemaApiKeys struct {
 func (p DatabaseProvider) getLegacyApiKeys() map[string]models.ApiKey {
 	result := make(map[string]models.ApiKey)
 
-	rows, err := p.sqliteDb.Query("SELECT * FROM ApiKeys")
+	rows, err := p.sqliteDb.Query("SELECT Id,FriendlyName,LastUsed,Permissions FROM ApiKeys")
 	helper.Check(err)
 	defer rows.Close()
 	for rows.Next() {
