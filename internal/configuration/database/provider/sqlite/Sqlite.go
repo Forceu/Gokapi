@@ -47,7 +47,7 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 	// API keys, drops the table and then recreates it.
 	if currentDbVersion < 5 {
 		// Add Column LastUsedString, keeping old data
-		apiKeys := p.GetAllApiKeys()
+		apiKeys := p.getLegacyApiKeys()
 		err := p.rawSqlite(`DROP TABLE "ApiKeys";
 				CREATE TABLE "ApiKeys" (
 				    "Id"	TEXT NOT NULL UNIQUE,
@@ -63,6 +63,34 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 			p.SaveApiKey(apiKey)
 		}
 	}
+}
+
+type legacySchemaApiKeys struct {
+	Id           string
+	FriendlyName string
+	LastUsed     int64
+	Permissions  int
+}
+
+// getLegacyApiKeys returns a map with all API keys with the legacy scheme
+func (p DatabaseProvider) getLegacyApiKeys() map[string]models.ApiKey {
+	result := make(map[string]models.ApiKey)
+
+	rows, err := p.sqliteDb.Query("SELECT * FROM ApiKeys")
+	helper.Check(err)
+	defer rows.Close()
+	for rows.Next() {
+		rowData := legacySchemaApiKeys{}
+		err = rows.Scan(&rowData.Id, &rowData.FriendlyName, &rowData.LastUsed, &rowData.Permissions)
+		helper.Check(err)
+		result[rowData.Id] = models.ApiKey{
+			Id:           rowData.Id,
+			FriendlyName: rowData.FriendlyName,
+			LastUsed:     rowData.LastUsed,
+			Permissions:  uint8(rowData.Permissions),
+		}
+	}
+	return result
 }
 
 // GetDbVersion gets the version number of the database
