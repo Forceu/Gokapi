@@ -45,9 +45,14 @@
 	    writer.close()
 
 	}
+	
+	function clearKeys() {
+		localStorage.removeItem("e2ekey");
+	}
+	
 
 	function newKey() {
-	    localStorage.clear();
+	    clearKeys();
 	    let key;
 	    try {
 		key = GokapiE2EGetNewCipher(true);
@@ -102,7 +107,7 @@
     
     <script>
 	function saveKey() {
-	    localStorage.clear();
+	    clearKeys();
 	    let key = document.getElementById("password").value;
 	    localStorage.setItem("e2ekey", key);
 
