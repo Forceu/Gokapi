@@ -135,7 +135,7 @@ func initCloudConfig(passedFlags flagparser.MainFlags) {
 		encLevel := configuration.Get().Encryption.Level
 		env := environment.New()
 		corsCheckDisabled := passedFlags.DisableCorsCheck || env.DisableCorsCheck
-		if !corsCheckDisabled && (encLevel == encryption.FullEncryptionStored || encLevel == encryption.FullEncryptionInput) {
+		if !corsCheckDisabled && (encLevel == encryption.FullEncryptionStored || encLevel == encryption.FullEncryptionInput || encLevel == encryption.EndToEndEncryption) {
 			ok, err := aws.IsCorsCorrectlySet(cConfig.Aws.Bucket, configuration.Get().ServerUrl)
 			if err != nil {
 				fmt.Println("Warning: Cannot check CORS settings. " + err.Error())

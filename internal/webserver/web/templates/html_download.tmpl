@@ -113,7 +113,13 @@
 
 			pump();
 		    } catch (err) {
-			displayError(err);
+		        if (err.message.includes("Failed to fetch")) {
+		        	console.log(err);
+				displayError("Unable to download file. Please contact the uploader. Possible problem: Incorrect CORS rules, if using remote storage");
+		        	
+		        } else {
+				displayError(err);
+		        }
 		    }
 		}
 
