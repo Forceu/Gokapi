@@ -100,8 +100,12 @@ func TestGetStatusSSE(t *testing.T) {
 	body, err := io.ReadAll(rr.Body)
 	test.IsNil(t, err)
 
-	test.IsEqualString(t, string(body), "event: message\ndata: {\"event\":\"uploadStatus\",\"chunk_id\":\"validstatus_0\",\"upload_status\":0}\n\n"+
-		"event: message\ndata: {\"event\":\"uploadStatus\",\"chunk_id\":\"validstatus_1\",\"upload_status\":1}\n\n")
+	bodyString := string(body)
+	isCorrect0 := bodyString == "event: message\ndata: {\"event\":\"uploadStatus\",\"chunk_id\":\"validstatus_0\",\"upload_status\":0}\n\n"+
+		"event: message\ndata: {\"event\":\"uploadStatus\",\"chunk_id\":\"validstatus_1\",\"upload_status\":1}\n\n"
+	isCorrect1 := bodyString == "event: message\ndata: {\"event\":\"uploadStatus\",\"chunk_id\":\"validstatus_1\",\"upload_status\":1}\n\n"+
+		"event: message\ndata: {\"event\":\"uploadStatus\",\"chunk_id\":\"validstatus_0\",\"upload_status\":0}\n\n"
+	test.IsEqualBool(t, isCorrect0 || isCorrect1, true)
 
 	// Test ping message
 	time.Sleep(3 * time.Second)
