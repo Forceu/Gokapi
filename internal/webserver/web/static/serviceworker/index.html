@@ -154,10 +154,24 @@ if (window.opener) {
 }
 
 if (navigator.serviceWorker) {
-  registerWorker().then(() => {
-    window.onmessage = onMessage
-    messages.forEach(window.onmessage)
-  })
+  registerWorker()
+        .then(() => {
+        window.onmessage = onMessage;
+        messages.forEach(window.onmessage);
+      })
+        // This will catch the error thrown by Service Worker registration
+      .catch((err) => {
+        // Check if it's an SSL error
+        console.log(window.onmessage);
+        console.log(window);
+        if (err.name === "SecurityError" && err.message.includes("SSL certificate")) {
+          console.error("Invalid SSL certificate:", err);
+          window.parent.displayError("Untrusted SSL certificate - unable to download. Please contact the uploader.");
+        } else {
+          console.error("An error occurred during Service Worker registration:", err);
+          window.parent.displayError(err.name + " - Please contact the uploader");
+        }
+      });
 } else {
   // FF can ping sw with fetch from a secure hidden iframe
   // shouldn't really be possible?
