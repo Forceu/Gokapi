@@ -2,7 +2,6 @@ package processingstatus
 
 import (
 	"github.com/forceu/gokapi/internal/configuration/database"
-	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/webserver/sse"
 )
@@ -12,12 +11,6 @@ const StatusHashingOrEncrypting = 0
 
 // StatusUploading indicates that the file has been processed, but is now moved to the data filesystem
 const StatusUploading = 1
-
-func passNewStatus(newStatus models.UploadStatus) {
-	status, err := newStatus.ToJson()
-	helper.Check(err)
-	sse.PublishNewStatus(string(status))
-}
 
 // Set sets the status for an id
 func Set(id string, status int) {
@@ -30,5 +23,5 @@ func Set(id string, status int) {
 		return
 	}
 	database.SaveUploadStatus(newStatus)
-	go passNewStatus(newStatus)
+	go sse.PublishNewStatus(newStatus)
 }

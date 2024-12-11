@@ -22,6 +22,7 @@ import (
 	"github.com/forceu/gokapi/internal/storage/processingstatus"
 	"github.com/forceu/gokapi/internal/webserver/downloadstatus"
 	"github.com/forceu/gokapi/internal/webserver/headers"
+	"github.com/forceu/gokapi/internal/webserver/sse"
 	"github.com/jinzhu/copier"
 	"io"
 	"log"
@@ -524,6 +525,7 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 	file.DownloadCount = file.DownloadCount + 1
 	database.SaveMetaData(file)
 	logging.AddDownload(&file, r, configuration.Get().SaveIp)
+	go sse.PublishDownloadCount(file)
 
 	if !file.IsLocalStorage() {
 		// If non-blocking, we are not setting a download complete status as there is no reliable way to

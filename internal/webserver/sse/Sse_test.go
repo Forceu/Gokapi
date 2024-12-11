@@ -2,6 +2,7 @@ package sse
 
 import (
 	"github.com/forceu/gokapi/internal/configuration"
+	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/test"
 	"github.com/forceu/gokapi/internal/test/testconfiguration"
 	"io"
@@ -45,10 +46,20 @@ func TestPublishNewStatus(t *testing.T) {
 	channel := listener{Reply: func(reply string) { replyChannel <- reply }, Shutdown: func() {}}
 	addListener("test_id", channel)
 
-	go PublishNewStatus("test_status")
+	go PublishNewStatus(models.UploadStatus{
+		ChunkId:       "testChunkId",
+		CurrentStatus: 4,
+	})
 	receivedStatus := <-replyChannel
-	test.IsEqualString(t, receivedStatus, "event: message\ndata: test_status\n\n")
-	removeListener("test_status")
+	test.IsEqualString(t, receivedStatus, "event: message\ndata: {\"event\":\"uploadStatus\",\"chunk_id\":\"testChunkId\",\"upload_status\":4}\n\n")
+
+	go PublishDownloadCount(models.File{
+		Id:            "testFileId",
+		DownloadCount: 3,
+	})
+	receivedStatus = <-replyChannel
+	test.IsEqualString(t, receivedStatus, "event: message\ndata: {\"event\":\"download\",\"file_id\":\"testFileId\",\"download_count\":3}\n\n")
+	removeListener("test_id")
 }
 
 func TestShutdown(t *testing.T) {
@@ -89,8 +100,8 @@ func TestGetStatusSSE(t *testing.T) {
 	body, err := io.ReadAll(rr.Body)
 	test.IsNil(t, err)
 
-	test.IsEqualString(t, string(body), "event: message\ndata: {\"chunkid\":\"validstatus_0\",\"currentstatus\":0}\n\n"+
-		"event: message\ndata: {\"chunkid\":\"validstatus_1\",\"currentstatus\":1}\n\n")
+	test.IsEqualString(t, string(body), "event: message\ndata: {\"event\":\"uploadStatus\",\"chunk_id\":\"validstatus_0\",\"upload_status\":0}\n\n"+
+		"event: message\ndata: {\"event\":\"uploadStatus\",\"chunk_id\":\"validstatus_1\",\"upload_status\":1}\n\n")
 
 	// Test ping message
 	time.Sleep(3 * time.Second)
@@ -98,10 +109,13 @@ func TestGetStatusSSE(t *testing.T) {
 	test.IsNil(t, err)
 	test.IsEqualString(t, string(body), "event: ping\n\n")
 
-	PublishNewStatus("testcontent")
+	PublishNewStatus(models.UploadStatus{
+		ChunkId:       "secondChunkId",
+		CurrentStatus: 1,
+	})
 	time.Sleep(1 * time.Second)
 	body, err = io.ReadAll(rr.Body)
 	test.IsNil(t, err)
-	test.IsEqualString(t, string(body), "event: message\ndata: testcontent\n\n")
+	test.IsEqualString(t, string(body), "event: message\ndata: {\"event\":\"uploadStatus\",\"chunk_id\":\"secondChunkId\",\"upload_status\":1}\n\n")
 	Shutdown()
 }

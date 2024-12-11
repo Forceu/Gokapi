@@ -576,7 +576,7 @@ function checkBoxChanged(checkBox, correspondingInput) {
     }
 }
 
-function parseData(data) {
+function parseRowData(data) {
     if (!data) return {
         "Result": "error"
     };
@@ -588,15 +588,39 @@ function parseData(data) {
     };
 }
 
+
+function parseSseData(data) {
+    let eventData;
+    try {
+        eventData = JSON.parse(data);
+    } catch (e) {
+        console.error("Failed to parse event data:", e);
+        return;
+    }
+    switch (eventData.event) {
+        case "download":
+            setNewDownloadCount(eventData.file_id, eventData.download_count);
+            return;
+        case "uploadStatus":
+            setProgressStatus(eventData.chunk_id, eventData.upload_status);
+            return;
+        default:
+            console.error("Unknown event", eventData);
+    }
+}
+
+function setNewDownloadCount(id, downloadCount) {
+    let downloadCell = document.getElementById("cell-downloads-" + id);
+    if (downloadCell != null) {
+        downloadCell.innerHTML = downloadCount;
+    }
+}
+
+
 function registerChangeHandler() {
     const source = new EventSource("./uploadStatus")
     source.onmessage = (event) => {
-        try {
-            let eventData = JSON.parse(event.data);
-            setProgressStatus(eventData.chunkid, eventData.currentstatus);
-        } catch (e) {
-            console.error("Failed to parse event data:", e);
-        }
+        parseSseData(event.data);
     }
     source.onerror = (error) => {
 
@@ -676,7 +700,7 @@ function removeFileStatus(chunkId) {
 
 
 function addRow(jsonText) {
-    let jsonObject = parseData(jsonText);
+    let jsonObject = parseRowData(jsonText);
     if (jsonObject.Result !== "OK") {
         alert("Failed to upload file!");
         location.reload();
@@ -700,6 +724,7 @@ function addRow(jsonText) {
     }
     cellFilename.innerText = item.Name;
     cellFilename.id = "cell-name-" + item.Id;
+    cellDownloadCount.id = "cell-downloads-" + item.Id;
     cellFileSize.innerText = item.Size;
     if (item.UnlimitedDownloads) {
         cellRemainingDownloads.innerText = "Unlimited";

@@ -1,8 +1,10 @@
 package sse
 
 import (
+	"encoding/json"
 	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/models"
 	"io"
 	"net/http"
 	"sync"
@@ -32,12 +34,48 @@ func removeListener(id string) {
 	mutex.Unlock()
 }
 
-func PublishNewStatus(reply string) {
+type eventFileDownload struct {
+	Event         string `json:"event"`
+	FileId        string `json:"file_id"`
+	DownloadCount int    `json:"download_count"`
+}
+type eventUploadStatus struct {
+	Event        string `json:"event"`
+	ChunkId      string `json:"chunk_id"`
+	UploadStatus int    `json:"upload_status"`
+}
+
+type eventData interface {
+	eventUploadStatus | eventFileDownload
+}
+
+func PublishNewStatus(uploadStatus models.UploadStatus) {
+	event := eventUploadStatus{
+		Event:        "uploadStatus",
+		ChunkId:      uploadStatus.ChunkId,
+		UploadStatus: uploadStatus.CurrentStatus,
+	}
+	publishMessage(event)
+}
+
+func publishMessage[d eventData](data d) {
+	message, err := json.Marshal(data)
+	helper.Check(err)
+
 	mutex.RLock()
 	for _, channel := range listeners {
-		go channel.Reply("event: message\ndata: " + reply + "\n\n")
+		go channel.Reply("event: message\ndata: " + string(message) + "\n\n")
 	}
 	mutex.RUnlock()
+}
+
+func PublishDownloadCount(file models.File) {
+	event := eventFileDownload{
+		Event:         "download",
+		FileId:        file.Id,
+		DownloadCount: file.DownloadCount,
+	}
+	publishMessage(event)
 }
 
 func Shutdown() {
@@ -69,9 +107,7 @@ func GetStatusSSE(w http.ResponseWriter, r *http.Request) {
 
 	allStatus := database.GetAllUploadStatus()
 	for _, status := range allStatus {
-		jsonOutput, err := status.ToJson()
-		helper.Check(err)
-		_, _ = io.WriteString(w, "event: message\ndata: "+string(jsonOutput)+"\n\n")
+		PublishNewStatus(status)
 	}
 	w.(http.Flusher).Flush()
 	for {
