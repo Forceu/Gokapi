@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
 	"github.com/forceu/gokapi/internal/configuration/configupgrade"
@@ -847,7 +849,7 @@ func handleTestAws(w http.ResponseWriter, r *http.Request) {
 	}
 	ok, err := aws.IsValidLogin(awsConfig)
 	if err != nil {
-		_, _ = w.Write([]byte("Error: " + err.Error()))
+		handleAwsError(w, err, "Unable to login. ")
 		return
 	}
 	if !ok {
@@ -858,12 +860,33 @@ func handleTestAws(w http.ResponseWriter, r *http.Request) {
 	ok, err = aws.IsCorsCorrectlySet(t.Bucket, t.GokapiUrl)
 	aws.LogOut()
 	if err != nil {
-		_, _ = w.Write([]byte("Could not check CORS settings. Error: " + err.Error()))
+		handleAwsError(w, err, "Could not get CORS settings. ")
 		return
 	}
 	if !ok {
-		_, _ = w.Write([]byte("Test OK, however CORS settings do not allow encrypted downloads."))
+		_, _ = w.Write([]byte("Test OK. WARNING: CORS settings do not allow encrypted downloads."))
 		return
 	}
-	_, _ = w.Write([]byte("Test OK, CORS settings allow encrypted downloads."))
+	_, _ = w.Write([]byte("All tests OK."))
+}
+
+func handleAwsError(w http.ResponseWriter, err error, prefix string) {
+	var awsErr awserr.Error
+	isAwsErr := errors.As(err, &awsErr)
+	if isAwsErr {
+		switch awsErr.Code() {
+		case s3.ErrCodeNoSuchBucket:
+			_, _ = w.Write([]byte("Invalid bucket or regions provided, bucket does not exist."))
+		case "Forbidden":
+			_, _ = w.Write([]byte("Unable to log in, invalid credentials."))
+		case "RequestError":
+			_, _ = w.Write([]byte("Unable to connect to server, check endpoint."))
+		case "SerializationError":
+			_, _ = w.Write([]byte("Invalid response received by server, check endpoint."))
+		default:
+			_, _ = w.Write([]byte(prefix + "Error " + awsErr.Code() + ": " + err.Error()))
+		}
+	} else {
+		_, _ = w.Write([]byte(prefix + "Error: " + err.Error()))
+	}
 }
