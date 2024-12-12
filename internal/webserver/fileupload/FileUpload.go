@@ -61,28 +61,30 @@ func ProcessNewChunk(w http.ResponseWriter, r *http.Request, isApiCall bool) err
 	return nil
 }
 
-// CompleteChunk processes a file after all the chunks have been completed
-func CompleteChunk(w http.ResponseWriter, r *http.Request) error {
+// ParseFileHeader parses the parameters for CompleteChunk()
+// This is done as two operations, as CompleteChunk can be blocking too long
+// for an HTTP request, by calling this function first, r can be closed afterwards
+func ParseFileHeader(r *http.Request) (string, chunking.FileHeader, models.UploadRequest, error) {
 	err := r.ParseForm()
 	if err != nil {
-		return err
+		return "", chunking.FileHeader{}, models.UploadRequest{}, err
 	}
 	chunkId := r.Form.Get("chunkid")
 	config, err := parseConfig(r.Form)
 	if err != nil {
-		return err
+		return "", chunking.FileHeader{}, models.UploadRequest{}, err
 	}
 	header, err := chunking.ParseFileHeader(r)
 	if err != nil {
-		return err
+		return "", chunking.FileHeader{}, models.UploadRequest{}, err
 	}
+	return chunkId, header, config, nil
+}
 
-	result, err := storage.NewFileFromChunk(chunkId, header, config)
-	if err != nil {
-		return err
-	}
-	_, _ = io.WriteString(w, result.ToJsonResult(config.ExternalUrl, configuration.Get().IncludeFilename))
-	return nil
+// CompleteChunk processes a file after all the chunks have been completed
+// The parameters can be generated with  ParseFileHeader()
+func CompleteChunk(chunkId string, header chunking.FileHeader, config models.UploadRequest) (models.File, error) {
+	return storage.NewFileFromChunk(chunkId, header, config)
 }
 
 func parseConfig(values formOrHeader) (models.UploadRequest, error) {

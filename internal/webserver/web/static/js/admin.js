@@ -80,22 +80,31 @@ function updateProgressbar(file, progress, bytesSent) {
         document.getElementById(`us-progress-info-${chunkId}`).innerText = rounded + "% - " + uploadSpeed + "MB/s";
 }
 
-function setProgressStatus(chunkId, progressCode) {
-    let container = document.getElementById(`us-container-${chunkId}`);
+function parseProgressStatus(eventData) {
+    let container = document.getElementById(`us-container-${eventData.chunk_id}`);
     if (container == null) {
         return;
     }
     container.setAttribute('data-complete', 'true');
     let text;
-    switch (progressCode) {
+    switch (eventData.upload_status) {
         case 0:
             text = "Processing file...";
             break;
         case 1:
             text = "Uploading file...";
             break;
+        case 2:
+            text = "Complete";
+            break;
+        case 3:
+            text = "Error";
+            break;
+       default:
+            text = "Unknown status";
+            break;
     }
-    document.getElementById(`us-progress-info-${chunkId}`).innerText = text;
+    document.getElementById(`us-progress-info-${eventData.chunk_id}`).innerText = text;
 }
 
 function addFileProgress(file) {
@@ -219,7 +228,24 @@ function sendChunkComplete(file, done) {
     xhr.onreadystatechange = function() {
         if (this.readyState == 4) {
             if (this.status == 200) {
-                let fileId = addRow(xhr.response);
+                done();
+            	let progressText = document.getElementById(`us-progress-info-${file.upload.uuid}`);
+            	if (progressText != null)
+    			progressText.innerText = "Complete";
+        } else {
+                file.accepted = false;
+                let errorMessage = getErrorMessage(xhr.responseText)
+                dropzoneObject._errorProcessing([file], errorMessage);
+                showError(file, errorMessage);
+            }
+            } 
+    };
+    xhr.send(urlencodeFormData(formData));
+}
+
+
+/**
+  let fileId = addRow(xhr.response);
                 if (file.isEndToEndEncrypted === true) {
                     try {
                         let result = GokapiE2EAddFile(file.upload.uuid, fileId, file.name);
@@ -246,10 +272,8 @@ function sendChunkComplete(file, done) {
                 dropzoneObject._errorProcessing([file], errorMessage);
                 showError(file, errorMessage);
             }
-        }
-    };
-    xhr.send(urlencodeFormData(formData));
-}
+
+*/
 
 function getErrorMessage(response) {
     let result;
@@ -602,7 +626,7 @@ function parseSseData(data) {
             setNewDownloadCount(eventData.file_id, eventData.download_count, eventData.downloads_remaining);
             return;
         case "uploadStatus":
-            setProgressStatus(eventData.chunk_id, eventData.upload_status);
+            parseProgressStatus(eventData);
             return;
         default:
             console.error("Unknown event", eventData);

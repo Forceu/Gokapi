@@ -9,6 +9,7 @@ import (
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
 	"github.com/forceu/gokapi/internal/webserver/fileupload"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -289,10 +290,17 @@ func chunkComplete(w http.ResponseWriter, request apiRequest) {
 		return
 	}
 	request.request.Form.Set("chunkid", request.request.Form.Get("uuid"))
-	err = fileupload.CompleteChunk(w, request.request)
+	chunkId, header, config, err := fileupload.ParseFileHeader(request.request)
 	if err != nil {
 		sendError(w, http.StatusBadRequest, err.Error())
+		return
 	}
+	file, err := fileupload.CompleteChunk(chunkId, header, config)
+	if err != nil {
+		sendError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	_, _ = io.WriteString(w, file.ToJsonResult(config.ExternalUrl, configuration.Get().IncludeFilename))
 }
 
 func list(w http.ResponseWriter) {

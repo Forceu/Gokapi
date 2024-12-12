@@ -12,6 +12,7 @@ type schemaUploadStatus struct {
 	ChunkId       string
 	CurrentStatus int
 	CreationDate  int64
+	FileId        sql.NullString
 }
 
 // GetAllUploadStatus returns all UploadStatus values from the past 24 hours
@@ -22,11 +23,12 @@ func (p DatabaseProvider) GetAllUploadStatus() []models.UploadStatus {
 	defer rows.Close()
 	for rows.Next() {
 		rowResult := schemaUploadStatus{}
-		err = rows.Scan(&rowResult.ChunkId, &rowResult.CurrentStatus, &rowResult.CreationDate)
+		err = rows.Scan(&rowResult.ChunkId, &rowResult.CurrentStatus, &rowResult.CreationDate, &rowResult.FileId)
 		helper.Check(err)
 		result = append(result, models.UploadStatus{
 			ChunkId:       rowResult.ChunkId,
 			CurrentStatus: rowResult.CurrentStatus,
+			FileId:        rowResult.FileId.String,
 		})
 	}
 	return result
@@ -41,7 +43,7 @@ func (p DatabaseProvider) GetUploadStatus(id string) (models.UploadStatus, bool)
 
 	var rowResult schemaUploadStatus
 	row := p.sqliteDb.QueryRow("SELECT * FROM UploadStatus WHERE ChunkId = ?", id)
-	err := row.Scan(&rowResult.ChunkId, &rowResult.CurrentStatus, &rowResult.CreationDate)
+	err := row.Scan(&rowResult.ChunkId, &rowResult.CurrentStatus, &rowResult.CreationDate, &rowResult.FileId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return models.UploadStatus{}, false
@@ -50,6 +52,7 @@ func (p DatabaseProvider) GetUploadStatus(id string) (models.UploadStatus, bool)
 		return models.UploadStatus{}, false
 	}
 	result.CurrentStatus = rowResult.CurrentStatus
+	result.FileId = rowResult.FileId.String
 	return result, true
 }
 
@@ -60,14 +63,8 @@ var currentTime = func() time.Time {
 
 // SaveUploadStatus stores the upload status of a new file for 24 hours
 func (p DatabaseProvider) SaveUploadStatus(status models.UploadStatus) {
-	newData := schemaUploadStatus{
-		ChunkId:       status.ChunkId,
-		CurrentStatus: status.CurrentStatus,
-		CreationDate:  currentTime().Unix(),
-	}
-
-	_, err := p.sqliteDb.Exec("INSERT OR REPLACE INTO UploadStatus (ChunkId, CurrentStatus, CreationDate) VALUES (?, ?, ?)",
-		newData.ChunkId, newData.CurrentStatus, newData.CreationDate)
+	_, err := p.sqliteDb.Exec("INSERT OR REPLACE INTO UploadStatus (ChunkId, CurrentStatus, CreationDate, FileId) VALUES (?, ?, ?, ?)",
+		status.ChunkId, status.CurrentStatus, currentTime().Unix(), status.FileId)
 	helper.Check(err)
 }
 

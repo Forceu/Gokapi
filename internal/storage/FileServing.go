@@ -140,13 +140,16 @@ func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, uploadRequ
 		return models.File{}, err
 	}
 
-	processingstatus.Set(chunkId, processingstatus.StatusHashingOrEncrypting)
+	processingstatus.Set(chunkId, processingstatus.StatusHashingOrEncrypting, models.File{})
 	hash, err := getChunkFileHash(file, uploadRequest.IsEndToEndEncrypted)
 	if err != nil {
 		return models.File{}, err
 	}
 	metaData := createNewMetaData(hash, fileHeader, uploadRequest)
-
+	// select {
+	// case <-time.After(time.Second * 125):
+	//
+	// }
 	fileExists := FileExists(metaData, configuration.Get().DataDir)
 	if fileExists {
 		fileExists = copyEncryptionInfo(&metaData)
@@ -174,13 +177,14 @@ func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, uploadRequ
 			}
 			fileToMove = tempFile
 		}
-		processingstatus.Set(chunkId, processingstatus.StatusUploading)
+		processingstatus.Set(chunkId, processingstatus.StatusUploading, models.File{})
 		err = filesystem.ActiveStorageSystem.MoveToFilesystem(fileToMove, metaData)
 		if err != nil {
 			return models.File{}, err
 		}
 	}
 	database.SaveMetaData(metaData)
+	processingstatus.Set(chunkId, processingstatus.StatusFinished, metaData)
 	return metaData, nil
 }
 

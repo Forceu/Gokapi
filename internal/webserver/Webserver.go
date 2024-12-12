@@ -660,8 +660,18 @@ func uploadChunk(w http.ResponseWriter, r *http.Request) {
 // If the user is authenticated, this parses the uploaded chunk and stores it
 func uploadComplete(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	err := fileupload.CompleteChunk(w, r)
-	responseError(w, err)
+	chunkId, header, config, err := fileupload.ParseFileHeader(r)
+	if err != nil {
+		responseError(w, err)
+		return
+	}
+	go func() {
+		file, err := fileupload.CompleteChunk(chunkId, header, config)
+		fmt.Println(file)
+		fmt.Println(err)
+		// TODO
+	}()
+	_, _ = io.WriteString(w, "{\"result\":\"OK\"}")
 }
 
 // Outputs an error in json format if err!=nil
