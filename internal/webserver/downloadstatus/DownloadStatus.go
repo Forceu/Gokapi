@@ -3,29 +3,35 @@ package downloadstatus
 import (
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
+	"sync"
 	"time"
 )
 
-var status = make(map[string]models.DownloadStatus)
+var statusMap = make(map[string]models.DownloadStatus)
+var statusMutex sync.RWMutex
 
 // SetDownload creates a new DownloadStatus struct and returns its Id
 func SetDownload(file models.File) string {
 	newStatus := newDownloadStatus(file)
-	status[newStatus.Id] = newStatus
+	statusMutex.Lock()
+	statusMap[newStatus.Id] = newStatus
+	statusMutex.Unlock()
 	return newStatus.Id
 }
 
 // SetComplete removes the download object
-func SetComplete(id string) {
-	delete(status, id)
+func SetComplete(downloadStatusId string) {
+	statusMutex.Lock()
+	delete(statusMap, downloadStatusId)
+	statusMutex.Unlock()
 }
 
 // Clean removes all expires status objects
 func Clean() {
 	now := time.Now().Unix()
-	for _, item := range status {
+	for _, item := range statusMap {
 		if item.ExpireAt < now {
-			delete(status, item.Id)
+			SetComplete(item.Id)
 		}
 	}
 }
@@ -42,22 +48,33 @@ func newDownloadStatus(file models.File) models.DownloadStatus {
 
 // IsCurrentlyDownloading returns true if file is currently being downloaded
 func IsCurrentlyDownloading(file models.File) bool {
-	for _, statusField := range status {
-		if statusField.FileId == file.Id {
-			if statusField.ExpireAt > time.Now().Unix() {
-				return true
+	isDownloading := false
+	statusMutex.RLock()
+	for _, status := range statusMap {
+		if status.FileId == file.Id {
+			if status.ExpireAt > time.Now().Unix() {
+				isDownloading = true
+				break
 			}
 		}
 	}
-	return false
+	statusMutex.RUnlock()
+	return isDownloading
 }
 
-// GetAll returns all download states
-func GetAll() map[string]models.DownloadStatus {
-	return status
+func SetAllComplete(fileId string) {
+	statusMutex.Lock()
+	for _, status := range statusMap {
+		if status.FileId == fileId {
+			delete(statusMap, status.Id)
+		}
+	}
+	statusMutex.Unlock()
 }
 
 // DeleteAll removes all download status
 func DeleteAll() {
-	status = make(map[string]models.DownloadStatus)
+	statusMutex.Lock()
+	statusMap = make(map[string]models.DownloadStatus)
+	statusMutex.Unlock()
 }

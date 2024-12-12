@@ -716,11 +716,7 @@ func DeleteFile(keyId string, deleteSource bool) bool {
 	item.ExpireAt = 0
 	item.UnlimitedTime = false
 	database.SaveMetaData(item)
-	for _, status := range downloadstatus.GetAll() {
-		if status.FileId == item.Id {
-			downloadstatus.SetComplete(status.Id)
-		}
-	}
+	downloadstatus.SetAllComplete(item.Id)
 	if deleteSource {
 		go CleanUp(false)
 	}
