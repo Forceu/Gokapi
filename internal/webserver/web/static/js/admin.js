@@ -80,33 +80,6 @@ function updateProgressbar(file, progress, bytesSent) {
         document.getElementById(`us-progress-info-${chunkId}`).innerText = rounded + "% - " + uploadSpeed + "MB/s";
 }
 
-function parseProgressStatus(eventData) {
-    let container = document.getElementById(`us-container-${eventData.chunk_id}`);
-    if (container == null) {
-        return;
-    }
-    container.setAttribute('data-complete', 'true');
-    let text;
-    switch (eventData.upload_status) {
-        case 0:
-            text = "Processing file...";
-            break;
-        case 1:
-            text = "Uploading file...";
-            break;
-        case 2:
-            text = "Complete";
-            break;
-        case 3:
-            text = "Error";
-            break;
-       default:
-            text = "Unknown status";
-            break;
-    }
-    document.getElementById(`us-progress-info-${eventData.chunk_id}`).innerText = text;
-}
-
 function addFileProgress(file) {
     addFileStatus(file.upload.uuid, file.upload.filename);
 }
@@ -233,22 +206,70 @@ function sendChunkComplete(file, done) {
             	if (progressText != null)
     			progressText.innerText = "Complete";
         } else {
-                file.accepted = false;
-                let errorMessage = getErrorMessage(xhr.responseText)
-                dropzoneObject._errorProcessing([file], errorMessage);
-                showError(file, errorMessage);
+                dropzoneUploadError(file, getErrorMessage(xhr.responseText));
             }
             } 
     };
     xhr.send(urlencodeFormData(formData));
 }
 
+function dropzoneUploadError(file, errormessage) {
+	file.accepted = false;
+        dropzoneObject._errorProcessing([file], errormessage);
+        showError(file, errormessage);
+}
 
-/**
-  let fileId = addRow(xhr.response);
-                if (file.isEndToEndEncrypted === true) {
+function getErrorMessage(response) {
+    let result;
+    try {
+        result = JSON.parse(response);
+    } catch (e) {
+        return "Unknown error: Server could not process file";
+    }
+    return "Error: " + result.ErrorMessage;
+}
+
+function dropzoneGetFile(uid) {
+    for (let i = 0; i < dropzoneObject.files.length; i++) {
+        const currentFile = dropzoneObject.files[i];
+        if (currentFile.upload.uuid === uid) {
+            return currentFile; 
+        }
+    }
+    return null;
+}
+
+function requestFileInfo(fileId, uid) {
+
+//TODO add to API documentation	
+    let apiUrl = './api/files/list/'+fileId;
+    const requestOptions = {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'apikey': systemKey,
+
+        },
+    };
+
+    // Send the request
+    fetch(apiUrl, requestOptions)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Request failed with status: ${response.status}`);
+            }
+            return response.json();
+            
+        })
+        .then(data => {
+            addRow(data);
+             let file = dropzoneGetFile(uid);
+            if (file == null) {
+            	return;
+            }
+            if (file.isEndToEndEncrypted === true) {
                     try {
-                        let result = GokapiE2EAddFile(file.upload.uuid, fileId, file.name);
+                        let result = GokapiE2EAddFile(uid, fileId, file.name);
                         if (result instanceof Error) {
                             throw result;
                         }
@@ -264,25 +285,49 @@ function sendChunkComplete(file, done) {
                     }
                     GokapiE2EDecryptMenu();
                 }
-                removeFileStatus(file.upload.uuid);
-                done();
-            } else {
-                file.accepted = false;
-                let errorMessage = getErrorMessage(xhr.responseText)
-                dropzoneObject._errorProcessing([file], errorMessage);
-                showError(file, errorMessage);
+                removeFileStatus(uid);
+        })
+        .catch(error => {
+        let file = dropzoneGetFile(uid);
+            if (file != null) {
+            	dropzoneUploadError(file, "Server Error"); //TODO
             }
+            console.error('Error:', error);
+        });
+}
 
-*/
 
-function getErrorMessage(response) {
-    let result;
-    try {
-        result = JSON.parse(response);
-    } catch (e) {
-        return "Unknown error: Server could not process file";
+
+function parseProgressStatus(eventData) {
+    let container = document.getElementById(`us-container-${eventData.chunk_id}`);
+    if (container == null) {
+        return;
     }
-    return "Error: " + result.ErrorMessage;
+    container.setAttribute('data-complete', 'true');
+    let text;
+    switch (eventData.upload_status) {
+        case 0:
+            text = "Processing file...";
+            break;
+        case 1:
+            text = "Uploading file...";
+            break;
+        case 2:
+            text = "Complete";
+            requestFileInfo(eventData.file_id, eventData.chunk_id);
+            break;
+        case 3:
+            text = "Error";
+            let file = dropzoneGetFile(eventData.chunk_id);
+            if (file != null) {
+            	dropzoneUploadError(file, "Server Error"); //TODO
+            }
+            return;
+       default:
+            text = "Unknown status";
+            break;
+    }
+    document.getElementById(`us-progress-info-${eventData.chunk_id}`).innerText = text;
 }
 
 function showError(file, message) {
@@ -600,19 +645,6 @@ function checkBoxChanged(checkBox, correspondingInput) {
     }
 }
 
-function parseRowData(data) {
-    if (!data) return {
-        "Result": "error"
-    };
-    if (typeof data === 'object') return data;
-    if (typeof data === 'string') return JSON.parse(data);
-
-    return {
-        "Result": "error"
-    };
-}
-
-
 function parseSseData(data) {
     let eventData;
     try {
@@ -733,14 +765,7 @@ function removeFileStatus(chunkId) {
 }
 
 
-function addRow(jsonText) {
-    let jsonObject = parseRowData(jsonText);
-    if (jsonObject.Result !== "OK") {
-        alert("Failed to upload file!");
-        location.reload();
-        return;
-    }
-    let item = jsonObject.FileInfo;
+function addRow(item) {
     let table = document.getElementById("downloadtable");
     let row = table.insertRow(0);
     row.id = "row-" + item.Id;
@@ -795,7 +820,7 @@ function addRow(jsonText) {
     cellDownloadCount.style.backgroundColor = "green";
     cellUrl.classList.add('newItem');
     cellButtons.classList.add('newItem');
-    cellFileSize.setAttribute('data-order', jsonObject.FileInfo.SizeBytes);
+    cellFileSize.setAttribute('data-order', item.SizeBytes);
     let datatable = $('#maintable').DataTable();
 
     if (rowCount == -1) {

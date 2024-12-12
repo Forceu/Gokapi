@@ -43,6 +43,7 @@ type eventFileDownload struct {
 type eventUploadStatus struct {
 	Event        string `json:"event"`
 	ChunkId      string `json:"chunk_id"`
+	FileId       string `json:"file_id"`
 	UploadStatus int    `json:"upload_status"`
 }
 
@@ -56,6 +57,7 @@ func PublishNewStatus(uploadStatus models.UploadStatus) {
 		Event:        "uploadStatus",
 		ChunkId:      uploadStatus.ChunkId,
 		UploadStatus: uploadStatus.CurrentStatus,
+		FileId:       uploadStatus.FileId,
 	}
 	publishMessage(event)
 }

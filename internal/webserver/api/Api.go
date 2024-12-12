@@ -24,13 +24,18 @@ func Process(w http.ResponseWriter, r *http.Request, maxMemory int) {
 	if !isAuthorisedForApi(w, request) {
 		return
 	}
+	if strings.HasPrefix(request.requestUrl, "/files/list/") {
+		id := strings.TrimPrefix(request.requestUrl, "/files/list/")
+		listSingle(w, id)
+		return
+	}
 	switch request.requestUrl {
+	case "/files/list":
+		list(w)
 	case "/chunk/add":
 		chunkAdd(w, request)
 	case "/chunk/complete":
 		chunkComplete(w, request)
-	case "/files/list":
-		list(w)
 	case "/files/add":
 		upload(w, request, maxMemory)
 	case "/files/delete":
@@ -102,6 +107,9 @@ func editFile(w http.ResponseWriter, request apiRequest) {
 }
 
 func getApiPermissionRequired(requestUrl string) (uint8, bool) {
+	if strings.HasPrefix(requestUrl, "/files/list/") {
+		return models.ApiPermView, true
+	}
 	switch requestUrl {
 	case "/chunk/add":
 		return models.ApiPermUpload, true
@@ -315,6 +323,21 @@ func list(w http.ResponseWriter) {
 		}
 	}
 	result, err := json.Marshal(validFiles)
+	helper.Check(err)
+	_, _ = w.Write(result)
+}
+
+func listSingle(w http.ResponseWriter, id string) {
+	timeNow := time.Now().Unix()
+	config := configuration.Get()
+	file, ok := database.GetMetaDataById(id)
+	if !ok || storage.IsExpiredFile(file, timeNow) {
+		sendError(w, http.StatusNotFound, "Could not find file with id "+id)
+		return
+	}
+	output, err := file.ToFileApiOutput(config.ServerUrl, config.IncludeFilename)
+	helper.Check(err)
+	result, err := json.Marshal(output)
 	helper.Check(err)
 	_, _ = w.Write(result)
 }
