@@ -50,6 +50,7 @@ type eventData interface {
 	eventUploadStatus | eventFileDownload
 }
 
+// PublishNewStatus sends a new upload status to all listeners
 func PublishNewStatus(uploadStatus models.UploadStatus) {
 	event := eventUploadStatus{
 		Event:        "uploadStatus",
@@ -70,6 +71,7 @@ func publishMessage[d eventData](data d) {
 	mutex.RUnlock()
 }
 
+// PublishDownloadCount sends a new download count to all listeners
 func PublishDownloadCount(file models.File) {
 	event := eventFileDownload{
 		Event:              "download",
@@ -83,6 +85,7 @@ func PublishDownloadCount(file models.File) {
 	publishMessage(event)
 }
 
+// Shutdown stops the SSE and closes the connection to all listeners
 func Shutdown() {
 	mutex.RLock()
 	for _, channel := range listeners {
@@ -91,6 +94,7 @@ func Shutdown() {
 	mutex.RUnlock()
 }
 
+// GetStatusSSE sends all existing upload status and new updates to a new listener
 func GetStatusSSE(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Expose-Headers", "Content-Type")
 	w.Header().Set("Content-Type", "text/event-stream")

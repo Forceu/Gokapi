@@ -35,12 +35,12 @@ type ApiKey struct {
 	IsSystemKey  bool   `json:"IsSystemKey" redis:"IsSystemKey"`
 }
 
+// GetReadableDate returns the date as YYYY-MM-DD HH:MM:SS
 func (key *ApiKey) GetReadableDate() string {
 	if key.LastUsed == 0 {
 		return "Never"
-	} else {
-		return time.Unix(key.LastUsed, 0).Format("2006-01-02 15:04:05")
 	}
+	return time.Unix(key.LastUsed, 0).Format("2006-01-02 15:04:05")
 }
 
 // SetPermission grants one or more permissions

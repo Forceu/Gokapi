@@ -17,6 +17,7 @@ type DatabaseProvider struct {
 	sqliteDb *sql.DB
 }
 
+// DatabaseSchemeVersion contains the version number to be expected from the current database. If lower, an upgrade will be performed
 const DatabaseSchemeVersion = 5
 
 // New returns an instance

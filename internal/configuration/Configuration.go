@@ -217,6 +217,7 @@ func HashPasswordCustomSalt(password, salt string) string {
 	return hex.EncodeToString(hash.Sum(nil))
 }
 
+// End2EndReconfigParameters contains values on how to reset E2E, if requested
 type End2EndReconfigParameters struct {
 	DeleteEnd2EndEncryption bool
 	DeleteEncryptedStorage  bool

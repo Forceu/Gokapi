@@ -1,8 +1,6 @@
 package models
 
 import (
-	"bytes"
-	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"github.com/jinzhu/copier"
@@ -28,34 +26,6 @@ type File struct {
 	UnlimitedDownloads      bool           `json:"UnlimitedDownloads" redis:"UnlimitedDownloads"` // True if the uploader did not limit the downloads
 	UnlimitedTime           bool           `json:"UnlimitedTime" redis:"UnlimitedTime"`           // True if the uploader did not limit the time
 	InternalRedisEncryption []byte         `redis:"EncryptionRedis"`                              // This field is an internal field, used to store the EncryptionInfo in a Redis Hashmap
-}
-
-func (f *File) FileToRedis() error {
-	var encInfo bytes.Buffer
-	enc := gob.NewEncoder(&encInfo)
-	err := enc.Encode(f.Encryption)
-	if err != nil {
-		return err
-	}
-	f.InternalRedisEncryption = encInfo.Bytes()
-	return nil
-}
-
-func (f *File) RedisToFile() error {
-	if f.InternalRedisEncryption == nil {
-		f.Encryption = EncryptionInfo{}
-		return nil
-	}
-	var result EncryptionInfo
-	buf := bytes.NewBuffer(f.InternalRedisEncryption)
-	dec := gob.NewDecoder(buf)
-	err := dec.Decode(&result)
-	if err != nil {
-		return err
-	}
-	f.Encryption = result
-	f.InternalRedisEncryption = nil
-	return nil
 }
 
 // FileApiOutput will be displayed for public outputs from the ID, hiding sensitive information

@@ -19,6 +19,7 @@ type DatabaseProvider struct {
 	dbPrefix string
 }
 
+// DatabaseSchemeVersion contains the version number to be expected from the current database. If lower, an upgrade will be performed
 const DatabaseSchemeVersion = 3
 
 // New returns an instance

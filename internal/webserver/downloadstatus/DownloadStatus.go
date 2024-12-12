@@ -62,6 +62,7 @@ func IsCurrentlyDownloading(file models.File) bool {
 	return isDownloading
 }
 
+// SetAllComplete removes all download status associated with this file
 func SetAllComplete(fileId string) {
 	statusMutex.Lock()
 	for _, status := range statusMap {

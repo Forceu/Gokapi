@@ -1,6 +1,8 @@
 package redis
 
 import (
+	"bytes"
+	"encoding/gob"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	redigo "github.com/gomodule/redigo/redis"
@@ -16,22 +18,49 @@ func (p DatabaseProvider) GetAllMetadata() map[string]models.File {
 	result := make(map[string]models.File)
 	maps := p.getAllHashesWithPrefix(prefixMetaData)
 	for k, v := range maps {
-		file, err := newDbToMetadata(k, v)
+		file, err := dbToMetadata(k, v)
 		helper.Check(err)
 		result[file.Id] = file
 	}
 	return result
 }
 
-func newDbToMetadata(id string, input []any) (models.File, error) {
+func dbToMetadata(id string, input []any) (models.File, error) {
 	var result models.File
 	err := redigo.ScanStruct(input, &result)
 	if err != nil {
 		return models.File{}, err
 	}
 	result.Id = strings.Replace(id, prefixMetaData, "", 1)
-	err = result.RedisToFile()
-	return result, err
+	return unmarshalEncryptionInfo(result)
+}
+
+func marshalEncryptionInfo(f models.File) (models.File, error) {
+	var encInfo bytes.Buffer
+	enc := gob.NewEncoder(&encInfo)
+	err := enc.Encode(f.Encryption)
+	if err != nil {
+		return f, err
+	}
+	f.InternalRedisEncryption = encInfo.Bytes()
+	return f, nil
+}
+
+func unmarshalEncryptionInfo(f models.File) (models.File, error) {
+	if f.InternalRedisEncryption == nil {
+		f.Encryption = models.EncryptionInfo{}
+		return f, nil
+	}
+	var result models.EncryptionInfo
+	buf := bytes.NewBuffer(f.InternalRedisEncryption)
+	dec := gob.NewDecoder(buf)
+	err := dec.Decode(&result)
+	if err != nil {
+		return f, err
+	}
+	f.Encryption = result
+	f.InternalRedisEncryption = nil
+	return f, nil
 }
 
 // GetAllMetaDataIds returns all Ids that contain metadata
@@ -49,16 +78,16 @@ func (p DatabaseProvider) GetMetaDataById(id string) (models.File, bool) {
 	if !ok {
 		return models.File{}, false
 	}
-	file, err := newDbToMetadata(id, result)
+	file, err := dbToMetadata(id, result)
 	helper.Check(err)
 	return file, true
 }
 
 // SaveMetaData stores the metadata of a file to the disk
 func (p DatabaseProvider) SaveMetaData(file models.File) {
-	err := file.FileToRedis()
+	marshalledFile, err := marshalEncryptionInfo(file)
 	helper.Check(err)
-	p.setHashMap(p.buildArgs(prefixMetaData + file.Id).AddFlat(file))
+	p.setHashMap(p.buildArgs(prefixMetaData + file.Id).AddFlat(marshalledFile))
 }
 
 // DeleteMetaData deletes information about a file
