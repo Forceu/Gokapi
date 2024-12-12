@@ -613,6 +613,8 @@ function setNewDownloadCount(id, downloadCount) {
     let downloadCell = document.getElementById("cell-downloads-" + id);
     if (downloadCell != null) {
         downloadCell.innerHTML = downloadCount;
+        downloadCell.classList.add("updatedDownloadCount");
+        setTimeout(() => downloadCell.classList.remove("updatedDownloadCount"), 500);
     }
 }
 
@@ -751,14 +753,15 @@ function addRow(jsonText) {
 
     cellButtons.innerHTML = buttons;
 
-    cellFilename.style.backgroundColor = "green"
-    cellFileSize.style.backgroundColor = "green"
+    cellFilename.classList.add('newItem');
+    cellFileSize.classList.add('newItem');
+    cellRemainingDownloads.classList.add('newItem');
+    cellStoredUntil.classList.add('newItem');
+    cellDownloadCount.classList.add('newItem');
+    cellDownloadCount.style.backgroundColor = "green";
+    cellUrl.classList.add('newItem');
+    cellButtons.classList.add('newItem');
     cellFileSize.setAttribute('data-order', jsonObject.FileInfo.SizeBytes);
-    cellRemainingDownloads.style.backgroundColor = "green"
-    cellStoredUntil.style.backgroundColor = "green"
-    cellDownloadCount.style.backgroundColor = "green"
-    cellUrl.style.backgroundColor = "green"
-    cellButtons.style.backgroundColor = "green"
     let datatable = $('#maintable').DataTable();
 
     if (rowCount == -1) {

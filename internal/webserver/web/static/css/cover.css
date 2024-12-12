@@ -196,3 +196,38 @@ a:hover {
     background-color: #212529;
     color: #ddd;
 }
+
+td.newItem {
+    background-color: green;
+}
+
+/* Define a subtle animation */
+@keyframes subtleHighlight {
+  0% {
+    background-color: #444950; /* Light gray for dark background */
+  }
+  100% {
+    background-color: transparent; /* Original background */
+  }
+}
+
+@keyframes subtleHighlightNewItem {
+  0% {
+    background-color: #a8e6a3;  /* Pale green for new items */
+  }
+  100% {
+    background-color: green;
+  }
+}
+
+/* Apply the animation to the updated table cells */
+.updatedDownloadCount {
+  animation: subtleHighlight 0.5s ease-out;
+}
+
+/* Apply a different animation for cells with both 'updated' and 'newItem' classes */
+.updatedDownloadCount.newItem {
+  animation: subtleHighlightNewItem 0.5s ease-out;
+}
+
+
