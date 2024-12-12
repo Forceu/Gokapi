@@ -1,8 +1,6 @@
 package redis
 
 import (
-	"bytes"
-	"encoding/gob"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	redigo "github.com/gomodule/redigo/redis"
@@ -13,26 +11,27 @@ const (
 	prefixMetaData = "fmeta:"
 )
 
-func dbToMetaData(input []byte) models.File {
-	var result models.File
-	buf := bytes.NewBuffer(input)
-	dec := gob.NewDecoder(buf)
-	err := dec.Decode(&result)
-	helper.Check(err)
-	return result
-}
-
 // GetAllMetadata returns a map of all available files
 func (p DatabaseProvider) GetAllMetadata() map[string]models.File {
 	result := make(map[string]models.File)
-	allMetaData := p.getAllValuesWithPrefix(prefixMetaData)
-	for _, metaData := range allMetaData {
-		content, err := redigo.Bytes(metaData, nil)
+	maps := p.getAllHashesWithPrefix(prefixMetaData)
+	for k, v := range maps {
+		file, err := newDbToMetadata(k, v)
 		helper.Check(err)
-		file := dbToMetaData(content)
 		result[file.Id] = file
 	}
 	return result
+}
+
+func newDbToMetadata(id string, input []any) (models.File, error) {
+	var result models.File
+	err := redigo.ScanStruct(input, &result)
+	if err != nil {
+		return models.File{}, err
+	}
+	result.Id = strings.Replace(id, prefixMetaData, "", 1)
+	err = result.RedisToFile()
+	return result, err
 }
 
 // GetAllMetaDataIds returns all Ids that contain metadata
@@ -46,20 +45,20 @@ func (p DatabaseProvider) GetAllMetaDataIds() []string {
 
 // GetMetaDataById returns a models.File from the ID passed or false if the id is not valid
 func (p DatabaseProvider) GetMetaDataById(id string) (models.File, bool) {
-	input, ok := p.getKeyBytes(prefixMetaData + id)
+	result, ok := p.getHashMap(prefixMetaData + id)
 	if !ok {
 		return models.File{}, false
 	}
-	return dbToMetaData(input), true
+	file, err := newDbToMetadata(id, result)
+	helper.Check(err)
+	return file, true
 }
 
 // SaveMetaData stores the metadata of a file to the disk
 func (p DatabaseProvider) SaveMetaData(file models.File) {
-	var buf bytes.Buffer
-	enc := gob.NewEncoder(&buf)
-	err := enc.Encode(file)
+	err := file.FileToRedis()
 	helper.Check(err)
-	p.setKey(prefixMetaData+file.Id, buf.Bytes())
+	p.setHashMap(p.buildArgs(prefixMetaData + file.Id).AddFlat(file))
 }
 
 // DeleteMetaData deletes information about a file
@@ -70,7 +69,7 @@ func (p DatabaseProvider) DeleteMetaData(id string) {
 // IncreaseDownloadCount increases the download count of a file, preventing race conditions
 func (p DatabaseProvider) IncreaseDownloadCount(id string, decreaseRemainingDownloads bool) {
 	if decreaseRemainingDownloads {
-	} else {
+		p.decreaseHashmapIntField(prefixMetaData+id, "DownloadsRemaining")
 	}
-	// TODO
+	p.increaseHashmapIntField(prefixMetaData+id, "DownloadCount")
 }

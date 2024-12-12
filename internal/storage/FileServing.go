@@ -523,7 +523,7 @@ func GetFileByHotlink(id string) (models.File, bool) {
 func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDownload bool) {
 	file.DownloadsRemaining = file.DownloadsRemaining - 1
 	file.DownloadCount = file.DownloadCount + 1
-	database.SaveMetaData(file)
+	database.IncreaseDownloadCount(file.Id, !file.UnlimitedDownloads)
 	logging.AddDownload(&file, r, configuration.Get().SaveIp)
 	go sse.PublishDownloadCount(file)
 

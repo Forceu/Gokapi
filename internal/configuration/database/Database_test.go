@@ -158,6 +158,24 @@ func TestMetaData(t *testing.T) {
 	runAllTypesCompareOutput(t, func() any { return GetAllMetaDataIds() }, []string{})
 	runAllTypesCompareOutput(t, func() any { return GetAllMetadata() }, map[string]models.File{})
 	runAllTypesCompareTwoOutputs(t, func() (any, any) { return GetMetaDataById("testid") }, models.File{}, false)
+
+	increasedDownload := file
+	increasedDownload.DownloadCount = increasedDownload.DownloadCount + 1
+
+	runAllTypesCompareTwoOutputs(t, func() (any, any) {
+		SaveMetaData(file)
+		IncreaseDownloadCount(file.Id, false)
+		return GetMetaDataById(file.Id)
+	}, increasedDownload, true)
+
+	increasedDownload.DownloadCount = increasedDownload.DownloadCount + 1
+	increasedDownload.DownloadsRemaining = increasedDownload.DownloadsRemaining - 1
+
+	runAllTypesCompareTwoOutputs(t, func() (any, any) {
+		IncreaseDownloadCount(file.Id, true)
+		return GetMetaDataById(file.Id)
+	}, increasedDownload, true)
+	runAllTypesNoOutput(t, func() { DeleteMetaData(file.Id) })
 }
 
 func TestUpgrade(t *testing.T) {

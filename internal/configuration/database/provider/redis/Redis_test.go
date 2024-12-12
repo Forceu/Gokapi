@@ -241,6 +241,49 @@ func TestApiKeys(t *testing.T) {
 	test.IsEqualBool(t, key.LastUsed == 10, true)
 }
 
+func TestDatabaseProvider_IncreaseDownloadCount(t *testing.T) {
+	newFile := models.File{
+		Id:                 "newFileId",
+		Name:               "newFileName",
+		Size:               "3GB",
+		SHA1:               "newSHA1",
+		PasswordHash:       "newPassword",
+		HotlinkId:          "newHotlink",
+		ContentType:        "newContent",
+		AwsBucket:          "newAws",
+		ExpireAt:           123456,
+		SizeBytes:          456789,
+		DownloadsRemaining: 11,
+		DownloadCount:      2,
+		Encryption: models.EncryptionInfo{
+			IsEncrypted:         true,
+			IsEndToEndEncrypted: true,
+			DecryptionKey:       []byte("newDecryptionKey"),
+			Nonce:               []byte("newDecryptionNonce"),
+		},
+		UnlimitedDownloads: true,
+		UnlimitedTime:      true,
+	}
+	dbInstance.SaveMetaData(newFile)
+	dbInstance.IncreaseDownloadCount(newFile.Id, false)
+	retrievedFile, ok := dbInstance.GetMetaDataById(newFile.Id)
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualInt(t, retrievedFile.DownloadCount, 3)
+	test.IsEqualInt(t, retrievedFile.DownloadsRemaining, 11)
+	newFile.DownloadCount = 3
+	test.IsEqual(t, retrievedFile, newFile)
+
+	dbInstance.IncreaseDownloadCount(newFile.Id, true)
+	retrievedFile, ok = dbInstance.GetMetaDataById(newFile.Id)
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualInt(t, retrievedFile.DownloadCount, 4)
+	test.IsEqualInt(t, retrievedFile.DownloadsRemaining, 10)
+	newFile.DownloadCount = 4
+	newFile.DownloadsRemaining = 10
+	test.IsEqual(t, retrievedFile, newFile)
+	dbInstance.DeleteMetaData(newFile.Id)
+}
+
 func TestE2EConfig(t *testing.T) {
 	e2econfig := models.E2EInfoEncrypted{
 		Version:        1,
