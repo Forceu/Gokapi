@@ -35,9 +35,10 @@ func removeListener(id string) {
 }
 
 type eventFileDownload struct {
-	Event         string `json:"event"`
-	FileId        string `json:"file_id"`
-	DownloadCount int    `json:"download_count"`
+	Event              string `json:"event"`
+	FileId             string `json:"file_id"`
+	DownloadCount      int    `json:"download_count"`
+	DownloadsRemaining int    `json:"downloads_remaining"`
 }
 type eventUploadStatus struct {
 	Event        string `json:"event"`
@@ -71,9 +72,13 @@ func publishMessage[d eventData](data d) {
 
 func PublishDownloadCount(file models.File) {
 	event := eventFileDownload{
-		Event:         "download",
-		FileId:        file.Id,
-		DownloadCount: file.DownloadCount,
+		Event:              "download",
+		FileId:             file.Id,
+		DownloadCount:      file.DownloadCount,
+		DownloadsRemaining: file.DownloadsRemaining,
+	}
+	if file.UnlimitedDownloads {
+		event.DownloadsRemaining = -1
 	}
 	publishMessage(event)
 }

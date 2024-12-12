@@ -70,7 +70,7 @@
 			{{ if .UnlimitedDownloads }}
 						<td>Unlimited</td>
 			{{ else }}
-						<td>{{ .DownloadsRemaining }}</td>
+						<td id="cell-downloadsRemaining-{{ .Id }}">{{ .DownloadsRemaining }}</td>
 			{{ end }}
 			{{ if .UnlimitedTime }}
 						<td>Unlimited</td>

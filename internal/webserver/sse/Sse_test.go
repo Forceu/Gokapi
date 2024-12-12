@@ -54,11 +54,22 @@ func TestPublishNewStatus(t *testing.T) {
 	test.IsEqualString(t, receivedStatus, "event: message\ndata: {\"event\":\"uploadStatus\",\"chunk_id\":\"testChunkId\",\"upload_status\":4}\n\n")
 
 	go PublishDownloadCount(models.File{
-		Id:            "testFileId",
-		DownloadCount: 3,
+		Id:                 "testFileId",
+		DownloadCount:      3,
+		DownloadsRemaining: 1,
+		UnlimitedDownloads: false,
 	})
 	receivedStatus = <-replyChannel
-	test.IsEqualString(t, receivedStatus, "event: message\ndata: {\"event\":\"download\",\"file_id\":\"testFileId\",\"download_count\":3}\n\n")
+	test.IsEqualString(t, receivedStatus, "event: message\ndata: {\"event\":\"download\",\"file_id\":\"testFileId\",\"download_count\":3,\"downloads_remaining\":1}\n\n")
+
+	go PublishDownloadCount(models.File{
+		Id:                 "testFileId",
+		DownloadCount:      3,
+		DownloadsRemaining: 2,
+		UnlimitedDownloads: true,
+	})
+	receivedStatus = <-replyChannel
+	test.IsEqualString(t, receivedStatus, "event: message\ndata: {\"event\":\"download\",\"file_id\":\"testFileId\",\"download_count\":3,\"downloads_remaining\":-1}\n\n")
 	removeListener("test_id")
 }
 

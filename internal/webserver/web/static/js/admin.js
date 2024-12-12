@@ -599,7 +599,7 @@ function parseSseData(data) {
     }
     switch (eventData.event) {
         case "download":
-            setNewDownloadCount(eventData.file_id, eventData.download_count);
+            setNewDownloadCount(eventData.file_id, eventData.download_count, eventData.downloads_remaining);
             return;
         case "uploadStatus":
             setProgressStatus(eventData.chunk_id, eventData.upload_status);
@@ -609,12 +609,20 @@ function parseSseData(data) {
     }
 }
 
-function setNewDownloadCount(id, downloadCount) {
+function setNewDownloadCount(id, downloadCount, downloadsRemaining) {
     let downloadCell = document.getElementById("cell-downloads-" + id);
     if (downloadCell != null) {
         downloadCell.innerHTML = downloadCount;
         downloadCell.classList.add("updatedDownloadCount");
         setTimeout(() => downloadCell.classList.remove("updatedDownloadCount"), 500);
+    }
+    if (downloadsRemaining != -1) {
+        let downloadsRemainingCell = document.getElementById("cell-downloadsRemaining-" + id);
+        if (downloadsRemainingCell != null) {
+            downloadsRemainingCell.innerHTML = downloadsRemaining;
+            downloadsRemainingCell.classList.add("updatedDownloadCount");
+            setTimeout(() => downloadsRemainingCell.classList.remove("updatedDownloadCount"), 500);
+        }
     }
 }
 
@@ -732,6 +740,7 @@ function addRow(jsonText) {
         cellRemainingDownloads.innerText = "Unlimited";
     } else {
         cellRemainingDownloads.innerText = item.DownloadsRemaining;
+        cellRemainingDownloads.id = "cell-downloadsRemaining-" + item.Id;
     }
     if (item.UnlimitedTime) {
         cellStoredUntil.innerText = "Unlimited";
@@ -756,6 +765,7 @@ function addRow(jsonText) {
     cellFilename.classList.add('newItem');
     cellFileSize.classList.add('newItem');
     cellRemainingDownloads.classList.add('newItem');
+    cellRemainingDownloads.style.backgroundColor = "green";
     cellStoredUntil.classList.add('newItem');
     cellDownloadCount.classList.add('newItem');
     cellDownloadCount.style.backgroundColor = "green";
