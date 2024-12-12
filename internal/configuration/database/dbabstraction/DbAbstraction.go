@@ -72,6 +72,8 @@ type Database interface {
 	SaveMetaData(file models.File)
 	// DeleteMetaData deletes information about a file
 	DeleteMetaData(id string)
+	// IncreaseDownloadCount increases the download count of a file, preventing race conditions
+	IncreaseDownloadCount(id string, decreaseRemainingDownloads bool)
 
 	// GetSession returns the session with the given ID or false if not a valid ID
 	GetSession(id string) (models.Session, bool)

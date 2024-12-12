@@ -1,6 +1,8 @@
 package models
 
 import (
+	"bytes"
+	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"github.com/jinzhu/copier"
@@ -9,22 +11,51 @@ import (
 
 // File is a struct used for saving information about an uploaded file
 type File struct {
-	Id                 string         `json:"Id"`                 // The internal ID of the file
-	Name               string         `json:"Name"`               // The filename. Will be 'Encrypted file' for end-to-end encrypted files
-	Size               string         `json:"Size"`               // Filesize in a human-readable format
-	SHA1               string         `json:"SHA1"`               // The hash of the file, used for deduplication
-	PasswordHash       string         `json:"PasswordHash"`       // The hash of the password (if the file is password protected)
-	HotlinkId          string         `json:"HotlinkId"`          // If file is a picture file and can be hotlinked, this is the ID for the hotlink
-	ContentType        string         `json:"ContentType"`        // The MIME type for the file
-	AwsBucket          string         `json:"AwsBucket"`          // If the file is stored in the cloud, this is the bucket that is being used
-	ExpireAtString     string         `json:"ExpireAtString"`     // Time expiry in a human-readable format in local time
-	ExpireAt           int64          `json:"ExpireAt"`           // "UTC timestamp of file expiry
-	SizeBytes          int64          `json:"SizeBytes"`          // Filesize in bytes
-	DownloadsRemaining int            `json:"DownloadsRemaining"` // The remaining downloads for this file
-	DownloadCount      int            `json:"DownloadCount"`      // The amount of times the file has been downloaded
-	Encryption         EncryptionInfo `json:"Encryption"`         // If the file is encrypted, this stores all info for decrypting
-	UnlimitedDownloads bool           `json:"UnlimitedDownloads"` // True if the uploader did not limit the downloads
-	UnlimitedTime      bool           `json:"UnlimitedTime"`      // True if the uploader did not limit the time
+	Id                      string         `json:"Id" redis:"Id"`                                 // The internal ID of the file
+	Name                    string         `json:"Name" redis:"Name"`                             // The filename. Will be 'Encrypted file' for end-to-end encrypted files
+	Size                    string         `json:"Size" redis:"Size"`                             // Filesize in a human-readable format
+	SHA1                    string         `json:"SHA1" redis:"SHA1"`                             // The hash of the file, used for deduplication
+	PasswordHash            string         `json:"PasswordHash" redis:"PasswordHash"`             // The hash of the password (if the file is password protected)
+	HotlinkId               string         `json:"HotlinkId" redis:"HotlinkId"`                   // If file is a picture file and can be hotlinked, this is the ID for the hotlink
+	ContentType             string         `json:"ContentType" redis:"ContentType"`               // The MIME type for the file
+	AwsBucket               string         `json:"AwsBucket" redis:"AwsBucket"`                   // If the file is stored in the cloud, this is the bucket that is being used
+	ExpireAtString          string         `json:"ExpireAtString" redis:"ExpireAtString"`         // Time expiry in a human-readable format in local time
+	ExpireAt                int64          `json:"ExpireAt" redis:"ExpireAt"`                     // "UTC timestamp of file expiry
+	SizeBytes               int64          `json:"SizeBytes" redis:"SizeBytes"`                   // Filesize in bytes
+	DownloadsRemaining      int            `json:"DownloadsRemaining" redis:"DownloadsRemaining"` // The remaining downloads for this file
+	DownloadCount           int            `json:"DownloadCount" redis:"DownloadCount"`           // The amount of times the file has been downloaded
+	Encryption              EncryptionInfo `json:"Encryption" redis:"-"`                          // If the file is encrypted, this stores all info for decrypting
+	UnlimitedDownloads      bool           `json:"UnlimitedDownloads" redis:"UnlimitedDownloads"` // True if the uploader did not limit the downloads
+	UnlimitedTime           bool           `json:"UnlimitedTime" redis:"UnlimitedTime"`           // True if the uploader did not limit the time
+	InternalRedisEncryption []byte         `redis:"EncryptionRedis"`                              // This field is an internal field, used to store the EncryptionInfo in a Redis Hashmap
+}
+
+func (f *File) FileToRedis() error {
+	var encInfo bytes.Buffer
+	enc := gob.NewEncoder(&encInfo)
+	err := enc.Encode(f.Encryption)
+	if err != nil {
+		return err
+	}
+	f.InternalRedisEncryption = encInfo.Bytes()
+	return nil
+}
+
+func (f *File) RedisToFile() error {
+	if f.InternalRedisEncryption == nil {
+		f.Encryption = EncryptionInfo{}
+		return nil
+	}
+	var result EncryptionInfo
+	buf := bytes.NewBuffer(f.InternalRedisEncryption)
+	dec := gob.NewDecoder(buf)
+	err := dec.Decode(&result)
+	if err != nil {
+		return err
+	}
+	f.Encryption = result
+	f.InternalRedisEncryption = nil
+	return nil
 }
 
 // FileApiOutput will be displayed for public outputs from the ID, hiding sensitive information
@@ -51,10 +82,10 @@ type FileApiOutput struct {
 
 // EncryptionInfo holds information about the encryption used on the file
 type EncryptionInfo struct {
-	IsEncrypted         bool   `json:"IsEncrypted"`
-	IsEndToEndEncrypted bool   `json:"IsEndToEndEncrypted"`
-	DecryptionKey       []byte `json:"DecryptionKey"`
-	Nonce               []byte `json:"Nonce"`
+	IsEncrypted         bool   `json:"IsEncrypted" redis:"IsEncrypted"`
+	IsEndToEndEncrypted bool   `json:"IsEndToEndEncrypted" redis:"IsEndToEndEncrypted"`
+	DecryptionKey       []byte `json:"DecryptionKey" redis:"DecryptionKey"`
+	Nonce               []byte `json:"Nonce" redis:"Nonce"`
 }
 
 // IsLocalStorage returns true if the file is not stored on a remote storage

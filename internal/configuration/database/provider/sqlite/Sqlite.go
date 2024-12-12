@@ -207,15 +207,6 @@ func (p DatabaseProvider) createNewDatabase() error {
 			"ValidUntil"	INTEGER NOT NULL,
 			PRIMARY KEY("Id")
 		) WITHOUT ROWID;
-		CREATE TABLE "UploadConfig" (
-			"id"	INTEGER NOT NULL UNIQUE,
-			"Downloads"	INTEGER,
-			"TimeExpiry"	INTEGER,
-			"Password"	TEXT,
-			"UnlimitedDownloads"	INTEGER,
-			"UnlimitedTime"	INTEGER,
-			PRIMARY KEY("id")
-		);
 		CREATE TABLE "UploadStatus" (
 			"ChunkId"	TEXT NOT NULL UNIQUE,
 			"CurrentStatus"	INTEGER NOT NULL,

@@ -200,6 +200,11 @@ func DeleteMetaData(id string) {
 	db.DeleteMetaData(id)
 }
 
+// IncreaseDownloadCount increases the download count of a file, preventing race conditions
+func IncreaseDownloadCount(id string, decreaseRemainingDownloads bool) {
+	db.IncreaseDownloadCount(id, decreaseRemainingDownloads)
+}
+
 // Session Section
 
 // GetSession returns the session with the given ID or false if not a valid ID

@@ -158,6 +158,18 @@ func (p DatabaseProvider) SaveMetaData(file models.File) {
 	helper.Check(err)
 }
 
+// IncreaseDownloadCount increases the download count of a file, preventing race conditions
+func (p DatabaseProvider) IncreaseDownloadCount(id string, decreaseRemainingDownloads bool) {
+	if decreaseRemainingDownloads {
+		_, err := p.sqliteDb.Exec(`UPDATE FileMetaData SET DownloadCount = DownloadCount + 1,
+                        DownloadsRemaining = DownloadsRemaining - 1 WHERE id = ?`, id)
+		helper.Check(err)
+	} else {
+		_, err := p.sqliteDb.Exec(`UPDATE FileMetaData SET DownloadCount = DownloadCount + 1 WHERE id = ?`, id)
+		helper.Check(err)
+	}
+}
+
 // DeleteMetaData deletes information about a file
 func (p DatabaseProvider) DeleteMetaData(id string) {
 	_, err := p.sqliteDb.Exec("DELETE FROM FileMetaData WHERE Id = ?", id)

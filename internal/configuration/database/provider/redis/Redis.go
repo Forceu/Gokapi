@@ -1,6 +1,8 @@
 package redis
 
 import (
+	"bytes"
+	"encoding/gob"
 	"errors"
 	"fmt"
 	"github.com/forceu/gokapi/internal/helper"
@@ -17,7 +19,7 @@ type DatabaseProvider struct {
 	dbPrefix string
 }
 
-const DatabaseSchemeVersion = 2
+const DatabaseSchemeVersion = 3
 
 // New returns an instance
 func New(dbConfig models.DbConnection) (DatabaseProvider, error) {
@@ -91,8 +93,35 @@ func newPool(config models.DbConnection) *redigo.Pool {
 
 // Upgrade migrates the DB to a new Gokapi version, if required
 func (p DatabaseProvider) Upgrade(currentDbVersion int) {
-	// Currently no upgrade necessary
-	return
+	// < 1.9.6
+	if currentDbVersion < 3 {
+		allFiles := getAllLegacyMetaDataAndDelete(p)
+		for _, file := range allFiles {
+			p.SaveMetaData(file)
+		}
+	}
+}
+
+func getAllLegacyMetaDataAndDelete(p DatabaseProvider) map[string]models.File {
+	result := make(map[string]models.File)
+	allMetaData := p.getAllValuesWithPrefix(prefixMetaData)
+	for _, metaData := range allMetaData {
+		content, err := redigo.Bytes(metaData, nil)
+		helper.Check(err)
+		file := legacyDbToMetaData(content)
+		result[file.Id] = file
+		p.deleteKey(prefixMetaData + file.Id)
+	}
+	return result
+}
+
+func legacyDbToMetaData(input []byte) models.File {
+	var result models.File
+	buf := bytes.NewBuffer(input)
+	dec := gob.NewDecoder(buf)
+	err := dec.Decode(&result)
+	helper.Check(err)
+	return result
 }
 
 const keyDbVersion = "dbversion"
@@ -257,6 +286,20 @@ func (p DatabaseProvider) deleteKey(id string) {
 	conn := p.pool.Get()
 	defer conn.Close()
 	_, err := conn.Do("DEL", p.dbPrefix+id)
+	helper.Check(err)
+}
+
+func (p DatabaseProvider) increaseHashmapIntField(id string, field string) {
+	conn := p.pool.Get()
+	defer conn.Close()
+	_, err := conn.Do("HINCRBY", p.dbPrefix+id, field, 1)
+	helper.Check(err)
+}
+
+func (p DatabaseProvider) decreaseHashmapIntField(id string, field string) {
+	conn := p.pool.Get()
+	defer conn.Close()
+	_, err := conn.Do("HINCRBY", p.dbPrefix+id, field, -1)
 	helper.Check(err)
 }
 
