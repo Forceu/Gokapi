@@ -7,6 +7,8 @@ Examples
 
 
 
+.. _nginx_config:
+
 *********************************
 Nginx  Configuration
 *********************************

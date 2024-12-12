@@ -239,7 +239,7 @@
 
 							<optgroup label="Reverse Proxy">
 								<option value="2">Header Authentication</option>
-								<option value="3">Access Restriction</option>
+								<option value="3">Disabled / Access Restriction</option>
 							</optgroup>
 
 						</select>
@@ -378,7 +378,7 @@
 						
 						<ul>
 {{ range .ProtectedUrls }}
-						  <li>{{ . }}</li>
+						  <li><code>{{ . }}</code></li>
 {{ end }}
 						</ul>
 

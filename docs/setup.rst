@@ -132,7 +132,7 @@ The following configuration can be set:
 Authentication
 """"""""""""""
 
-This menu guides you through the authentication setup, where you select how an admin user logs in (only user that can upload files)
+This menu guides you through the authentication setup, where you select how an admin user logs in (only user that can upload files). It is possible to disable authentication completely, but strongly discouraged.
 
 
 Username / Password 
@@ -220,8 +220,8 @@ Enter the key of the header that returns the username. For Authelia this would b
 Separate users with a semicolon or leave blank to allow any authenticated user, e.g. ``gokapiuser@gmail.com;companyadmin@gmail.com``
 
 
-Access Restriction
-************************
+Disabled / Access Restriction
+*************************************
 
 Only use this if you are running Gokapi behind a reverse proxy that is capable of authenticating users, e.g. by using Authelia or Authentik.
 
@@ -332,6 +332,15 @@ If you are using Docker, shut down the running instance and create a new tempora
 
 .. note::
    If you are using Docker, make sure to stop the temporary container and to restart the original one after the setup is complete
+
+
+**********************************
+Reverse Proxy
+**********************************
+
+It is highly recommended to run Gokapi behind a reverse proxy. Make sure to select a high timeout (recommended: 300 seconds) and increase the allowed body size.
+
+An example for Nginx can be found here: :ref:`nginx_config`
 
 
 **********************************
