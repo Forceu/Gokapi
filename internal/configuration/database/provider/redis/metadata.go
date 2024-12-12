@@ -66,3 +66,11 @@ func (p DatabaseProvider) SaveMetaData(file models.File) {
 func (p DatabaseProvider) DeleteMetaData(id string) {
 	p.deleteKey(prefixMetaData + id)
 }
+
+// IncreaseDownloadCount increases the download count of a file, preventing race conditions
+func (p DatabaseProvider) IncreaseDownloadCount(id string, decreaseRemainingDownloads bool) {
+	if decreaseRemainingDownloads {
+	} else {
+	}
+	// TODO
+}
