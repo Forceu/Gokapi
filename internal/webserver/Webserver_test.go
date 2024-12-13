@@ -481,13 +481,17 @@ func TestPostUpload(t *testing.T) {
 			Key:   "filesize",
 			Value: "50",
 		}},
-		RequiredContent: []string{"{\"Result\":\"OK\"", "\"Name\":\"fileupload.jpg\"", "DownloadsRemaining\":1"},
-		ExcludedContent: []string{"\"Id\":\"\"", "HotlinkId\":\"\"", "ErrorMessage"},
+		RequiredContent: []string{"{\"result\":\"OK\"}"},
 		Cookies: []test.Cookie{{
 			Name:  "session_token",
 			Value: "validsession",
 		}},
 	})
+
+	// TODO parse SSE
+	// RequiredContent: []string{"{\"Result\":\"OK\"", "\"Name\":\"fileupload.jpg\"", "DownloadsRemaining\":1"},
+	// 	ExcludedContent: []string{"\"Id\":\"\"", "HotlinkId\":\"\"", "ErrorMessage"},
+
 }
 
 func TestApiPageAuthorized(t *testing.T) {

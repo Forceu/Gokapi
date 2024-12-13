@@ -218,6 +218,7 @@ func (p DatabaseProvider) createNewDatabase() error {
 			"ChunkId"	TEXT NOT NULL UNIQUE,
 			"CurrentStatus"	INTEGER NOT NULL,
 			"CreationDate"	INTEGER NOT NULL,
+			"FileId"	text,
 			PRIMARY KEY("ChunkId")
 		) WITHOUT ROWID;
 `
