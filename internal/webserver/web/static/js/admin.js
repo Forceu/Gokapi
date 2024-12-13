@@ -204,7 +204,7 @@ function sendChunkComplete(file, done) {
                 done();
             	let progressText = document.getElementById(`us-progress-info-${file.upload.uuid}`);
             	if (progressText != null)
-    			progressText.innerText = "Complete";
+    			progressText.innerText = "In Queue...";
         } else {
                 dropzoneUploadError(file, getErrorMessage(xhr.responseText));
             }
@@ -290,7 +290,7 @@ function requestFileInfo(fileId, uid) {
         .catch(error => {
         let file = dropzoneGetFile(uid);
             if (file != null) {
-            	dropzoneUploadError(file, "Server Error"); //TODO
+            	dropzoneUploadError(file, error);
             }
             console.error('Error:', error);
         });
@@ -313,14 +313,16 @@ function parseProgressStatus(eventData) {
             text = "Uploading file...";
             break;
         case 2:
-            text = "Complete";
+            text = "Finalising...";
             requestFileInfo(eventData.file_id, eventData.chunk_id);
             break;
         case 3:
             text = "Error";
             let file = dropzoneGetFile(eventData.chunk_id);
+            if (eventData.error_message == "")
+            	eventData.error_message = "Server Error";
             if (file != null) {
-            	dropzoneUploadError(file, "Server Error"); //TODO
+            	dropzoneUploadError(file, eventData.error_message);
             }
             return;
        default:

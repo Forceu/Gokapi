@@ -20,6 +20,7 @@ import (
 	"github.com/forceu/gokapi/internal/logging"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
+	"github.com/forceu/gokapi/internal/storage/processingstatus"
 	"github.com/forceu/gokapi/internal/webserver/api"
 	"github.com/forceu/gokapi/internal/webserver/authentication"
 	"github.com/forceu/gokapi/internal/webserver/authentication/oauth"
@@ -666,10 +667,11 @@ func uploadComplete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	go func() {
-		file, err := fileupload.CompleteChunk(chunkId, header, config)
-		fmt.Println(file)
-		fmt.Println(err)
-		// TODO
+		_, err = fileupload.CompleteChunk(chunkId, header, config)
+		if err != nil {
+			processingstatus.Set(chunkId, processingstatus.StatusError, models.File{}, err)
+			fmt.Println(err)
+		}
 	}()
 	_, _ = io.WriteString(w, "{\"result\":\"OK\"}")
 }

@@ -19,11 +19,14 @@ const StatusFinished = 2
 const StatusError = 3
 
 // Set sets the status for an id
-func Set(id string, status int, file models.File) {
+func Set(id string, status int, file models.File, err error) {
 	newStatus := models.UploadStatus{
 		ChunkId:       id,
 		CurrentStatus: status,
 		FileId:        file.Id,
+	}
+	if err != nil {
+		newStatus.ErrorMessage = err.Error()
 	}
 	oldStatus, ok := database.GetUploadStatus(newStatus.ChunkId)
 	if ok && oldStatus.CurrentStatus > newStatus.CurrentStatus {

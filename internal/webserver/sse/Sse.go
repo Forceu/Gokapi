@@ -44,6 +44,7 @@ type eventUploadStatus struct {
 	Event        string `json:"event"`
 	ChunkId      string `json:"chunk_id"`
 	FileId       string `json:"file_id"`
+	ErrorMessage string `json:"error_message"`
 	UploadStatus int    `json:"upload_status"`
 }
 
@@ -58,6 +59,7 @@ func PublishNewStatus(uploadStatus models.UploadStatus) {
 		ChunkId:      uploadStatus.ChunkId,
 		UploadStatus: uploadStatus.CurrentStatus,
 		FileId:       uploadStatus.FileId,
+		ErrorMessage: uploadStatus.ErrorMessage,
 	}
 	publishMessage(event)
 }

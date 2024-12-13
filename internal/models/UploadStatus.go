@@ -10,4 +10,6 @@ type UploadStatus struct {
 	CurrentStatus int `json:"currentstatus"`
 	// FileId is populated, once a file has been created from a chunk
 	FileId string
+	// ErrorMessage is not saved to the database, only sent through SSE
+	ErrorMessage string `json:"errormessage"`
 }
