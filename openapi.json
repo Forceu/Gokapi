@@ -57,7 +57,55 @@
             "description": "Invalid input"
           },
           "401": {
-            "description": "Invalid API key provided or not logged in as admin"
+            "description": "Invalid API key provided"
+          }
+        }
+      }
+    },
+    "/files/list/{id}": {
+      "get": {
+        "tags": [
+          "files"
+        ],
+        "summary": "Get metadata by ID",
+        "description": "This API call lists all metadata about a file that is not expired. Returns 404 if an invalid/expired ID was passed. Requires permission VIEW",
+        "operationId": "listbyid",
+       "parameters": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        },
+        "description": "ID of file to be requested"
+      }
+    ],
+       
+        "security": [
+          {
+            "apikey": ["VIEW"]
+          },
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/File"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Invalid API key provided"
+          },
+          "404": {
+            "description": "Invalid ID provided or file has expired"
           }
         }
       }
@@ -100,7 +148,7 @@
             "description": "Invalid input"
           },
           "401": {
-            "description": "Invalid API key provided or not logged in as admin"
+            "description": "Invalid API key provided"
           }
         }
       }
@@ -143,7 +191,7 @@
             "description": "Invalid input"
           },
           "401": {
-            "description": "Invalid API key provided or not logged in as admin"
+            "description": "Invalid API key provided"
           }
         }
       }
@@ -186,7 +234,7 @@
             "description": "Invalid input"
           },
           "401": {
-            "description": "Invalid API key provided or not logged in as admin"
+            "description": "Invalid API key provided"
           }
         }
       }
@@ -229,7 +277,7 @@
             "description": "Invalid input"
           },
           "401": {
-            "description": "Invalid API key provided or not logged in as admin"
+            "description": "Invalid API key provided"
           }
         }
       }
@@ -309,7 +357,7 @@
             "description": "Invalid ID supplied or incorrect data type sent"
           },
           "401": {
-            "description": "Invalid API key provided or not logged in as admin"
+            "description": "Invalid API key provided"
           }
         }
       }
@@ -348,7 +396,7 @@
             "description": "Invalid ID supplied"
           },
           "401": {
-            "description": "Invalid API key provided or not logged in as admin"
+            "description": "Invalid API key provided"
           }
         }
       }
@@ -402,7 +450,7 @@
             }
           },
           "401": {
-            "description": "Invalid API key provided or not logged in as admin"
+            "description": "Invalid API key provided"
           }
         }
       }
@@ -452,7 +500,7 @@
             "description": "Invalid ID supplied"
           },
           "401": {
-            "description": "Invalid API key provided or not logged in as admin"
+            "description": "Invalid API key provided"
           }
         }
       }
@@ -515,7 +563,7 @@
             "description": "Invalid ID supplied"
           },
           "401": {
-            "description": "Invalid API key provided or not logged in as admin"
+            "description": "Invalid API key provided"
           }
         }
       }
@@ -554,7 +602,7 @@
             "description": "Invalid ID supplied"
           },
           "401": {
-            "description": "Invalid API key provided or not logged in as admin"
+            "description": "Invalid API key provided"
           }
         }
       }

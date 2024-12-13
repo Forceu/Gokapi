@@ -202,21 +202,21 @@ function sendChunkComplete(file, done) {
         if (this.readyState == 4) {
             if (this.status == 200) {
                 done();
-            	let progressText = document.getElementById(`us-progress-info-${file.upload.uuid}`);
-            	if (progressText != null)
-    			progressText.innerText = "In Queue...";
-        } else {
+                let progressText = document.getElementById(`us-progress-info-${file.upload.uuid}`);
+                if (progressText != null)
+                    progressText.innerText = "In Queue...";
+            } else {
                 dropzoneUploadError(file, getErrorMessage(xhr.responseText));
             }
-            } 
+        }
     };
     xhr.send(urlencodeFormData(formData));
 }
 
 function dropzoneUploadError(file, errormessage) {
-	file.accepted = false;
-        dropzoneObject._errorProcessing([file], errormessage);
-        showError(file, errormessage);
+    file.accepted = false;
+    dropzoneObject._errorProcessing([file], errormessage);
+    showError(file, errormessage);
 }
 
 function getErrorMessage(response) {
@@ -233,7 +233,7 @@ function dropzoneGetFile(uid) {
     for (let i = 0; i < dropzoneObject.files.length; i++) {
         const currentFile = dropzoneObject.files[i];
         if (currentFile.upload.uuid === uid) {
-            return currentFile; 
+            return currentFile;
         }
     }
     return null;
@@ -241,8 +241,7 @@ function dropzoneGetFile(uid) {
 
 function requestFileInfo(fileId, uid) {
 
-//TODO add to API documentation	
-    let apiUrl = './api/files/list/'+fileId;
+    let apiUrl = './api/files/list/' + fileId;
     const requestOptions = {
         method: 'GET',
         headers: {
@@ -259,38 +258,38 @@ function requestFileInfo(fileId, uid) {
                 throw new Error(`Request failed with status: ${response.status}`);
             }
             return response.json();
-            
+
         })
         .then(data => {
             addRow(data);
-             let file = dropzoneGetFile(uid);
+            let file = dropzoneGetFile(uid);
             if (file == null) {
-            	return;
+                return;
             }
             if (file.isEndToEndEncrypted === true) {
-                    try {
-                        let result = GokapiE2EAddFile(uid, fileId, file.name);
-                        if (result instanceof Error) {
-                            throw result;
-                        }
-                        let info = GokapiE2EInfoEncrypt();
-                        if (info instanceof Error) {
-                            throw info;
-                        }
-                        storeE2EInfo(info);
-                    } catch (err) {
-                        file.accepted = false;
-                        dropzoneObject._errorProcessing([file], err);
-                        return;
+                try {
+                    let result = GokapiE2EAddFile(uid, fileId, file.name);
+                    if (result instanceof Error) {
+                        throw result;
                     }
-                    GokapiE2EDecryptMenu();
+                    let info = GokapiE2EInfoEncrypt();
+                    if (info instanceof Error) {
+                        throw info;
+                    }
+                    storeE2EInfo(info);
+                } catch (err) {
+                    file.accepted = false;
+                    dropzoneObject._errorProcessing([file], err);
+                    return;
                 }
-                removeFileStatus(uid);
+                GokapiE2EDecryptMenu();
+            }
+            removeFileStatus(uid);
         })
         .catch(error => {
-        let file = dropzoneGetFile(uid);
+            let file = dropzoneGetFile(uid);
             if (file != null) {
-            	dropzoneUploadError(file, error);
+                dropzoneUploadError(file, error);
             }
             console.error('Error:', error);
         });
@@ -320,12 +319,12 @@ function parseProgressStatus(eventData) {
             text = "Error";
             let file = dropzoneGetFile(eventData.chunk_id);
             if (eventData.error_message == "")
-            	eventData.error_message = "Server Error";
+                eventData.error_message = "Server Error";
             if (file != null) {
-            	dropzoneUploadError(file, eventData.error_message);
+                dropzoneUploadError(file, eventData.error_message);
             }
             return;
-       default:
+        default:
             text = "Unknown status";
             break;
     }
