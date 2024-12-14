@@ -3,12 +3,17 @@
 package webserver
 
 import (
+	"bufio"
+	"encoding/json"
 	"errors"
 	"github.com/forceu/gokapi/internal/configuration"
+	"github.com/forceu/gokapi/internal/configuration/database"
+	"github.com/forceu/gokapi/internal/storage/processingstatus"
 	"github.com/forceu/gokapi/internal/test"
 	"github.com/forceu/gokapi/internal/test/testconfiguration"
 	"github.com/forceu/gokapi/internal/webserver/authentication"
 	"html/template"
+	"net/http"
 	"os"
 	"strings"
 	"testing"
@@ -432,18 +437,45 @@ func TestPostUploadNoAuth(t *testing.T) {
 	test.HttpPostUploadRequest(t, test.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/uploadChunk",
 		UploadFileName:  "test/fileupload.jpg",
+		ResultCode:      http.StatusUnauthorized,
 		UploadFieldName: "file",
+
 		RequiredContent: []string{"{\"Result\":\"error\",\"ErrorMessage\":\"Not authenticated\"}"},
 	})
 	test.HttpPostUploadRequest(t, test.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/uploadComplete",
 		UploadFileName:  "test/fileupload.jpg",
 		UploadFieldName: "file",
+		ResultCode:      http.StatusUnauthorized,
 		RequiredContent: []string{"{\"Result\":\"error\",\"ErrorMessage\":\"Not authenticated\"}"},
 	})
 }
 
 func TestPostUpload(t *testing.T) {
+	// Open the SSE connection
+	req, err := http.NewRequest("GET", "http://127.0.0.1:53843/uploadStatus", nil)
+	test.IsNil(t, err)
+	req.Header.Set("Accept", "text/event-stream")
+	req.Header.Set("Cookie", "session_token=validsession")
+
+	resp, err := http.DefaultClient.Do(req)
+	test.IsNil(t, err)
+	defer resp.Body.Close()
+
+	test.IsEqualInt(t, resp.StatusCode, http.StatusOK)
+	scanner := bufio.NewScanner(resp.Body)
+
+	// Discard any initial SSE messages
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "data:") {
+			_ = strings.TrimSpace(strings.TrimPrefix(line, "data:"))
+			break
+		}
+	}
+	err = scanner.Err()
+	test.IsNil(t, err)
+
 	test.HttpPostUploadRequest(t, test.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/uploadChunk",
 		UploadFileName:  "test/fileupload.jpg",
@@ -465,29 +497,60 @@ func TestPostUpload(t *testing.T) {
 			Value: "validsession",
 		}},
 	})
+	go func() {
+		time.Sleep(200 * time.Millisecond)
+		test.HttpPostRequest(t, test.HttpTestConfig{
+			Url: "http://127.0.0.1:53843/uploadComplete",
+			PostValues: []test.PostBody{{
+				Key:   "chunkid",
+				Value: "eeng4ier3Taen7a",
+			}, {
+				Key:   "filename",
+				Value: "fileupload.jpg",
+			}, {
+				Key:   "filecontenttype",
+				Value: "test-content",
+			}, {
+				Key:   "filesize",
+				Value: "50",
+			}},
+			RequiredContent: []string{"{\"result\":\"OK\"}"},
+			Cookies: []test.Cookie{{
+				Name:  "session_token",
+				Value: "validsession",
+			}},
+		})
+	}()
 
-	test.HttpPostRequest(t, test.HttpTestConfig{
-		Url: "http://127.0.0.1:53843/uploadComplete",
-		PostValues: []test.PostBody{{
-			Key:   "chunkid",
-			Value: "eeng4ier3Taen7a",
-		}, {
-			Key:   "filename",
-			Value: "fileupload.jpg",
-		}, {
-			Key:   "filecontenttype",
-			Value: "test-content",
-		}, {
-			Key:   "filesize",
-			Value: "50",
-		}},
-		RequiredContent: []string{"{\"Result\":\"OK\"", "\"Name\":\"fileupload.jpg\"", "DownloadsRemaining\":1"},
-		ExcludedContent: []string{"\"Id\":\"\"", "HotlinkId\":\"\"", "ErrorMessage"},
-		Cookies: []test.Cookie{{
-			Name:  "session_token",
-			Value: "validsession",
-		}},
-	})
+	var receivedStatus eventUploadStatus
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "data:") {
+			message := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
+			t.Log(message)
+			err = json.Unmarshal([]byte(message), &receivedStatus)
+			test.IsNil(t, err)
+			if receivedStatus.UploadStatus == processingstatus.StatusFinished {
+				break
+			}
+		}
+	}
+	test.IsEqualInt(t, receivedStatus.UploadStatus, processingstatus.StatusFinished)
+	test.IsNotEmpty(t, receivedStatus.FileId)
+	err = scanner.Err()
+	test.IsNil(t, err)
+	file, ok := database.GetMetaDataById(receivedStatus.FileId)
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualString(t, file.Name, "fileupload.jpg")
+}
+
+// Originally declared in Sse, but should not be public
+type eventUploadStatus struct {
+	Event        string `json:"event"`
+	ChunkId      string `json:"chunk_id"`
+	FileId       string `json:"file_id"`
+	ErrorMessage string `json:"error_message"`
+	UploadStatus int    `json:"upload_status"`
 }
 
 func TestApiPageAuthorized(t *testing.T) {

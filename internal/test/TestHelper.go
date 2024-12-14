@@ -380,7 +380,6 @@ func HttpPostUploadRequest(t MockT, config HttpTestConfig) {
 	response, err := client.Do(request)
 	IsNil(t, err)
 	defer response.Body.Close()
-
 	checkResponse(t, response, config)
 }
 

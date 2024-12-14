@@ -226,20 +226,3 @@ func DeleteSession(id string) {
 func DeleteAllSessions() {
 	db.DeleteAllSessions()
 }
-
-// Upload Status Section
-
-// GetAllUploadStatus returns all UploadStatus values from the past 24 hours
-func GetAllUploadStatus() []models.UploadStatus {
-	return db.GetAllUploadStatus()
-}
-
-// GetUploadStatus returns a models.UploadStatus from the ID passed or false if the id is not valid
-func GetUploadStatus(id string) (models.UploadStatus, bool) {
-	return db.GetUploadStatus(id)
-}
-
-// SaveUploadStatus stores the upload status of a new file for 24 hours
-func SaveUploadStatus(status models.UploadStatus) {
-	db.SaveUploadStatus(status)
-}

@@ -2,9 +2,9 @@ package sse
 
 import (
 	"encoding/json"
-	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/storage/processingstatus/pstatusdb"
 	"io"
 	"net/http"
 	"sync"
@@ -40,9 +40,12 @@ type eventFileDownload struct {
 	DownloadCount      int    `json:"download_count"`
 	DownloadsRemaining int    `json:"downloads_remaining"`
 }
+
 type eventUploadStatus struct {
 	Event        string `json:"event"`
 	ChunkId      string `json:"chunk_id"`
+	FileId       string `json:"file_id"`
+	ErrorMessage string `json:"error_message"`
 	UploadStatus int    `json:"upload_status"`
 }
 
@@ -56,6 +59,8 @@ func PublishNewStatus(uploadStatus models.UploadStatus) {
 		Event:        "uploadStatus",
 		ChunkId:      uploadStatus.ChunkId,
 		UploadStatus: uploadStatus.CurrentStatus,
+		FileId:       uploadStatus.FileId,
+		ErrorMessage: uploadStatus.ErrorMessage,
 	}
 	publishMessage(event)
 }
@@ -114,7 +119,7 @@ func GetStatusSSE(w http.ResponseWriter, r *http.Request) {
 	channelId := helper.GenerateRandomString(20)
 	addListener(channelId, channel)
 
-	allStatus := database.GetAllUploadStatus()
+	allStatus := pstatusdb.GetAll()
 	for _, status := range allStatus {
 		PublishNewStatus(status)
 	}

@@ -116,12 +116,12 @@ func TestProcessNewChunk(t *testing.T) {
 
 func TestCompleteChunk(t *testing.T) {
 	w, r := test.GetRecorder("POST", "/uploadComplete", nil, nil, strings.NewReader("invalid§$%&%§"))
-	err := CompleteChunk(w, r)
+	_, _, _, err := ParseFileHeader(r)
 	test.IsNotNil(t, err)
 
 	w = httptest.NewRecorder()
 	r = getFileUploadRecorder(false)
-	err = CompleteChunk(w, r)
+	_, _, _, err = ParseFileHeader(r)
 	test.IsNotNil(t, err)
 
 	data := url.Values{}
@@ -133,22 +133,22 @@ func TestCompleteChunk(t *testing.T) {
 	data.Set("filesize", "13")
 	w, r = test.GetRecorder("POST", "/uploadComplete", nil, nil, strings.NewReader(data.Encode()))
 	r.Header.Set("Content-type", "application/x-www-form-urlencoded")
-	err = CompleteChunk(w, r)
+	chunkId, header, config, err := ParseFileHeader(r)
 	test.IsNil(t, err)
+	file, err := CompleteChunk(chunkId, header, config)
+	test.IsNil(t, err)
+	test.IsEqualString(t, file.Name, "random.file")
 
-	result := struct {
-		FileInfo models.FileApiOutput `json:"FileInfo"`
-	}{}
 	response, err := io.ReadAll(w.Result().Body)
 	test.IsNil(t, err)
-	err = json.Unmarshal(response, &result)
-	test.IsNil(t, err)
-	test.IsEqualString(t, result.FileInfo.Name, "random.file")
+	test.IsEqualString(t, string(response), "")
 
 	data.Set("chunkid", "invalid")
 	w, r = test.GetRecorder("POST", "/uploadComplete", nil, nil, strings.NewReader(data.Encode()))
 	r.Header.Set("Content-type", "application/x-www-form-urlencoded")
-	err = CompleteChunk(w, r)
+	_, _, _, err = ParseFileHeader(r)
+	test.IsNil(t, err)
+	_, err = CompleteChunk(chunkId, header, config)
 	test.IsNotNil(t, err)
 }
 

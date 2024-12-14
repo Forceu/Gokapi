@@ -1,11 +1,10 @@
-package processingstatus
+package pstatusdb
 
 import (
-	"errors"
 	"github.com/forceu/gokapi/internal/models"
-	"github.com/forceu/gokapi/internal/storage/processingstatus/pstatusdb"
 	"github.com/forceu/gokapi/internal/test"
 	"testing"
+	"time"
 )
 
 func TestSetStatus(t *testing.T) {
@@ -13,18 +12,30 @@ func TestSetStatus(t *testing.T) {
 	status, ok := getStatus(id)
 	test.IsEqualBool(t, ok, false)
 	test.IsEmpty(t, status.ChunkId)
-	Set(id, 2, models.File{Id: "testfile"}, nil)
+	Set(models.UploadStatus{
+		ChunkId:       id,
+		CurrentStatus: 2,
+		FileId:        "testfile",
+	})
 	status, ok = getStatus(id)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualString(t, status.ChunkId, id)
 	test.IsEqualString(t, status.FileId, "testfile")
 	test.IsEqualInt(t, status.CurrentStatus, 2)
-	Set(id, 1, models.File{}, nil)
+	Set(models.UploadStatus{
+		ChunkId:       id,
+		CurrentStatus: 1,
+	})
 	status, ok = getStatus(id)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualString(t, status.ChunkId, id)
 	test.IsEqualInt(t, status.CurrentStatus, 2)
-	Set(id, 3, models.File{Id: "testfile"}, errors.New("test"))
+	Set(models.UploadStatus{
+		ChunkId:       id,
+		CurrentStatus: 3,
+		FileId:        "testfile",
+		ErrorMessage:  "test",
+	})
 	status, ok = getStatus(id)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualString(t, status.ChunkId, id)
@@ -33,8 +44,25 @@ func TestSetStatus(t *testing.T) {
 	test.IsEqualString(t, status.ErrorMessage, "test")
 }
 
+func TestGarbageCollection(t *testing.T) {
+	Set(models.UploadStatus{
+		ChunkId:       "toBeGarbaged",
+		CurrentStatus: 2,
+	})
+	test.IsEqualInt(t, len(GetAll()), 2)
+	doGarbageCollection(false)
+	test.IsEqualInt(t, len(GetAll()), 2)
+	status, ok := statusMap["toBeGarbaged"]
+	test.IsEqualBool(t, ok, true)
+	status.Creation = time.Now().Add(-30 * time.Hour).Unix()
+	statusMap["toBeGarbaged"] = status
+	test.IsEqualInt(t, len(GetAll()), 2)
+	doGarbageCollection(false)
+	test.IsEqualInt(t, len(GetAll()), 1)
+}
+
 func getStatus(id string) (models.UploadStatus, bool) {
-	for _, status := range pstatusdb.GetAll() {
+	for _, status := range GetAll() {
 		if status.ChunkId == id {
 			return status, true
 		}

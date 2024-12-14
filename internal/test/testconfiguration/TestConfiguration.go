@@ -9,6 +9,7 @@ import (
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage/filesystem"
 	"github.com/forceu/gokapi/internal/storage/filesystem/s3filesystem/aws"
+	"github.com/forceu/gokapi/internal/storage/processingstatus/pstatusdb"
 	"github.com/johannesboyne/gofakes3"
 	"github.com/johannesboyne/gofakes3/backend/s3mem"
 	"net/http/httptest"
@@ -181,11 +182,11 @@ func writeTestSessions() {
 	})
 }
 func writeTestUploadStatus() {
-	database.SaveUploadStatus(models.UploadStatus{
+	pstatusdb.Set(models.UploadStatus{
 		ChunkId:       "validstatus_0",
 		CurrentStatus: 0,
 	})
-	database.SaveUploadStatus(models.UploadStatus{
+	pstatusdb.Set(models.UploadStatus{
 		ChunkId:       "validstatus_1",
 		CurrentStatus: 1,
 	})
