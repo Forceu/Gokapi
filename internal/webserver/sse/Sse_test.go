@@ -128,7 +128,7 @@ func TestGetStatusSSE(t *testing.T) {
 		ChunkId:       "secondChunkId",
 		CurrentStatus: 1,
 	})
-	time.Sleep(1 * time.Second)
+	time.Sleep(200 * time.Millisecond)
 	body, err = io.ReadAll(rr.Body)
 	test.IsNil(t, err)
 	test.IsEqualString(t, string(body), "event: message\ndata: {\"event\":\"uploadStatus\",\"chunk_id\":\"secondChunkId\",\"file_id\":\"\",\"error_message\":\"\",\"upload_status\":1}\n\n")
@@ -138,7 +138,7 @@ func TestGetStatusSSE(t *testing.T) {
 		FileId:        "testfile",
 		ErrorMessage:  "123",
 	})
-	time.Sleep(1 * time.Second)
+	time.Sleep(200 * time.Millisecond)
 	body, err = io.ReadAll(rr.Body)
 	test.IsNil(t, err)
 	test.IsEqualString(t, string(body), "event: message\ndata: {\"event\":\"uploadStatus\",\"chunk_id\":\"secondChunkId\",\"file_id\":\"testfile\",\"error_message\":\"123\",\"upload_status\":2}\n\n")
