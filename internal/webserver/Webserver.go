@@ -109,7 +109,7 @@ func Start() {
 	mux.HandleFunc("/logout", doLogout)
 	mux.HandleFunc("/uploadChunk", requireLogin(uploadChunk, true))
 	mux.HandleFunc("/uploadComplete", requireLogin(uploadComplete, true))
-	mux.HandleFunc("/uploadStatus", requireLogin(sse.GetStatusSSE, false))
+	mux.HandleFunc("/uploadStatus", requireLogin(sse.GetStatusSSE, true))
 	mux.Handle("/main.wasm", gziphandler.GzipHandler(http.HandlerFunc(serveDownloadWasm)))
 	mux.Handle("/e2e.wasm", gziphandler.GzipHandler(http.HandlerFunc(serveE2EWasm)))
 
@@ -733,6 +733,7 @@ func requireLogin(next http.HandlerFunc, isUpload bool) http.HandlerFunc {
 			return
 		}
 		if isUpload {
+			w.WriteHeader(http.StatusUnauthorized)
 			_, _ = io.WriteString(w, "{\"Result\":\"error\",\"ErrorMessage\":\"Not authenticated\"}")
 			return
 		}

@@ -40,6 +40,7 @@ type eventFileDownload struct {
 	DownloadCount      int    `json:"download_count"`
 	DownloadsRemaining int    `json:"downloads_remaining"`
 }
+
 type eventUploadStatus struct {
 	Event        string `json:"event"`
 	ChunkId      string `json:"chunk_id"`
