@@ -1,4 +1,4 @@
-package pStatusDb
+package pstatusdb
 
 import (
 	"github.com/forceu/gokapi/internal/models"

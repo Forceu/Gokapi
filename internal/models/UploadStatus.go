@@ -12,5 +12,6 @@ type UploadStatus struct {
 	FileId string
 	// ErrorMessage is empty, unless an error occurred
 	ErrorMessage string `json:"errormessage"`
-	Creation     int64
+	// Creation is the unix time when the status was created and is populated automatically
+	Creation int64
 }

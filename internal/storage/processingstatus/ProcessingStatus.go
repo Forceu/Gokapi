@@ -2,7 +2,7 @@ package processingstatus
 
 import (
 	"github.com/forceu/gokapi/internal/models"
-	"github.com/forceu/gokapi/internal/storage/processingstatus/pStatusDb"
+	"github.com/forceu/gokapi/internal/storage/processingstatus/pstatusdb"
 	"github.com/forceu/gokapi/internal/webserver/sse"
 )
 
@@ -28,6 +28,6 @@ func Set(id string, status int, file models.File, err error) {
 	if err != nil {
 		newStatus.ErrorMessage = err.Error()
 	}
-	pStatusDb.Set(newStatus)
+	pstatusdb.Set(newStatus)
 	go sse.PublishNewStatus(newStatus)
 }

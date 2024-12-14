@@ -3,7 +3,7 @@ package processingstatus
 import (
 	"errors"
 	"github.com/forceu/gokapi/internal/models"
-	"github.com/forceu/gokapi/internal/storage/processingstatus/pStatusDb"
+	"github.com/forceu/gokapi/internal/storage/processingstatus/pstatusdb"
 	"github.com/forceu/gokapi/internal/test"
 	"testing"
 )
@@ -34,7 +34,7 @@ func TestSetStatus(t *testing.T) {
 }
 
 func getStatus(id string) (models.UploadStatus, bool) {
-	for _, status := range pStatusDb.GetAll() {
+	for _, status := range pstatusdb.GetAll() {
 		if status.ChunkId == id {
 			return status, true
 		}

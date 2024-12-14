@@ -1,4 +1,4 @@
-package pStatusDb
+package pstatusdb
 
 import (
 	"github.com/forceu/gokapi/internal/models"
@@ -10,6 +10,7 @@ var statusMap = make(map[string]models.UploadStatus)
 var statusMutex sync.RWMutex
 var isGbStarted = false
 
+// GetAll returns all UploadStatus that were created in the last 24 hours
 func GetAll() []models.UploadStatus {
 	statusMutex.RLock()
 	result := make([]models.UploadStatus, len(statusMap))
@@ -22,6 +23,7 @@ func GetAll() []models.UploadStatus {
 	return result
 }
 
+// Set saves the upload status for 24 hours
 func Set(status models.UploadStatus) {
 	statusMutex.Lock()
 	oldStatus, ok := statusMap[status.ChunkId]
