@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
+	"time"
 )
 
 type schemaApiKeys struct {
@@ -14,6 +15,11 @@ type schemaApiKeys struct {
 	Permissions  int
 	Expiry       int64
 	IsSystemKey  int
+}
+
+// currentTime is used in order to modify the current time for testing purposes in unit tests
+var currentTime = func() time.Time {
+	return time.Now()
 }
 
 // GetAllApiKeys returns a map with all API keys

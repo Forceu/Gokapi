@@ -100,18 +100,6 @@ func TestSessions(t *testing.T) {
 	runAllTypesCompareTwoOutputs(t, func() (any, any) { return GetSession("newsession") }, models.Session{}, false)
 }
 
-func TestUploadStatus(t *testing.T) {
-	runAllTypesCompareTwoOutputs(t, func() (any, any) { return GetUploadStatus("newstatus") }, models.UploadStatus{}, false)
-	runAllTypesCompareOutput(t, func() any { return GetAllUploadStatus() }, []models.UploadStatus{})
-	newStatus := models.UploadStatus{
-		ChunkId:       "newstatus",
-		CurrentStatus: 1,
-	}
-	runAllTypesNoOutput(t, func() { SaveUploadStatus(newStatus) })
-	runAllTypesCompareTwoOutputs(t, func() (any, any) { return GetUploadStatus("newstatus") }, newStatus, true)
-	runAllTypesCompareOutput(t, func() any { return GetAllUploadStatus() }, []models.UploadStatus{newStatus})
-}
-
 func TestHotlinks(t *testing.T) {
 	runAllTypesCompareTwoOutputs(t, func() (any, any) { return GetHotlink("newhotlink") }, "", false)
 	newFile := models.File{Id: "testfile",

@@ -444,6 +444,10 @@ func TestPostUploadNoAuth(t *testing.T) {
 }
 
 func TestPostUpload(t *testing.T) {
+
+	// req, err := http.NewRequest("GET", "/statusUpdate", nil)
+	// test.IsNil(t, err)
+
 	test.HttpPostUploadRequest(t, test.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/uploadChunk",
 		UploadFileName:  "test/fileupload.jpg",

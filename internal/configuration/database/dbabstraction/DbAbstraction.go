@@ -83,12 +83,6 @@ type Database interface {
 	DeleteSession(id string)
 	// DeleteAllSessions logs all users out
 	DeleteAllSessions()
-
-	GetUploadStatus(id string) (models.UploadStatus, bool)
-	// GetAllUploadStatus returns all UploadStatus values from the past 24 hours
-	GetAllUploadStatus() []models.UploadStatus
-	// SaveUploadStatus stores the upload status of a new file for 24 hours
-	SaveUploadStatus(status models.UploadStatus)
 }
 
 // GetNew connects to the given database and initialises it

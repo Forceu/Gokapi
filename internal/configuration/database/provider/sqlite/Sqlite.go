@@ -32,17 +32,6 @@ func (p DatabaseProvider) GetType() int {
 
 // Upgrade migrates the DB to a new Gokapi version, if required
 func (p DatabaseProvider) Upgrade(currentDbVersion int) {
-	// < v1.9.0
-	if currentDbVersion < 2 {
-		// Remove Column LastUpdate, deleting old data
-		err := p.rawSqlite(`DROP TABLE UploadStatus; CREATE TABLE "UploadStatus" (
-			"ChunkId"	TEXT NOT NULL UNIQUE,
-			"CurrentStatus"	INTEGER NOT NULL,
-			"CreationDate"	INTEGER NOT NULL,
-			PRIMARY KEY("ChunkId")
-		) WITHOUT ROWID;`)
-		helper.Check(err)
-	}
 	// < v1.9.4
 	// there might be an instance where the LastUsedString column still exists. This reads all
 	// API keys, drops the table and then recreates it.
@@ -67,7 +56,7 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 	// < v1.9.6
 	if currentDbVersion < 6 {
 		// Add Column LastUsedString, keeping old data
-		err := p.rawSqlite(`ALTER TABLE "UploadStatus"  ADD COLUMN "FileId" text;`)
+		err := p.rawSqlite(`DROP TABLE IF EXISTS "UploadStatus";`)
 		helper.Check(err)
 	}
 }
@@ -165,7 +154,6 @@ func (p DatabaseProvider) Close() {
 // RunGarbageCollection runs the databases GC
 func (p DatabaseProvider) RunGarbageCollection() {
 	p.cleanExpiredSessions()
-	p.cleanUploadStatus()
 	p.cleanApiKeys()
 }
 
@@ -213,13 +201,6 @@ func (p DatabaseProvider) createNewDatabase() error {
 			"RenewAt"	INTEGER NOT NULL,
 			"ValidUntil"	INTEGER NOT NULL,
 			PRIMARY KEY("Id")
-		) WITHOUT ROWID;
-		CREATE TABLE "UploadStatus" (
-			"ChunkId"	TEXT NOT NULL UNIQUE,
-			"CurrentStatus"	INTEGER NOT NULL,
-			"CreationDate"	INTEGER NOT NULL,
-			"FileId"	text,
-			PRIMARY KEY("ChunkId")
 		) WITHOUT ROWID;
 `
 	err := p.rawSqlite(sqlStmt)

@@ -1,8 +1,8 @@
 package processingstatus
 
 import (
-	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/storage/processingstatus/pStatusDb"
 	"github.com/forceu/gokapi/internal/webserver/sse"
 )
 
@@ -28,10 +28,6 @@ func Set(id string, status int, file models.File, err error) {
 	if err != nil {
 		newStatus.ErrorMessage = err.Error()
 	}
-	oldStatus, ok := database.GetUploadStatus(newStatus.ChunkId)
-	if ok && oldStatus.CurrentStatus > newStatus.CurrentStatus {
-		return
-	}
-	database.SaveUploadStatus(newStatus)
+	pStatusDb.Set(newStatus)
 	go sse.PublishNewStatus(newStatus)
 }

@@ -296,68 +296,6 @@ func TestSession(t *testing.T) {
 	test.IsEqualBool(t, ok, false)
 }
 
-func TestGarbageCollectionUploads(t *testing.T) {
-	originalFunc := currentTime
-	currentTime = func() time.Time {
-		return time.Now().Add(-25 * time.Hour)
-	}
-	dbInstance.SaveUploadStatus(models.UploadStatus{
-		ChunkId:       "ctodelete1",
-		CurrentStatus: 0,
-	})
-	dbInstance.SaveUploadStatus(models.UploadStatus{
-		ChunkId:       "ctodelete2",
-		CurrentStatus: 1,
-	})
-	dbInstance.SaveUploadStatus(models.UploadStatus{
-		ChunkId:       "ctodelete3",
-		CurrentStatus: 0,
-	})
-	dbInstance.SaveUploadStatus(models.UploadStatus{
-		ChunkId:       "ctodelete4",
-		CurrentStatus: 0,
-	})
-	dbInstance.SaveUploadStatus(models.UploadStatus{
-		ChunkId:       "ctodelete5",
-		CurrentStatus: 1,
-	})
-	currentTime = originalFunc
-
-	dbInstance.SaveUploadStatus(models.UploadStatus{
-		ChunkId:       "ctokeep1",
-		CurrentStatus: 0,
-	})
-	dbInstance.SaveUploadStatus(models.UploadStatus{
-		ChunkId:       "ctokeep2",
-		CurrentStatus: 1,
-	})
-	dbInstance.SaveUploadStatus(models.UploadStatus{
-		ChunkId:       "ctokeep3",
-		CurrentStatus: 0,
-	})
-	dbInstance.SaveUploadStatus(models.UploadStatus{
-		ChunkId:       "ctokeep4",
-		CurrentStatus: 0,
-	})
-	dbInstance.SaveUploadStatus(models.UploadStatus{
-		ChunkId:       "ctokeep5",
-		CurrentStatus: 1,
-	})
-	for _, item := range []string{"ctodelete1", "ctodelete2", "ctodelete3", "ctodelete4", "ctokeep1", "ctokeep2", "ctokeep3", "ctokeep4"} {
-		_, result := dbInstance.GetUploadStatus(item)
-		test.IsEqualBool(t, result, true)
-	}
-	dbInstance.RunGarbageCollection()
-	for _, item := range []string{"ctodelete1", "ctodelete2", "ctodelete3", "ctodelete4"} {
-		_, result := dbInstance.GetUploadStatus(item)
-		test.IsEqualBool(t, result, false)
-	}
-	for _, item := range []string{"ctokeep1", "ctokeep2", "ctokeep3", "ctokeep4"} {
-		_, result := dbInstance.GetUploadStatus(item)
-		test.IsEqualBool(t, result, true)
-	}
-}
-
 func TestGarbageCollectionSessions(t *testing.T) {
 	dbInstance.SaveSession("todelete1", models.Session{
 		RenewAt:    time.Now().Add(-10 * time.Second).Unix(),
@@ -531,32 +469,6 @@ func TestParallelConnectionsReading(t *testing.T) {
 		}()
 	}
 	wg.Wait()
-}
-
-func TestUploadStatus(t *testing.T) {
-	allStatus := dbInstance.GetAllUploadStatus()
-	found := false
-	test.IsEqualInt(t, len(allStatus), 5)
-	for _, status := range allStatus {
-		if status.ChunkId == "ctokeep5" {
-			found = true
-		}
-	}
-	test.IsEqualBool(t, found, true)
-	newStatus := models.UploadStatus{
-		ChunkId:       "testid",
-		CurrentStatus: 1,
-	}
-	retrievedStatus, ok := dbInstance.GetUploadStatus("testid")
-	test.IsEqualBool(t, ok, false)
-	test.IsEqualBool(t, retrievedStatus == models.UploadStatus{}, true)
-	dbInstance.SaveUploadStatus(newStatus)
-	retrievedStatus, ok = dbInstance.GetUploadStatus("testid")
-	test.IsEqualBool(t, ok, true)
-	test.IsEqualString(t, retrievedStatus.ChunkId, "testid")
-	test.IsEqualInt(t, retrievedStatus.CurrentStatus, 1)
-	allStatus = dbInstance.GetAllUploadStatus()
-	test.IsEqualInt(t, len(allStatus), 6)
 }
 
 func TestDatabaseProvider_Upgrade(t *testing.T) {

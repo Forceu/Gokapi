@@ -2,9 +2,9 @@ package sse
 
 import (
 	"encoding/json"
-	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/storage/processingstatus/pStatusDb"
 	"io"
 	"net/http"
 	"sync"
@@ -118,7 +118,7 @@ func GetStatusSSE(w http.ResponseWriter, r *http.Request) {
 	channelId := helper.GenerateRandomString(20)
 	addListener(channelId, channel)
 
-	allStatus := database.GetAllUploadStatus()
+	allStatus := pStatusDb.GetAll()
 	for _, status := range allStatus {
 		PublishNewStatus(status)
 	}

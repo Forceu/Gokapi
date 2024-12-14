@@ -374,25 +374,6 @@ func TestSession(t *testing.T) {
 	test.IsEqualBool(t, ok, false)
 }
 
-func TestUploadStatus(t *testing.T) {
-	allStatus := dbInstance.GetAllUploadStatus()
-	test.IsEqualInt(t, len(allStatus), 0)
-	newStatus := models.UploadStatus{
-		ChunkId:       "testid",
-		CurrentStatus: 1,
-	}
-	retrievedStatus, ok := dbInstance.GetUploadStatus("testid")
-	test.IsEqualBool(t, ok, false)
-	test.IsEqualBool(t, retrievedStatus == models.UploadStatus{}, true)
-	dbInstance.SaveUploadStatus(newStatus)
-	retrievedStatus, ok = dbInstance.GetUploadStatus("testid")
-	test.IsEqualBool(t, ok, true)
-	test.IsEqualString(t, retrievedStatus.ChunkId, "testid")
-	test.IsEqualInt(t, retrievedStatus.CurrentStatus, 1)
-	allStatus = dbInstance.GetAllUploadStatus()
-	test.IsEqualInt(t, len(allStatus), 1)
-}
-
 func TestMetaData(t *testing.T) {
 	files := dbInstance.GetAllMetadata()
 	test.IsEqualInt(t, len(files), 0)
