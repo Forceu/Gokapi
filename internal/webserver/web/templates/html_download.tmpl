@@ -133,8 +133,12 @@
 
 		function Download(button) {
 		    button.disabled = true;
-		    DownloadEncrypted();
+		    DownloadEncrypted().catch(err => {
+			    console.error('Error during download:', err);
+			    displayError(err);
+			});
 		}
+		
 		</script>
 {{ else }}
 

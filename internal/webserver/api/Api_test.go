@@ -96,7 +96,7 @@ func setPermissionApikey(key string, newPermission uint8, t *testing.T) {
 }
 
 func getAvailablePermissions(t *testing.T) []uint8 {
-	result := []uint8{models.ApiPermView, models.ApiPermUpload, models.ApiPermDelete, models.ApiPermApiMod, models.ApiPermEdit}
+	result := []uint8{models.ApiPermView, models.ApiPermUpload, models.ApiPermDelete, models.ApiPermApiMod, models.ApiPermEdit, models.ApiPermReplace}
 	sum := 0
 	for _, perm := range result {
 		sum = sum + int(perm)

@@ -58,6 +58,13 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 		// Add Column LastUsedString, keeping old data
 		err := p.rawSqlite(`DROP TABLE IF EXISTS "UploadStatus";`)
 		helper.Check(err)
+
+		for _, apiKey := range p.GetAllApiKeys() {
+			if apiKey.HasPermissionEdit() {
+				apiKey.SetPermission(models.ApiPermReplace)
+				p.SaveApiKey(apiKey)
+			}
+		}
 	}
 }
 

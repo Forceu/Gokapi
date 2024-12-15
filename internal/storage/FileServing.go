@@ -38,6 +38,12 @@ import (
 // ErrorFileTooLarge is an error that is called when a file larger than the set maximum is uploaded
 var ErrorFileTooLarge = errors.New("upload limit exceeded")
 
+// ErrorReplaceE2EFile is caused when an end-to-end encrypted file is replaced
+var ErrorReplaceE2EFile = errors.New("end-to-end encrypted files cannot be replaced")
+
+// ErrorFileNotFound is raised when an invalid ID is passed or the file has expired
+var ErrorFileNotFound = errors.New("file not found")
+
 // NewFile creates a new file in the system. Called after an upload from the API has been completed. If a file with the same sha1 hash
 // already exists, it is deduplicated. This function gathers information about the file, creates an ID and saves
 // it into the global configuration. It is now only used by the API, the web UI uses NewFileFromChunk
@@ -336,6 +342,35 @@ const (
 	// ParamName is a bit to indicate that the filename shall be changed after a duplication
 	ParamName
 )
+
+// ReplaceFile replaces the file content of fileId with the content of newFileContentId
+// Replacing e2e encrypted files is NOT possible
+func ReplaceFile(fileId, newFileContentId string, delete bool) (models.File, error) {
+	file, ok := GetFile(fileId)
+	if !ok {
+		return models.File{}, ErrorFileNotFound
+	}
+	newFileContent, ok := GetFile(newFileContentId)
+	if !ok {
+		return models.File{}, ErrorFileNotFound
+	}
+	if file.Encryption.IsEndToEndEncrypted || newFileContent.Encryption.IsEndToEndEncrypted {
+		return models.File{}, ErrorReplaceE2EFile
+	}
+
+	file.Name = newFileContent.Name
+	file.Size = newFileContent.Size
+	file.SHA1 = newFileContent.SHA1
+	file.ContentType = newFileContent.ContentType
+	file.AwsBucket = newFileContent.AwsBucket
+	file.SizeBytes = newFileContent.SizeBytes
+	file.Encryption = newFileContent.Encryption
+	database.SaveMetaData(file)
+	if delete {
+		DeleteFile(newFileContent.Id, false)
+	}
+	return file, nil
+}
 
 // DuplicateFile creates a copy of an existing file with new parameters
 func DuplicateFile(file models.File, parametersToChange int, newFileName string, fileParameters models.UploadRequest) (models.File, error) {

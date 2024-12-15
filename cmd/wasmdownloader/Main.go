@@ -84,7 +84,7 @@ func encryptDecrypt(key []byte, url string, doEncrypt bool) interface{} {
 							// Tell the controller we have an error
 							errorConstructor := js.Global().Get("Error")
 							errorObject := errorConstructor.New(err.Error())
-							controller.Call("error", errorObject)
+							js.Global().Call("displayError", errorObject)
 							return
 						}
 						// Read the entire stream and pass it to JavaScript
@@ -97,7 +97,7 @@ func encryptDecrypt(key []byte, url string, doEncrypt bool) interface{} {
 								// We're ignoring "EOF" however, which means the stream was done
 								errorConstructor := js.Global().Get("Error")
 								errorObject := errorConstructor.New(err.Error())
-								controller.Call("error", errorObject)
+								js.Global().Call("displayError", errorObject)
 								return
 							}
 							if n > 0 {

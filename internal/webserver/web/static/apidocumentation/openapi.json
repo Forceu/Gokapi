@@ -278,6 +278,9 @@
           },
           "401": {
             "description": "Invalid API key provided"
+          },
+          "404": {
+            "description": "Invalid ID provided or file has expired"
           }
         }
       }
@@ -292,7 +295,7 @@
         "operationId": "modifyfile",
         "security": [
           {
-            "apikey": ["API_EDIT"]
+            "apikey": ["EDIT"]
           },
         ],
             "parameters": [
@@ -358,6 +361,73 @@
           },
           "401": {
             "description": "Invalid API key provided"
+          },
+          "404": {
+            "description": "Invalid ID provided or file has expired"
+          }
+        }
+      }
+    },
+    "/files/replace": {
+      "put": {
+        "tags": [
+          "files"
+        ],
+        "summary": "Replaces an uploaded file",
+        "description": "This API replaces the content of an uploaded file with the content of a different (already uplaoded) file. Note: Replacing end-to-end ecrypted files is NOT possible and will result in an error when downloading. Requires permission REPLACE",
+        "operationId": "replacefile",
+        "security": [
+          {
+            "apikey": ["REPLACE"]
+          },
+        ],
+            "parameters": [
+      {
+        "name": "id",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string"
+        },
+        "description": "ID of file to be replaced"
+      },{
+        "name": "idNewContent",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string"
+        },
+        "description": "ID of the file with the new content"
+      },
+      {
+        "name": "deleteNewFile",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "boolean"
+        },
+        "description": "If true, the file with the ID passed in idNewContent will be deleted afterwards"
+      }
+    ],
+        "responses": {
+          "200": {
+            "description": "Operation successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/File"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid ID supplied or incorrect data type sent"
+          },
+          "401": {
+            "description": "Invalid API key provided"
+          },
+          "404": {
+            "description": "Invalid ID provided or file has expired"
           }
         }
       }
@@ -694,6 +764,11 @@
           },
           "IsEncrypted": {
             "description": "True if the file is encrypted",
+            "type": "boolean",
+            "example": "false"
+          },
+          "IsEndToEndEncrypted": {
+            "description": "True if the file is end-to-end encrypted",
             "type": "boolean",
             "example": "false"
           },

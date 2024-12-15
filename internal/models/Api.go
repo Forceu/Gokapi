@@ -13,17 +13,19 @@ const (
 	ApiPermApiMod
 	// ApiPermEdit is the permission for editing parameters of uploaded files
 	ApiPermEdit
+	// ApiPermReplace is the permission for replacing the content of uploaded files
+	ApiPermReplace
 )
 
 // ApiPermNone means no permission granted
 const ApiPermNone = 0
 
 // ApiPermAll means all permission granted
-const ApiPermAll = 31
+const ApiPermAll = 63
 
-// ApiPermAllNoApiMod means all permission granted, except ApiPermApiMod
+// ApiPermAllNoApiMod means all permission granted, except ApiPermApiMod and ApiPermReplace
 // This is the default for new API keys that are created from the UI
-const ApiPermAllNoApiMod = ApiPermAll - ApiPermApiMod
+const ApiPermAllNoApiMod = ApiPermAll - ApiPermApiMod - ApiPermReplace
 
 // ApiKey contains data of a single api key
 type ApiKey struct {
@@ -84,6 +86,11 @@ func (key *ApiKey) HasPermissionApiMod() bool {
 // HasPermissionEdit returns true if ApiPermEdit is granted
 func (key *ApiKey) HasPermissionEdit() bool {
 	return key.HasPermission(ApiPermEdit)
+}
+
+// HasPermissionReplace returns true if ApiPermReplace is granted
+func (key *ApiKey) HasPermissionReplace() bool {
+	return key.HasPermission(ApiPermReplace)
 }
 
 // ApiKeyOutput is the output that is used after a new key is created

@@ -340,10 +340,62 @@ function showError(file, message) {
 }
 
 
+async function apiEdit(id, allowedDownloads, expiry, password, originalPw) {
+    let apiUrl = './api/files/modify';
+
+    const requestOptions = {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'id': id,
+            'apikey': systemKey,
+            'allowedDownloads': allowedDownloads,
+            'expiryTimestamp': expiry,
+            'password': password,
+            'originalPassword': originalPw
+        },
+    };
+    await fetch(apiUrl, requestOptions)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Request failed with status: ${response.status}`);
+            }
+        })
+        .catch(error => {
+            throw error
+        });
+}
+
+
+async function apiReplace(id, newId) {
+    let apiUrl = './api/files/replace';
+
+    const requestOptions = {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'id': id,
+            'apikey': systemKey,
+            'idNewContent': newId,
+            'deleteNewFile': false
+        },
+    };
+    await fetch(apiUrl, requestOptions)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Request failed with status: ${response.status}`);
+            }
+        })
+        .catch(error => {
+            throw error
+        });
+}
+
+
 function editFile() {
     const button = document.getElementById('mb_save');
     button.disabled = true;
-    let apiUrl = './api/files/modify';
+    let id = button.getAttribute('data-fileid');
 
     let allowedDownloads = document.getElementById('mi_edit_down').value;
     let expiryTimestamp = document.getElementById('mi_edit_expiry').value;
@@ -361,29 +413,28 @@ function editFile() {
         password = "";
     }
 
-    const requestOptions = {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            'id': button.getAttribute('data-fileid'),
-            'apikey': systemKey,
-            'allowedDownloads': allowedDownloads,
-            'expiryTimestamp': expiryTimestamp,
-            'password': password,
-            'originalPassword': originalPassword
+    let replaceFile = false;
+    let replaceId = "";
+    if (document.getElementById('mc_replace').checked) {
+        replaceFile = true;
+        replaceId = document.getElementById('mi_edit_replace').value;
+    }
 
-        },
-    };
-
-    // Send the request
-    fetch(apiUrl, requestOptions)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`Request failed with status: ${response.status}`);
-            }
-        })
+    apiEdit(id, allowedDownloads, expiryTimestamp, password, originalPassword)
         .then(data => {
-            location.reload();
+            if (!replaceFile) {
+                location.reload();
+                return;
+            }
+            apiReplace(id, replaceId)
+                .then(data => {
+                    location.reload();
+                })
+                .catch(error => {
+                    alert("Unable to edit file: " + error);
+                    console.error('Error:', error);
+                    button.disabled = false;
+                });
         })
         .catch(error => {
             alert("Unable to edit file: " + error);
@@ -433,7 +484,7 @@ function handleEditCheckboxChange(checkbox) {
 
 }
 
-function showEditModal(filename, id, downloads, expiry, password, unlimitedown, unlimitedtime) {
+function showEditModal(filename, id, downloads, expiry, password, unlimitedown, unlimitedtime, isE2e) {
     document.getElementById("m_filenamelabel").innerHTML = filename;
     document.getElementById("mc_expiry").setAttribute("data-timestamp", expiry);
     document.getElementById("mb_save").setAttribute('data-fileid', id);
@@ -470,6 +521,24 @@ function showEditModal(filename, id, downloads, expiry, password, unlimitedown, 
         document.getElementById("mi_edit_pw").disabled = true;
         document.getElementById("mc_password").checked = false;
     }
+
+    let selectReplace = document.getElementById("mi_edit_replace");
+    if (!isE2e) {
+        let files = getAllAvailableFiles();
+        for (let i = 0; i < files[0].length; i++) {
+            if (files[0][i] == id)
+                continue;
+            selectReplace.add(new Option(files[1][i] + " (" + files[0][i] + ")", files[0][i]));
+        }
+    } else {
+        document.getElementById("mc_replace").disabled = true;
+        document.getElementById("mc_replace").title = "Replacing content is not available for end-to-end encrypted files";
+        selectReplace.add(new Option("Unavailable", 0));
+        selectReplace.title = "Replacing content is not available for end-to-end encrypted files";
+        selectReplace.value = "0";
+    }
+
+
     new bootstrap.Modal('#modaledit', {}).show();
 }
 
@@ -488,6 +557,18 @@ function add14DaysIfBeforeCurrentTime(unixTimestamp) {
     } else {
         return unixTimestamp;
     }
+}
+
+function getAllAvailableFiles() {
+    let ids = [];
+    let filenames = [];
+
+    let elements = document.querySelectorAll('[id^="cell-name-"]');
+    for (let element of elements) {
+        ids.push(element.id.replace("cell-name-", ""));
+        filenames.push(element.innerHTML);
+    }
+    return [ids, filenames];
 }
 
 function changeApiPermission(apiKey, permission, buttonId) {
@@ -807,7 +888,7 @@ function addRow(item) {
         buttons = buttons + '<button type="button" onclick="showToast()" data-clipboard-text="' + item.UrlHotlink + '" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> Hotlink</button> ';
     }
     buttons = buttons + '<button type="button" id="qrcode-' + item.Id + '" title="QR Code" class="btn btn-outline-light btn-sm" onclick="showQrCode(\'' + item.UrlDownload + '\');"><i class="bi bi-qr-code"></i></button> ';
-    buttons = buttons + '<button type="button" title="Edit" class="btn btn-outline-light btn-sm" onclick="showEditModal(\'' + item.Name + '\',\'' + item.Id + '\', ' + item.DownloadsRemaining + ', ' + item.ExpireAt + ', ' + item.IsPasswordProtected + ', ' + item.UnlimitedDownloads + ', ' + item.UnlimitedTime + ');"><i class="bi bi-pencil"></i></button> ';
+    buttons = buttons + '<button type="button" title="Edit" class="btn btn-outline-light btn-sm" onclick="showEditModal(\'' + item.Name + '\',\'' + item.Id + '\', ' + item.DownloadsRemaining + ', ' + item.ExpireAt + ', ' + item.IsPasswordProtected + ', ' + item.UnlimitedDownloads + ', ' + item.UnlimitedTime + ', ' + item.IsEndToEndEncrypted + ');"><i class="bi bi-pencil"></i></button> ';
     buttons = buttons + '<button type="button" id="button-delete-' + item.Id + '" title="Delete" class="btn btn-outline-danger btn-sm" onclick="deleteFile(\'' + item.Id + '\')"><i class="bi bi-trash3"></i></button>';
 
     cellButtons.innerHTML = buttons;
