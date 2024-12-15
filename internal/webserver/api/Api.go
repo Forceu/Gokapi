@@ -200,7 +200,7 @@ func modifyApiPermission(w http.ResponseWriter, request apiRequest) {
 	if !isValidKeyForEditing(w, request) {
 		return
 	}
-	if request.apiInfo.permission < models.ApiPermView || request.apiInfo.permission > models.ApiPermEdit {
+	if request.apiInfo.permission < models.ApiPermView || request.apiInfo.permission > models.ApiPermReplace {
 		sendError(w, http.StatusBadRequest, "Invalid permission sent")
 		return
 	}
@@ -475,6 +475,8 @@ func parseRequest(r *http.Request) apiRequest {
 		permission = models.ApiPermApiMod
 	case "PERM_EDIT":
 		permission = models.ApiPermEdit
+	case "PERM_REPLACE":
+		permission = models.ApiPermReplace
 	}
 	return apiRequest{
 		apiKey:     r.Header.Get("apikey"),

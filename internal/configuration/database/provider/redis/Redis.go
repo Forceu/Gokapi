@@ -100,6 +100,12 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 		for _, file := range allFiles {
 			p.SaveMetaData(file)
 		}
+		for _, apiKey := range p.GetAllApiKeys() {
+			if apiKey.HasPermissionEdit() {
+				apiKey.SetPermission(models.ApiPermReplace)
+				p.SaveApiKey(apiKey)
+			}
+		}
 	}
 }
 
