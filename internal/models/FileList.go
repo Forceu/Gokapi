@@ -46,6 +46,7 @@ type FileApiOutput struct {
 	UnlimitedTime                bool   `json:"UnlimitedTime"`                // True if the uploader did not limit the time
 	RequiresClientSideDecryption bool   `json:"RequiresClientSideDecryption"` // True if the file has to be decrypted client-side
 	IsEncrypted                  bool   `json:"IsEncrypted"`                  // True if the file is encrypted
+	IsEndToEndEncrypted          bool   `json:"IsEndToEndEncrypted"`          // True if the file is end-to-end encrypted
 	IsPasswordProtected          bool   `json:"IsPasswordProtected"`          // True if a password has to be entered before downloading the file
 	IsSavedOnLocalStorage        bool   `json:"IsSavedOnLocalStorage"`        // True if the file does not use cloud storage
 }
@@ -76,6 +77,7 @@ func (f *File) ToFileApiOutput(serverUrl string, useFilenameInUrl bool) (FileApi
 	if f.Encryption.IsEndToEndEncrypted || f.RequiresClientDecryption() {
 		result.RequiresClientSideDecryption = true
 	}
+	result.IsEndToEndEncrypted = f.Encryption.IsEndToEndEncrypted
 	result.UrlHotlink = getHotlinkUrl(result, serverUrl, useFilenameInUrl)
 	result.UrlDownload = getDownloadUrl(result, serverUrl, useFilenameInUrl)
 

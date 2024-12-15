@@ -767,6 +767,11 @@
             "type": "boolean",
             "example": "false"
           },
+          "IsEndToEndEncrypted": {
+            "description": "True if the file is end-to-end encrypted",
+            "type": "boolean",
+            "example": "false"
+          },
           "IsPasswordProtected": {
             "type": "boolean",
             "description": "True if a password has to be entered before downloading the file",

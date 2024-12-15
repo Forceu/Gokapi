@@ -350,7 +350,7 @@ func ReplaceFile(fileId, newFileContentId string, delete bool) (models.File, err
 	if !ok {
 		return models.File{}, ErrorFileNotFound
 	}
-	newFileContent, ok := GetFile(fileId)
+	newFileContent, ok := GetFile(newFileContentId)
 	if !ok {
 		return models.File{}, ErrorFileNotFound
 	}

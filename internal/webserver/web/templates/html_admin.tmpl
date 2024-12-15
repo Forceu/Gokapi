@@ -86,7 +86,7 @@
  						<button type="button"class="copyurl btn btn-outline-light btn-sm disabled"><i class="bi bi-copy"></i> Hotlink</button>
 			{{ end }}
 						<button type="button" id="qrcode-{{ .Id }}" title="QR Code" class="btn btn-outline-light btn-sm" onclick="showQrCode('{{ .UrlDownload }}');"><i class="bi bi-qr-code"></i></button>
-						<button type="button" title="Edit" class="btn btn-outline-light btn-sm" onclick="showEditModal('{{.Name }}','{{.Id}}', {{.DownloadsRemaining }}, {{.ExpireAt }}, {{.IsPasswordProtected}}, {{.UnlimitedDownloads }}, {{.UnlimitedTime}});"><i class="bi bi-pencil"></i></button>
+						<button type="button" title="Edit" class="btn btn-outline-light btn-sm" onclick="showEditModal('{{.Name }}','{{.Id}}', {{.DownloadsRemaining }}, {{.ExpireAt }}, {{.IsPasswordProtected}}, {{.UnlimitedDownloads }}, {{.UnlimitedTime}}, {{.IsEndToEndEncrypted}});"><i class="bi bi-pencil"></i></button>
 						<button id="button-delete-{{ .Id }}" type="button" title="Delete" class="btn btn-outline-danger btn-sm" onclick="deleteFile('{{ .Id }}')"><i class="bi bi-trash3"></i></button></td>
 					</tr>
 		{{ end }}
@@ -102,7 +102,7 @@
 	
 	<!-- Modal for editing-->
 	<div class="modal fade" id="modaledit" tabindex="-1" aria-labelledby="m_filenamelabel" aria-hidden="true">
-	  <div class="modal-dialog gokapi-dialog">
+	  <div class="modal-dialog  modal-lg gokapi-dialog">
 	    <div class="modal-content gokapi-dialog">
 	      <div class="modal-header">
 		<h1 class="modal-title fs-5" id="m_filenamelabel">Filename</h1>
@@ -129,9 +129,18 @@
 		  <span class="input-group-text" id="edit_pw">Password&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
 		  <input type="text" id="mi_edit_pw" class="form-control" aria-label="Password" disabled onclick="selectTextForPw(this)" aria-describedby="edit_pw">
 		</div>
+		
+	      <div class="input-group mb-3">
+		  <div class="input-group-text">
+		    <input type="checkbox" id="mc_replace" aria-label="Replace file content" title="Replace file content" data-toggle-target="mi_edit_replace" onchange="handleEditCheckboxChange(this)">
+		  </div>
+		  <span class="input-group-text" id="edit_replace">Replace Content&nbsp;&nbsp;</span>
+		  <select id="mi_edit_replace" class="form-select" aria-label="Replace File Content" disabled>
+		  </select>
+		</div>
 	      </div>
 	      <div class="modal-footer">
-		<button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Close</button>
+		<button type="button" class="btn btn-outline-light"  aria-label="Close" data-bs-dismiss="modal">Close</button>
 		<button type="button" class="btn btn-primary" data-fileid="" id="mb_save" onclick="editFile();">Save changes</button>
 	      </div>
 	    </div>
@@ -178,6 +187,7 @@
 		registerChangeHandler();
 	var systemKey = "{{.SystemKey}}";
 	setUploadDefaults();
+	
 	</script>
 
 {{ if .EndToEndEncryption }}
