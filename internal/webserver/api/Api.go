@@ -44,6 +44,8 @@ func Process(w http.ResponseWriter, r *http.Request, maxMemory int) {
 		duplicateFile(w, request)
 	case "/files/modify":
 		editFile(w, request)
+	case "/files/replace":
+		replaceFile(w, request)
 	case "/auth/create":
 		createApiKey(w, request)
 	case "/auth/friendlyname":
@@ -60,7 +62,7 @@ func Process(w http.ResponseWriter, r *http.Request, maxMemory int) {
 func editFile(w http.ResponseWriter, request apiRequest) {
 	file, ok := database.GetMetaDataById(request.filemodInfo.id)
 	if !ok {
-		sendError(w, http.StatusBadRequest, "Invalid file ID provided.")
+		sendError(w, http.StatusNotFound, "Invalid file ID provided.")
 		return
 	}
 	if request.filemodInfo.downloads != "" {
@@ -125,6 +127,8 @@ func getApiPermissionRequired(requestUrl string) (uint8, bool) {
 		return models.ApiPermUpload, true
 	case "/files/modify":
 		return models.ApiPermEdit, true
+	case "/files/replace":
+		return models.ApiPermReplace, true
 	case "/auth/create":
 		return models.ApiPermApiMod, true
 	case "/auth/friendlyname":
@@ -328,10 +332,9 @@ func list(w http.ResponseWriter) {
 }
 
 func listSingle(w http.ResponseWriter, id string) {
-	timeNow := time.Now().Unix()
 	config := configuration.Get()
-	file, ok := database.GetMetaDataById(id)
-	if !ok || storage.IsExpiredFile(file, timeNow) {
+	file, ok := storage.GetFile(id)
+	if !ok {
 		sendError(w, http.StatusNotFound, "Could not find file with id "+id)
 		return
 	}
@@ -365,7 +368,7 @@ func duplicateFile(w http.ResponseWriter, request apiRequest) {
 	}
 	file, ok := storage.GetFile(request.fileInfo.id)
 	if !ok {
-		sendError(w, http.StatusBadRequest, "Invalid id provided.")
+		sendError(w, http.StatusNotFound, "Invalid id provided.")
 		return
 	}
 	err = request.parseUploadRequest()
@@ -379,6 +382,27 @@ func duplicateFile(w http.ResponseWriter, request apiRequest) {
 		return
 	}
 	outputFileInfo(w, newFile)
+}
+
+func replaceFile(w http.ResponseWriter, request apiRequest) {
+	err := request.parseForm()
+	if err != nil {
+		sendError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	modifiedFile, err := storage.ReplaceFile(request.fileInfo.id, request.filemodInfo.idNewContent, request.filemodInfo.deleteNewFile)
+	if err != nil {
+		switch {
+		case errors.Is(err, storage.ErrorReplaceE2EFile):
+			sendError(w, http.StatusBadRequest, "End-to-End encrypted files cannot be replaced")
+		case errors.Is(err, storage.ErrorFileNotFound):
+			sendError(w, http.StatusNotFound, "A file with such an ID could not be found")
+		default:
+			sendError(w, http.StatusBadRequest, err.Error())
+		}
+		return
+	}
+	outputFileInfo(w, modifiedFile)
 }
 
 func outputFileInfo(w http.ResponseWriter, file models.File) {
@@ -456,10 +480,12 @@ type apiInfo struct {
 }
 type filemodInfo struct {
 	id               string
+	idNewContent     string
 	downloads        string
 	expiry           string
 	password         string
 	originalPassword bool
+	deleteNewFile    bool
 }
 
 func parseRequest(r *http.Request) apiRequest {
@@ -485,10 +511,12 @@ func parseRequest(r *http.Request) apiRequest {
 		fileInfo:   fileInfo{id: r.Header.Get("id")},
 		filemodInfo: filemodInfo{
 			id:               r.Header.Get("id"),
+			idNewContent:     r.Header.Get("idNewContent"),
 			downloads:        r.Header.Get("allowedDownloads"),
 			expiry:           r.Header.Get("expiryTimestamp"),
 			password:         r.Header.Get("password"),
 			originalPassword: r.Header.Get("originalPassword") == "true",
+			deleteNewFile:    r.Header.Get("deleteOriginal") == "true",
 		},
 		apiInfo: apiInfo{
 			friendlyName:     r.Header.Get("friendlyName"),

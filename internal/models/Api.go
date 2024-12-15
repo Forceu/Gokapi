@@ -23,7 +23,7 @@ const ApiPermNone = 0
 // ApiPermAll means all permission granted
 const ApiPermAll = 63
 
-// ApiPermAllNoApiMod means all permission granted, except ApiPermApiMod
+// ApiPermAllNoApiMod means all permission granted, except ApiPermApiMod and ApiPermReplace
 // This is the default for new API keys that are created from the UI
 const ApiPermAllNoApiMod = ApiPermAll - ApiPermApiMod - ApiPermReplace
 
