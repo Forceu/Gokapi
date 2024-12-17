@@ -110,6 +110,7 @@ func Start() {
 	mux.HandleFunc("/uploadChunk", requireLogin(uploadChunk, true))
 	mux.HandleFunc("/uploadComplete", requireLogin(uploadComplete, true))
 	mux.HandleFunc("/uploadStatus", requireLogin(sse.GetStatusSSE, true))
+	mux.HandleFunc("/users", requireLogin(showUserAdmin, false))
 	mux.Handle("/main.wasm", gziphandler.GzipHandler(http.HandlerFunc(serveDownloadWasm)))
 	mux.Handle("/e2e.wasm", gziphandler.GzipHandler(http.HandlerFunc(serveE2EWasm)))
 
@@ -297,6 +298,13 @@ func forgotPassword(w http.ResponseWriter, r *http.Request) {
 // If user is authenticated, this menu lists all uploads and enables uploading new files
 func showApiAdmin(w http.ResponseWriter, r *http.Request) {
 	err := templateFolder.ExecuteTemplate(w, "api", (&UploadView{}).convertGlobalConfig(ViewAPI))
+	helper.CheckIgnoreTimeout(err)
+}
+
+// Handling of /users
+// If user is authenticated, this menu lists all users
+func showUserAdmin(w http.ResponseWriter, r *http.Request) {
+	err := templateFolder.ExecuteTemplate(w, "users", (&UploadView{}).convertGlobalConfig(ViewUsers))
 	helper.CheckIgnoreTimeout(err)
 }
 
@@ -561,6 +569,7 @@ type e2ESetupView struct {
 type UploadView struct {
 	Items              []models.FileApiOutput
 	ApiKeys            []models.ApiKey
+	Users              []models.User
 	ServerUrl          string
 	Logs               string
 	PublicName         string
@@ -578,14 +587,16 @@ type UploadView struct {
 	TimeNow            int64
 }
 
-// ViewMain is the identifier for the main menu
-const ViewMain = 0
-
-// ViewLogs is the identifier for the log viewer menu
-const ViewLogs = 1
-
-// ViewAPI is the identifier for the API menu
-const ViewAPI = 2
+const (
+	// ViewMain is the identifier for the main menu
+	ViewMain = iota
+	// ViewLogs is the identifier for the log viewer menu
+	ViewLogs
+	// ViewAPI is the identifier for the API menu
+	ViewAPI
+	// ViewUsers is the identifier for the user management menu
+	ViewUsers
+)
 
 // Converts the globalConfig variable to an UploadView struct to pass the infos to
 // the admin template
@@ -624,6 +635,151 @@ func (u *UploadView) convertGlobalConfig(view int) *UploadView {
 			u.Logs = string(content)
 		} else {
 			u.Logs = "Warning: Log file not found!"
+		}
+	case ViewUsers:
+		// TODO
+		u.Users = []models.User{
+			{
+				Id:          0,
+				Name:        "Test",
+				Email:       "test@test.com",
+				Permissions: 0,
+				UserLevel:   0,
+				Password:    "213",
+			}, {
+				Id:          1,
+				Name:        "Test2",
+				Email:       "test2@test.com",
+				Permissions: 2,
+				UserLevel:   1,
+				Password:    "213",
+			}, {
+				Id:          0,
+				Name:        "Test",
+				Email:       "test@test.com",
+				Permissions: 0,
+				UserLevel:   0,
+				Password:    "213",
+			}, {
+				Id:          1,
+				Name:        "Test2",
+				Email:       "test2@test.com",
+				Permissions: 2,
+				UserLevel:   1,
+				Password:    "213",
+			}, {
+				Id:          0,
+				Name:        "Test",
+				Email:       "test@test.com",
+				Permissions: 0,
+				UserLevel:   0,
+				Password:    "213",
+			}, {
+				Id:          1,
+				Name:        "Test2",
+				Email:       "test2@test.com",
+				Permissions: 2,
+				UserLevel:   1,
+				Password:    "213",
+			}, {
+				Id:          0,
+				Name:        "Test",
+				Email:       "test@test.com",
+				Permissions: 0,
+				UserLevel:   0,
+				Password:    "213",
+			}, {
+				Id:          1,
+				Name:        "Test2",
+				Email:       "test2@test.com",
+				Permissions: 2,
+				UserLevel:   1,
+				Password:    "213",
+			}, {
+				Id:          0,
+				Name:        "Test",
+				Email:       "test@test.com",
+				Permissions: 0,
+				UserLevel:   0,
+				Password:    "213",
+			}, {
+				Id:          1,
+				Name:        "Test2",
+				Email:       "test2@test.com",
+				Permissions: 2,
+				UserLevel:   1,
+				Password:    "213",
+			}, {
+				Id:          0,
+				Name:        "Test",
+				Email:       "test@test.com",
+				Permissions: 0,
+				UserLevel:   0,
+				Password:    "213",
+			}, {
+				Id:          1,
+				Name:        "Test2",
+				Email:       "test2@test.com",
+				Permissions: 2,
+				UserLevel:   1,
+				Password:    "213",
+			}, {
+				Id:          0,
+				Name:        "Test",
+				Email:       "test@test.com",
+				Permissions: 0,
+				UserLevel:   0,
+				Password:    "213",
+			}, {
+				Id:          1,
+				Name:        "Test2",
+				Email:       "test2@test.com",
+				Permissions: 2,
+				UserLevel:   1,
+				Password:    "213",
+			}, {
+				Id:          0,
+				Name:        "Test",
+				Email:       "test@test.com",
+				Permissions: 0,
+				UserLevel:   0,
+				Password:    "213",
+			}, {
+				Id:          1,
+				Name:        "Test2",
+				Email:       "test2@test.com",
+				Permissions: 2,
+				UserLevel:   1,
+				Password:    "213",
+			}, {
+				Id:          0,
+				Name:        "Test",
+				Email:       "test@test.com",
+				Permissions: 0,
+				UserLevel:   0,
+				Password:    "213",
+			}, {
+				Id:          1,
+				Name:        "Test2",
+				Email:       "test2@test.com",
+				Permissions: 2,
+				UserLevel:   1,
+				Password:    "213",
+			}, {
+				Id:          0,
+				Name:        "Test",
+				Email:       "test@test.com",
+				Permissions: 0,
+				UserLevel:   0,
+				Password:    "213",
+			}, {
+				Id:          1,
+				Name:        "Test2",
+				Email:       "test2@test.com",
+				Permissions: 2,
+				UserLevel:   1,
+				Password:    "213",
+			},
 		}
 	}
 
