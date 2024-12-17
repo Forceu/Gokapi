@@ -89,7 +89,7 @@ document.onpaste = function(event) {
         return;
     }
     var items = (event.clipboardData || event.originalEvent.clipboardData).items;
-    for (index in items) {
+    for (let index in items) {
         var item = items[index];
         if (item.kind === 'file') {
             dropzoneObject.addFile(item.getAsFile());
@@ -111,7 +111,7 @@ document.onpaste = function(event) {
             });
         }
     }
-}
+};
 
 function setUploadDefaults() {
     let defaultDownloads = getLocalStorageWithDefault("defaultDownloads", 1);
@@ -241,25 +241,7 @@ function dropzoneGetFile(uid) {
 
 function requestFileInfo(fileId, uid) {
 
-    let apiUrl = './api/files/list/' + fileId;
-    const requestOptions = {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-            'apikey': systemKey,
-
-        },
-    };
-
-    // Send the request
-    fetch(apiUrl, requestOptions)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`Request failed with status: ${response.status}`);
-            }
-            return response.json();
-
-        })
+    apiFilesListById(fileId)
         .then(data => {
             addRow(data);
             let file = dropzoneGetFile(uid);
@@ -293,6 +275,51 @@ function requestFileInfo(fileId, uid) {
             }
             console.error('Error:', error);
         });
+}
+
+
+function addFriendlyNameChange() {
+    document.querySelectorAll(".apiname").forEach(function(node) {
+        node.onclick = function() {
+            if (this.classList.contains("isBeingEdited"))
+                return;
+            this.classList.add("isBeingEdited");
+            var val = this.innerHTML;
+            var input = document.createElement("input");
+            input.size = 5;
+            input.value = val;
+            let row = this;
+            let allowEdit = true;
+
+            let submitEntry = function() {
+                if (!allowEdit)
+                    return;
+                allowEdit = false;
+                var newName = input.value;
+                input.parentNode.innerHTML = newName;
+
+                row.classList.remove("isBeingEdited");
+
+                apiAuthFriendlyName(row.id, newName)
+                    .catch(error => {
+                        alert("Unable to save name: " + error);
+                        console.error('Error:', error);
+                    });
+            };
+
+            input.onblur = submitEntry;
+            input.addEventListener("keyup", function(event) {
+                // Enter
+                if (event.keyCode === 13) {
+                    event.preventDefault();
+                    submitEntry();
+                }
+            });
+            this.innerHTML = "";
+            this.appendChild(input);
+            input.focus();
+        };
+    });
 }
 
 
@@ -340,58 +367,6 @@ function showError(file, message) {
 }
 
 
-async function apiEdit(id, allowedDownloads, expiry, password, originalPw) {
-    let apiUrl = './api/files/modify';
-
-    const requestOptions = {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            'id': id,
-            'apikey': systemKey,
-            'allowedDownloads': allowedDownloads,
-            'expiryTimestamp': expiry,
-            'password': password,
-            'originalPassword': originalPw
-        },
-    };
-    await fetch(apiUrl, requestOptions)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`Request failed with status: ${response.status}`);
-            }
-        })
-        .catch(error => {
-            throw error
-        });
-}
-
-
-async function apiReplace(id, newId) {
-    let apiUrl = './api/files/replace';
-
-    const requestOptions = {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            'id': id,
-            'apikey': systemKey,
-            'idNewContent': newId,
-            'deleteNewFile': false
-        },
-    };
-    await fetch(apiUrl, requestOptions)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`Request failed with status: ${response.status}`);
-            }
-        })
-        .catch(error => {
-            throw error
-        });
-}
-
-
 function editFile() {
     const button = document.getElementById('mb_save');
     button.disabled = true;
@@ -420,13 +395,13 @@ function editFile() {
         replaceId = document.getElementById('mi_edit_replace').value;
     }
 
-    apiEdit(id, allowedDownloads, expiryTimestamp, password, originalPassword)
+    apiFilesModify(id, allowedDownloads, expiryTimestamp, password, originalPassword)
         .then(data => {
             if (!replaceFile) {
                 location.reload();
                 return;
             }
-            apiReplace(id, replaceId)
+            apiFilesReplace(id, replaceId)
                 .then(data => {
                     location.reload();
                 })
@@ -582,30 +557,13 @@ function changeApiPermission(apiKey, permission, buttonId) {
     indicator.classList.remove("apiperm-granted");
     indicator.classList.remove("apiperm-notgranted");
 
-    var apiUrl = './api/auth/modify';
     var modifier = "GRANT";
     if (wasGranted) {
         modifier = "REVOKE";
     }
 
-    const requestOptions = {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'apikey': systemKey,
-            'apiKeyToModify': apiKey,
-            'permission': permission,
-            'permissionModifier': modifier
 
-        },
-    };
-
-    fetch(apiUrl, requestOptions)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`Request failed with status: ${response.status}`);
-            }
-        })
+    apiAuthModify(apiKey, permission, modifier)
         .then(data => {
             if (wasGranted) {
                 indicator.classList.add("apiperm-notgranted");
@@ -629,22 +587,8 @@ function changeApiPermission(apiKey, permission, buttonId) {
 function deleteApiKey(apiKey) {
 
     document.getElementById("delete-" + apiKey).disabled = true;
-    var apiUrl = './api/auth/delete';
-    const requestOptions = {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'apikey': systemKey,
-            'apiKeyToModify': apiKey,
-        },
-    };
 
-    fetch(apiUrl, requestOptions)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`Request failed with status: ${response.status}`);
-            }
-        })
+    apiAuthDelete(apiKey)
         .then(data => {
             document.getElementById("row-" + apiKey).remove();
         })
@@ -659,22 +603,8 @@ function deleteApiKey(apiKey) {
 function newApiKey() {
 
     document.getElementById("button-newapi").disabled = true;
-    var apiUrl = './api/auth/create';
-    const requestOptions = {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'apikey': systemKey,
-            'basicPermissions': 'true'
-        },
-    };
 
-    fetch(apiUrl, requestOptions)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`Request failed with status: ${response.status}`);
-            }
-        })
+    apiAuthCreate()
         .then(data => {
             location.reload();
         })
@@ -688,22 +618,8 @@ function newApiKey() {
 function deleteFile(id) {
 
     document.getElementById("button-delete-" + id).disabled = true;
-    var apiUrl = './api/files/delete';
-    const requestOptions = {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'apikey': systemKey,
-            'id': id
-        },
-    };
 
-    fetch(apiUrl, requestOptions)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`Request failed with status: ${response.status}`);
-            }
-        })
+    apiFilesDelete(id)
         .then(data => {
             location.reload();
         })
@@ -766,10 +682,10 @@ function setNewDownloadCount(id, downloadCount, downloadsRemaining) {
 
 
 function registerChangeHandler() {
-    const source = new EventSource("./uploadStatus")
+    const source = new EventSource("./uploadStatus");
     source.onmessage = (event) => {
         parseSseData(event.data);
-    }
+    };
     source.onerror = (error) => {
 
         // Check for net::ERR_HTTP2_PROTOCOL_ERROR 200 (OK) and ignore it

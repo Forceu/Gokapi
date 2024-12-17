@@ -38,7 +38,7 @@ func getPaths() []converter {
 		Name:            "Main CSS",
 	})
 	result = append(result, converter{
-		InputPath:       pathPrefix + "js/admin.js",
+		InputPath:       pathPrefix + "js/admin_*.js",
 		OutputPath:      pathPrefix + "js/min/admin.min." + strconv.Itoa(jsAdminVersion) + ".js",
 		PreviousVersion: pathPrefix + "js/min/admin.min." + strconv.Itoa(jsAdminVersion-1) + ".js",
 		Type:            "text/javascript",
