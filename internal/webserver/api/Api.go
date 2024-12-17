@@ -11,6 +11,7 @@ import (
 	"github.com/forceu/gokapi/internal/webserver/fileupload"
 	"io"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -388,6 +389,11 @@ func replaceFile(w http.ResponseWriter, request apiRequest) {
 	err := request.parseForm()
 	if err != nil {
 		sendError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	// TODO remove with 2.0 once user control has been added
+	if os.Getenv("GOKAPI_DISABLE_REPLACE") != "" {
+		sendError(w, http.StatusUnauthorized, "Replace file is disabled")
 		return
 	}
 	modifiedFile, err := storage.ReplaceFile(request.fileInfo.id, request.filemodInfo.idNewContent, request.filemodInfo.deleteNewFile)
