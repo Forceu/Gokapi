@@ -7,11 +7,36 @@ Changelog
 Overview of all Changes
 -----------------------
 
+v1.9.6: 18 Dec 2024
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* Add API call and GUI option to replace content of files (can be disabled with the env variable GOKAPI_DISABLE_REPLACE)
+* Display error if encrypted download fails due to invalid SSL or CORS
+* Better error handling for AWS setup check
+* Fixed upload defaults being deleted when resetting e2e key
+* Update download count in real time #206
+* Fixed race condition that could lead to crash
+* Change download count atomically to prevent race condition
+* Renamed "Access Restriction" to indicate that authentication is disababled
+* Make upload non blocking (#224), to prevent timouts after uploading large files
+* Added API call /files/list/{id}
+* Better handling for E2E errors
+* Other minor changes
+* Breaking Changes
+   * API now returns 404 on invalid file IDs
+
+
+
+
+v1.9.5: 08 Dec 2024
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* Fixed a crash caused by an incorrectly upgraded database version #215
 
 v1.9.4: 07 Dec 2024
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-* Fixed a crash caused by an incorrectly upgraded database version #215
+* Retracted release
 
 v1.9.3: 07 Dec 2024
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
