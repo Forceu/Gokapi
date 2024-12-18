@@ -1,0 +1,91 @@
+{{ define "users" }}
+{{ template "header" . }}
+<div class="row">
+    <div class="col">
+        <div id="container" class="card" style="width: 80%">
+            <div class="card-body">
+                <h3 class="card-title">API Keys</h3>
+                <br>
+                Please visit the <a target="_blank" href="./apidocumentation">API documentation</a> for more information about the API.<br>Click on the API key name to give it a new name. Permissions can be changed by clicking on them.
+                <br>
+                <br>
+                <div class="table-responsive">
+                    <table class="table table-dark">
+                        <thead>
+                            <tr>
+                                <th scope="col">Name</th>
+                                <th scope="col">Email</th>
+                                <th scope="col">Group</th>
+            			<th scope="col">Permissions</th>
+                                <th scope="col">Actions</th>
+				<th scope="col"><button id="button-newapi" type="button" class="btn btn-outline-light btn-sm" onclick="newApiKey()"><i class="bi bi-plus-circle-fill"></i> New Key</button></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+{{ range .Users }}
+                            <tr id="row-{{ .Id }}">
+                                <td scope="col" id="{{ .Id }}">{{ .Name }}</td>
+                                <td scope="col">{{ .Email }}</td>
+                                <td scope="col">{{ .UserLevel }}</td>
+                                           <td>
+
+            				</td>
+                                <td scope="col"><button type="button" data-clipboard-text="{{ .Id }}"  onclick="showToast()" title="Copy API Key" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i></button> <button id="delete-{{ .Id }}" type="button" class="btn btn-outline-danger btn-sm" onclick="deleteApiKey('{{ .Id }}')" title="Delete"><i class="bi bi-trash3"></i></button></td>
+ <td scope="col"></td>
+                            </tr>
+{{ end }}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+	<div id="toastnotification" class="toastnotification">API key copied to clipboard</div>
+    </div>
+</div>
+<script src="./js/min/admin.min.{{ template "js_admin_version"}}.js"></script>
+<script>
+	document.querySelectorAll(".apiname").forEach(function(node) {
+	    node.onclick = function() {
+		if (this.classList.contains("isBeingEdited"))
+		    return;
+		this.classList.add("isBeingEdited");
+		var val = this.innerHTML;
+		var input = document.createElement("input");
+		input.size = 5;
+		input.value = val;
+		let row = this;
+		let allowEdit = true;
+		let submitEntry = function() {
+		    if (!allowEdit)
+			return;
+		    allowEdit = false;
+		    var val = input.value;
+		    input.parentNode.innerHTML = val;
+		    let xmlhttp = new XMLHttpRequest();
+		    xmlhttp.open("GET", "./api/auth/friendlyname");
+		    xmlhttp.setRequestHeader("apiKeyToModify", row.id);
+		    xmlhttp.setRequestHeader("friendlyName", val);
+		    xmlhttp.setRequestHeader("apikey", systemKey);
+		    xmlhttp.send();
+		    row.classList.remove("isBeingEdited");
+
+		    //xmlhttp.onreadystatechange = (e) => {
+		    //}
+		}
+		input.onblur = submitEntry;
+		input.addEventListener("keyup", function(event) {
+		    //Enter
+		    if (event.keyCode === 13) {
+		        event.preventDefault();
+		        submitEntry();
+		    }
+		});
+		this.innerHTML = "";
+		this.appendChild(input);
+		input.focus();
+	    }
+	});
+	var systemKey = "{{.SystemKey}}";
+</script>
+{{ template "footer" true }}
+{{ end }}
