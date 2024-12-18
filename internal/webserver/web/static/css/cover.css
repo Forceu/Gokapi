@@ -220,6 +220,16 @@ td.newItem {
   }
 }
 
+
+@keyframes subtleHighlightNewApiKey {
+  0% {
+    background-color: green;  /* Pale green for new items */
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
 /* Apply the animation to the updated table cells */
 .updatedDownloadCount {
   animation: subtleHighlight 0.5s ease-out;
@@ -229,5 +239,10 @@ td.newItem {
 .updatedDownloadCount.newItem {
   animation: subtleHighlightNewItem 0.5s ease-out;
 }
+
+.newApiKey {
+  animation: subtleHighlightNewApiKey 0.7s ease-out;
+}
+
 
 
