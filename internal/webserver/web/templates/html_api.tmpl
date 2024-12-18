@@ -21,11 +21,11 @@
 				<th scope="col"><button id="button-newapi" type="button" class="btn btn-outline-light btn-sm" onclick="newApiKey()"><i class="bi bi-plus-circle-fill"></i> New Key</button></th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="apitable">
 {{ range .ApiKeys }}
 {{ if not .IsSystemKey }}
                             <tr id="row-{{ .Id }}">
-                                <td scope="col" id="{{ .Id }}" class="apiname">{{ .FriendlyName }}</td>
+                                <td scope="col" id="friendlyname-{{ .Id }}" onClick="addFriendlyNameChange('{{ .Id }}')">{{ .FriendlyName }}</td>
                                 <td scope="col">{{ .Id }}</td>
                                 <td scope="col">{{ .GetReadableDate }}</td>
                                             <td scope="col">
@@ -52,7 +52,6 @@
 </div>
 <script src="./js/min/admin.min.{{ template "js_admin_version"}}.js"></script>
 <script>
-	addFriendlyNameChange();
 	var systemKey = "{{.SystemKey}}";
 </script>
 {{ template "footer" true }}
