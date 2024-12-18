@@ -157,36 +157,43 @@
 
 	<script src="./js/min/admin.min.{{ template "js_admin_version"}}.js"></script>
 	<script>
-		Dropzone.options.uploaddropzone["maxFilesize"] = {{ .MaxFileSize }};
-		Dropzone.options.uploaddropzone["timeout"] = 1200000;
-		Dropzone.options.uploaddropzone["chunking"] = true;
-		Dropzone.options.uploaddropzone["chunkSize"] = {{ .ChunkSize }} * 1024 * 1024;
-		Dropzone.options.uploaddropzone["parallelUploads"] = {{ .MaxParallelUploads }};
-		Dropzone.options.uploaddropzone["parallelChunkUploads"] = true;
-		Dropzone.options.uploaddropzone["forceChunking"] = true;
-		Dropzone.options.uploaddropzone["retryChunksLimit"] = 3;
-		Dropzone.options.uploaddropzone["retryChunks"] = true;
-		Dropzone.options.uploaddropzone["previewsContainer"] = false;
+	
+	
+	initDropzone();
+
+	Dropzone.options.uploaddropzone["maxFilesize"] = {{ .MaxFileSize }};
+	Dropzone.options.uploaddropzone["timeout"] = 1200000;
+	Dropzone.options.uploaddropzone["chunking"] = true;
+	Dropzone.options.uploaddropzone["chunkSize"] = {{ .ChunkSize }} * 1024 * 1024;
+	Dropzone.options.uploaddropzone["parallelUploads"] = {{ .MaxParallelUploads }};
+	Dropzone.options.uploaddropzone["parallelChunkUploads"] = true;
+	Dropzone.options.uploaddropzone["forceChunking"] = true;
+	Dropzone.options.uploaddropzone["retryChunksLimit"] = 3;
+	Dropzone.options.uploaddropzone["retryChunks"] = true;
+	Dropzone.options.uploaddropzone["previewsContainer"] = false;
+	
+	$(document).ready(function () {
+	
+	    $('#maintable').DataTable({
+	    "responsive": true,
+	    "columnDefs": [ {
+		"targets": 6,
+		"orderable": false
+		} ],
+	    "paging": false,
+	    "language": {
+	      "info": "Files stored: _TOTAL_",
+	      "emptyTable": "No files stored yet",
+	      "infoEmpty": "",
+	    }
+	    });
+	});
+	
+	registerChangeHandler();
 		
-		$(document).ready(function () {
-		
-		    $('#maintable').DataTable({
-    		    "responsive": true,
-		    "columnDefs": [ {
-			"targets": 6,
-			"orderable": false
-			} ],
-		    "paging": false,
-		    "language": {
-		      "info": "Files stored: _TOTAL_",
-		      "emptyTable": "No files stored yet",
-		      "infoEmpty": "",
-		    }
-		    });
-		});
-		registerChangeHandler();
 	var systemKey = "{{.SystemKey}}";
 	setUploadDefaults();
+	
 	
 	</script>
 
