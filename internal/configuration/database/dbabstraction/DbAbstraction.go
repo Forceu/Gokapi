@@ -83,6 +83,17 @@ type Database interface {
 	DeleteSession(id string)
 	// DeleteAllSessions logs all users out
 	DeleteAllSessions()
+
+	// GetAllUsers returns a map with all users
+	GetAllUsers() map[int]models.User
+	// GetUser returns a models.User if valid or false if the ID is not valid
+	GetUser(id int) (models.User, bool)
+	// SaveUser saves a user to the database. If isNewUser is true, a new Id will be generated
+	SaveUser(user models.User, isNewUser bool)
+	// UpdateUserLastOnline writes the last online time to the database
+	UpdateUserLastOnline(id int)
+	// DeleteUser deletes a user with the given ID
+	DeleteUser(id int)
 }
 
 // GetNew connects to the given database and initialises it

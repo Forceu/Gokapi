@@ -66,7 +66,11 @@ func Migrate(configOld, configNew models.DbConnection) {
 	for _, apiKey := range apiKeys {
 		dbNew.SaveApiKey(apiKey)
 	}
-	// dbNew.SaveEnd2EndInfo(dbOld.GetEnd2EndInfo()) // TODO
+	users := dbOld.GetAllUsers()
+	for _, user := range users {
+		dbNew.SaveUser(user, false)
+		dbNew.SaveEnd2EndInfo(dbOld.GetEnd2EndInfo(user.Id), user.Id)
+	}
 	files := dbOld.GetAllMetadata()
 	for _, file := range files {
 		dbNew.SaveMetaData(file)
@@ -225,4 +229,31 @@ func DeleteSession(id string) {
 // DeleteAllSessions logs all users out
 func DeleteAllSessions() {
 	db.DeleteAllSessions()
+}
+
+// User Section
+
+// GetAllUsers returns a map with all users
+func GetAllUsers() map[int]models.User {
+	return db.GetAllUsers()
+}
+
+// GetUser returns a models.User if valid or false if the ID is not valid
+func GetUser(id int) (models.User, bool) {
+	return db.GetUser(id)
+}
+
+// SaveUser saves a user to the database. If isNewUser is true, a new Id will be generated
+func SaveUser(user models.User, isNewUser bool) {
+	db.SaveUser(user, isNewUser)
+}
+
+// UpdateUserLastOnline writes the last online time to the database
+func UpdateUserLastOnline(id int) {
+	db.UpdateUserLastOnline(id)
+}
+
+// DeleteUser deletes a user with the given ID
+func DeleteUser(id int) {
+	db.DeleteUser(id)
 }

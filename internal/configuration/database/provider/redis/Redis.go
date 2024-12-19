@@ -301,6 +301,22 @@ func (p DatabaseProvider) decreaseHashmapIntField(id string, field string) {
 	helper.Check(err)
 }
 
+func (p DatabaseProvider) setHashmapField(id string, field string, content any) {
+	conn := p.pool.Get()
+	defer conn.Close()
+	_, err := conn.Do("HSET", p.dbPrefix+id, field, content)
+	helper.Check(err)
+}
+
+func (p DatabaseProvider) getIncreasedInt(id string) int {
+	conn := p.pool.Get()
+	defer conn.Close()
+	result, err := conn.Do("INCR", p.dbPrefix+id)
+	resultInt, err2 := redigo.Int(result, err)
+	helper.Check(err2)
+	return resultInt
+}
+
 func (p DatabaseProvider) runEval(cmd string) {
 	conn := p.pool.Get()
 	defer conn.Close()

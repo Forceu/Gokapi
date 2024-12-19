@@ -42,7 +42,7 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 		helper.Check(err)
 		err = p.rawSqlite(`DELETE FROM "ApiKeys" WHERE IsSystemKey = 1`)
 		helper.Check(err)
-		err = p.rawSqlite(`ALTER TABLE "E2EConfig" ADD COLUMN UserId INTEGER NOT NULL DEFAULT 0;`) // TODO
+		err = p.rawSqlite(`ALTER TABLE "E2EConfig" ADD COLUMN UserId INTEGER NOT NULL DEFAULT 0;`) // TODO migration
 		helper.Check(err)
 		err = p.rawSqlite(`ALTER TABLE "FileMetaData" ADD COLUMN UserId INTEGER NOT NULL DEFAULT 0;`)
 		helper.Check(err)
@@ -52,7 +52,18 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 			"ValidUntil"	INTEGER NOT NULL,
 			"UserId"	INTEGER NOT NULL,
 			PRIMARY KEY("Id")
-		) WITHOUT ROWID;`)
+		) WITHOUT ROWID;
+		CREATE TABLE "Users" (
+			"Id"	INTEGER NOT NULL UNIQUE,
+			"Email"	TEXT NOT NULL UNIQUE,
+			"Password"	TEXT NOT NULL,
+			"Name"	TEXT NOT NULL,
+			"Permissions"	INTEGER NOT NULL,
+			"Userlevel"	INTEGER NOT NULL,
+			"LastOnline"	INTEGER NOT NULL DEFAULT 0,
+		PRIMARY KEY("Id" AUTOINCREMENT)
+	);`)
+		// TODO admin user to db user
 		helper.Check(err)
 	}
 }
@@ -174,6 +185,16 @@ func (p DatabaseProvider) createNewDatabase() error {
 			"UserId"	INTEGER NOT NULL,
 			PRIMARY KEY("Id")
 		) WITHOUT ROWID;
+		CREATE TABLE "Users" (
+			"Id"	INTEGER NOT NULL UNIQUE,
+			"Email"	TEXT NOT NULL UNIQUE,
+			"Password"	TEXT NOT NULL,
+			"Name"	TEXT NOT NULL,
+			"Permissions"	INTEGER NOT NULL,
+			"Userlevel"	INTEGER NOT NULL,
+			"LastOnline"	INTEGER NOT NULL DEFAULT 0,
+			PRIMARY KEY("Id" AUTOINCREMENT)
+		);
 `
 	err := p.rawSqlite(sqlStmt)
 	if err != nil {

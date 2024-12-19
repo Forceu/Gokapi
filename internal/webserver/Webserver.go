@@ -463,17 +463,23 @@ func e2eInfo(w http.ResponseWriter, r *http.Request) {
 		responseError(w, errors.New("invalid action specified"))
 		return
 	}
+
+	userId, err := authentication.GetUserIdFromRequest(r)
+	if err != nil {
+		responseError(w, err)
+		return
+	}
 	switch action[0] {
 	case "get":
-		getE2eInfo(w)
+		getE2eInfo(w, userId)
 	case "store":
-		storeE2eInfo(w, r)
+		storeE2eInfo(w, r, userId)
 	default:
 		responseError(w, errors.New("invalid action specified"))
 	}
 }
 
-func storeE2eInfo(w http.ResponseWriter, r *http.Request) {
+func storeE2eInfo(w http.ResponseWriter, r *http.Request, userId int) {
 	err := r.ParseForm()
 	if err != nil {
 		responseError(w, err)
@@ -495,12 +501,12 @@ func storeE2eInfo(w http.ResponseWriter, r *http.Request) {
 		responseError(w, err)
 		return
 	}
-	database.SaveEnd2EndInfo(info)
+	database.SaveEnd2EndInfo(info, userId)
 	_, _ = w.Write([]byte("\"result\":\"OK\""))
 }
 
-func getE2eInfo(w http.ResponseWriter) {
-	info := database.GetEnd2EndInfo()
+func getE2eInfo(w http.ResponseWriter, userId int) {
+	info := database.GetEnd2EndInfo(userId)
 	bytesE2e, err := json.Marshal(info)
 	helper.Check(err)
 	_, _ = w.Write(bytesE2e)
@@ -523,16 +529,18 @@ func queryUrl(w http.ResponseWriter, r *http.Request, redirectUrl string) string
 // Handling of /admin
 // If user is authenticated, this menu lists all uploads and enables uploading new files
 func showAdminMenu(w http.ResponseWriter, r *http.Request) {
+
+	userId, err := authentication.GetUserIdFromRequest(r)
+	if err != nil {
+		panic(err)
+	}
+
 	if configuration.Get().Encryption.Level == encryption.EndToEndEncryption {
-		e2einfo := database.GetEnd2EndInfo()
+		e2einfo := database.GetEnd2EndInfo(userId)
 		if !e2einfo.HasBeenSetUp() {
 			redirect(w, "e2eSetup")
 			return
 		}
-	}
-	userId, err := authentication.GetUserIdFromRequest(r)
-	if err != nil {
-		panic(err)
 	}
 	err = templateFolder.ExecuteTemplate(w, "admin", (&UploadView{}).convertGlobalConfig(ViewMain, userId))
 	helper.CheckIgnoreTimeout(err)
@@ -554,8 +562,13 @@ func showE2ESetup(w http.ResponseWriter, r *http.Request) {
 		redirect(w, "admin")
 		return
 	}
-	e2einfo := database.GetEnd2EndInfo()
-	err := templateFolder.ExecuteTemplate(w, "e2esetup", e2ESetupView{HasBeenSetup: e2einfo.HasBeenSetUp(), PublicName: configuration.Get().PublicName})
+
+	userId, err := authentication.GetUserIdFromRequest(r)
+	if err != nil {
+		panic(err)
+	}
+	e2einfo := database.GetEnd2EndInfo(userId)
+	err = templateFolder.ExecuteTemplate(w, "e2esetup", e2ESetupView{HasBeenSetup: e2einfo.HasBeenSetUp(), PublicName: configuration.Get().PublicName})
 	helper.CheckIgnoreTimeout(err)
 }
 
@@ -657,31 +670,12 @@ func (u *UploadView) convertGlobalConfig(view, userId int) *UploadView {
 			u.Logs = "Warning: Log file not found!"
 		}
 	case ViewUsers:
-		// TODO
 		uploadCounts := storage.GetUploadCounts()
-		u.Users = []userInfo{
-			{
-				Id:          0,
-				Name:        "Test",
-				Email:       "test@test.com",
-				Permissions: 0,
-				UserLevel:   "Super Admin",
-				UploadCount: uploadCounts[0],
-			}, {
-				Id:          1,
-				Name:        "Test2",
-				Email:       "test2@test.com",
-				Permissions: 2,
-				UserLevel:   "Admin",
-				UploadCount: uploadCounts[1],
-			}, {
-				Id:          2,
-				Name:        "Test3",
-				Email:       "test3@test.com",
-				Permissions: 4,
-				UserLevel:   "User",
-				UploadCount: uploadCounts[2],
-			},
+		u.Users = make([]userInfo, 0)
+		for _, user := range database.GetAllUsers() {
+			var convertedUser userInfo
+			convertedUser.fromUser(user, uploadCounts)
+			u.Users = append(u.Users, convertedUser)
 		}
 	}
 
@@ -709,6 +703,30 @@ type userInfo struct {
 	UserLevel   string
 	UploadCount int
 	Permissions uint8
+	LastOnline  string
+}
+
+func (u *userInfo) fromUser(user models.User, uploadCounts map[int]int) {
+	u.Id = user.Id
+	u.Name = user.Name
+	u.Email = user.Email
+	u.UploadCount = uploadCounts[user.Id]
+	u.Permissions = user.Permissions
+	switch user.UserLevel {
+	case models.UserLevelSuperAdmin:
+		u.UserLevel = "Super Admin"
+	case models.UserLevelAdmin:
+		u.UserLevel = "Admin"
+	case models.UserLevelUser:
+		u.UserLevel = "User"
+	default:
+		u.UserLevel = "Invalid"
+	}
+	if user.LastOnline == 0 {
+		u.LastOnline = "Never"
+	} else {
+		u.LastOnline = storage.FormatTimestamp(user.LastOnline)
+	}
 }
 
 // Handling of /uploadChunk

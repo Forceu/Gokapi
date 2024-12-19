@@ -1,12 +1,13 @@
 package models
 
 type User struct {
-	Id          int    `json:"id"`
-	Name        string `json:"name"`
-	Email       string `json:"email"`
-	Permissions int8   `json:"permissions"`
-	UserLevel   int8   `json:"userLevel"`
-	Password    string
+	Id          int    `json:"id" redis:"id""`
+	Name        string `json:"name" redis:"Name"`
+	Email       string `json:"email" redis:"Email"`
+	Permissions uint8  `json:"permissions" redis:"Permissions"`
+	UserLevel   uint8  `json:"userLevel" redis:"UserLevel"`
+	LastOnline  int64  `json:"lastOnline" redis:"LastOnline"`
+	Password    string `redis:"Password"`
 }
 
 const UserLevelSuperAdmin = 0

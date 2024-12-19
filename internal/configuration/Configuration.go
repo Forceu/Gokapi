@@ -155,7 +155,9 @@ func LoadFromSetup(config models.Configuration, cloudConfig *cloudconfig.CloudCo
 	ConnectDatabase()
 	database.DeleteAllSessions()
 	if e2eConfig.DeleteEnd2EndEncryption {
-		database.DeleteEnd2EndInfo()
+		for _, user := range database.GetAllUsers() {
+			database.DeleteEnd2EndInfo(user.Id)
+		}
 	}
 	if e2eConfig.DeleteEncryptedStorage {
 		deleteAllEncryptedStorage()
