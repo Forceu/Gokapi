@@ -127,8 +127,8 @@ func DeleteApiKey(id string) {
 }
 
 // GetSystemKey returns the latest UI API key
-func GetSystemKey() (models.ApiKey, bool) {
-	return db.GetSystemKey()
+func GetSystemKey(userId int) (models.ApiKey, bool) {
+	return db.GetSystemKey(userId)
 }
 
 // E2E Section
