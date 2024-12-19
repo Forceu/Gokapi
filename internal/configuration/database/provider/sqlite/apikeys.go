@@ -15,6 +15,7 @@ type schemaApiKeys struct {
 	Permissions  int
 	Expiry       int64
 	IsSystemKey  int
+	UserId       int
 }
 
 // currentTime is used in order to modify the current time for testing purposes in unit tests
@@ -31,7 +32,7 @@ func (p DatabaseProvider) GetAllApiKeys() map[string]models.ApiKey {
 	defer rows.Close()
 	for rows.Next() {
 		rowData := schemaApiKeys{}
-		err = rows.Scan(&rowData.Id, &rowData.FriendlyName, &rowData.LastUsed, &rowData.Permissions, &rowData.Expiry, &rowData.IsSystemKey)
+		err = rows.Scan(&rowData.Id, &rowData.FriendlyName, &rowData.LastUsed, &rowData.Permissions, &rowData.Expiry, &rowData.IsSystemKey, &rowData.UserId)
 		helper.Check(err)
 		result[rowData.Id] = models.ApiKey{
 			Id:           rowData.Id,
@@ -40,6 +41,7 @@ func (p DatabaseProvider) GetAllApiKeys() map[string]models.ApiKey {
 			Permissions:  uint8(rowData.Permissions),
 			Expiry:       rowData.Expiry,
 			IsSystemKey:  rowData.IsSystemKey == 1,
+			UserId:       rowData.UserId,
 		}
 	}
 	return result
@@ -49,7 +51,7 @@ func (p DatabaseProvider) GetAllApiKeys() map[string]models.ApiKey {
 func (p DatabaseProvider) GetApiKey(id string) (models.ApiKey, bool) {
 	var rowResult schemaApiKeys
 	row := p.sqliteDb.QueryRow("SELECT * FROM ApiKeys WHERE Id = ?", id)
-	err := row.Scan(&rowResult.Id, &rowResult.FriendlyName, &rowResult.LastUsed, &rowResult.Permissions, &rowResult.Expiry, &rowResult.IsSystemKey)
+	err := row.Scan(&rowResult.Id, &rowResult.FriendlyName, &rowResult.LastUsed, &rowResult.Permissions, &rowResult.Expiry, &rowResult.IsSystemKey, &rowResult.UserId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return models.ApiKey{}, false
@@ -65,16 +67,17 @@ func (p DatabaseProvider) GetApiKey(id string) (models.ApiKey, bool) {
 		Permissions:  uint8(rowResult.Permissions),
 		Expiry:       rowResult.Expiry,
 		IsSystemKey:  rowResult.IsSystemKey == 1,
+		UserId:       rowResult.UserId,
 	}
 
 	return result, true
 }
 
 // GetSystemKey returns the latest UI API key
-func (p DatabaseProvider) GetSystemKey() (models.ApiKey, bool) {
+func (p DatabaseProvider) GetSystemKey(userId int) (models.ApiKey, bool) {
 	var rowResult schemaApiKeys
-	row := p.sqliteDb.QueryRow("SELECT * FROM ApiKeys WHERE IsSystemKey = 1 ORDER BY Expiry DESC LIMIT 1")
-	err := row.Scan(&rowResult.Id, &rowResult.FriendlyName, &rowResult.LastUsed, &rowResult.Permissions, &rowResult.Expiry, &rowResult.IsSystemKey)
+	row := p.sqliteDb.QueryRow("SELECT * FROM ApiKeys WHERE IsSystemKey = 1 AND UserId = ? ORDER BY Expiry DESC LIMIT 1", userId)
+	err := row.Scan(&rowResult.Id, &rowResult.FriendlyName, &rowResult.LastUsed, &rowResult.Permissions, &rowResult.Expiry, &rowResult.IsSystemKey, &rowResult.UserId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return models.ApiKey{}, false
@@ -90,6 +93,7 @@ func (p DatabaseProvider) GetSystemKey() (models.ApiKey, bool) {
 		Permissions:  uint8(rowResult.Permissions),
 		Expiry:       rowResult.Expiry,
 		IsSystemKey:  rowResult.IsSystemKey == 1,
+		UserId:       rowResult.UserId,
 	}
 	return result, true
 }
@@ -100,8 +104,8 @@ func (p DatabaseProvider) SaveApiKey(apikey models.ApiKey) {
 	if apikey.IsSystemKey {
 		isSystemKey = 1
 	}
-	_, err := p.sqliteDb.Exec("INSERT OR REPLACE INTO ApiKeys (Id, FriendlyName, LastUsed, Permissions, Expiry, IsSystemKey) VALUES (?, ?, ?, ?, ?, ?)",
-		apikey.Id, apikey.FriendlyName, apikey.LastUsed, apikey.Permissions, apikey.Expiry, isSystemKey)
+	_, err := p.sqliteDb.Exec("INSERT OR REPLACE INTO ApiKeys (Id, FriendlyName, LastUsed, Permissions, Expiry, IsSystemKey, UserId) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		apikey.Id, apikey.FriendlyName, apikey.LastUsed, apikey.Permissions, apikey.Expiry, isSystemKey, apikey.UserId)
 	helper.Check(err)
 }
 

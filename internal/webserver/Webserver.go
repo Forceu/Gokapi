@@ -158,8 +158,9 @@ func loadExpiryImage() {
 	svgTemplate, err := templatetext.ParseFS(templateFolderEmbedded, "web/templates/expired_file_svg.tmpl")
 	helper.Check(err)
 	var buf bytes.Buffer
-	view := UploadView{}
-	err = svgTemplate.Execute(&buf, view.convertGlobalConfig(ViewMain))
+	err = svgTemplate.Execute(&buf, struct {
+		PublicName string
+	}{PublicName: configuration.Get().ServerUrl})
 	helper.Check(err)
 	imageExpiredPicture = buf.Bytes()
 }
@@ -297,14 +298,22 @@ func forgotPassword(w http.ResponseWriter, r *http.Request) {
 // Handling of /api
 // If user is authenticated, this menu lists all uploads and enables uploading new files
 func showApiAdmin(w http.ResponseWriter, r *http.Request) {
-	err := templateFolder.ExecuteTemplate(w, "api", (&UploadView{}).convertGlobalConfig(ViewAPI))
+	userId, err := authentication.GetUserIdFromRequest(r)
+	if err != nil {
+		panic(err)
+	}
+	err = templateFolder.ExecuteTemplate(w, "api", (&UploadView{}).convertGlobalConfig(ViewAPI, userId))
 	helper.CheckIgnoreTimeout(err)
 }
 
 // Handling of /users
 // If user is authenticated, this menu lists all users
 func showUserAdmin(w http.ResponseWriter, r *http.Request) {
-	err := templateFolder.ExecuteTemplate(w, "users", (&UploadView{}).convertGlobalConfig(ViewUsers))
+	userId, err := authentication.GetUserIdFromRequest(r)
+	if err != nil {
+		panic(err)
+	}
+	err = templateFolder.ExecuteTemplate(w, "users", (&UploadView{}).convertGlobalConfig(ViewUsers, userId))
 	helper.CheckIgnoreTimeout(err)
 }
 
@@ -521,14 +530,22 @@ func showAdminMenu(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	err := templateFolder.ExecuteTemplate(w, "admin", (&UploadView{}).convertGlobalConfig(ViewMain))
+	userId, err := authentication.GetUserIdFromRequest(r)
+	if err != nil {
+		panic(err)
+	}
+	err = templateFolder.ExecuteTemplate(w, "admin", (&UploadView{}).convertGlobalConfig(ViewMain, userId))
 	helper.CheckIgnoreTimeout(err)
 }
 
 // Handling of /logs
 // If user is authenticated, this menu shows the stored logs
 func showLogs(w http.ResponseWriter, r *http.Request) {
-	err := templateFolder.ExecuteTemplate(w, "logs", (&UploadView{}).convertGlobalConfig(ViewLogs))
+	userId, err := authentication.GetUserIdFromRequest(r)
+	if err != nil {
+		panic(err)
+	}
+	err = templateFolder.ExecuteTemplate(w, "logs", (&UploadView{}).convertGlobalConfig(ViewLogs, userId))
 	helper.CheckIgnoreTimeout(err)
 }
 
@@ -601,7 +618,7 @@ const (
 
 // Converts the globalConfig variable to an UploadView struct to pass the infos to
 // the admin template
-func (u *UploadView) convertGlobalConfig(view int) *UploadView {
+func (u *UploadView) convertGlobalConfig(view, userId int) *UploadView {
 	var result []models.FileApiOutput
 	var resultApi []models.ApiKey
 
@@ -621,7 +638,9 @@ func (u *UploadView) convertGlobalConfig(view int) *UploadView {
 		})
 	case ViewAPI:
 		for _, element := range database.GetAllApiKeys() {
-			resultApi = append(resultApi, element)
+			if !element.IsSystemKey {
+				resultApi = append(resultApi, element)
+			}
 		}
 		sort.Slice(resultApi[:], func(i, j int) bool {
 			if resultApi[i].LastUsed == resultApi[j].LastUsed {
@@ -639,6 +658,7 @@ func (u *UploadView) convertGlobalConfig(view int) *UploadView {
 		}
 	case ViewUsers:
 		// TODO
+		uploadCounts := storage.GetUploadCounts()
 		u.Users = []userInfo{
 			{
 				Id:          0,
@@ -646,21 +666,21 @@ func (u *UploadView) convertGlobalConfig(view int) *UploadView {
 				Email:       "test@test.com",
 				Permissions: 0,
 				UserLevel:   "Super Admin",
-				UploadCount: 1,
+				UploadCount: uploadCounts[0],
 			}, {
 				Id:          1,
 				Name:        "Test2",
 				Email:       "test2@test.com",
 				Permissions: 2,
 				UserLevel:   "Admin",
-				UploadCount: 2,
+				UploadCount: uploadCounts[1],
 			}, {
 				Id:          2,
 				Name:        "Test3",
 				Email:       "test3@test.com",
 				Permissions: 4,
 				UserLevel:   "User",
-				UploadCount: 3,
+				UploadCount: uploadCounts[2],
 			},
 		}
 	}
@@ -678,7 +698,7 @@ func (u *UploadView) convertGlobalConfig(view int) *UploadView {
 	u.MaxParallelUploads = config.MaxParallelUploads
 	u.ChunkSize = config.ChunkSize
 	u.IncludeFilename = config.IncludeFilename
-	u.SystemKey = api.GetSystemKey()
+	u.SystemKey = api.GetSystemKey(userId)
 	return u
 }
 

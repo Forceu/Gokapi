@@ -1,8 +1,6 @@
 package redis
 
 import (
-	"bytes"
-	"encoding/gob"
 	"errors"
 	"fmt"
 	"github.com/forceu/gokapi/internal/helper"
@@ -20,7 +18,7 @@ type DatabaseProvider struct {
 }
 
 // DatabaseSchemeVersion contains the version number to be expected from the current database. If lower, an upgrade will be performed
-const DatabaseSchemeVersion = 3
+const DatabaseSchemeVersion = 4
 
 // New returns an instance
 func New(dbConfig models.DbConnection) (DatabaseProvider, error) {
@@ -94,41 +92,20 @@ func newPool(config models.DbConnection) *redigo.Pool {
 
 // Upgrade migrates the DB to a new Gokapi version, if required
 func (p DatabaseProvider) Upgrade(currentDbVersion int) {
-	// < 1.9.6
+	// < v1.9.6
 	if currentDbVersion < 3 {
-		allFiles := getAllLegacyMetaDataAndDelete(p)
-		for _, file := range allFiles {
-			p.SaveMetaData(file)
-		}
-		for _, apiKey := range p.GetAllApiKeys() {
-			if apiKey.HasPermissionEdit() {
-				apiKey.SetPermission(models.ApiPermReplace)
-				p.SaveApiKey(apiKey)
+		fmt.Println("Please update to v1.9.6 before upgrading to 2.0.0")
+	}
+	// < v2.0.0-beta
+	if currentDbVersion < 4 {
+		p.DeleteAllSessions()
+		apiKeys := p.GetAllApiKeys()
+		for _, apiKey := range apiKeys {
+			if apiKey.IsSystemKey {
+				p.DeleteApiKey(apiKey.Id)
 			}
 		}
 	}
-}
-
-func getAllLegacyMetaDataAndDelete(p DatabaseProvider) map[string]models.File {
-	result := make(map[string]models.File)
-	allMetaData := p.getAllValuesWithPrefix(prefixMetaData)
-	for _, metaData := range allMetaData {
-		content, err := redigo.Bytes(metaData, nil)
-		helper.Check(err)
-		file := legacyDbToMetaData(content)
-		result[file.Id] = file
-		p.deleteKey(prefixMetaData + file.Id)
-	}
-	return result
-}
-
-func legacyDbToMetaData(input []byte) models.File {
-	var result models.File
-	buf := bytes.NewBuffer(input)
-	dec := gob.NewDecoder(buf)
-	err := dec.Decode(&result)
-	helper.Check(err)
-	return result
 }
 
 const keyDbVersion = "dbversion"

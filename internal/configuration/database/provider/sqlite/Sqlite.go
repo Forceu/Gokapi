@@ -18,7 +18,7 @@ type DatabaseProvider struct {
 }
 
 // DatabaseSchemeVersion contains the version number to be expected from the current database. If lower, an upgrade will be performed
-const DatabaseSchemeVersion = 6
+const DatabaseSchemeVersion = 7
 
 // New returns an instance
 func New(dbConfig models.DbConnection) (DatabaseProvider, error) {
@@ -38,36 +38,23 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 	}
 	// < v2.0.0-beta
 	if currentDbVersion < 7 {
-		// TODO
-	}
-}
-
-type legacySchemaApiKeys struct {
-	Id           string
-	FriendlyName string
-	LastUsed     int64
-	Permissions  int
-}
-
-// getLegacyApiKeys returns a map with all API keys with the legacy scheme
-func (p DatabaseProvider) getLegacyApiKeys() map[string]models.ApiKey {
-	result := make(map[string]models.ApiKey)
-
-	rows, err := p.sqliteDb.Query("SELECT Id,FriendlyName,LastUsed,Permissions FROM ApiKeys")
-	helper.Check(err)
-	defer rows.Close()
-	for rows.Next() {
-		rowData := legacySchemaApiKeys{}
-		err = rows.Scan(&rowData.Id, &rowData.FriendlyName, &rowData.LastUsed, &rowData.Permissions)
+		err := p.rawSqlite(`ALTER TABLE "ApiKeys" ADD COLUMN UserId INTEGER NOT NULL DEFAULT 0;`)
 		helper.Check(err)
-		result[rowData.Id] = models.ApiKey{
-			Id:           rowData.Id,
-			FriendlyName: rowData.FriendlyName,
-			LastUsed:     rowData.LastUsed,
-			Permissions:  uint8(rowData.Permissions),
-		}
+		err = p.rawSqlite(`DELETE FROM "ApiKeys" WHERE IsSystemKey = 1`)
+		helper.Check(err)
+		err = p.rawSqlite(`ALTER TABLE "E2EConfig" ADD COLUMN UserId INTEGER NOT NULL DEFAULT 0;`) // TODO
+		helper.Check(err)
+		err = p.rawSqlite(`ALTER TABLE "FileMetaData" ADD COLUMN UserId INTEGER NOT NULL DEFAULT 0;`)
+		helper.Check(err)
+		err = p.rawSqlite(`DROP TABLE "Sessions"; CREATE TABLE "Sessions" (
+			"Id"	TEXT NOT NULL UNIQUE,
+			"RenewAt"	INTEGER NOT NULL,
+			"ValidUntil"	INTEGER NOT NULL,
+			"UserId"	INTEGER NOT NULL,
+			PRIMARY KEY("Id")
+		) WITHOUT ROWID;`)
+		helper.Check(err)
 	}
-	return result
 }
 
 // GetDbVersion gets the version number of the database
@@ -146,11 +133,13 @@ func (p DatabaseProvider) createNewDatabase() error {
 			"Permissions"	INTEGER NOT NULL DEFAULT 0,
 			"Expiry"	INTEGER,
 			"IsSystemKey"	INTEGER,
+			"UserId" INTEGER NOT NULL,
 			PRIMARY KEY("Id")
 		) WITHOUT ROWID;
 		CREATE TABLE "E2EConfig" (
 			"id"	INTEGER NOT NULL UNIQUE,
 			"Config"	BLOB NOT NULL,
+			"UserId" INTEGER NOT NULL,
 			PRIMARY KEY("id" AUTOINCREMENT)
 		);
 		CREATE TABLE "FileMetaData" (
@@ -170,6 +159,7 @@ func (p DatabaseProvider) createNewDatabase() error {
 			"Encryption"	BLOB NOT NULL,
 			"UnlimitedDownloads"	INTEGER NOT NULL,
 			"UnlimitedTime"	INTEGER NOT NULL,
+			"UserId"	INTEGER NOT NULL,
 			PRIMARY KEY("Id")
 		);
 		CREATE TABLE "Hotlinks" (
@@ -181,6 +171,7 @@ func (p DatabaseProvider) createNewDatabase() error {
 			"Id"	TEXT NOT NULL UNIQUE,
 			"RenewAt"	INTEGER NOT NULL,
 			"ValidUntil"	INTEGER NOT NULL,
+			"UserId"	INTEGER NOT NULL,
 			PRIMARY KEY("Id")
 		) WITHOUT ROWID;
 `
