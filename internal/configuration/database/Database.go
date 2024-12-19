@@ -66,7 +66,7 @@ func Migrate(configOld, configNew models.DbConnection) {
 	for _, apiKey := range apiKeys {
 		dbNew.SaveApiKey(apiKey)
 	}
-	dbNew.SaveEnd2EndInfo(dbOld.GetEnd2EndInfo())
+	// dbNew.SaveEnd2EndInfo(dbOld.GetEnd2EndInfo()) // TODO
 	files := dbOld.GetAllMetadata()
 	for _, file := range files {
 		dbNew.SaveMetaData(file)
@@ -134,21 +134,21 @@ func GetSystemKey(userId int) (models.ApiKey, bool) {
 // E2E Section
 
 // SaveEnd2EndInfo stores the encrypted e2e info
-func SaveEnd2EndInfo(info models.E2EInfoEncrypted) {
+func SaveEnd2EndInfo(info models.E2EInfoEncrypted, userId int) {
 	info.AvailableFiles = nil
-	db.SaveEnd2EndInfo(info)
+	db.SaveEnd2EndInfo(info, userId)
 }
 
 // GetEnd2EndInfo retrieves the encrypted e2e info
-func GetEnd2EndInfo() models.E2EInfoEncrypted {
-	info := db.GetEnd2EndInfo()
+func GetEnd2EndInfo(userId int) models.E2EInfoEncrypted {
+	info := db.GetEnd2EndInfo(userId)
 	info.AvailableFiles = GetAllMetaDataIds()
 	return info
 }
 
 // DeleteEnd2EndInfo resets the encrypted e2e info
-func DeleteEnd2EndInfo() {
-	db.DeleteEnd2EndInfo()
+func DeleteEnd2EndInfo(userId int) {
+	db.DeleteEnd2EndInfo(userId)
 }
 
 // Hotlink Section

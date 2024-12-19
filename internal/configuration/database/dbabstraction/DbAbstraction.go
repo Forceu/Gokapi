@@ -47,11 +47,11 @@ type Database interface {
 	GetSystemKey(userId int) (models.ApiKey, bool)
 
 	// SaveEnd2EndInfo stores the encrypted e2e info
-	SaveEnd2EndInfo(info models.E2EInfoEncrypted)
+	SaveEnd2EndInfo(info models.E2EInfoEncrypted, userId int)
 	// GetEnd2EndInfo retrieves the encrypted e2e info
-	GetEnd2EndInfo() models.E2EInfoEncrypted
+	GetEnd2EndInfo(userId int) models.E2EInfoEncrypted
 	// DeleteEnd2EndInfo resets the encrypted e2e info
-	DeleteEnd2EndInfo()
+	DeleteEnd2EndInfo(userId int)
 
 	// GetHotlink returns the id of the file associated or false if not found
 	GetHotlink(id string) (string, bool)

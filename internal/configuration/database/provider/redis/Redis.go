@@ -105,10 +105,24 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 				p.DeleteApiKey(apiKey.Id)
 			}
 		}
+		legacyE2e := p.getLegacyE2EData()
+		p.SaveEnd2EndInfo(legacyE2e, 0)
+		p.deleteKey("e2einfo")
 	}
 }
 
 const keyDbVersion = "dbversion"
+
+func (p DatabaseProvider) getLegacyE2EData() models.E2EInfoEncrypted {
+	result := models.E2EInfoEncrypted{}
+	value, ok := p.getHashMap("e2einfo")
+	if !ok {
+		return models.E2EInfoEncrypted{}
+	}
+	err := redigo.ScanStruct(value, &result)
+	helper.Check(err)
+	return result
+}
 
 // GetDbVersion gets the version number of the database
 func (p DatabaseProvider) GetDbVersion() int {

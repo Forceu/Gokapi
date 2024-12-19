@@ -160,7 +160,7 @@ func loadExpiryImage() {
 	var buf bytes.Buffer
 	err = svgTemplate.Execute(&buf, struct {
 		PublicName string
-	}{PublicName: configuration.Get().ServerUrl})
+	}{PublicName: configuration.Get().PublicName})
 	helper.Check(err)
 	imageExpiredPicture = buf.Bytes()
 }
