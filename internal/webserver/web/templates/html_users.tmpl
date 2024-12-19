@@ -4,11 +4,7 @@
     <div class="col">
         <div id="container" class="card" style="width: 80%">
             <div class="card-body">
-                <h3 class="card-title">API Keys</h3>
-                <br>
-                Please visit the <a target="_blank" href="./apidocumentation">API documentation</a> for more information about the API.<br>Click on the API key name to give it a new name. Permissions can be changed by clicking on them.
-                <br>
-                <br>
+                <h3 class="card-title">Users</h3>
                 <div class="table-responsive">
                     <table class="table table-dark">
                         <thead>
@@ -16,9 +12,10 @@
                                 <th scope="col">Name</th>
                                 <th scope="col">Email</th>
                                 <th scope="col">Group</th>
+            			<th scope="col">Uploads</th>
             			<th scope="col">Permissions</th>
                                 <th scope="col">Actions</th>
-				<th scope="col"><button id="button-newapi" type="button" class="btn btn-outline-light btn-sm" onclick="newApiKey()"><i class="bi bi-plus-circle-fill"></i> New Key</button></th>
+				<th scope="col"><button id="button-newuser" type="button" class="btn btn-outline-light btn-sm" onclick="newUser()"><i class="bi bi-plus-circle-fill"></i> New User</button></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -27,9 +24,8 @@
                                 <td scope="col" id="{{ .Id }}">{{ .Name }}</td>
                                 <td scope="col">{{ .Email }}</td>
                                 <td scope="col">{{ .UserLevel }}</td>
-                                           <td>
-
-            				</td>
+                                <td scope="col">{{ .UploadCount }}</td>
+            				<td scope="col"></td>
                                 <td scope="col"><button type="button" data-clipboard-text="{{ .Id }}"  onclick="showToast()" title="Copy API Key" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i></button> <button id="delete-{{ .Id }}" type="button" class="btn btn-outline-danger btn-sm" onclick="deleteApiKey('{{ .Id }}')" title="Delete"><i class="bi bi-trash3"></i></button></td>
  <td scope="col"></td>
                             </tr>

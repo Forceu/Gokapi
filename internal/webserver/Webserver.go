@@ -317,7 +317,8 @@ func processApi(w http.ResponseWriter, r *http.Request) {
 // Shows a login form. If not authenticated, client needs to wait for three seconds.
 // If correct, a new session is created and the user is redirected to the admin menu
 func showLogin(w http.ResponseWriter, r *http.Request) {
-	if authentication.IsAuthenticated(w, r) {
+	ok, _ := authentication.IsAuthenticated(w, r)
+	if ok {
 		redirect(w, "admin")
 		return
 	}
@@ -569,7 +570,7 @@ type e2ESetupView struct {
 type UploadView struct {
 	Items              []models.FileApiOutput
 	ApiKeys            []models.ApiKey
-	Users              []models.User
+	Users              []userInfo
 	ServerUrl          string
 	Logs               string
 	PublicName         string
@@ -638,147 +639,28 @@ func (u *UploadView) convertGlobalConfig(view int) *UploadView {
 		}
 	case ViewUsers:
 		// TODO
-		u.Users = []models.User{
+		u.Users = []userInfo{
 			{
 				Id:          0,
 				Name:        "Test",
 				Email:       "test@test.com",
 				Permissions: 0,
-				UserLevel:   0,
-				Password:    "213",
+				UserLevel:   "Super Admin",
+				UploadCount: 1,
 			}, {
 				Id:          1,
 				Name:        "Test2",
 				Email:       "test2@test.com",
 				Permissions: 2,
-				UserLevel:   1,
-				Password:    "213",
+				UserLevel:   "Admin",
+				UploadCount: 2,
 			}, {
-				Id:          0,
-				Name:        "Test",
-				Email:       "test@test.com",
-				Permissions: 0,
-				UserLevel:   0,
-				Password:    "213",
-			}, {
-				Id:          1,
-				Name:        "Test2",
-				Email:       "test2@test.com",
-				Permissions: 2,
-				UserLevel:   1,
-				Password:    "213",
-			}, {
-				Id:          0,
-				Name:        "Test",
-				Email:       "test@test.com",
-				Permissions: 0,
-				UserLevel:   0,
-				Password:    "213",
-			}, {
-				Id:          1,
-				Name:        "Test2",
-				Email:       "test2@test.com",
-				Permissions: 2,
-				UserLevel:   1,
-				Password:    "213",
-			}, {
-				Id:          0,
-				Name:        "Test",
-				Email:       "test@test.com",
-				Permissions: 0,
-				UserLevel:   0,
-				Password:    "213",
-			}, {
-				Id:          1,
-				Name:        "Test2",
-				Email:       "test2@test.com",
-				Permissions: 2,
-				UserLevel:   1,
-				Password:    "213",
-			}, {
-				Id:          0,
-				Name:        "Test",
-				Email:       "test@test.com",
-				Permissions: 0,
-				UserLevel:   0,
-				Password:    "213",
-			}, {
-				Id:          1,
-				Name:        "Test2",
-				Email:       "test2@test.com",
-				Permissions: 2,
-				UserLevel:   1,
-				Password:    "213",
-			}, {
-				Id:          0,
-				Name:        "Test",
-				Email:       "test@test.com",
-				Permissions: 0,
-				UserLevel:   0,
-				Password:    "213",
-			}, {
-				Id:          1,
-				Name:        "Test2",
-				Email:       "test2@test.com",
-				Permissions: 2,
-				UserLevel:   1,
-				Password:    "213",
-			}, {
-				Id:          0,
-				Name:        "Test",
-				Email:       "test@test.com",
-				Permissions: 0,
-				UserLevel:   0,
-				Password:    "213",
-			}, {
-				Id:          1,
-				Name:        "Test2",
-				Email:       "test2@test.com",
-				Permissions: 2,
-				UserLevel:   1,
-				Password:    "213",
-			}, {
-				Id:          0,
-				Name:        "Test",
-				Email:       "test@test.com",
-				Permissions: 0,
-				UserLevel:   0,
-				Password:    "213",
-			}, {
-				Id:          1,
-				Name:        "Test2",
-				Email:       "test2@test.com",
-				Permissions: 2,
-				UserLevel:   1,
-				Password:    "213",
-			}, {
-				Id:          0,
-				Name:        "Test",
-				Email:       "test@test.com",
-				Permissions: 0,
-				UserLevel:   0,
-				Password:    "213",
-			}, {
-				Id:          1,
-				Name:        "Test2",
-				Email:       "test2@test.com",
-				Permissions: 2,
-				UserLevel:   1,
-				Password:    "213",
-			}, {
-				Id:          0,
-				Name:        "Test",
-				Email:       "test@test.com",
-				Permissions: 0,
-				UserLevel:   0,
-				Password:    "213",
-			}, {
-				Id:          1,
-				Name:        "Test2",
-				Email:       "test2@test.com",
-				Permissions: 2,
-				UserLevel:   1,
-				Password:    "213",
+				Id:          2,
+				Name:        "Test3",
+				Email:       "test3@test.com",
+				Permissions: 4,
+				UserLevel:   "User",
+				UploadCount: 3,
 			},
 		}
 	}
@@ -798,6 +680,15 @@ func (u *UploadView) convertGlobalConfig(view int) *UploadView {
 	u.IncludeFilename = config.IncludeFilename
 	u.SystemKey = api.GetSystemKey()
 	return u
+}
+
+type userInfo struct {
+	Id          int
+	Name        string
+	Email       string
+	UserLevel   string
+	UploadCount int
+	Permissions uint8
 }
 
 // Handling of /uploadChunk
@@ -884,7 +775,10 @@ func serveFile(id string, isRootUrl bool, w http.ResponseWriter, r *http.Request
 func requireLogin(next http.HandlerFunc, isUpload bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		addNoCacheHeader(w)
-		if authentication.IsAuthenticated(w, r) {
+		isLoggedIn, userId := authentication.IsAuthenticated(w, r)
+		if isLoggedIn {
+			c := context.WithValue(r.Context(), "userId", userId)
+			r = r.WithContext(c)
 			next.ServeHTTP(w, r)
 			return
 		}

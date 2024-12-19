@@ -32,39 +32,13 @@ func (p DatabaseProvider) GetType() int {
 
 // Upgrade migrates the DB to a new Gokapi version, if required
 func (p DatabaseProvider) Upgrade(currentDbVersion int) {
-	// < v1.9.4
-	// there might be an instance where the LastUsedString column still exists. This reads all
-	// API keys, drops the table and then recreates it.
-	if currentDbVersion < 5 {
-		// Add Column LastUsedString, keeping old data
-		apiKeys := p.getLegacyApiKeys()
-		err := p.rawSqlite(`DROP TABLE "ApiKeys";
-				CREATE TABLE "ApiKeys" (
-				    "Id"	TEXT NOT NULL UNIQUE,
-				    "FriendlyName"	TEXT NOT NULL,
-				    "LastUsed"	INTEGER NOT NULL,
-				    "Permissions"	INTEGER NOT NULL DEFAULT 0,
-				    "Expiry"	INTEGER,
-				    "IsSystemKey"	INTEGER,
-				     PRIMARY KEY("Id")
-				) WITHOUT ROWID;`)
-		helper.Check(err)
-		for _, apiKey := range apiKeys {
-			p.SaveApiKey(apiKey)
-		}
-	}
 	// < v1.9.6
 	if currentDbVersion < 6 {
-		// Add Column LastUsedString, keeping old data
-		err := p.rawSqlite(`DROP TABLE IF EXISTS "UploadStatus";`)
-		helper.Check(err)
-
-		for _, apiKey := range p.GetAllApiKeys() {
-			if apiKey.HasPermissionEdit() {
-				apiKey.SetPermission(models.ApiPermReplace)
-				p.SaveApiKey(apiKey)
-			}
-		}
+		fmt.Println("Please update to v1.9.6 before upgrading to 2.0.0")
+	}
+	// < v2.0.0-beta
+	if currentDbVersion < 7 {
+		// TODO
 	}
 }
 
