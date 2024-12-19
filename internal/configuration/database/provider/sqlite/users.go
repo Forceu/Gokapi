@@ -12,14 +12,18 @@ import (
 
 // GetAllUsers returns a map with all users
 func (p DatabaseProvider) GetAllUsers() []models.User {
+	var password sql.NullString
 	var result []models.User
 	rows, err := p.sqliteDb.Query("SELECT * FROM Users ORDER BY Userlevel ASC, LastOnline DESC, Email ASC")
 	helper.Check(err)
 	defer rows.Close()
 	for rows.Next() {
 		user := models.User{}
-		err = rows.Scan(&user.Id, &user.Email, &user.Password, &user.Name, &user.Permissions, &user.UserLevel, &user.LastOnline)
+		err = rows.Scan(&user.Id, &user.Email, &password, &user.Name, &user.Permissions, &user.UserLevel, &user.LastOnline)
 		helper.Check(err)
+		if password.Valid {
+			user.Password = password.String
+		}
 		result = append(result, user)
 	}
 	return orderUsers(result)
@@ -39,14 +43,18 @@ func orderUsers(users []models.User) []models.User {
 // GetUser returns a models.User if valid or false if the ID is not valid
 func (p DatabaseProvider) GetUser(id int) (models.User, bool) {
 	var result models.User
+	var password sql.NullString
 	row := p.sqliteDb.QueryRow("SELECT * FROM Users WHERE Id = ?", id)
-	err := row.Scan(&result.Id, &result.Email, &result.Password, &result.Name, &result.Permissions, &result.UserLevel, &result.LastOnline)
+	err := row.Scan(&result.Id, &result.Email, &password, &result.Name, &result.Permissions, &result.UserLevel, &result.LastOnline)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return models.User{}, false
 		}
 		helper.Check(err)
 		return models.User{}, false
+	}
+	if password.Valid {
+		result.Password = password.String
 	}
 	return result, true
 }

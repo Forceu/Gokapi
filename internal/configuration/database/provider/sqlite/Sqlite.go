@@ -42,7 +42,7 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 		helper.Check(err)
 		err = p.rawSqlite(`DELETE FROM "ApiKeys" WHERE IsSystemKey = 1`)
 		helper.Check(err)
-		err = p.rawSqlite(`ALTER TABLE "E2EConfig" ADD COLUMN UserId INTEGER NOT NULL DEFAULT 0;`) // TODO migration
+		err = p.rawSqlite(`ALTER TABLE "E2EConfig" ADD COLUMN UserId INTEGER NOT NULL DEFAULT 0;`)
 		helper.Check(err)
 		err = p.rawSqlite(`ALTER TABLE "FileMetaData" ADD COLUMN UserId INTEGER NOT NULL DEFAULT 0;`)
 		helper.Check(err)
@@ -56,7 +56,7 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 		CREATE TABLE "Users" (
 			"Id"	INTEGER NOT NULL UNIQUE,
 			"Email"	TEXT NOT NULL UNIQUE,
-			"Password"	TEXT NOT NULL,
+			"Password"	TEXT,
 			"Name"	TEXT NOT NULL,
 			"Permissions"	INTEGER NOT NULL,
 			"Userlevel"	INTEGER NOT NULL,
@@ -188,7 +188,7 @@ func (p DatabaseProvider) createNewDatabase() error {
 		CREATE TABLE "Users" (
 			"Id"	INTEGER NOT NULL UNIQUE,
 			"Email"	TEXT NOT NULL UNIQUE,
-			"Password"	TEXT NOT NULL,
+			"Password"	TEXT,
 			"Name"	TEXT NOT NULL,
 			"Permissions"	INTEGER NOT NULL,
 			"Userlevel"	INTEGER NOT NULL,
