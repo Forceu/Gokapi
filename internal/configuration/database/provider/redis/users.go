@@ -23,13 +23,13 @@ func dbToUser(input []any) (models.User, error) {
 }
 
 // GetAllUsers returns a map with all users
-func (p DatabaseProvider) GetAllUsers() map[int]models.User {
-	result := make(map[int]models.User)
+func (p DatabaseProvider) GetAllUsers() []models.User {
+	var result []models.User
 	maps := p.getAllHashesWithPrefix(prefixUsers)
 	for _, v := range maps {
 		user, err := dbToUser(v)
 		helper.Check(err)
-		result[user.Id] = user
+		result = append(result, user)
 	}
 	return result
 }

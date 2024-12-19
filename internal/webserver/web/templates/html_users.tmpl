@@ -13,7 +13,8 @@
                                 <th scope="col">Email</th>
                                 <th scope="col">Group</th>
             			<th scope="col">Uploads</th>
-            			<th scope="col">Permissions / Last online</th>
+            			<th scope="col">Last online</th>
+            			<th scope="col">Permissions</th>
                                 <th scope="col">Actions</th>
 				<th scope="col"><button id="button-newuser" type="button" class="btn btn-outline-light btn-sm" onclick="newUser()"><i class="bi bi-plus-circle-fill"></i> New User</button></th>
                             </tr>
@@ -26,6 +27,7 @@
                                 <td scope="col">{{ .UserLevel }}</td>
                                 <td scope="col">{{ .UploadCount }}</td>
             			<td scope="col">{{ .LastOnline }}</td>
+            			<td scope="col">{{ .Permissions }}</td>
                                 <td scope="col"><button type="button" data-clipboard-text="{{ .Id }}"  onclick="showToast()" title="Copy API Key" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i></button> <button id="delete-{{ .Id }}" type="button" class="btn btn-outline-danger btn-sm" onclick="deleteApiKey('{{ .Id }}')" title="Delete"><i class="bi bi-trash3"></i></button></td>
  <td scope="col"></td>
                             </tr>

@@ -1,26 +1,39 @@
 package sqlite
 
 import (
+	"cmp"
 	"database/sql"
 	"errors"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
+	"slices"
 	"time"
 )
 
 // GetAllUsers returns a map with all users
-func (p DatabaseProvider) GetAllUsers() map[int]models.User {
-	result := make(map[int]models.User)
-	rows, err := p.sqliteDb.Query("SELECT * FROM Users")
+func (p DatabaseProvider) GetAllUsers() []models.User {
+	var result []models.User
+	rows, err := p.sqliteDb.Query("SELECT * FROM Users ORDER BY Userlevel ASC, LastOnline DESC, Email ASC")
 	helper.Check(err)
 	defer rows.Close()
 	for rows.Next() {
 		user := models.User{}
 		err = rows.Scan(&user.Id, &user.Email, &user.Password, &user.Name, &user.Permissions, &user.UserLevel, &user.LastOnline)
 		helper.Check(err)
-		result[user.Id] = user
+		result = append(result, user)
 	}
-	return result
+	return orderUsers(result)
+}
+
+func orderUsers(users []models.User) []models.User {
+	slices.SortFunc(users, func(a, b models.User) int {
+		return cmp.Or(
+			cmp.Compare(a.UserLevel, b.UserLevel),
+			cmp.Compare(b.LastOnline, a.LastOnline),
+			cmp.Compare(a.Email, b.Email),
+		)
+	})
+	return users
 }
 
 // GetUser returns a models.User if valid or false if the ID is not valid

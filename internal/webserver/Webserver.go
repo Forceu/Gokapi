@@ -702,7 +702,7 @@ type userInfo struct {
 	Email       string
 	UserLevel   string
 	UploadCount int
-	Permissions uint8
+	Permissions uint16
 	LastOnline  string
 }
 
@@ -722,11 +722,7 @@ func (u *userInfo) fromUser(user models.User, uploadCounts map[int]int) {
 	default:
 		u.UserLevel = "Invalid"
 	}
-	if user.LastOnline == 0 {
-		u.LastOnline = "Never"
-	} else {
-		u.LastOnline = storage.FormatTimestamp(user.LastOnline)
-	}
+	u.LastOnline = user.GetReadableDate()
 }
 
 // Handling of /uploadChunk

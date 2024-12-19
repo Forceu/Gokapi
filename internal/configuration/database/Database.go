@@ -234,7 +234,7 @@ func DeleteAllSessions() {
 // User Section
 
 // GetAllUsers returns a map with all users
-func GetAllUsers() map[int]models.User {
+func GetAllUsers() []models.User {
 	return db.GetAllUsers()
 }
 
