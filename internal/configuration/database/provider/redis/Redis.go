@@ -1,8 +1,6 @@
 package redis
 
 import (
-	"bytes"
-	"encoding/gob"
 	"errors"
 	"fmt"
 	"github.com/forceu/gokapi/internal/helper"
@@ -20,7 +18,7 @@ type DatabaseProvider struct {
 }
 
 // DatabaseSchemeVersion contains the version number to be expected from the current database. If lower, an upgrade will be performed
-const DatabaseSchemeVersion = 3
+const DatabaseSchemeVersion = 4
 
 // New returns an instance
 func New(dbConfig models.DbConnection) (DatabaseProvider, error) {
@@ -94,44 +92,37 @@ func newPool(config models.DbConnection) *redigo.Pool {
 
 // Upgrade migrates the DB to a new Gokapi version, if required
 func (p DatabaseProvider) Upgrade(currentDbVersion int) {
-	// < 1.9.6
+	// < v1.9.6
 	if currentDbVersion < 3 {
-		allFiles := getAllLegacyMetaDataAndDelete(p)
-		for _, file := range allFiles {
-			p.SaveMetaData(file)
-		}
-		for _, apiKey := range p.GetAllApiKeys() {
-			if apiKey.HasPermissionEdit() {
-				apiKey.SetPermission(models.ApiPermReplace)
-				p.SaveApiKey(apiKey)
+		fmt.Println("Please update to v1.9.6 before upgrading to 2.0.0")
+	}
+	// < v2.0.0-beta
+	if currentDbVersion < 4 {
+		p.DeleteAllSessions()
+		apiKeys := p.GetAllApiKeys()
+		for _, apiKey := range apiKeys {
+			if apiKey.IsSystemKey {
+				p.DeleteApiKey(apiKey.Id)
 			}
 		}
+		legacyE2e := p.getLegacyE2EData()
+		p.SaveEnd2EndInfo(legacyE2e, 0)
+		p.deleteKey("e2einfo")
 	}
-}
-
-func getAllLegacyMetaDataAndDelete(p DatabaseProvider) map[string]models.File {
-	result := make(map[string]models.File)
-	allMetaData := p.getAllValuesWithPrefix(prefixMetaData)
-	for _, metaData := range allMetaData {
-		content, err := redigo.Bytes(metaData, nil)
-		helper.Check(err)
-		file := legacyDbToMetaData(content)
-		result[file.Id] = file
-		p.deleteKey(prefixMetaData + file.Id)
-	}
-	return result
-}
-
-func legacyDbToMetaData(input []byte) models.File {
-	var result models.File
-	buf := bytes.NewBuffer(input)
-	dec := gob.NewDecoder(buf)
-	err := dec.Decode(&result)
-	helper.Check(err)
-	return result
 }
 
 const keyDbVersion = "dbversion"
+
+func (p DatabaseProvider) getLegacyE2EData() models.E2EInfoEncrypted {
+	result := models.E2EInfoEncrypted{}
+	value, ok := p.getHashMap("e2einfo")
+	if !ok {
+		return models.E2EInfoEncrypted{}
+	}
+	err := redigo.ScanStruct(value, &result)
+	helper.Check(err)
+	return result
+}
 
 // GetDbVersion gets the version number of the database
 func (p DatabaseProvider) GetDbVersion() int {
@@ -308,6 +299,22 @@ func (p DatabaseProvider) decreaseHashmapIntField(id string, field string) {
 	defer conn.Close()
 	_, err := conn.Do("HINCRBY", p.dbPrefix+id, field, -1)
 	helper.Check(err)
+}
+
+func (p DatabaseProvider) setHashmapField(id string, field string, content any) {
+	conn := p.pool.Get()
+	defer conn.Close()
+	_, err := conn.Do("HSET", p.dbPrefix+id, field, content)
+	helper.Check(err)
+}
+
+func (p DatabaseProvider) getIncreasedInt(id string) int {
+	conn := p.pool.Get()
+	defer conn.Close()
+	result, err := conn.Do("INCR", p.dbPrefix+id)
+	resultInt, err2 := redigo.Int(result, err)
+	helper.Check(err2)
+	return resultInt
 }
 
 func (p DatabaseProvider) runEval(cmd string) {

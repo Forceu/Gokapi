@@ -186,8 +186,8 @@ func newSystemKey() string {
 
 // GetSystemKey returns the latest System API key or generates a new one, if none exists or the current one expires
 // within the next 24 hours
-func GetSystemKey() string {
-	key, ok := database.GetSystemKey()
+func GetSystemKey(userId int) string {
+	key, ok := database.GetSystemKey(userId)
 	if !ok || key.Expiry < time.Now().Add(time.Hour*24).Unix() {
 		return newSystemKey()
 	}

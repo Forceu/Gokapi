@@ -72,6 +72,7 @@
           <nav class="nav nav-masthead justify-content-center">
             <a class="nav-link {{ if eq .ActiveView 0}}active{{ end }}" href="./admin">Upload</a>
             <a class="nav-link {{ if eq .ActiveView 1 }}active{{ end }}" href="./logs">Logs</a>
+            <a class="nav-link {{ if eq .ActiveView 3 }}active{{ end }}" href="./users">Users</a>
             <a class="nav-link {{ if eq .ActiveView 2 }}active{{ end }}" href="./apiKeys">API</a>
             {{ if .IsLogoutAvailable }}<a class="nav-link" href="./logout">Logout</a>{{ end }}
           </nav>

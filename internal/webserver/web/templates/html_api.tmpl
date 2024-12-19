@@ -23,7 +23,6 @@
                         </thead>
                         <tbody id="apitable">
 {{ range .ApiKeys }}
-{{ if not .IsSystemKey }}
                             <tr id="row-{{ .Id }}">
                                 <td scope="col" id="friendlyname-{{ .Id }}" onClick="addFriendlyNameChange('{{ .Id }}')">{{ .FriendlyName }}</td>
                                 <td scope="col">{{ .Id }}</td>
@@ -40,7 +39,6 @@
                                 <td scope="col"><button type="button" data-clipboard-text="{{ .Id }}"  onclick="showToast()" title="Copy API Key" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i></button> <button id="delete-{{ .Id }}" type="button" class="btn btn-outline-danger btn-sm" onclick="deleteApiKey('{{ .Id }}')" title="Delete"><i class="bi bi-trash3"></i></button></td>
  <td scope="col"></td>
                             </tr>
-{{ end }}
 {{ end }}
                         </tbody>
                     </table>
