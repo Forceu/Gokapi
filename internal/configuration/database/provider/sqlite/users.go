@@ -74,7 +74,9 @@ func (p DatabaseProvider) SaveUser(user models.User, isNewUser bool) {
 
 // UpdateUserLastOnline writes the last online time to the database
 func (p DatabaseProvider) UpdateUserLastOnline(id int) {
-	_, err := p.sqliteDb.Exec("UPDATE Users SET LastOnline=? WHERE Id = ?", time.Now().Unix(), id)
+	timeNow := time.Now().Unix()
+	// To reduce database writes, the entry is only updated, if the last timestamp is more than 30 seconds old
+	_, err := p.sqliteDb.Exec("UPDATE Users SET LastOnline= ? WHERE Id = ? AND (? - LastOnline > 30)", timeNow, id, timeNow)
 	helper.Check(err)
 }
 

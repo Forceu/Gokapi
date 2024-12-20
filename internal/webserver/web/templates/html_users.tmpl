@@ -12,24 +12,43 @@
                                 <th scope="col">Name</th>
                                 <th scope="col">Email</th>
                                 <th scope="col">Group</th>
-            			<th scope="col">Uploads</th>
             			<th scope="col">Last online</th>
+            			<th scope="col">Uploads</th>
             			<th scope="col">Permissions</th>
                                 <th scope="col">Actions</th>
-				<th scope="col"><button id="button-newuser" type="button" class="btn btn-outline-light btn-sm" onclick="newUser()"><i class="bi bi-plus-circle-fill"></i> New User</button></th>
                             </tr>
                         </thead>
                         <tbody>
 {{ range .Users }}
-                            <tr id="row-{{ .Id }}">
-                                <td scope="col" id="{{ .Id }}">{{ .Name }}</td>
-                                <td scope="col">{{ .Email }}</td>
-                                <td scope="col">{{ .UserLevel }}</td>
+                            <tr id="row-{{ .User.Id }}">
+                                <td scope="col" id="{{ .User.Id }}">{{ .User.Name }}</td>
+                                <td scope="col">{{ .User.Email }}</td>
+                                <td scope="col">{{ .User.GetReadableUserLevel }}</td>
+            			<td scope="col">{{ .User.GetReadableDate }}</td>
                                 <td scope="col">{{ .UploadCount }}</td>
-            			<td scope="col">{{ .LastOnline }}</td>
-            			<td scope="col">{{ .Permissions }}</td>
-                                <td scope="col"><button type="button" data-clipboard-text="{{ .Id }}"  onclick="showToast()" title="Copy API Key" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i></button> <button id="delete-{{ .Id }}" type="button" class="btn btn-outline-danger btn-sm" onclick="deleteApiKey('{{ .Id }}')" title="Delete"><i class="bi bi-trash3"></i></button></td>
- <td scope="col"></td>
+            			<td scope="col">
+            			
+		<i id="perm_view_{{ .User.Id }}" class="bi bi-recycle {{if not .User.HasPermissionReplace}}apiperm-notgranted{{else}}apiperm-granted{{end}}" title="Replace own uploads" onclick='changeApiPermission("{{ .User.Id }}","PERM_VIEW", "perm_view_{{ .User.Id }}");'></i>
+		
+		<i id="perm_view_{{ .User.Id }}" class="bi bi-eye {{if not .User.HasPermissionListOtherUploads}}apiperm-notgranted{{else}}apiperm-granted{{end}}" title="List other uploads" onclick='changeApiPermission("{{ .User.Id }}","PERM_VIEW", "perm_view_{{ .User.Id }}");'></i>
+		
+		<i id="perm_view_{{ .User.Id }}" class="bi bi-pencil {{if not .User.HasPermissionEditOtherUploads}}apiperm-notgranted{{else}}apiperm-granted{{end}}" title="Edit other uploads" onclick='changeApiPermission("{{ .User.Id }}","PERM_VIEW", "perm_view_{{ .User.Id }}");'></i>
+		
+		<i id="perm_view_{{ .User.Id }}" class="bi bi-arrow-left-right {{if not .User.HasPermissionReplaceOtherUploads}}apiperm-notgranted{{else}}apiperm-granted{{end}}" title="Replace other uploads" onclick='changeApiPermission("{{ .User.Id }}","PERM_VIEW", "perm_view_{{ .User.Id }}");'></i>
+		
+		<i id="perm_view_{{ .User.Id }}" class="bi bi-trash3 {{if not .User.HasPermissionDeleteOtherUploads}}apiperm-notgranted{{else}}apiperm-granted{{end}}" title="Delete other uploads" onclick='changeApiPermission("{{ .User.Id }}","PERM_VIEW", "perm_view_{{ .User.Id }}");'></i>
+		
+		<i id="perm_view_{{ .User.Id }}" class="bi bi-card-list {{if not .User.HasPermissionManageLogs}}apiperm-notgranted{{else}}apiperm-granted{{end}}" title="Manage system logs" onclick='changeApiPermission("{{ .User.Id }}","PERM_VIEW", "perm_view_{{ .User.Id }}");'></i>
+		
+		<i id="perm_view_{{ .User.Id }}" class="bi bi-sliders2 {{if not .User.HasPermissionManageApi}}apiperm-notgranted{{else}}apiperm-granted{{end}}" title="Manage API keys" onclick='changeApiPermission("{{ .User.Id }}","PERM_VIEW", "perm_view_{{ .User.Id }}");'></i>
+		
+		<i id="perm_view_{{ .User.Id }}" class="bi bi-people {{if not .User.HasPermissionManageUsers}}apiperm-notgranted{{else}}apiperm-granted{{end}}" title="Manage users" onclick='changeApiPermission("{{ .User.Id }}","PERM_VIEW", "perm_view_{{ .User.Id }}");'></i>
+		
+
+            			
+            			
+            			</td>
+                                <td scope="col"><button type="button" data-clipboard-text="{{ .User.Id }}"  onclick="showToast()" title="Copy API Key" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i></button> <button id="delete-{{ .User.Id }}" type="button" class="btn btn-outline-danger btn-sm" onclick="deleteApiKey('{{ .User.Id }}')" title="Delete"><i class="bi bi-trash3"></i></button></td>
                             </tr>
 {{ end }}
                         </tbody>
@@ -61,7 +80,7 @@
 		    input.parentNode.innerHTML = val;
 		    let xmlhttp = new XMLHttpRequest();
 		    xmlhttp.open("GET", "./api/auth/friendlyname");
-		    xmlhttp.setRequestHeader("apiKeyToModify", row.id);
+		    xmlhttp.setRequestHeader("apiKeyToModify", row.User.Id);
 		    xmlhttp.setRequestHeader("friendlyName", val);
 		    xmlhttp.setRequestHeader("apikey", systemKey);
 		    xmlhttp.send();

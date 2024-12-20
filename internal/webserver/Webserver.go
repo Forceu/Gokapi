@@ -673,9 +673,15 @@ func (u *UploadView) convertGlobalConfig(view, userId int) *UploadView {
 		uploadCounts := storage.GetUploadCounts()
 		u.Users = make([]userInfo, 0)
 		for _, user := range database.GetAllUsers() {
-			var convertedUser userInfo
-			convertedUser.fromUser(user, uploadCounts)
-			u.Users = append(u.Users, convertedUser)
+			userWithUploads := userInfo{
+				UploadCount: uploadCounts[user.Id],
+				User:        user,
+			}
+			// Otherwise the user is not shown as online, if /users is opened as first page
+			if user.Id == userId {
+				userWithUploads.User.LastOnline = time.Now().Unix()
+			}
+			u.Users = append(u.Users, userWithUploads)
 		}
 	}
 
@@ -697,32 +703,8 @@ func (u *UploadView) convertGlobalConfig(view, userId int) *UploadView {
 }
 
 type userInfo struct {
-	Id          int
-	Name        string
-	Email       string
-	UserLevel   string
 	UploadCount int
-	Permissions uint16
-	LastOnline  string
-}
-
-func (u *userInfo) fromUser(user models.User, uploadCounts map[int]int) {
-	u.Id = user.Id
-	u.Name = user.Name
-	u.Email = user.Email
-	u.UploadCount = uploadCounts[user.Id]
-	u.Permissions = user.Permissions
-	switch user.UserLevel {
-	case models.UserLevelSuperAdmin:
-		u.UserLevel = "Super Admin"
-	case models.UserLevelAdmin:
-		u.UserLevel = "Admin"
-	case models.UserLevelUser:
-		u.UserLevel = "User"
-	default:
-		u.UserLevel = "Invalid"
-	}
-	u.LastOnline = user.GetReadableDate()
+	User        models.User
 }
 
 // Handling of /uploadChunk
