@@ -51,7 +51,7 @@ const (
 	UserPermissionManageApiKeys
 	UserPermissionManageUsers
 )
-const UserPermissionNone = 0
+const UserPermissionNone uint16 = 0
 
 // SetPermission grants one or more permissions
 func (u *User) SetPermission(permission uint16) {

@@ -1,9 +1,11 @@
 package redis
 
 import (
+	"cmp"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	redigo "github.com/gomodule/redigo/redis"
+	"slices"
 	"strconv"
 	"time"
 )
@@ -31,7 +33,18 @@ func (p DatabaseProvider) GetAllUsers() []models.User {
 		helper.Check(err)
 		result = append(result, user)
 	}
-	return result
+	return orderUsers(result)
+}
+
+func orderUsers(users []models.User) []models.User {
+	slices.SortFunc(users, func(a, b models.User) int {
+		return cmp.Or(
+			cmp.Compare(a.UserLevel, b.UserLevel),
+			cmp.Compare(b.LastOnline, a.LastOnline),
+			cmp.Compare(a.Email, b.Email),
+		)
+	})
+	return users
 }
 
 // GetUser returns a models.User if valid or false if the ID is not valid

@@ -22,6 +22,12 @@
     },
     {
       "name": "auth"
+    },
+    {
+      "name": "user"
+    },
+    {
+      "name": "chunk"
     }
   ],
   "paths": {
@@ -609,7 +615,7 @@
             "explode": false,
             "schema": {
               "type": "string",
-              "enum": ["PERM_VIEW", "PERM_UPLOAD", "PERM_EDIT", "PERM_DELETE", "PERM_MANAGE_USERS", "PERM_API_MOD"]
+              "enum": ["PERM_VIEW", "PERM_UPLOAD", "PERM_EDIT", "PERM_DELETE", "PERM_REPLACE", "PERM_MANAGE_USERS", "PERM_API_MOD"]
             }
           },
           {
@@ -676,6 +682,72 @@
           },
           "404": {
             "description": "Invalid API key provided for authentication or API key does not have the required permission"
+          }
+        }
+      }
+    },
+    "/user/modify": {
+      "put": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Changes the permissions of a user",
+        "description": "This API call changes the permission for the given user. Requires permission API_MANAGE_USERS",
+        "operationId": "usermodify",
+        "security": [
+          {
+            "apikey": ["API_MANAGE_USERS"]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userid",
+            "in": "header",
+            "description": "The user to change the permission of",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userpermission",
+            "in": "header",
+            "description": "The name of the permission",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "enum": ["PERM_REPLACE", "PERM_LIST", "PERM_EDIT", "PERM_REPLACE_OTHER", "PERM_DELETE", "PERM_LOGS", "PERM_API", "PERM_USERS"]
+            }
+          },
+          {
+            "name": "permissionModifier",
+            "in": "header",
+            "description": "If the permission shall be granted or revoked",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "enum": ["GRANT", "REVOKE"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Invalid parameter supplied"
+          },
+          "401": {
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
+          },
+          "404": {
+            "description": "User not found"
           }
         }
       }

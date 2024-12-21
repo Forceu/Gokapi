@@ -1,9 +1,9 @@
-// This file contains JS code for the API view
+// This file contains JS code for the User view
 // All files named admin_*.js will be merged together and minimised by calling
 // go generate ./...
 
 
-function changeApiPermission(userId, permission, buttonId) {
+function changeUserPermission(apiKey, permission, buttonId) {
 
     var indicator = document.getElementById(buttonId);
     if (indicator.classList.contains("perm-processing") || indicator.classList.contains("perm-nochange")) {
@@ -20,7 +20,7 @@ function changeApiPermission(userId, permission, buttonId) {
     }
 
 
-    apiAuthModify(userId, permission, modifier)
+    apiUserModify(apiKey, permission, modifier)
         .then(data => {
             if (wasGranted) {
                 indicator.classList.add("perm-notgranted");
@@ -41,7 +41,8 @@ function changeApiPermission(userId, permission, buttonId) {
         });
 }
 
-function deleteApiKey(apiKey) {
+// TODO
+function deleteUser(apiKey) {
 
     document.getElementById("delete-" + apiKey).disabled = true;
 
@@ -56,8 +57,8 @@ function deleteApiKey(apiKey) {
 }
 
 
-
-function newApiKey() {
+// TODO
+function newUser() {
     document.getElementById("button-newapi").disabled = true;
     apiAuthCreate()
         .then(data => {
@@ -72,8 +73,8 @@ function newApiKey() {
 
 
 
-
-function addFriendlyNameChange(apiKey) {
+// TODO
+function addUserChange(apiKey) {
     let cell = document.getElementById("friendlyname-" + apiKey);
     if (cell.classList.contains("isBeingEdited"))
         return;
@@ -115,8 +116,8 @@ function addFriendlyNameChange(apiKey) {
 
 
 
-
-function addRowApi(apiKey) {
+// TODO
+function addRowUser(apiKey) {
 
     let table = document.getElementById("apitable");
     let row = table.insertRow(0);

@@ -1,12 +1,10 @@
 package sqlite
 
 import (
-	"cmp"
 	"database/sql"
 	"errors"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
-	"slices"
 	"time"
 )
 
@@ -26,18 +24,7 @@ func (p DatabaseProvider) GetAllUsers() []models.User {
 		}
 		result = append(result, user)
 	}
-	return orderUsers(result)
-}
-
-func orderUsers(users []models.User) []models.User {
-	slices.SortFunc(users, func(a, b models.User) int {
-		return cmp.Or(
-			cmp.Compare(a.UserLevel, b.UserLevel),
-			cmp.Compare(b.LastOnline, a.LastOnline),
-			cmp.Compare(a.Email, b.Email),
-		)
-	})
-	return users
+	return result
 }
 
 // GetUser returns a models.User if valid or false if the ID is not valid

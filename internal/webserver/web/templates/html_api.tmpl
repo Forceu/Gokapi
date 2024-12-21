@@ -28,13 +28,13 @@
                                 <td scope="col">{{ .Id }}</td>
                                 <td scope="col">{{ .GetReadableDate }}</td>
                                             <td scope="col">
-						<i id="perm_view_{{ .Id }}" class="bi bi-eye {{if not .HasPermissionView}}apiperm-notgranted{{else}}apiperm-granted{{end}}" title="List Uploads" onclick='changeApiPermission("{{ .Id }}","PERM_VIEW", "perm_view_{{ .Id }}");'></i>
-						<i id="perm_upload_{{ .Id }}" class="bi bi-file-earmark-arrow-up {{if not .HasPermissionUpload}}apiperm-notgranted{{else}}apiperm-granted{{end}}" title="Upload" onclick='changeApiPermission("{{ .Id }}","PERM_UPLOAD", "perm_upload_{{ .Id }}");'></i>
-						<i id="perm_edit_{{ .Id }}" class="bi bi-pencil {{if not .HasPermissionEdit}}apiperm-notgranted{{else}}apiperm-granted{{end}}" title="Edit Uploads" onclick='changeApiPermission("{{ .Id }}","PERM_EDIT", "perm_edit_{{ .Id }}");'></i>
-						<i id="perm_delete_{{ .Id }}" class="bi bi-trash3 {{if not .HasPermissionDelete}}apiperm-notgranted{{else}}apiperm-granted{{end}}" title="Delete Uploads" onclick='changeApiPermission("{{ .Id }}","PERM_DELETE", "perm_delete_{{ .Id }}");'></i>
-						<i id="perm_replace_{{ .Id }}" class="bi bi-recycle {{if not .HasPermissionReplace}}apiperm-notgranted{{else}}apiperm-granted{{end}}" title="Replace Uploads" onclick='changeApiPermission("{{ .Id }}","PERM_REPLACE", "perm_replace_{{ .Id }}");'></i>
-						<i id="perm_users_{{ .Id }}" class="bi bi-people {{if not .HasPermissionManageUsers}}apiperm-notgranted{{else}}apiperm-granted{{end}}" title="Manage Users" onclick='changeApiPermission("{{ .Id }}","PERM_MANAGE_USERS", "perm_users_{{ .Id }}");'></i>
-						<i id="perm_api_{{ .Id }}" class="bi bi-sliders2 {{if not .HasPermissionApiMod}}apiperm-notgranted{{else}}apiperm-granted{{end}}" title="Manage API Keys" onclick='changeApiPermission("{{ .Id }}","PERM_API_MOD", "perm_api_{{ .Id }}");'></i>
+						<i id="perm_view_{{ .Id }}" class="bi bi-eye {{if not .HasPermissionView}}perm-notgranted{{else}}perm-granted{{end}}" title="List Uploads" onclick='changeApiPermission("{{ .Id }}","PERM_VIEW", "perm_view_{{ .Id }}");'></i>
+						<i id="perm_upload_{{ .Id }}" class="bi bi-file-earmark-arrow-up {{if not .HasPermissionUpload}}perm-notgranted{{else}}perm-granted{{end}}" title="Upload" onclick='changeApiPermission("{{ .Id }}","PERM_UPLOAD", "perm_upload_{{ .Id }}");'></i>
+						<i id="perm_edit_{{ .Id }}" class="bi bi-pencil {{if not .HasPermissionEdit}}perm-notgranted{{else}}perm-granted{{end}}" title="Edit Uploads" onclick='changeApiPermission("{{ .Id }}","PERM_EDIT", "perm_edit_{{ .Id }}");'></i>
+						<i id="perm_delete_{{ .Id }}" class="bi bi-trash3 {{if not .HasPermissionDelete}}perm-notgranted{{else}}perm-granted{{end}}" title="Delete Uploads" onclick='changeApiPermission("{{ .Id }}","PERM_DELETE", "perm_delete_{{ .Id }}");'></i>
+						<i id="perm_replace_{{ .Id }}" class="bi bi-recycle {{if not .HasPermissionReplace}}perm-notgranted{{else}}perm-granted{{end}}" title="Replace Uploads" onclick='changeApiPermission("{{ .Id }}","PERM_REPLACE", "perm_replace_{{ .Id }}");'></i>
+						<i id="perm_users_{{ .Id }}" class="bi bi-people {{if not .HasPermissionManageUsers}}perm-notgranted{{else}}perm-granted{{end}}" title="Manage Users" onclick='changeApiPermission("{{ .Id }}","PERM_MANAGE_USERS", "perm_users_{{ .Id }}");'></i>
+						<i id="perm_api_{{ .Id }}" class="bi bi-sliders2 {{if not .HasPermissionApiMod}}perm-notgranted{{else}}perm-granted{{end}}" title="Manage API Keys" onclick='changeApiPermission("{{ .Id }}","PERM_API_MOD", "perm_api_{{ .Id }}");'></i>
 
             				</td>
                                 <td scope="col"><button type="button" data-clipboard-text="{{ .Id }}"  onclick="showToast()" title="Copy API Key" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i></button> <button id="delete-{{ .Id }}" type="button" class="btn btn-outline-danger btn-sm" onclick="deleteApiKey('{{ .Id }}')" title="Delete"><i class="bi bi-trash3"></i></button></td>

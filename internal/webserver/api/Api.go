@@ -21,7 +21,11 @@ import (
 func Process(w http.ResponseWriter, r *http.Request, maxMemory int) {
 	w.Header().Set("cache-control", "no-store")
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	request := parseRequest(r)
+	request, err := parseRequest(r)
+	if err != nil {
+		sendError(w, http.StatusBadRequest, "Invalid request")
+		return
+	}
 	if !isAuthorisedForApi(w, request) {
 		return
 	}
@@ -55,6 +59,8 @@ func Process(w http.ResponseWriter, r *http.Request, maxMemory int) {
 		modifyApiPermission(w, request)
 	case "/auth/delete":
 		deleteApiKey(w, request)
+	case "/user/modify":
+		modifyUserPermission(w, request)
 	default:
 		sendError(w, http.StatusBadRequest, "Invalid request")
 	}
@@ -138,6 +144,8 @@ func getApiPermissionRequired(requestUrl string) (uint8, bool) {
 		return models.ApiPermApiMod, true
 	case "/auth/delete":
 		return models.ApiPermApiMod, true
+	case "/user/modify":
+		return models.ApiPermManageUsers, true
 	default:
 		return models.ApiPermNone, false
 	}
@@ -236,6 +244,15 @@ func isValidKeyForEditing(w http.ResponseWriter, request apiRequest) bool {
 		return false
 	}
 	return true
+}
+
+func isValidUserForEditing(w http.ResponseWriter, request apiRequest) (models.User, bool) {
+	user, ok := database.GetUser(request.usermodInfo.userId)
+	if !ok {
+		sendError(w, http.StatusNotFound, "Invalid user id provided.")
+		return models.User{}, false
+	}
+	return user, true
 }
 
 func createApiKey(w http.ResponseWriter, request apiRequest) {
@@ -420,6 +437,32 @@ func outputFileInfo(w http.ResponseWriter, file models.File) {
 	_, _ = w.Write(result)
 }
 
+func modifyUserPermission(w http.ResponseWriter, request apiRequest) {
+	user, ok := isValidUserForEditing(w, request)
+	if !ok {
+		return
+	}
+	validPermissions := []uint16{models.UserPermissionReplaceUploads,
+		models.UserPermissionListOtherUploads, models.UserPermissionEditOtherUploads,
+		models.UserPermissionReplaceOtherUploads, models.UserPermissionDeleteOtherUploads,
+		models.UserPermissionManageLogs, models.UserPermissionManageApiKeys,
+		models.UserPermissionManageUsers}
+	if !slices.Contains(validPermissions, request.usermodInfo.permission) {
+		sendError(w, http.StatusBadRequest, "Invalid permission sent")
+		return
+	}
+
+	if request.usermodInfo.grantPermission && !user.HasPermission(request.usermodInfo.permission) {
+		user.SetPermission(request.usermodInfo.permission)
+		database.SaveUser(user, false)
+		return
+	}
+	if !request.usermodInfo.grantPermission && user.HasPermission(request.usermodInfo.permission) {
+		user.RemovePermission(request.usermodInfo.permission)
+		database.SaveUser(user, false)
+	}
+}
+
 func isAuthorisedForApi(w http.ResponseWriter, request apiRequest) bool {
 	perm, ok := getApiPermissionRequired(request.requestUrl)
 	if !ok {
@@ -444,8 +487,9 @@ type apiRequest struct {
 	requestUrl  string
 	request     *http.Request
 	fileInfo    fileInfo
-	apiInfo     apiInfo
-	filemodInfo filemodInfo
+	apiInfo     apiModInfo
+	filemodInfo fileModInfo
+	usermodInfo userModInfo
 }
 
 func (a *apiRequest) parseUploadRequest() error {
@@ -477,14 +521,20 @@ type fileInfo struct {
 	filename       string               // apiRequest.parseUploadRequest() needs to be called first
 }
 
-type apiInfo struct {
+type apiModInfo struct {
 	friendlyName     string
 	apiKeyToModify   string
 	permission       uint8
 	grantPermission  bool
 	basicPermissions bool
 }
-type filemodInfo struct {
+type userModInfo struct {
+	userId           int
+	permission       uint16
+	grantPermission  bool
+	basicPermissions bool
+}
+type fileModInfo struct {
 	id               string
 	idNewContent     string
 	downloads        string
@@ -494,30 +544,58 @@ type filemodInfo struct {
 	deleteNewFile    bool
 }
 
-func parseRequest(r *http.Request) apiRequest {
-	permission := models.ApiPermNone
+func parseRequest(r *http.Request) (apiRequest, error) {
+	apiPermission := models.ApiPermNone
 	switch r.Header.Get("permission") {
 	case "PERM_VIEW":
-		permission = models.ApiPermView
+		apiPermission = models.ApiPermView
 	case "PERM_UPLOAD":
-		permission = models.ApiPermUpload
+		apiPermission = models.ApiPermUpload
 	case "PERM_DELETE":
-		permission = models.ApiPermDelete
+		apiPermission = models.ApiPermDelete
 	case "PERM_API_MOD":
-		permission = models.ApiPermApiMod
+		apiPermission = models.ApiPermApiMod
 	case "PERM_EDIT":
-		permission = models.ApiPermEdit
+		apiPermission = models.ApiPermEdit
 	case "PERM_REPLACE":
-		permission = models.ApiPermReplace
+		apiPermission = models.ApiPermReplace
 	case "PERM_MANAGE_USERS":
-		permission = models.ApiPermManageUsers
+		apiPermission = models.ApiPermManageUsers
+	}
+	userPermission := models.UserPermissionNone
+	switch r.Header.Get("userpermission") {
+	case "PERM_REPLACE":
+		userPermission = models.UserPermissionReplaceUploads
+	case "PERM_LIST":
+		userPermission = models.UserPermissionListOtherUploads
+	case "PERM_EDIT":
+		userPermission = models.UserPermissionEditOtherUploads
+	case "PERM_REPLACE_OTHER":
+		userPermission = models.UserPermissionReplaceOtherUploads
+	case "PERM_DELETE":
+		userPermission = models.UserPermissionDeleteOtherUploads
+	case "PERM_LOGS":
+		userPermission = models.UserPermissionManageLogs
+	case "PERM_API":
+		userPermission = models.UserPermissionManageApiKeys
+	case "PERM_USERS":
+		userPermission = models.UserPermissionManageUsers
+	}
+	userId := 0
+	userIdString := r.Header.Get("userid")
+	if userIdString != "" {
+		var err error
+		userId, err = strconv.Atoi(userIdString)
+		if err != nil {
+			return apiRequest{}, err
+		}
 	}
 	return apiRequest{
 		apiKey:     r.Header.Get("apikey"),
 		requestUrl: strings.Replace(r.URL.String(), "/api", "", 1),
 		request:    r,
 		fileInfo:   fileInfo{id: r.Header.Get("id")},
-		filemodInfo: filemodInfo{
+		filemodInfo: fileModInfo{
 			id:               r.Header.Get("id"),
 			idNewContent:     r.Header.Get("idNewContent"),
 			downloads:        r.Header.Get("allowedDownloads"),
@@ -526,14 +604,20 @@ func parseRequest(r *http.Request) apiRequest {
 			originalPassword: r.Header.Get("originalPassword") == "true",
 			deleteNewFile:    r.Header.Get("deleteOriginal") == "true",
 		},
-		apiInfo: apiInfo{
+		apiInfo: apiModInfo{
 			friendlyName:     r.Header.Get("friendlyName"),
 			apiKeyToModify:   r.Header.Get("apiKeyToModify"),
-			permission:       uint8(permission),
+			permission:       uint8(apiPermission),
 			grantPermission:  r.Header.Get("permissionModifier") == "GRANT",
 			basicPermissions: r.Header.Get("basicPermissions") == "true",
 		},
-	}
+		usermodInfo: userModInfo{
+			userId:           userId,
+			permission:       userPermission,
+			grantPermission:  r.Header.Get("permissionModifier") == "GRANT",
+			basicPermissions: r.Header.Get("basicPermissions") == "true",
+		},
+	}, nil
 }
 
 func apiRequestToUploadRequest(request *http.Request) (models.UploadRequest, int, string, error) {
