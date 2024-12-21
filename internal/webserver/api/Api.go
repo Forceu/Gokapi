@@ -11,7 +11,7 @@ import (
 	"github.com/forceu/gokapi/internal/webserver/fileupload"
 	"io"
 	"net/http"
-	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -158,7 +158,7 @@ func NewKey(defaultPermissions bool) string {
 		Id:           helper.GenerateRandomString(30),
 		FriendlyName: "Unnamed key",
 		LastUsed:     0,
-		Permissions:  models.ApiPermAllNoApiMod,
+		Permissions:  models.ApiPermDefault,
 		Expiry:       0,
 		IsSystemKey:  false,
 	}
@@ -205,7 +205,12 @@ func modifyApiPermission(w http.ResponseWriter, request apiRequest) {
 	if !isValidKeyForEditing(w, request) {
 		return
 	}
-	if request.apiInfo.permission < models.ApiPermView || request.apiInfo.permission > models.ApiPermReplace {
+
+	validPermissions := []uint8{models.ApiPermView,
+		models.ApiPermUpload, models.ApiPermDelete,
+		models.ApiPermApiMod, models.ApiPermEdit,
+		models.ApiPermReplace, models.ApiPermManageUsers}
+	if !slices.Contains(validPermissions, request.apiInfo.permission) {
 		sendError(w, http.StatusBadRequest, "Invalid permission sent")
 		return
 	}
@@ -227,7 +232,7 @@ func modifyApiPermission(w http.ResponseWriter, request apiRequest) {
 
 func isValidKeyForEditing(w http.ResponseWriter, request apiRequest) bool {
 	if !IsValidApiKey(request.apiInfo.apiKeyToModify, false, models.ApiPermNone) {
-		sendError(w, http.StatusBadRequest, "Invalid api key provided.")
+		sendError(w, http.StatusNotFound, "Invalid api key provided.")
 		return false
 	}
 	return true
@@ -391,11 +396,6 @@ func replaceFile(w http.ResponseWriter, request apiRequest) {
 		sendError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	// TODO remove with 2.0 once user control has been added
-	if os.Getenv("GOKAPI_DISABLE_REPLACE") != "" {
-		sendError(w, http.StatusUnauthorized, "Replace file is disabled")
-		return
-	}
 	modifiedFile, err := storage.ReplaceFile(request.fileInfo.id, request.filemodInfo.idNewContent, request.filemodInfo.deleteNewFile)
 	if err != nil {
 		switch {
@@ -509,6 +509,8 @@ func parseRequest(r *http.Request) apiRequest {
 		permission = models.ApiPermEdit
 	case "PERM_REPLACE":
 		permission = models.ApiPermReplace
+	case "PERM_MANAGE_USERS":
+		permission = models.ApiPermManageUsers
 	}
 	return apiRequest{
 		apiKey:     r.Header.Get("apikey"),

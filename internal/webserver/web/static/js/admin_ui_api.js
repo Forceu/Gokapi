@@ -150,6 +150,7 @@ function addRowApi(apiKey) {
 	    	<i id="perm_edit_` + apiKey + `" class="bi bi-pencil apiperm-granted" title="Edit Uploads" onclick='changeApiPermission("` + apiKey + `","PERM_EDIT", "perm_edit_` + apiKey + `");'></i>
 	    	<i id="perm_delete_` + apiKey + `" class="bi bi-trash3 apiperm-granted" title="Delete Uploads" onclick='changeApiPermission("` + apiKey + `","PERM_DELETE", "perm_delete_` + apiKey + `");'></i>
 	    	<i id="perm_replace_` + apiKey + `" class="bi bi-recycle apiperm-notgranted" title="Replace Uploads" onclick='changeApiPermission("` + apiKey + `","PERM_REPLACE", "perm_replace_` + apiKey + `");'></i>
+	    	<i id="perm_users_` + apiKey + `" class="bi bi-people apiperm-notgranted" title="Manage Users" onclick='changeApiPermission("` + apiKey + `", "PERM_MANAGE_USERS", "` + apiKey + `");'></i>
 	    	<i id="perm_api_` + apiKey + `" class="bi bi-sliders2 apiperm-notgranted" title="Manage API Keys" onclick='changeApiPermission("` + apiKey + `","PERM_API_MOD", "perm_api_` + apiKey + `");'></i>`;
 
     setTimeout(() => {
