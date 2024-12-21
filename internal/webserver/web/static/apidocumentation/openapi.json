@@ -57,7 +57,7 @@
             "description": "Invalid input"
           },
           "401": {
-            "description": "Invalid API key provided"
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
           }
         }
       }
@@ -102,7 +102,7 @@
             "description": "Invalid input"
           },
           "401": {
-            "description": "Invalid API key provided"
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
           },
           "404": {
             "description": "Invalid ID provided or file has expired"
@@ -148,7 +148,7 @@
             "description": "Invalid input"
           },
           "401": {
-            "description": "Invalid API key provided"
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
           }
         }
       }
@@ -191,7 +191,7 @@
             "description": "Invalid input"
           },
           "401": {
-            "description": "Invalid API key provided"
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
           }
         }
       }
@@ -234,7 +234,7 @@
             "description": "Invalid input"
           },
           "401": {
-            "description": "Invalid API key provided"
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
           }
         }
       }
@@ -277,7 +277,7 @@
             "description": "Invalid input"
           },
           "401": {
-            "description": "Invalid API key provided"
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
           },
           "404": {
             "description": "Invalid ID provided or file has expired"
@@ -360,7 +360,7 @@
             "description": "Invalid ID supplied or incorrect data type sent"
           },
           "401": {
-            "description": "Invalid API key provided"
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
           },
           "404": {
             "description": "Invalid ID provided or file has expired"
@@ -424,7 +424,7 @@
             "description": "Invalid ID supplied or incorrect data type sent"
           },
           "401": {
-            "description": "Invalid API key provided"
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
           },
           "404": {
             "description": "Invalid ID provided or file has expired"
@@ -466,7 +466,7 @@
             "description": "Invalid ID supplied"
           },
           "401": {
-            "description": "Invalid API key provided"
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
           }
         }
       }
@@ -520,7 +520,7 @@
             }
           },
           "401": {
-            "description": "Invalid API key provided"
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
           }
         }
       }
@@ -566,11 +566,11 @@
           "200": {
             "description": "Operation successful"
           },
-          "400": {
-            "description": "Invalid ID supplied"
-          },
           "401": {
-            "description": "Invalid API key provided"
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
+          },
+          "404": {
+            "description": "API key not found"
           }
         }
       }
@@ -581,7 +581,7 @@
           "auth"
         ],
         "summary": "Changes the permissions of the API key",
-        "description": "This API call changes the permissions for the given API key. Requires permission API_MOD",
+        "description": "This API call changes the permission for the given API key. Requires permission API_MOD",
         "operationId": "modifypermission",
         "security": [
           {
@@ -609,7 +609,7 @@
             "explode": false,
             "schema": {
               "type": "string",
-              "enum": ["PERM_VIEW", "PERM_UPLOAD", "PERM_EDIT", "PERM_DELETE", "PERM_API_MOD"]
+              "enum": ["PERM_VIEW", "PERM_UPLOAD", "PERM_EDIT", "PERM_DELETE", "PERM_MANAGE_USERS", "PERM_API_MOD"]
             }
           },
           {
@@ -630,10 +630,13 @@
             "description": "Operation successful"
           },
           "400": {
-            "description": "Invalid ID supplied"
+            "description": "Invalid parameter supplied"
           },
           "401": {
-            "description": "Invalid API key provided"
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
+          },
+          "404": {
+            "description": "API key not found"
           }
         }
       }
@@ -671,8 +674,8 @@
           "400": {
             "description": "Invalid ID supplied"
           },
-          "401": {
-            "description": "Invalid API key provided"
+          "404": {
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
           }
         }
       }

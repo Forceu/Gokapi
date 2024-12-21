@@ -39,7 +39,7 @@ func TestNewKey(t *testing.T) {
 	key, ok := database.GetApiKey(newKeyId)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualString(t, key.FriendlyName, "Unnamed key")
-	test.IsEqualBool(t, key.Permissions == models.ApiPermAllNoApiMod, true)
+	test.IsEqualBool(t, key.Permissions == models.ApiPermDefault, true)
 
 	newKeyId = NewKey(false)
 	key, ok = database.GetApiKey(newKeyId)

@@ -132,6 +132,19 @@ func validateChunkInfo(file *os.File, fileHeader chunking.FileHeader) error {
 	return nil
 }
 
+// GetUploadCounts returns the currently uploaded files per user
+func GetUploadCounts() map[int]int {
+	result := make(map[int]int)
+	timeNow := time.Now().Unix()
+	files := database.GetAllMetadata()
+	for _, file := range files {
+		if !IsExpiredFile(file, timeNow) {
+			result[file.UserId] = result[file.UserId] + 1
+		}
+	}
+	return result
+}
+
 // NewFileFromChunk creates a new file in the system after a chunk upload has fully completed. If a file with the same sha1 hash
 // already exists, it is deduplicated. This function gathers information about the file, creates an ID and saves
 // it into the global configuration.
