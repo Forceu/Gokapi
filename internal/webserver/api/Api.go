@@ -61,6 +61,8 @@ func Process(w http.ResponseWriter, r *http.Request, maxMemory int) {
 		deleteApiKey(w, request)
 	case "/user/modify":
 		modifyUserPermission(w, request)
+	case "/user/delete":
+		deleteUser(w, request)
 	default:
 		sendError(w, http.StatusBadRequest, "Invalid request")
 	}
@@ -146,8 +148,10 @@ func getApiPermissionRequired(requestUrl string) (uint8, bool) {
 		return models.ApiPermApiMod, true
 	case "/user/modify":
 		return models.ApiPermManageUsers, true
+	case "/user/delete":
+		return models.ApiPermManageUsers, true
 	default:
-		return models.ApiPermNone, false
+		return models.ApiPermAll, false
 	}
 }
 
@@ -463,6 +467,25 @@ func modifyUserPermission(w http.ResponseWriter, request apiRequest) {
 	}
 }
 
+// TODO add to API specs
+func deleteUser(w http.ResponseWriter, request apiRequest) {
+	user, ok := isValidUserForEditing(w, request)
+	if !ok {
+		return
+	}
+	database.DeleteUser(user.Id)
+	for _, file := range database.GetAllMetadata() {
+		if file.UserId == user.Id {
+			if request.usermodInfo.deleteUserFiles {
+				database.DeleteMetaData(file.Id)
+			} else {
+				file.UserId = 0 // TODO assign to user that deleted file
+				database.SaveMetaData(file)
+			}
+		}
+	}
+}
+
 func isAuthorisedForApi(w http.ResponseWriter, request apiRequest) bool {
 	perm, ok := getApiPermissionRequired(request.requestUrl)
 	if !ok {
@@ -533,6 +556,7 @@ type userModInfo struct {
 	permission       uint16
 	grantPermission  bool
 	basicPermissions bool
+	deleteUserFiles  bool
 }
 type fileModInfo struct {
 	id               string
@@ -616,6 +640,7 @@ func parseRequest(r *http.Request) (apiRequest, error) {
 			permission:       userPermission,
 			grantPermission:  r.Header.Get("permissionModifier") == "GRANT",
 			basicPermissions: r.Header.Get("basicPermissions") == "true",
+			deleteUserFiles:  r.Header.Get("deleteFiles") == "true",
 		},
 	}, nil
 }

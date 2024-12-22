@@ -41,19 +41,23 @@ function changeUserPermission(apiKey, permission, buttonId) {
         });
 }
 
-// TODO
-function deleteUser(apiKey) {
-
-    document.getElementById("delete-" + apiKey).disabled = true;
-
-    apiAuthDelete(apiKey)
-        .then(data => {
-            document.getElementById("row-" + apiKey).remove();
-        })
-        .catch(error => {
-            alert("Unable to delete API key: " + error);
-            console.error('Error:', error);
-        });
+function showDeleteModal(userId, userEmail) {
+    let checkboxDelete = document.getElementById("checkboxDelete");
+    checkboxDelete.checked = false;
+    document.getElementById("deleteModalBody").innerText = userEmail;
+    $('#deleteModal').modal('show');
+    
+    document.getElementById("buttonDelete").onclick = function() {
+	    apiUserDelete(userId, checkboxDelete.checked)
+		.then(data => {
+		    document.getElementById("row-" + userId).remove();
+   		    $('#deleteModal').modal('hide');
+		})
+		.catch(error => {
+		    alert("Unable to delete user: " + error);
+		    console.error('Error:', error);
+		});
+	    };
 }
 
 

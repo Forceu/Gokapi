@@ -206,7 +206,6 @@ async function apiFilesDelete(id) {
         },
     };
 
-
     try {
         const response = await fetch(apiUrl, requestOptions);
         if (!response.ok) {
@@ -242,7 +241,32 @@ async function apiUserModify(userId, permission, modifier) {
             throw new Error(`Request failed with status: ${response.status}`);
         }
     } catch (error) {
-        console.error("Error in apiAuthModify:", error);
+        console.error("Error in apiUserModify:", error);
+        throw error;
+    }
+}
+
+
+async function apiUserDelete(id, deleteFiles) {
+    const apiUrl = './api/user/delete';
+
+    const requestOptions = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'apikey': systemKey,
+            'userid': id,
+            'deleteFiles': deleteFiles
+        },
+    };
+
+    try {
+        const response = await fetch(apiUrl, requestOptions);
+        if (!response.ok) {
+            throw new Error(`Request failed with status: ${response.status}`);
+        }
+    } catch (error) {
+        console.error("Error in apiUserDelete:", error);
         throw error;
     }
 }

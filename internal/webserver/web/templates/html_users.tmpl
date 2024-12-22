@@ -48,7 +48,7 @@
             			
             			
             			</td>
-                                <td scope="col"><button type="button" data-clipboard-text="{{ .User.Id }}"  onclick="showToast()" title="Copy API Key" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i></button> <button id="delete-{{ .User.Id }}" type="button" class="btn btn-outline-danger btn-sm" onclick="deleteApiKey('{{ .User.Id }}')" title="Delete"><i class="bi bi-trash3"></i></button></td>
+                                <td scope="col"><button type="button" data-clipboard-text="{{ .User.Id }}"  onclick="showToast()" title="Copy API Key" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i></button> <button id="delete-{{ .User.Id }}" type="button" class="btn btn-outline-danger btn-sm" onclick="showDeleteModal('{{ .User.Id }}', '{{ .User.Email }}')" title="Delete"><i class="bi bi-trash3"></i></button></td>
                             </tr>
 {{ end }}
                         </tbody>
@@ -57,6 +57,30 @@
             </div>
         </div>
 	<div id="toastnotification" class="toastnotification">API key copied to clipboard</div>
+	<div class="modal" tabindex="-1" id="deleteModal">
+	  <div class="modal-dialog gokapi-dialog">
+	    <div class="modal-content gokapi-dialog">
+	      <div class="modal-header">
+		<h5 class="modal-title">Delete User</h5>
+		<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+	      </div>
+	      <div class="modal-body">
+		<p>Are you sure you want to delete user <span id="deleteModalBody" class="fw-bold"></span>?
+		This action cannot be undone.</p>
+		<div class="form-check form-check-inline">
+		  <input class="form-check-input" type="checkbox"  id="checkboxDelete" value="" id="flexCheckDefault">
+		  <label class="form-check-label" for="flexCheckDefault">
+		    Permanently delete all files uploaded by this user.
+		  </label>
+		</div>
+		</div>
+	      <div class="modal-footer">
+		<button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
+		<button type="button" id="buttonDelete" class="btn btn-danger">Delete User</button>
+	      </div>
+	    </div>
+	  </div>
+	</div>
     </div>
 </div>
 <script src="./js/min/admin.min.{{ template "js_admin_version"}}.js"></script>
