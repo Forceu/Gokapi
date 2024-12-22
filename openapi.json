@@ -468,11 +468,11 @@
           "200": {
             "description": "Operation successful"
           },
-          "400": {
-            "description": "Invalid ID supplied"
-          },
           "401": {
             "description": "Invalid API key provided for authentication or API key does not have the required permission"
+          },
+          "404": {
+            "description": "Invalid ID supplied"
           }
         }
       }
@@ -751,7 +751,57 @@
           }
         }
       }
-    }
+    },
+    "/user/delete": {
+      "delete": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Deletes the selected user",
+        "description": "This API call changes deletes the given user. If files are associated with the user, they will be linked with the user that initiated the deletion. If deleteFiles is \"true\", the files will be deleted instead.  Requires permission API_MANAGE_USERS",
+        "operationId": "userdelete",
+        "security": [
+          {
+            "apikey": ["API_MANAGE_USERS"]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userid",
+            "in": "header",
+            "description": "The user to be deleted",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deleteFiles",
+            "in": "header",
+            "description": "Delete all associated uploads from this user",
+            "required": false,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Invalid ID or parameters supplied"
+          },
+          "401": {
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
+          }
+        }
+      }
+    },
   },
   "components": {
     "schemas": {

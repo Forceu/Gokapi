@@ -753,6 +753,8 @@ func deleteSource(file models.File, dataDir string) {
 
 // DeleteFile is called when an admin requests deletion of a file
 // Returns true if file was deleted or false if ID did not exist
+// deleteSource forces a clean-up and will delete the source if it is not
+// used by a different file
 func DeleteFile(keyId string, deleteSource bool) bool {
 	if keyId == "" {
 		return false
