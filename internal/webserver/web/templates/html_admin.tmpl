@@ -79,9 +79,9 @@
 			{{ end }}
 						<td id="cell-downloads-{{ .Id }}">{{ .DownloadCount }}</td>
 						<td><a id="url-href-{{ .Id }}" target="_blank" href="{{ .UrlDownload }}">{{ .Id }}</a>{{ if .IsPasswordProtected }}  <i title="Password protected" class="bi bi-key"></i>{{ end }}</td>
-						<td><button id="url-button-{{ .Id }}" type="button" onclick="showToast()" data-clipboard-text="{{ .UrlDownload }}" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> URL</button> 
+						<td><button id="url-button-{{ .Id }}" type="button" onclick="showToast(1000)" data-clipboard-text="{{ .UrlDownload }}" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> URL</button> 
 			{{ if ne .UrlHotlink "" }}
- 						<button type="button" onclick="showToast()" data-clipboard-text="{{ .UrlHotlink }}" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> Hotlink</button>
+ 						<button type="button" onclick="showToast(1000)" data-clipboard-text="{{ .UrlHotlink }}" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> Hotlink</button>
 			{{ else }}
  						<button type="button"class="copyurl btn btn-outline-light btn-sm disabled"><i class="bi bi-copy"></i> Hotlink</button>
 			{{ end }}
@@ -150,7 +150,7 @@
 	
 
 
-	<div id="toastnotification" class="toastnotification">URL copied to clipboard</div>
+	<div id="toastnotification" class="toastnotification" data-default="URL copied to clipboard">Toast Text</div>
 	<div id="qroverlay">
 	  <div id="qrcode"></div>
 	</div>

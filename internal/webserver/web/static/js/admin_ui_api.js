@@ -143,7 +143,7 @@ function addRowApi(apiKey) {
     };
     cellId.innerText = apiKey;
     cellLastUsed.innerText = "Never";
-    cellButtons.innerHTML = '<button type="button" data-clipboard-text="' + apiKey + '"  onclick="showToast()" title="Copy API Key" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i></button> <button id="delete-' + apiKey + '" type="button" class="btn btn-outline-danger btn-sm" onclick="deleteApiKey(\'' + apiKey + '\')" title="Delete"><i class="bi bi-trash3"></i></button>';
+    cellButtons.innerHTML = '<button type="button" data-clipboard-text="' + apiKey + '"  onclick="showToast(1000)" title="Copy API Key" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i></button> <button id="delete-' + apiKey + '" type="button" class="btn btn-outline-danger btn-sm" onclick="deleteApiKey(\'' + apiKey + '\')" title="Delete"><i class="bi bi-trash3"></i></button>';
     cellPermissions.innerHTML = `
 	    	<i id="perm_view_` + apiKey + `" class="bi bi-eye perm-granted" title="List Uploads" onclick='changeApiPermission("` + apiKey + `","PERM_VIEW", "perm_view_` + apiKey + `");'></i>
 	    	<i id="perm_upload_` + apiKey + `" class="bi bi-file-earmark-arrow-up perm-granted" title="Upload" onclick='changeApiPermission("` + apiKey + `","PERM_UPLOAD", "perm_upload_` + apiKey + `");'></i>

@@ -270,4 +270,3 @@ async function apiUserDelete(id, deleteFiles) {
         throw error;
     }
 }
-

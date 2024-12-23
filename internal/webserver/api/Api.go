@@ -195,7 +195,7 @@ func newSystemKey() string {
 		Id:           helper.GenerateRandomString(30),
 		FriendlyName: "Internal System Key",
 		LastUsed:     0,
-		Permissions:  models.ApiPermAll,
+		Permissions:  models.ApiPermAll, // TODO
 		Expiry:       time.Now().Add(time.Hour * 48).Unix(),
 		IsSystemKey:  true,
 	}

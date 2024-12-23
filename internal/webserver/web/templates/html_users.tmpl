@@ -44,7 +44,7 @@
 		
 		<i id="perm_users_{{ .User.Id }}" class="bi bi-people {{if not .User.HasPermissionManageUsers}}perm-notgranted{{else}}perm-granted{{end}} {{if eq .User.UserLevel 0}}perm-nochange{{end}}" title="Manage users" onclick='changeUserPermission("{{ .User.Id }}","PERM_USERS", "perm_users_{{ .User.Id }}");'></i>
             			</td>
-                                <td scope="col"><button type="button" data-clipboard-text="{{ .User.Id }}"  onclick="showToast()" title="Copy API Key" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i></button> <button id="delete-{{ .User.Id }}" type="button" class="btn btn-outline-danger btn-sm" {{if eq .User.UserLevel 0}}disabled{{end}} onclick="showDeleteModal('{{ .User.Id }}', '{{ .User.Email }}')" title="Delete"><i class="bi bi-trash3"></i></button></td>
+                                <td scope="col"><button type="button" data-clipboard-text="{{ .User.Id }}"  onclick="showToast(1000)" title="Copy API Key" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i></button> <button id="delete-{{ .User.Id }}" type="button" class="btn btn-outline-danger btn-sm" {{if eq .User.UserLevel 0}}disabled{{end}} onclick="showDeleteModal('{{ .User.Id }}', '{{ .User.Email }}')" title="Delete"><i class="bi bi-trash3"></i></button></td>
                             </tr>
 {{ end }}
                         </tbody>
@@ -52,7 +52,7 @@
                 </div>
             </div>
         </div>
-	<div id="toastnotification" class="toastnotification">API key copied to clipboard</div>
+	<div id="toastnotification" class="toastnotification" data-default="Invalid notification">Toast Text</div>
 	<div class="modal" tabindex="-1" id="deleteModal">
 	  <div class="modal-dialog gokapi-dialog">
 	    <div class="modal-content gokapi-dialog">
@@ -81,47 +81,6 @@
 </div>
 <script src="./js/min/admin.min.{{ template "js_admin_version"}}.js"></script>
 <script>
-	document.querySelectorAll(".apiname").forEach(function(node) {
-	    node.onclick = function() {
-		if (this.classList.contains("isBeingEdited"))
-		    return;
-		this.classList.add("isBeingEdited");
-		var val = this.innerHTML;
-		var input = document.createElement("input");
-		input.size = 5;
-		input.value = val;
-		let row = this;
-		let allowEdit = true;
-		let submitEntry = function() {
-		    if (!allowEdit)
-			return;
-		    allowEdit = false;
-		    var val = input.value;
-		    input.parentNode.innerHTML = val;
-		    let xmlhttp = new XMLHttpRequest();
-		    xmlhttp.open("GET", "./api/auth/friendlyname");
-		    xmlhttp.setRequestHeader("apiKeyToModify", row.User.Id);
-		    xmlhttp.setRequestHeader("friendlyName", val);
-		    xmlhttp.setRequestHeader("apikey", systemKey);
-		    xmlhttp.send();
-		    row.classList.remove("isBeingEdited");
-
-		    //xmlhttp.onreadystatechange = (e) => {
-		    //}
-		}
-		input.onblur = submitEntry;
-		input.addEventListener("keyup", function(event) {
-		    //Enter
-		    if (event.keyCode === 13) {
-		        event.preventDefault();
-		        submitEntry();
-		    }
-		});
-		this.innerHTML = "";
-		this.appendChild(input);
-		input.focus();
-	    }
-	});
 	var systemKey = "{{.SystemKey}}";
 </script>
 {{ template "footer" true }}

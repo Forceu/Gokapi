@@ -37,7 +37,7 @@
 						<i id="perm_api_{{ .Id }}" class="bi bi-sliders2 {{if not .HasPermissionApiMod}}perm-notgranted{{else}}perm-granted{{end}}" title="Manage API Keys" onclick='changeApiPermission("{{ .Id }}","PERM_API_MOD", "perm_api_{{ .Id }}");'></i>
 
             				</td>
-                                <td scope="col"><button type="button" data-clipboard-text="{{ .Id }}"  onclick="showToast()" title="Copy API Key" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i></button> <button id="delete-{{ .Id }}" type="button" class="btn btn-outline-danger btn-sm" onclick="deleteApiKey('{{ .Id }}')" title="Delete"><i class="bi bi-trash3"></i></button></td>
+                                <td scope="col"><button type="button" data-clipboard-text="{{ .Id }}"  onclick="showToast(1000)" title="Copy API Key" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i></button> <button id="delete-{{ .Id }}" type="button" class="btn btn-outline-danger btn-sm" onclick="deleteApiKey('{{ .Id }}')" title="Delete"><i class="bi bi-trash3"></i></button></td>
  <td scope="col"></td>
                             </tr>
 {{ end }}
@@ -46,7 +46,7 @@
                 </div>
             </div>
         </div>
-	<div id="toastnotification" class="toastnotification">API key copied to clipboard</div>
+	<div id="toastnotification" class="toastnotification" data-default="API key copied to clipboard">Toast Text</div>
     </div>
 </div>
 <script src="./js/min/admin.min.{{ template "js_admin_version"}}.js"></script>
