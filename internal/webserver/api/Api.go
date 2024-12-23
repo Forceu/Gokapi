@@ -464,7 +464,7 @@ func replaceFile(w http.ResponseWriter, request apiRequest, user models.User) {
 		return
 	}
 	if fileOriginal.UserId != user.Id && !user.HasPermission(models.UserPermissionReplaceOtherUploads) {
-		sendError(w, http.StatusUnauthorized, "No permission to duplicate this fileOriginal")
+		sendError(w, http.StatusUnauthorized, "No permission to duplicate this file")
 		return
 	}
 
@@ -473,8 +473,8 @@ func replaceFile(w http.ResponseWriter, request apiRequest, user models.User) {
 		sendError(w, http.StatusNotFound, "Invalid id provided.")
 		return
 	}
-	if fileNewContent.UserId != user.Id && !user.HasPermission(models.UserPermissionReplaceOtherUploads) {
-		sendError(w, http.StatusUnauthorized, "No permission to duplicate this fileOriginal")
+	if fileNewContent.UserId != user.Id && !user.HasPermission(models.UserPermissionListOtherUploads) {
+		sendError(w, http.StatusUnauthorized, "No permission to duplicate this file")
 		return
 	}
 
@@ -484,7 +484,7 @@ func replaceFile(w http.ResponseWriter, request apiRequest, user models.User) {
 		case errors.Is(err, storage.ErrorReplaceE2EFile):
 			sendError(w, http.StatusBadRequest, "End-to-End encrypted files cannot be replaced")
 		case errors.Is(err, storage.ErrorFileNotFound):
-			sendError(w, http.StatusNotFound, "A fileOriginal with such an ID could not be found")
+			sendError(w, http.StatusNotFound, "A file with such an ID could not be found")
 		default:
 			sendError(w, http.StatusBadRequest, err.Error())
 		}

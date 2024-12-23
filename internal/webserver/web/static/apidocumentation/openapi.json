@@ -37,7 +37,7 @@
           "files"
         ],
         "summary": "Lists all files",
-        "description": "This API call lists all files that are not expired. Returns null, if no files are stored. Requires permission VIEW",
+        "description": "This API call lists all files that are not expired. Returns null, if no files are stored. Requires API permission VIEW. To view files that were not uploaded by the user, the user needs to have the user permission LIST",
         "operationId": "list",
         "security": [
           {
@@ -74,7 +74,7 @@
           "files"
         ],
         "summary": "Get metadata by ID",
-        "description": "This API call lists all metadata about a file that is not expired. Returns 404 if an invalid/expired ID was passed. Requires permission VIEW",
+        "description": "This API call lists all metadata about a file that is not expired. Returns 404 if an invalid/expired ID was passed. Requires API permission VIEW. To view files that were not uploaded by the user, the user needs to have the user permission LIST",
         "operationId": "listbyid",
        "parameters": [
       {
@@ -122,7 +122,7 @@
           "chunk"
         ],
         "summary": "Uploads a new chunk",
-        "description": "Uploads a file in chunks, in case a reverse proxy does not support upload of larger files. Parallel uploading is supported. Must call /chunk/complete after all chunks have been uploaded. WARNING: Does not support end-to-end encryption! If server is setup to utilise end-to-end encryption, file will be stored in plain-text! Requires permission UPLOAD",
+        "description": "Uploads a file in chunks, in case a reverse proxy does not support upload of larger files. Parallel uploading is supported. Must call /chunk/complete after all chunks have been uploaded. WARNING: Does not support end-to-end encryption! If server is setup to utilise end-to-end encryption, file will be stored in plain-text! Requires API permission UPLOAD",
         "operationId": "chunkadd",
         "security": [
           {
@@ -165,7 +165,7 @@
           "chunk"
         ],
         "summary": "Finalises uploaded chunks",
-        "description": "Needs to be called after all chunks have been uploaded. Adds the uploaded file to Gokapi. Requires permission UPLOAD",
+        "description": "Needs to be called after all chunks have been uploaded. Adds the uploaded file to Gokapi. Requires API permission UPLOAD",
         "operationId": "chunkcomplete",
         "security": [
           {
@@ -208,7 +208,7 @@
           "files"
         ],
         "summary": "Adds a new file without chunking",
-        "description": "Uploads the submitted file to Gokapi. Please note: This method does not use chunking, therefore if you are behind a reverse proxy or have a provider that limits upload filesizes, this might not work for bigger files (e.g. Cloudflare). WARNING: Does not support end-to-end encryption! If server is setup to utilise end-to-end encryption, file will be stored in plain-text! Requires permission UPLOAD",
+        "description": "Uploads the submitted file to Gokapi. Please note: This method does not use chunking, therefore if you are behind a reverse proxy or have a provider that limits upload filesizes, this might not work for bigger files (e.g. Cloudflare). WARNING: Does not support end-to-end encryption! If server is setup to utilise end-to-end encryption, file will be stored in plain-text! Requires API permission UPLOAD",
         "operationId": "add",
         "security": [
           {
@@ -251,7 +251,7 @@
           "files"
         ],
         "summary": "Duplicates an existing file",
-        "description": "This API call duplicates an existing file with new parameters. Requires permission UPLOAD",
+        "description": "This API call duplicates an existing file with new parameters. Requires API permission UPLOAD. To duplicate files that were not uploaded by the user, the user needs to have the user permission LIST",
         "operationId": "duplicate",
         "security": [
           {
@@ -297,7 +297,7 @@
           "files"
         ],
         "summary": "Changes parameters of an uploaded file",
-        "description": "This API call changes parameters of an uploaded file.  Requires permission EDIT",
+        "description": "This API call changes parameters of an uploaded file. Requires API permission EDIT. To edit files that were not uploaded by the user, the user needs to have the user permission EDIT",
         "operationId": "modifyfile",
         "security": [
           {
@@ -380,7 +380,7 @@
           "files"
         ],
         "summary": "Replaces an uploaded file",
-        "description": "This API replaces the content of an uploaded file with the content of a different (already uplaoded) file. Note: Replacing end-to-end ecrypted files is NOT possible and will result in an error. Requires permission REPLACE",
+        "description": "This API replaces the content of an uploaded file with the content of a different (already uplaoded) file. Note: Replacing end-to-end ecrypted files is NOT possible and will result in an error. Requires API permission REPLACE. To replace a file that was not uploaded by the user, the user needs to have the user permission REPLACE_OTHERS. To replace a file with the content uploaded by another user, the user needs to have the user permission LIST",
         "operationId": "replacefile",
         "security": [
           {
@@ -444,7 +444,7 @@
           "files"
         ],
         "summary": "Deletes the selected file",
-        "description": "This API call deletes the selected file and runs the clean-up procedure which purges all expired files from the data directory immediately. Requires permission DELETE",
+        "description": "This API call deletes the selected file and runs the clean-up procedure which purges all expired files from the data directory immediately. Requires API permission DELETE. To delete a file that was not uploaded by the user, the user needs to have the user permission DELETE",
         "operationId": "delete",
         "security": [
           {
@@ -468,11 +468,11 @@
           "200": {
             "description": "Operation successful"
           },
-          "400": {
-            "description": "Invalid ID supplied"
-          },
           "401": {
             "description": "Invalid API key provided for authentication or API key does not have the required permission"
+          },
+          "404": {
+            "description": "Invalid ID supplied"
           }
         }
       }
@@ -483,7 +483,7 @@
           "auth"
         ],
         "summary": "Creates a new API key",
-        "description": "This API call returns a new API key. The new key does not have any permissions, unless specified. Requires permission API_MOD",
+        "description": "This API call returns a new API key. The new key does not have any permissions, unless specified. Requires API permission API_MOD",
         "operationId": "create",
         "security": [
           {
@@ -537,7 +537,7 @@
           "auth"
         ],
         "summary": "Changes the name of the API key",
-        "description": "This API call changes the name of the API key that is shown in the API overview. Requires permission API_MOD",
+        "description": "This API call changes the name of the API key that is shown in the API overview. Requires API permission API_MOD. To change the name of an API key not owned by the user, the user needs to have the user permission API",
         "operationId": "friendlyname",
         "security": [
           {
@@ -587,7 +587,7 @@
           "auth"
         ],
         "summary": "Changes the permissions of the API key",
-        "description": "This API call changes the permission for the given API key. Requires permission API_MOD",
+        "description": "This API call changes the permission for the given API key. Requires API permission API_MOD. To to edit an API key not owned by the user, the user needs to have the user permission API",
         "operationId": "modifypermission",
         "security": [
           {
@@ -653,7 +653,7 @@
           "auth"
         ],
         "summary": "Deletes an API key",
-        "description": "This API call deletes the given API key. Requires permission API_MOD",
+        "description": "This API call deletes the given API key. Requires API permission API_MOD. To to delete an API key not owned by the user, the user needs to have the user permission API",
         "operationId": "apidelete",
         "security": [
           {
@@ -692,11 +692,11 @@
           "user"
         ],
         "summary": "Changes the permissions of a user",
-        "description": "This API call changes the permission for the given user. Requires permission API_MANAGE_USERS",
+        "description": "This API call changes the permission for the given user. Requires API permission MANAGE_USERS",
         "operationId": "usermodify",
         "security": [
           {
-            "apikey": ["API_MANAGE_USERS"]
+            "apikey": ["MANAGE_USERS"]
           }
         ],
         "parameters": [
@@ -751,7 +751,57 @@
           }
         }
       }
-    }
+    },
+    "/user/delete": {
+      "delete": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Deletes the selected user",
+        "description": "This API call changes deletes the given user. If files are associated with the user, they will be linked with the user that initiated the deletion. If deleteFiles is \"true\", the files will be deleted instead.  Requires API permission MANAGE_USERS",
+        "operationId": "userdelete",
+        "security": [
+          {
+            "apikey": ["MANAGE_USERS"]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userid",
+            "in": "header",
+            "description": "The user to be deleted",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deleteFiles",
+            "in": "header",
+            "description": "Delete all associated uploads from this user",
+            "required": false,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Invalid ID or parameters supplied"
+          },
+          "401": {
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
+          }
+        }
+      }
+    },
   },
   "components": {
     "schemas": {
