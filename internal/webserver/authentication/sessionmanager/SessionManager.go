@@ -47,6 +47,7 @@ func useSession(w http.ResponseWriter, id string, session models.Session, isOaut
 		CreateSession(w, isOauth, OAuthRecheckInterval)
 		database.DeleteSession(id)
 	}
+	go database.UpdateUserLastOnline(session.UserId)
 	return true
 }
 

@@ -77,19 +77,34 @@ func isValid(config models.AuthenticationConfig) (bool, error) {
 	}
 }
 
-// IsAuthenticated returns true if the user provides a valid authentication
-func IsAuthenticated(w http.ResponseWriter, r *http.Request) bool {
+func GetUserIdFromRequest(r *http.Request) (int, error) {
+	c := r.Context()
+	userId, ok := c.Value("userId").(int)
+	if !ok {
+		return -1, errors.New("user id not found in context")
+	}
+	return userId, nil
+}
+
+// IsAuthenticated returns true and the user ID if authenticated
+func IsAuthenticated(w http.ResponseWriter, r *http.Request) (bool, int) {
 	switch authSettings.Method {
 	case Internal:
-		return isGrantedSession(w, r)
+		if isGrantedSession(w, r) {
+			return true, 0 // TODO
+		}
 	case OAuth2:
-		return isGrantedSession(w, r)
+		if isGrantedSession(w, r) {
+			return true, 0 // TODO
+		}
 	case Header:
-		return isGrantedHeader(r)
+		if isGrantedHeader(r) {
+			return true, 0 // TODO
+		}
 	case Disabled:
-		return true
+		return true, 0
 	}
-	return false
+	return false, -1
 }
 
 // isGrantedHeader returns true if the user was authenticated by a proxy header if enabled

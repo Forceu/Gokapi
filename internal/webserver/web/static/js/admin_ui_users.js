@@ -1,9 +1,9 @@
-// This file contains JS code for the API view
+// This file contains JS code for the User view
 // All files named admin_*.js will be merged together and minimised by calling
 // go generate ./...
 
 
-function changeApiPermission(userId, permission, buttonId) {
+function changeUserPermission(userId, permission, buttonId) {
 
     var indicator = document.getElementById(buttonId);
     if (indicator.classList.contains("perm-processing") || indicator.classList.contains("perm-nochange")) {
@@ -19,8 +19,16 @@ function changeApiPermission(userId, permission, buttonId) {
         modifier = "REVOKE";
     }
 
+    if (permission == "PERM_REPLACE_OTHER" && !wasGranted) {
+        hasNotPermissionReplace = document.getElementById("perm_replace_" + userId).classList.contains("perm-notgranted");
+        if (hasNotPermissionReplace) {
+            showToast(2000, "Also granting permission to replace own files");
+            changeUserPermission(userId, "PERM_REPLACE", "perm_replace_" + userId);
+        }
+    }
 
-    apiAuthModify(userId, permission, modifier)
+
+    apiUserModify(userId, permission, modifier)
         .then(data => {
             if (wasGranted) {
                 indicator.classList.add("perm-notgranted");
@@ -41,23 +49,28 @@ function changeApiPermission(userId, permission, buttonId) {
         });
 }
 
-function deleteApiKey(apiKey) {
+function showDeleteModal(userId, userEmail) {
+    let checkboxDelete = document.getElementById("checkboxDelete");
+    checkboxDelete.checked = false;
+    document.getElementById("deleteModalBody").innerText = userEmail;
+    $('#deleteModal').modal('show');
 
-    document.getElementById("delete-" + apiKey).disabled = true;
-
-    apiAuthDelete(apiKey)
-        .then(data => {
-            document.getElementById("row-" + apiKey).remove();
-        })
-        .catch(error => {
-            alert("Unable to delete API key: " + error);
-            console.error('Error:', error);
-        });
+    document.getElementById("buttonDelete").onclick = function() {
+        apiUserDelete(userId, checkboxDelete.checked)
+            .then(data => {
+                document.getElementById("row-" + userId).remove();
+                $('#deleteModal').modal('hide');
+            })
+            .catch(error => {
+                alert("Unable to delete user: " + error);
+                console.error('Error:', error);
+            });
+    };
 }
 
 
-
-function newApiKey() {
+// TODO
+function newUser() {
     document.getElementById("button-newapi").disabled = true;
     apiAuthCreate()
         .then(data => {
@@ -72,8 +85,8 @@ function newApiKey() {
 
 
 
-
-function addFriendlyNameChange(apiKey) {
+// TODO
+function addUserChange(apiKey) {
     let cell = document.getElementById("friendlyname-" + apiKey);
     if (cell.classList.contains("isBeingEdited"))
         return;
@@ -115,8 +128,8 @@ function addFriendlyNameChange(apiKey) {
 
 
 
-
-function addRowApi(apiKey) {
+// TODO
+function addRowUser(apiKey) {
 
     let table = document.getElementById("apitable");
     let row = table.insertRow(0);

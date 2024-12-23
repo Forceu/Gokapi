@@ -99,7 +99,7 @@ func TestHasPermissionEdit(t *testing.T) {
 
 func TestApiPermAllNoApiMod(t *testing.T) {
 	key := &ApiKey{}
-	key.SetPermission(ApiPermAllNoApiMod)
+	key.SetPermission(ApiPermDefault)
 	if !key.HasPermission(ApiPermView) || !key.HasPermission(ApiPermUpload) || !key.HasPermission(ApiPermDelete) || !key.HasPermission(ApiPermEdit) {
 		t.Errorf("expected all permissions except ApiMod to be set")
 	}

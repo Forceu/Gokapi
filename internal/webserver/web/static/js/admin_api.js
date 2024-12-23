@@ -1,4 +1,8 @@
-// API related
+// This file contains JS code to connect to the API
+// All files named admin_*.js will be merged together and minimised by calling
+// go generate ./...
+
+// /auth
 
 async function apiAuthModify(apiKey, permission, modifier) {
     const apiUrl = './api/auth/modify';
@@ -105,7 +109,7 @@ async function apiAuthCreate() {
 
 
 
-// File related
+// /files
 
 
 async function apiFilesReplace(id, newId) {
@@ -202,7 +206,6 @@ async function apiFilesDelete(id) {
         },
     };
 
-
     try {
         const response = await fetch(apiUrl, requestOptions);
         if (!response.ok) {
@@ -210,6 +213,60 @@ async function apiFilesDelete(id) {
         }
     } catch (error) {
         console.error("Error in apiFilesDelete:", error);
+        throw error;
+    }
+}
+
+
+// users
+
+async function apiUserModify(userId, permission, modifier) {
+    const apiUrl = './api/user/modify';
+
+    const requestOptions = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'apikey': systemKey,
+            'userid': userId,
+            'userpermission': permission,
+            'permissionModifier': modifier
+
+        },
+    };
+
+    try {
+        const response = await fetch(apiUrl, requestOptions);
+        if (!response.ok) {
+            throw new Error(`Request failed with status: ${response.status}`);
+        }
+    } catch (error) {
+        console.error("Error in apiUserModify:", error);
+        throw error;
+    }
+}
+
+
+async function apiUserDelete(id, deleteFiles) {
+    const apiUrl = './api/user/delete';
+
+    const requestOptions = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'apikey': systemKey,
+            'userid': id,
+            'deleteFiles': deleteFiles
+        },
+    };
+
+    try {
+        const response = await fetch(apiUrl, requestOptions);
+        if (!response.ok) {
+            throw new Error(`Request failed with status: ${response.status}`);
+        }
+    } catch (error) {
+        console.error("Error in apiUserDelete:", error);
         throw error;
     }
 }

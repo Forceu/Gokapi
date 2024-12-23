@@ -179,18 +179,26 @@ a:hover {
     pointer-events: auto;
 }
 
-.apiperm-granted {
+.perm-granted {
     cursor: pointer;
     color: #19b90e;
 }
 
-.apiperm-notgranted {
+.perm-notgranted {
     cursor: pointer;
     color: #7e7e7e;
 }
-.apiperm-processing {
+
+.perm-processing {
+    pointer-events: none;
     color: #e5eb00;
 }
+
+.perm-nochange {
+   cursor: default;
+}
+
+
 
 .gokapi-dialog {
     background-color: #212529;
