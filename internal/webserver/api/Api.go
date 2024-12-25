@@ -625,17 +625,17 @@ func updateApiKeyPermsOnUserPermChange(userId int, userPerm uint16, isNewlyGrant
 }
 
 func deleteUser(w http.ResponseWriter, request apiRequest, user models.User) {
-	_, ok := isValidUserForEditing(w, request)
+	userToDelete, ok := isValidUserForEditing(w, request)
 	if !ok {
 		return
 	}
-	if user.UserLevel == models.UserLevelSuperAdmin {
+	if userToDelete.UserLevel == models.UserLevelSuperAdmin {
 		sendError(w, http.StatusBadRequest, "Cannot delete super admin")
 		return
 	}
-	database.DeleteUser(user.Id)
+	database.DeleteUser(userToDelete.Id)
 	for _, file := range database.GetAllMetadata() {
-		if file.UserId == user.Id {
+		if file.UserId == userToDelete.Id {
 			if request.usermodInfo.deleteUserFiles {
 				database.DeleteMetaData(file.Id)
 			} else {
@@ -645,11 +645,11 @@ func deleteUser(w http.ResponseWriter, request apiRequest, user models.User) {
 		}
 	}
 	for _, apiKey := range database.GetAllApiKeys() {
-		if apiKey.UserId == user.Id {
+		if apiKey.UserId == userToDelete.Id {
 			database.DeleteApiKey(apiKey.Id)
 		}
 	}
-	database.DeleteAllSessionsByUser(user.Id)
+	database.DeleteAllSessionsByUser(userToDelete.Id)
 }
 
 func isAuthorisedForApi(w http.ResponseWriter, request apiRequest) (models.User, bool) {
