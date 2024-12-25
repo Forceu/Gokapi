@@ -752,6 +752,60 @@
         }
       }
     },
+    "/user/changeRank": {
+      "put": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Changes the rank of a user",
+        "description": "This API call changes the rank for the given user. Requires API permission MANAGE_USERS",
+        "operationId": "userchangerank",
+        "security": [
+          {
+            "apikey": ["MANAGE_USERS"]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userid",
+            "in": "header",
+            "description": "The user to change the rank of",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "newRank",
+            "in": "header",
+            "description": "The name of the new rank",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "enum": ["ADMIN", "USER"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Invalid parameter supplied"
+          },
+          "401": {
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        }
+      }
+    },
     "/user/delete": {
       "delete": {
         "tags": [

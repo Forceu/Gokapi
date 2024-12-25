@@ -184,7 +184,7 @@ func TestDelete(t *testing.T) {
 func getNewKeyWithAllPermissions(t *testing.T) models.ApiKey {
 	validKey, ok := database.GetApiKey(NewKey(false))
 	test.IsEqualBool(t, ok, true)
-	validKey.SetPermission(models.ApiPermAll)
+	validKey.GrantPermission(models.ApiPermAll)
 	database.SaveApiKey(validKey)
 	return validKey
 }
@@ -192,7 +192,7 @@ func getNewKeyWithAllPermissions(t *testing.T) models.ApiKey {
 func getNewKeyWithPermissionMissing(t *testing.T, removePerm uint8) models.ApiKey {
 	validKey, ok := database.GetApiKey(NewKey(false))
 	test.IsEqualBool(t, ok, true)
-	validKey.SetPermission(models.ApiPermAll)
+	validKey.GrantPermission(models.ApiPermAll)
 	validKey.RemovePermission(removePerm)
 	database.SaveApiKey(validKey)
 	return validKey

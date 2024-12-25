@@ -247,6 +247,31 @@ async function apiUserModify(userId, permission, modifier) {
 }
 
 
+async function apiUserChangeRank(userId, newRank) {
+    const apiUrl = './api/user/changeRank';
+
+    const requestOptions = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'apikey': systemKey,
+            'userid': userId,
+            'newRank': newRank
+
+        },
+    };
+
+    try {
+        const response = await fetch(apiUrl, requestOptions);
+        if (!response.ok) {
+            throw new Error(`Request failed with status: ${response.status}`);
+        }
+    } catch (error) {
+        console.error("Error in apiUserModify:", error);
+        throw error;
+    }
+}
+
 async function apiUserDelete(id, deleteFiles) {
     const apiUrl = './api/user/delete';
 

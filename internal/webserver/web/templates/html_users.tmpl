@@ -23,7 +23,7 @@
                             <tr id="row-{{ .User.Id }}">
                                 <td scope="col" id="{{ .User.Id }}">{{ .User.Name }}</td>
                                 <td scope="col">{{ .User.Email }}</td>
-                                <td scope="col">{{ .User.GetReadableUserLevel }}</td>
+                                <td scope="col" id="userlevel_{{ .User.Id }}">{{ .User.GetReadableUserLevel }}</td>
             			<td scope="col">{{ .User.GetReadableDate }}</td>
                                 <td scope="col">{{ .UploadCount }}</td>
             			<td scope="col" class="prevent-select">
@@ -44,7 +44,16 @@
 		
 		<i id="perm_users_{{ .User.Id }}" class="bi bi-people {{if not .User.HasPermissionManageUsers}}perm-notgranted{{else}}perm-granted{{end}} {{if eq .User.UserLevel 0}}perm-nochange{{end}}" title="Manage users" onclick='changeUserPermission("{{ .User.Id }}","PERM_USERS", "perm_users_{{ .User.Id }}");'></i>
             			</td>
-                                <td scope="col"><button type="button" data-clipboard-text="{{ .User.Id }}"  onclick="showToast(1000)" title="Copy API Key" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i></button> <button id="delete-{{ .User.Id }}" type="button" class="btn btn-outline-danger btn-sm" {{if eq .User.UserLevel 0}}disabled{{end}} onclick="showDeleteModal('{{ .User.Id }}', '{{ .User.Email }}')" title="Delete"><i class="bi bi-trash3"></i></button></td>
+                                <td scope="col">
+                                {{if gt .User.UserLevel 1}}
+		                        <button id="changeRank_{{ .User.Id }}" type="button" onclick="changeRank({{ .User.Id }}, 'ADMIN', 'changeRank_{{ .User.Id }}')" title="Promote User" class="btn btn-outline-light btn-sm">
+		                        	<i class="bi bi-chevron-double-up"></i></button>
+                                {{ else }}
+                       			 <button id="changeRank_{{ .User.Id }}" type="button" onclick="changeRank({{ .User.Id }}, 'USER', 'changeRank_{{ .User.Id }}')" {{if eq .User.UserLevel 0}}disabled{{end}} title="Demote User" class="btn btn-outline-light btn-sm">
+		                        	<i class="bi bi-chevron-double-down"></i></button>                                
+                                {{ end }}
+                                
+                                <button id="delete-{{ .User.Id }}" type="button" class="btn btn-outline-danger btn-sm" {{if eq .User.UserLevel 0}}disabled{{end}} onclick="showDeleteModal('{{ .User.Id }}', '{{ .User.Email }}')" title="Delete"><i class="bi bi-trash3"></i></button></td>
                             </tr>
 {{ end }}
                         </tbody>

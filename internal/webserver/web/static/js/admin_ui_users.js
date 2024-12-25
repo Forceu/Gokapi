@@ -5,16 +5,16 @@
 
 function changeUserPermission(userId, permission, buttonId) {
 
-    var indicator = document.getElementById(buttonId);
+    let indicator = document.getElementById(buttonId);
     if (indicator.classList.contains("perm-processing") || indicator.classList.contains("perm-nochange")) {
         return;
     }
-    var wasGranted = indicator.classList.contains("perm-granted");
+    let wasGranted = indicator.classList.contains("perm-granted");
     indicator.classList.add("perm-processing");
     indicator.classList.remove("perm-granted");
     indicator.classList.remove("perm-notgranted");
 
-    var modifier = "GRANT";
+    let modifier = "GRANT";
     if (wasGranted) {
         modifier = "REVOKE";
     }
@@ -48,6 +48,29 @@ function changeUserPermission(userId, permission, buttonId) {
             console.error('Error:', error);
         });
 }
+
+
+
+function changeRank(userId, newRank, buttonId) {
+
+    let indicator = document.getElementById(buttonId);
+    if (indicator.disabled) {
+        return;
+    }
+    indicator.disabled = true;
+
+    apiUserChangeRank(userId, newRank)
+        .then(data => {
+                location.reload();
+        })
+        .catch(error => {
+   	    indicator.disabled = false;
+            alert("Unable to change rank: " + error);
+            console.error('Error:', error);
+        });
+}
+
+
 
 function showDeleteModal(userId, userEmail) {
     let checkboxDelete = document.getElementById("checkboxDelete");

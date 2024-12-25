@@ -61,6 +61,8 @@ func Process(w http.ResponseWriter, r *http.Request, maxMemory int) {
 		modifyApiPermission(w, request, user)
 	case "/auth/delete":
 		deleteApiKey(w, request, user)
+	case "/user/changeRank":
+		changeUserRank(w, request)
 	case "/user/modify":
 		modifyUserPermission(w, request)
 	case "/user/delete":
@@ -152,6 +154,8 @@ func getApiPermissionRequired(requestUrl string) (uint8, bool) {
 		return models.ApiPermApiMod, true
 	case "/auth/delete":
 		return models.ApiPermApiMod, true
+	case "/user/changeRank":
+		return models.ApiPermManageUsers, true
 	case "/user/modify":
 		return models.ApiPermManageUsers, true
 	case "/user/delete":
@@ -281,7 +285,7 @@ func modifyApiPermission(w http.ResponseWriter, request apiRequest, user models.
 		return
 	}
 	if request.apiInfo.grantPermission && !key.HasPermission(request.apiInfo.permission) {
-		key.SetPermission(request.apiInfo.permission)
+		key.GrantPermission(request.apiInfo.permission)
 		database.SaveApiKey(key)
 		return
 	}
@@ -557,23 +561,50 @@ func modifyUserPermission(w http.ResponseWriter, request apiRequest) {
 		if !user.HasPermission(reqPermission) {
 			user.SetPermission(reqPermission)
 			database.SaveUser(user, false)
+			updateApiKeyPermsOnUserPermChange(user.Id, reqPermission, true)
 		}
 		return
 	}
 	if user.HasPermission(reqPermission) {
 		user.RemovePermission(reqPermission)
 		database.SaveUser(user, false)
-		removeApiPermOnUserPermChange(user.Id, reqPermission)
+		updateApiKeyPermsOnUserPermChange(user.Id, reqPermission, false)
 	}
 }
 
-func removeApiPermOnUserPermChange(userId int, deletedUserPerm uint16) {
-	var permissionRemove uint8
-	switch deletedUserPerm {
+func changeUserRank(w http.ResponseWriter, request apiRequest) {
+	user, ok := isValidUserForEditing(w, request)
+	if !ok {
+		return
+	}
+	if user.UserLevel == models.UserLevelSuperAdmin {
+		sendError(w, http.StatusBadRequest, "Cannot modify super admin")
+		return
+	}
+	switch request.usermodInfo.newRank {
+	case "ADMIN":
+		user.UserLevel = models.UserLevelAdmin
+		user.Permissions = models.UserPermissionAll
+		updateApiKeyPermsOnUserPermChange(user.Id, models.UserPermReplaceUploads, true)
+		updateApiKeyPermsOnUserPermChange(user.Id, models.UserPermManageUsers, true)
+	case "USER":
+		user.UserLevel = models.UserLevelUser
+		user.Permissions = models.UserPermissionNone
+		updateApiKeyPermsOnUserPermChange(user.Id, models.UserPermReplaceUploads, false)
+		updateApiKeyPermsOnUserPermChange(user.Id, models.UserPermManageUsers, false)
+	default:
+		sendError(w, http.StatusBadRequest, "invalid rank sent")
+	}
+	database.SaveUser(user, false)
+}
+
+func updateApiKeyPermsOnUserPermChange(userId int, userPerm uint16, isNewlyGranted bool) {
+	var affectedPermission uint8
+	switch userPerm {
 	case models.UserPermManageUsers:
-		permissionRemove = models.ApiPermManageUsers
+		affectedPermission = models.ApiPermManageUsers
 	case models.UserPermReplaceUploads:
-		permissionRemove = models.ApiPermReplace
+		affectedPermission = models.ApiPermReplace
 	default:
 		return
 	}
@@ -581,8 +612,13 @@ func removeApiPermOnUserPermChange(userId int, deletedUserPerm uint16) {
 		if apiKey.UserId != userId {
 			continue
 		}
-		if apiKey.HasPermission(permissionRemove) {
-			apiKey.RemovePermission(permissionRemove)
+		if isNewlyGranted {
+			if apiKey.IsSystemKey {
+				apiKey.GrantPermission(affectedPermission)
+				database.SaveApiKey(apiKey)
+			}
+		} else if apiKey.HasPermission(affectedPermission) {
+			apiKey.RemovePermission(affectedPermission)
 			database.SaveApiKey(apiKey)
 		}
 	}
@@ -688,6 +724,7 @@ type userModInfo struct {
 	grantPermission  bool
 	basicPermissions bool
 	deleteUserFiles  bool
+	newRank          string
 }
 type fileModInfo struct {
 	id               string
@@ -736,7 +773,7 @@ func parseRequest(r *http.Request) (apiRequest, error) {
 	case "PERM_USERS":
 		userPermission = models.UserPermManageUsers
 	}
-	userId := 0
+	userId := -1
 	userIdString := r.Header.Get("userid")
 	if userIdString != "" {
 		var err error
@@ -770,6 +807,7 @@ func parseRequest(r *http.Request) (apiRequest, error) {
 		usermodInfo: userModInfo{
 			userId:           userId,
 			permission:       userPermission,
+			newRank:          r.Header.Get("newRank"),
 			grantPermission:  r.Header.Get("permissionModifier") == "GRANT",
 			basicPermissions: r.Header.Get("basicPermissions") == "true",
 			deleteUserFiles:  r.Header.Get("deleteFiles") == "true",

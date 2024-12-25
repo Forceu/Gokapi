@@ -48,8 +48,8 @@ func (key *ApiKey) GetReadableDate() string {
 	return time.Unix(key.LastUsed, 0).Format("2006-01-02 15:04:05")
 }
 
-// SetPermission grants one or more permissions
-func (key *ApiKey) SetPermission(permission uint8) {
+// GrantPermission sets one or more permissions
+func (key *ApiKey) GrantPermission(permission uint8) {
 	key.Permissions |= permission
 }
 

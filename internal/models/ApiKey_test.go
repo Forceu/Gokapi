@@ -16,7 +16,7 @@ func TestApiKey_GetReadableDate(t *testing.T) {
 
 func TestSetPermission(t *testing.T) {
 	key := &ApiKey{}
-	key.SetPermission(ApiPermView)
+	key.GrantPermission(ApiPermView)
 	if !key.HasPermission(ApiPermView) {
 		t.Errorf("expected permission %d to be set", ApiPermView)
 	}
@@ -27,7 +27,7 @@ func TestSetPermission(t *testing.T) {
 
 func TestRemovePermission(t *testing.T) {
 	key := &ApiKey{}
-	key.SetPermission(ApiPermView)
+	key.GrantPermission(ApiPermView)
 	if !key.HasPermission(ApiPermView) {
 		t.Errorf("expected permission %d to be set", ApiPermView)
 	}
@@ -45,7 +45,7 @@ func TestHasPermission(t *testing.T) {
 	if key.HasPermission(ApiPermUpload) {
 		t.Errorf("expected permission %d not to be set", ApiPermUpload)
 	}
-	key.SetPermission(ApiPermUpload)
+	key.GrantPermission(ApiPermUpload)
 	if !key.HasPermission(ApiPermUpload) {
 		t.Errorf("expected permission %d to be set", ApiPermUpload)
 	}
@@ -59,7 +59,7 @@ func TestHasPermissionView(t *testing.T) {
 	if key.HasPermissionView() {
 		t.Errorf("expected view permission to be not set")
 	}
-	key.SetPermission(ApiPermView)
+	key.GrantPermission(ApiPermView)
 	if !key.HasPermissionView() {
 		t.Errorf("expected view permission to be set")
 	}
@@ -67,7 +67,7 @@ func TestHasPermissionView(t *testing.T) {
 
 func TestHasPermissionUpload(t *testing.T) {
 	key := &ApiKey{}
-	key.SetPermission(ApiPermUpload)
+	key.GrantPermission(ApiPermUpload)
 	if !key.HasPermissionUpload() {
 		t.Errorf("expected upload permission to be set")
 	}
@@ -75,7 +75,7 @@ func TestHasPermissionUpload(t *testing.T) {
 
 func TestHasPermissionDelete(t *testing.T) {
 	key := &ApiKey{}
-	key.SetPermission(ApiPermDelete)
+	key.GrantPermission(ApiPermDelete)
 	if !key.HasPermissionDelete() {
 		t.Errorf("expected delete permission to be set")
 	}
@@ -83,7 +83,7 @@ func TestHasPermissionDelete(t *testing.T) {
 
 func TestHasPermissionApiMod(t *testing.T) {
 	key := &ApiKey{}
-	key.SetPermission(ApiPermApiMod)
+	key.GrantPermission(ApiPermApiMod)
 	if !key.HasPermissionApiMod() {
 		t.Errorf("expected ApiMod permission to be set")
 	}
@@ -91,7 +91,7 @@ func TestHasPermissionApiMod(t *testing.T) {
 
 func TestHasPermissionEdit(t *testing.T) {
 	key := &ApiKey{}
-	key.SetPermission(ApiPermEdit)
+	key.GrantPermission(ApiPermEdit)
 	if !key.HasPermissionEdit() {
 		t.Errorf("expected edit permission to be set")
 	}
@@ -99,7 +99,7 @@ func TestHasPermissionEdit(t *testing.T) {
 
 func TestApiPermAllNoApiMod(t *testing.T) {
 	key := &ApiKey{}
-	key.SetPermission(ApiPermDefault)
+	key.GrantPermission(ApiPermDefault)
 	if !key.HasPermission(ApiPermView) || !key.HasPermission(ApiPermUpload) || !key.HasPermission(ApiPermDelete) || !key.HasPermission(ApiPermEdit) {
 		t.Errorf("expected all permissions except ApiMod to be set")
 	}
@@ -110,7 +110,7 @@ func TestApiPermAllNoApiMod(t *testing.T) {
 
 func TestApiPermAll(t *testing.T) {
 	key := &ApiKey{}
-	key.SetPermission(ApiPermAll)
+	key.GrantPermission(ApiPermAll)
 	if !key.HasPermission(ApiPermView) || !key.HasPermission(ApiPermUpload) || !key.HasPermission(ApiPermDelete) || !key.HasPermission(ApiPermApiMod) || !key.HasPermission(ApiPermEdit) {
 		t.Errorf("expected all permissions to be set")
 	}
@@ -159,7 +159,7 @@ func TestSetIndividualPermissions(t *testing.T) {
 
 	for _, p := range permissions {
 		key.Permissions = ApiPermNone // reset permissions
-		key.SetPermission(p.perm)
+		key.GrantPermission(p.perm)
 		checkOnlyPermissionSet(t, key, p.perm, p.permName)
 	}
 }
@@ -187,7 +187,7 @@ func TestSetCombinedPermissions(t *testing.T) {
 	for i := 0; i < len(allPermissions); i++ {
 		key.Permissions = ApiPermNone // reset permissions
 		for j := 0; j <= i; j++ {
-			key.SetPermission(allPermissions[j])
+			key.GrantPermission(allPermissions[j])
 		}
 		checkCombinedPermissions(t, key, allPermissions[:i+1])
 	}

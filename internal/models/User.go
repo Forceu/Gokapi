@@ -52,6 +52,7 @@ const (
 	UserPermManageUsers
 )
 const UserPermissionNone uint16 = 0
+const UserPermissionAll uint16 = 255
 
 // SetPermission grants one or more permissions
 func (u *User) SetPermission(permission uint16) {
