@@ -26,6 +26,13 @@ function changeUserPermission(userId, permission, buttonId) {
             changeUserPermission(userId, "PERM_REPLACE", "perm_replace_" + userId);
         }
     }
+    if (permission == "PERM_REPLACE" && wasGranted) {
+        hasPermissionReplaceOthers = document.getElementById("perm_replace_other_" + userId).classList.contains("perm-granted");
+        if (hasPermissionReplaceOthers) {
+            showToast(2000, "Also revoking permission to replace files of other users");
+            changeUserPermission(userId, "PERM_REPLACE_OTHER", "perm_replace_other_" + userId);
+        }
+    }
 
 
     apiUserModify(userId, permission, modifier)

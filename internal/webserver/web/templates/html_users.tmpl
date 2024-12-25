@@ -34,15 +34,16 @@
 		
 		<i id="perm_edit_{{ .User.Id }}" class="bi bi-pencil {{if not .User.HasPermissionEditOtherUploads}}perm-notgranted{{else}}perm-granted{{end}} {{if eq .User.UserLevel 0}}perm-nochange{{end}}" title="Edit other uploads" onclick='changeUserPermission("{{ .User.Id }}","PERM_EDIT", "perm_edit_{{ .User.Id }}");'></i>
 		
-		<i id="perm_replace_other_{{ .User.Id }}" class="bi bi-arrow-left-right {{if not .User.HasPermissionReplaceOtherUploads}}perm-notgranted{{else}}perm-granted{{end}} {{if eq .User.UserLevel 0}}perm-nochange{{end}}" title="Replace other uploads" onclick='changeUserPermission("{{ .User.Id }}","PERM_REPLACE_OTHER", "perm_replace_other_{{ .User.Id }}");'></i>
-		
 		<i id="perm_delete_{{ .User.Id }}" class="bi bi-trash3 {{if not .User.HasPermissionDeleteOtherUploads}}perm-notgranted{{else}}perm-granted{{end}} {{if eq .User.UserLevel 0}}perm-nochange{{end}}" title="Delete other uploads" onclick='changeUserPermission("{{ .User.Id }}","PERM_DELETE", "perm_delete_{{ .User.Id }}");'></i>
 		
-		<i id="perm_logs_{{ .User.Id }}" class="bi bi-card-list {{if not .User.HasPermissionManageLogs}}perm-notgranted{{else}}perm-granted{{end}} {{if eq .User.UserLevel 0}}perm-nochange{{end}}" title="Manage system logs" onclick='changeUserPermission("{{ .User.Id }}","PERM_LOGS", "perm_logs_{{ .User.Id }}");'></i>
+		<i id="perm_replace_other_{{ .User.Id }}" class="bi bi-arrow-left-right {{if not .User.HasPermissionReplaceOtherUploads}}perm-notgranted{{else}}perm-granted{{end}} {{if eq .User.UserLevel 0}}perm-nochange{{end}}" title="Replace other uploads" onclick='changeUserPermission("{{ .User.Id }}","PERM_REPLACE_OTHER", "perm_replace_other_{{ .User.Id }}");'></i>
 		
+		<i id="perm_logs_{{ .User.Id }}" class="bi bi-card-list {{if not .User.HasPermissionManageLogs}}perm-notgranted{{else}}perm-granted{{end}} {{if eq .User.UserLevel 0}}perm-nochange{{end}}" title="Manage system logs" onclick='changeUserPermission("{{ .User.Id }}","PERM_LOGS", "perm_logs_{{ .User.Id }}");'></i>
+
+		<i id="perm_users_{{ .User.Id }}" class="bi bi-people {{if not .User.HasPermissionManageUsers}}perm-notgranted{{else}}perm-granted{{end}} {{if eq .User.UserLevel 0}}perm-nochange{{end}}" title="Manage users" onclick='changeUserPermission("{{ .User.Id }}","PERM_USERS", "perm_users_{{ .User.Id }}");'></i>
+
 		<i id="perm_api_{{ .User.Id }}" class="bi bi-sliders2 {{if not .User.HasPermissionManageApi}}perm-notgranted{{else}}perm-granted{{end}} {{if eq .User.UserLevel 0}}perm-nochange{{end}}" title="Manage API keys" onclick='changeUserPermission("{{ .User.Id }}","PERM_API", "perm_api_{{ .User.Id }}");'></i>
 		
-		<i id="perm_users_{{ .User.Id }}" class="bi bi-people {{if not .User.HasPermissionManageUsers}}perm-notgranted{{else}}perm-granted{{end}} {{if eq .User.UserLevel 0}}perm-nochange{{end}}" title="Manage users" onclick='changeUserPermission("{{ .User.Id }}","PERM_USERS", "perm_users_{{ .User.Id }}");'></i>
             			</td>
                                 <td scope="col">
                                 {{if gt .User.UserLevel 1}}

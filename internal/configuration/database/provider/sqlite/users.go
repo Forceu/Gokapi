@@ -49,12 +49,12 @@ func (p DatabaseProvider) GetUser(id int) (models.User, bool) {
 // SaveUser saves a user to the database. If isNewUser is true, a new Id will be generated
 func (p DatabaseProvider) SaveUser(user models.User, isNewUser bool) {
 	if isNewUser {
-		_, err := p.sqliteDb.Exec("INSERT INTO Users ( Name, Email, Password, Permissions, Userlevel) VALUES  (?, ?, ?, ?, ?)",
-			user.Name, user.Email, user.Password, user.Permissions, user.UserLevel)
+		_, err := p.sqliteDb.Exec("INSERT INTO Users ( Name, Email, Password, Permissions, Userlevel, LastOnline) VALUES  (?, ?, ?, ?, ?, ?)",
+			user.Name, user.Email, user.Password, user.Permissions, user.UserLevel, user.LastOnline)
 		helper.Check(err)
 	} else {
-		_, err := p.sqliteDb.Exec("INSERT OR REPLACE INTO Users (Id, Name, Email, Password, Permissions, Userlevel) VALUES  (?, ?, ?, ?, ?, ?)",
-			user.Id, user.Name, user.Email, user.Password, user.Permissions, user.UserLevel)
+		_, err := p.sqliteDb.Exec("INSERT OR REPLACE INTO Users (Id, Name, Email, Password, Permissions, Userlevel, LastOnline) VALUES  (?, ?, ?, ?, ?, ?, ?)",
+			user.Id, user.Name, user.Email, user.Password, user.Permissions, user.UserLevel, user.LastOnline)
 		helper.Check(err)
 	}
 }
