@@ -125,8 +125,20 @@ function addRowApi(apiKey) {
     let cellId = row.insertCell(1);
     let cellLastUsed = row.insertCell(2);
     let cellPermissions = row.insertCell(3);
-    let cellButtons = row.insertCell(4);
-    let cellEmpty = row.insertCell(5);
+    let cellUserName;
+    let cellButtons;
+    let cellEmpty;
+    
+    if (canViewOtherApiKeys) {
+     cellUserName = row.insertCell(4);
+     cellButtons = row.insertCell(5);
+     cellEmpty = row.insertCell(6);
+    cellUserName.classList.add("newApiKey");
+    cellUserName.innerText = userName;
+    } else {
+     cellButtons = row.insertCell(4);
+     cellEmpty = row.insertCell(5);
+    }
 
     cellFriendlyName.classList.add("newApiKey");
     cellId.classList.add("newApiKey");
@@ -152,6 +164,17 @@ function addRowApi(apiKey) {
 	    	<i id="perm_replace_` + apiKey + `" class="bi bi-recycle perm-notgranted" title="Replace Uploads" onclick='changeApiPermission("` + apiKey + `","PERM_REPLACE", "perm_replace_` + apiKey + `");'></i>
 	    	<i id="perm_users_` + apiKey + `" class="bi bi-people perm-notgranted" title="Manage Users" onclick='changeApiPermission("` + apiKey + `", "PERM_MANAGE_USERS", "` + apiKey + `");'></i>
 	    	<i id="perm_api_` + apiKey + `" class="bi bi-sliders2 perm-notgranted" title="Manage API Keys" onclick='changeApiPermission("` + apiKey + `","PERM_API_MOD", "perm_api_` + apiKey + `");'></i>`;
+   
+    if (!canReplaceFiles) {
+    	let cell = document.getElementById("perm_replace_"+apiKey);
+    	cell.classList.add("perm-unavailable");
+    	cell.classList.add("perm-nochange");
+    }
+    if (!canManageUsers) {
+    	let cell = document.getElementById("perm_users_"+apiKey);
+    	cell.classList.add("perm-unavailable");
+    	cell.classList.add("perm-nochange");
+    }
 
     setTimeout(() => {
         cellFriendlyName.classList.remove("newApiKey");

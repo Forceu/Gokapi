@@ -42,14 +42,14 @@ const UserLevelAdmin = 1
 const UserLevelUser = 2
 
 const (
-	UserPermissionReplaceUploads = 1 << iota
-	UserPermissionListOtherUploads
-	UserPermissionEditOtherUploads
-	UserPermissionReplaceOtherUploads
-	UserPermissionDeleteOtherUploads
-	UserPermissionManageLogs
-	UserPermissionManageApiKeys
-	UserPermissionManageUsers
+	UserPermReplaceUploads = 1 << iota
+	UserPermListOtherUploads
+	UserPermEditOtherUploads
+	UserPermReplaceOtherUploads
+	UserPermDeleteOtherUploads
+	UserPermManageLogs
+	UserPermManageApiKeys
+	UserPermManageUsers
 )
 const UserPermissionNone uint16 = 0
 
@@ -71,42 +71,42 @@ func (u *User) HasPermission(permission uint16) bool {
 	return (u.Permissions & permission) == permission
 }
 
-// HasPermissionReplace returns true if the user has the permission UserPermissionReplaceUploads
+// HasPermissionReplace returns true if the user has the permission UserPermReplaceUploads
 func (u *User) HasPermissionReplace() bool {
-	return u.HasPermission(UserPermissionReplaceUploads)
+	return u.HasPermission(UserPermReplaceUploads)
 }
 
-// HasPermissionListOtherUploads returns true if the user has the permission UserPermissionListOtherUploads
+// HasPermissionListOtherUploads returns true if the user has the permission UserPermListOtherUploads
 func (u *User) HasPermissionListOtherUploads() bool {
-	return u.HasPermission(UserPermissionListOtherUploads)
+	return u.HasPermission(UserPermListOtherUploads)
 }
 
-// HasPermissionEditOtherUploads returns true if the user has the permission UserPermissionEditOtherUploads
+// HasPermissionEditOtherUploads returns true if the user has the permission UserPermEditOtherUploads
 func (u *User) HasPermissionEditOtherUploads() bool {
-	return u.HasPermission(UserPermissionEditOtherUploads)
+	return u.HasPermission(UserPermEditOtherUploads)
 }
 
-// HasPermissionReplaceOtherUploads returns true if the user has the permission UserPermissionReplaceOtherUploads
+// HasPermissionReplaceOtherUploads returns true if the user has the permission UserPermReplaceOtherUploads
 func (u *User) HasPermissionReplaceOtherUploads() bool {
-	return u.HasPermission(UserPermissionReplaceOtherUploads)
+	return u.HasPermission(UserPermReplaceOtherUploads)
 }
 
-// HasPermissionDeleteOtherUploads returns true if the user has the permission UserPermissionDeleteOtherUploads
+// HasPermissionDeleteOtherUploads returns true if the user has the permission UserPermDeleteOtherUploads
 func (u *User) HasPermissionDeleteOtherUploads() bool {
-	return u.HasPermission(UserPermissionDeleteOtherUploads)
+	return u.HasPermission(UserPermDeleteOtherUploads)
 }
 
-// HasPermissionManageLogs returns true if the user has the permission UserPermissionManageLogs
+// HasPermissionManageLogs returns true if the user has the permission UserPermManageLogs
 func (u *User) HasPermissionManageLogs() bool {
-	return u.HasPermission(UserPermissionManageLogs)
+	return u.HasPermission(UserPermManageLogs)
 }
 
-// HasPermissionManageApi returns true if the user has the permission UserPermissionManageApiKeys
+// HasPermissionManageApi returns true if the user has the permission UserPermManageApiKeys
 func (u *User) HasPermissionManageApi() bool {
-	return u.HasPermission(UserPermissionManageApiKeys)
+	return u.HasPermission(UserPermManageApiKeys)
 }
 
-// HasPermissionManageUsers returns true if the user has the permission UserPermissionManageUsers
+// HasPermissionManageUsers returns true if the user has the permission UserPermManageUsers
 func (u *User) HasPermissionManageUsers() bool {
-	return u.HasPermission(UserPermissionManageUsers)
+	return u.HasPermission(UserPermManageUsers)
 }

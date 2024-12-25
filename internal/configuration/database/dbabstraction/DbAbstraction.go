@@ -83,6 +83,8 @@ type Database interface {
 	DeleteSession(id string)
 	// DeleteAllSessions logs all users out
 	DeleteAllSessions()
+	// DeleteAllSessionsByUser logs the specific users out
+	DeleteAllSessionsByUser(userId int)
 
 	// GetAllUsers returns a map with all users
 	GetAllUsers() []models.User

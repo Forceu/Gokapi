@@ -313,7 +313,12 @@ func showUserAdmin(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		panic(err)
 	}
-	err = templateFolder.ExecuteTemplate(w, "users", (&UploadView{}).convertGlobalConfig(ViewUsers, userId))
+	view := (&UploadView{}).convertGlobalConfig(ViewUsers, userId)
+	if !view.ActiveUser.HasPermissionManageUsers() {
+		redirect(w, "admin")
+		return
+	}
+	err = templateFolder.ExecuteTemplate(w, "users", view)
 	helper.CheckIgnoreTimeout(err)
 }
 
@@ -553,7 +558,12 @@ func showLogs(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		panic(err)
 	}
-	err = templateFolder.ExecuteTemplate(w, "logs", (&UploadView{}).convertGlobalConfig(ViewLogs, userId))
+	view := (&UploadView{}).convertGlobalConfig(ViewLogs, userId)
+	if !view.ActiveUser.HasPermissionManageLogs() {
+		redirect(w, "admin")
+		return
+	}
+	err = templateFolder.ExecuteTemplate(w, "logs", view)
 	helper.CheckIgnoreTimeout(err)
 }
 
@@ -601,6 +611,8 @@ type UploadView struct {
 	Items              []models.FileApiOutput
 	ApiKeys            []models.ApiKey
 	Users              []userInfo
+	ActiveUser         models.User
+	UserMap            map[int]*models.User
 	ServerUrl          string
 	Logs               string
 	PublicName         string
@@ -616,6 +628,17 @@ type UploadView struct {
 	ChunkSize          int
 	MaxParallelUploads int
 	TimeNow            int64
+}
+
+// getUserMap needs to return the map with pointers, otherwise template cannot call
+// functions associated with it
+func getUserMap() map[int]*models.User {
+	result := make(map[int]*models.User)
+	users := database.GetAllUsers()
+	for _, user := range users {
+		result[user.Id] = &user
+	}
+	return result
 }
 
 const (
@@ -635,6 +658,12 @@ func (u *UploadView) convertGlobalConfig(view, userId int) *UploadView {
 	var result []models.FileApiOutput
 	var resultApi []models.ApiKey
 
+	user, ok := database.GetUser(userId)
+	if !ok {
+		panic("user not found")
+	}
+	u.ActiveUser = user
+	u.UserMap = getUserMap()
 	config := configuration.Get()
 	switch view {
 	case ViewMain:
@@ -650,9 +679,11 @@ func (u *UploadView) convertGlobalConfig(view, userId int) *UploadView {
 			return result[i].ExpireAt > result[j].ExpireAt
 		})
 	case ViewAPI:
-		for _, element := range database.GetAllApiKeys() {
-			if !element.IsSystemKey {
-				resultApi = append(resultApi, element)
+		for _, apiKey := range database.GetAllApiKeys() {
+			if !apiKey.IsSystemKey {
+				if apiKey.UserId == user.Id || user.HasPermissionManageApi() {
+					resultApi = append(resultApi, apiKey)
+				}
 			}
 		}
 		sort.Slice(resultApi[:], func(i, j int) bool {
@@ -672,13 +703,13 @@ func (u *UploadView) convertGlobalConfig(view, userId int) *UploadView {
 	case ViewUsers:
 		uploadCounts := storage.GetUploadCounts()
 		u.Users = make([]userInfo, 0)
-		for _, user := range database.GetAllUsers() {
+		for _, userEntry := range database.GetAllUsers() {
 			userWithUploads := userInfo{
-				UploadCount: uploadCounts[user.Id],
-				User:        user,
+				UploadCount: uploadCounts[userEntry.Id],
+				User:        userEntry,
 			}
 			// Otherwise the user is not shown as online, if /users is opened as first page
-			if user.Id == userId {
+			if userEntry.Id == userId {
 				userWithUploads.User.LastOnline = time.Now().Unix()
 			}
 			u.Users = append(u.Users, userWithUploads)

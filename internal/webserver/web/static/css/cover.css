@@ -186,7 +186,11 @@ a:hover {
 
 .perm-notgranted {
     cursor: pointer;
-    color: #7e7e7e;
+    color: #9f9999;
+}
+
+.perm-unavailable {
+    color: #525252;
 }
 
 .perm-processing {
@@ -198,6 +202,11 @@ a:hover {
    cursor: default;
 }
 
+.prevent-select {
+  -webkit-user-select: none; /* Safari */
+  -ms-user-select: none; /* IE 10 and IE 11 */
+  user-select: none; /* Standard syntax */
+}
 
 
 .gokapi-dialog {

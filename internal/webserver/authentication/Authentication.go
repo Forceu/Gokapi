@@ -90,17 +90,19 @@ func GetUserIdFromRequest(r *http.Request) (int, error) {
 func IsAuthenticated(w http.ResponseWriter, r *http.Request) (bool, int) {
 	switch authSettings.Method {
 	case Internal:
-		if isGrantedSession(w, r) {
-			return true, 0 // TODO
+		userId, ok := isGrantedSession(w, r)
+		if ok {
+			return true, userId // TODO
 		}
 	case OAuth2:
-		if isGrantedSession(w, r) {
-			return true, 0 // TODO
+		userId, ok := isGrantedSession(w, r)
+		if ok {
+			return true, userId
 		}
 	case Header:
 		if isGrantedHeader(r) {
 			return true, 0 // TODO
-		}
+		} // TODO
 	case Disabled:
 		return true, 0
 	}
@@ -286,7 +288,7 @@ func isValidOauthUser(userInfo OAuthUserInfo, username string, groups []string) 
 }
 
 // isGrantedSession returns true if the user holds a valid internal session cookie
-func isGrantedSession(w http.ResponseWriter, r *http.Request) bool {
+func isGrantedSession(w http.ResponseWriter, r *http.Request) (int, bool) {
 	return sessionmanager.IsValidSession(w, r, authSettings.Method == OAuth2, authSettings.OAuthRecheckInterval)
 }
 

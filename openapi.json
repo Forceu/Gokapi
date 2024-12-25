@@ -636,7 +636,7 @@
             "description": "Operation successful"
           },
           "400": {
-            "description": "Invalid parameter supplied"
+            "description": "Invalid parameter supplied or API key owner does not have the sufficient user permissions"
           },
           "401": {
             "description": "Invalid API key provided for authentication or API key does not have the required permission"

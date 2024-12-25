@@ -12,26 +12,24 @@ import (
 	"time"
 )
 
-// TODO add username to check for revocation
-
 // If no login occurred during this time, the admin session will be deleted. Default 30 days
 const cookieLifeAdmin = 30 * 24 * time.Hour
 
 // IsValidSession checks if the user is submitting a valid session token
 // If valid session is found, useSession will be called
 // Returns true if authenticated, otherwise false
-func IsValidSession(w http.ResponseWriter, r *http.Request, isOauth bool, OAuthRecheckInterval int) bool {
+func IsValidSession(w http.ResponseWriter, r *http.Request, isOauth bool, OAuthRecheckInterval int) (int, bool) {
 	cookie, err := r.Cookie("session_token")
 	if err == nil {
 		sessionString := cookie.Value
 		if sessionString != "" {
 			session, ok := database.GetSession(sessionString)
 			if ok {
-				return useSession(w, sessionString, session, isOauth, OAuthRecheckInterval)
+				return session.UserId, useSession(w, sessionString, session, isOauth, OAuthRecheckInterval)
 			}
 		}
 	}
-	return false
+	return -1, false
 }
 
 // useSession checks if a session is still valid. It Changes the session string

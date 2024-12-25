@@ -231,6 +231,11 @@ func DeleteAllSessions() {
 	db.DeleteAllSessions()
 }
 
+// DeleteAllSessionsByUser logs the specific users out
+func DeleteAllSessionsByUser(userId int) {
+	db.DeleteAllSessionsByUser(userId)
+}
+
 // User Section
 
 // GetAllUsers returns a map with all users

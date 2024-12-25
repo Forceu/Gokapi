@@ -62,6 +62,12 @@ func (p DatabaseProvider) DeleteAllSessions() {
 	helper.Check(err)
 }
 
+// DeleteAllSessionsByUser logs the specific users out
+func (p DatabaseProvider) DeleteAllSessionsByUser(userId int) {
+	_, err := p.sqliteDb.Exec("DELETE FROM Sessions WHERE UserId = ?", userId)
+	helper.Check(err)
+}
+
 func (p DatabaseProvider) cleanExpiredSessions() {
 	_, err := p.sqliteDb.Exec("DELETE FROM Sessions WHERE Sessions.ValidUntil < ?", time.Now().Unix())
 	helper.Check(err)

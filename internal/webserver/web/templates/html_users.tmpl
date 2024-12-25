@@ -26,7 +26,7 @@
                                 <td scope="col">{{ .User.GetReadableUserLevel }}</td>
             			<td scope="col">{{ .User.GetReadableDate }}</td>
                                 <td scope="col">{{ .UploadCount }}</td>
-            			<td scope="col">
+            			<td scope="col" class="prevent-select">
             			
 		<i id="perm_replace_{{ .User.Id }}" class="bi bi-recycle {{if not .User.HasPermissionReplace}}perm-notgranted{{else}}perm-granted{{end}} {{if eq .User.UserLevel 0}}perm-nochange{{end}}" title="Replace own uploads" onclick='changeUserPermission("{{ .User.Id }}","PERM_REPLACE", "perm_replace_{{ .User.Id }}");'></i>
 		
