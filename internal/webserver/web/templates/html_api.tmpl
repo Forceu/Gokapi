@@ -4,8 +4,21 @@
     <div class="col">
         <div id="container" class="card" style="width: 80%">
             <div class="card-body">
-                <h3 class="card-title">API Keys</h3>
-                <br>
+		<div class="container">
+		  <div class="row mb-4">
+		    <div class="col">
+		    </div>
+		    <div class="col text-center">
+		      <h3 class="card-title mb-0">API Keys</h3>
+		    </div>
+		    <div class="col text-end">
+		      <button id="button-newapi" class="btn btn-outline-light" onclick="newApiKey()">
+                    <i class="bi bi-plus-circle-fill"></i>
+                </button>
+		    </div>
+		  </div>
+		</div>
+		
                 Please visit the <a target="_blank" href="./apidocumentation">API documentation</a> for more information about the API.<br>Click on the API key name to give it a new name. Permissions can be changed by clicking on them.
                 <br>
                 <br>
@@ -21,7 +34,6 @@
             			<th scope="col">User</th>
 {{ end }}
                                 <th scope="col">Actions</th>
-				<th scope="col"><button id="button-newapi" type="button" class="btn btn-outline-light btn-sm" onclick="newApiKey()"><i class="bi bi-plus-circle-fill"></i> New Key</button></th>
                             </tr>
                         </thead>
                         <tbody id="apitable">
@@ -46,7 +58,6 @@
             			 <td scope="col">{{(index $.UserMap .UserId).Name}}</td>
 {{ end }}
                                 <td scope="col"><button type="button" data-clipboard-text="{{ .Id }}"  onclick="showToast(1000)" title="Copy API Key" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i></button> <button id="delete-{{ .Id }}" type="button" class="btn btn-outline-danger btn-sm" onclick="deleteApiKey('{{ .Id }}')" title="Delete"><i class="bi bi-trash3"></i></button></td>
- <td scope="col"></td>
                             </tr>
 {{ end }}
                         </tbody>

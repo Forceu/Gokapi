@@ -686,6 +686,65 @@
         }
       }
     },
+    "/user/create": {
+      "post": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Creates a new user",
+        "description": "This API call adds a new user. The new user does not have any specific permissions and is userlevel USER. Requires API permission MANAGE_USERS",
+        "operationId": "createuser",
+        "security": [
+          {
+            "apikey": ["MANAGE_USERS"]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "username",
+            "in": "header",
+            "description": "Full name of new user, must be at least 2 characters",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string"
+            }
+          },{
+            "name": "email",
+            "in": "header",
+            "description": "Email address of new user. Must be at least 4 characters and include an @ sign",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NewUser"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid parameters supplied"
+          },
+          "401": {
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
+          },
+          "409": {
+            "description": "A user already exists with that email address"
+          }
+        }
+      }
+    },
     "/user/modify": {
       "put": {
         "tags": [
@@ -1008,6 +1067,37 @@
           }
         },
         "description": "NewApiKey is the struct used for the result after creating a new API key",
+        "x-go-package": "Gokapi/internal/models"
+      },
+      "NewUser": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "user@gokapi"
+          },
+          "id": {
+            "type": "integer",
+            "example": 14
+          },
+         "lastOnline": {
+            "type": "integer",
+            "example": 0
+          },
+          "name": {
+            "type": "string",
+            "example": "Gokapi user"
+          },
+          "permissions": {
+            "type": "integer",
+            "example": 0
+          },
+          "userLevel": {
+            "type": "integer",
+            "example": 2
+          }
+        },
+        "description": "NewUser is the struct used for the result after creating a new API key",
         "x-go-package": "Gokapi/internal/models"
       },
       "body": {

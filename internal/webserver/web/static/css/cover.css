@@ -238,7 +238,7 @@ td.newItem {
 }
 
 
-@keyframes subtleHighlightNewApiKey {
+@keyframes subtleHighlightNewJson {
   0% {
     background-color: green;  /* Pale green for new items */
   }
@@ -258,7 +258,11 @@ td.newItem {
 }
 
 .newApiKey {
-  animation: subtleHighlightNewApiKey 0.7s ease-out;
+  animation: subtleHighlightNewJson 0.7s ease-out;
+}
+
+.newUser {
+  animation: subtleHighlightNewJson 0.7s ease-out;
 }
 
 

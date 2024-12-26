@@ -7,6 +7,7 @@ import (
 	redigo "github.com/gomodule/redigo/redis"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -47,6 +48,17 @@ func orderUsers(users []models.User) []models.User {
 	return users
 }
 
+// GetUserByEmail returns a models.User if valid or false if the email is not valid
+func (p DatabaseProvider) GetUserByEmail(email string) (models.User, bool) {
+	users := p.GetAllUsers()
+	for _, user := range users {
+		if user.Email == email {
+			return user, true
+		}
+	}
+	return models.User{}, false
+}
+
 // GetUser returns a models.User if valid or false if the ID is not valid
 func (p DatabaseProvider) GetUser(id int) (models.User, bool) {
 	result, ok := p.getHashMap(prefixUsers + strconv.Itoa(id))
@@ -60,6 +72,7 @@ func (p DatabaseProvider) GetUser(id int) (models.User, bool) {
 
 // SaveUser saves a user to the database. If isNewUser is true, a new Id will be generated
 func (p DatabaseProvider) SaveUser(user models.User, isNewUser bool) {
+	user.Email = strings.ToLower(user.Email)
 	if isNewUser {
 		id := p.getIncreasedInt(prefixUserIdCounter)
 		user.Id = id

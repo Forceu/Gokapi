@@ -248,6 +248,11 @@ func GetUser(id int) (models.User, bool) {
 	return db.GetUser(id)
 }
 
+// GetUserByEmail returns a models.User if valid or false if the email is not valid
+func GetUserByEmail(email string) (models.User, bool) {
+	return db.GetUserByEmail(email)
+}
+
 // SaveUser saves a user to the database. If isNewUser is true, a new Id will be generated
 func SaveUser(user models.User, isNewUser bool) {
 	db.SaveUser(user, isNewUser)

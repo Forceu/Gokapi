@@ -1,6 +1,10 @@
 package models
 
-import "time"
+import (
+	"encoding/json"
+	"github.com/forceu/gokapi/internal/helper"
+	"time"
+)
 
 type User struct {
 	Id          int    `json:"id" redis:"id"`
@@ -9,7 +13,7 @@ type User struct {
 	Permissions uint16 `json:"permissions" redis:"Permissions"`
 	UserLevel   uint8  `json:"userLevel" redis:"UserLevel"`
 	LastOnline  int64  `json:"lastOnline" redis:"LastOnline"`
-	Password    string `redis:"Password"`
+	Password    string `json:"-" redis:"Password"`
 }
 
 // GetReadableDate returns the date as YYYY-MM-DD HH:MM
@@ -35,6 +39,13 @@ func (u *User) GetReadableUserLevel() string {
 	default:
 		return "Invalid"
 	}
+}
+
+// ToJson returns the user as a JSon object
+func (u *User) ToJson() string {
+	result, err := json.Marshal(u)
+	helper.Check(err)
+	return string(result)
 }
 
 const UserLevelSuperAdmin = 0

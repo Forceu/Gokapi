@@ -127,17 +127,14 @@ function addRowApi(apiKey) {
     let cellPermissions = row.insertCell(3);
     let cellUserName;
     let cellButtons;
-    let cellEmpty;
     
     if (canViewOtherApiKeys) {
      cellUserName = row.insertCell(4);
      cellButtons = row.insertCell(5);
-     cellEmpty = row.insertCell(6);
     cellUserName.classList.add("newApiKey");
     cellUserName.innerText = userName;
     } else {
      cellButtons = row.insertCell(4);
-     cellEmpty = row.insertCell(5);
     }
 
     cellFriendlyName.classList.add("newApiKey");
@@ -145,7 +142,6 @@ function addRowApi(apiKey) {
     cellLastUsed.classList.add("newApiKey");
     cellPermissions.classList.add("newApiKey");
     cellButtons.classList.add("newApiKey");
-    cellEmpty.classList.add("newApiKey");
 
 
     cellFriendlyName.innerText = "Unnamed key";
@@ -182,7 +178,6 @@ function addRowApi(apiKey) {
         cellLastUsed.classList.remove("newApiKey");
         cellPermissions.classList.remove("newApiKey");
         cellButtons.classList.remove("newApiKey");
-        cellEmpty.classList.remove("newApiKey");
     }, 700);
 
 }

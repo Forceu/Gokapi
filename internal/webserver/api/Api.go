@@ -61,6 +61,8 @@ func Process(w http.ResponseWriter, r *http.Request, maxMemory int) {
 		modifyApiPermission(w, request, user)
 	case "/auth/delete":
 		deleteApiKey(w, request, user)
+	case "/user/create":
+		addUser(w, request)
 	case "/user/changeRank":
 		changeUserRank(w, request)
 	case "/user/modify":
@@ -154,6 +156,8 @@ func getApiPermissionRequired(requestUrl string) (uint8, bool) {
 		return models.ApiPermApiMod, true
 	case "/auth/delete":
 		return models.ApiPermApiMod, true
+	case "/user/create":
+		return models.ApiPermManageUsers, true
 	case "/user/changeRank":
 		return models.ApiPermManageUsers, true
 	case "/user/modify":
@@ -329,6 +333,36 @@ func createApiKey(w http.ResponseWriter, request apiRequest, user models.User) {
 	result, err := json.Marshal(output)
 	helper.Check(err)
 	_, _ = w.Write(result)
+}
+
+func addUser(w http.ResponseWriter, request apiRequest) {
+	name := request.usermodInfo.newUserName
+	email := request.usermodInfo.newUserEmail
+	if len(name) < 2 {
+		sendError(w, http.StatusBadRequest, "Invalid user name provided.")
+		return
+	}
+	if len(email) < 4 || !strings.Contains(email, "@") {
+		sendError(w, http.StatusBadRequest, "Invalid email provided.")
+		return
+	}
+	_, ok := database.GetUserByEmail(email)
+	if ok {
+		sendError(w, http.StatusConflict, "User already exists.")
+		return
+	}
+	newUser := models.User{
+		Name:      name,
+		Email:     email,
+		UserLevel: models.UserLevelUser,
+	}
+	database.SaveUser(newUser, true)
+	user, ok := database.GetUserByEmail(email)
+	if !ok {
+		sendError(w, http.StatusInternalServerError, "Could not save user")
+		return
+	}
+	_, _ = w.Write([]byte(user.ToJson()))
 }
 
 func changeFriendlyName(w http.ResponseWriter, request apiRequest, user models.User) {
@@ -725,6 +759,8 @@ type userModInfo struct {
 	basicPermissions bool
 	deleteUserFiles  bool
 	newRank          string
+	newUserName      string
+	newUserEmail     string
 }
 type fileModInfo struct {
 	id               string
@@ -811,6 +847,8 @@ func parseRequest(r *http.Request) (apiRequest, error) {
 			grantPermission:  r.Header.Get("permissionModifier") == "GRANT",
 			basicPermissions: r.Header.Get("basicPermissions") == "true",
 			deleteUserFiles:  r.Header.Get("deleteFiles") == "true",
+			newUserName:      r.Header.Get("username"),
+			newUserEmail:     r.Header.Get("email"),
 		},
 	}, nil
 }

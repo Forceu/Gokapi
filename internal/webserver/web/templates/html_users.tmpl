@@ -12,8 +12,8 @@
 		      <h3 class="card-title mb-0">Users</h3>
 		    </div>
 		    <div class="col text-end">
-		      <button id="add-user-btn" class="btn btn-outline-light">
-                    <i class="bi bi-person-plus"></i>
+		      <button id="add-user-btn" class="btn btn-outline-light" onclick="showAddUserModal()">
+                    <i class="bi bi-plus-circle-fill"></i>
                 </button>
 		    </div>
 		  </div>
@@ -31,7 +31,7 @@
                                 <th scope="col">Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="usertable">
 {{ range .Users }}
                             <tr id="row-{{ .User.Id }}">
                                 <td scope="col" id="{{ .User.Id }}">{{ .User.Name }}</td>
@@ -76,6 +76,8 @@
             </div>
         </div>
 	<div id="toastnotification" class="toastnotification" data-default="Invalid notification">Toast Text</div>
+	
+	<!-- Modal for deletion confirmation -->
 	<div class="modal" tabindex="-1" id="deleteModal">
 	  <div class="modal-dialog gokapi-dialog">
 	    <div class="modal-content gokapi-dialog">
@@ -100,8 +102,47 @@
 	    </div>
 	  </div>
 	</div>
+	
+	
+		<!-- Modal for adding new user  -->
+	<div class="modal fade" id="modalnewuser" tabindex="-1" aria-hidden="true">
+	  <div class="modal-dialog gokapi-dialog">
+	    <div class="modal-content gokapi-dialog">
+	      <div class="modal-header">
+		<h1 class="modal-title fs-5">New User</h1>
+	      </div>
+	      <div class="modal-body">
+	      
+	            <form id="newUserForm">
+		  <div class="input-group mb-3">
+		    <span class="input-group-text" id="label-name">Name</span>
+		    <input type="text" class="form-control" required minlength="2" placeholder="Full Name" aria-label="Name" aria-describedby="label-name" id="e_userName">
+		    <div class="invalid-feedback">
+		      Name must be at least 2 characters long.
+		    </div>
+		  </div>
+		  <div class="input-group mb-3">
+		    <span class="input-group-text" id="label-email">Email&nbsp;</span>
+		    <input type="text" class="form-control" placeholder="Email Address" aria-label="Email" aria-describedby="label-email" pattern=".*@.*" minlength="4" required id="e_email">
+		    <div class="invalid-feedback">
+		      Email must be at least 4 characters long and contain an "@" symbol.
+		    </div>
+		  </div>
+		</form>
+	      </div>
+      
+	      <div class="modal-footer">
+		<button type="button" class="btn btn-outline-light"  aria-label="Cancel" data-bs-dismiss="modal">Cancel</button>
+		<button type="button" class="btn btn-primary" onclick="addNewUser();" id="mb_addUser">Add User</button>
+	      </div>
+	    </div>
+	  </div>
+	</div>
+	
+	
     </div>
 </div>
+
 <script src="./js/min/admin.min.{{ template "js_admin_version"}}.js"></script>
 <script>
 	var systemKey = "{{.SystemKey}}";

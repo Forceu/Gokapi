@@ -220,6 +220,38 @@ async function apiFilesDelete(id) {
 
 // users
 
+
+async function apiUserCreate(userName, userEmail) {
+    const apiUrl = './api/user/create';
+
+    const requestOptions = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'apikey': systemKey,
+            'username': userName,
+            'email': userEmail
+
+        },
+    };
+
+    try {
+        const response = await fetch(apiUrl, requestOptions);
+        if (!response.ok) {
+        	if (response.status==409) {
+        		throw new Error("duplicate");
+        	} 
+            throw new Error(`Request failed with status: ${response.status}`);
+        }
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error("Error in apiUserModify:", error);
+        throw error;
+    }
+}
+
+
 async function apiUserModify(userId, permission, modifier) {
     const apiUrl = './api/user/modify';
 

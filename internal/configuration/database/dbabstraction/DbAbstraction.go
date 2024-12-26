@@ -90,6 +90,8 @@ type Database interface {
 	GetAllUsers() []models.User
 	// GetUser returns a models.User if valid or false if the ID is not valid
 	GetUser(id int) (models.User, bool)
+	// GetUserByEmail returns a models.User if valid or false if the email is not valid
+	GetUserByEmail(email string) (models.User, bool)
 	// SaveUser saves a user to the database. If isNewUser is true, a new Id will be generated
 	SaveUser(user models.User, isNewUser bool)
 	// UpdateUserLastOnline writes the last online time to the database
