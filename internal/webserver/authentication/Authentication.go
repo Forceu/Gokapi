@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/forceu/gokapi/internal/configuration"
+	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/webserver/authentication/sessionmanager"
@@ -100,9 +101,10 @@ func IsAuthenticated(w http.ResponseWriter, r *http.Request) (bool, int) {
 			return true, userId
 		}
 	case Header:
-		if isGrantedHeader(r) {
-			return true, 0 // TODO
-		} // TODO
+		userId, ok := isGrantedHeader(r)
+		if ok {
+			return true, userId
+		}
 	case Disabled:
 		return true, 0
 	}
@@ -110,18 +112,24 @@ func IsAuthenticated(w http.ResponseWriter, r *http.Request) (bool, int) {
 }
 
 // isGrantedHeader returns true if the user was authenticated by a proxy header if enabled
-func isGrantedHeader(r *http.Request) bool {
+func isGrantedHeader(r *http.Request) (int, bool) {
 	if authSettings.HeaderKey == "" {
-		return false
+		return -1, false
 	}
-	value := r.Header.Get(authSettings.HeaderKey)
-	if value == "" {
-		return false
+	userName := r.Header.Get(authSettings.HeaderKey)
+	if userName == "" {
+
+		return -1, false
 	}
 	if len(authSettings.HeaderUsers) == 0 {
-		return true
+		user := getOrCreateUser(userName, userName)
+		return user.Id, true
 	}
-	return isUserInArray(value, authSettings.HeaderUsers)
+	if isUserInArray(userName, authSettings.HeaderUsers) {
+		user := getOrCreateUser(userName, userName)
+		return user.Id, true
+	}
+	return -1, false
 }
 
 func isUserInArray(userEntered string, allowedUsers []string) bool {
@@ -264,12 +272,33 @@ func CheckOauthUserAndRedirect(userInfo OAuthUserInfo, w http.ResponseWriter) er
 		}
 	}
 	if isValidOauthUser(userInfo, username, groups) {
-		sessionmanager.CreateSession(w, authSettings.Method == OAuth2, authSettings.OAuthRecheckInterval)
+		if userInfo.Email == "" {
+			userInfo.Email = username
+		}
+		user := getOrCreateUser(username, userInfo.Email)
+		sessionmanager.CreateSession(w, true, authSettings.OAuthRecheckInterval, user.Id)
 		redirect(w, "admin")
 		return nil
 	}
 	redirect(w, "error-auth")
 	return nil
+}
+
+func getOrCreateUser(username, email string) models.User {
+	user, ok := database.GetUserByEmail(email)
+	if !ok {
+		user = models.User{
+			Name:      username,
+			Email:     username,
+			UserLevel: models.UserLevelUser,
+		}
+		database.SaveUser(user, true)
+		user, ok = database.GetUserByEmail(email)
+		if !ok {
+			panic("unable to read new user")
+		}
+	}
+	return user
 }
 
 func isValidOauthUser(userInfo OAuthUserInfo, username string, groups []string) bool {
@@ -293,9 +322,15 @@ func isGrantedSession(w http.ResponseWriter, r *http.Request) (int, bool) {
 }
 
 // IsCorrectUsernameAndPassword checks if a provided username and password is correct
-func IsCorrectUsernameAndPassword(username, password string) bool {
-	return IsEqualStringConstantTime(username, authSettings.Username) &&
-		IsEqualStringConstantTime(configuration.HashPasswordCustomSalt(password, authSettings.SaltAdmin), authSettings.Password)
+func IsCorrectUsernameAndPassword(userEmail, password string) (models.User, bool) {
+	user, ok := database.GetUserByEmail(userEmail)
+	if !ok {
+		return models.User{}, false
+	}
+	if IsEqualStringConstantTime(configuration.HashPasswordCustomSalt(password, authSettings.SaltAdmin), user.Password) {
+		return user, true
+	}
+	return models.User{}, false
 }
 
 // IsEqualStringConstantTime uses ConstantTimeCompare to prevent timing attack.

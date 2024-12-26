@@ -355,10 +355,9 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 	pw := r.Form.Get("password")
 	failedLogin := false
 	if pw != "" && user != "" {
-		if authentication.IsCorrectUsernameAndPassword(user, pw) {
-			isOauth := configuration.Get().Authentication.Method == authentication.OAuth2
-			interval := configuration.Get().Authentication.OAuthRecheckInterval
-			sessionmanager.CreateSession(w, isOauth, interval)
+		retrievedUser, validCredentials := authentication.IsCorrectUsernameAndPassword(user, pw)
+		if validCredentials {
+			sessionmanager.CreateSession(w, false, 0, retrievedUser.Id)
 			redirect(w, "admin")
 			return
 		}

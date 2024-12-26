@@ -42,7 +42,7 @@ func useSession(w http.ResponseWriter, id string, session models.Session, isOaut
 		return false
 	}
 	if session.RenewAt < time.Now().Unix() {
-		CreateSession(w, isOauth, OAuthRecheckInterval)
+		CreateSession(w, isOauth, OAuthRecheckInterval, session.UserId)
 		database.DeleteSession(id)
 	}
 	go database.UpdateUserLastOnline(session.UserId)
@@ -51,7 +51,7 @@ func useSession(w http.ResponseWriter, id string, session models.Session, isOaut
 
 // CreateSession creates a new session - called after login with correct username / password
 // If sessions parameter is nil, it will be loaded from config
-func CreateSession(w http.ResponseWriter, isOauth bool, OAuthRecheckInterval int) {
+func CreateSession(w http.ResponseWriter, isOauth bool, OAuthRecheckInterval int, userId int) {
 	timeExpiry := time.Now().Add(cookieLifeAdmin)
 	if isOauth {
 		timeExpiry = time.Now().Add(time.Duration(OAuthRecheckInterval) * time.Hour)
@@ -61,6 +61,7 @@ func CreateSession(w http.ResponseWriter, isOauth bool, OAuthRecheckInterval int
 	database.SaveSession(sessionString, models.Session{
 		RenewAt:    time.Now().Add(12 * time.Hour).Unix(),
 		ValidUntil: timeExpiry.Unix(),
+		UserId:     userId,
 	})
 	writeSessionCookie(w, sessionString, timeExpiry)
 }

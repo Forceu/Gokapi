@@ -64,9 +64,9 @@ func Process(w http.ResponseWriter, r *http.Request, maxMemory int) {
 	case "/user/create":
 		addUser(w, request)
 	case "/user/changeRank":
-		changeUserRank(w, request)
+		changeUserRank(w, request, user)
 	case "/user/modify":
-		modifyUserPermission(w, request)
+		modifyUserPermission(w, request, user)
 	case "/user/delete":
 		deleteUser(w, request, user)
 	default:
@@ -570,13 +570,17 @@ func outputFileInfo(w http.ResponseWriter, file models.File) {
 	_, _ = w.Write(result)
 }
 
-func modifyUserPermission(w http.ResponseWriter, request apiRequest) {
-	user, ok := isValidUserForEditing(w, request)
+func modifyUserPermission(w http.ResponseWriter, request apiRequest, user models.User) {
+	userEdit, ok := isValidUserForEditing(w, request)
 	if !ok {
 		return
 	}
-	if user.UserLevel == models.UserLevelSuperAdmin {
+	if userEdit.UserLevel == models.UserLevelSuperAdmin {
 		sendError(w, http.StatusBadRequest, "Cannot modify super admin")
+		return
+	}
+	if user.Id == userEdit.Id {
+		sendError(w, http.StatusBadRequest, "Cannot modify yourself")
 		return
 	}
 	reqPermission := request.usermodInfo.permission
@@ -592,44 +596,48 @@ func modifyUserPermission(w http.ResponseWriter, request apiRequest) {
 	}
 
 	if addPerm {
-		if !user.HasPermission(reqPermission) {
-			user.SetPermission(reqPermission)
-			database.SaveUser(user, false)
-			updateApiKeyPermsOnUserPermChange(user.Id, reqPermission, true)
+		if !userEdit.HasPermission(reqPermission) {
+			userEdit.SetPermission(reqPermission)
+			database.SaveUser(userEdit, false)
+			updateApiKeyPermsOnUserPermChange(userEdit.Id, reqPermission, true)
 		}
 		return
 	}
-	if user.HasPermission(reqPermission) {
-		user.RemovePermission(reqPermission)
-		database.SaveUser(user, false)
-		updateApiKeyPermsOnUserPermChange(user.Id, reqPermission, false)
+	if userEdit.HasPermission(reqPermission) {
+		userEdit.RemovePermission(reqPermission)
+		database.SaveUser(userEdit, false)
+		updateApiKeyPermsOnUserPermChange(userEdit.Id, reqPermission, false)
 	}
 }
 
-func changeUserRank(w http.ResponseWriter, request apiRequest) {
-	user, ok := isValidUserForEditing(w, request)
+func changeUserRank(w http.ResponseWriter, request apiRequest, user models.User) {
+	userEdit, ok := isValidUserForEditing(w, request)
 	if !ok {
 		return
 	}
-	if user.UserLevel == models.UserLevelSuperAdmin {
+	if user.Id == userEdit.Id {
+		sendError(w, http.StatusBadRequest, "Cannot modify yourself")
+		return
+	}
+	if userEdit.UserLevel == models.UserLevelSuperAdmin {
 		sendError(w, http.StatusBadRequest, "Cannot modify super admin")
 		return
 	}
 	switch request.usermodInfo.newRank {
 	case "ADMIN":
-		user.UserLevel = models.UserLevelAdmin
-		user.Permissions = models.UserPermissionAll
-		updateApiKeyPermsOnUserPermChange(user.Id, models.UserPermReplaceUploads, true)
-		updateApiKeyPermsOnUserPermChange(user.Id, models.UserPermManageUsers, true)
+		userEdit.UserLevel = models.UserLevelAdmin
+		userEdit.Permissions = models.UserPermissionAll
+		updateApiKeyPermsOnUserPermChange(userEdit.Id, models.UserPermReplaceUploads, true)
+		updateApiKeyPermsOnUserPermChange(userEdit.Id, models.UserPermManageUsers, true)
 	case "USER":
-		user.UserLevel = models.UserLevelUser
-		user.Permissions = models.UserPermissionNone
-		updateApiKeyPermsOnUserPermChange(user.Id, models.UserPermReplaceUploads, false)
-		updateApiKeyPermsOnUserPermChange(user.Id, models.UserPermManageUsers, false)
+		userEdit.UserLevel = models.UserLevelUser
+		userEdit.Permissions = models.UserPermissionNone
+		updateApiKeyPermsOnUserPermChange(userEdit.Id, models.UserPermReplaceUploads, false)
+		updateApiKeyPermsOnUserPermChange(userEdit.Id, models.UserPermManageUsers, false)
 	default:
 		sendError(w, http.StatusBadRequest, "invalid rank sent")
 	}
-	database.SaveUser(user, false)
+	database.SaveUser(userEdit, false)
 }
 
 func updateApiKeyPermsOnUserPermChange(userId int, userPerm uint16, isNewlyGranted bool) {
@@ -665,6 +673,10 @@ func deleteUser(w http.ResponseWriter, request apiRequest, user models.User) {
 	}
 	if userToDelete.UserLevel == models.UserLevelSuperAdmin {
 		sendError(w, http.StatusBadRequest, "Cannot delete super admin")
+		return
+	}
+	if user.Id == userToDelete.Id {
+		sendError(w, http.StatusBadRequest, "Cannot delete yourself")
 		return
 	}
 	database.DeleteUser(userToDelete.Id)
