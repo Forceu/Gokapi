@@ -100,6 +100,7 @@ func Start() {
 	mux.HandleFunc("/e2eSetup", requireLogin(showE2ESetup, false))
 	mux.HandleFunc("/error", showError)
 	mux.HandleFunc("/error-auth", showErrorAuth)
+	mux.HandleFunc("/error-header", showErrorHeader)
 	mux.HandleFunc("/error-oauth", showErrorIntOAuth)
 	mux.HandleFunc("/forgotpw", forgotPassword)
 	mux.HandleFunc("/hotlink/", showHotlink)
@@ -278,6 +279,12 @@ func showErrorAuth(w http.ResponseWriter, r *http.Request) {
 	helper.CheckIgnoreTimeout(err)
 }
 
+// Handling of /error-header
+func showErrorHeader(w http.ResponseWriter, r *http.Request) {
+	err := templateFolder.ExecuteTemplate(w, "error_auth_header", genericView{PublicName: configuration.Get().PublicName})
+	helper.CheckIgnoreTimeout(err)
+}
+
 // Handling of /error-oauth
 func showErrorIntOAuth(w http.ResponseWriter, r *http.Request) {
 	view := oauthErrorView{PublicName: configuration.Get().PublicName}
@@ -334,6 +341,10 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 	ok, _ := authentication.IsAuthenticated(w, r)
 	if ok {
 		redirect(w, "admin")
+		return
+	}
+	if configuration.Get().Authentication.Method == authentication.Header {
+		redirect(w, "error-header")
 		return
 	}
 	if configuration.Get().Authentication.Method == authentication.OAuth2 {

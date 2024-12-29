@@ -1,0 +1,16 @@
+{{define "error_auth_header"}}
+{{template "header" .}}
+ 
+      <div class="row">
+        <div class="col">
+		<div class="card" style="width: 18rem;">
+		  <div class="card-body">
+		    <h2 class="card-title">Unauthorised</h2>
+		    <br>
+		    <p class="card-text">Error: No login information was sent from the authentication provider.</p><br>
+		  </div>
+		</div>
+	    </div>
+    </div>
+{{template "footer"}}    
+{{end}}
