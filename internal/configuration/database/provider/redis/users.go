@@ -7,7 +7,6 @@ import (
 	redigo "github.com/gomodule/redigo/redis"
 	"slices"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -72,7 +71,6 @@ func (p DatabaseProvider) GetUser(id int) (models.User, bool) {
 
 // SaveUser saves a user to the database. If isNewUser is true, a new Id will be generated
 func (p DatabaseProvider) SaveUser(user models.User, isNewUser bool) {
-	user.Email = strings.ToLower(user.Email)
 	if isNewUser {
 		id := p.getIncreasedInt(prefixUserIdCounter)
 		user.Id = id

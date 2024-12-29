@@ -25,6 +25,10 @@ func IsValidSession(w http.ResponseWriter, r *http.Request, isOauth bool, OAuthR
 		if sessionString != "" {
 			session, ok := database.GetSession(sessionString)
 			if ok {
+				_, userExists := database.GetUser(session.UserId)
+				if !userExists {
+					return -1, false
+				}
 				return session.UserId, useSession(w, sessionString, session, isOauth, OAuthRecheckInterval)
 			}
 		}

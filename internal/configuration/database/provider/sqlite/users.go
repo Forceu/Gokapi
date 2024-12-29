@@ -5,7 +5,6 @@ import (
 	"errors"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
-	"strings"
 	"time"
 )
 
@@ -70,11 +69,11 @@ func (p DatabaseProvider) GetUserByEmail(email string) (models.User, bool) {
 func (p DatabaseProvider) SaveUser(user models.User, isNewUser bool) {
 	if isNewUser {
 		_, err := p.sqliteDb.Exec("INSERT INTO Users ( Name, Email, Password, Permissions, Userlevel, LastOnline) VALUES  (?, ?, ?, ?, ?, ?)",
-			user.Name, strings.ToLower(user.Email), user.Password, user.Permissions, user.UserLevel, user.LastOnline)
+			user.Name, user.Email, user.Password, user.Permissions, user.UserLevel, user.LastOnline)
 		helper.Check(err)
 	} else {
 		_, err := p.sqliteDb.Exec("INSERT OR REPLACE INTO Users (Id, Name, Email, Password, Permissions, Userlevel, LastOnline) VALUES  (?, ?, ?, ?, ?, ?, ?)",
-			user.Id, user.Name, strings.ToLower(user.Email), user.Password, user.Permissions, user.UserLevel, user.LastOnline)
+			user.Id, user.Name, user.Email, user.Password, user.Permissions, user.UserLevel, user.LastOnline)
 		helper.Check(err)
 	}
 }
