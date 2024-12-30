@@ -8,7 +8,7 @@ import (
 )
 
 // CurrentConfigVersion is the version of the configuration structure. Used for upgrading
-const CurrentConfigVersion = 21
+const CurrentConfigVersion = 22
 
 // DoUpgrade checks if an old version is present and updates it to the current version if required
 func DoUpgrade(settings *models.Configuration, env *environment.Environment) bool {
@@ -23,31 +23,31 @@ func DoUpgrade(settings *models.Configuration, env *environment.Environment) boo
 
 // Upgrades the settings if saved with a previous version
 func updateConfig(settings *models.Configuration, env *environment.Environment) {
-
-	// < v1.8.0
-	if settings.ConfigVersion < 16 {
-		fmt.Println("Please update to version 1.8 before running this version,")
+	// < v1.9.0
+	if settings.ConfigVersion < 21 {
+		fmt.Println("Please update to version 1.9.6 before running this version.")
 		osExit(1)
 		return
 	}
-	// < v1.8.2
-	if settings.ConfigVersion < 18 {
-		if len(settings.Authentication.OAuthUsers) > 0 {
-			settings.Authentication.OAuthUserScope = "email"
+	// < v2.0.0
+	if settings.ConfigVersion < 22 {
+		if settings.Authentication.Method == models.AuthenticationOAuth2 || settings.Authentication.Method == models.AuthenticationHeader {
+			adminUser := os.Getenv("GOKAPI_ADMIN_USER")
+			if adminUser == "" {
+				fmt.Println("FAILED UPDATE")
+				fmt.Println("--> If using Oauth or Header authentication, please set the env variable GOKAPI_ADMIN_USER to the value of the expected user name / email")
+				fmt.Println("--> See the release notes for more information")
+				osExit(1)
+				return
+			} else {
+				fmt.Println("Setting admin user to " + adminUser)
+				if settings.Authentication.Method == models.AuthenticationOAuth2 {
+					settings.Authentication.OAuthAdminUser = adminUser
+				} else {
+					settings.Authentication.HeaderAdminUser = adminUser
+				}
+			}
 		}
-		settings.Authentication.OAuthRecheckInterval = 168
-	}
-	// < v1.8.5beta
-	if settings.ConfigVersion < 19 {
-		if settings.MaxMemory == 40 {
-			settings.MaxMemory = 50
-		}
-		settings.ChunkSize = env.ChunkSizeMB
-		settings.MaxParallelUploads = env.MaxParallelUploads
-	}
-	// < v1.9.0
-	if settings.ConfigVersion < 21 {
-		settings.DatabaseUrl = "sqlite://" + env.DataDir + "/" + env.DatabaseName
 	}
 }
 

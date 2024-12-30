@@ -256,6 +256,9 @@ func GetUserByEmail(email string) (models.User, bool) {
 
 // SaveUser saves a user to the database. If isNewUser is true, a new Id will be generated
 func SaveUser(user models.User, isNewUser bool) {
+	if user.Email == "" {
+		panic("email cannot be empty")
+	}
 	user.Email = strings.ToLower(user.Email)
 	db.SaveUser(user, isNewUser)
 }

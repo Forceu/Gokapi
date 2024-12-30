@@ -20,18 +20,6 @@ import (
 // CookieOauth is the cookie name used for login
 const CookieOauth = "state"
 
-// Internal authentication method uses a user / password combination handled by Gokapi
-const Internal = 0
-
-// OAuth2 authentication retrieves the users email with Open Connect ID
-const OAuth2 = 1
-
-// Header authentication relies on a header from a reverse proxy to parse the username
-const Header = 2
-
-// Disabled authentication ignores all internal authentication procedures. A reverse proxy needs to restrict access
-const Disabled = 3
-
 var authSettings models.AuthenticationConfig
 
 // Init needs to be called first to process the authentication configuration
@@ -47,7 +35,7 @@ func Init(config models.AuthenticationConfig) {
 // isValid checks if the config is actually valid, and returns true or returns false and an error
 func isValid(config models.AuthenticationConfig) (bool, error) {
 	switch config.Method {
-	case Internal:
+	case models.AuthenticationInternal:
 		if len(config.Username) < 3 {
 			return false, errors.New("username too short")
 		}
@@ -55,7 +43,7 @@ func isValid(config models.AuthenticationConfig) (bool, error) {
 			return false, errors.New("password does not appear to be a SHA-1 hash")
 		}
 		return true, nil
-	case OAuth2:
+	case models.AuthenticationOAuth2:
 		if config.OAuthProvider == "" {
 			return false, errors.New("oauth provider was not set")
 		}
@@ -66,12 +54,12 @@ func isValid(config models.AuthenticationConfig) (bool, error) {
 			return false, errors.New("oauth client secret was not set")
 		}
 		return true, nil
-	case Header:
+	case models.AuthenticationHeader:
 		if config.HeaderKey == "" {
 			return false, errors.New("header key is not set")
 		}
 		return true, nil
-	case Disabled:
+	case models.AuthenticationDisabled:
 		return true, nil
 	default:
 		return false, errors.New("unknown authentication selected")
@@ -90,22 +78,22 @@ func GetUserIdFromRequest(r *http.Request) (int, error) {
 // IsAuthenticated returns true and the user ID if authenticated
 func IsAuthenticated(w http.ResponseWriter, r *http.Request) (bool, int) {
 	switch authSettings.Method {
-	case Internal:
+	case models.AuthenticationInternal:
 		userId, ok := isGrantedSession(w, r)
 		if ok {
 			return true, userId // TODO
 		}
-	case OAuth2:
+	case models.AuthenticationOAuth2:
 		userId, ok := isGrantedSession(w, r)
 		if ok {
 			return true, userId
 		}
-	case Header:
+	case models.AuthenticationHeader:
 		userId, ok := isGrantedHeader(r)
 		if ok {
 			return true, userId
 		}
-	case Disabled:
+	case models.AuthenticationDisabled:
 		return true, 0
 	}
 	return false, -1
@@ -318,7 +306,7 @@ func isValidOauthUser(userInfo OAuthUserInfo, username string, groups []string) 
 
 // isGrantedSession returns true if the user holds a valid internal session cookie
 func isGrantedSession(w http.ResponseWriter, r *http.Request) (int, bool) {
-	return sessionmanager.IsValidSession(w, r, authSettings.Method == OAuth2, authSettings.OAuthRecheckInterval)
+	return sessionmanager.IsValidSession(w, r, authSettings.Method == models.AuthenticationOAuth2, authSettings.OAuthRecheckInterval)
 }
 
 // IsCorrectUsernameAndPassword checks if a provided username and password is correct
@@ -347,10 +335,10 @@ func redirect(w http.ResponseWriter, url string) {
 
 // Logout logs the user out and removes the session
 func Logout(w http.ResponseWriter, r *http.Request) {
-	if authSettings.Method == Internal || authSettings.Method == OAuth2 {
+	if authSettings.Method == models.AuthenticationInternal || authSettings.Method == models.AuthenticationOAuth2 {
 		sessionmanager.LogoutSession(w, r)
 	}
-	if authSettings.Method == OAuth2 {
+	if authSettings.Method == models.AuthenticationOAuth2 {
 		redirect(w, "login?consent=true")
 	} else {
 		redirect(w, "login")
@@ -359,5 +347,5 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 
 // IsLogoutAvailable returns true if a logout button should be shown with the current form of authentication
 func IsLogoutAvailable() bool {
-	return authSettings.Method == Internal || authSettings.Method == OAuth2
+	return authSettings.Method == models.AuthenticationInternal || authSettings.Method == models.AuthenticationOAuth2
 }

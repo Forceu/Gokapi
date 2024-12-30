@@ -105,7 +105,7 @@
 			</div>
 			<!-- Step 1 DB Location -->
 			<div class="wizard-card wizard-card-overlay" data-cardname="dblocation">
-				<h3>Database</h3>
+				<h3 style="display:none">Database</h3>
 
 				<div class="wizard-input-section">
 					<div class="form-group">
@@ -142,7 +142,7 @@
 			
 			<!-- Step 2 Webserver -->
 			<div class="wizard-card wizard-card-overlay" data-cardname="webserver1">
-				<h3>Webserver 1/2</h3>
+				<h3 style="display:none">Webserver 1/2</h3>
 
 				<div class="wizard-input-section">
 					<div class="form-group">
@@ -182,7 +182,7 @@
 			
 			<!-- Step 3 Webserver 2 -->
 			<div class="wizard-card wizard-card-overlay" data-cardname="webserver2">
-				<h3>Webserver 2/2</h3>
+				<h3 style="display:none">Webserver 2/2</h3>
 
 				<div class="wizard-input-section">
 					<div class="form-group">
@@ -222,7 +222,7 @@
 
 			<!-- Step 4 Auth -->
 			<div class="wizard-card wizard-card-overlay" data-cardname="authentication">
-				<h3>Authentication</h3>
+				<h3 style="display:none">Authentication</h3>
 
 				<div class="wizard-input-section">
 					<div class="form-group">
@@ -238,7 +238,7 @@
 							</optgroup>
 
 							<optgroup label="Reverse Proxy">
-								<option value="2">Header Authentication</option>
+								<option value="2">Trusted Header Authentication</option>
 								<option value="3">Disabled / Access Restriction</option>
 							</optgroup>
 
@@ -249,7 +249,7 @@
 
 			<!-- Step 5a Credentials PW -->
 			<div class="wizard-card wizard-card-overlay" data-cardname="credentials">
-				<h3>Credentials</h3>
+				<h3 style="display:none">Credentials</h3>
 
 
 				<div class="wizard-input-section">
@@ -275,7 +275,7 @@
 			
 			<!-- Step 5b Credentials Oauth -->
 			<div class="wizard-card wizard-card-overlay" data-cardname="credentials-oauth">
-				<h3>Credentials</h3>
+				<h3 style="display:none">Credentials</h3>
 
 
 					<div class="wizard-input-section">
@@ -297,6 +297,10 @@
 							<div class="col-sm-8" style="width:90%">
 							  <label for="oauth_secret">Client Secret:</label>
 								<input type="text" class="form-control" id="oauth_secret" name="oauth_secret" placeholder="Client Secret" data-min="1" required data-validate="validateMinLength">
+							</div>
+							<div class="col-sm-8" style="width:90%">
+							  <label for="oauth_admin_user">Admin email address:</label>
+								<input type="text" class="form-control" id="oauth_admin_user" name="oauth_admin_user" placeholder="Admin email address" data-min="1" required data-validate="validateMinLength">
 							</div>
 							<div class="col-sm-8" style="width:90%">
 							Recheck identity every 
@@ -346,7 +350,7 @@
 			
 			<!-- Step 5c Credentials Header -->
 			<div class="wizard-card wizard-card-overlay" data-cardname="credentials-header">
-				<h3>Credentials</h3>
+				<h3 style="display:none">Credentials</h3>
 
 
 				<div class="wizard-input-section">
@@ -355,21 +359,27 @@
 						Enter the key of the header that will be provided from your reverse proxy containing the username.<br>Add the allowed users to the list below (seperated by semicolon) or leave it blank if access is granted to all authenticated users.<br><br>
 					</p>
 
-							<div class="col-sm-8">
+							<p><div class="col-sm-8">
 							  <label for="auth_headerkey">Header Key:</label>
-								<input type="text" class="form-control" id="auth_headerkey" name="auth_headerkey" required placeholder="Header Key" data-validate="validateMinLength">
-							</div><br><br>
+								<input type="text" class="form-control" id="auth_headerkey" name="auth_headerkey" data-min="1" required placeholder="Header Key" data-validate="validateMinLength">
+							</div></p>
 							
-							<div class="col-sm-8">
+							<p><div class="col-sm-8">
+							  <label for="auth_header_admin">Admin user name:</label>
+								<input type="text" class="form-control" id="auth_header_admin" name="auth_header_admin" data-min="1"  data-validate="validateMinLength" required placeholder="Admin user name">
+							</div></p>
+							
+							<p><div class="col-sm-8">
 							  <label for="auth_header_users">Authorised users:</label>
 								<input type="text" class="form-control" id="auth_header_users" name="auth_header_users" placeholder="Authorised users">
-							</div>
+							</div></p>
+							
 					</div>
 				</div>
 			</div>
 			<!-- Step 5d Credentials Disbabled -->
 			<div class="wizard-card wizard-card-overlay" data-cardname="credentials-disabled">
-				<h3>Credentials</h3>
+				<h3 style="display:none">Credentials</h3>
 
 
 				<div class="wizard-input-section">
@@ -392,7 +402,7 @@
 
 			<!-- Step 6 Storage -->
 			<div class="wizard-card wizard-card-overlay" data-cardname="storage">
-				<h3>Storage</h3>
+				<h3 style="display:none">Storage</h3>
 
 				<div class="wizard-input-section">
 					<p>
@@ -437,7 +447,7 @@
 			
 			<!-- Step 7 S3 Credentials -->
 			<div class="wizard-card wizard-card-overlay" data-cardname="s3credentials">
-				<h3>S3 Credentials</h3>
+				<h3 style="display:none">S3 Credentials</h3>
 
 				<div class="wizard-input-section">
 				
@@ -525,7 +535,7 @@ function TestAWS(button, isManual) {
 
 			<!-- Step 7 Encryption -->
 			<div class="wizard-card wizard-card-overlay" data-cardname="encryption">
-				<h3>Encryption Level</h3>
+				<h3 style="display:none">Encryption Level</h3>
 
 				<div class="wizard-input-section">
 						<div class="form-group">
@@ -655,7 +665,7 @@ function TestAWS(button, isManual) {
 
 			<!-- Step 8 Encryption PW -->
 			<div class="wizard-card wizard-card-overlay" data-cardname="encryptionpw">
-				<h3>Encryption Master Password</h3>
+				<h3 style="display:none">Encryption Master Password</h3>
 
 				<div class="wizard-input-section">
 						<div class="form-group">

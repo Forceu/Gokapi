@@ -157,7 +157,7 @@ var config = models.Configuration{
 func TestToConfiguration(t *testing.T) {
 	output, cloudConfig, _, err := toConfiguration(&jsonForms)
 	test.IsNil(t, err)
-	test.IsEqualInt(t, output.Authentication.Method, authentication.Internal)
+	test.IsEqualInt(t, output.Authentication.Method, authentication.TypeInternal)
 	test.IsEqualString(t, cloudConfig.Aws.KeyId, "testapi")
 	test.IsEqualString(t, output.Authentication.Username, "admin")
 	test.IsNotEqualString(t, output.Authentication.Password, "adminadmin")

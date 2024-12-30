@@ -104,6 +104,31 @@ func ConnectDatabase() {
 	database.Upgrade()
 }
 
+func CreateAdminUserIfNoneExists() {
+	var adminName string
+	switch serverSettings.Authentication.Method {
+	case models.AuthenticationDisabled:
+		return
+	case models.AuthenticationInternal:
+		adminName = serverSettings.Authentication.Username
+	case models.AuthenticationOAuth2:
+		adminName = serverSettings.Authentication.OAuthAdminUser
+	case models.AuthenticationHeader:
+		adminName = serverSettings.Authentication.HeaderAdminUser
+	}
+	users := database.GetAllUsers()
+	if len(users) == 0 {
+		user := models.User{
+			Name:        adminName,
+			Email:       adminName,
+			Permissions: models.UserPermissionAll,
+			UserLevel:   models.UserLevelSuperAdmin,
+			Password:    serverSettings.Authentication.Password,
+		}
+		database.SaveUser(user, true)
+	}
+}
+
 // UsesHttps returns true if Gokapi URL is set to a secure URL
 func UsesHttps() bool {
 	return usesHttps

@@ -118,7 +118,7 @@ func Start() {
 	mux.HandleFunc("/d/{id}/{filename}", redirectFromFilename)
 	mux.HandleFunc("/dh/{id}/{filename}", downloadFileWithNameInUrl)
 
-	if configuration.Get().Authentication.Method == authentication.OAuth2 {
+	if configuration.Get().Authentication.Method == models.AuthenticationOAuth2 {
 		oauth.Init(configuration.Get().ServerUrl, configuration.Get().Authentication)
 		mux.HandleFunc("/oauth-login", oauth.HandlerLogin)
 		mux.HandleFunc("/oauth-callback", oauth.HandlerCallback)
@@ -343,11 +343,11 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 		redirect(w, "admin")
 		return
 	}
-	if configuration.Get().Authentication.Method == authentication.Header {
+	if configuration.Get().Authentication.Method == models.AuthenticationHeader {
 		redirect(w, "error-header")
 		return
 	}
-	if configuration.Get().Authentication.Method == authentication.OAuth2 {
+	if configuration.Get().Authentication.Method == models.AuthenticationOAuth2 {
 		// If user clicked logout, force consent
 		if r.URL.Query().Has("consent") {
 			redirect(w, "oauth-login?consent=true")

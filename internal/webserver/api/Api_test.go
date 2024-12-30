@@ -281,11 +281,11 @@ func TestAuthDisabledLogin(t *testing.T) {
 	w, r := test.GetRecorder("GET", "/api/auth/friendlyname", nil, nil, nil)
 	Process(w, r, maxMemory)
 	test.ResponseBodyContains(t, w, "{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}")
-	configuration.Get().Authentication.Method = authentication.Disabled
+	configuration.Get().Authentication.Method = authentication.TypeDisabled
 	w, r = test.GetRecorder("GET", "/api/auth/friendlyname", nil, nil, nil)
 	Process(w, r, maxMemory)
 	test.ResponseBodyContains(t, w, "{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}")
-	configuration.Get().Authentication.Method = authentication.Internal
+	configuration.Get().Authentication.Method = authentication.TypeInternal
 }
 
 func TestChangeFriendlyName(t *testing.T) {

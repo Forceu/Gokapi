@@ -34,9 +34,6 @@ type Environment struct {
 	AwsKeySecret       string `env:"AWS_KEY_SECRET"`
 	AwsEndpoint        string `env:"AWS_ENDPOINT"`
 	AwsProxyDownload   bool   `env:"AWS_PROXY_DOWNLOAD" envDefault:"false"`
-	// deprecated
-	// Will be removed with version 1.10.0
-	DatabaseName string `env:"DB_NAME" envDefault:"gokapi.sqlite"`
 }
 
 // New parses the env variables

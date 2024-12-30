@@ -56,6 +56,7 @@ func main() {
 	if !reconfigureServer(passedFlags) {
 		configuration.ConnectDatabase()
 	}
+	configuration.CreateAdminUserIfNoneExists()
 	setDeploymentPassword(passedFlags)
 	encryption.Init(*configuration.Get())
 	authentication.Init(configuration.Get().Authentication)

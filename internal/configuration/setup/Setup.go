@@ -54,7 +54,7 @@ var password string
 
 // debugDisableAuth can be set to true for testing purposes. It will disable the
 // password requirement for accessing the setup page
-const debugDisableAuth = false
+const debugDisableAuth = true
 
 // RunIfFirstStart checks if config files exist and if not start a blocking webserver for setup
 func RunIfFirstStart() {
@@ -412,6 +412,11 @@ func parseOAuthSettings(result *models.Configuration, formObjects *[]jsonFormObj
 		return err
 	}
 
+	result.Authentication.OAuthAdminUser, err = getFormValueString(formObjects, "oauth_admin_user")
+	if err != nil {
+		return err
+	}
+
 	oauthAllowedUsers, err := getFormValueString(formObjects, "oauth_allowed_users")
 	if err != nil {
 		return err
@@ -450,6 +455,10 @@ func parseOAuthSettings(result *models.Configuration, formObjects *[]jsonFormObj
 func parseHeaderAuthSettings(result *models.Configuration, formObjects *[]jsonFormObject) error {
 	var err error
 	result.Authentication.HeaderKey, err = getFormValueString(formObjects, "auth_headerkey")
+	if err != nil {
+		return err
+	}
+	result.Authentication.HeaderAdminUser, err = getFormValueString(formObjects, "auth_header_admin")
 	if err != nil {
 		return err
 	}
