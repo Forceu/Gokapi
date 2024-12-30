@@ -91,7 +91,11 @@ func IsAuthenticated(w http.ResponseWriter, r *http.Request) (bool, int) {
 			return true, userId
 		}
 	case models.AuthenticationDisabled:
-		return true, 0
+		adminUser, ok := database.GetSuperAdmin()
+		if !ok {
+			panic("no super admin found")
+		}
+		return true, adminUser.Id
 	}
 	return false, -1
 }

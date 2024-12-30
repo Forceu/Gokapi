@@ -322,7 +322,7 @@ func showUserAdmin(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 	view := (&UploadView{}).convertGlobalConfig(ViewUsers, userId)
-	if !view.ActiveUser.HasPermissionManageUsers() {
+	if !view.ActiveUser.HasPermissionManageUsers() || configuration.Get().Authentication.Method == models.AuthenticationDisabled {
 		redirect(w, "admin")
 		return
 	}
@@ -632,6 +632,7 @@ type UploadView struct {
 	IsDownloadView     bool
 	IsApiView          bool
 	IsLogoutAvailable  bool
+	IsUserTabAvailable bool
 	EndToEndEncryption bool
 	IncludeFilename    bool
 	MaxFileSize        int
@@ -743,6 +744,7 @@ func (u *UploadView) convertGlobalConfig(view, userId int) *UploadView {
 	u.ActiveView = view
 	u.MaxFileSize = config.MaxFileSizeMB
 	u.IsLogoutAvailable = authentication.IsLogoutAvailable()
+	u.IsUserTabAvailable = config.Authentication.Method != models.AuthenticationDisabled
 	u.EndToEndEncryption = config.Encryption.Level == encryption.EndToEndEncryption
 	u.MaxParallelUploads = config.MaxParallelUploads
 	u.ChunkSize = config.ChunkSize
