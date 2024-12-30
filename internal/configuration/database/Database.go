@@ -272,3 +272,46 @@ func UpdateUserLastOnline(id int) {
 func DeleteUser(id int) {
 	db.DeleteUser(id)
 }
+
+func GetSuperAdmin() (models.User, bool) {
+	users := db.GetAllUsers()
+	for _, user := range users {
+		if user.UserLevel == models.UserLevelSuperAdmin {
+			return user, true
+		}
+	}
+	return models.User{}, false
+}
+
+// EditSuperAdmin changes parameters of the super admin. If no user exists, a new superadmin will be created
+// Returns an error if at least one user exists, but no superadmin
+func EditSuperAdmin(name, email, password string) error {
+	users := db.GetAllUsers()
+	for _, user := range users {
+		if user.UserLevel == models.UserLevelSuperAdmin {
+			if name != "" {
+				user.Name = name
+			}
+			if email != "" {
+				user.Email = email
+			}
+			if password != "" {
+				user.Password = password
+			}
+			db.SaveUser(user, false)
+			return nil
+		}
+	}
+	if len(users) == 0 {
+		newAdmin := models.User{
+			Name:        name,
+			Email:       email,
+			Permissions: models.UserPermissionAll,
+			UserLevel:   models.UserLevelSuperAdmin,
+			Password:    password,
+		}
+		db.SaveUser(newAdmin, true)
+		return nil
+	}
+	return errors.New("at least one user exists, but no superadmin found")
+}

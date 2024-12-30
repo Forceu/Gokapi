@@ -62,8 +62,8 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 			"Userlevel"	INTEGER NOT NULL,
 			"LastOnline"	INTEGER NOT NULL DEFAULT 0,
 		PRIMARY KEY("Id" AUTOINCREMENT)
-	);`)
-		// TODO admin user to db user
+	);
+	    DROP TABLE IF EXISTS "UploadConfig";`)
 		helper.Check(err)
 	}
 }

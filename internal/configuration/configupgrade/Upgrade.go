@@ -1,11 +1,24 @@
 package configupgrade
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/forceu/gokapi/internal/environment"
+	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"os"
 )
+
+// RequiresUpgradeV1ToV2 is an indicator for migrating the admin user to the database
+// It will be removed in v2.1.0.
+// Deprecated: This is a temporary solution
+var RequiresUpgradeV1ToV2 = false
+
+// LegacyPasswordHash is the hash, which was originally stored in
+// AuthenticationConfig.Password and needs to be passed to the migration
+// It will be removed in v2.1.0
+// Deprecated: This is a temporary solution
+var LegacyPasswordHash string
 
 // CurrentConfigVersion is the version of the configuration structure. Used for upgrading
 const CurrentConfigVersion = 22
@@ -31,6 +44,7 @@ func updateConfig(settings *models.Configuration, env *environment.Environment) 
 	}
 	// < v2.0.0
 	if settings.ConfigVersion < 22 {
+		RequiresUpgradeV1ToV2 = true
 		if settings.Authentication.Method == models.AuthenticationOAuth2 || settings.Authentication.Method == models.AuthenticationHeader {
 			adminUser := os.Getenv("GOKAPI_ADMIN_USER")
 			if adminUser == "" {
@@ -41,13 +55,32 @@ func updateConfig(settings *models.Configuration, env *environment.Environment) 
 				return
 			} else {
 				fmt.Println("Setting admin user to " + adminUser)
-				if settings.Authentication.Method == models.AuthenticationOAuth2 {
-					settings.Authentication.OAuthAdminUser = adminUser
-				} else {
-					settings.Authentication.HeaderAdminUser = adminUser
-				}
+				settings.Authentication.Username = adminUser
 			}
 		}
+		var err error
+		LegacyPasswordHash, err = getLegacyPasswordHash(env.ConfigPath)
+		helper.Check(err)
+	}
+}
+
+func getLegacyPasswordHash(configFile string) (string, error) {
+	file, err := os.Open(configFile)
+	if err != nil {
+		return "", err
+	}
+	decoder := json.NewDecoder(file)
+	settings := legacyPasswordHash{}
+	err = decoder.Decode(&settings)
+	if err != nil {
+		return "", err
+	}
+	return settings.Authentication.Password, nil
+}
+
+type legacyPasswordHash struct {
+	Authentication struct {
+		Password string `json:"password"`
 	}
 }
 

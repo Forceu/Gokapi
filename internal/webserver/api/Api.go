@@ -42,9 +42,9 @@ func Process(w http.ResponseWriter, r *http.Request, maxMemory int) {
 	case "/chunk/add":
 		chunkAdd(w, request)
 	case "/chunk/complete":
-		chunkComplete(w, request)
+		chunkComplete(w, request, user)
 	case "/files/add":
-		upload(w, request, maxMemory)
+		upload(w, request, maxMemory, user)
 	case "/files/delete":
 		deleteFile(w, request, user)
 	case "/files/duplicate":
@@ -421,7 +421,7 @@ func chunkAdd(w http.ResponseWriter, request apiRequest) {
 		sendError(w, http.StatusBadRequest, err.Error())
 	}
 }
-func chunkComplete(w http.ResponseWriter, request apiRequest) {
+func chunkComplete(w http.ResponseWriter, request apiRequest, user models.User) {
 	err := request.request.ParseForm()
 	if err != nil {
 		sendError(w, http.StatusBadRequest, err.Error())
@@ -433,7 +433,7 @@ func chunkComplete(w http.ResponseWriter, request apiRequest) {
 		sendError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	file, err := fileupload.CompleteChunk(chunkId, header, config)
+	file, err := fileupload.CompleteChunk(chunkId, header, user.Id, config)
 	if err != nil {
 		sendError(w, http.StatusBadRequest, err.Error())
 		return
@@ -477,7 +477,7 @@ func listSingle(w http.ResponseWriter, id string, user models.User) {
 	_, _ = w.Write(result)
 }
 
-func upload(w http.ResponseWriter, request apiRequest, maxMemory int) {
+func upload(w http.ResponseWriter, request apiRequest, maxMemory int, user models.User) {
 	maxUpload := int64(configuration.Get().MaxFileSizeMB) * 1024 * 1024
 	if request.request.ContentLength > maxUpload {
 		sendError(w, http.StatusBadRequest, storage.ErrorFileTooLarge.Error())
@@ -485,7 +485,7 @@ func upload(w http.ResponseWriter, request apiRequest, maxMemory int) {
 	}
 
 	request.request.Body = http.MaxBytesReader(w, request.request.Body, maxUpload)
-	err := fileupload.Process(w, request.request, maxMemory)
+	err := fileupload.ProcessCompleteFile(w, request.request, user.Id, maxMemory)
 	if err != nil {
 		sendError(w, http.StatusBadRequest, err.Error())
 		return
@@ -696,6 +696,7 @@ func deleteUser(w http.ResponseWriter, request apiRequest, user models.User) {
 		}
 	}
 	database.DeleteAllSessionsByUser(userToDelete.Id)
+	database.DeleteEnd2EndInfo(userToDelete.Id)
 }
 
 func isAuthorisedForApi(w http.ResponseWriter, request apiRequest) (models.User, bool) {

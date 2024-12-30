@@ -39,9 +39,6 @@ func isValid(config models.AuthenticationConfig) (bool, error) {
 		if len(config.Username) < 3 {
 			return false, errors.New("username too short")
 		}
-		if len(config.Password) != 40 {
-			return false, errors.New("password does not appear to be a SHA-1 hash")
-		}
 		return true, nil
 	case models.AuthenticationOAuth2:
 		if config.OAuthProvider == "" {

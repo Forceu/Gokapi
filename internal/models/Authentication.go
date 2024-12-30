@@ -6,15 +6,12 @@ type AuthenticationConfig struct {
 	SaltAdmin            string   `json:"SaltAdmin"`
 	SaltFiles            string   `json:"SaltFiles"`
 	Username             string   `json:"Username"`
-	Password             string   `json:"Password"`
 	HeaderKey            string   `json:"HeaderKey"`
-	HeaderAdminUser      string   `json:"HeaderAdminUser"`
 	OAuthProvider        string   `json:"OauthProvider"`
 	OAuthClientId        string   `json:"OAuthClientId"`
 	OAuthClientSecret    string   `json:"OAuthClientSecret"`
 	OAuthUserScope       string   `json:"OauthUserScope"`
 	OAuthGroupScope      string   `json:"OauthGroupScope"`
-	OAuthAdminUser       string   `json:"OAuthAdminUser"`
 	OAuthRecheckInterval int      `json:"OAuthRecheckInterval"`
 	HeaderUsers          []string `json:"HeaderUsers"`
 	OAuthGroups          []string `json:"OAuthGroups"`

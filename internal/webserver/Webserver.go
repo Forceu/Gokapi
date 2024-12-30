@@ -309,7 +309,8 @@ func showApiAdmin(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		panic(err)
 	}
-	err = templateFolder.ExecuteTemplate(w, "api", (&UploadView{}).convertGlobalConfig(ViewAPI, userId))
+	view := (&UploadView{}).convertGlobalConfig(ViewAPI, userId)
+	err = templateFolder.ExecuteTemplate(w, "api", view)
 	helper.CheckIgnoreTimeout(err)
 }
 
@@ -690,6 +691,13 @@ func (u *UploadView) convertGlobalConfig(view, userId int) *UploadView {
 		})
 	case ViewAPI:
 		for _, apiKey := range database.GetAllApiKeys() {
+			// Double-checking if user of API key exists
+			// If the user was manually deleted from the database, this could lead to a crash
+			// in the API view
+			_, ok = u.UserMap[apiKey.UserId]
+			if !ok {
+				continue
+			}
 			if !apiKey.IsSystemKey {
 				if apiKey.UserId == user.Id || user.HasPermissionManageApi() {
 					resultApi = append(resultApi, apiKey)
@@ -770,8 +778,12 @@ func uploadComplete(w http.ResponseWriter, r *http.Request) {
 		responseError(w, err)
 		return
 	}
+	userId, err := authentication.GetUserIdFromRequest(r)
+	if err != nil {
+		panic(err)
+	}
 	go func() {
-		_, err = fileupload.CompleteChunk(chunkId, header, config)
+		_, err = fileupload.CompleteChunk(chunkId, header, userId, config)
 		if err != nil {
 			processingstatus.Set(chunkId, processingstatus.StatusError, models.File{}, err)
 			fmt.Println(err)

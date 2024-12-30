@@ -196,7 +196,7 @@ func TestBasicAuth(t *testing.T) {
 
 	isAuth = false
 	isInitialSetup = false
-	username = "test"
+	credentialUsername = "test"
 	password = "testpw"
 	basicAuth(continueFunc).ServeHTTP(w, r)
 	test.IsEqualBool(t, isAuth, false)
@@ -295,7 +295,7 @@ func TestParseDatabaseSettings(t *testing.T) {
 
 func TestRunConfigModification(t *testing.T) {
 	testconfiguration.Create(false)
-	username = ""
+	credentialUsername = ""
 	password = ""
 	finish := make(chan bool)
 	go func() {
@@ -312,7 +312,7 @@ func TestRunConfigModification(t *testing.T) {
 		finish <- true
 	}()
 	RunConfigModification()
-	test.IsEqualInt(t, len(username), 6)
+	test.IsEqualInt(t, len(credentialUsername), 6)
 	test.IsEqualInt(t, len(password), 10)
 	isInitialSetup = true
 	<-finish
@@ -419,7 +419,7 @@ func TestIntegration(t *testing.T) {
 	go RunConfigModification()
 	waitForServer(t, true)
 
-	username = "test"
+	credentialUsername = "test"
 	password = "testpw"
 
 	setupInput := createInputHeaderAuth()
@@ -496,7 +496,7 @@ func TestIntegration(t *testing.T) {
 	go RunConfigModification()
 	waitForServer(t, true)
 
-	username = "test"
+	credentialUsername = "test"
 	password = "testpw"
 
 	setupInput = createInputOAuth()

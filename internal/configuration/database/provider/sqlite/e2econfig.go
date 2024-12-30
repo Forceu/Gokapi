@@ -32,7 +32,7 @@ func (p DatabaseProvider) GetEnd2EndInfo(userId int) models.E2EInfoEncrypted {
 	result := models.E2EInfoEncrypted{}
 	rowResult := schemaE2EConfig{}
 
-	row := p.sqliteDb.QueryRow("SELECT Config, UserId FROM E2EConfig WHERE UserId = ?", userId)
+	row := p.sqliteDb.QueryRow("SELECT Config FROM E2EConfig WHERE UserId = ?", userId)
 	err := row.Scan(&rowResult.Config)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

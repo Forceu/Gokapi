@@ -8,6 +8,7 @@ Main routine
 
 import (
 	"fmt"
+	"github.com/forceu/gokapi/internal/configuration/configupgrade"
 	"github.com/forceu/gokapi/internal/configuration/database/migration"
 	"github.com/forceu/gokapi/internal/helper/systemd"
 	"os"
@@ -56,8 +57,15 @@ func main() {
 	if !reconfigureServer(passedFlags) {
 		configuration.ConnectDatabase()
 	}
-	configuration.CreateAdminUserIfNoneExists()
+
+	// Temporary solution to migrate admin user to DB
+	// Will be removed in v2.1.0
+	if configupgrade.RequiresUpgradeV1ToV2 {
+		configuration.MigrateToV2(configupgrade.LegacyPasswordHash)
+	}
+
 	setDeploymentPassword(passedFlags)
+	checkIfUserExists()
 	encryption.Init(*configuration.Get())
 	authentication.Init(configuration.Get().Authentication)
 	createSsl(passedFlags)
@@ -164,6 +172,13 @@ func reconfigureServer(passedFlags flagparser.MainFlags) bool {
 func createSsl(passedFlags flagparser.MainFlags) {
 	if passedFlags.CreateSsl {
 		ssl.GenerateIfInvalidCert(configuration.Get().ServerUrl, true)
+	}
+}
+
+func checkIfUserExists() {
+	if len(database.GetAllUsers()) == 0 {
+		fmt.Println("No user found in database. Please run setup first or crate user with --deployment-password")
+		os.Exit(1)
 	}
 }
 

@@ -104,29 +104,44 @@ func ConnectDatabase() {
 	database.Upgrade()
 }
 
-func CreateAdminUserIfNoneExists() {
-	var adminName string
-	switch serverSettings.Authentication.Method {
-	case models.AuthenticationDisabled:
-		return
-	case models.AuthenticationInternal:
+// MigrateToV2 is used to migrate the previous admin user to the DB
+func MigrateToV2(authPassword string) {
+	fmt.Println("Migrating v1 user, metadata and API keys to v2 scheme...")
+	var adminName = "admin@gokapi"
+	if serverSettings.Authentication.Method != models.AuthenticationDisabled &&
+		serverSettings.Authentication.Username != "" {
 		adminName = serverSettings.Authentication.Username
-	case models.AuthenticationOAuth2:
-		adminName = serverSettings.Authentication.OAuthAdminUser
-	case models.AuthenticationHeader:
-		adminName = serverSettings.Authentication.HeaderAdminUser
 	}
-	users := database.GetAllUsers()
-	if len(users) == 0 {
-		user := models.User{
-			Name:        adminName,
-			Email:       adminName,
-			Permissions: models.UserPermissionAll,
-			UserLevel:   models.UserLevelSuperAdmin,
-			Password:    serverSettings.Authentication.Password,
-		}
-		database.SaveUser(user, true)
+
+	newAdmin := models.User{
+		Name:        adminName,
+		Email:       adminName,
+		Permissions: models.UserPermissionAll,
+		UserLevel:   models.UserLevelSuperAdmin,
+		Password:    authPassword,
 	}
+	database.SaveUser(newAdmin, true)
+	user, ok := database.GetUserByEmail(adminName)
+	if !ok {
+		fmt.Println("ERROR: Could not retrieve new admin user after saving")
+		os.Exit(1)
+	}
+
+	for _, apiKey := range database.GetAllApiKeys() {
+		apiKey.UserId = user.Id
+		database.SaveApiKey(apiKey)
+	}
+
+	e2eConfig := database.GetEnd2EndInfo(0)
+	database.DeleteEnd2EndInfo(0)
+	database.SaveEnd2EndInfo(e2eConfig, user.Id)
+
+	for _, file := range database.GetAllMetadata() {
+		file.UserId = user.Id
+		database.SaveMetaData(file)
+	}
+	database.DeleteAllSessions()
+	fmt.Println("Migration complete")
 }
 
 // UsesHttps returns true if Gokapi URL is set to a secure URL
@@ -157,7 +172,7 @@ func save() {
 
 // LoadFromSetup creates a new configuration file after a user completed the setup. If cloudConfig is not nil, a new
 // cloud config file is created. If it is nil an existing cloud config file will be deleted.
-func LoadFromSetup(config models.Configuration, cloudConfig *cloudconfig.CloudConfig, e2eConfig End2EndReconfigParameters) {
+func LoadFromSetup(config models.Configuration, cloudConfig *cloudconfig.CloudConfig, e2eConfig End2EndReconfigParameters, passwordHash string) {
 	Environment = environment.New()
 	helper.CreateDir(Environment.ConfigDir)
 
@@ -178,6 +193,11 @@ func LoadFromSetup(config models.Configuration, cloudConfig *cloudconfig.CloudCo
 	save()
 	Load()
 	ConnectDatabase()
+	err := database.EditSuperAdmin(serverSettings.Authentication.Username, serverSettings.Authentication.Username, passwordHash)
+	if err != nil {
+		fmt.Println("Could not edit superadmin, as none was found, but other users were present.")
+		os.Exit(1)
+	}
 	database.DeleteAllSessions()
 	if e2eConfig.DeleteEnd2EndEncryption {
 		for _, user := range database.GetAllUsers() {
@@ -207,10 +227,13 @@ func SetDeploymentPassword(newPassword string) {
 		os.Exit(1)
 	}
 	serverSettings.Authentication.SaltAdmin = helper.GenerateRandomString(30)
-	serverSettings.Authentication.Password = hashUserPassword(newPassword)
-	database.DeleteAllSessions()
+	err := database.EditSuperAdmin(serverSettings.Authentication.Username, serverSettings.Authentication.Username, newPassword)
+	if err != nil {
+		fmt.Println("No super-admin user found, but database contains other users. Aborting.")
+		os.Exit(1)
+	}
 	save()
-	fmt.Println("New password has been set successfully")
+	fmt.Println("New password has been set successfully for user " + serverSettings.Authentication.Username + ".")
 	os.Exit(0)
 }
 

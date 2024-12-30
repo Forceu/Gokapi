@@ -47,7 +47,7 @@ var ErrorFileNotFound = errors.New("file not found")
 // NewFile creates a new file in the system. Called after an upload from the API has been completed. If a file with the same sha1 hash
 // already exists, it is deduplicated. This function gathers information about the file, creates an ID and saves
 // it into the global configuration. It is now only used by the API, the web UI uses NewFileFromChunk
-func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequest models.UploadRequest) (models.File, error) {
+func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, userId int, uploadRequest models.UploadRequest) (models.File, error) {
 	if !isAllowedFileSize(fileHeader.Size) {
 		return models.File{}, ErrorFileTooLarge
 	}
@@ -58,7 +58,7 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 	if err != nil {
 		return models.File{}, err
 	}
-	file := createNewMetaData(hex.EncodeToString(hash), header, uploadRequest)
+	file := createNewMetaData(hex.EncodeToString(hash), header, userId, uploadRequest)
 	file.Encryption = encInfo
 	filename := configuration.Get().DataDir + "/" + file.SHA1
 	dataDir := configuration.Get().DataDir
@@ -148,7 +148,7 @@ func GetUploadCounts() map[int]int {
 // NewFileFromChunk creates a new file in the system after a chunk upload has fully completed. If a file with the same sha1 hash
 // already exists, it is deduplicated. This function gathers information about the file, creates an ID and saves
 // it into the global configuration.
-func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, uploadRequest models.UploadRequest) (models.File, error) {
+func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, userId int, uploadRequest models.UploadRequest) (models.File, error) {
 	file, err := chunking.GetFileByChunkId(chunkId)
 	if err != nil {
 		return models.File{}, err
@@ -164,7 +164,7 @@ func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, uploadRequ
 	if err != nil {
 		return models.File{}, err
 	}
-	metaData := createNewMetaData(hash, fileHeader, uploadRequest)
+	metaData := createNewMetaData(hash, fileHeader, userId, uploadRequest)
 	fileExists := FileExists(metaData, configuration.Get().DataDir)
 	if fileExists {
 		fileExists = copyEncryptionInfo(&metaData)
@@ -286,7 +286,7 @@ func FormatTimestamp(timestamp int64) string {
 	return time.Unix(timestamp, 0).Format("2006-01-02 15:04")
 }
 
-func createNewMetaData(hash string, fileHeader chunking.FileHeader, uploadRequest models.UploadRequest) models.File {
+func createNewMetaData(hash string, fileHeader chunking.FileHeader, userId int, uploadRequest models.UploadRequest) models.File {
 	file := models.File{
 		Id:                 createNewId(),
 		Name:               fileHeader.Filename,
@@ -300,6 +300,7 @@ func createNewMetaData(hash string, fileHeader chunking.FileHeader, uploadReques
 		UnlimitedTime:      uploadRequest.UnlimitedTime,
 		UnlimitedDownloads: uploadRequest.UnlimitedDownload,
 		PasswordHash:       configuration.HashPassword(uploadRequest.Password, true),
+		UserId:             userId,
 	}
 	if uploadRequest.IsEndToEndEncrypted {
 		file.Encryption = models.EncryptionInfo{IsEndToEndEncrypted: true, IsEncrypted: true}
