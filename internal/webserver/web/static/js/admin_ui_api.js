@@ -47,7 +47,10 @@ function deleteApiKey(apiKey) {
 
     apiAuthDelete(apiKey)
         .then(data => {
+        document.getElementById("row-" + apiKey).classList.add("rowDeleting");
+        setTimeout(() => {
             document.getElementById("row-" + apiKey).remove();
+    }, 290);
         })
         .catch(error => {
             alert("Unable to delete API key: " + error);
@@ -142,6 +145,7 @@ function addRowApi(apiKey, publicId) {
     cellId.classList.add("newApiKey");
     cellLastUsed.classList.add("newApiKey");
     cellPermissions.classList.add("newApiKey");
+    cellPermissions.classList.add("prevent-select");
     cellButtons.classList.add("newApiKey");
 
 

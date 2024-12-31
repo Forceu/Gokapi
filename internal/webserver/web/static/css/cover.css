@@ -265,5 +265,17 @@ td.newItem {
   animation: subtleHighlightNewJson 0.7s ease-out;
 }
 
+@keyframes fadeOut {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
 
+
+.rowDeleting {
+  animation: fadeOut 0.3s ease-out forwards;
+}
 
