@@ -111,11 +111,11 @@ func isGrantedHeader(r *http.Request) (int, bool) {
 		return -1, false
 	}
 	if len(authSettings.HeaderUsers) == 0 {
-		user := getOrCreateUser(userName, userName)
+		user := getOrCreateUser(userName)
 		return user.Id, true
 	}
 	if isUserInArray(userName, authSettings.HeaderUsers) {
-		user := getOrCreateUser(userName, userName)
+		user := getOrCreateUser(userName)
 		return user.Id, true
 	}
 	return -1, false
@@ -264,7 +264,7 @@ func CheckOauthUserAndRedirect(userInfo OAuthUserInfo, w http.ResponseWriter) er
 		if userInfo.Email == "" {
 			userInfo.Email = username
 		}
-		user := getOrCreateUser(username, userInfo.Email)
+		user := getOrCreateUser(userInfo.Email)
 		sessionmanager.CreateSession(w, true, authSettings.OAuthRecheckInterval, user.Id)
 		redirect(w, "admin")
 		return nil
@@ -273,16 +273,15 @@ func CheckOauthUserAndRedirect(userInfo OAuthUserInfo, w http.ResponseWriter) er
 	return nil
 }
 
-func getOrCreateUser(username, email string) models.User {
-	user, ok := database.GetUserByEmail(email)
+func getOrCreateUser(username string) models.User {
+	user, ok := database.GetUserByName(username)
 	if !ok {
 		user = models.User{
 			Name:      username,
-			Email:     username,
 			UserLevel: models.UserLevelUser,
 		}
 		database.SaveUser(user, true)
-		user, ok = database.GetUserByEmail(email)
+		user, ok = database.GetUserByName(username)
 		if !ok {
 			panic("unable to read new user")
 		}
@@ -311,8 +310,8 @@ func isGrantedSession(w http.ResponseWriter, r *http.Request) (int, bool) {
 }
 
 // IsCorrectUsernameAndPassword checks if a provided username and password is correct
-func IsCorrectUsernameAndPassword(userEmail, password string) (models.User, bool) {
-	user, ok := database.GetUserByEmail(userEmail)
+func IsCorrectUsernameAndPassword(username, password string) (models.User, bool) {
+	user, ok := database.GetUserByName(username)
 	if !ok {
 		return models.User{}, false
 	}

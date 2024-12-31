@@ -115,13 +115,12 @@ func MigrateToV2(authPassword string) {
 
 	newAdmin := models.User{
 		Name:        adminName,
-		Email:       adminName,
 		Permissions: models.UserPermissionAll,
 		UserLevel:   models.UserLevelSuperAdmin,
 		Password:    authPassword,
 	}
 	database.SaveUser(newAdmin, true)
-	user, ok := database.GetUserByEmail(adminName)
+	user, ok := database.GetUserByName(adminName)
 	if !ok {
 		fmt.Println("ERROR: Could not retrieve new admin user after saving")
 		os.Exit(1)
@@ -194,7 +193,7 @@ func LoadFromSetup(config models.Configuration, cloudConfig *cloudconfig.CloudCo
 	save()
 	Load()
 	ConnectDatabase()
-	err := database.EditSuperAdmin(serverSettings.Authentication.Username, serverSettings.Authentication.Username, passwordHash)
+	err := database.EditSuperAdmin(serverSettings.Authentication.Username, passwordHash)
 	if err != nil {
 		fmt.Println("Could not edit superadmin, as none was found, but other users were present.")
 		os.Exit(1)
@@ -228,9 +227,7 @@ func SetDeploymentPassword(newPassword string) {
 		os.Exit(1)
 	}
 	serverSettings.Authentication.SaltAdmin = helper.GenerateRandomString(30)
-	err := database.EditSuperAdmin(serverSettings.Authentication.Username,
-		serverSettings.Authentication.Username,
-		hashUserPassword(newPassword))
+	err := database.EditSuperAdmin(serverSettings.Authentication.Username, hashUserPassword(newPassword))
 	if err != nil {
 		fmt.Println("No super-admin user found, but database contains other users. Aborting.")
 		os.Exit(1)

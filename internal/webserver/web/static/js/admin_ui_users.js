@@ -120,12 +120,11 @@ function addNewUser() {
         button.disabled = false;
     } else {
         let editName = document.getElementById("e_userName");
-        let editEmail = document.getElementById("e_email");
-        apiUserCreate(editName.value.trim(), editEmail.value.trim())
+        apiUserCreate(editName.value.trim())
             .then(data => {
             console.log(data);
                 $('#modalnewuser').modal('hide');
-                addRowUser(data.id, data.name, data.email);
+                addRowUser(data.id, data.name);
             })
             .catch(error => {
                 if (error.message == "duplicate") {
@@ -143,64 +142,19 @@ function addNewUser() {
 
 
 
-// TODO
-function addUserChange(apiKey) {
-    let cell = document.getElementById("friendlyname-" + apiKey);
-    if (cell.classList.contains("isBeingEdited"))
-        return;
-    cell.classList.add("isBeingEdited");
-    let currentName = cell.innerHTML;
-    let input = document.createElement("input");
-    input.size = 5;
-    input.value = currentName;
-    let allowEdit = true;
-
-    let submitEntry = function() {
-        if (!allowEdit)
-            return;
-        allowEdit = false;
-        let newName = input.value;
-        cell.innerHTML = newName;
-
-        cell.classList.remove("isBeingEdited");
-
-        apiAuthFriendlyName(apiKey, newName)
-            .catch(error => {
-                alert("Unable to save name: " + error);
-                console.error('Error:', error);
-            });
-    };
-
-    input.onblur = submitEntry;
-    input.addEventListener("keyup", function(event) {
-        // Enter
-        if (event.keyCode === 13) {
-            event.preventDefault();
-            submitEntry();
-        }
-    });
-    cell.innerHTML = "";
-    cell.appendChild(input);
-    input.focus();
-}
-
-
-
-function addRowUser(userid, name, email) {
+function addRowUser(userid, name) {
 
     let table = document.getElementById("usertable");
     let row = table.insertRow(0);
     row.id = "row-" + userid;
     let cellName = row.insertCell(0);
-    let cellEmail = row.insertCell(1);
-    let cellGroup = row.insertCell(2);
-    let cellLastOnline = row.insertCell(3);
-    let cellUploads = row.insertCell(4);
-    let cellPermissions = row.insertCell(5);
-    let cellActions = row.insertCell(6);
+    let cellGroup = row.insertCell(1);
+    let cellLastOnline = row.insertCell(2);
+    let cellUploads = row.insertCell(3);
+    let cellPermissions = row.insertCell(4);
+    let cellActions = row.insertCell(5);
 
     cellName.classList.add("newUser");
-    cellEmail.classList.add("newUser");
     cellGroup.classList.add("newUser");
     cellLastOnline.classList.add("newUser");
     cellUploads.classList.add("newUser");
@@ -209,11 +163,10 @@ function addRowUser(userid, name, email) {
 
 
     cellName.innerText = name;
-    cellEmail.innerText = email;
     cellGroup.innerText = "User";
     cellLastOnline.innerText = "Never";
     cellUploads.innerText = "0";
-    cellActions.innerHTML = '<button id="changeRank_'+userid+'" type="button" onclick="changeRank( '+userid+' , \'ADMIN\', \'changeRank_'+userid+'\')" title="Promote User" class="btn btn-outline-light btn-sm"><i class="bi bi-chevron-double-up"></i></button><button id="delete-'+userid+'" type="button" class="btn btn-outline-danger btn-sm"  onclick="showDeleteModal('+userid+', \''+email+'\')" title="Delete"><i class="bi bi-trash3"></i></button>';
+    cellActions.innerHTML = '<button id="changeRank_'+userid+'" type="button" onclick="changeRank( '+userid+' , \'ADMIN\', \'changeRank_'+userid+'\')" title="Promote User" class="btn btn-outline-light btn-sm"><i class="bi bi-chevron-double-up"></i></button><button id="delete-'+userid+'" type="button" class="btn btn-outline-danger btn-sm"  onclick="showDeleteModal('+userid+', \''+name+'\')" title="Delete"><i class="bi bi-trash3"></i></button>';
     
     cellPermissions.innerHTML = `
     <i id="perm_replace_`+userid+`" class="bi bi-recycle perm-notgranted " title="Replace own uploads" onclick='changeUserPermission(`+userid+`,"PERM_REPLACE", "perm_replace_`+userid+`");'></i>
@@ -235,7 +188,6 @@ function addRowUser(userid, name, email) {
     setTimeout(() => {
     
     cellName.classList.remove("newUser");
-    cellEmail.classList.remove("newUser");
     cellGroup.classList.remove("newUser");
     cellLastOnline.classList.remove("newUser");
     cellUploads.classList.remove("newUser");

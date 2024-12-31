@@ -22,8 +22,7 @@
                     <table class="table table-dark">
                         <thead>
                             <tr>
-                                <th scope="col">Name</th>
-                                <th scope="col">Email</th>
+                                <th scope="col">User</th>
                                 <th scope="col">Group</th>
             			<th scope="col">Last online</th>
             			<th scope="col">Uploads</th>
@@ -34,8 +33,7 @@
                         <tbody id="usertable">
 {{ range .Users }}
                             <tr id="row-{{ .User.Id }}">
-                                <td scope="col" id="{{ .User.Id }}">{{ .User.Name }}</td>
-                                <td scope="col">{{ .User.Email }}</td>
+                                <td scope="col">{{ .User.Name }}</td>
                                 <td scope="col" id="userlevel_{{ .User.Id }}">{{ .User.GetReadableUserLevel }}</td>
             			<td scope="col">{{ .User.GetReadableDate }}</td>
                                 <td scope="col">{{ .UploadCount }}</td>
@@ -67,7 +65,7 @@
 		                        	<i class="bi bi-chevron-double-down"></i></button>                                
                                 {{ end }}
                                 
-                                <button id="delete-{{ .User.Id }}" type="button" class="btn btn-outline-danger btn-sm" {{if or (eq .User.UserLevel 0) (eq .User.Id $.ActiveUser.Id)}}disabled{{end}} onclick="showDeleteModal('{{ .User.Id }}', '{{ .User.Email }}')" title="Delete"><i class="bi bi-trash3"></i></button></td>
+                                <button id="delete-{{ .User.Id }}" type="button" class="btn btn-outline-danger btn-sm" {{if or (eq .User.UserLevel 0) (eq .User.Id $.ActiveUser.Id)}}disabled{{end}} onclick="showDeleteModal('{{ .User.Id }}', '{{ .User.Name }}')" title="Delete"><i class="bi bi-trash3"></i></button></td>
                             </tr>
 {{ end }}
                         </tbody>
@@ -115,17 +113,10 @@
 	      
 	            <form id="newUserForm">
 		  <div class="input-group mb-3">
-		    <span class="input-group-text" id="label-name">Name</span>
-		    <input type="text" class="form-control" required minlength="2" placeholder="Full Name" aria-label="Name" aria-describedby="label-name" id="e_userName">
+		    <span class="input-group-text" id="label-name">Username</span>
+		    <input type="text" class="form-control" required minlength="2" placeholder="Username" aria-label="Username" aria-describedby="label-name" id="e_userName">
 		    <div class="invalid-feedback">
 		      Name must be at least 2 characters long.
-		    </div>
-		  </div>
-		  <div class="input-group mb-3">
-		    <span class="input-group-text" id="label-email">Email&nbsp;</span>
-		    <input type="text" class="form-control" placeholder="Email Address" aria-label="Email" aria-describedby="label-email" pattern=".*@.*" minlength="4" required id="e_email">
-		    <div class="invalid-feedback">
-		      Email must be at least 4 characters long and contain an "@" symbol.
 		    </div>
 		  </div>
 		</form>

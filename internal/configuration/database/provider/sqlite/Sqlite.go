@@ -56,9 +56,8 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 		) WITHOUT ROWID;
 		CREATE TABLE "Users" (
 			"Id"	INTEGER NOT NULL UNIQUE,
-			"Email"	TEXT NOT NULL UNIQUE,
+			"Name"	TEXT NOT NULL UNIQUE,
 			"Password"	TEXT,
-			"Name"	TEXT NOT NULL,
 			"Permissions"	INTEGER NOT NULL,
 			"Userlevel"	INTEGER NOT NULL,
 			"LastOnline"	INTEGER NOT NULL DEFAULT 0,
@@ -189,9 +188,8 @@ func (p DatabaseProvider) createNewDatabase() error {
 		) WITHOUT ROWID;
 		CREATE TABLE "Users" (
 			"Id"	INTEGER NOT NULL UNIQUE,
-			"Email"	TEXT NOT NULL UNIQUE,
+			"Name"	TEXT NOT NULL UNIQUE,
 			"Password"	TEXT,
-			"Name"	TEXT NOT NULL,
 			"Permissions"	INTEGER NOT NULL,
 			"Userlevel"	INTEGER NOT NULL,
 			"LastOnline"	INTEGER NOT NULL DEFAULT 0,

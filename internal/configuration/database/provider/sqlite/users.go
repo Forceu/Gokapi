@@ -12,12 +12,12 @@ import (
 func (p DatabaseProvider) GetAllUsers() []models.User {
 	var password sql.NullString
 	var result []models.User
-	rows, err := p.sqliteDb.Query("SELECT * FROM Users ORDER BY Userlevel ASC, LastOnline DESC, Email ASC")
+	rows, err := p.sqliteDb.Query("SELECT * FROM Users ORDER BY Userlevel ASC, LastOnline DESC, Name ASC")
 	helper.Check(err)
 	defer rows.Close()
 	for rows.Next() {
 		user := models.User{}
-		err = rows.Scan(&user.Id, &user.Email, &password, &user.Name, &user.Permissions, &user.UserLevel, &user.LastOnline)
+		err = rows.Scan(&user.Id, &user.Name, &password, &user.Permissions, &user.UserLevel, &user.LastOnline)
 		helper.Check(err)
 		if password.Valid {
 			user.Password = password.String
@@ -32,7 +32,7 @@ func (p DatabaseProvider) GetUser(id int) (models.User, bool) {
 	var result models.User
 	var password sql.NullString
 	row := p.sqliteDb.QueryRow("SELECT * FROM Users WHERE Id = ?", id)
-	err := row.Scan(&result.Id, &result.Email, &password, &result.Name, &result.Permissions, &result.UserLevel, &result.LastOnline)
+	err := row.Scan(&result.Id, &result.Name, &password, &result.Permissions, &result.UserLevel, &result.LastOnline)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return models.User{}, false
@@ -46,12 +46,12 @@ func (p DatabaseProvider) GetUser(id int) (models.User, bool) {
 	return result, true
 }
 
-// GetUserByEmail returns a models.User if valid or false if the email is not valid
-func (p DatabaseProvider) GetUserByEmail(email string) (models.User, bool) {
+// GetUserByName returns a models.User if valid or false if the name is not valid
+func (p DatabaseProvider) GetUserByName(username string) (models.User, bool) {
 	var result models.User
 	var password sql.NullString
-	row := p.sqliteDb.QueryRow("SELECT * FROM Users WHERE email = ?", email)
-	err := row.Scan(&result.Id, &result.Email, &password, &result.Name, &result.Permissions, &result.UserLevel, &result.LastOnline)
+	row := p.sqliteDb.QueryRow("SELECT * FROM Users WHERE Name = ?", username)
+	err := row.Scan(&result.Id, &result.Name, &password, &result.Permissions, &result.UserLevel, &result.LastOnline)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return models.User{}, false
@@ -68,12 +68,12 @@ func (p DatabaseProvider) GetUserByEmail(email string) (models.User, bool) {
 // SaveUser saves a user to the database. If isNewUser is true, a new Id will be generated
 func (p DatabaseProvider) SaveUser(user models.User, isNewUser bool) {
 	if isNewUser {
-		_, err := p.sqliteDb.Exec("INSERT INTO Users ( Name, Email, Password, Permissions, Userlevel, LastOnline) VALUES  (?, ?, ?, ?, ?, ?)",
-			user.Name, user.Email, user.Password, user.Permissions, user.UserLevel, user.LastOnline)
+		_, err := p.sqliteDb.Exec("INSERT INTO Users ( Name, Password, Permissions, Userlevel, LastOnline) VALUES  (?, ?, ?, ?, ?)",
+			user.Name, user.Password, user.Permissions, user.UserLevel, user.LastOnline)
 		helper.Check(err)
 	} else {
-		_, err := p.sqliteDb.Exec("INSERT OR REPLACE INTO Users (Id, Name, Email, Password, Permissions, Userlevel, LastOnline) VALUES  (?, ?, ?, ?, ?, ?, ?)",
-			user.Id, user.Name, user.Email, user.Password, user.Permissions, user.UserLevel, user.LastOnline)
+		_, err := p.sqliteDb.Exec("INSERT OR REPLACE INTO Users (Id, Name, Password, Permissions, Userlevel, LastOnline) VALUES  (?, ?, ?, ?, ?, ?)",
+			user.Id, user.Name, user.Password, user.Permissions, user.UserLevel, user.LastOnline)
 		helper.Check(err)
 	}
 }

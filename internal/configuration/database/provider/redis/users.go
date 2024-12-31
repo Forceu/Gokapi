@@ -41,17 +41,17 @@ func orderUsers(users []models.User) []models.User {
 		return cmp.Or(
 			cmp.Compare(a.UserLevel, b.UserLevel),
 			cmp.Compare(b.LastOnline, a.LastOnline),
-			cmp.Compare(a.Email, b.Email),
+			cmp.Compare(a.Name, b.Name),
 		)
 	})
 	return users
 }
 
-// GetUserByEmail returns a models.User if valid or false if the email is not valid
-func (p DatabaseProvider) GetUserByEmail(email string) (models.User, bool) {
+// GetUserByName returns a models.User if valid or false if the email is not valid
+func (p DatabaseProvider) GetUserByName(username string) (models.User, bool) {
 	users := p.GetAllUsers()
 	for _, user := range users {
-		if user.Email == email {
+		if user.Name == username {
 			return user, true
 		}
 	}

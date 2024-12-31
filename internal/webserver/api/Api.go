@@ -340,27 +340,21 @@ func createApiKey(w http.ResponseWriter, request apiRequest, user models.User) {
 
 func addUser(w http.ResponseWriter, request apiRequest) {
 	name := request.usermodInfo.newUserName
-	email := request.usermodInfo.newUserEmail
-	if len(name) < 2 {
-		sendError(w, http.StatusBadRequest, "Invalid user name provided.")
+	if len(name) < 4 {
+		sendError(w, http.StatusBadRequest, "Invalid username provided.")
 		return
 	}
-	if len(email) < 4 || !strings.Contains(email, "@") {
-		sendError(w, http.StatusBadRequest, "Invalid email provided.")
-		return
-	}
-	_, ok := database.GetUserByEmail(email)
+	_, ok := database.GetUserByName(name)
 	if ok {
 		sendError(w, http.StatusConflict, "User already exists.")
 		return
 	}
 	newUser := models.User{
 		Name:      name,
-		Email:     email,
 		UserLevel: models.UserLevelUser,
 	}
 	database.SaveUser(newUser, true)
-	user, ok := database.GetUserByEmail(email)
+	user, ok := database.GetUserByName(name)
 	if !ok {
 		sendError(w, http.StatusInternalServerError, "Could not save user")
 		return
@@ -776,7 +770,6 @@ type userModInfo struct {
 	deleteUserFiles  bool
 	newRank          string
 	newUserName      string
-	newUserEmail     string
 }
 type fileModInfo struct {
 	id               string
@@ -864,7 +857,6 @@ func parseRequest(r *http.Request) (apiRequest, error) {
 			basicPermissions: r.Header.Get("basicPermissions") == "true",
 			deleteUserFiles:  r.Header.Get("deleteFiles") == "true",
 			newUserName:      r.Header.Get("username"),
-			newUserEmail:     r.Header.Get("email"),
 		},
 	}, nil
 }

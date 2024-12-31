@@ -253,18 +253,18 @@ func GetUser(id int) (models.User, bool) {
 	return db.GetUser(id)
 }
 
-// GetUserByEmail returns a models.User if valid or false if the email is not valid
-func GetUserByEmail(email string) (models.User, bool) {
-	email = strings.ToLower(email)
-	return db.GetUserByEmail(email)
+// GetUserByName returns a models.User if valid or false if the email is not valid
+func GetUserByName(username string) (models.User, bool) {
+	username = strings.ToLower(username)
+	return db.GetUserByName(username)
 }
 
 // SaveUser saves a user to the database. If isNewUser is true, a new Id will be generated
 func SaveUser(user models.User, isNewUser bool) {
-	if user.Email == "" {
-		panic("email cannot be empty")
+	if user.Name == "" {
+		panic("username cannot be empty")
 	}
-	user.Email = strings.ToLower(user.Email)
+	user.Name = strings.ToLower(user.Name)
 	db.SaveUser(user, isNewUser)
 }
 
@@ -291,15 +291,14 @@ func GetSuperAdmin() (models.User, bool) {
 
 // EditSuperAdmin changes parameters of the super admin. If no user exists, a new superadmin will be created
 // Returns an error if at least one user exists, but no superadmin
-func EditSuperAdmin(name, email, password string) error {
+func EditSuperAdmin(email, password string) error {
 	user, ok := GetSuperAdmin()
 	if !ok {
 		if len(GetAllUsers()) != 0 {
 			return errors.New("at least one user exists, but no superadmin found")
 		}
 		newAdmin := models.User{
-			Name:        name,
-			Email:       email,
+			Name:        email,
 			Permissions: models.UserPermissionAll,
 			UserLevel:   models.UserLevelSuperAdmin,
 			Password:    password,
@@ -307,11 +306,8 @@ func EditSuperAdmin(name, email, password string) error {
 		db.SaveUser(newAdmin, true)
 		return nil
 	}
-	if name != "" {
-		user.Name = name
-	}
 	if email != "" {
-		user.Email = email
+		user.Name = email
 	}
 	if password != "" {
 		user.Password = password

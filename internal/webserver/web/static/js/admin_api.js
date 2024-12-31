@@ -221,7 +221,7 @@ async function apiFilesDelete(id) {
 // users
 
 
-async function apiUserCreate(userName, userEmail) {
+async function apiUserCreate(userName) {
     const apiUrl = './api/user/create';
 
     const requestOptions = {
@@ -229,8 +229,7 @@ async function apiUserCreate(userName, userEmail) {
         headers: {
             'Content-Type': 'application/json',
             'apikey': systemKey,
-            'username': userName,
-            'email': userEmail
+            'username': userName
 
         },
     };
