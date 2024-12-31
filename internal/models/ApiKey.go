@@ -32,6 +32,7 @@ const ApiPermDefault = ApiPermAll - ApiPermApiMod - ApiPermManageUsers - ApiPerm
 // ApiKey contains data of a single api key
 type ApiKey struct {
 	Id           string `json:"Id" redis:"Id"`
+	PublicId     string `json:"PublicId" redis:"PublicId"`
 	FriendlyName string `json:"FriendlyName" redis:"FriendlyName"`
 	LastUsed     int64  `json:"LastUsed" redis:"LastUsed"`
 	Permissions  uint8  `json:"Permissions" redis:"Permissions"`
@@ -46,6 +47,12 @@ func (key *ApiKey) GetReadableDate() string {
 		return "Never"
 	}
 	return time.Unix(key.LastUsed, 0).Format("2006-01-02 15:04:05")
+}
+
+// GetRedactedId returns a redacted version of the API key
+func (key *ApiKey) GetRedactedId() string {
+	return key.Id[0:2] + "**************************" + key.Id[28:]
+
 }
 
 // GrantPermission sets one or more permissions
@@ -103,6 +110,7 @@ func (key *ApiKey) HasPermissionManageUsers() bool {
 
 // ApiKeyOutput is the output that is used after a new key is created
 type ApiKeyOutput struct {
-	Result string
-	Id     string
+	Result   string
+	Id       string
+	PublicId string
 }

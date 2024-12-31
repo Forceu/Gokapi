@@ -45,6 +45,8 @@ type Database interface {
 	DeleteApiKey(id string)
 	// GetSystemKey returns the latest UI API key
 	GetSystemKey(userId int) (models.ApiKey, bool)
+	// GetApiKeyByPublicKey returns an API key by using the public key
+	GetApiKeyByPublicKey(publicKey string) (string, bool)
 
 	// SaveEnd2EndInfo stores the encrypted e2e info
 	SaveEnd2EndInfo(info models.E2EInfoEncrypted, userId int)

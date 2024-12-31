@@ -548,7 +548,7 @@
           {
             "name": "apiKeyToModify",
             "in": "header",
-            "description": "The API key to change the name of",
+            "description": "The API key to change the name of. Can be either the public ID or the actual API key",
             "required": true,
             "style": "simple",
             "explode": false,
@@ -598,7 +598,7 @@
           {
             "name": "apiKeyToModify",
             "in": "header",
-            "description": "The API key to change the permission of",
+            "description": "The API key to change the permission of. Can be either the public ID or the actual API key",
             "required": true,
             "style": "simple",
             "explode": false,
@@ -664,7 +664,7 @@
           {
             "name": "apiKeyToModify",
             "in": "header",
-            "description": "The API key to delete",
+            "description": "The API key to delete. Can be either the public ID or the actual API key",
             "required": true,
             "style": "simple",
             "explode": false,
@@ -1064,6 +1064,10 @@
           "Id": {
             "type": "string",
             "example": "ar3iecahghiethiemeeR"
+          },
+          "PublicId": {
+            "type": "string",
+            "example": "oepah5iesae8YeeZohrain5ahNgax8su"
           }
         },
         "description": "NewApiKey is the struct used for the result after creating a new API key",

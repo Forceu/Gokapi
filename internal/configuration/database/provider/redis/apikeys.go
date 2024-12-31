@@ -64,6 +64,17 @@ func (p DatabaseProvider) GetSystemKey(userId int) (models.ApiKey, bool) {
 	return keys[foundKey], true
 }
 
+// GetApiKeyByPublicKey returns an API key by using the public key
+func (p DatabaseProvider) GetApiKeyByPublicKey(publicKey string) (string, bool) {
+	keys := p.GetAllApiKeys()
+	for _, key := range keys {
+		if key.PublicId == publicKey {
+			return key.Id, true
+		}
+	}
+	return "", false
+}
+
 // SaveApiKey saves the API key to the database
 func (p DatabaseProvider) SaveApiKey(apikey models.ApiKey) {
 	p.setHashMap(p.buildArgs(prefixApiKeys + apikey.Id).AddFlat(apikey))

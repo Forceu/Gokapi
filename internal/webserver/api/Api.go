@@ -17,6 +17,9 @@ import (
 	"time"
 )
 
+const lengthPublicId = 35
+const lengthApiKey = 30
+
 // Process parses the request and executes the API call or returns an error message to the sender
 func Process(w http.ResponseWriter, r *http.Request, maxMemory int) {
 	w.Header().Set("cache-control", "no-store")
@@ -180,13 +183,12 @@ func DeleteKey(id string) bool {
 }
 
 // NewKey generates a new API key
-func NewKey(defaultPermissions bool, userId int) string {
+func NewKey(defaultPermissions bool, userId int) models.ApiKey {
 	newKey := models.ApiKey{
-		Id:           helper.GenerateRandomString(30),
+		Id:           helper.GenerateRandomString(lengthApiKey),
+		PublicId:     helper.GenerateRandomString(lengthPublicId),
 		FriendlyName: "Unnamed key",
-		LastUsed:     0,
 		Permissions:  models.ApiPermDefault,
-		Expiry:       0,
 		IsSystemKey:  false,
 		UserId:       userId,
 	}
@@ -194,7 +196,7 @@ func NewKey(defaultPermissions bool, userId int) string {
 		newKey.Permissions = models.ApiPermNone
 	}
 	database.SaveApiKey(newKey)
-	return newKey.Id
+	return newKey
 }
 
 // newSystemKey generates a new API key that is only used internally for the GUI
@@ -215,9 +217,9 @@ func newSystemKey(userId int) string {
 	}
 
 	newKey := models.ApiKey{
-		Id:           helper.GenerateRandomString(30),
+		Id:           helper.GenerateRandomString(lengthApiKey),
+		PublicId:     helper.GenerateRandomString(lengthPublicId),
 		FriendlyName: "Internal System Key",
-		LastUsed:     0,
 		Permissions:  tempKey.Permissions,
 		Expiry:       time.Now().Add(time.Hour * 48).Unix(),
 		IsSystemKey:  true,
@@ -320,11 +322,12 @@ func isValidUserForEditing(w http.ResponseWriter, request apiRequest) (models.Us
 func createApiKey(w http.ResponseWriter, request apiRequest, user models.User) {
 	key := NewKey(request.apiInfo.basicPermissions, user.Id)
 	output := models.ApiKeyOutput{
-		Result: "OK",
-		Id:     key,
+		Result:   "OK",
+		Id:       key.Id,
+		PublicId: key.PublicId,
 	}
 	if request.apiInfo.friendlyName != "" {
-		err := renameApiKeyFriendlyName(key, request.apiInfo.friendlyName)
+		err := renameApiKeyFriendlyName(key.Id, request.apiInfo.friendlyName)
 		if err != nil {
 			sendError(w, http.StatusInternalServerError, err.Error())
 			return
@@ -848,7 +851,7 @@ func parseRequest(r *http.Request) (apiRequest, error) {
 		},
 		apiInfo: apiModInfo{
 			friendlyName:     r.Header.Get("friendlyName"),
-			apiKeyToModify:   r.Header.Get("apiKeyToModify"),
+			apiKeyToModify:   publicKeyToApiKey(r.Header.Get("apiKeyToModify")),
 			permission:       uint8(apiPermission),
 			grantPermission:  r.Header.Get("permissionModifier") == "GRANT",
 			basicPermissions: r.Header.Get("basicPermissions") == "true",
@@ -864,6 +867,18 @@ func parseRequest(r *http.Request) (apiRequest, error) {
 			newUserEmail:     r.Header.Get("email"),
 		},
 	}, nil
+}
+
+// publicKeyToApiKey tries to convert a (possible) public key to a private key
+// If not a public key or if invalid, the original value is returned
+func publicKeyToApiKey(publicKey string) string {
+	if len(publicKey) == lengthPublicId {
+		privateApiKey, ok := database.GetApiKeyByPublicKey(publicKey)
+		if ok {
+			return privateApiKey
+		}
+	}
+	return publicKey
 }
 
 func apiRequestToUploadRequest(request *http.Request) (models.UploadRequest, int, string, error) {

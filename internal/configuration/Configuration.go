@@ -129,6 +129,7 @@ func MigrateToV2(authPassword string) {
 
 	for _, apiKey := range database.GetAllApiKeys() {
 		apiKey.UserId = user.Id
+		apiKey.PublicId = helper.GenerateRandomString(35)
 		database.SaveApiKey(apiKey)
 	}
 
@@ -227,7 +228,9 @@ func SetDeploymentPassword(newPassword string) {
 		os.Exit(1)
 	}
 	serverSettings.Authentication.SaltAdmin = helper.GenerateRandomString(30)
-	err := database.EditSuperAdmin(serverSettings.Authentication.Username, serverSettings.Authentication.Username, newPassword)
+	err := database.EditSuperAdmin(serverSettings.Authentication.Username,
+		serverSettings.Authentication.Username,
+		hashUserPassword(newPassword))
 	if err != nil {
 		fmt.Println("No super-admin user found, but database contains other users. Aborting.")
 		os.Exit(1)

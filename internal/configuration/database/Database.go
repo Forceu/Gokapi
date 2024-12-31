@@ -135,6 +135,11 @@ func GetSystemKey(userId int) (models.ApiKey, bool) {
 	return db.GetSystemKey(userId)
 }
 
+// GetApiKeyByPublicKey returns an API key by using the public key
+func GetApiKeyByPublicKey(publicKey string) (string, bool) {
+	return db.GetApiKeyByPublicKey(publicKey)
+}
+
 // E2E Section
 
 // SaveEnd2EndInfo stores the encrypted e2e info

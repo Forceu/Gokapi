@@ -38,7 +38,8 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 	}
 	// < v2.0.0-beta
 	if currentDbVersion < 7 {
-		err := p.rawSqlite(`ALTER TABLE "ApiKeys" ADD COLUMN UserId INTEGER NOT NULL DEFAULT 0;`)
+		err := p.rawSqlite(`ALTER TABLE "ApiKeys" ADD COLUMN UserId INTEGER NOT NULL DEFAULT 0;
+									 ALTER TABLE "ApiKeys" ADD COLUMN PublicId TEXT NOT NULL DEFAULT '';`)
 		helper.Check(err)
 		err = p.rawSqlite(`DELETE FROM "ApiKeys" WHERE IsSystemKey = 1`)
 		helper.Check(err)
@@ -145,6 +146,7 @@ func (p DatabaseProvider) createNewDatabase() error {
 			"Expiry"	INTEGER,
 			"IsSystemKey"	INTEGER,
 			"UserId" INTEGER NOT NULL,
+			"PublicId" TEXT NOT NULL UNIQUE ,
 			PRIMARY KEY("Id")
 		) WITHOUT ROWID;
 		CREATE TABLE "E2EConfig" (
