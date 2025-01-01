@@ -392,8 +392,10 @@ func parseBasicAuthSettings(result *models.Configuration, authInfo *authSettings
 	}
 	// Password is not displayed in reconf setup, but a placeholder "unc". If this is submitted as a password, the
 	// old password is kept
-	if isInitialSetup || pw != "unc" {
+	if isInitialSetup {
 		result.Authentication.SaltAdmin = helper.GenerateRandomString(30)
+	}
+	if isInitialSetup || pw != "unc" {
 		authInfo.PasswordInternalAuth = configuration.HashPasswordCustomSalt(pw, result.Authentication.SaltAdmin)
 	}
 	return nil
