@@ -7,12 +7,13 @@ import (
 )
 
 type User struct {
-	Id          int    `json:"id" redis:"id"`
-	Name        string `json:"name" redis:"Name"`
-	Permissions uint16 `json:"permissions" redis:"Permissions"`
-	UserLevel   uint8  `json:"userLevel" redis:"UserLevel"`
-	LastOnline  int64  `json:"lastOnline" redis:"LastOnline"`
-	Password    string `json:"-" redis:"Password"`
+	Id            int    `json:"id" redis:"id"`
+	Name          string `json:"name" redis:"Name"`
+	Permissions   uint16 `json:"permissions" redis:"Permissions"`
+	UserLevel     uint8  `json:"userLevel" redis:"UserLevel"`
+	LastOnline    int64  `json:"lastOnline" redis:"LastOnline"`
+	Password      string `json:"-" redis:"Password"`
+	ResetPassword bool   `json:"resetPassword" redis:"ResetPassword"`
 }
 
 // GetReadableDate returns the date as YYYY-MM-DD HH:MM

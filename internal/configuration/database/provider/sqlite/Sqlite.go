@@ -61,8 +61,9 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 			"Permissions"	INTEGER NOT NULL,
 			"Userlevel"	INTEGER NOT NULL,
 			"LastOnline"	INTEGER NOT NULL DEFAULT 0,
-		PRIMARY KEY("Id" AUTOINCREMENT)
-	);
+			"ResetPassword"	INTEGER NOT NULL DEFAULT 0,
+			PRIMARY KEY("Id" AUTOINCREMENT)
+		);
 	    DROP TABLE IF EXISTS "UploadConfig";`)
 		helper.Check(err)
 	}
@@ -193,6 +194,7 @@ func (p DatabaseProvider) createNewDatabase() error {
 			"Permissions"	INTEGER NOT NULL,
 			"Userlevel"	INTEGER NOT NULL,
 			"LastOnline"	INTEGER NOT NULL DEFAULT 0,
+			"ResetPassword"	INTEGER NOT NULL DEFAULT 0,
 			PRIMARY KEY("Id" AUTOINCREMENT)
 		);
 `
