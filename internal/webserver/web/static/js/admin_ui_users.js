@@ -88,8 +88,11 @@ function showDeleteModal(userId, userEmail) {
     document.getElementById("buttonDelete").onclick = function() {
         apiUserDelete(userId, checkboxDelete.checked)
             .then(data => {
-                document.getElementById("row-" + userId).remove();
                 $('#deleteModal').modal('hide');
+                document.getElementById("row-" + userId).classList.add("rowDeleting");
+		setTimeout(() => {
+		    document.getElementById("row-" + userId).remove();
+	    }, 290);
             })
             .catch(error => {
                 alert("Unable to delete user: " + error);
@@ -101,13 +104,13 @@ function showDeleteModal(userId, userEmail) {
 
 function showAddUserModal() {
     // Cloning removes any previous values or form validation
-    let originalModal = $('#modalnewuser').clone();
-    $("#modalnewuser").on('hide.bs.modal', function() {
-        $('#modalnewuser').remove();
+    let originalModal = $('#newUserModal').clone();
+    $("#newUserModal").on('hide.bs.modal', function() {
+        $('#newUserModal').remove();
         let myClone = originalModal.clone();
         $('body').append(myClone);
     });
-    $('#modalnewuser').modal('show');
+    $('#newUserModal').modal('show');
 }
 
 
@@ -123,12 +126,12 @@ function addNewUser() {
         apiUserCreate(editName.value.trim())
             .then(data => {
             console.log(data);
-                $('#modalnewuser').modal('hide');
+                $('#newUserModal').modal('hide');
                 addRowUser(data.id, data.name);
             })
             .catch(error => {
                 if (error.message == "duplicate") {
-                    alert("An user already exists with that email address");
+                    alert("A user already exists with that name");
                     button.disabled = false;
                 } else {
                     alert("Unable to create user: " + error);
@@ -166,7 +169,7 @@ function addRowUser(userid, name) {
     cellGroup.innerText = "User";
     cellLastOnline.innerText = "Never";
     cellUploads.innerText = "0";
-    cellActions.innerHTML = '<button id="changeRank_'+userid+'" type="button" onclick="changeRank( '+userid+' , \'ADMIN\', \'changeRank_'+userid+'\')" title="Promote User" class="btn btn-outline-light btn-sm"><i class="bi bi-chevron-double-up"></i></button><button id="delete-'+userid+'" type="button" class="btn btn-outline-danger btn-sm"  onclick="showDeleteModal('+userid+', \''+name+'\')" title="Delete"><i class="bi bi-trash3"></i></button>';
+    cellActions.innerHTML = '<button id="changeRank_'+userid+'" type="button" onclick="changeRank( '+userid+' , \'ADMIN\', \'changeRank_'+userid+'\')" title="Promote User" class="btn btn-outline-light btn-sm"><i class="bi bi-chevron-double-up"></i></button>&nbsp;<button id="delete-'+userid+'" type="button" class="btn btn-outline-danger btn-sm"  onclick="showDeleteModal('+userid+', \''+name+'\')" title="Delete"><i class="bi bi-trash3"></i></button>';
     
     cellPermissions.innerHTML = `
     <i id="perm_replace_`+userid+`" class="bi bi-recycle perm-notgranted " title="Replace own uploads" onclick='changeUserPermission(`+userid+`,"PERM_REPLACE", "perm_replace_`+userid+`");'></i>

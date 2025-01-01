@@ -65,7 +65,7 @@
 		                        	<i class="bi bi-chevron-double-down"></i></button>                                
                                 {{ end }}
                                 
-                                <button id="delete-{{ .User.Id }}" type="button" class="btn btn-outline-danger btn-sm" {{if or (eq .User.UserLevel 0) (eq .User.Id $.ActiveUser.Id)}}disabled{{end}} onclick="showDeleteModal('{{ .User.Id }}', '{{ .User.Name }}')" title="Delete"><i class="bi bi-trash3"></i></button></td>
+                                &nbsp;<button id="delete-{{ .User.Id }}" type="button" class="btn btn-outline-danger btn-sm" {{if or (eq .User.UserLevel 0) (eq .User.Id $.ActiveUser.Id)}}disabled{{end}} onclick="showDeleteModal('{{ .User.Id }}', '{{ .User.Name }}')" title="Delete"><i class="bi bi-trash3"></i></button></td>
                             </tr>
 {{ end }}
                         </tbody>
@@ -81,7 +81,6 @@
 	    <div class="modal-content gokapi-dialog">
 	      <div class="modal-header">
 		<h5 class="modal-title">Delete User</h5>
-		<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 	      </div>
 	      <div class="modal-body">
 		<p>Are you sure you want to delete user <span id="deleteModalBody" class="fw-bold"></span>?
@@ -102,33 +101,31 @@
 	</div>
 	
 	
-		<!-- Modal for adding new user  -->
-	<div class="modal fade" id="modalnewuser" tabindex="-1" aria-hidden="true">
+	
+	<!-- Bootstrap Modal for Adding a New User -->
+	<div class="modal fade" id="newUserModal" tabindex="-1" aria-labelledby="newUserModalLabel" aria-hidden="true">
 	  <div class="modal-dialog gokapi-dialog">
 	    <div class="modal-content gokapi-dialog">
 	      <div class="modal-header">
-		<h1 class="modal-title fs-5">New User</h1>
+		<h5 class="modal-title" id="newUserModalLabel">Create New User</h5>
 	      </div>
 	      <div class="modal-body">
-	      
-	            <form id="newUserForm">
-		  <div class="input-group mb-3">
-		    <span class="input-group-text" id="label-name">Username</span>
-		    <input type="text" class="form-control" required minlength="2" placeholder="Username" aria-label="Username" aria-describedby="label-name" id="e_userName">
-		    <div class="invalid-feedback">
-		      Name must be at least 2 characters long.
+		<form id="newUserForm">
+		  <div class="mb-3">
+		  <div class="text-start">
+		    <label for="usernameInput" class="form-label">Username</label>
 		    </div>
-		  </div>
+		    <input type="text" class="form-control" id="e_userName" minlength="2" placeholder="Enter a username" required />
 		</form>
 	      </div>
-      
 	      <div class="modal-footer">
-		<button type="button" class="btn btn-outline-light"  aria-label="Cancel" data-bs-dismiss="modal">Cancel</button>
-		<button type="button" class="btn btn-primary" onclick="addNewUser();" id="mb_addUser">Add User</button>
+		<button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
+		<button type="submit" form="newUserForm" onclick="addNewUser();" id="mb_addUser" class="btn btn-primary">Add User</button>
 	      </div>
 	    </div>
 	  </div>
 	</div>
+	
 	
 	
     </div>
