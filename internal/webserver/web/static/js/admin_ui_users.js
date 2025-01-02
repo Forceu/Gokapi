@@ -114,6 +114,12 @@ function showAddUserModal() {
 }
 
 
+function showResetPwModal(userid) {
+//TODO
+    $('#resetPasswordModal').modal('show');
+}
+
+
 function addNewUser() {
     let button = document.getElementById("mb_addUser");
     button.disabled = true;

@@ -279,3 +279,15 @@ td.newItem {
   animation: fadeOut 0.3s ease-out forwards;
 }
 
+
+.highlighted-password {
+  background-color: #444; /* Dark gray background for subtle contrast */
+  color: #ddd; /* Light gray text */
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: bold;
+  font-family: monospace;
+  display: inline-block; /* Keeps the styling inline but ensures proper padding */
+  margin-left: 8px; /* Adds space between the label and the password */
+  border: 1px solid #555; /* Slight border to define the element */
+}
