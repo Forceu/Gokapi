@@ -915,6 +915,52 @@
         }
       }
     },
+    "/user/resetPassword": {
+      "put": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Resets the password of the current user",
+        "description": "This API call forces a passwrd change once the given user logs in the next time. If generateNewPassword is \"true\", the current password will be replaced with a generated one.  Requires API permission MANAGE_USERS",
+        "operationId": "userresetpw",
+        "security": [
+          {
+            "apikey": ["MANAGE_USERS"]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "generateNewPassword",
+            "in": "header",
+            "description": "Generate a new password",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasswordReset"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid ID or parameters supplied, user is super admin or user is equal to owner of API key"
+          },
+          "401": {
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
+          }
+        }
+      }
+    },
   },
   "components": {
     "schemas": {
@@ -1099,6 +1145,22 @@
           "userLevel": {
             "type": "integer",
             "example": 2
+          }
+        },
+        "description": "NewUser is the struct used for the result after creating a new API key",
+        "x-go-package": "Gokapi/internal/models"
+      },
+      "PasswordReset": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": "string",
+            "example": "OK"
+          },
+          "password": {
+            "type": "string",
+            "description": "Empty if no new password was generated, otherwise contains the new password",
+            "example": "ahseth6ahV"
           }
         },
         "description": "NewUser is the struct used for the result after creating a new API key",

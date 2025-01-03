@@ -326,3 +326,32 @@ async function apiUserDelete(id, deleteFiles) {
         throw error;
     }
 }
+
+
+
+async function apiUserResetPassword(id, generatePw) {
+    const apiUrl = './api/user/resetPassword';
+
+    const requestOptions = {
+        method: 'POST', 
+        headers: {
+            'Content-Type': 'application/json',
+            'apikey': systemKey,
+            'userid': id,
+            'generateNewPassword': generatePw
+        },
+    };
+
+    try {
+        const response = await fetch(apiUrl, requestOptions);
+        if (!response.ok) {
+            throw new Error(`Request failed with status: ${response.status}`);
+        }
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error("Error in apiUserResetPassword:", error);
+        throw error;
+    }
+}
+

@@ -52,6 +52,13 @@ const UserLevelSuperAdmin = 0
 const UserLevelAdmin = 1
 const UserLevelUser = 2
 
+func (u *User) IsSuperAdmin() bool {
+	return u.UserLevel == UserLevelSuperAdmin
+}
+func (u *User) IsSameUser(userId int) bool {
+	return u.Id == userId
+}
+
 const (
 	UserPermReplaceUploads = 1 << iota
 	UserPermListOtherUploads

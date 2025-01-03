@@ -68,10 +68,12 @@ func Process(w http.ResponseWriter, r *http.Request, maxMemory int) {
 		addUser(w, request)
 	case "/user/changeRank":
 		changeUserRank(w, request, user)
-	case "/user/modify":
-		modifyUserPermission(w, request, user)
 	case "/user/delete":
 		deleteUser(w, request, user)
+	case "/user/modify":
+		modifyUserPermission(w, request, user)
+	case "/user/resetPassword":
+		resetPw(w, request, user)
 	default:
 		sendError(w, http.StatusBadRequest, "Invalid request")
 	}
@@ -166,6 +168,8 @@ func getApiPermissionRequired(requestUrl string) (uint8, bool) {
 	case "/user/modify":
 		return models.ApiPermManageUsers, true
 	case "/user/delete":
+		return models.ApiPermManageUsers, true
+	case "/user/resetPassword":
 		return models.ApiPermManageUsers, true
 	default:
 		return models.ApiPermAll, false
@@ -572,11 +576,11 @@ func modifyUserPermission(w http.ResponseWriter, request apiRequest, user models
 	if !ok {
 		return
 	}
-	if userEdit.UserLevel == models.UserLevelSuperAdmin {
+	if userEdit.IsSuperAdmin() {
 		sendError(w, http.StatusBadRequest, "Cannot modify super admin")
 		return
 	}
-	if user.Id == userEdit.Id {
+	if userEdit.IsSameUser(user.Id) {
 		sendError(w, http.StatusBadRequest, "Cannot modify yourself")
 		return
 	}
@@ -612,11 +616,11 @@ func changeUserRank(w http.ResponseWriter, request apiRequest, user models.User)
 	if !ok {
 		return
 	}
-	if user.Id == userEdit.Id {
+	if userEdit.IsSameUser(user.Id) {
 		sendError(w, http.StatusBadRequest, "Cannot modify yourself")
 		return
 	}
-	if userEdit.UserLevel == models.UserLevelSuperAdmin {
+	if userEdit.IsSuperAdmin() {
 		sendError(w, http.StatusBadRequest, "Cannot modify super admin")
 		return
 	}
@@ -663,16 +667,39 @@ func updateApiKeyPermsOnUserPermChange(userId int, userPerm uint16, isNewlyGrant
 	}
 }
 
+func resetPw(w http.ResponseWriter, request apiRequest, user models.User) {
+	userToEdit, ok := isValidUserForEditing(w, request)
+	if !ok {
+		return
+	}
+	if userToEdit.IsSuperAdmin() {
+		sendError(w, http.StatusBadRequest, "Cannot reset pw of super admin")
+		return
+	}
+	if userToEdit.IsSameUser(user.Id) {
+		sendError(w, http.StatusBadRequest, "Cannot reset password of yourself")
+		return
+	}
+	userToEdit.ResetPassword = true
+	password := ""
+	if request.usermodInfo.setNewPw {
+		password = helper.GenerateRandomString(10)
+		userToEdit.Password = configuration.HashPassword(password, false)
+	}
+	database.SaveUser(userToEdit, false)
+	_, _ = w.Write([]byte("{\"Result\":\"ok\",\"password\":\"" + password + "\"}"))
+}
+
 func deleteUser(w http.ResponseWriter, request apiRequest, user models.User) {
 	userToDelete, ok := isValidUserForEditing(w, request)
 	if !ok {
 		return
 	}
-	if userToDelete.UserLevel == models.UserLevelSuperAdmin {
+	if userToDelete.IsSuperAdmin() {
 		sendError(w, http.StatusBadRequest, "Cannot delete super admin")
 		return
 	}
-	if user.Id == userToDelete.Id {
+	if userToDelete.IsSameUser(user.Id) {
 		sendError(w, http.StatusBadRequest, "Cannot delete yourself")
 		return
 	}
@@ -768,6 +795,7 @@ type userModInfo struct {
 	grantPermission  bool
 	basicPermissions bool
 	deleteUserFiles  bool
+	setNewPw         bool
 	newRank          string
 	newUserName      string
 }
@@ -857,6 +885,7 @@ func parseRequest(r *http.Request) (apiRequest, error) {
 			basicPermissions: r.Header.Get("basicPermissions") == "true",
 			deleteUserFiles:  r.Header.Get("deleteFiles") == "true",
 			newUserName:      r.Header.Get("username"),
+			setNewPw:         r.Header.Get("generateNewPassword") == "true",
 		},
 	}, nil
 }
