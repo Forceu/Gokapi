@@ -12,26 +12,28 @@ import (
 	"time"
 )
 
-// TODO add username to check for revocation
-
 // If no login occurred during this time, the admin session will be deleted. Default 30 days
 const cookieLifeAdmin = 30 * 24 * time.Hour
 
 // IsValidSession checks if the user is submitting a valid session token
 // If valid session is found, useSession will be called
 // Returns true if authenticated, otherwise false
-func IsValidSession(w http.ResponseWriter, r *http.Request, isOauth bool, OAuthRecheckInterval int) bool {
+func IsValidSession(w http.ResponseWriter, r *http.Request, isOauth bool, OAuthRecheckInterval int) (int, bool) {
 	cookie, err := r.Cookie("session_token")
 	if err == nil {
 		sessionString := cookie.Value
 		if sessionString != "" {
 			session, ok := database.GetSession(sessionString)
 			if ok {
-				return useSession(w, sessionString, session, isOauth, OAuthRecheckInterval)
+				_, userExists := database.GetUser(session.UserId)
+				if !userExists {
+					return -1, false
+				}
+				return session.UserId, useSession(w, sessionString, session, isOauth, OAuthRecheckInterval)
 			}
 		}
 	}
-	return false
+	return -1, false
 }
 
 // useSession checks if a session is still valid. It Changes the session string
@@ -44,15 +46,16 @@ func useSession(w http.ResponseWriter, id string, session models.Session, isOaut
 		return false
 	}
 	if session.RenewAt < time.Now().Unix() {
-		CreateSession(w, isOauth, OAuthRecheckInterval)
+		CreateSession(w, isOauth, OAuthRecheckInterval, session.UserId)
 		database.DeleteSession(id)
 	}
+	go database.UpdateUserLastOnline(session.UserId)
 	return true
 }
 
 // CreateSession creates a new session - called after login with correct username / password
 // If sessions parameter is nil, it will be loaded from config
-func CreateSession(w http.ResponseWriter, isOauth bool, OAuthRecheckInterval int) {
+func CreateSession(w http.ResponseWriter, isOauth bool, OAuthRecheckInterval int, userId int) {
 	timeExpiry := time.Now().Add(cookieLifeAdmin)
 	if isOauth {
 		timeExpiry = time.Now().Add(time.Duration(OAuthRecheckInterval) * time.Hour)
@@ -62,6 +65,7 @@ func CreateSession(w http.ResponseWriter, isOauth bool, OAuthRecheckInterval int
 	database.SaveSession(sessionString, models.Session{
 		RenewAt:    time.Now().Add(12 * time.Hour).Unix(),
 		ValidUntil: timeExpiry.Unix(),
+		UserId:     userId,
 	})
 	writeSessionCookie(w, sessionString, timeExpiry)
 }

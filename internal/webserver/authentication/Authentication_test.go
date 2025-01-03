@@ -26,7 +26,7 @@ func TestMain(m *testing.M) {
 
 func TestInit(t *testing.T) {
 	Init(modelUserPW)
-	test.IsEqualInt(t, authSettings.Method, Internal)
+	test.IsEqualInt(t, authSettings.Method, TypeInternal)
 	test.IsEqualString(t, authSettings.Username, "admin")
 }
 
@@ -83,13 +83,13 @@ func testAuthDisabled(t *testing.T) {
 }
 
 func TestIsLogoutAvailable(t *testing.T) {
-	authSettings.Method = Internal
+	authSettings.Method = TypeInternal
 	test.IsEqualBool(t, IsLogoutAvailable(), true)
-	authSettings.Method = OAuth2
+	authSettings.Method = TypeOAuth2
 	test.IsEqualBool(t, IsLogoutAvailable(), true)
-	authSettings.Method = Header
+	authSettings.Method = TypeHeader
 	test.IsEqualBool(t, IsLogoutAvailable(), false)
-	authSettings.Method = Disabled
+	authSettings.Method = TypeDisabled
 	test.IsEqualBool(t, IsLogoutAvailable(), false)
 }
 
@@ -274,7 +274,7 @@ func getOuthUserOutput(t *testing.T, info OAuthUserInfo) (string, error) {
 }
 
 var modelUserPW = models.AuthenticationConfig{
-	Method:            Internal,
+	Method:            TypeInternal,
 	SaltAdmin:         "1234",
 	SaltFiles:         "1234",
 	Username:          "admin",
@@ -290,7 +290,7 @@ var modelUserPW = models.AuthenticationConfig{
 	OAuthGroupScope:   "",
 }
 var modelOauth = models.AuthenticationConfig{
-	Method:            OAuth2,
+	Method:            TypeOAuth2,
 	SaltAdmin:         "1234",
 	SaltFiles:         "1234",
 	Username:          "",
@@ -306,7 +306,7 @@ var modelOauth = models.AuthenticationConfig{
 	OAuthGroupScope:   "",
 }
 var modelHeader = models.AuthenticationConfig{
-	Method:            Header,
+	Method:            TypeHeader,
 	SaltAdmin:         "1234",
 	SaltFiles:         "1234",
 	Username:          "",
@@ -322,7 +322,7 @@ var modelHeader = models.AuthenticationConfig{
 	OAuthGroupScope:   "",
 }
 var modelDisabled = models.AuthenticationConfig{
-	Method:            Disabled,
+	Method:            TypeDisabled,
 	SaltAdmin:         "1234",
 	SaltFiles:         "1234",
 	Username:          "",

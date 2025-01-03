@@ -42,12 +42,15 @@ func (p DatabaseProvider) GetApiKey(id string) (models.ApiKey, bool) {
 }
 
 // GetSystemKey returns the latest UI API key
-func (p DatabaseProvider) GetSystemKey() (models.ApiKey, bool) {
+func (p DatabaseProvider) GetSystemKey(userId int) (models.ApiKey, bool) {
 	keys := p.GetAllApiKeys()
 	foundKey := ""
 	var latestExpiry int64
 	for _, key := range keys {
 		if !key.IsSystemKey {
+			continue
+		}
+		if key.UserId != userId {
 			continue
 		}
 		if key.Expiry > latestExpiry {
@@ -59,6 +62,17 @@ func (p DatabaseProvider) GetSystemKey() (models.ApiKey, bool) {
 		return models.ApiKey{}, false
 	}
 	return keys[foundKey], true
+}
+
+// GetApiKeyByPublicKey returns an API key by using the public key
+func (p DatabaseProvider) GetApiKeyByPublicKey(publicKey string) (string, bool) {
+	keys := p.GetAllApiKeys()
+	for _, key := range keys {
+		if key.PublicId == publicKey {
+			return key.Id, true
+		}
+	}
+	return "", false
 }
 
 // SaveApiKey saves the API key to the database

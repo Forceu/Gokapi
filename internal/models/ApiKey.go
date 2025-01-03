@@ -15,26 +15,30 @@ const (
 	ApiPermEdit
 	// ApiPermReplace is the permission for replacing the content of uploaded files
 	ApiPermReplace
+	// ApiPermManageUsers is the permission for managing users
+	ApiPermManageUsers
 )
 
 // ApiPermNone means no permission granted
 const ApiPermNone = 0
 
 // ApiPermAll means all permission granted
-const ApiPermAll = 63
+const ApiPermAll = 127
 
-// ApiPermAllNoApiMod means all permission granted, except ApiPermApiMod and ApiPermReplace
+// ApiPermDefault means all permission granted, except ApiPermApiMod, ApiPermManageUsers and ApiPermReplace
 // This is the default for new API keys that are created from the UI
-const ApiPermAllNoApiMod = ApiPermAll - ApiPermApiMod - ApiPermReplace
+const ApiPermDefault = ApiPermAll - ApiPermApiMod - ApiPermManageUsers - ApiPermReplace
 
 // ApiKey contains data of a single api key
 type ApiKey struct {
 	Id           string `json:"Id" redis:"Id"`
+	PublicId     string `json:"PublicId" redis:"PublicId"`
 	FriendlyName string `json:"FriendlyName" redis:"FriendlyName"`
 	LastUsed     int64  `json:"LastUsed" redis:"LastUsed"`
 	Permissions  uint8  `json:"Permissions" redis:"Permissions"`
 	Expiry       int64  `json:"Expiry" redis:"Expiry"` // Does not expire if 0
 	IsSystemKey  bool   `json:"IsSystemKey" redis:"IsSystemKey"`
+	UserId       int    `json:"UserId" redis:"UserId"`
 }
 
 // GetReadableDate returns the date as YYYY-MM-DD HH:MM:SS
@@ -45,8 +49,14 @@ func (key *ApiKey) GetReadableDate() string {
 	return time.Unix(key.LastUsed, 0).Format("2006-01-02 15:04:05")
 }
 
-// SetPermission grants one or more permissions
-func (key *ApiKey) SetPermission(permission uint8) {
+// GetRedactedId returns a redacted version of the API key
+func (key *ApiKey) GetRedactedId() string {
+	return key.Id[0:2] + "**************************" + key.Id[28:]
+
+}
+
+// GrantPermission sets one or more permissions
+func (key *ApiKey) GrantPermission(permission uint8) {
 	key.Permissions |= permission
 }
 
@@ -93,8 +103,14 @@ func (key *ApiKey) HasPermissionReplace() bool {
 	return key.HasPermission(ApiPermReplace)
 }
 
+// HasPermissionManageUsers returns true if ApiPermManageUsers is granted
+func (key *ApiKey) HasPermissionManageUsers() bool {
+	return key.HasPermission(ApiPermManageUsers)
+}
+
 // ApiKeyOutput is the output that is used after a new key is created
 type ApiKeyOutput struct {
-	Result string
-	Id     string
+	Result   string
+	Id       string
+	PublicId string
 }

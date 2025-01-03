@@ -4,6 +4,7 @@ import (
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	redigo "github.com/gomodule/redigo/redis"
+	"strings"
 )
 
 const (
@@ -36,4 +37,17 @@ func (p DatabaseProvider) DeleteSession(id string) {
 // DeleteAllSessions logs all users out
 func (p DatabaseProvider) DeleteAllSessions() {
 	p.deleteAllWithPrefix(prefixSessions)
+}
+
+// DeleteAllSessionsByUser logs the specific users out
+func (p DatabaseProvider) DeleteAllSessionsByUser(userId int) {
+	maps := p.getAllHashesWithPrefix(prefixSessions)
+	for k, v := range maps {
+		var result models.Session
+		err := redigo.ScanStruct(v, &result)
+		helper.Check(err)
+		if result.UserId == userId {
+			p.DeleteSession(strings.Replace(k, prefixSessions, "", 1))
+		}
+	}
 }

@@ -1,14 +1,27 @@
 package configupgrade
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/forceu/gokapi/internal/environment"
+	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"os"
 )
 
+// RequiresUpgradeV1ToV2 is an indicator for migrating the admin user to the database
+// It will be removed in v2.1.0.
+// Deprecated: This is a temporary solution
+var RequiresUpgradeV1ToV2 = false
+
+// LegacyPasswordHash is the hash, which was originally stored in
+// AuthenticationConfig.Password and needs to be passed to the migration
+// It will be removed in v2.1.0
+// Deprecated: This is a temporary solution
+var LegacyPasswordHash string
+
 // CurrentConfigVersion is the version of the configuration structure. Used for upgrading
-const CurrentConfigVersion = 21
+const CurrentConfigVersion = 22
 
 // DoUpgrade checks if an old version is present and updates it to the current version if required
 func DoUpgrade(settings *models.Configuration, env *environment.Environment) bool {
@@ -23,31 +36,51 @@ func DoUpgrade(settings *models.Configuration, env *environment.Environment) boo
 
 // Upgrades the settings if saved with a previous version
 func updateConfig(settings *models.Configuration, env *environment.Environment) {
-
-	// < v1.8.0
-	if settings.ConfigVersion < 16 {
-		fmt.Println("Please update to version 1.8 before running this version,")
+	// < v1.9.0
+	if settings.ConfigVersion < 21 {
+		fmt.Println("Please update to version 1.9.6 before running this version.")
 		osExit(1)
 		return
 	}
-	// < v1.8.2
-	if settings.ConfigVersion < 18 {
-		if len(settings.Authentication.OAuthUsers) > 0 {
-			settings.Authentication.OAuthUserScope = "email"
+	// < v2.0.0
+	if settings.ConfigVersion < 22 {
+		RequiresUpgradeV1ToV2 = true
+		if settings.Authentication.Method == models.AuthenticationOAuth2 || settings.Authentication.Method == models.AuthenticationHeader {
+			adminUser := os.Getenv("GOKAPI_ADMIN_USER")
+			if adminUser == "" {
+				fmt.Println("FAILED UPDATE")
+				fmt.Println("--> If using Oauth or Header authentication, please set the env variable GOKAPI_ADMIN_USER to the value of the expected user name / email")
+				fmt.Println("--> See the release notes for more information")
+				osExit(1)
+				return
+			} else {
+				fmt.Println("Setting admin user to " + adminUser)
+				settings.Authentication.Username = adminUser
+			}
 		}
-		settings.Authentication.OAuthRecheckInterval = 168
+		var err error
+		LegacyPasswordHash, err = getLegacyPasswordHash(env.ConfigPath)
+		helper.Check(err)
 	}
-	// < v1.8.5beta
-	if settings.ConfigVersion < 19 {
-		if settings.MaxMemory == 40 {
-			settings.MaxMemory = 50
-		}
-		settings.ChunkSize = env.ChunkSizeMB
-		settings.MaxParallelUploads = env.MaxParallelUploads
+}
+
+func getLegacyPasswordHash(configFile string) (string, error) {
+	file, err := os.Open(configFile)
+	if err != nil {
+		return "", err
 	}
-	// < v1.9.0
-	if settings.ConfigVersion < 21 {
-		settings.DatabaseUrl = "sqlite://" + env.DataDir + "/" + env.DatabaseName
+	decoder := json.NewDecoder(file)
+	settings := legacyPasswordHash{}
+	err = decoder.Decode(&settings)
+	if err != nil {
+		return "", err
+	}
+	return settings.Authentication.Password, nil
+}
+
+type legacyPasswordHash struct {
+	Authentication struct {
+		Password string `json:"password"`
 	}
 }
 

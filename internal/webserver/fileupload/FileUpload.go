@@ -11,8 +11,8 @@ import (
 	"time"
 )
 
-// Process processes a file upload request
-func Process(w http.ResponseWriter, r *http.Request, maxMemory int) error {
+// ProcessCompleteFile processes a file upload request
+func ProcessCompleteFile(w http.ResponseWriter, r *http.Request, userId, maxMemory int) error {
 	err := r.ParseMultipartForm(int64(maxMemory) * 1024 * 1024)
 	if err != nil {
 		return err
@@ -27,7 +27,7 @@ func Process(w http.ResponseWriter, r *http.Request, maxMemory int) error {
 		return err
 	}
 
-	result, err := storage.NewFile(file, header, config)
+	result, err := storage.NewFile(file, header, userId, config)
 	defer file.Close()
 	if err != nil {
 		return err
@@ -83,8 +83,8 @@ func ParseFileHeader(r *http.Request) (string, chunking.FileHeader, models.Uploa
 
 // CompleteChunk processes a file after all the chunks have been completed
 // The parameters can be generated with  ParseFileHeader()
-func CompleteChunk(chunkId string, header chunking.FileHeader, config models.UploadRequest) (models.File, error) {
-	return storage.NewFileFromChunk(chunkId, header, config)
+func CompleteChunk(chunkId string, header chunking.FileHeader, userId int, config models.UploadRequest) (models.File, error) {
+	return storage.NewFileFromChunk(chunkId, header, userId, config)
 }
 
 func parseConfig(values formOrHeader) (models.UploadRequest, error) {

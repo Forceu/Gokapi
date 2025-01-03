@@ -179,18 +179,35 @@ a:hover {
     pointer-events: auto;
 }
 
-.apiperm-granted {
+.perm-granted {
     cursor: pointer;
-    color: #19b90e;
+    color: #0edf00;
 }
 
-.apiperm-notgranted {
+.perm-notgranted {
     cursor: pointer;
-    color: #7e7e7e;
+    color: #9f9999;
 }
-.apiperm-processing {
+
+.perm-unavailable {
+    color: #525252;
+}
+
+.perm-processing {
+    pointer-events: none;
     color: #e5eb00;
 }
+
+.perm-nochange {
+   cursor: default;
+}
+
+.prevent-select {
+  -webkit-user-select: none; /* Safari */
+  -ms-user-select: none; /* IE 10 and IE 11 */
+  user-select: none; /* Standard syntax */
+}
+
 
 .gokapi-dialog {
     background-color: #212529;
@@ -221,7 +238,7 @@ td.newItem {
 }
 
 
-@keyframes subtleHighlightNewApiKey {
+@keyframes subtleHighlightNewJson {
   0% {
     background-color: green;  /* Pale green for new items */
   }
@@ -241,8 +258,36 @@ td.newItem {
 }
 
 .newApiKey {
-  animation: subtleHighlightNewApiKey 0.7s ease-out;
+  animation: subtleHighlightNewJson 0.7s ease-out;
+}
+
+.newUser {
+  animation: subtleHighlightNewJson 0.7s ease-out;
+}
+
+@keyframes fadeOut {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 
 
+.rowDeleting {
+  animation: fadeOut 0.3s ease-out forwards;
+}
 
+
+.highlighted-password {
+  background-color: #444; /* Dark gray background for subtle contrast */
+  color: #ddd; /* Light gray text */
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: bold;
+  font-family: monospace;
+  display: inline-block; /* Keeps the styling inline but ensures proper padding */
+  margin-left: 8px; /* Adds space between the label and the password */
+  border: 1px solid #555; /* Slight border to define the element */
+}

@@ -100,6 +100,7 @@ func Start() {
 	mux.HandleFunc("/e2eSetup", requireLogin(showE2ESetup, false))
 	mux.HandleFunc("/error", showError)
 	mux.HandleFunc("/error-auth", showErrorAuth)
+	mux.HandleFunc("/error-header", showErrorHeader)
 	mux.HandleFunc("/error-oauth", showErrorIntOAuth)
 	mux.HandleFunc("/forgotpw", forgotPassword)
 	mux.HandleFunc("/hotlink/", showHotlink)
@@ -110,13 +111,14 @@ func Start() {
 	mux.HandleFunc("/uploadChunk", requireLogin(uploadChunk, true))
 	mux.HandleFunc("/uploadComplete", requireLogin(uploadComplete, true))
 	mux.HandleFunc("/uploadStatus", requireLogin(sse.GetStatusSSE, true))
+	mux.HandleFunc("/users", requireLogin(showUserAdmin, false))
 	mux.Handle("/main.wasm", gziphandler.GzipHandler(http.HandlerFunc(serveDownloadWasm)))
 	mux.Handle("/e2e.wasm", gziphandler.GzipHandler(http.HandlerFunc(serveE2EWasm)))
 
 	mux.HandleFunc("/d/{id}/{filename}", redirectFromFilename)
 	mux.HandleFunc("/dh/{id}/{filename}", downloadFileWithNameInUrl)
 
-	if configuration.Get().Authentication.Method == authentication.OAuth2 {
+	if configuration.Get().Authentication.Method == models.AuthenticationOAuth2 {
 		oauth.Init(configuration.Get().ServerUrl, configuration.Get().Authentication)
 		mux.HandleFunc("/oauth-login", oauth.HandlerLogin)
 		mux.HandleFunc("/oauth-callback", oauth.HandlerCallback)
@@ -157,8 +159,9 @@ func loadExpiryImage() {
 	svgTemplate, err := templatetext.ParseFS(templateFolderEmbedded, "web/templates/expired_file_svg.tmpl")
 	helper.Check(err)
 	var buf bytes.Buffer
-	view := UploadView{}
-	err = svgTemplate.Execute(&buf, view.convertGlobalConfig(ViewMain))
+	err = svgTemplate.Execute(&buf, struct {
+		PublicName string
+	}{PublicName: configuration.Get().PublicName})
 	helper.Check(err)
 	imageExpiredPicture = buf.Bytes()
 }
@@ -276,6 +279,12 @@ func showErrorAuth(w http.ResponseWriter, r *http.Request) {
 	helper.CheckIgnoreTimeout(err)
 }
 
+// Handling of /error-header
+func showErrorHeader(w http.ResponseWriter, r *http.Request) {
+	err := templateFolder.ExecuteTemplate(w, "error_auth_header", genericView{PublicName: configuration.Get().PublicName})
+	helper.CheckIgnoreTimeout(err)
+}
+
 // Handling of /error-oauth
 func showErrorIntOAuth(w http.ResponseWriter, r *http.Request) {
 	view := oauthErrorView{PublicName: configuration.Get().PublicName}
@@ -296,7 +305,28 @@ func forgotPassword(w http.ResponseWriter, r *http.Request) {
 // Handling of /api
 // If user is authenticated, this menu lists all uploads and enables uploading new files
 func showApiAdmin(w http.ResponseWriter, r *http.Request) {
-	err := templateFolder.ExecuteTemplate(w, "api", (&UploadView{}).convertGlobalConfig(ViewAPI))
+	userId, err := authentication.GetUserIdFromRequest(r)
+	if err != nil {
+		panic(err)
+	}
+	view := (&UploadView{}).convertGlobalConfig(ViewAPI, userId)
+	err = templateFolder.ExecuteTemplate(w, "api", view)
+	helper.CheckIgnoreTimeout(err)
+}
+
+// Handling of /users
+// If user is authenticated, this menu lists all users
+func showUserAdmin(w http.ResponseWriter, r *http.Request) {
+	userId, err := authentication.GetUserIdFromRequest(r)
+	if err != nil {
+		panic(err)
+	}
+	view := (&UploadView{}).convertGlobalConfig(ViewUsers, userId)
+	if !view.ActiveUser.HasPermissionManageUsers() || configuration.Get().Authentication.Method == models.AuthenticationDisabled {
+		redirect(w, "admin")
+		return
+	}
+	err = templateFolder.ExecuteTemplate(w, "users", view)
 	helper.CheckIgnoreTimeout(err)
 }
 
@@ -309,11 +339,16 @@ func processApi(w http.ResponseWriter, r *http.Request) {
 // Shows a login form. If not authenticated, client needs to wait for three seconds.
 // If correct, a new session is created and the user is redirected to the admin menu
 func showLogin(w http.ResponseWriter, r *http.Request) {
-	if authentication.IsAuthenticated(w, r) {
+	ok, _ := authentication.IsAuthenticated(w, r)
+	if ok {
 		redirect(w, "admin")
 		return
 	}
-	if configuration.Get().Authentication.Method == authentication.OAuth2 {
+	if configuration.Get().Authentication.Method == models.AuthenticationHeader {
+		redirect(w, "error-header")
+		return
+	}
+	if configuration.Get().Authentication.Method == models.AuthenticationOAuth2 {
 		// If user clicked logout, force consent
 		if r.URL.Query().Has("consent") {
 			redirect(w, "oauth-login?consent=true")
@@ -332,10 +367,9 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 	pw := r.Form.Get("password")
 	failedLogin := false
 	if pw != "" && user != "" {
-		if authentication.IsCorrectUsernameAndPassword(user, pw) {
-			isOauth := configuration.Get().Authentication.Method == authentication.OAuth2
-			interval := configuration.Get().Authentication.OAuthRecheckInterval
-			sessionmanager.CreateSession(w, isOauth, interval)
+		retrievedUser, validCredentials := authentication.IsCorrectUsernameAndPassword(user, pw)
+		if validCredentials {
+			sessionmanager.CreateSession(w, false, 0, retrievedUser.Id)
 			redirect(w, "admin")
 			return
 		}
@@ -445,17 +479,23 @@ func e2eInfo(w http.ResponseWriter, r *http.Request) {
 		responseError(w, errors.New("invalid action specified"))
 		return
 	}
+
+	userId, err := authentication.GetUserIdFromRequest(r)
+	if err != nil {
+		responseError(w, err)
+		return
+	}
 	switch action[0] {
 	case "get":
-		getE2eInfo(w)
+		getE2eInfo(w, userId)
 	case "store":
-		storeE2eInfo(w, r)
+		storeE2eInfo(w, r, userId)
 	default:
 		responseError(w, errors.New("invalid action specified"))
 	}
 }
 
-func storeE2eInfo(w http.ResponseWriter, r *http.Request) {
+func storeE2eInfo(w http.ResponseWriter, r *http.Request, userId int) {
 	err := r.ParseForm()
 	if err != nil {
 		responseError(w, err)
@@ -477,12 +517,12 @@ func storeE2eInfo(w http.ResponseWriter, r *http.Request) {
 		responseError(w, err)
 		return
 	}
-	database.SaveEnd2EndInfo(info)
+	database.SaveEnd2EndInfo(info, userId)
 	_, _ = w.Write([]byte("\"result\":\"OK\""))
 }
 
-func getE2eInfo(w http.ResponseWriter) {
-	info := database.GetEnd2EndInfo()
+func getE2eInfo(w http.ResponseWriter, userId int) {
+	info := database.GetEnd2EndInfo(userId)
 	bytesE2e, err := json.Marshal(info)
 	helper.Check(err)
 	_, _ = w.Write(bytesE2e)
@@ -505,21 +545,36 @@ func queryUrl(w http.ResponseWriter, r *http.Request, redirectUrl string) string
 // Handling of /admin
 // If user is authenticated, this menu lists all uploads and enables uploading new files
 func showAdminMenu(w http.ResponseWriter, r *http.Request) {
+
+	userId, err := authentication.GetUserIdFromRequest(r)
+	if err != nil {
+		panic(err)
+	}
+
 	if configuration.Get().Encryption.Level == encryption.EndToEndEncryption {
-		e2einfo := database.GetEnd2EndInfo()
+		e2einfo := database.GetEnd2EndInfo(userId)
 		if !e2einfo.HasBeenSetUp() {
 			redirect(w, "e2eSetup")
 			return
 		}
 	}
-	err := templateFolder.ExecuteTemplate(w, "admin", (&UploadView{}).convertGlobalConfig(ViewMain))
+	err = templateFolder.ExecuteTemplate(w, "admin", (&UploadView{}).convertGlobalConfig(ViewMain, userId))
 	helper.CheckIgnoreTimeout(err)
 }
 
 // Handling of /logs
 // If user is authenticated, this menu shows the stored logs
 func showLogs(w http.ResponseWriter, r *http.Request) {
-	err := templateFolder.ExecuteTemplate(w, "logs", (&UploadView{}).convertGlobalConfig(ViewLogs))
+	userId, err := authentication.GetUserIdFromRequest(r)
+	if err != nil {
+		panic(err)
+	}
+	view := (&UploadView{}).convertGlobalConfig(ViewLogs, userId)
+	if !view.ActiveUser.HasPermissionManageLogs() {
+		redirect(w, "admin")
+		return
+	}
+	err = templateFolder.ExecuteTemplate(w, "logs", view)
 	helper.CheckIgnoreTimeout(err)
 }
 
@@ -528,8 +583,13 @@ func showE2ESetup(w http.ResponseWriter, r *http.Request) {
 		redirect(w, "admin")
 		return
 	}
-	e2einfo := database.GetEnd2EndInfo()
-	err := templateFolder.ExecuteTemplate(w, "e2esetup", e2ESetupView{HasBeenSetup: e2einfo.HasBeenSetUp(), PublicName: configuration.Get().PublicName})
+
+	userId, err := authentication.GetUserIdFromRequest(r)
+	if err != nil {
+		panic(err)
+	}
+	e2einfo := database.GetEnd2EndInfo(userId)
+	err = templateFolder.ExecuteTemplate(w, "e2esetup", e2ESetupView{HasBeenSetup: e2einfo.HasBeenSetUp(), PublicName: configuration.Get().PublicName})
 	helper.CheckIgnoreTimeout(err)
 }
 
@@ -561,6 +621,9 @@ type e2ESetupView struct {
 type UploadView struct {
 	Items              []models.FileApiOutput
 	ApiKeys            []models.ApiKey
+	Users              []userInfo
+	ActiveUser         models.User
+	UserMap            map[int]*models.User
 	ServerUrl          string
 	Logs               string
 	PublicName         string
@@ -569,6 +632,7 @@ type UploadView struct {
 	IsDownloadView     bool
 	IsApiView          bool
 	IsLogoutAvailable  bool
+	IsUserTabAvailable bool
 	EndToEndEncryption bool
 	IncludeFilename    bool
 	MaxFileSize        int
@@ -578,21 +642,40 @@ type UploadView struct {
 	TimeNow            int64
 }
 
-// ViewMain is the identifier for the main menu
-const ViewMain = 0
+// getUserMap needs to return the map with pointers, otherwise template cannot call
+// functions associated with it
+func getUserMap() map[int]*models.User {
+	result := make(map[int]*models.User)
+	users := database.GetAllUsers()
+	for _, user := range users {
+		result[user.Id] = &user
+	}
+	return result
+}
 
-// ViewLogs is the identifier for the log viewer menu
-const ViewLogs = 1
-
-// ViewAPI is the identifier for the API menu
-const ViewAPI = 2
+const (
+	// ViewMain is the identifier for the main menu
+	ViewMain = iota
+	// ViewLogs is the identifier for the log viewer menu
+	ViewLogs
+	// ViewAPI is the identifier for the API menu
+	ViewAPI
+	// ViewUsers is the identifier for the user management menu
+	ViewUsers
+)
 
 // Converts the globalConfig variable to an UploadView struct to pass the infos to
 // the admin template
-func (u *UploadView) convertGlobalConfig(view int) *UploadView {
+func (u *UploadView) convertGlobalConfig(view, userId int) *UploadView {
 	var result []models.FileApiOutput
 	var resultApi []models.ApiKey
 
+	user, ok := database.GetUser(userId)
+	if !ok {
+		panic("user not found")
+	}
+	u.ActiveUser = user
+	u.UserMap = getUserMap()
 	config := configuration.Get()
 	switch view {
 	case ViewMain:
@@ -608,8 +691,19 @@ func (u *UploadView) convertGlobalConfig(view int) *UploadView {
 			return result[i].ExpireAt > result[j].ExpireAt
 		})
 	case ViewAPI:
-		for _, element := range database.GetAllApiKeys() {
-			resultApi = append(resultApi, element)
+		for _, apiKey := range database.GetAllApiKeys() {
+			// Double-checking if user of API key exists
+			// If the user was manually deleted from the database, this could lead to a crash
+			// in the API view
+			_, ok = u.UserMap[apiKey.UserId]
+			if !ok {
+				continue
+			}
+			if !apiKey.IsSystemKey {
+				if apiKey.UserId == user.Id || user.HasPermissionManageApi() {
+					resultApi = append(resultApi, apiKey)
+				}
+			}
 		}
 		sort.Slice(resultApi[:], func(i, j int) bool {
 			if resultApi[i].LastUsed == resultApi[j].LastUsed {
@@ -625,6 +719,20 @@ func (u *UploadView) convertGlobalConfig(view int) *UploadView {
 		} else {
 			u.Logs = "Warning: Log file not found!"
 		}
+	case ViewUsers:
+		uploadCounts := storage.GetUploadCounts()
+		u.Users = make([]userInfo, 0)
+		for _, userEntry := range database.GetAllUsers() {
+			userWithUploads := userInfo{
+				UploadCount: uploadCounts[userEntry.Id],
+				User:        userEntry,
+			}
+			// Otherwise the user is not shown as online, if /users is opened as first page
+			if userEntry.Id == userId {
+				userWithUploads.User.LastOnline = time.Now().Unix()
+			}
+			u.Users = append(u.Users, userWithUploads)
+		}
 	}
 
 	u.ServerUrl = config.ServerUrl
@@ -636,12 +744,18 @@ func (u *UploadView) convertGlobalConfig(view int) *UploadView {
 	u.ActiveView = view
 	u.MaxFileSize = config.MaxFileSizeMB
 	u.IsLogoutAvailable = authentication.IsLogoutAvailable()
+	u.IsUserTabAvailable = config.Authentication.Method != models.AuthenticationDisabled
 	u.EndToEndEncryption = config.Encryption.Level == encryption.EndToEndEncryption
 	u.MaxParallelUploads = config.MaxParallelUploads
 	u.ChunkSize = config.ChunkSize
 	u.IncludeFilename = config.IncludeFilename
-	u.SystemKey = api.GetSystemKey()
+	u.SystemKey = api.GetSystemKey(userId)
 	return u
+}
+
+type userInfo struct {
+	UploadCount int
+	User        models.User
 }
 
 // Handling of /uploadChunk
@@ -666,8 +780,12 @@ func uploadComplete(w http.ResponseWriter, r *http.Request) {
 		responseError(w, err)
 		return
 	}
+	userId, err := authentication.GetUserIdFromRequest(r)
+	if err != nil {
+		panic(err)
+	}
 	go func() {
-		_, err = fileupload.CompleteChunk(chunkId, header, config)
+		_, err = fileupload.CompleteChunk(chunkId, header, userId, config)
 		if err != nil {
 			processingstatus.Set(chunkId, processingstatus.StatusError, models.File{}, err)
 			fmt.Println(err)
@@ -728,7 +846,10 @@ func serveFile(id string, isRootUrl bool, w http.ResponseWriter, r *http.Request
 func requireLogin(next http.HandlerFunc, isUpload bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		addNoCacheHeader(w)
-		if authentication.IsAuthenticated(w, r) {
+		isLoggedIn, userId := authentication.IsAuthenticated(w, r)
+		if isLoggedIn {
+			c := context.WithValue(r.Context(), "userId", userId)
+			r = r.WithContext(c)
 			next.ServeHTTP(w, r)
 			return
 		}

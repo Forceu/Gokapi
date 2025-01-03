@@ -39,7 +39,7 @@ func TestNewKey(t *testing.T) {
 	key, ok := database.GetApiKey(newKeyId)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualString(t, key.FriendlyName, "Unnamed key")
-	test.IsEqualBool(t, key.Permissions == models.ApiPermAllNoApiMod, true)
+	test.IsEqualBool(t, key.Permissions == models.ApiPermDefault, true)
 
 	newKeyId = NewKey(false)
 	key, ok = database.GetApiKey(newKeyId)
@@ -184,7 +184,7 @@ func TestDelete(t *testing.T) {
 func getNewKeyWithAllPermissions(t *testing.T) models.ApiKey {
 	validKey, ok := database.GetApiKey(NewKey(false))
 	test.IsEqualBool(t, ok, true)
-	validKey.SetPermission(models.ApiPermAll)
+	validKey.GrantPermission(models.ApiPermAll)
 	database.SaveApiKey(validKey)
 	return validKey
 }
@@ -192,7 +192,7 @@ func getNewKeyWithAllPermissions(t *testing.T) models.ApiKey {
 func getNewKeyWithPermissionMissing(t *testing.T, removePerm uint8) models.ApiKey {
 	validKey, ok := database.GetApiKey(NewKey(false))
 	test.IsEqualBool(t, ok, true)
-	validKey.SetPermission(models.ApiPermAll)
+	validKey.GrantPermission(models.ApiPermAll)
 	validKey.RemovePermission(removePerm)
 	database.SaveApiKey(validKey)
 	return validKey
@@ -281,11 +281,11 @@ func TestAuthDisabledLogin(t *testing.T) {
 	w, r := test.GetRecorder("GET", "/api/auth/friendlyname", nil, nil, nil)
 	Process(w, r, maxMemory)
 	test.ResponseBodyContains(t, w, "{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}")
-	configuration.Get().Authentication.Method = authentication.Disabled
+	configuration.Get().Authentication.Method = authentication.TypeDisabled
 	w, r = test.GetRecorder("GET", "/api/auth/friendlyname", nil, nil, nil)
 	Process(w, r, maxMemory)
 	test.ResponseBodyContains(t, w, "{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}")
-	configuration.Get().Authentication.Method = authentication.Internal
+	configuration.Get().Authentication.Method = authentication.TypeInternal
 }
 
 func TestChangeFriendlyName(t *testing.T) {

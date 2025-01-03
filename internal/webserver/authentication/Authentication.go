@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/forceu/gokapi/internal/configuration"
+	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/webserver/authentication/sessionmanager"
@@ -18,18 +19,6 @@ import (
 
 // CookieOauth is the cookie name used for login
 const CookieOauth = "state"
-
-// Internal authentication method uses a user / password combination handled by Gokapi
-const Internal = 0
-
-// OAuth2 authentication retrieves the users email with Open Connect ID
-const OAuth2 = 1
-
-// Header authentication relies on a header from a reverse proxy to parse the username
-const Header = 2
-
-// Disabled authentication ignores all internal authentication procedures. A reverse proxy needs to restrict access
-const Disabled = 3
 
 var authSettings models.AuthenticationConfig
 
@@ -46,15 +35,12 @@ func Init(config models.AuthenticationConfig) {
 // isValid checks if the config is actually valid, and returns true or returns false and an error
 func isValid(config models.AuthenticationConfig) (bool, error) {
 	switch config.Method {
-	case Internal:
+	case models.AuthenticationInternal:
 		if len(config.Username) < 3 {
 			return false, errors.New("username too short")
 		}
-		if len(config.Password) != 40 {
-			return false, errors.New("password does not appear to be a SHA-1 hash")
-		}
 		return true, nil
-	case OAuth2:
+	case models.AuthenticationOAuth2:
 		if config.OAuthProvider == "" {
 			return false, errors.New("oauth provider was not set")
 		}
@@ -65,46 +51,74 @@ func isValid(config models.AuthenticationConfig) (bool, error) {
 			return false, errors.New("oauth client secret was not set")
 		}
 		return true, nil
-	case Header:
+	case models.AuthenticationHeader:
 		if config.HeaderKey == "" {
 			return false, errors.New("header key is not set")
 		}
 		return true, nil
-	case Disabled:
+	case models.AuthenticationDisabled:
 		return true, nil
 	default:
 		return false, errors.New("unknown authentication selected")
 	}
 }
 
-// IsAuthenticated returns true if the user provides a valid authentication
-func IsAuthenticated(w http.ResponseWriter, r *http.Request) bool {
-	switch authSettings.Method {
-	case Internal:
-		return isGrantedSession(w, r)
-	case OAuth2:
-		return isGrantedSession(w, r)
-	case Header:
-		return isGrantedHeader(r)
-	case Disabled:
-		return true
+func GetUserIdFromRequest(r *http.Request) (int, error) {
+	c := r.Context()
+	userId, ok := c.Value("userId").(int)
+	if !ok {
+		return -1, errors.New("user id not found in context")
 	}
-	return false
+	return userId, nil
+}
+
+// IsAuthenticated returns true and the user ID if authenticated
+func IsAuthenticated(w http.ResponseWriter, r *http.Request) (bool, int) {
+	switch authSettings.Method {
+	case models.AuthenticationInternal:
+		userId, ok := isGrantedSession(w, r)
+		if ok {
+			return true, userId // TODO
+		}
+	case models.AuthenticationOAuth2:
+		userId, ok := isGrantedSession(w, r)
+		if ok {
+			return true, userId
+		}
+	case models.AuthenticationHeader:
+		userId, ok := isGrantedHeader(r)
+		if ok {
+			return true, userId
+		}
+	case models.AuthenticationDisabled:
+		adminUser, ok := database.GetSuperAdmin()
+		if !ok {
+			panic("no super admin found")
+		}
+		return true, adminUser.Id
+	}
+	return false, -1
 }
 
 // isGrantedHeader returns true if the user was authenticated by a proxy header if enabled
-func isGrantedHeader(r *http.Request) bool {
+func isGrantedHeader(r *http.Request) (int, bool) {
 	if authSettings.HeaderKey == "" {
-		return false
+		return -1, false
 	}
-	value := r.Header.Get(authSettings.HeaderKey)
-	if value == "" {
-		return false
+	userName := r.Header.Get(authSettings.HeaderKey)
+	if userName == "" {
+
+		return -1, false
 	}
 	if len(authSettings.HeaderUsers) == 0 {
-		return true
+		user := getOrCreateUser(userName)
+		return user.Id, true
 	}
-	return isUserInArray(value, authSettings.HeaderUsers)
+	if isUserInArray(userName, authSettings.HeaderUsers) {
+		user := getOrCreateUser(userName)
+		return user.Id, true
+	}
+	return -1, false
 }
 
 func isUserInArray(userEntered string, allowedUsers []string) bool {
@@ -247,12 +261,32 @@ func CheckOauthUserAndRedirect(userInfo OAuthUserInfo, w http.ResponseWriter) er
 		}
 	}
 	if isValidOauthUser(userInfo, username, groups) {
-		sessionmanager.CreateSession(w, authSettings.Method == OAuth2, authSettings.OAuthRecheckInterval)
+		if userInfo.Email == "" {
+			userInfo.Email = username
+		}
+		user := getOrCreateUser(userInfo.Email)
+		sessionmanager.CreateSession(w, true, authSettings.OAuthRecheckInterval, user.Id)
 		redirect(w, "admin")
 		return nil
 	}
 	redirect(w, "error-auth")
 	return nil
+}
+
+func getOrCreateUser(username string) models.User {
+	user, ok := database.GetUserByName(username)
+	if !ok {
+		user = models.User{
+			Name:      username,
+			UserLevel: models.UserLevelUser,
+		}
+		database.SaveUser(user, true)
+		user, ok = database.GetUserByName(username)
+		if !ok {
+			panic("unable to read new user")
+		}
+	}
+	return user
 }
 
 func isValidOauthUser(userInfo OAuthUserInfo, username string, groups []string) bool {
@@ -271,14 +305,20 @@ func isValidOauthUser(userInfo OAuthUserInfo, username string, groups []string) 
 }
 
 // isGrantedSession returns true if the user holds a valid internal session cookie
-func isGrantedSession(w http.ResponseWriter, r *http.Request) bool {
-	return sessionmanager.IsValidSession(w, r, authSettings.Method == OAuth2, authSettings.OAuthRecheckInterval)
+func isGrantedSession(w http.ResponseWriter, r *http.Request) (int, bool) {
+	return sessionmanager.IsValidSession(w, r, authSettings.Method == models.AuthenticationOAuth2, authSettings.OAuthRecheckInterval)
 }
 
 // IsCorrectUsernameAndPassword checks if a provided username and password is correct
-func IsCorrectUsernameAndPassword(username, password string) bool {
-	return IsEqualStringConstantTime(username, authSettings.Username) &&
-		IsEqualStringConstantTime(configuration.HashPasswordCustomSalt(password, authSettings.SaltAdmin), authSettings.Password)
+func IsCorrectUsernameAndPassword(username, password string) (models.User, bool) {
+	user, ok := database.GetUserByName(username)
+	if !ok {
+		return models.User{}, false
+	}
+	if IsEqualStringConstantTime(configuration.HashPasswordCustomSalt(password, authSettings.SaltAdmin), user.Password) {
+		return user, true
+	}
+	return models.User{}, false
 }
 
 // IsEqualStringConstantTime uses ConstantTimeCompare to prevent timing attack.
@@ -295,10 +335,10 @@ func redirect(w http.ResponseWriter, url string) {
 
 // Logout logs the user out and removes the session
 func Logout(w http.ResponseWriter, r *http.Request) {
-	if authSettings.Method == Internal || authSettings.Method == OAuth2 {
+	if authSettings.Method == models.AuthenticationInternal || authSettings.Method == models.AuthenticationOAuth2 {
 		sessionmanager.LogoutSession(w, r)
 	}
-	if authSettings.Method == OAuth2 {
+	if authSettings.Method == models.AuthenticationOAuth2 {
 		redirect(w, "login?consent=true")
 	} else {
 		redirect(w, "login")
@@ -307,5 +347,5 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 
 // IsLogoutAvailable returns true if a logout button should be shown with the current form of authentication
 func IsLogoutAvailable() bool {
-	return authSettings.Method == Internal || authSettings.Method == OAuth2
+	return authSettings.Method == models.AuthenticationInternal || authSettings.Method == models.AuthenticationOAuth2
 }

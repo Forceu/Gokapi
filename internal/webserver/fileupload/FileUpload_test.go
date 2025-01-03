@@ -74,12 +74,12 @@ func TestParseConfig(t *testing.T) {
 
 func TestProcess(t *testing.T) {
 	w, r := test.GetRecorder("POST", "/upload", nil, nil, strings.NewReader("invalid§$%&%§"))
-	err := Process(w, r, 20)
+	err := ProcessCompleteFile(w, r, 20)
 	test.IsNotNil(t, err)
 
 	w = httptest.NewRecorder()
 	r = getFileUploadRecorder(false)
-	err = Process(w, r, 20)
+	err = ProcessCompleteFile(w, r, 20)
 	test.IsNil(t, err)
 	resp := w.Result()
 	body, _ := io.ReadAll(resp.Body)

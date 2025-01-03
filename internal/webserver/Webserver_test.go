@@ -100,7 +100,7 @@ func TestLogin(t *testing.T) {
 	test.HttpPostRequest(t, config)
 
 	oauthConfig := configuration.Get()
-	oauthConfig.Authentication.Method = authentication.OAuth2
+	oauthConfig.Authentication.Method = authentication.TypeOAuth2
 	oauthConfig.Authentication.OAuthProvider = "http://test.com"
 	oauthConfig.Authentication.OAuthClientSecret = "secret"
 	oauthConfig.Authentication.OAuthClientId = "client"
@@ -108,7 +108,7 @@ func TestLogin(t *testing.T) {
 	config.RequiredContent = []string{"\"Refresh\" content=\"0; URL=./oauth-login\""}
 	config.PostValues = []test.PostBody{}
 	test.HttpPageResult(t, config)
-	configuration.Get().Authentication.Method = authentication.Internal
+	configuration.Get().Authentication.Method = authentication.TypeInternal
 	authentication.Init(configuration.Get().Authentication)
 
 	buf := config.RequiredContent
@@ -628,7 +628,7 @@ func TestDisableLogin(t *testing.T) {
 			Value: "invalid",
 		}},
 	})
-	configuration.Get().Authentication.Method = authentication.Disabled
+	configuration.Get().Authentication.Method = authentication.TypeDisabled
 	authentication.Init(configuration.Get().Authentication)
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://localhost:53843/admin",
@@ -639,7 +639,7 @@ func TestDisableLogin(t *testing.T) {
 			Value: "invalid",
 		}},
 	})
-	configuration.Get().Authentication.Method = authentication.Internal
+	configuration.Get().Authentication.Method = authentication.TypeInternal
 	authentication.Init(configuration.Get().Authentication)
 }
 
