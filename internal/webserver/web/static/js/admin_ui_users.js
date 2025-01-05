@@ -90,9 +90,9 @@ function showDeleteModal(userId, userEmail) {
             .then(data => {
                 $('#deleteModal').modal('hide');
                 document.getElementById("row-" + userId).classList.add("rowDeleting");
-		setTimeout(() => {
-		    document.getElementById("row-" + userId).remove();
-	    }, 290);
+                setTimeout(() => {
+                    document.getElementById("row-" + userId).remove();
+                }, 290);
             })
             .catch(error => {
                 alert("Unable to delete user: " + error);
@@ -114,9 +114,49 @@ function showAddUserModal() {
 }
 
 
-function showResetPwModal(userid) {
-//TODO
+function showResetPwModal(userid, name) {
+    // Cloning removes any previous values or form validation
+    let originalModal = $('#resetPasswordModal').clone();
+    $("#resetPasswordModal").on('hide.bs.modal', function() {
+        $('#resetPasswordModal').remove();
+        let myClone = originalModal.clone();
+        $('body').append(myClone);
+    });
+
+    document.getElementById("l_userpwreset").innerText = name;
+    let button = document.getElementById("resetPasswordButton");
+    button.onclick = function() {
+        resetPw(userid, document.getElementById("generateRandomPassword").checked);
+    };
     $('#resetPasswordModal').modal('show');
+}
+
+function resetPw(userid, newPw) {
+    let button = document.getElementById("resetPasswordButton");
+    document.getElementById("resetPasswordButton").disabled = true;
+    apiUserResetPassword(userid, newPw)
+        .then(data => {
+            if (!newPw) {
+                $('#resetPasswordModal').modal('hide');
+                showToast(1000, 'Password change requirement set successfully')
+                return;
+            }
+            button.style.display = 'none';
+            document.getElementById("formentryReset").style.display = 'none';
+            document.getElementById("randomPasswordContainer").style.display = 'block';
+            document.getElementById("closeModalResetPw").style.display = 'block';
+            document.getElementById("l_returnedPw").innerText = data.password;
+            document.getElementById("copypwclip").onclick = function() {
+                // For some reason ClipboardJs is not working on the user PW reset modal, even when initilising again. Manually writing to clipboard
+                navigator.clipboard.writeText(data.password);
+                showToast(1000, "Password copied to clipboard");
+            }
+        })
+        .catch(error => {
+            alert("Unable to reset user password: " + error);
+            console.error('Error:', error);
+            button.disabled = false;
+        });
 }
 
 
@@ -131,7 +171,6 @@ function addNewUser() {
         let editName = document.getElementById("e_userName");
         apiUserCreate(editName.value.trim())
             .then(data => {
-            console.log(data);
                 $('#newUserModal').modal('hide');
                 addRowUser(data.id, data.name);
             })
@@ -175,33 +214,33 @@ function addRowUser(userid, name) {
     cellGroup.innerText = "User";
     cellLastOnline.innerText = "Never";
     cellUploads.innerText = "0";
-    cellActions.innerHTML = '<button id="changeRank_'+userid+'" type="button" onclick="changeRank( '+userid+' , \'ADMIN\', \'changeRank_'+userid+'\')" title="Promote User" class="btn btn-outline-light btn-sm"><i class="bi bi-chevron-double-up"></i></button>&nbsp;<button id="delete-'+userid+'" type="button" class="btn btn-outline-danger btn-sm"  onclick="showDeleteModal('+userid+', \''+name+'\')" title="Delete"><i class="bi bi-trash3"></i></button>';
-    
+    cellActions.innerHTML = '<button id="changeRank_' + userid + '" type="button" onclick="changeRank( ' + userid + ' , \'ADMIN\', \'changeRank_' + userid + '\')" title="Promote User" class="btn btn-outline-light btn-sm"><i class="bi bi-chevron-double-up"></i></button>&nbsp;<button id="delete-' + userid + '" type="button" class="btn btn-outline-danger btn-sm"  onclick="showDeleteModal(' + userid + ', \'' + name + '\')" title="Delete"><i class="bi bi-trash3"></i></button>';
+
     cellPermissions.innerHTML = `
-    <i id="perm_replace_`+userid+`" class="bi bi-recycle perm-notgranted " title="Replace own uploads" onclick='changeUserPermission(`+userid+`,"PERM_REPLACE", "perm_replace_`+userid+`");'></i>
+    <i id="perm_replace_` + userid + `" class="bi bi-recycle perm-notgranted " title="Replace own uploads" onclick='changeUserPermission(` + userid + `,"PERM_REPLACE", "perm_replace_` + userid + `");'></i>
 		
-		<i id="perm_list_`+userid+`" class="bi bi-eye perm-notgranted " title="List other uploads" onclick='changeUserPermission(`+userid+`,"PERM_LIST", "perm_list_`+userid+`");'></i>
+		<i id="perm_list_` + userid + `" class="bi bi-eye perm-notgranted " title="List other uploads" onclick='changeUserPermission(` + userid + `,"PERM_LIST", "perm_list_` + userid + `");'></i>
 		
-		<i id="perm_edit_`+userid+`" class="bi bi-pencil perm-notgranted " title="Edit other uploads" onclick='changeUserPermission(`+userid+`,"PERM_EDIT", "perm_edit_`+userid+`");'></i>
+		<i id="perm_edit_` + userid + `" class="bi bi-pencil perm-notgranted " title="Edit other uploads" onclick='changeUserPermission(` + userid + `,"PERM_EDIT", "perm_edit_` + userid + `");'></i>
 		
-		<i id="perm_delete_`+userid+`" class="bi bi-trash3 perm-notgranted " title="Delete other uploads" onclick='changeUserPermission(`+userid+`,"PERM_DELETE", "perm_delete_`+userid+`");'></i>
+		<i id="perm_delete_` + userid + `" class="bi bi-trash3 perm-notgranted " title="Delete other uploads" onclick='changeUserPermission(` + userid + `,"PERM_DELETE", "perm_delete_` + userid + `");'></i>
 		
-		<i id="perm_replace_other_`+userid+`" class="bi bi-arrow-left-right perm-notgranted " title="Replace other uploads" onclick='changeUserPermission(`+userid+`,"PERM_REPLACE_OTHER", "perm_replace_other_`+userid+`");'></i>
+		<i id="perm_replace_other_` + userid + `" class="bi bi-arrow-left-right perm-notgranted " title="Replace other uploads" onclick='changeUserPermission(` + userid + `,"PERM_REPLACE_OTHER", "perm_replace_other_` + userid + `");'></i>
 		
-		<i id="perm_logs_`+userid+`" class="bi bi-card-list perm-notgranted " title="Manage system logs" onclick='changeUserPermission(`+userid+`,"PERM_LOGS", "perm_logs_`+userid+`");'></i>
+		<i id="perm_logs_` + userid + `" class="bi bi-card-list perm-notgranted " title="Manage system logs" onclick='changeUserPermission(` + userid + `,"PERM_LOGS", "perm_logs_` + userid + `");'></i>
 
-		<i id="perm_users_`+userid+`" class="bi bi-people perm-notgranted " title="Manage users" onclick='changeUserPermission(`+userid+`,"PERM_USERS", "perm_users_`+userid+`");'></i>
+		<i id="perm_users_` + userid + `" class="bi bi-people perm-notgranted " title="Manage users" onclick='changeUserPermission(` + userid + `,"PERM_USERS", "perm_users_` + userid + `");'></i>
 
-		<i id="perm_api_`+userid+`" class="bi bi-sliders2 perm-notgranted " title="Manage API keys" onclick='changeUserPermission(`+userid+`,"PERM_API", "perm_api_`+userid+`");'></i>`;
+		<i id="perm_api_` + userid + `" class="bi bi-sliders2 perm-notgranted " title="Manage API keys" onclick='changeUserPermission(` + userid + `,"PERM_API", "perm_api_` + userid + `");'></i>`;
 
     setTimeout(() => {
-    
-    cellName.classList.remove("newUser");
-    cellGroup.classList.remove("newUser");
-    cellLastOnline.classList.remove("newUser");
-    cellUploads.classList.remove("newUser");
-    cellPermissions.classList.remove("newUser");
-    cellActions.classList.remove("newUser");
+
+        cellName.classList.remove("newUser");
+        cellGroup.classList.remove("newUser");
+        cellLastOnline.classList.remove("newUser");
+        cellUploads.classList.remove("newUser");
+        cellPermissions.classList.remove("newUser");
+        cellActions.classList.remove("newUser");
     }, 700);
 
 }

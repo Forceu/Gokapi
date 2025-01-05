@@ -2,7 +2,6 @@
 // All files named admin_*.js will be merged together and minimised by calling
 // go generate ./...
 
-var clipboard = new ClipboardJS('.btn');
 
 var dropzoneObject;
 var isE2EEnabled = false;
