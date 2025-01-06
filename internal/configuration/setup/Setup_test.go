@@ -13,7 +13,6 @@ import (
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/test"
 	"github.com/forceu/gokapi/internal/test/testconfiguration"
-	"github.com/forceu/gokapi/internal/webserver/authentication"
 	"log"
 	"net"
 	"net/http"
@@ -64,7 +63,7 @@ func TestMissingSetupValues(t *testing.T) {
 	for _, invalid := range invalidInputs {
 		formObjects, err := invalid.toFormObject()
 		test.IsNil(t, err)
-		_, _, _, err = toConfiguration(&formObjects)
+		_, _, _, _, err = toConfiguration(&formObjects)
 		test.IsNotNilWithMessage(t, err, invalid.toJson())
 	}
 }
@@ -75,7 +74,7 @@ func TestEncryptionSetup(t *testing.T) {
 	input.EncryptionLevel.Value = "1"
 	formObjects, err := input.toFormObject()
 	test.IsNil(t, err)
-	config, _, e2eConfig, err = toConfiguration(&formObjects)
+	config, _, e2eConfig, _, err = toConfiguration(&formObjects)
 	test.IsNil(t, err)
 	test.IsEqualInt(t, len(config.Encryption.Cipher), 32)
 	test.IsEqualString(t, config.Encryption.Checksum, "")
@@ -86,7 +85,7 @@ func TestEncryptionSetup(t *testing.T) {
 	input.EncryptionPassword.Value = "testpw12"
 	formObjects, err = input.toFormObject()
 	test.IsNil(t, err)
-	config, _, _, err = toConfiguration(&formObjects)
+	config, _, _, _, err = toConfiguration(&formObjects)
 	test.IsNil(t, err)
 	test.IsEqualString(t, string(config.Encryption.Cipher), "")
 	test.IsEqualInt(t, len(config.Encryption.Checksum), 64)
@@ -103,7 +102,7 @@ func TestEncryptionSetup(t *testing.T) {
 	test.IsEqualBool(t, file.UnlimitedTime, true)
 	formObjects, err = input.toFormObject()
 	test.IsNil(t, err)
-	config, _, e2eConfig, err = toConfiguration(&formObjects)
+	config, _, e2eConfig, _, err = toConfiguration(&formObjects)
 	test.IsNil(t, err)
 	test.IsEqualBool(t, e2eConfig.DeleteEncryptedStorage, true)
 	test.IsEqualBool(t, e2eConfig.DeleteEnd2EndEncryption, false)
@@ -115,7 +114,7 @@ func TestEncryptionSetup(t *testing.T) {
 	test.IsEqualBool(t, ok, true)
 	formObjects, err = input.toFormObject()
 	test.IsNil(t, err)
-	config, _, _, err = toConfiguration(&formObjects)
+	config, _, _, _, err = toConfiguration(&formObjects)
 	test.IsNil(t, err)
 	file, ok = database.GetMetaDataById(id)
 	test.IsEqualBool(t, ok, true)
@@ -130,7 +129,7 @@ func TestEncryptionSetup(t *testing.T) {
 	test.IsEqualBool(t, ok, true)
 	formObjects, err = input.toFormObject()
 	test.IsNil(t, err)
-	config, _, e2eConfig, err = toConfiguration(&formObjects)
+	config, _, e2eConfig, _, err = toConfiguration(&formObjects)
 	test.IsNil(t, err)
 	test.IsEqualBool(t, e2eConfig.DeleteEncryptedStorage, true)
 	test.IsEqualBool(t, e2eConfig.DeleteEnd2EndEncryption, false)
@@ -155,13 +154,13 @@ var config = models.Configuration{
 }
 
 func TestToConfiguration(t *testing.T) {
-	output, cloudConfig, _, err := toConfiguration(&jsonForms)
+	output, cloudConfig, _, authsettings, err := toConfiguration(&jsonForms)
 	test.IsNil(t, err)
-	test.IsEqualInt(t, output.Authentication.Method, authentication.TypeInternal)
+	test.IsEqualInt(t, output.Authentication.Method, models.AuthenticationInternal)
 	test.IsEqualString(t, cloudConfig.Aws.KeyId, "testapi")
 	test.IsEqualString(t, output.Authentication.Username, "admin")
-	test.IsNotEqualString(t, output.Authentication.Password, "adminadmin")
-	test.IsNotEqualString(t, output.Authentication.Password, "")
+	test.IsNotEqualString(t, authsettings.PasswordInternalAuth, "adminadmin")
+	test.IsNotEqualString(t, authsettings.PasswordInternalAuth, "")
 	test.IsEqualString(t, output.RedirectUrl, "https://github.com/Forceu/Gokapi/")
 }
 
@@ -197,7 +196,7 @@ func TestBasicAuth(t *testing.T) {
 	isAuth = false
 	isInitialSetup = false
 	credentialUsername = "test"
-	password = "testpw"
+	credentialPassword = "testpw"
 	basicAuth(continueFunc).ServeHTTP(w, r)
 	test.IsEqualBool(t, isAuth, false)
 
@@ -296,7 +295,7 @@ func TestParseDatabaseSettings(t *testing.T) {
 func TestRunConfigModification(t *testing.T) {
 	testconfiguration.Create(false)
 	credentialUsername = ""
-	password = ""
+	credentialPassword = ""
 	finish := make(chan bool)
 	go func() {
 		waitForServer(t, true)
@@ -313,7 +312,7 @@ func TestRunConfigModification(t *testing.T) {
 	}()
 	RunConfigModification()
 	test.IsEqualInt(t, len(credentialUsername), 6)
-	test.IsEqualInt(t, len(password), 10)
+	test.IsEqualInt(t, len(credentialPassword), 10)
 	isInitialSetup = true
 	<-finish
 }
@@ -420,7 +419,7 @@ func TestIntegration(t *testing.T) {
 	waitForServer(t, true)
 
 	credentialUsername = "test"
-	password = "testpw"
+	credentialPassword = "testpw"
 
 	setupInput := createInputHeaderAuth()
 	test.HttpPageResultJson(t, test.HttpTestConfig{
@@ -468,7 +467,7 @@ func TestIntegration(t *testing.T) {
 	settings = configuration.Get()
 	test.IsEqualBool(t, settings.IncludeFilename, false)
 	test.IsEqualInt(t, settings.Authentication.Method, 2)
-	test.IsEqualString(t, settings.Authentication.Username, "")
+	test.IsEqualString(t, settings.Authentication.Username, "test1")
 	test.IsEqualString(t, settings.Authentication.OAuthProvider, "")
 	test.IsEqualString(t, settings.Authentication.OAuthClientId, "")
 	test.IsEqualString(t, settings.Authentication.OAuthClientSecret, "")
@@ -497,7 +496,7 @@ func TestIntegration(t *testing.T) {
 	waitForServer(t, true)
 
 	credentialUsername = "test"
-	password = "testpw"
+	credentialPassword = "testpw"
 
 	setupInput = createInputOAuth()
 	test.HttpPageResultJson(t, test.HttpTestConfig{
@@ -518,6 +517,7 @@ func TestIntegration(t *testing.T) {
 	test.IsEqualString(t, settings.Authentication.OAuthProvider, "provider")
 	test.IsEqualString(t, settings.Authentication.OAuthClientId, "id")
 	test.IsEqualString(t, settings.Authentication.OAuthClientSecret, "secret")
+	test.IsEqualString(t, settings.Authentication.Username, "oatest1")
 	oauthUsers := len(settings.Authentication.OAuthUsers)
 	test.IsEqualInt(t, oauthUsers, 2)
 	if oauthUsers == 2 {
@@ -543,13 +543,14 @@ type setupValues struct {
 	OAuthClientSecret     setupEntry `form:"oauth_secret"`
 	OAuthAuthorisedUsers  setupEntry `form:"oauth_allowed_users"`
 	OAuthAuthorisedGroups setupEntry `form:"oauth_allowed_groups"`
-	OAuthScopeUser        setupEntry `form:"oauth_scope_users"`
+	OAuthAdminUser        setupEntry `form:"oauth_admin_user"`
 	OAuthScopeGroup       setupEntry `form:"oauth_scope_groups"`
 	OAuthRestrictUser     setupEntry `form:"oauth_restrict_users" isBool:"true"`
 	OAuthRestrictGroups   setupEntry `form:"oauth_restrict_groups" isBool:"true"`
 	OAuthRecheckInterval  setupEntry `form:"oauth_recheck_interval" isInt:"true"`
 	AuthHeaderKey         setupEntry `form:"auth_headerkey"`
 	AuthHeaderUsers       setupEntry `form:"auth_header_users"`
+	AuthHeaderAdmin       setupEntry `form:"auth_header_admin"`
 	StorageSelection      setupEntry `form:"storage_sel"`
 	PicturesAlwaysLocal   setupEntry `form:"storage_sel_image"`
 	ProxyDownloads        setupEntry `form:"storage_sel_proxy"`
@@ -702,6 +703,7 @@ func createInputHeaderAuth() setupValues {
 	values.RedirectUrl.Value = "https://test.com"
 	values.AuthenticationMode.Value = "2"
 	values.AuthHeaderKey.Value = "testkey"
+	values.AuthHeaderAdmin.Value = "test1"
 	values.AuthHeaderUsers.Value = "test1 ;test2"
 	values.StorageSelection.Value = "local"
 	values.EncryptionLevel.Value = "0"
@@ -725,8 +727,8 @@ func createInputOAuth() setupValues {
 	values.OAuthClientSecret.Value = "secret"
 	values.OAuthRestrictUser.Value = "true"
 	values.OAuthRestrictGroups.Value = "true"
-	values.OAuthScopeUser.Value = "email"
 	values.OAuthAuthorisedUsers.Value = "oatest1; oatest2"
+	values.OAuthAdminUser.Value = "oatest1"
 	values.OAuthScopeGroup.Value = "groups"
 	values.OAuthAuthorisedGroups.Value = "group1; group2"
 	values.StorageSelection.Value = "local"

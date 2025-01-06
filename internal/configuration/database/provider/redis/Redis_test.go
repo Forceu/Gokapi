@@ -291,13 +291,13 @@ func TestE2EConfig(t *testing.T) {
 		Content:        []byte("testcontent"),
 		AvailableFiles: nil,
 	}
-	dbInstance.SaveEnd2EndInfo(e2econfig)
-	retrieved := dbInstance.GetEnd2EndInfo()
+	dbInstance.SaveEnd2EndInfo(e2econfig, 2)
+	retrieved := dbInstance.GetEnd2EndInfo(2)
 	test.IsEqualInt(t, retrieved.Version, 1)
 	test.IsEqualString(t, string(retrieved.Nonce), "testnonce")
 	test.IsEqualString(t, string(retrieved.Content), "testcontent")
-	dbInstance.DeleteEnd2EndInfo()
-	retrieved = dbInstance.GetEnd2EndInfo()
+	dbInstance.DeleteEnd2EndInfo(2)
+	retrieved = dbInstance.GetEnd2EndInfo(2)
 	test.IsEqualInt(t, retrieved.Version, 0)
 }
 

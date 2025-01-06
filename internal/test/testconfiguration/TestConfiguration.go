@@ -53,6 +53,7 @@ func Create(initFiles bool) {
 		panic(err)
 	}
 	database.Connect(config)
+	writeAdmin()
 	writeTestSessions()
 	writeTestFiles()
 	database.SaveHotlink(models.File{Id: "n1tSTAGj8zan9KaT4u6p", HotlinkId: "PhSs6mFtf8O5YGlLMfNw9rYXx9XRNkzCnJZpQBi7inunv3Z4A.jpg", ExpireAt: time.Now().Add(time.Hour).Unix()})
@@ -69,6 +70,19 @@ func Create(initFiles bool) {
 		os.WriteFile(dataDir+"/unlimitedtest", []byte("def"), 0777)
 		os.WriteFile(baseDir+"/fileupload.jpg", []byte("abc"), 0777)
 	}
+}
+
+func writeAdmin() {
+	admin := models.User{
+		Id:            7,
+		Name:          "Admin",
+		Permissions:   models.UserPermissionAll,
+		UserLevel:     models.UserLevelSuperAdmin,
+		LastOnline:    0,
+		Password:      "10340aece68aa4fb14507ae45b05506026f276cf",
+		ResetPassword: false,
+	}
+	database.SaveUser(admin, false)
 }
 
 // WriteEncryptedFile writes metadata for an encrypted file and returns the id
@@ -167,18 +181,22 @@ func writeTestSessions() {
 	database.SaveSession("validsession", models.Session{
 		RenewAt:    2147483645,
 		ValidUntil: 2147483646,
+		UserId:     7,
 	})
 	database.SaveSession("logoutsession", models.Session{
 		RenewAt:    2147483645,
 		ValidUntil: 2147483646,
+		UserId:     7,
 	})
 	database.SaveSession("needsRenewal", models.Session{
 		RenewAt:    0,
 		ValidUntil: 2147483646,
+		UserId:     7,
 	})
 	database.SaveSession("expiredsession", models.Session{
 		RenewAt:    0,
 		ValidUntil: 0,
+		UserId:     7,
 	})
 }
 func writeTestUploadStatus() {
@@ -341,12 +359,10 @@ var configTestFile = []byte(`{
     "SaltAdmin": "LW6fW4Pjv8GtdWVLSZD66gYEev6NAaXxOVBw7C",
     "SaltFiles": "lL5wMTtnVCn5TPbpRaSe4vAQodWW0hgk00WCZE",
     "Username": "test",
-    "Password": "10340aece68aa4fb14507ae45b05506026f276cf",
     "HeaderKey": "",
     "OauthProvider": "",
     "OAuthClientId": "",
     "OAuthClientSecret": "",
-    "OauthUserScope": "",
     "OauthGroupScope": "",
     "OAuthRecheckInterval": 12,
     "HeaderUsers": null,
@@ -357,12 +373,20 @@ var configTestFile = []byte(`{
   "ServerUrl": "http://127.0.0.1:53843/",
   "RedirectUrl": "https://test.com/",
   "PublicName": "Gokapi Test Version",
-  "ConfigVersion": 20,
+  "DataDir": "test",
+  "DatabaseUrl": "sqlite://./test/test",
+  "ConfigVersion": 22,
   "LengthId": 20,
-  "DataDir": "test/data",
   "MaxFileSizeMB": 25,
   "MaxMemory": 10,
   "ChunkSize": 45,
+  "Encryption": {
+    "Level": 0,
+    "Cipher": null,
+    "Salt": "",
+    "Checksum": "",
+    "ChecksumSalt": ""
+  },
   "MaxParallelUploads": 4,
   "UseSsl": false,
   "PicturesAlwaysLocal": false,

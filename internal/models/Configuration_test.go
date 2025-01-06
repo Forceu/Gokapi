@@ -12,7 +12,6 @@ var testConfig = Configuration{
 		SaltAdmin:         "saltadmin",
 		SaltFiles:         "saltfiles",
 		Username:          "admin",
-		Password:          "adminpwhashed",
 		HeaderKey:         "",
 		OAuthProvider:     "",
 		OAuthClientId:     "",
@@ -49,4 +48,4 @@ func TestConfiguration_ToString(t *testing.T) {
 	test.IsEqualString(t, testConfig.ToString(), exptectedUnidentedOutput)
 }
 
-const exptectedUnidentedOutput = `{"Authentication":{"Method":0,"SaltAdmin":"saltadmin","SaltFiles":"saltfiles","Username":"admin","Password":"adminpwhashed","HeaderKey":"","OauthProvider":"","OAuthClientId":"","OAuthClientSecret":"","OauthUserScope":"","OauthGroupScope":"","OAuthRecheckInterval":0,"HeaderUsers":null,"OAuthGroups":null,"OauthUsers":null},"Port":":12345","ServerUrl":"https://testserver.com/","RedirectUrl":"https://test.com","PublicName":"public-name","DataDir":"test","DatabaseUrl":"sqlite://./test/gokapitest.sqlite","ConfigVersion":14,"LengthId":5,"MaxFileSizeMB":20,"MaxMemory":50,"ChunkSize":0,"MaxParallelUploads":0,"Encryption":{"Level":1,"Cipher":"AA==","Salt":"encsalt","Checksum":"encsum","ChecksumSalt":"encsumsalt"},"UseSsl":true,"PicturesAlwaysLocal":true,"SaveIp":false,"IncludeFilename":false}`
+const exptectedUnidentedOutput = `{"Authentication":{"Method":0,"SaltAdmin":"saltadmin","SaltFiles":"saltfiles","Username":"admin","HeaderKey":"","OauthProvider":"","OAuthClientId":"","OAuthClientSecret":"","OauthGroupScope":"","OAuthRecheckInterval":0,"HeaderUsers":null,"OAuthGroups":null,"OauthUsers":null},"Port":":12345","ServerUrl":"https://testserver.com/","RedirectUrl":"https://test.com","PublicName":"public-name","DataDir":"test","DatabaseUrl":"sqlite://./test/gokapitest.sqlite","ConfigVersion":14,"LengthId":5,"MaxFileSizeMB":20,"MaxMemory":50,"ChunkSize":0,"MaxParallelUploads":0,"Encryption":{"Level":1,"Cipher":"AA==","Salt":"encsalt","Checksum":"encsum","ChecksumSalt":"encsumsalt"},"UseSsl":true,"PicturesAlwaysLocal":true,"SaveIp":false,"IncludeFilename":false}`

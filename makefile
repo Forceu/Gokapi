@@ -56,7 +56,7 @@ test:
 test-specific:
 	@echo Testing package "$(TEST_PACKAGE)"
 	@echo
-	go test -v $(GOPACKAGE)/$(TEST_PACKAGE)/... -parallel 8 -count=1 --tags=test,awsmock
+	go test $(GOPACKAGE)/$(TEST_PACKAGE)/... -parallel 8 -count=1 --tags=test,awsmock
 
 
 .PHONY: test-all
