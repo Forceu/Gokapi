@@ -193,7 +193,7 @@ function addNewUser() {
 function addRowUser(userid, name) {
 
     let table = document.getElementById("usertable");
-    let row = table.insertRow(0);
+    let row = table.insertRow(1);
     row.id = "row-" + userid;
     let cellName = row.insertCell(0);
     let cellGroup = row.insertCell(1);
@@ -214,7 +214,11 @@ function addRowUser(userid, name) {
     cellGroup.innerText = "User";
     cellLastOnline.innerText = "Never";
     cellUploads.innerText = "0";
-    cellActions.innerHTML = '<button id="changeRank_' + userid + '" type="button" onclick="changeRank( ' + userid + ' , \'ADMIN\', \'changeRank_' + userid + '\')" title="Promote User" class="btn btn-outline-light btn-sm"><i class="bi bi-chevron-double-up"></i></button>&nbsp;<button id="delete-' + userid + '" type="button" class="btn btn-outline-danger btn-sm"  onclick="showDeleteModal(' + userid + ', \'' + name + '\')" title="Delete"><i class="bi bi-trash3"></i></button>';
+    let buttonResetPw = '<button id="pwchange-' + userid + '" type="button" class="btn btn-outline-light btn-sm" onclick="showResetPwModal(\'' + userid + '\', \'' + name + '\')" title="Reset Password"><i class="bi bi-key-fill"></i></button>&nbsp; ';
+    cellActions.innerHTML = '<button id="changeRank_' + userid + '" type="button" onclick="changeRank( ' + userid + ' , \'ADMIN\', \'changeRank_' + userid + '\')" title="Promote User" class="btn btn-outline-light btn-sm"><i class="bi bi-chevron-double-up"></i></button>&nbsp; <button id="delete-' + userid + '" type="button" class="btn btn-outline-danger btn-sm"  onclick="showDeleteModal(' + userid + ', \'' + name + '\')" title="Delete"><i class="bi bi-trash3"></i></button>';
+    if (isInternalAuth) {
+    	cellActions.innerHTML = buttonResetPw+cellActions.innerHTML;
+    }
 
     cellPermissions.innerHTML = `
     <i id="perm_replace_` + userid + `" class="bi bi-recycle perm-notgranted " title="Replace own uploads" onclick='changeUserPermission(` + userid + `,"PERM_REPLACE", "perm_replace_` + userid + `");'></i>

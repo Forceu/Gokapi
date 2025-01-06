@@ -57,8 +57,9 @@
 		
             			</td>
                                 <td>
-                                
+                                {{if $.IsInternalAuth}}
                                 <button id="pwchange-{{ .User.Id }}" type="button" class="btn btn-outline-light btn-sm" {{if or (eq .User.UserLevel 0) (eq .User.Id $.ActiveUser.Id)}}disabled{{end}} onclick="showResetPwModal('{{ .User.Id }}', '{{ .User.Name }}')" title="Reset Password"><i class="bi bi-key-fill"></i></button>&nbsp;
+                                {{end}}
                                 
                                 {{if gt .User.UserLevel 1}}
 		                        <button id="changeRank_{{ .User.Id }}" type="button" onclick="changeRank({{ .User.Id }}, 'ADMIN', 'changeRank_{{ .User.Id }}')" title="Promote User" {{ if eq .User.Id $.ActiveUser.Id}}disabled{{end}} class="btn btn-outline-light btn-sm">
@@ -202,6 +203,7 @@
 <script src="./js/min/admin.min.{{ template "js_admin_version"}}.js"></script>
 <script>
 	var systemKey = "{{.SystemKey}}";
+	var isInternalAuth = {{.IsInternalAuth}};
 </script>
 {{ template "footer" true }}
 {{ end }}

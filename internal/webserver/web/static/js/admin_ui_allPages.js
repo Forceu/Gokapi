@@ -17,8 +17,3 @@ function showToast(timeout, text) {
     }, timeout);
 }
 
-// For some reason ClipboardJs is not working on the user PW reset modal, even when initilising again. Manually writing to clipboard
-function copyToClipboard(text, timeout, toastText) {
-    navigator.clipboard.writeText(text);
-    showToast(timeout, toastText);
-}

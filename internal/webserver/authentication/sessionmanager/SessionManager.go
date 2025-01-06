@@ -18,22 +18,22 @@ const cookieLifeAdmin = 30 * 24 * time.Hour
 // IsValidSession checks if the user is submitting a valid session token
 // If valid session is found, useSession will be called
 // Returns true if authenticated, otherwise false
-func IsValidSession(w http.ResponseWriter, r *http.Request, isOauth bool, OAuthRecheckInterval int) (int, bool) {
+func IsValidSession(w http.ResponseWriter, r *http.Request, isOauth bool, OAuthRecheckInterval int) (models.User, bool) {
 	cookie, err := r.Cookie("session_token")
 	if err == nil {
 		sessionString := cookie.Value
 		if sessionString != "" {
 			session, ok := database.GetSession(sessionString)
 			if ok {
-				_, userExists := database.GetUser(session.UserId)
+				user, userExists := database.GetUser(session.UserId)
 				if !userExists {
-					return -1, false
+					return user, false
 				}
-				return session.UserId, useSession(w, sessionString, session, isOauth, OAuthRecheckInterval)
+				return user, useSession(w, sessionString, session, isOauth, OAuthRecheckInterval)
 			}
 		}
 	}
-	return -1, false
+	return models.User{}, false
 }
 
 // useSession checks if a session is still valid. It Changes the session string

@@ -683,7 +683,7 @@ func resetPw(w http.ResponseWriter, request apiRequest, user models.User) {
 	userToEdit.ResetPassword = true
 	password := ""
 	if request.usermodInfo.setNewPw {
-		password = helper.GenerateRandomString(10)
+		password = helper.GenerateRandomString(configuration.MinLengthPassword + 2)
 		userToEdit.Password = configuration.HashPassword(password, false)
 	}
 	database.SaveUser(userToEdit, false)

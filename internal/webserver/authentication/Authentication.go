@@ -63,62 +63,62 @@ func isValid(config models.AuthenticationConfig) (bool, error) {
 	}
 }
 
-func GetUserIdFromRequest(r *http.Request) (int, error) {
+func GetUserFromRequest(r *http.Request) (models.User, error) {
 	c := r.Context()
-	userId, ok := c.Value("userId").(int)
+	user, ok := c.Value("user").(models.User)
 	if !ok {
-		return -1, errors.New("user id not found in context")
+		return models.User{}, errors.New("user not found in context")
 	}
-	return userId, nil
+	return user, nil
 }
 
 // IsAuthenticated returns true and the user ID if authenticated
-func IsAuthenticated(w http.ResponseWriter, r *http.Request) (bool, int) {
+func IsAuthenticated(w http.ResponseWriter, r *http.Request) (bool, models.User) {
 	switch authSettings.Method {
 	case models.AuthenticationInternal:
-		userId, ok := isGrantedSession(w, r)
+		user, ok := isGrantedSession(w, r)
 		if ok {
-			return true, userId // TODO
+			return true, user
 		}
 	case models.AuthenticationOAuth2:
-		userId, ok := isGrantedSession(w, r)
+		user, ok := isGrantedSession(w, r)
 		if ok {
-			return true, userId
+			return true, user
 		}
 	case models.AuthenticationHeader:
-		userId, ok := isGrantedHeader(r)
+		user, ok := isGrantedHeader(r)
 		if ok {
-			return true, userId
+			return true, user
 		}
 	case models.AuthenticationDisabled:
 		adminUser, ok := database.GetSuperAdmin()
 		if !ok {
 			panic("no super admin found")
 		}
-		return true, adminUser.Id
+		return true, adminUser
 	}
-	return false, -1
+	return false, models.User{}
 }
 
 // isGrantedHeader returns true if the user was authenticated by a proxy header if enabled
-func isGrantedHeader(r *http.Request) (int, bool) {
+func isGrantedHeader(r *http.Request) (models.User, bool) {
 	if authSettings.HeaderKey == "" {
-		return -1, false
+		return models.User{}, false
 	}
 	userName := r.Header.Get(authSettings.HeaderKey)
 	if userName == "" {
 
-		return -1, false
+		return models.User{}, false
 	}
 	if len(authSettings.HeaderUsers) == 0 {
 		user := getOrCreateUser(userName)
-		return user.Id, true
+		return user, true
 	}
 	if isUserInArray(userName, authSettings.HeaderUsers) {
 		user := getOrCreateUser(userName)
-		return user.Id, true
+		return user, true
 	}
-	return -1, false
+	return models.User{}, false
 }
 
 func isUserInArray(userEntered string, allowedUsers []string) bool {
@@ -305,7 +305,7 @@ func isValidOauthUser(userInfo OAuthUserInfo, username string, groups []string) 
 }
 
 // isGrantedSession returns true if the user holds a valid internal session cookie
-func isGrantedSession(w http.ResponseWriter, r *http.Request) (int, bool) {
+func isGrantedSession(w http.ResponseWriter, r *http.Request) (models.User, bool) {
 	return sessionmanager.IsValidSession(w, r, authSettings.Method == models.AuthenticationOAuth2, authSettings.OAuthRecheckInterval)
 }
 

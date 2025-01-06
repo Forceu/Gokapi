@@ -1,0 +1,59 @@
+{{define "changepw"}}
+{{ template "header" . }} 
+      <div class="row">
+        <div class="col">
+		<div id="container" class="card" style="width: 25em">
+		  <div class="card-body">
+		    <h2 class="card-title">Change Password</h2>
+		    <br>
+		    <p class="card-text"> A password change has been requested.<br>Please enter a new password.<br><br>
+			<form method="post" action="./changePassword" id="form" name="form" onSubmit="return submitForm()">
+				<input type="password" required minlength="{{.MinPasswordLength}}" placeholder="New Password" id="newpw" name="newpw" autocomplete="new-password">
+				<br><br>
+				<input type="password" required minlength="{{.MinPasswordLength}}" placeholder="Confirm New Password" id="newpw_c" name="newpw_c" onchange="checkSame()" autocomplete="new-password">
+				      
+{{ if ne .ErrorMessage "" }}
+				<p id="errormessage" style="color:red; margin-top:1em">{{.ErrorMessage}}</p>
+{{ end }}				      
+				      <div id="pwnotsame" class="text-warning" style="display: none; margin-top:1em">
+					Passwords do not match
+				      </div>
+
+				<button style="margin-top:2em" type="submit" id="submitbutton" class="btn btn-light">Change Password</button>
+			</form>
+			<br>
+		  </div>
+		</div>
+	    </div>
+   	 </div>
+<script>
+
+function isSamePw() {
+    let pw1 = document.getElementById("newpw").value;
+    let pw2 = document.getElementById("newpw_c").value;
+    return pw1 === pw2;
+}
+
+function checkSame() {
+    if (!isSamePw()) {
+        document.getElementById("pwnotsame").style.display = "block";
+    } else {
+        document.getElementById("pwnotsame").style.display = "none";
+    }
+    let serverErr = document.getElementById("errormessage");
+    if (serverErr!= null) {
+    	serverErr.style.display = "none";
+    }
+}
+
+function submitForm() {
+    if (!isSamePw()) {
+        return false;
+    }
+    document.getElementById("submitbutton").disabled = true;
+    return true;
+}
+
+</script>
+{{ template "footer" }}
+{{end}}
