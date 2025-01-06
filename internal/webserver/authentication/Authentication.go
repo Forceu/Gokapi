@@ -199,33 +199,6 @@ func extractOauthGroups(userInfo OAuthUserClaims, groupScope string) ([]string, 
 	return groups, nil
 }
 
-func extractFieldValue(userInfo OAuthUserClaims, fieldName string) (string, error) {
-	var claims json.RawMessage
-
-	err := userInfo.Claims(&claims)
-	if err != nil {
-		return "", err
-	}
-	var fieldMap map[string]interface{}
-	err = json.Unmarshal(claims, &fieldMap)
-	if err != nil {
-		return "", err
-	}
-
-	// Extract the field value based on the provided fieldName
-	fieldValue, ok := fieldMap[fieldName]
-	if !ok {
-		return "", fmt.Errorf("%s scope not found in reply", fieldName)
-	}
-
-	strValue, ok := fieldValue.(string)
-	if !ok {
-		return "", fmt.Errorf("value of %s scope is not a string", fieldName)
-	}
-
-	return strValue, nil
-}
-
 // OAuthUserInfo is used to make testing easier. This results in an additional parameter for the subject unfortunately
 type OAuthUserInfo struct {
 	Subject    string
@@ -240,30 +213,16 @@ type OAuthUserClaims interface {
 
 // CheckOauthUserAndRedirect checks if the user is allowed to use the Gokapi instance
 func CheckOauthUserAndRedirect(userInfo OAuthUserInfo, w http.ResponseWriter) error {
-	var username string
 	var groups []string
 	var err error
 
-	if authSettings.OAuthUserScope != "" {
-		if authSettings.OAuthUserScope == "email" {
-			username = userInfo.Email
-		} else {
-			username, err = extractFieldValue(userInfo.ClaimsSent, authSettings.OAuthUserScope)
-			if err != nil {
-				return err
-			}
-		}
-	}
 	if authSettings.OAuthGroupScope != "" {
 		groups, err = extractOauthGroups(userInfo.ClaimsSent, authSettings.OAuthGroupScope)
 		if err != nil {
 			return err
 		}
 	}
-	if isValidOauthUser(userInfo, username, groups) {
-		if userInfo.Email == "" {
-			userInfo.Email = username
-		}
+	if isValidOauthUser(userInfo, groups) {
 		user := getOrCreateUser(userInfo.Email)
 		sessionmanager.CreateSession(w, true, authSettings.OAuthRecheckInterval, user.Id)
 		redirect(w, "admin")
@@ -289,13 +248,16 @@ func getOrCreateUser(username string) models.User {
 	return user
 }
 
-func isValidOauthUser(userInfo OAuthUserInfo, username string, groups []string) bool {
+func isValidOauthUser(userInfo OAuthUserInfo, groups []string) bool {
 	if userInfo.Subject == "" {
+		return false
+	}
+	if userInfo.Email == "" {
 		return false
 	}
 	isValidUser := true
 	if len(authSettings.OAuthUsers) > 0 {
-		isValidUser = isUserInArray(username, authSettings.OAuthUsers)
+		isValidUser = isUserInArray(userInfo.Email, authSettings.OAuthUsers)
 	}
 	isValidGroup := true
 	if len(authSettings.OAuthGroups) > 0 {

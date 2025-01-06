@@ -428,11 +428,6 @@ func parseOAuthSettings(result *models.Configuration, authInfo *authSettings, fo
 		return err
 	}
 
-	scopeUsers, err := getFormValueString(formObjects, "oauth_scope_users")
-	if err != nil {
-		return err
-	}
-
 	username, err := getFormValueString(formObjects, "oauth_admin_user")
 	if err != nil {
 		return err
@@ -444,11 +439,9 @@ func parseOAuthSettings(result *models.Configuration, authInfo *authSettings, fo
 		return err
 	}
 	if restrictUsers {
-		result.Authentication.OAuthUserScope = scopeUsers
 		result.Authentication.OAuthUsers = splitAndTrim(oauthAllowedUsers)
 	} else {
 		result.Authentication.OAuthUsers = []string{}
-		result.Authentication.OAuthUserScope = ""
 	}
 
 	restrictGroups, err := getFormValueBool(formObjects, "oauth_restrict_groups")

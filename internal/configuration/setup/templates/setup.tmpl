@@ -57,6 +57,7 @@
 			    #label_ousers, #label_ogroups {
 			      margin-right: 10px;
 			    }
+			    
 
 		</style>
 		<!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
@@ -109,6 +110,12 @@
 
 				<div class="wizard-input-section">
 					<div class="form-group">
+					
+{{ if not .IsInitialSetup }}
+				<p>
+					<span style="color:red"><b>Warning:</b> When changing database parameters, ensure you first migrate the database to the new location using <code>gokapi --migrate-database</code> before finalising the setup.
+				</p><br>
+{{ end }}
 
 							  <label for="dbtype_sel">Type of database</label>
 						<select name="dbtype_sel" id="dbtype_sel"  style="width:350px;" class="select form-control"  onChange="dbChanged()">	
@@ -321,8 +328,7 @@
 								      <input type="hidden" name="oauth_restrict_users.unchecked" value="false"/>
 								      <input type="checkbox" id="oauth_restrict_users" name="oauth_restrict_users" onchange="handleOauthCheckboxChange(this)"  value="true">
 								      <label id="label_ousers" for="oauth_restrict_users" class="checkboxLabel">Users &nbsp;</label>
-								      <input type="text" id="oauth_scope_users" name="oauth_scope_users" class="input-field" placeholder="Scope identifier" data-min="1" data-validate="validateMinLength" disabled>&nbsp;
-								      <input type="text" id="oauth_allowed_users" name="oauth_allowed_users" class="input-field" placeholder="Authorised users" data-min="1" data-validate="validateMinLength" disabled>
+								      <input type="text" id="oauth_allowed_users" name="oauth_allowed_users" class="input-field" placeholder="Authorised users (email)" data-min="1" data-validate="validateMinLength" disabled>
 								    </div>
 
 								    <div class="oauthscopes">
@@ -812,8 +818,6 @@ function TestAWS(button, isManual) {
 				    document.getElementById("oauth_recheck_interval").value = "{{ .Auth.OAuthRecheckInterval }}";
 	{{ if ne .OAuthUsers "" }}
 				    document.getElementById("oauth_restrict_users").checked = true;
-				    document.getElementById("oauth_scope_users").disabled = false;
-				    document.getElementById("oauth_scope_users").value = "{{ .Auth.OAuthUserScope }}";
 				    document.getElementById("oauth_allowed_users").disabled = false;
 				    document.getElementById("oauth_allowed_users").value = "{{ .OAuthUsers }}";
 	{{ end }}
@@ -862,7 +866,6 @@ function TestAWS(button, isManual) {
 				
 				    /* enable inputs again, otherwise they will not be submitted */
 				    document.getElementById("oauth_scope_groups").disabled = false;
-				    document.getElementById("oauth_scope_users").disabled = false;
 				    document.getElementById("oauth_allowed_users").disabled = false;
 				    document.getElementById("oauth_allowed_groups").disabled = false;
 					

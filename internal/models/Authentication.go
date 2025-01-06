@@ -10,7 +10,6 @@ type AuthenticationConfig struct {
 	OAuthProvider        string   `json:"OauthProvider"`
 	OAuthClientId        string   `json:"OAuthClientId"`
 	OAuthClientSecret    string   `json:"OAuthClientSecret"`
-	OAuthUserScope       string   `json:"OauthUserScope"`
 	OAuthGroupScope      string   `json:"OauthGroupScope"`
 	OAuthRecheckInterval int      `json:"OAuthRecheckInterval"`
 	HeaderUsers          []string `json:"HeaderUsers"`
