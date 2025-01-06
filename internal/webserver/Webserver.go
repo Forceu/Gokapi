@@ -181,12 +181,16 @@ func Shutdown() {
 // Otherwise, templateFolderEmbedded will be used.
 func initTemplates(templateFolderEmbedded embed.FS) {
 	var err error
+
+	funcMap := template.FuncMap{
+		"newAdminButtonContext": newAdminButtonContext,
+	}
 	if helper.FolderExists("templates") {
 		fmt.Println("Found folder 'templates', using local folder instead of internal template folder")
-		templateFolder, err = template.ParseGlob("templates/*.tmpl")
+		templateFolder, err = template.New("").Funcs(funcMap).ParseGlob("templates/*.tmpl")
 		helper.Check(err)
 	} else {
-		templateFolder, err = template.ParseFS(templateFolderEmbedded, "web/templates/*.tmpl")
+		templateFolder, err = template.New("").Funcs(funcMap).ParseFS(templateFolderEmbedded, "web/templates/*.tmpl")
 		helper.Check(err)
 	}
 }
@@ -919,6 +923,16 @@ func requireLogin(next http.HandlerFunc, isUiCall, isPwChangeView bool) http.Han
 		}
 		redirect(w, "login")
 	}
+}
+
+type adminButtonContext struct {
+	CurrentFile models.FileApiOutput
+	ActiveUser  *models.User
+}
+
+// Used internally in templates, to create buttons with user context
+func newAdminButtonContext(file models.FileApiOutput, user models.User) adminButtonContext {
+	return adminButtonContext{CurrentFile: file, ActiveUser: &user}
 }
 
 // Write a cookie if the user has entered a correct password for a password-protected file

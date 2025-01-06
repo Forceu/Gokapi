@@ -82,6 +82,7 @@ func (f *File) ToFileApiOutput(serverUrl string, useFilenameInUrl bool) (FileApi
 	result.IsEndToEndEncrypted = f.Encryption.IsEndToEndEncrypted
 	result.UrlHotlink = getHotlinkUrl(result, serverUrl, useFilenameInUrl)
 	result.UrlDownload = getDownloadUrl(result, serverUrl, useFilenameInUrl)
+	result.UploaderId = f.UserId
 
 	return result, nil
 }

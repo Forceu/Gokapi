@@ -142,6 +142,7 @@ function resetPw(userid, newPw) {
                 return;
             }
             button.style.display = 'none';
+            document.getElementById("cancelPasswordButton").style.display = 'none';
             document.getElementById("formentryReset").style.display = 'none';
             document.getElementById("randomPasswordContainer").style.display = 'block';
             document.getElementById("closeModalResetPw").style.display = 'block';
