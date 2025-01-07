@@ -9,7 +9,6 @@ import (
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/test"
 	"github.com/forceu/gokapi/internal/test/testconfiguration"
-	"github.com/forceu/gokapi/internal/webserver/authentication"
 	"io"
 	"mime/multipart"
 	"net/http/httptest"
@@ -35,13 +34,17 @@ const maxMemory = 20
 var newKeyId string
 
 func TestNewKey(t *testing.T) {
-	newKeyId = NewKey(true)
+	newKey := NewKey(true, 5)
+	newKeyId = newKey.Id
 	key, ok := database.GetApiKey(newKeyId)
 	test.IsEqualBool(t, ok, true)
+	test.IsEqual(t, newKey, key)
 	test.IsEqualString(t, key.FriendlyName, "Unnamed key")
 	test.IsEqualBool(t, key.Permissions == models.ApiPermDefault, true)
+	test.IsEqualInt(t, key.UserId, 5)
 
-	newKeyId = NewKey(false)
+	newKey = NewKey(false, 5)
+	newKeyId = newKey.Id
 	key, ok = database.GetApiKey(newKeyId)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, key.Permissions == models.ApiPermNone, true)
@@ -60,32 +63,44 @@ func TestDeleteKey(t *testing.T) {
 }
 
 func TestIsValidApiKey(t *testing.T) {
-	test.IsEqualBool(t, IsValidApiKey("", false, models.ApiPermNone), false)
-	test.IsEqualBool(t, IsValidApiKey("invalid", false, models.ApiPermNone), false)
-	test.IsEqualBool(t, IsValidApiKey("validkey", false, models.ApiPermNone), true)
+	user, isValid := IsValidApiKey("", false, models.ApiPermNone)
+	test.IsEqualBool(t, isValid, false)
+	_, isValid = IsValidApiKey("invalid", false, models.ApiPermNone)
+	test.IsEqualBool(t, isValid, false)
+	user, isValid = IsValidApiKey("validkey", false, models.ApiPermNone)
+	test.IsEqualBool(t, isValid, true)
+	test.IsEqualInt(t, user.Id, 5)
 	key, ok := database.GetApiKey("validkey")
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, key.LastUsed == 0, true)
-	test.IsEqualBool(t, IsValidApiKey("validkey", true, models.ApiPermNone), true)
+	user, isValid = IsValidApiKey("validkey", true, models.ApiPermNone)
+	test.IsEqualBool(t, isValid, true)
+	test.IsEqualInt(t, user.Id, 5)
 	key, ok = database.GetApiKey("validkey")
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, key.LastUsed == 0, false)
 
-	newApiKey := NewKey(false)
-	test.IsEqualBool(t, IsValidApiKey(newApiKey, true, models.ApiPermNone), true)
+	newApiKey := NewKey(false, 5)
+	user, isValid = IsValidApiKey(newApiKey.Id, true, models.ApiPermNone)
+	test.IsEqualBool(t, isValid, true)
 	for _, permission := range getAvailablePermissions(t) {
-		test.IsEqualBool(t, IsValidApiKey(newApiKey, true, permission), false)
+		_, isValid = IsValidApiKey(newApiKey.Id, true, permission)
+		test.IsEqualBool(t, isValid, false)
 	}
 	for _, newPermission := range getAvailablePermissions(t) {
-		setPermissionApikey(newApiKey, newPermission, t)
+		setPermissionApikey(newApiKey.Id, newPermission, t)
 		for _, permission := range getAvailablePermissions(t) {
-			test.IsEqualBool(t, IsValidApiKey(newApiKey, true, permission), permission == newPermission)
+			_, isValid = IsValidApiKey(newApiKey.Id, true, permission)
+			test.IsEqualBool(t, isValid, permission == newPermission)
 		}
 	}
-	setPermissionApikey(newApiKey, models.ApiPermEdit|models.ApiPermDelete, t)
-	test.IsEqualBool(t, IsValidApiKey(newApiKey, true, models.ApiPermEdit), true)
-	test.IsEqualBool(t, IsValidApiKey(newApiKey, true, models.ApiPermAll), false)
-	test.IsEqualBool(t, IsValidApiKey(newApiKey, true, models.ApiPermView), false)
+	setPermissionApikey(newApiKey.Id, models.ApiPermEdit|models.ApiPermDelete, t)
+	_, isValid = IsValidApiKey(newApiKey.Id, true, models.ApiPermEdit)
+	test.IsEqualBool(t, isValid, true)
+	_, isValid = IsValidApiKey(newApiKey.Id, true, models.ApiPermAll)
+	test.IsEqualBool(t, isValid, false)
+	_, isValid = IsValidApiKey(newApiKey.Id, true, models.ApiPermView)
+	test.IsEqualBool(t, isValid, false)
 }
 
 func setPermissionApikey(key string, newPermission uint8, t *testing.T) {
@@ -96,7 +111,7 @@ func setPermissionApikey(key string, newPermission uint8, t *testing.T) {
 }
 
 func getAvailablePermissions(t *testing.T) []uint8 {
-	result := []uint8{models.ApiPermView, models.ApiPermUpload, models.ApiPermDelete, models.ApiPermApiMod, models.ApiPermEdit, models.ApiPermReplace}
+	result := []uint8{models.ApiPermView, models.ApiPermUpload, models.ApiPermDelete, models.ApiPermApiMod, models.ApiPermEdit, models.ApiPermReplace, models.ApiPermManageUsers}
 	sum := 0
 	for _, perm := range result {
 		sum = sum + int(perm)
@@ -114,23 +129,25 @@ func TestGetSystemKey(t *testing.T) {
 			t.Error("No system key expected, but found")
 		}
 	}
-	systemKey := GetSystemKey()
+	systemKey := GetSystemKey(5)
 	retrievedSystemKey, ok := database.GetApiKey(systemKey)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, retrievedSystemKey.IsSystemKey, true)
 	test.IsEqualBool(t, retrievedSystemKey.Permissions == models.ApiPermAll, true)
 	test.IsEqualBool(t, retrievedSystemKey.Expiry > time.Now().Add(time.Hour*47).Unix(), true)
-	newKey := GetSystemKey()
+	newKey := GetSystemKey(5)
 	test.IsEqualBool(t, systemKey == newKey, true)
 	retrievedSystemKey.Expiry = time.Now().Add(time.Hour * 23).Unix()
 	database.SaveApiKey(retrievedSystemKey)
-	newKey = GetSystemKey()
+	newKey = GetSystemKey(5)
 	test.IsEqualBool(t, systemKey != newKey, true)
 }
 
 func TestDelete(t *testing.T) {
 	database.SaveApiKey(models.ApiKey{
-		Id: "toDelete",
+		Id:       "toDelete",
+		PublicId: "toDelete",
+		UserId:   5,
 	})
 	_, ok := database.GetApiKey("toDelete")
 	test.IsEqualBool(t, ok, true)
@@ -165,7 +182,10 @@ func TestDelete(t *testing.T) {
 		Name:  "apikey",
 		Value: getNewKeyWithAllPermissions(t).Id,
 	}}, nil)
+	keys := database.GetAllApiKeys()
 	Process(w, r, maxMemory)
+	keys = database.GetAllApiKeys()
+	fmt.Println(keys)
 	test.IsEqualInt(t, w.Code, 200)
 	_, ok = database.GetApiKey("toDelete")
 	test.IsEqualBool(t, ok, false)
@@ -182,7 +202,8 @@ func TestDelete(t *testing.T) {
 }
 
 func getNewKeyWithAllPermissions(t *testing.T) models.ApiKey {
-	validKey, ok := database.GetApiKey(NewKey(false))
+	key := NewKey(false, 5)
+	validKey, ok := database.GetApiKey(key.Id)
 	test.IsEqualBool(t, ok, true)
 	validKey.GrantPermission(models.ApiPermAll)
 	database.SaveApiKey(validKey)
@@ -190,7 +211,8 @@ func getNewKeyWithAllPermissions(t *testing.T) models.ApiKey {
 }
 
 func getNewKeyWithPermissionMissing(t *testing.T, removePerm uint8) models.ApiKey {
-	validKey, ok := database.GetApiKey(NewKey(false))
+	key := NewKey(false, 5)
+	validKey, ok := database.GetApiKey(key.Id)
 	test.IsEqualBool(t, ok, true)
 	validKey.GrantPermission(models.ApiPermAll)
 	validKey.RemovePermission(removePerm)
@@ -281,11 +303,11 @@ func TestAuthDisabledLogin(t *testing.T) {
 	w, r := test.GetRecorder("GET", "/api/auth/friendlyname", nil, nil, nil)
 	Process(w, r, maxMemory)
 	test.ResponseBodyContains(t, w, "{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}")
-	configuration.Get().Authentication.Method = authentication.TypeDisabled
+	configuration.Get().Authentication.Method = models.AuthenticationDisabled
 	w, r = test.GetRecorder("GET", "/api/auth/friendlyname", nil, nil, nil)
 	Process(w, r, maxMemory)
 	test.ResponseBodyContains(t, w, "{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}")
-	configuration.Get().Authentication.Method = authentication.TypeInternal
+	configuration.Get().Authentication.Method = models.AuthenticationInternal
 }
 
 func TestChangeFriendlyName(t *testing.T) {

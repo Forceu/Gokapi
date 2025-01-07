@@ -36,6 +36,11 @@ func TestIsValidSession(t *testing.T) {
 	test.IsEqualBool(t, ok, false)
 	user, ok = IsValidSession(getRecorder([]test.Cookie{{
 		Name:  "session_token",
+		Value: ""},
+	}))
+	test.IsEqualBool(t, ok, false)
+	user, ok = IsValidSession(getRecorder([]test.Cookie{{
+		Name:  "session_token",
 		Value: "expiredsession"},
 	}))
 	test.IsEqualBool(t, ok, false)

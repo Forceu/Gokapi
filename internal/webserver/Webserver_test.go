@@ -36,6 +36,7 @@ func TestEmbedFs(t *testing.T) {
 	templates, err := template.ParseFS(templateFolderEmbedded, "web/templates/*.tmpl")
 	if err != nil {
 		t.Error("Unable to read templates")
+		return
 	}
 	if !strings.Contains(templates.DefinedTemplates(), "header") {
 		t.Error("Unable to parse templates")

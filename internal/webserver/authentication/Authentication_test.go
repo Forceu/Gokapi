@@ -36,7 +36,7 @@ func TestIsCorrectUsernameAndPassword(t *testing.T) {
 	user, ok = IsCorrectUsernameAndPassword("Admin", "adminadmin")
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualInt(t, user.Id, 5)
-	user, ok = IsCorrectUsernameAndPassword("user", "adminadmin")
+	user, ok = IsCorrectUsernameAndPassword("user", "useruser")
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualInt(t, user.Id, 7)
 	_, ok = IsCorrectUsernameAndPassword("admin", "wrong")
@@ -82,7 +82,7 @@ func testAuthHeader(t *testing.T) {
 	}}, nil)
 
 	user, ok := IsAuthenticated(w, r)
-	test.IsEqualString(t, user.Name, "testUser")
+	test.IsEqualString(t, user.Name, "testuser")
 	test.IsEqualBool(t, ok, true)
 	authSettings.HeaderUsers = []string{"testUser"}
 	_, ok = IsAuthenticated(w, r)
@@ -130,18 +130,25 @@ func TestRedirect(t *testing.T) {
 
 func TestIsValidOauthUser(t *testing.T) {
 	Init(modelOauth)
-	info := OAuthUserInfo{Subject: "randomid"}
+	info := OAuthUserInfo{Email: "", Subject: "randomid"}
+	test.IsEqualBool(t, isValidOauthUser(info, []string{}), false)
+	info.Email = "newemail"
 	test.IsEqualBool(t, isValidOauthUser(info, []string{}), true)
 	test.IsEqualBool(t, isValidOauthUser(info, []string{"test2"}), true)
 	authSettings.OAuthUsers = []string{"otheruser"}
 	test.IsEqualBool(t, isValidOauthUser(info, []string{}), false)
+	info.Email = "otheruser"
 	test.IsEqualBool(t, isValidOauthUser(info, []string{}), true)
 	authSettings.OAuthGroupScope = "group"
 	authSettings.OAuthGroups = []string{"othergroup"}
+	info.Email = "test1"
 	test.IsEqualBool(t, isValidOauthUser(info, []string{}), false)
+	info.Email = "otheruser"
 	test.IsEqualBool(t, isValidOauthUser(info, []string{}), false)
+	info.Email = "test1"
 	test.IsEqualBool(t, isValidOauthUser(info, []string{"testgroup"}), false)
 	test.IsEqualBool(t, isValidOauthUser(info, []string{"testgroup", "othergroup"}), false)
+	info.Email = "otheruser"
 	test.IsEqualBool(t, isValidOauthUser(info, []string{"othergroup"}), true)
 	test.IsEqualBool(t, isValidOauthUser(info, []string{"testgroup", "othergroup"}), true)
 	info.Subject = ""
@@ -244,6 +251,11 @@ func TestCheckOauthUser(t *testing.T) {
 	info.Subject = "random"
 	output, err = getOuthUserOutput(t, info)
 	test.IsNil(t, err)
+	test.IsEqualString(t, redirectsToSite(output), "error-auth")
+
+	info.Email = "random"
+	output, err = getOuthUserOutput(t, info)
+	test.IsNil(t, err)
 	test.IsEqualString(t, redirectsToSite(output), "admin")
 
 	info.Email = "test@test.com"
@@ -262,6 +274,8 @@ func TestCheckOauthUser(t *testing.T) {
 	test.IsNil(t, err)
 	test.IsEqualString(t, redirectsToSite(output), "error-auth")
 
+	authSettings.OAuthGroups = []string{"otheruser@test"}
+	authSettings.OAuthGroupScope = "groupscope"
 	newClaims := testInfo{Output: []byte("{invalid")}
 	info.ClaimsSent = newClaims
 	_, err = getOuthUserOutput(t, info)
@@ -291,7 +305,7 @@ func getOuthUserOutput(t *testing.T, info OAuthUserInfo) (string, error) {
 
 var modelUserPW = models.AuthenticationConfig{
 	Method:            models.AuthenticationInternal,
-	SaltAdmin:         "1234",
+	SaltAdmin:         testconfiguration.SaltAdmin,
 	SaltFiles:         "1234",
 	Username:          "admin",
 	HeaderKey:         "",
@@ -305,7 +319,7 @@ var modelUserPW = models.AuthenticationConfig{
 }
 var modelOauth = models.AuthenticationConfig{
 	Method:            models.AuthenticationOAuth2,
-	SaltAdmin:         "1234",
+	SaltAdmin:         testconfiguration.SaltAdmin,
 	SaltFiles:         "1234",
 	Username:          "",
 	HeaderKey:         "",
@@ -319,7 +333,7 @@ var modelOauth = models.AuthenticationConfig{
 }
 var modelHeader = models.AuthenticationConfig{
 	Method:            models.AuthenticationHeader,
-	SaltAdmin:         "1234",
+	SaltAdmin:         testconfiguration.SaltAdmin,
 	SaltFiles:         "1234",
 	Username:          "",
 	HeaderKey:         "testHeader",
@@ -333,7 +347,7 @@ var modelHeader = models.AuthenticationConfig{
 }
 var modelDisabled = models.AuthenticationConfig{
 	Method:            models.AuthenticationDisabled,
-	SaltAdmin:         "1234",
+	SaltAdmin:         testconfiguration.SaltAdmin,
 	SaltFiles:         "1234",
 	Username:          "",
 	HeaderKey:         "",

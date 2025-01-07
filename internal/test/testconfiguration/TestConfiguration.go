@@ -3,6 +3,9 @@
 package testconfiguration
 
 import (
+	"crypto/sha1"
+	"encoding/hex"
+	"errors"
 	"fmt"
 	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/helper"
@@ -23,6 +26,7 @@ const (
 	dataDir    = baseDir + "/data"
 	configFile = baseDir + "/config.json"
 	SqliteUrl  = "sqlite://" + dataDir + "/gokapi.sqlite"
+	SaltAdmin  = "LW6fW4Pjv8GtdWVLSZD66gYEev6NAaXxOVBw7C"
 )
 
 func SetDirEnv() {
@@ -76,7 +80,7 @@ func writeUsers() {
 		Permissions:   models.UserPermissionAll,
 		UserLevel:     models.UserLevelSuperAdmin,
 		LastOnline:    0,
-		Password:      "10340aece68aa4fb14507ae45b05506026f276cf",
+		Password:      hashSalt("adminadmin", "LW6fW4Pjv8GtdWVLSZD66gYEev6NAaXxOVBw7C"),
 		ResetPassword: false,
 	}
 	user := models.User{
@@ -85,11 +89,25 @@ func writeUsers() {
 		Permissions:   models.UserPermissionNone,
 		UserLevel:     models.UserLevelUser,
 		LastOnline:    0,
-		Password:      "10340aece68aa4fb14507ae45b05506026f276cf",
+		Password:      hashSalt("useruser", "LW6fW4Pjv8GtdWVLSZD66gYEev6NAaXxOVBw7C"),
 		ResetPassword: false,
 	}
 	database.SaveUser(admin, false)
 	database.SaveUser(user, false)
+}
+
+// Copied from configuration
+func hashSalt(password, salt string) string {
+	if password == "" {
+		return ""
+	}
+	if salt == "" {
+		panic(errors.New("no salt provided"))
+	}
+	pwBytes := []byte(password + salt)
+	hash := sha1.New()
+	hash.Write(pwBytes)
+	return hex.EncodeToString(hash.Sum(nil))
 }
 
 // WriteEncryptedFile writes metadata for an encrypted file and returns the id
@@ -382,7 +400,7 @@ func writeTestFiles() {
 var configTestFile = []byte(`{
 "Authentication": {
     "Method": 0,
-    "SaltAdmin": "LW6fW4Pjv8GtdWVLSZD66gYEev6NAaXxOVBw7C",
+    "SaltAdmin": "` + SaltAdmin + `",
     "SaltFiles": "lL5wMTtnVCn5TPbpRaSe4vAQodWW0hgk00WCZE",
     "Username": "test",
     "HeaderKey": "",
