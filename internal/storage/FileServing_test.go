@@ -2,6 +2,7 @@ package storage
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
 	"github.com/forceu/gokapi/internal/configuration/database"
@@ -43,7 +44,10 @@ var idNewFile string
 func TestGetFile(t *testing.T) {
 	_, result := GetFile("invalid")
 	test.IsEqualBool(t, result, false)
+
 	file, result := GetFile("Wzol7LyY2QVczXynJtVo")
+	fmt.Println(configuration.Get().DataDir)
+	fmt.Println(configuration.Get().DatabaseUrl)
 	test.IsEqualBool(t, result, true)
 	test.IsEqualString(t, file.Id, "Wzol7LyY2QVczXynJtVo")
 	test.IsEqualString(t, file.Name, "smallfile2")
@@ -131,6 +135,7 @@ type testFile struct {
 	File    models.File
 	Request models.UploadRequest
 	Header  multipart.FileHeader
+	UserId  int
 	Content []byte
 }
 
@@ -156,12 +161,13 @@ func createRawTestFile(content []byte) (multipart.FileHeader, models.UploadReque
 func createTestFile() (testFile, error) {
 	content := []byte("This is a file for testing purposes")
 	header, request := createRawTestFile(content)
-	file, err := NewFile(bytes.NewReader(content), &header, request)
+	file, err := NewFile(bytes.NewReader(content), &header, 63, request)
 	return testFile{
 		File:    file,
 		Request: request,
 		Header:  header,
 		Content: content,
+		UserId:  63,
 	}, err
 }
 
@@ -205,18 +211,19 @@ func TestNewFile(t *testing.T) {
 	idNewFile = file.Id
 
 	request.UnlimitedDownload = true
-	file, err = NewFile(bytes.NewReader(content), &header, request)
+	file, err = NewFile(bytes.NewReader(content), &header, 99, request)
 	test.IsNil(t, err)
+	test.IsEqualInt(t, file.UserId, 99)
 	test.IsEqualBool(t, file.UnlimitedTime, false)
 	test.IsEqualBool(t, file.UnlimitedDownloads, true)
 	request.UnlimitedDownload = false
 	request.UnlimitedTime = true
-	file, err = NewFile(bytes.NewReader(content), &header, request)
+	file, err = NewFile(bytes.NewReader(content), &header, 99, request)
 	test.IsNil(t, err)
 	test.IsEqualBool(t, file.UnlimitedTime, true)
 	test.IsEqualBool(t, file.UnlimitedDownloads, false)
 	request.UnlimitedDownload = true
-	file, err = NewFile(bytes.NewReader(content), &header, request)
+	file, err = NewFile(bytes.NewReader(content), &header, 99, request)
 	test.IsNil(t, err)
 	test.IsEqualBool(t, file.UnlimitedTime, true)
 	test.IsEqualBool(t, file.UnlimitedDownloads, true)
@@ -238,7 +245,7 @@ func TestNewFile(t *testing.T) {
 		MaxMemory:        10,
 	}
 	// Also testing renaming of temp file
-	file, err = NewFile(bigFile, &header, request)
+	file, err = NewFile(bigFile, &header, 99, request)
 	test.IsNil(t, err)
 	retrievedFile, ok = database.GetMetaDataById(file.Id)
 	test.IsEqualBool(t, ok, true)
@@ -270,7 +277,7 @@ func TestNewFile(t *testing.T) {
 		ExpiryTimestamp:  2147483600,
 		MaxMemory:        10,
 	}
-	file, err = NewFile(bigFile, &header, request)
+	file, err = NewFile(bigFile, &header, 99, request)
 	test.IsNotNil(t, err)
 	retrievedFile, ok = database.GetMetaDataById(file.Id)
 	test.IsEqualBool(t, ok, false)
@@ -296,7 +303,7 @@ func TestNewFile(t *testing.T) {
 	createBigFile("bigfile", 20)
 	header.Size = int64(20) * 1024 * 1024
 	bigFile, _ = os.Open("bigfile")
-	file, err = NewFile(bigFile, &header, request)
+	file, err = NewFile(bigFile, &header, 99, request)
 	test.IsNil(t, err)
 	retrievedFile, ok = database.GetMetaDataById(file.Id)
 	test.IsEqualBool(t, ok, true)
@@ -307,7 +314,7 @@ func TestNewFile(t *testing.T) {
 	database.DeleteMetaData(retrievedFile.Id)
 
 	bigFile, _ = os.Open("bigfile")
-	file, err = NewFile(bigFile, &header, request)
+	file, err = NewFile(bigFile, &header, 99, request)
 	test.IsNil(t, err)
 	retrievedFile, ok = database.GetMetaDataById(file.Id)
 	test.IsEqualBool(t, ok, true)
@@ -333,7 +340,7 @@ func TestNewFile(t *testing.T) {
 		test.IsEqualBool(t, ok, true)
 		ok = aws.Init(config.Aws)
 		test.IsEqualBool(t, ok, true)
-		file, err = NewFile(bytes.NewReader(content), &header, request)
+		file, err = NewFile(bytes.NewReader(content), &header, 99, request)
 		test.IsNil(t, err)
 		retrievedFile, ok = database.GetMetaDataById(file.Id)
 		test.IsEqualBool(t, ok, true)
@@ -348,7 +355,7 @@ func TestNewFileFromChunk(t *testing.T) {
 	test.FileDoesNotExist(t, "test/data/6cca7a6905774e6d61a77dca3ad7a1f44581d6ab")
 	id, header, request, err := createTestChunk()
 	test.IsNil(t, err)
-	file, err := NewFileFromChunk(id, header, request)
+	file, err := NewFileFromChunk(id, header, 99, request)
 	test.IsNil(t, err)
 	test.IsEqualString(t, file.Name, "test.dat")
 	test.IsEqualString(t, file.Size, "41 B")
@@ -373,7 +380,7 @@ func TestNewFileFromChunk(t *testing.T) {
 	request.UnlimitedTime = true
 	request.UnlimitedDownload = true
 	test.IsNil(t, err)
-	file, err = NewFileFromChunk(id, header, request)
+	file, err = NewFileFromChunk(id, header, 99, request)
 	test.IsNil(t, err)
 	test.IsEqualString(t, file.Name, "newfile")
 	test.IsEqualString(t, file.Size, "41 B")
@@ -395,15 +402,15 @@ func TestNewFileFromChunk(t *testing.T) {
 	err = os.Remove("test/data/6cca7a6905774e6d61a77dca3ad7a1f44581d6ab")
 	test.IsNil(t, err)
 
-	_, err = NewFileFromChunk("invalid", header, request)
+	_, err = NewFileFromChunk("invalid", header, 99, request)
 	test.IsNotNil(t, err)
 	id, header, request, err = createTestChunk()
 	test.IsNil(t, err)
 	header.Size = 100000
-	file, err = NewFileFromChunk(id, header, request)
+	file, err = NewFileFromChunk(id, header, 99, request)
 	test.IsNotNil(t, err)
 
-	_, err = NewFileFromChunk("", header, request)
+	_, err = NewFileFromChunk("", header, 99, request)
 	test.IsNotNil(t, err)
 
 	if aws.IsIncludedInBuild {
@@ -414,7 +421,7 @@ func TestNewFileFromChunk(t *testing.T) {
 		test.IsEqualBool(t, ok, true)
 		id, header, request, err = createTestChunk()
 		test.IsNil(t, err)
-		file, err = NewFileFromChunk(id, header, request)
+		file, err = NewFileFromChunk(id, header, 99, request)
 		test.IsNil(t, err)
 		test.IsEqualBool(t, file.AwsBucket != "", true)
 		test.IsEqualString(t, file.SHA1, "6cca7a6905774e6d61a77dca3ad7a1f44581d6ab")

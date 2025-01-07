@@ -27,24 +27,31 @@ func getRecorder(cookies []test.Cookie) (*httptest.ResponseRecorder, *http.Reque
 }
 
 func TestIsValidSession(t *testing.T) {
-	test.IsEqualBool(t, IsValidSession(getRecorder(nil)), false)
-	test.IsEqualBool(t, IsValidSession(getRecorder([]test.Cookie{{
+	user, ok := IsValidSession(getRecorder(nil))
+	test.IsEqualBool(t, ok, false)
+	user, ok = IsValidSession(getRecorder([]test.Cookie{{
 		Name:  "session_token",
 		Value: "invalid"},
-	})), false)
-	test.IsEqualBool(t, IsValidSession(getRecorder([]test.Cookie{{
+	}))
+	test.IsEqualBool(t, ok, false)
+	user, ok = IsValidSession(getRecorder([]test.Cookie{{
 		Name:  "session_token",
 		Value: "expiredsession"},
-	})), false)
-	test.IsEqualBool(t, IsValidSession(getRecorder([]test.Cookie{{
+	}))
+	test.IsEqualBool(t, ok, false)
+	user, ok = IsValidSession(getRecorder([]test.Cookie{{
 		Name:  "session_token",
 		Value: "validsession"},
-	})), true)
+	}))
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualInt(t, user.Id, 7)
 	w, r, _, _ := getRecorder([]test.Cookie{{
 		Name:  "session_token",
 		Value: "needsRenewal"},
 	})
-	test.IsEqualBool(t, IsValidSession(w, r, false, 1), true)
+	user, ok = IsValidSession(w, r, false, 1)
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualInt(t, user.Id, 7)
 	cookies := w.Result().Cookies()
 	test.IsEqualInt(t, len(cookies), 1)
 	test.IsEqualString(t, cookies[0].Name, "session_token")
@@ -55,30 +62,36 @@ func TestIsValidSession(t *testing.T) {
 
 func TestCreateSession(t *testing.T) {
 	w, _, _, _ := getRecorder(nil)
-	CreateSession(w, false, 1)
+	CreateSession(w, false, 1, 5)
 	cookies := w.Result().Cookies()
 	test.IsEqualInt(t, len(cookies), 1)
 	test.IsEqualString(t, cookies[0].Name, "session_token")
 	newSession = cookies[0].Value
 	test.IsEqualInt(t, len(newSession), 60)
-	test.IsEqualBool(t, IsValidSession(getRecorder([]test.Cookie{{
+
+	user, ok := IsValidSession(getRecorder([]test.Cookie{{
 		Name:  "session_token",
 		Value: newSession},
-	})), true)
+	}))
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualInt(t, user.Id, 5)
 }
 
 func TestLogoutSession(t *testing.T) {
-	test.IsEqualBool(t, IsValidSession(getRecorder([]test.Cookie{{
+	user, ok := IsValidSession(getRecorder([]test.Cookie{{
 		Name:  "session_token",
 		Value: newSession},
-	})), true)
+	}))
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualInt(t, user.Id, 5)
 	w, r, _, _ := getRecorder([]test.Cookie{{
 		Name:  "session_token",
 		Value: newSession},
 	})
 	LogoutSession(w, r)
-	test.IsEqualBool(t, IsValidSession(getRecorder([]test.Cookie{{
+	_, ok = IsValidSession(getRecorder([]test.Cookie{{
 		Name:  "session_token",
 		Value: newSession},
-	})), false)
+	}))
+	test.IsEqualBool(t, ok, false)
 }

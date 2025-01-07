@@ -73,31 +73,31 @@ func GetUserFromRequest(r *http.Request) (models.User, error) {
 }
 
 // IsAuthenticated returns true and the user ID if authenticated
-func IsAuthenticated(w http.ResponseWriter, r *http.Request) (bool, models.User) {
+func IsAuthenticated(w http.ResponseWriter, r *http.Request) (models.User, bool) {
 	switch authSettings.Method {
 	case models.AuthenticationInternal:
 		user, ok := isGrantedSession(w, r)
 		if ok {
-			return true, user
+			return user, true
 		}
 	case models.AuthenticationOAuth2:
 		user, ok := isGrantedSession(w, r)
 		if ok {
-			return true, user
+			return user, true
 		}
 	case models.AuthenticationHeader:
 		user, ok := isGrantedHeader(r)
 		if ok {
-			return true, user
+			return user, true
 		}
 	case models.AuthenticationDisabled:
 		adminUser, ok := database.GetSuperAdmin()
 		if !ok {
 			panic("no super admin found")
 		}
-		return true, adminUser
+		return adminUser, true
 	}
-	return false, models.User{}
+	return models.User{}, false
 }
 
 // isGrantedHeader returns true if the user was authenticated by a proxy header if enabled

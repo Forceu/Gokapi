@@ -24,7 +24,6 @@ func TestLoad(t *testing.T) {
 	test.IsEqualString(t, serverSettings.Port, "127.0.0.1:53843")
 	test.IsEqualString(t, serverSettings.Authentication.Username, "test")
 	test.IsEqualString(t, serverSettings.ServerUrl, "http://127.0.0.1:53843/")
-	test.IsEqualString(t, serverSettings.Authentication.Password, "10340aece68aa4fb14507ae45b05506026f276cf")
 	test.IsEqualString(t, HashPassword("testtest", false), "10340aece68aa4fb14507ae45b05506026f276cf")
 	test.IsEqualBool(t, serverSettings.UseSsl, false)
 	test.IsEqualInt(t, serverSettings.LengthId, 20)
@@ -71,11 +70,11 @@ func TestLoadFromSetup(t *testing.T) {
 	}}
 
 	testconfiguration.WriteCloudConfigFile(true)
-	LoadFromSetup(newConfig, nil, End2EndReconfigParameters{})
+	LoadFromSetup(newConfig, nil, End2EndReconfigParameters{}, "")
 	test.FileDoesNotExist(t, "test/cloudconfig.yml")
 	test.IsEqualString(t, serverSettings.RedirectUrl, "redirect")
 
-	LoadFromSetup(newConfig, &newCloudConfig, End2EndReconfigParameters{})
+	LoadFromSetup(newConfig, &newCloudConfig, End2EndReconfigParameters{}, "")
 	test.FileExists(t, "test/cloudconfig.yml")
 	config, ok := cloudconfig.Load()
 	test.IsEqualBool(t, ok, true)

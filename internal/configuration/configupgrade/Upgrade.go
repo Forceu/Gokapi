@@ -23,6 +23,8 @@ var LegacyPasswordHash string
 // CurrentConfigVersion is the version of the configuration structure. Used for upgrading
 const CurrentConfigVersion = 22
 
+const minConfigVersion = 21
+
 // DoUpgrade checks if an old version is present and updates it to the current version if required
 func DoUpgrade(settings *models.Configuration, env *environment.Environment) bool {
 	if settings.ConfigVersion < CurrentConfigVersion {
@@ -37,7 +39,7 @@ func DoUpgrade(settings *models.Configuration, env *environment.Environment) boo
 // Upgrades the settings if saved with a previous version
 func updateConfig(settings *models.Configuration, env *environment.Environment) {
 	// < v1.9.0
-	if settings.ConfigVersion < 21 {
+	if settings.ConfigVersion < minConfigVersion {
 		fmt.Println("Please update to version 1.9.6 before running this version.")
 		osExit(1)
 		return

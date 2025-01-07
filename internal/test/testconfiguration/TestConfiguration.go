@@ -22,6 +22,7 @@ const (
 	baseDir    = "test"
 	dataDir    = baseDir + "/data"
 	configFile = baseDir + "/config.json"
+	SqliteUrl  = "sqlite://" + dataDir + "/gokapi.sqlite"
 )
 
 func SetDirEnv() {
@@ -37,10 +38,6 @@ func SetDirEnv() {
 	}
 }
 
-func GetSqliteUrl() string {
-	return "sqlite://" + dataDir + "/gokapi.sqlite"
-}
-
 // Create creates a configuration for unit testing. If initFiles is set, test metaData and content is created
 func Create(initFiles bool) {
 	SetDirEnv()
@@ -48,12 +45,12 @@ func Create(initFiles bool) {
 	if err != nil {
 		panic(err)
 	}
-	config, err := database.ParseUrl(GetSqliteUrl(), false)
+	config, err := database.ParseUrl(SqliteUrl, false)
 	if err != nil {
 		panic(err)
 	}
 	database.Connect(config)
-	writeAdmin()
+	writeUsers()
 	writeTestSessions()
 	writeTestFiles()
 	database.SaveHotlink(models.File{Id: "n1tSTAGj8zan9KaT4u6p", HotlinkId: "PhSs6mFtf8O5YGlLMfNw9rYXx9XRNkzCnJZpQBi7inunv3Z4A.jpg", ExpireAt: time.Now().Add(time.Hour).Unix()})
@@ -72,9 +69,9 @@ func Create(initFiles bool) {
 	}
 }
 
-func writeAdmin() {
+func writeUsers() {
 	admin := models.User{
-		Id:            7,
+		Id:            5,
 		Name:          "Admin",
 		Permissions:   models.UserPermissionAll,
 		UserLevel:     models.UserLevelSuperAdmin,
@@ -82,7 +79,17 @@ func writeAdmin() {
 		Password:      "10340aece68aa4fb14507ae45b05506026f276cf",
 		ResetPassword: false,
 	}
+	user := models.User{
+		Id:            7,
+		Name:          "User",
+		Permissions:   models.UserPermissionNone,
+		UserLevel:     models.UserLevelUser,
+		LastOnline:    0,
+		Password:      "10340aece68aa4fb14507ae45b05506026f276cf",
+		ResetPassword: false,
+	}
 	database.SaveUser(admin, false)
+	database.SaveUser(user, false)
 }
 
 // WriteEncryptedFile writes metadata for an encrypted file and returns the id
@@ -215,22 +222,30 @@ func writeApiKeys() {
 		Id:           "validkey",
 		FriendlyName: "First Key",
 		Permissions:  models.ApiPermAll, // TODO
+		UserId:       5,
+		PublicId:     "Queime3iun",
 	})
 	database.SaveApiKey(models.ApiKey{
 		Id:           "GAh1IhXDvYnqfYLazWBqMB9HSFmNPO",
 		FriendlyName: "Second Key",
 		LastUsed:     1620671580,
 		Permissions:  models.ApiPermAll, // TODO
+		UserId:       5,
+		PublicId:     "Xoox8chaiX",
 	})
 	database.SaveApiKey(models.ApiKey{
 		Id:           "jiREglQJW0bOqJakfjdVfe8T1EM8n8",
 		FriendlyName: "Unnamed Key",
 		Permissions:  models.ApiPermAll, // TODO
+		UserId:       5,
+		PublicId:     "giD8peitoo",
 	})
 	database.SaveApiKey(models.ApiKey{
 		Id:           "okeCMWqhVMZSpt5c1qpCWhKvJJPifb",
 		FriendlyName: "Unnamed Key",
 		Permissions:  models.ApiPermAll, // TODO
+		UserId:       5,
+		PublicId:     "gahNg6geaf",
 	})
 }
 
@@ -244,6 +259,7 @@ func writeTestFiles() {
 		ExpireAtString:     "2021-05-04 15:19",
 		DownloadsRemaining: 1,
 		ContentType:        "text/html",
+		UserId:             5,
 	})
 	database.SaveMetaData(models.File{
 		Id:                 "e4TjE7CokWK0giiLNxDL",
@@ -254,6 +270,7 @@ func writeTestFiles() {
 		ExpireAtString:     "2021-05-04 15:19",
 		DownloadsRemaining: 2,
 		ContentType:        "text/html",
+		UserId:             5,
 	})
 	database.SaveMetaData(models.File{
 		Id:                 "wefffewhtrhhtrhtrhtr",
@@ -264,6 +281,7 @@ func writeTestFiles() {
 		ExpireAtString:     "2021-05-04 15:19",
 		DownloadsRemaining: 1,
 		ContentType:        "text/html",
+		UserId:             5,
 	})
 	database.SaveMetaData(models.File{
 		Id:                 "deletedfile123456789",
@@ -274,6 +292,7 @@ func writeTestFiles() {
 		ExpireAtString:     "2021-05-04 15:19",
 		DownloadsRemaining: 2,
 		ContentType:        "text/html",
+		UserId:             5,
 	})
 	database.SaveMetaData(models.File{
 		Id:                 "jpLXGJKigM4hjtA6T6sN",
@@ -285,6 +304,7 @@ func writeTestFiles() {
 		DownloadsRemaining: 1,
 		ContentType:        "text/html",
 		PasswordHash:       "7b30508aa9b233ab4b8a11b2af5816bdb58ca3e7",
+		UserId:             5,
 	})
 	database.SaveMetaData(models.File{
 		Id:                 "jpLXGJKigM4hjtA6T6sN2",
@@ -296,6 +316,7 @@ func writeTestFiles() {
 		DownloadsRemaining: 1,
 		ContentType:        "text/html",
 		PasswordHash:       "7b30508aa9b233ab4b8a11b2af5816bdb58ca3e7",
+		UserId:             5,
 	})
 	database.SaveMetaData(models.File{
 		Id:                 "n1tSTAGj8zan9KaT4u6p",
@@ -307,6 +328,7 @@ func writeTestFiles() {
 		DownloadsRemaining: 1,
 		ContentType:        "text/html",
 		HotlinkId:          "PhSs6mFtf8O5YGlLMfNw9rYXx9XRNkzCnJZpQBi7inunv3Z4A.jpg",
+		UserId:             5,
 	})
 	database.SaveMetaData(models.File{
 		Id:                 "cleanuptest123456789",
@@ -317,6 +339,7 @@ func writeTestFiles() {
 		ExpireAtString:     "2021-05-04 15:19",
 		DownloadsRemaining: 0,
 		ContentType:        "text/html",
+		UserId:             5,
 	})
 	database.SaveMetaData(models.File{
 		Id:                 "awsTest1234567890123",
@@ -328,6 +351,7 @@ func writeTestFiles() {
 		DownloadsRemaining: 4,
 		ContentType:        "application/octet-stream",
 		AwsBucket:          "gokapi-test",
+		UserId:             5,
 	})
 	database.SaveMetaData(models.File{
 		Id:                 "unlimitedDownload",
@@ -339,6 +363,7 @@ func writeTestFiles() {
 		DownloadsRemaining: 0,
 		ContentType:        "text/html",
 		UnlimitedDownloads: true,
+		UserId:             5,
 	})
 	database.SaveMetaData(models.File{
 		Id:                 "unlimitedTime",
@@ -350,6 +375,7 @@ func writeTestFiles() {
 		DownloadsRemaining: 1,
 		ContentType:        "text/html",
 		UnlimitedTime:      true,
+		UserId:             5,
 	})
 }
 
@@ -373,8 +399,8 @@ var configTestFile = []byte(`{
   "ServerUrl": "http://127.0.0.1:53843/",
   "RedirectUrl": "https://test.com/",
   "PublicName": "Gokapi Test Version",
-  "DataDir": "test",
-  "DatabaseUrl": "sqlite://./test/test",
+  "DataDir": "` + dataDir + `",
+  "DatabaseUrl": "` + SqliteUrl + `",
   "ConfigVersion": 22,
   "LengthId": 20,
   "MaxFileSizeMB": 25,

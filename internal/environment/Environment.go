@@ -98,10 +98,10 @@ func (e *Environment) IsAwsProvided() bool {
 
 // GetConfigPaths returns the config paths to config files and the directory containing the files. The following results are returned:
 // Path to config file, Path to directory containing config file, Name of config file, Path to AWS config file
-func GetConfigPaths() (string, string, string, string) {
+func GetConfigPaths() (pathConfigFile, pathConfigDir, nameConfigFile, pathAwsConfig string) {
 	env := New()
-	awsConfigPAth := env.ConfigDir + "/cloudconfig.yml"
-	return env.ConfigPath, env.ConfigDir, env.ConfigFile, awsConfigPAth
+	pathAwsConfig = env.ConfigDir + "/cloudconfig.yml"
+	return env.ConfigPath, env.ConfigDir, env.ConfigFile, pathAwsConfig
 }
 
 var osExit = os.Exit

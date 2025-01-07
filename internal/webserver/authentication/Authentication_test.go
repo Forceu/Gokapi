@@ -26,13 +26,21 @@ func TestMain(m *testing.M) {
 
 func TestInit(t *testing.T) {
 	Init(modelUserPW)
-	test.IsEqualInt(t, authSettings.Method, TypeInternal)
+	test.IsEqualInt(t, authSettings.Method, models.AuthenticationInternal)
 	test.IsEqualString(t, authSettings.Username, "admin")
 }
 
 func TestIsCorrectUsernameAndPassword(t *testing.T) {
-	test.IsEqualBool(t, IsCorrectUsernameAndPassword("admin", "adminadmin"), true)
-	test.IsEqualBool(t, IsCorrectUsernameAndPassword("admin", "wrong"), false)
+	user, ok := IsCorrectUsernameAndPassword("admin", "adminadmin")
+	test.IsEqualBool(t, ok, true)
+	user, ok = IsCorrectUsernameAndPassword("Admin", "adminadmin")
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualInt(t, user.Id, 5)
+	user, ok = IsCorrectUsernameAndPassword("user", "adminadmin")
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualInt(t, user.Id, 7)
+	_, ok = IsCorrectUsernameAndPassword("admin", "wrong")
+	test.IsEqualBool(t, ok, false)
 }
 
 func TestIsAuthenticated(t *testing.T) {
@@ -41,55 +49,69 @@ func TestIsAuthenticated(t *testing.T) {
 	testAuthDisabled(t)
 	w, r := test.GetRecorder("GET", "/", nil, nil, nil)
 	authSettings.Method = -1
-	test.IsEqualBool(t, IsAuthenticated(w, r), false)
+	_, ok := IsAuthenticated(w, r)
+	test.IsEqualBool(t, ok, false)
 }
 
 func testAuthSession(t *testing.T) {
 	w, r := test.GetRecorder("GET", "/", nil, nil, nil)
 	Init(modelUserPW)
-	test.IsEqualBool(t, IsAuthenticated(w, r), false)
+	_, ok := IsAuthenticated(w, r)
+	test.IsEqualBool(t, ok, false)
 	Init(modelOauth)
-	test.IsEqualBool(t, IsAuthenticated(w, r), false)
+	_, ok = IsAuthenticated(w, r)
+	test.IsEqualBool(t, ok, false)
 	Init(modelUserPW)
 	w, r = test.GetRecorder("GET", "/", []test.Cookie{{
 		Name:  "session_token",
 		Value: "validsession",
 	}}, nil, nil)
-	test.IsEqualBool(t, IsAuthenticated(w, r), true)
+	user, ok := IsAuthenticated(w, r)
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualInt(t, user.Id, 7)
 }
 
 func testAuthHeader(t *testing.T) {
 	w, r := test.GetRecorder("GET", "/", nil, nil, nil)
 	Init(modelHeader)
-	test.IsEqualBool(t, IsAuthenticated(w, r), false)
+	_, ok := IsAuthenticated(w, r)
+	test.IsEqualBool(t, ok, false)
 	w, r = test.GetRecorder("GET", "/", nil, []test.Header{{
 		Name:  "testHeader",
 		Value: "testUser",
 	}}, nil)
-	test.IsEqualBool(t, IsAuthenticated(w, r), true)
+
+	user, ok := IsAuthenticated(w, r)
+	test.IsEqualString(t, user.Name, "testUser")
+	test.IsEqualBool(t, ok, true)
 	authSettings.HeaderUsers = []string{"testUser"}
-	test.IsEqualBool(t, IsAuthenticated(w, r), true)
+	_, ok = IsAuthenticated(w, r)
+	test.IsEqualBool(t, ok, true)
 	authSettings.HeaderUsers = []string{"otherUser"}
-	test.IsEqualBool(t, IsAuthenticated(w, r), false)
+	_, ok = IsAuthenticated(w, r)
+	test.IsEqualBool(t, ok, false)
 	authSettings.HeaderKey = ""
 	authSettings.HeaderUsers = []string{}
-	test.IsEqualBool(t, IsAuthenticated(w, r), false)
+	_, ok = IsAuthenticated(w, r)
+	test.IsEqualBool(t, ok, false)
 }
 
 func testAuthDisabled(t *testing.T) {
 	w, r := test.GetRecorder("GET", "/", nil, nil, nil)
 	Init(modelDisabled)
-	test.IsEqualBool(t, IsAuthenticated(w, r), true)
+	user, ok := IsAuthenticated(w, r)
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualInt(t, user.Id, 5)
 }
 
 func TestIsLogoutAvailable(t *testing.T) {
-	authSettings.Method = TypeInternal
+	authSettings.Method = models.AuthenticationInternal
 	test.IsEqualBool(t, IsLogoutAvailable(), true)
-	authSettings.Method = TypeOAuth2
+	authSettings.Method = models.AuthenticationOAuth2
 	test.IsEqualBool(t, IsLogoutAvailable(), true)
-	authSettings.Method = TypeHeader
+	authSettings.Method = models.AuthenticationHeader
 	test.IsEqualBool(t, IsLogoutAvailable(), false)
-	authSettings.Method = TypeDisabled
+	authSettings.Method = models.AuthenticationDisabled
 	test.IsEqualBool(t, IsLogoutAvailable(), false)
 }
 
@@ -109,22 +131,21 @@ func TestRedirect(t *testing.T) {
 func TestIsValidOauthUser(t *testing.T) {
 	Init(modelOauth)
 	info := OAuthUserInfo{Subject: "randomid"}
-	test.IsEqualBool(t, isValidOauthUser(info, "", []string{}), true)
-	test.IsEqualBool(t, isValidOauthUser(info, "test1", []string{"test2"}), true)
-	authSettings.OAuthUserScope = "user"
+	test.IsEqualBool(t, isValidOauthUser(info, []string{}), true)
+	test.IsEqualBool(t, isValidOauthUser(info, []string{"test2"}), true)
 	authSettings.OAuthUsers = []string{"otheruser"}
-	test.IsEqualBool(t, isValidOauthUser(info, "test1", []string{}), false)
-	test.IsEqualBool(t, isValidOauthUser(info, "otheruser", []string{}), true)
+	test.IsEqualBool(t, isValidOauthUser(info, []string{}), false)
+	test.IsEqualBool(t, isValidOauthUser(info, []string{}), true)
 	authSettings.OAuthGroupScope = "group"
 	authSettings.OAuthGroups = []string{"othergroup"}
-	test.IsEqualBool(t, isValidOauthUser(info, "test1", []string{}), false)
-	test.IsEqualBool(t, isValidOauthUser(info, "otheruser", []string{}), false)
-	test.IsEqualBool(t, isValidOauthUser(info, "test1", []string{"testgroup"}), false)
-	test.IsEqualBool(t, isValidOauthUser(info, "test1", []string{"testgroup", "othergroup"}), false)
-	test.IsEqualBool(t, isValidOauthUser(info, "otheruser", []string{"othergroup"}), true)
-	test.IsEqualBool(t, isValidOauthUser(info, "otheruser", []string{"testgroup", "othergroup"}), true)
+	test.IsEqualBool(t, isValidOauthUser(info, []string{}), false)
+	test.IsEqualBool(t, isValidOauthUser(info, []string{}), false)
+	test.IsEqualBool(t, isValidOauthUser(info, []string{"testgroup"}), false)
+	test.IsEqualBool(t, isValidOauthUser(info, []string{"testgroup", "othergroup"}), false)
+	test.IsEqualBool(t, isValidOauthUser(info, []string{"othergroup"}), true)
+	test.IsEqualBool(t, isValidOauthUser(info, []string{"testgroup", "othergroup"}), true)
 	info.Subject = ""
-	test.IsEqualBool(t, isValidOauthUser(info, "otheruser", []string{"testgroup", "othergroup"}), false)
+	test.IsEqualBool(t, isValidOauthUser(info, []string{"testgroup", "othergroup"}), false)
 }
 
 func TestWildcardMatch(t *testing.T) {
@@ -226,7 +247,6 @@ func TestCheckOauthUser(t *testing.T) {
 	test.IsEqualString(t, redirectsToSite(output), "admin")
 
 	info.Email = "test@test.com"
-	authSettings.OAuthUserScope = "email"
 	authSettings.OAuthUsers = []string{"otheruser"}
 	output, err = getOuthUserOutput(t, info)
 	test.IsNil(t, err)
@@ -241,10 +261,6 @@ func TestCheckOauthUser(t *testing.T) {
 	output, err = getOuthUserOutput(t, info)
 	test.IsNil(t, err)
 	test.IsEqualString(t, redirectsToSite(output), "error-auth")
-
-	authSettings.OAuthUserScope = "invalidScope"
-	_, err = getOuthUserOutput(t, info)
-	test.IsNotNil(t, err)
 
 	newClaims := testInfo{Output: []byte("{invalid")}
 	info.ClaimsSent = newClaims
@@ -274,11 +290,10 @@ func getOuthUserOutput(t *testing.T, info OAuthUserInfo) (string, error) {
 }
 
 var modelUserPW = models.AuthenticationConfig{
-	Method:            TypeInternal,
+	Method:            models.AuthenticationInternal,
 	SaltAdmin:         "1234",
 	SaltFiles:         "1234",
 	Username:          "admin",
-	Password:          "7d23732d69c050bf7a2f5ab7d979f92f33bb585e",
 	HeaderKey:         "",
 	OAuthProvider:     "",
 	OAuthClientId:     "",
@@ -286,15 +301,13 @@ var modelUserPW = models.AuthenticationConfig{
 	HeaderUsers:       nil,
 	OAuthUsers:        nil,
 	OAuthGroups:       nil,
-	OAuthUserScope:    "",
 	OAuthGroupScope:   "",
 }
 var modelOauth = models.AuthenticationConfig{
-	Method:            TypeOAuth2,
+	Method:            models.AuthenticationOAuth2,
 	SaltAdmin:         "1234",
 	SaltFiles:         "1234",
 	Username:          "",
-	Password:          "",
 	HeaderKey:         "",
 	OAuthProvider:     "test",
 	OAuthClientId:     "test",
@@ -302,15 +315,13 @@ var modelOauth = models.AuthenticationConfig{
 	HeaderUsers:       nil,
 	OAuthUsers:        nil,
 	OAuthGroups:       nil,
-	OAuthUserScope:    "",
 	OAuthGroupScope:   "",
 }
 var modelHeader = models.AuthenticationConfig{
-	Method:            TypeHeader,
+	Method:            models.AuthenticationHeader,
 	SaltAdmin:         "1234",
 	SaltFiles:         "1234",
 	Username:          "",
-	Password:          "",
 	HeaderKey:         "testHeader",
 	OAuthProvider:     "",
 	OAuthClientId:     "",
@@ -318,15 +329,13 @@ var modelHeader = models.AuthenticationConfig{
 	HeaderUsers:       nil,
 	OAuthUsers:        nil,
 	OAuthGroups:       nil,
-	OAuthUserScope:    "",
 	OAuthGroupScope:   "",
 }
 var modelDisabled = models.AuthenticationConfig{
-	Method:            TypeDisabled,
+	Method:            models.AuthenticationDisabled,
 	SaltAdmin:         "1234",
 	SaltFiles:         "1234",
 	Username:          "",
-	Password:          "",
 	HeaderKey:         "",
 	OAuthProvider:     "",
 	OAuthClientId:     "",
@@ -334,6 +343,5 @@ var modelDisabled = models.AuthenticationConfig{
 	HeaderUsers:       nil,
 	OAuthUsers:        nil,
 	OAuthGroups:       nil,
-	OAuthUserScope:    "",
 	OAuthGroupScope:   "",
 }

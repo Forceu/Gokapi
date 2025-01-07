@@ -395,7 +395,7 @@ func processApi(w http.ResponseWriter, r *http.Request) {
 // Shows a login form. If not authenticated, client needs to wait for three seconds.
 // If correct, a new session is created and the user is redirected to the admin menu
 func showLogin(w http.ResponseWriter, r *http.Request) {
-	ok, _ := authentication.IsAuthenticated(w, r)
+	_, ok := authentication.IsAuthenticated(w, r)
 	if ok {
 		redirect(w, "admin")
 		return
@@ -903,7 +903,7 @@ func serveFile(id string, isRootUrl bool, w http.ResponseWriter, r *http.Request
 func requireLogin(next http.HandlerFunc, isUiCall, isPwChangeView bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		addNoCacheHeader(w)
-		isLoggedIn, user := authentication.IsAuthenticated(w, r)
+		user, isLoggedIn := authentication.IsAuthenticated(w, r)
 		if isLoggedIn {
 			if user.ResetPassword && isUiCall && configuration.Get().Authentication.Method == models.AuthenticationInternal {
 				if !isPwChangeView {

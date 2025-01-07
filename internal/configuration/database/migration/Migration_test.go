@@ -54,7 +54,7 @@ func TestMigration(t *testing.T) {
 	err = os.Remove("tempfile")
 	test.IsNil(t, err)
 
-	dbUrl := testconfiguration.GetSqliteUrl()
+	dbUrl := testconfiguration.SqliteUrl
 	dbUrlNew := dbUrl + "2"
 	Do(flagparser.MigrateFlags{
 		Source:      dbUrl,

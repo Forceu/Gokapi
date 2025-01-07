@@ -29,21 +29,21 @@ func TestUpgradeDb(t *testing.T) {
 		exitCode = code
 	}
 	env := environment.New()
-	oldConfigFile.ConfigVersion = 15
+	// Too old to update
+	oldConfigFile.ConfigVersion = minConfigVersion - 1
 	upgradeDone := DoUpgrade(&oldConfigFile, &env)
 	test.IsEqualBool(t, upgradeDone, true)
 	test.IsEqualInt(t, exitCode, 1)
 
+	// Updatable version
 	exitCode = 0
-	oldConfigFile.ConfigVersion = 17
-	oldConfigFile.Authentication.OAuthUsers = []string{"test"}
-	oldConfigFile.MaxMemory = 40
+	oldConfigFile.ConfigVersion = 21
 	upgradeDone = DoUpgrade(&oldConfigFile, &env)
 	test.IsEqualBool(t, upgradeDone, true)
-	test.IsEqualString(t, oldConfigFile.Authentication.OAuthUserScope, "email")
-	test.IsEqualInt(t, oldConfigFile.MaxMemory, 50)
+	// TODO
 	test.IsEqualInt(t, exitCode, 0)
 
+	// Current Version
 	exitCode = 0
 	oldConfigFile.ConfigVersion = CurrentConfigVersion
 	upgradeDone = DoUpgrade(&oldConfigFile, &env)
