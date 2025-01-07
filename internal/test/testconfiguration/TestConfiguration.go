@@ -76,7 +76,7 @@ func Create(initFiles bool) {
 func writeUsers() {
 	admin := models.User{
 		Id:            5,
-		Name:          "Admin",
+		Name:          "Test",
 		Permissions:   models.UserPermissionAll,
 		UserLevel:     models.UserLevelSuperAdmin,
 		LastOnline:    0,

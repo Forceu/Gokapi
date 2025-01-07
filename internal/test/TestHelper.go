@@ -293,7 +293,7 @@ func checkResponse(t MockT, response *http.Response, config HttpTestConfig) {
 	t.Helper()
 	IsEqualBool(t, response != nil, true)
 	if response.StatusCode != config.ResultCode {
-		t.Errorf("Status Code - Got: %d Want: %d", config.ResultCode, response.StatusCode)
+		t.Errorf("Status Code - Got: %d Want: %d", response.StatusCode, config.ResultCode)
 	}
 
 	content, err := io.ReadAll(response.Body)

@@ -25,6 +25,7 @@ func TestMain(m *testing.M) {
 	testconfiguration.Create(true)
 	configuration.Load()
 	configuration.ConnectDatabase()
+	authentication.Init(configuration.Get().Authentication)
 	go Start()
 	time.Sleep(1 * time.Second)
 	exitVal := m.Run()
@@ -33,7 +34,10 @@ func TestMain(m *testing.M) {
 }
 
 func TestEmbedFs(t *testing.T) {
-	templates, err := template.ParseFS(templateFolderEmbedded, "web/templates/*.tmpl")
+	funcMap := template.FuncMap{
+		"newAdminButtonContext": newAdminButtonContext,
+	}
+	templates, err := template.New("").Funcs(funcMap).ParseFS(templateFolderEmbedded, "web/templates/*.tmpl")
 	if err != nil {
 		t.Error("Unable to read templates")
 		return
@@ -90,6 +94,7 @@ func TestLogin(t *testing.T) {
 		ResultCode: 200,
 	}
 	test.HttpPostRequest(t, config)
+
 	config.PostValues = []test.PostBody{
 		{
 			Key:   "username",
@@ -122,7 +127,7 @@ func TestLogin(t *testing.T) {
 			Value: "test",
 		}, {
 			Key:   "password",
-			Value: "testtest",
+			Value: "adminadmin",
 		},
 	}
 	cookies := test.HttpPostRequest(t, config)
@@ -262,7 +267,7 @@ func TestLoginCorrect(t *testing.T) {
 		RequiredContent: []string{"URL=./admin\""},
 		IsHtml:          true,
 		Method:          "POST",
-		PostValues:      []test.PostBody{{"username", "test"}, {"password", "testtest"}},
+		PostValues:      []test.PostBody{{"username", "test"}, {"password", "adminadmin"}},
 	})
 }
 

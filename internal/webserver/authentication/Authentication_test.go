@@ -27,19 +27,19 @@ func TestMain(m *testing.M) {
 func TestInit(t *testing.T) {
 	Init(modelUserPW)
 	test.IsEqualInt(t, authSettings.Method, models.AuthenticationInternal)
-	test.IsEqualString(t, authSettings.Username, "admin")
+	test.IsEqualString(t, authSettings.Username, "test")
 }
 
 func TestIsCorrectUsernameAndPassword(t *testing.T) {
-	user, ok := IsCorrectUsernameAndPassword("admin", "adminadmin")
+	user, ok := IsCorrectUsernameAndPassword("test", "adminadmin")
 	test.IsEqualBool(t, ok, true)
-	user, ok = IsCorrectUsernameAndPassword("Admin", "adminadmin")
+	user, ok = IsCorrectUsernameAndPassword("Test", "adminadmin")
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualInt(t, user.Id, 5)
 	user, ok = IsCorrectUsernameAndPassword("user", "useruser")
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualInt(t, user.Id, 7)
-	_, ok = IsCorrectUsernameAndPassword("admin", "wrong")
+	_, ok = IsCorrectUsernameAndPassword("test", "wrong")
 	test.IsEqualBool(t, ok, false)
 }
 
@@ -307,7 +307,7 @@ var modelUserPW = models.AuthenticationConfig{
 	Method:            models.AuthenticationInternal,
 	SaltAdmin:         testconfiguration.SaltAdmin,
 	SaltFiles:         "1234",
-	Username:          "admin",
+	Username:          "test",
 	HeaderKey:         "",
 	OAuthProvider:     "",
 	OAuthClientId:     "",
