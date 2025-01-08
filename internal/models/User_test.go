@@ -2,6 +2,7 @@ package models
 
 import (
 	"github.com/forceu/gokapi/internal/test"
+	"os"
 	"testing"
 	"time"
 )
@@ -22,6 +23,12 @@ func TestUser_GetReadableDate(t *testing.T) {
 	date = u.GetReadableDate()
 	test.IsEqualString(t, date, "Online")
 	u.LastOnline = 1736276120
+
+	lastTz := os.Getenv("TZ")
+	err := os.Setenv("TZ", "Europe/Berlin")
+	test.IsNil(t, err)
 	date = u.GetReadableDate()
 	test.IsEqualString(t, date, "2025-01-07 19:55")
+	err = os.Setenv("TZ", lastTz)
+	test.IsNil(t, err)
 }

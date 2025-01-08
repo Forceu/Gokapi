@@ -2,6 +2,7 @@ package models
 
 import (
 	"github.com/forceu/gokapi/internal/test"
+	"os"
 	"testing"
 )
 
@@ -9,7 +10,12 @@ func TestApiKey_GetReadableDate(t *testing.T) {
 	key := &ApiKey{}
 	test.IsEqualString(t, key.GetReadableDate(), "Never")
 	key.LastUsed = 1736276120
+	lastTz := os.Getenv("TZ")
+	err := os.Setenv("TZ", "Europe/Berlin")
+	test.IsNil(t, err)
 	test.IsEqualString(t, key.GetReadableDate(), "2025-01-07 19:55:20")
+	err = os.Setenv("TZ", lastTz)
+	test.IsNil(t, err)
 }
 
 func TestApiKey_GetRedactedId(t *testing.T) {
