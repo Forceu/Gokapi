@@ -107,29 +107,9 @@ func isGrantedHeader(r *http.Request) (models.User, bool) {
 	}
 	userName := r.Header.Get(authSettings.HeaderKey)
 	if userName == "" {
-
 		return models.User{}, false
 	}
-	if len(authSettings.HeaderUsers) == 0 {
-		user := getOrCreateUser(userName)
-		return user, true
-	}
-	if isUserInArray(userName, authSettings.HeaderUsers) {
-		user := getOrCreateUser(userName)
-		return user, true
-	}
-	return models.User{}, false
-}
-
-func isUserInArray(userEntered string, allowedUsers []string) bool {
-	for _, allowedUser := range allowedUsers {
-		matches, err := matchesWithWildcard(strings.ToLower(allowedUser), strings.ToLower(userEntered))
-		helper.Check(err)
-		if matches {
-			return true
-		}
-	}
-	return false
+	return getOrCreateUser(userName)
 }
 
 func matchesWithWildcard(pattern, input string) (bool, error) {
@@ -223,18 +203,22 @@ func CheckOauthUserAndRedirect(userInfo OAuthUserInfo, w http.ResponseWriter) er
 		}
 	}
 	if isValidOauthUser(userInfo, groups) {
-		user := getOrCreateUser(userInfo.Email)
-		sessionmanager.CreateSession(w, true, authSettings.OAuthRecheckInterval, user.Id)
-		redirect(w, "admin")
-		return nil
+		user, ok := getOrCreateUser(userInfo.Email)
+		if ok {
+			sessionmanager.CreateSession(w, true, authSettings.OAuthRecheckInterval, user.Id)
+			redirect(w, "admin")
+		}
 	}
 	redirect(w, "error-auth")
 	return nil
 }
 
-func getOrCreateUser(username string) models.User {
+func getOrCreateUser(username string) (models.User, bool) {
 	user, ok := database.GetUserByName(username)
 	if !ok {
+		if authSettings.OnlyRegisteredUsers {
+			return models.User{}, false
+		}
 		user = models.User{
 			Name:      username,
 			UserLevel: models.UserLevelUser,
@@ -245,7 +229,7 @@ func getOrCreateUser(username string) models.User {
 			panic("unable to read new user")
 		}
 	}
-	return user
+	return user, true
 }
 
 func isValidOauthUser(userInfo OAuthUserInfo, groups []string) bool {
@@ -255,15 +239,11 @@ func isValidOauthUser(userInfo OAuthUserInfo, groups []string) bool {
 	if userInfo.Email == "" {
 		return false
 	}
-	isValidUser := true
-	if len(authSettings.OAuthUsers) > 0 {
-		isValidUser = isUserInArray(userInfo.Email, authSettings.OAuthUsers)
-	}
 	isValidGroup := true
 	if len(authSettings.OAuthGroups) > 0 {
 		isValidGroup = isGroupInArray(groups, authSettings.OAuthGroups)
 	}
-	return isValidUser && isValidGroup
+	return isValidGroup
 }
 
 // isGrantedSession returns true if the user holds a valid internal session cookie

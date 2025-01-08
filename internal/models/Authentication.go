@@ -12,9 +12,8 @@ type AuthenticationConfig struct {
 	OAuthClientSecret    string   `json:"OAuthClientSecret"`
 	OAuthGroupScope      string   `json:"OauthGroupScope"`
 	OAuthRecheckInterval int      `json:"OAuthRecheckInterval"`
-	HeaderUsers          []string `json:"HeaderUsers"`
 	OAuthGroups          []string `json:"OAuthGroups"`
-	OAuthUsers           []string `json:"OauthUsers"`
+	OnlyRegisteredUsers  bool     `json:"OnlyRegisteredUsers"`
 }
 
 const (

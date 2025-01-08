@@ -686,6 +686,7 @@ func resetPw(w http.ResponseWriter, request apiRequest, user models.User) {
 		password = helper.GenerateRandomString(configuration.MinLengthPassword + 2)
 		userToEdit.Password = configuration.HashPassword(password, false)
 	}
+	database.DeleteAllSessionsByUser(userToEdit.Id)
 	database.SaveUser(userToEdit, false)
 	_, _ = w.Write([]byte("{\"Result\":\"ok\",\"password\":\"" + password + "\"}"))
 }

@@ -3,15 +3,18 @@ package models
 import (
 	"github.com/forceu/gokapi/internal/test"
 	"testing"
-	"time"
 )
 
 func TestApiKey_GetReadableDate(t *testing.T) {
 	key := &ApiKey{}
 	test.IsEqualString(t, key.GetReadableDate(), "Never")
-	now := time.Now()
-	key.LastUsed = now.Unix()
-	test.IsEqualString(t, key.GetReadableDate(), now.Format("2006-01-02 15:04:05"))
+	key.LastUsed = 1736276120
+	test.IsEqualString(t, key.GetReadableDate(), "2025-01-07 19:55:20")
+}
+
+func TestApiKey_GetRedactedId(t *testing.T) {
+	key := &ApiKey{Id: "eivahB9imahj3fiquoh6DieNgeeThe"}
+	test.IsEqualString(t, key.GetRedactedId(), "ei**************************he")
 }
 
 func TestSetPermission(t *testing.T) {
@@ -127,6 +130,8 @@ func checkOnlyPermissionSet(t *testing.T, key *ApiKey, perm uint8, permName stri
 		{ApiPermDelete, "ApiPermDelete"},
 		{ApiPermApiMod, "ApiPermApiMod"},
 		{ApiPermEdit, "ApiPermEdit"},
+		{ApiPermReplace, "ApiPermReplace"},
+		{ApiPermManageUsers, "ApiPermManageUsers"},
 	}
 
 	for _, p := range allPermissions {
@@ -155,6 +160,8 @@ func TestSetIndividualPermissions(t *testing.T) {
 		{ApiPermDelete, "ApiPermDelete"},
 		{ApiPermApiMod, "ApiPermApiMod"},
 		{ApiPermEdit, "ApiPermEdit"},
+		{ApiPermReplace, "ApiPermReplace"},
+		{ApiPermManageUsers, "ApiPermManageUsers"},
 	}
 
 	for _, p := range permissions {
@@ -181,6 +188,8 @@ func TestSetCombinedPermissions(t *testing.T) {
 		ApiPermDelete,
 		ApiPermApiMod,
 		ApiPermEdit,
+		ApiPermReplace,
+		ApiPermManageUsers,
 	}
 
 	// Test setting permissions in combination

@@ -225,10 +225,12 @@ func getFormValueInt(formObjects *[]jsonFormObject, key string) (int, error) {
 }
 
 type authSettings struct {
-	UserInternalAuth     string
-	UserOAuth            string
-	UserHeader           string
-	PasswordInternalAuth string
+	UserInternalAuth          string
+	UserOAuth                 string
+	UserHeader                string
+	PasswordInternalAuth      string
+	OnlyRegisteredUsersOAuth  bool
+	OnlyRegisteredUsersHeader bool
 }
 
 func toConfiguration(formObjects *[]jsonFormObject) (models.Configuration, *cloudconfig.CloudConfig, configuration.End2EndReconfigParameters, authSettings, error) {
@@ -296,8 +298,10 @@ func toConfiguration(formObjects *[]jsonFormObject) (models.Configuration, *clou
 		result.Authentication.Username = authInfo.UserInternalAuth
 	case models.AuthenticationOAuth2:
 		result.Authentication.Username = authInfo.UserOAuth
+		result.Authentication.OnlyRegisteredUsers = authInfo.OnlyRegisteredUsersOAuth
 	case models.AuthenticationHeader:
 		result.Authentication.Username = authInfo.UserHeader
+		result.Authentication.OnlyRegisteredUsers = authInfo.OnlyRegisteredUsersHeader
 	case models.AuthenticationDisabled:
 		result.Authentication.Username = "admin@gokapi"
 	}
@@ -418,11 +422,6 @@ func parseOAuthSettings(result *models.Configuration, authInfo *authSettings, fo
 		return err
 	}
 
-	restrictUsers, err := getFormValueBool(formObjects, "oauth_restrict_users")
-	if err != nil {
-		return err
-	}
-
 	result.Authentication.OAuthRecheckInterval, err = getFormValueInt(formObjects, "oauth_recheck_interval")
 	if err != nil {
 		return err
@@ -434,14 +433,9 @@ func parseOAuthSettings(result *models.Configuration, authInfo *authSettings, fo
 	}
 	authInfo.UserOAuth = username
 
-	oauthAllowedUsers, err := getFormValueString(formObjects, "oauth_allowed_users")
+	authInfo.OnlyRegisteredUsersOAuth, err = getFormValueBool(formObjects, "oauth_only_registered_users")
 	if err != nil {
 		return err
-	}
-	if restrictUsers {
-		result.Authentication.OAuthUsers = splitAndTrim(oauthAllowedUsers)
-	} else {
-		result.Authentication.OAuthUsers = []string{}
 	}
 
 	restrictGroups, err := getFormValueBool(formObjects, "oauth_restrict_groups")
@@ -478,11 +472,10 @@ func parseHeaderAuthSettings(result *models.Configuration, authInfo *authSetting
 		return err
 	}
 
-	headerAllowedUsers, err := getFormValueString(formObjects, "auth_header_users")
+	authInfo.OnlyRegisteredUsersHeader, err = getFormValueBool(formObjects, "auth_header_only_registered_users")
 	if err != nil {
 		return err
 	}
-	result.Authentication.HeaderUsers = splitAndTrim(headerAllowedUsers)
 	return nil
 }
 
@@ -705,9 +698,7 @@ type setupView struct {
 	IsDataNotMounted   bool
 	IsConfigNotMounted bool
 	Port               int
-	OAuthUsers         string
 	OAuthGroups        string
-	HeaderUsers        string
 	Auth               models.AuthenticationConfig
 	Settings           models.Configuration
 	CloudSettings      cloudconfig.CloudConfig
@@ -732,9 +723,7 @@ func (v *setupView) loadFromConfig() {
 	v.Settings = *settings
 	v.Auth = settings.Authentication
 	v.CloudSettings, _ = cloudconfig.Load()
-	v.OAuthUsers = strings.Join(settings.Authentication.OAuthUsers, ";")
 	v.OAuthGroups = strings.Join(settings.Authentication.OAuthGroups, ";")
-	v.HeaderUsers = strings.Join(settings.Authentication.HeaderUsers, ";")
 
 	if strings.Contains(settings.Port, "localhost") || strings.Contains(settings.Port, "127.0.0.1") {
 		v.LocalhostOnly = true

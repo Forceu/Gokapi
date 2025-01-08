@@ -1,0 +1,27 @@
+package models
+
+import (
+	"github.com/forceu/gokapi/internal/test"
+	"testing"
+	"time"
+)
+
+func TestUser_GetReadableDate(t *testing.T) {
+	u := User{
+		Id:            50,
+		Name:          "Admin",
+		Permissions:   UserPermissionAll,
+		UserLevel:     UserLevelSuperAdmin,
+		LastOnline:    0,
+		Password:      "1234",
+		ResetPassword: false,
+	}
+	date := u.GetReadableDate()
+	test.IsEqualString(t, date, "Never")
+	u.LastOnline = time.Now().Unix() - 10
+	date = u.GetReadableDate()
+	test.IsEqualString(t, date, "Online")
+	u.LastOnline = 1736276120
+	date = u.GetReadableDate()
+	test.IsEqualString(t, date, "2025-01-07 19:55")
+}

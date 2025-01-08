@@ -61,7 +61,7 @@ func main() {
 	// Temporary solution to migrate admin user to DB
 	// Will be removed in v2.1.0
 	if configupgrade.RequiresUpgradeV1ToV2 {
-		configuration.MigrateToV2(configupgrade.LegacyPasswordHash)
+		configuration.MigrateToV2(configupgrade.LegacyPasswordHash, configupgrade.LegacyUsersHeaderOauth)
 	}
 
 	setDeploymentPassword(passedFlags)

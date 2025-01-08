@@ -194,32 +194,24 @@
 				<div class="wizard-input-section">
 					<div class="form-group">
 
-							<div class="col-sm-8">
 							  <label for="public_name">Public Name:</label>
 								<input type="text" class="form-control" id="public_name" name="public_name" value="Gokapi" placeholder="Public Name" required>
-							</div><br><br><br>
-							<div class="col-sm-8">
-							  <label for="port">Port:</label>
+							  <br><label for="port">Port:</label>
 {{ if .IsDocker }}
 							<input type="number" class="form-control" id="port" value="53842" placeholder="Port number" disabled>
 							<input type="hidden" class="form-control" name="port" value="53842">
 {{ else }}
 							<input type="number" class="form-control" id="port" name="port" value="53842" min="1" max="65535" placeholder="Port number" data-min="1" data-validate="validateMinLength" required onChange="urlParamChanged()">
 {{ end }}
-							</div><br><br><br>
 							
 
-							<div class="col-sm-8">
-							  <label for="url">Public facing URL:</label>
+							  <br><label for="url">Public facing URL:</label>
 								<input type="text" class="form-control" id="url" name="url" value="http://127.0.0.1:53842/" onfocusout="extUrlChanged(this)" placeholder="Public URL" data-min="8" required data-validate="validateUrl">
-							</div><br><br><br>
 							
 							
 
-							<div class="col-sm-8">
-							  <label for="url_redirection">Redirection URL for the index:</label>
+							  <br><label for="url_redirection">Redirection URL for the index:</label>
 								<input type="text" class="form-control" id="url_redirection" name="url_redirection" value="https://github.com/Forceu/Gokapi/" placeholder="Redirection URL" required data-min="1" data-validate="validateMinLength">
-							</div>
 						</div>
 				</div>
 			</div>
@@ -325,27 +317,26 @@
 							<br>Restrict to:
 								  <div class="oauthscopecontainer">
 								    <div class="oauthscopes">
-								      <input type="hidden" name="oauth_restrict_users.unchecked" value="false"/>
-								      <input type="checkbox" id="oauth_restrict_users" name="oauth_restrict_users" onchange="handleOauthCheckboxChange(this)"  value="true">
-								      <label id="label_ousers" for="oauth_restrict_users" class="checkboxLabel">Users &nbsp;</label>
-								      <input type="text" id="oauth_allowed_users" name="oauth_allowed_users" class="input-field" placeholder="Authorised users (email)" data-min="1" data-validate="validateMinLength" disabled>
-								    </div>
-
-								    <div class="oauthscopes">
 								      <input type="hidden" name="oauth_restrict_groups.unchecked" value="false"/>
 								      <input type="checkbox" id="oauth_restrict_groups" name="oauth_restrict_groups" onchange="handleOauthCheckboxChange(this)"  value="true">
 								      <label id="label_ogroups" for="oauth_restrict_groups" class="checkboxLabel">Groups</label>
 								      <input type="text" id="oauth_scope_groups" name="oauth_scope_groups" class="input-field" placeholder="Scope identifier" data-min="1" data-validate="validateMinLength" disabled>&nbsp;
 								      <input type="text" id="oauth_allowed_groups" name="oauth_allowed_groups" class="input-field" placeholder="Authorised groups" data-min="1" data-validate="validateMinLength" disabled>
 								    </div>
+								    
+								     <div><br>
+								     <input type="hidden" name="oauth_only_registered_users.unchecked" value="false"/>
+								     <input  id="oauth_only_registered_users" name="oauth_only_registered_users" type="checkbox" value="true"/>
+								     <span>&nbsp;Only allow already existing users to log in</span>
+								     </div>
 								  </div>
 							</div> 
 							<div class="col-sm-8" style="width:90%">
 							 <label for="oauth_redir"><br>Redirection URL:</label>
 {{ if .IsInitialSetup }}
-								<input type="text" class="form-control" id="oauth_redir" name="oauth_redir" disabled value="http://127.0.0.1:53842/oauth-callback">
+								<input type="text" style="cursor:default" class="form-control" id="oauth_redir" name="oauth_redir" disabled value="http://127.0.0.1:53842/oauth-callback">
 {{ else }}
-								<input type="text" class="form-control" id="oauth_redir" name="oauth_redir" disabled value="{{ .Settings.ServerUrl }}oauth-callback">
+								<input type="text" style="cursor:default" class="form-control" id="oauth_redir" name="oauth_redir" disabled value="{{ .Settings.ServerUrl }}oauth-callback">
 {{ end }}
 							</div><br><br>
 
@@ -362,24 +353,23 @@
 				<div class="wizard-input-section">
 						<div class="form-group">
 					<p>
-						Enter the key of the header that will be provided from your reverse proxy containing the username.<br>Add the allowed users to the list below (seperated by semicolon) or leave it blank if access is granted to all authenticated users.<br><br>
+						Enter the key of the header that will be provided from your reverse proxy containing the username.<br><br>
 					</p>
 
-							<p><div class="col-sm-8">
+							<p>
 							  <label for="auth_headerkey">Header Key:</label>
 								<input type="text" class="form-control" id="auth_headerkey" name="auth_headerkey" data-min="1" required placeholder="Header Key" data-validate="validateMinLength">
-							</div></p>
+							</p>
 							
-							<p><div class="col-sm-8">
+							<p>
 							  <label for="auth_header_admin">Admin user name:</label>
 								<input type="text" class="form-control" id="auth_header_admin" name="auth_header_admin" data-min="1"  data-validate="validateMinLength" required placeholder="Admin user name">
-							</div></p>
-							
-							<p><div class="col-sm-8">
-							  <label for="auth_header_users">Authorised users:</label>
-								<input type="text" class="form-control" id="auth_header_users" name="auth_header_users" placeholder="Authorised users">
-							</div></p>
-							
+							</p>
+						
+						    <br>
+						     <input type="hidden" name="auth_header_only_registered_users.unchecked" value="false"/>
+						     <input id="auth_header_only_registered_users" name="auth_header_only_registered_users" type="checkbox" value="true"/>
+						     <span>&nbsp;Only allow already existing users to log in</span>
 					</div>
 				</div>
 			</div>
@@ -816,11 +806,7 @@ function TestAWS(button, isManual) {
 				    document.getElementById("oauth_secret").value = "{{ .Auth.OAuthClientSecret }}";
 				    document.getElementById("oauth_admin_user").value = "{{ .Auth.Username }}";
 				    document.getElementById("oauth_recheck_interval").value = "{{ .Auth.OAuthRecheckInterval }}";
-	{{ if ne .OAuthUsers "" }}
-				    document.getElementById("oauth_restrict_users").checked = true;
-				    document.getElementById("oauth_allowed_users").disabled = false;
-				    document.getElementById("oauth_allowed_users").value = "{{ .OAuthUsers }}";
-	{{ end }}
+				    document.getElementById("oauth_only_registered_users").checked = {{.Auth.OnlyRegisteredUsers}};
 	{{ if ne .OAuthGroups "" }}
 				    document.getElementById("oauth_restrict_groups").checked = true;
 				    document.getElementById("oauth_scope_groups").disabled = false;
@@ -831,8 +817,8 @@ function TestAWS(button, isManual) {
 				    break;
 				  case 2:
 				    document.getElementById("auth_headerkey").value = "{{ .Auth.HeaderKey }}";
-				    document.getElementById("auth_header_users").value = "{{ .HeaderUsers }}";
 				    document.getElementById("auth_header_admin").value = "{{ .Auth.Username }}";
+				    document.getElementById("auth_header_only_registered_users").checked = {{.Auth.OnlyRegisteredUsers}};
 				    break;
 				}
 				
@@ -866,7 +852,6 @@ function TestAWS(button, isManual) {
 				
 				    /* enable inputs again, otherwise they will not be submitted */
 				    document.getElementById("oauth_scope_groups").disabled = false;
-				    document.getElementById("oauth_allowed_users").disabled = false;
 				    document.getElementById("oauth_allowed_groups").disabled = false;
 					
 					 $.ajax({

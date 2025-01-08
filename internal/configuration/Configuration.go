@@ -105,7 +105,7 @@ func ConnectDatabase() {
 }
 
 // MigrateToV2 is used to migrate the previous admin user to the DB
-func MigrateToV2(authPassword string) {
+func MigrateToV2(authPassword string, allowedUsers []string) {
 	fmt.Println("Migrating v1 user, metadata and API keys to v2 scheme...")
 	var adminName = "admin@gokapi"
 	if serverSettings.Authentication.Method != models.AuthenticationDisabled &&
@@ -120,24 +120,35 @@ func MigrateToV2(authPassword string) {
 		Password:    authPassword,
 	}
 	database.SaveUser(newAdmin, true)
-	user, ok := database.GetUserByName(adminName)
+	adminUser, ok := database.GetUserByName(adminName)
 	if !ok {
 		fmt.Println("ERROR: Could not retrieve new admin user after saving")
 		os.Exit(1)
 	}
+	fmt.Println("Created admin user ", adminUser.Name)
+
+	for _, user := range allowedUsers {
+		newUser := models.User{
+			Name:        user,
+			Permissions: models.UserPermissionNone,
+			UserLevel:   models.UserLevelUser,
+		}
+		database.SaveUser(newUser, true)
+		fmt.Println("Created admin user ", user)
+	}
 
 	for _, apiKey := range database.GetAllApiKeys() {
-		apiKey.UserId = user.Id
+		apiKey.UserId = adminUser.Id
 		apiKey.PublicId = helper.GenerateRandomString(35)
 		database.SaveApiKey(apiKey)
 	}
 
 	e2eConfig := database.GetEnd2EndInfo(0)
 	database.DeleteEnd2EndInfo(0)
-	database.SaveEnd2EndInfo(e2eConfig, user.Id)
+	database.SaveEnd2EndInfo(e2eConfig, adminUser.Id)
 
 	for _, file := range database.GetAllMetadata() {
-		file.UserId = user.Id
+		file.UserId = adminUser.Id
 		database.SaveMetaData(file)
 	}
 	database.DeleteAllSessions()
