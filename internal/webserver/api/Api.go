@@ -598,7 +598,7 @@ func modifyUserPermission(w http.ResponseWriter, request apiRequest, user models
 
 	if addPerm {
 		if !userEdit.HasPermission(reqPermission) {
-			userEdit.SetPermission(reqPermission)
+			userEdit.GrantPermission(reqPermission)
 			database.SaveUser(userEdit, false)
 			updateApiKeyPermsOnUserPermChange(userEdit.Id, reqPermission, true)
 		}

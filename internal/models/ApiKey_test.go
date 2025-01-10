@@ -106,6 +106,21 @@ func TestHasPermissionEdit(t *testing.T) {
 	}
 }
 
+func TestHasPermissionReplace(t *testing.T) {
+	key := &ApiKey{}
+	key.GrantPermission(ApiPermReplace)
+	if !key.HasPermissionReplace() {
+		t.Errorf("expected edit permission to be set")
+	}
+}
+func TestHasPermissionManageUsers(t *testing.T) {
+	key := &ApiKey{}
+	key.GrantPermission(ApiPermManageUsers)
+	if !key.HasPermissionManageUsers() {
+		t.Errorf("expected edit permission to be set")
+	}
+}
+
 func TestApiPermAllNoApiMod(t *testing.T) {
 	key := &ApiKey{}
 	key.GrantPermission(ApiPermDefault)
@@ -120,13 +135,19 @@ func TestApiPermAllNoApiMod(t *testing.T) {
 func TestApiPermAll(t *testing.T) {
 	key := &ApiKey{}
 	key.GrantPermission(ApiPermAll)
-	if !key.HasPermission(ApiPermView) || !key.HasPermission(ApiPermUpload) || !key.HasPermission(ApiPermDelete) || !key.HasPermission(ApiPermApiMod) || !key.HasPermission(ApiPermEdit) {
+	if !key.HasPermission(ApiPermView) ||
+		!key.HasPermission(ApiPermUpload) ||
+		!key.HasPermission(ApiPermDelete) ||
+		!key.HasPermission(ApiPermApiMod) ||
+		!key.HasPermission(ApiPermEdit) ||
+		!key.HasPermission(ApiPermReplace) ||
+		!key.HasPermission(ApiPermManageUsers) {
 		t.Errorf("expected all permissions to be set")
 	}
 }
 
 // Helper function to check only one permission is set
-func checkOnlyPermissionSet(t *testing.T, key *ApiKey, perm uint8, permName string) {
+func checkOnlyPermissionSet(t *testing.T, key *ApiKey, perm uint8) {
 	allPermissions := []struct {
 		perm     uint8
 		permName string
@@ -173,7 +194,7 @@ func TestSetIndividualPermissions(t *testing.T) {
 	for _, p := range permissions {
 		key.Permissions = ApiPermNone // reset permissions
 		key.GrantPermission(p.perm)
-		checkOnlyPermissionSet(t, key, p.perm, p.permName)
+		checkOnlyPermissionSet(t, key, p.perm)
 	}
 }
 

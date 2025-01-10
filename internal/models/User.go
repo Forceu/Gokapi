@@ -72,8 +72,8 @@ const (
 const UserPermissionNone uint16 = 0
 const UserPermissionAll uint16 = 255
 
-// SetPermission grants one or more permissions
-func (u *User) SetPermission(permission uint16) {
+// GrantPermission grants one or more permissions
+func (u *User) GrantPermission(permission uint16) {
 	u.Permissions |= permission
 }
 

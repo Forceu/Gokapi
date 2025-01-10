@@ -373,7 +373,7 @@ func TestNewFileFromChunk(t *testing.T) {
 	test.FileDoesNotExist(t, "test/data/chunk-"+id)
 	retrievedFile, ok := database.GetMetaDataById(file.Id)
 	test.IsEqualBool(t, ok, true)
-	test.IsEqualStruct(t, file, retrievedFile)
+	test.IsEqual(t, file, retrievedFile)
 
 	id, header, request, err = createTestChunk()
 	header.Filename = "newfile"
@@ -398,7 +398,7 @@ func TestNewFileFromChunk(t *testing.T) {
 	test.FileDoesNotExist(t, "test/data/chunk-"+id)
 	retrievedFile, ok = database.GetMetaDataById(file.Id)
 	test.IsEqualBool(t, ok, true)
-	test.IsEqualStruct(t, file, retrievedFile)
+	test.IsEqual(t, file, retrievedFile)
 	err = os.Remove("test/data/6cca7a6905774e6d61a77dca3ad7a1f44581d6ab")
 	test.IsNil(t, err)
 
@@ -426,7 +426,7 @@ func TestNewFileFromChunk(t *testing.T) {
 		test.IsEqualBool(t, file.AwsBucket != "", true)
 		test.IsEqualString(t, file.SHA1, "6cca7a6905774e6d61a77dca3ad7a1f44581d6ab")
 		retrievedFile, ok = database.GetMetaDataById(file.Id)
-		test.IsEqualStruct(t, file, retrievedFile)
+		test.IsEqual(t, file, retrievedFile)
 		test.IsEqualBool(t, ok, true)
 		testconfiguration.DisableS3()
 	}

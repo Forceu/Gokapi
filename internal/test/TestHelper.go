@@ -63,14 +63,6 @@ func IsEqualBool(t MockT, got, want bool) {
 	}
 }
 
-// IsEqualStruct fails test if got and want are not identical
-func IsEqualStruct(t MockT, got, want any) {
-	t.Helper()
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("Assertion failed, got: %+v, want: %+v.", got, want)
-	}
-}
-
 // IsEqualInt fails test if got and want are not identical
 func IsEqualInt(t MockT, got, want int) {
 	t.Helper()
@@ -172,6 +164,7 @@ func IsNotNil(t MockT, got any) {
 	}
 }
 
+// IsEqual fails test if got and want are not identical
 func IsEqual(t MockT, got, expected any) {
 	t.Helper()
 	if !reflect.DeepEqual(got, expected) {
