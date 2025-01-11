@@ -43,13 +43,15 @@ func Set(status models.UploadStatus) {
 func deleteAllExpiredStatus() {
 	allStatus := GetAll()
 	cutOff := time.Now().Add(-24 * time.Hour).Unix()
+	statusMutex.Lock()
+	newStatusMap := make(map[string]models.UploadStatus)
 	for _, status := range allStatus {
-		if status.Creation < cutOff {
-			statusMutex.Lock()
-			delete(statusMap, status.ChunkId)
-			statusMutex.Unlock()
+		if status.Creation > cutOff {
+			newStatusMap[status.ChunkId] = status
 		}
 	}
+	statusMap = newStatusMap
+	statusMutex.Unlock()
 }
 
 func doGarbageCollection(runPeriodically bool) {
