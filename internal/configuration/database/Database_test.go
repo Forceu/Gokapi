@@ -1,7 +1,6 @@
 package database
 
 import (
-	"fmt"
 	"github.com/alicebob/miniredis/v2"
 	"github.com/forceu/gokapi/internal/configuration/database/dbabstraction"
 	"github.com/forceu/gokapi/internal/models"
@@ -280,15 +279,6 @@ func TestUsers(t *testing.T) {
 	user.Name = ""
 	defer test.ExpectPanic(t)
 	SaveUser(user, true)
-}
-
-func printDbName(db dbabstraction.Database) {
-	switch db.GetType() {
-	case dbabstraction.TypeSqlite:
-		fmt.Println("Testing SQLite")
-	case dbabstraction.TypeRedis:
-		fmt.Println("Testing Redis")
-	}
 }
 
 func TestUpgrade(t *testing.T) {

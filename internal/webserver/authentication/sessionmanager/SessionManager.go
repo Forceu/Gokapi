@@ -14,6 +14,7 @@ import (
 
 // If no login occurred during this time, the admin session will be deleted. Default 30 days
 const cookieLifeAdmin = 30 * 24 * time.Hour
+const lengthSessionId = 60
 
 // IsValidSession checks if the user is submitting a valid session token
 // If valid session is found, useSession will be called
@@ -61,7 +62,7 @@ func CreateSession(w http.ResponseWriter, isOauth bool, OAuthRecheckInterval int
 		timeExpiry = time.Now().Add(time.Duration(OAuthRecheckInterval) * time.Hour)
 	}
 
-	sessionString := helper.GenerateRandomString(60)
+	sessionString := helper.GenerateRandomString(lengthSessionId)
 	database.SaveSession(sessionString, models.Session{
 		RenewAt:    time.Now().Add(12 * time.Hour).Unix(),
 		ValidUntil: timeExpiry.Unix(),

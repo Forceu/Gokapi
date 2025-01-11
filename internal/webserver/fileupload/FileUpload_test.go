@@ -116,16 +116,28 @@ func TestProcessNewChunk(t *testing.T) {
 }
 
 func TestCompleteChunk(t *testing.T) {
-	w, r := test.GetRecorder("POST", "/uploadComplete", nil, nil, strings.NewReader("invalid§$%&%§"))
+	body := strings.NewReader("%")
+	r := httptest.NewRequest(http.MethodPost, "/upload", body)
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
 	_, _, _, err := ParseFileHeader(r)
 	test.IsNotNil(t, err)
 
-	w = httptest.NewRecorder()
+	w := httptest.NewRecorder()
 	r = getFileUploadRecorder(false)
 	_, _, _, err = ParseFileHeader(r)
 	test.IsNotNil(t, err)
 
 	data := url.Values{}
+	data.Set("isE2E", "true")
+	data.Set("realSize", "none")
+	w, r = test.GetRecorder("POST", "/uploadComplete", nil, nil, strings.NewReader(data.Encode()))
+	r.Header.Set("Content-type", "application/x-www-form-urlencoded")
+	chunkId, header, config, err := ParseFileHeader(r)
+	test.IsNotNil(t, err)
+
+	data.Del("isE2E")
+	data.Del("realSize")
 	data.Set("allowedDownloads", "9")
 	data.Set("expiryDays", "5")
 	data.Set("password", "123")
@@ -134,7 +146,7 @@ func TestCompleteChunk(t *testing.T) {
 	data.Set("filesize", "13")
 	w, r = test.GetRecorder("POST", "/uploadComplete", nil, nil, strings.NewReader(data.Encode()))
 	r.Header.Set("Content-type", "application/x-www-form-urlencoded")
-	chunkId, header, config, err := ParseFileHeader(r)
+	chunkId, header, config, err = ParseFileHeader(r)
 	test.IsNil(t, err)
 	file, err := CompleteChunk(chunkId, header, 9, config)
 	test.IsNil(t, err)

@@ -1,14 +1,18 @@
 package authentication
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/forceu/gokapi/internal/configuration"
+	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/test"
 	"github.com/forceu/gokapi/internal/test/testconfiguration"
+	"github.com/forceu/gokapi/internal/webserver/authentication/sessionmanager"
 	"io"
+	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
@@ -41,6 +45,8 @@ func TestIsCorrectUsernameAndPassword(t *testing.T) {
 	test.IsEqualInt(t, user.Id, 7)
 	_, ok = IsCorrectUsernameAndPassword("test", "wrong")
 	test.IsEqualBool(t, ok, false)
+	_, ok = IsCorrectUsernameAndPassword("invalid", "adminadmin")
+	test.IsEqualBool(t, ok, false)
 }
 
 func TestIsAuthenticated(t *testing.T) {
@@ -54,6 +60,12 @@ func TestIsAuthenticated(t *testing.T) {
 }
 
 func testAuthSession(t *testing.T) {
+
+	exitCode := 0
+	osExit = func(code int) {
+		exitCode = code
+	}
+
 	w, r := test.GetRecorder("GET", "/", nil, nil, nil)
 	Init(modelUserPW)
 	_, ok := IsAuthenticated(w, r)
@@ -69,6 +81,13 @@ func testAuthSession(t *testing.T) {
 	user, ok := IsAuthenticated(w, r)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualInt(t, user.Id, 7)
+	test.IsEqualInt(t, exitCode, 0)
+
+	Init(models.AuthenticationConfig{
+		Method: 10,
+	})
+	test.IsEqualInt(t, exitCode, 3)
+
 }
 
 func testAuthHeader(t *testing.T) {
@@ -130,6 +149,32 @@ func TestRedirect(t *testing.T) {
 	output, err := io.ReadAll(w.Body)
 	test.IsNil(t, err)
 	test.IsEqualString(t, string(output), "<html><head><meta http-equiv=\"Refresh\" content=\"0; URL=./test\"></head></html>")
+}
+
+func TestGetUserFromRequest(t *testing.T) {
+	_, r := test.GetRecorder("GET", "/", nil, nil, nil)
+	_, err := GetUserFromRequest(r)
+	test.IsNotNil(t, err)
+	c := context.WithValue(r.Context(), "user", "invalid")
+	rInvalid := r.WithContext(c)
+	_, err = GetUserFromRequest(rInvalid)
+	test.IsNotNil(t, err)
+
+	user := models.User{
+		Id:            1,
+		Name:          "test",
+		Permissions:   1,
+		UserLevel:     2,
+		LastOnline:    3,
+		Password:      "12345",
+		ResetPassword: true,
+	}
+
+	c = context.WithValue(r.Context(), "user", user)
+	rValid := r.WithContext(c)
+	retrievedUser, err := GetUserFromRequest(rValid)
+	test.IsNil(t, err)
+	test.IsEqual(t, retrievedUser, user)
 }
 
 func TestIsValidOauthUser(t *testing.T) {
@@ -223,10 +268,39 @@ func TestWildcardMatch(t *testing.T) {
 	}
 }
 
+func getRecorder(cookies []test.Cookie) (*httptest.ResponseRecorder, *http.Request, bool, int) {
+	w, r := test.GetRecorder("GET", "/", cookies, nil, nil)
+	return w, r, false, 1
+}
+
 func TestLogout(t *testing.T) {
 	Init(modelUserPW)
-	w, r := test.GetRecorder("GET", "/", nil, nil, nil)
+	w, r, _, _ := getRecorder([]test.Cookie{{
+		Name:  "session_token",
+		Value: "logoutsession"},
+	})
+	_, ok := sessionmanager.IsValidSession(w, r, false, 0)
+	test.IsEqualBool(t, ok, true)
 	Logout(w, r)
+	_, ok = database.GetSession("logoutsession")
+	test.IsEqualBool(t, ok, false)
+	_, ok = sessionmanager.IsValidSession(w, r, false, 0)
+	test.IsEqualBool(t, ok, false)
+	test.ResponseBodyContains(t, w, "<html><head><meta http-equiv=\"Refresh\" content=\"0; URL=./login\"></head></html>")
+
+	Init(modelOauth)
+	w, r, _, _ = getRecorder([]test.Cookie{{
+		Name:  "session_token",
+		Value: "logoutsession2"},
+	})
+	_, ok = sessionmanager.IsValidSession(w, r, false, 0)
+	test.IsEqualBool(t, ok, true)
+	Logout(w, r)
+	_, ok = database.GetSession("logoutsession")
+	test.IsEqualBool(t, ok, false)
+	_, ok = sessionmanager.IsValidSession(w, r, false, 0)
+	test.IsEqualBool(t, ok, false)
+	test.ResponseBodyContains(t, w, "<html><head><meta http-equiv=\"Refresh\" content=\"0; URL=./login?consent=true\"></head></html>")
 }
 
 type testInfo struct {

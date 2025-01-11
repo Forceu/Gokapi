@@ -13,6 +13,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"regexp"
 	"strings"
 )
@@ -27,10 +28,14 @@ func Init(config models.AuthenticationConfig) {
 	valid, err := isValid(config)
 	if !valid {
 		log.Println("Error while initiating authentication method:")
-		log.Fatal(err)
+		log.Println(err)
+		osExit(3)
+		return
 	}
 	authSettings = config
 }
+
+var osExit = os.Exit
 
 // isValid checks if the config is actually valid, and returns true or returns false and an error
 func isValid(config models.AuthenticationConfig) (bool, error) {
