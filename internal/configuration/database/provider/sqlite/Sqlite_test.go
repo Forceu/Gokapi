@@ -489,6 +489,82 @@ func TestParallelConnectionsReading(t *testing.T) {
 	wg.Wait()
 }
 
+func TestUsers(t *testing.T) {
+	users := dbInstance.GetAllUsers()
+	test.IsEqualInt(t, len(users), 0)
+	user := models.User{
+		Id:            2,
+		Name:          "test",
+		Permissions:   models.UserPermissionAll,
+		UserLevel:     models.UserLevelUser,
+		LastOnline:    1337,
+		Password:      "123456",
+		ResetPassword: true,
+	}
+	dbInstance.SaveUser(user, false)
+	retrievedUser, ok := dbInstance.GetUser(2)
+	test.IsEqualBool(t, ok, true)
+	test.IsEqual(t, retrievedUser, user)
+	users = dbInstance.GetAllUsers()
+	test.IsEqualInt(t, len(users), 1)
+	test.IsEqualInt(t, retrievedUser.Id, 2)
+
+	_, ok = dbInstance.GetUser(0)
+	test.IsEqualBool(t, ok, false)
+	_, ok = dbInstance.GetUserByName("invalid")
+	test.IsEqualBool(t, ok, false)
+	retrievedUser, ok = dbInstance.GetUserByName("test")
+	test.IsEqualBool(t, ok, true)
+	test.IsEqual(t, retrievedUser, user)
+
+	dbInstance.DeleteUser(2)
+	_, ok = dbInstance.GetUser(2)
+	test.IsEqualBool(t, ok, false)
+
+	user = models.User{
+		Id:            1000,
+		Name:          "test2",
+		Permissions:   models.UserPermissionNone,
+		UserLevel:     models.UserLevelAdmin,
+		LastOnline:    1338,
+		Password:      "1234568",
+		ResetPassword: true,
+	}
+	dbInstance.SaveUser(user, true)
+	_, ok = dbInstance.GetUser(1000)
+	test.IsEqualBool(t, ok, false)
+	retrievedUser, ok = dbInstance.GetUserByName("test2")
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualBool(t, retrievedUser.Id == 1000, false)
+	user.Id = retrievedUser.Id
+	test.IsEqual(t, retrievedUser, user)
+
+	dbInstance.UpdateUserLastOnline(retrievedUser.Id)
+	retrievedUser, ok = dbInstance.GetUser(retrievedUser.Id)
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualBool(t, time.Now().Unix()-retrievedUser.LastOnline < 5, true)
+	test.IsEqualBool(t, time.Now().Unix()-retrievedUser.LastOnline > -1, true)
+
+	user.Name = "test1"
+	dbInstance.SaveUser(user, true)
+	user.Name = "test3"
+	dbInstance.SaveUser(user, true)
+	user.Name = "test99"
+	user.UserLevel = models.UserLevelSuperAdmin
+	dbInstance.SaveUser(user, true)
+	user.Name = "test0"
+	user.UserLevel = models.UserLevelUser
+	dbInstance.SaveUser(user, true)
+
+	users = dbInstance.GetAllUsers()
+	test.IsEqualInt(t, len(users), 5)
+	test.IsEqualString(t, users[0].Name, "test99")
+	test.IsEqualString(t, users[1].Name, "test2")
+	test.IsEqualString(t, users[2].Name, "test1")
+	test.IsEqualString(t, users[3].Name, "test3")
+	test.IsEqualString(t, users[4].Name, "test0")
+}
+
 func TestDatabaseProvider_Upgrade(t *testing.T) {
 	instance, err := New(configUpgrade)
 	test.IsNil(t, err)

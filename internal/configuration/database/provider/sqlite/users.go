@@ -36,14 +36,13 @@ func (s schemaUser) ToUser() models.User {
 
 // GetAllUsers returns a map with all users
 func (p DatabaseProvider) GetAllUsers() []models.User {
-	var password sql.NullString
 	var result []models.User
 	rows, err := p.sqliteDb.Query("SELECT * FROM Users ORDER BY Userlevel ASC, LastOnline DESC, Name ASC")
 	helper.Check(err)
 	defer rows.Close()
 	for rows.Next() {
 		row := schemaUser{}
-		err = rows.Scan(&row.Id, &row.Name, &password, &row.Permissions, &row.UserLevel, &row.LastOnline, &row.ResetPassword)
+		err = rows.Scan(&row.Id, &row.Name, &row.Password, &row.Permissions, &row.UserLevel, &row.LastOnline, &row.ResetPassword)
 		helper.Check(err)
 		result = append(result, row.ToUser())
 	}

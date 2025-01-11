@@ -1,6 +1,7 @@
 package database
 
 import (
+	"fmt"
 	"github.com/alicebob/miniredis/v2"
 	"github.com/forceu/gokapi/internal/configuration/database/dbabstraction"
 	"github.com/forceu/gokapi/internal/models"
@@ -164,6 +165,130 @@ func TestMetaData(t *testing.T) {
 		return GetMetaDataById(file.Id)
 	}, increasedDownload, true)
 	runAllTypesNoOutput(t, func() { DeleteMetaData(file.Id) })
+}
+
+func TestUsers(t *testing.T) {
+	runAllTypesCompareOutput(t, func() any { return len(GetAllUsers()) }, 0)
+	user := models.User{
+		Id:            1000,
+		Name:          "test2",
+		Permissions:   models.UserPermissionNone,
+		UserLevel:     models.UserLevelAdmin,
+		LastOnline:    1338,
+		Password:      "1234568",
+		ResetPassword: true,
+	}
+	runAllTypesNoOutput(t, func() { SaveUser(user, true) })
+	user.Id = 1
+	runAllTypesCompareTwoOutputs(t, func() (any, any) {
+		return GetUser(1)
+	}, user, true)
+	runAllTypesCompareOutput(t, func() any { return len(GetAllUsers()) }, 1)
+	user.Name = "test3"
+	runAllTypesNoOutput(t, func() { SaveUser(user, false) })
+	runAllTypesCompareOutput(t, func() any { return len(GetAllUsers()) }, 1)
+	runAllTypesCompareTwoOutputs(t, func() (any, any) {
+		return GetUserByName("test3")
+	}, user, true)
+	runAllTypesCompareTwoOutputs(t, func() (any, any) {
+		return GetUserByName("TEST3")
+	}, user, true)
+	user.Name = "test4"
+	runAllTypesNoOutput(t, func() { SaveUser(user, true) })
+	var allUsersSqlite []models.User
+	var allUsersRedis []models.User
+	runAllTypesCompareOutput(t, func() any {
+		allUsers := GetAllUsers()
+		switch db.GetType() {
+		case dbabstraction.TypeSqlite:
+			allUsersSqlite = allUsers
+		case dbabstraction.TypeRedis:
+			allUsersRedis = allUsers
+		default:
+			t.Fatal("Unrecognized database type")
+		}
+		return len(GetAllUsers())
+	}, 2)
+	test.IsEqual(t, allUsersSqlite, allUsersRedis)
+	runAllTypesNoOutput(t, func() { UpdateUserLastOnline(1) })
+	runAllTypesCompareTwoOutputs(t, func() (any, any) {
+		retrievedUser, ok := GetUser(1)
+		isUpdated := time.Now().Unix()-retrievedUser.LastOnline < 5 && time.Now().Unix()-retrievedUser.LastOnline > -1
+		return isUpdated, ok
+	}, true, true)
+	runAllTypesNoOutput(t, func() { DeleteUser(1) })
+	runAllTypesCompareOutput(t, func() any {
+		_, ok := GetUser(1)
+		return ok
+	}, false)
+
+	user.Id = 10
+	user.Name = "TEST5"
+	runAllTypesNoOutput(t, func() { SaveUser(user, false) })
+	runAllTypesCompareOutput(t, func() any {
+		retrievedUser, _ := GetUser(10)
+		return retrievedUser.Name
+	}, "test5")
+
+	runAllTypesCompareOutput(t, func() any {
+		_, ok := GetSuperAdmin()
+		return ok
+	}, false)
+
+	runAllTypesCompareOutput(t, func() any {
+		err := EditSuperAdmin("user", "password")
+		return err == nil
+	}, false)
+
+	runAllTypesNoOutput(t, func() {
+		users := GetAllUsers()
+		for _, rUser := range users {
+			DeleteUser(rUser.Id)
+		}
+	})
+	runAllTypesCompareOutput(t, func() any { return len(GetAllUsers()) }, 0)
+
+	runAllTypesCompareOutput(t, func() any {
+		return EditSuperAdmin("username", "pwhash")
+	}, nil)
+	runAllTypesCompareOutput(t, func() any {
+		admin, ok := GetSuperAdmin()
+		test.IsEqualInt(t, int(admin.Permissions), int(models.UserPermissionAll))
+		test.IsEqualInt(t, int(admin.UserLevel), int(models.UserLevelSuperAdmin))
+		test.IsEqualString(t, admin.Name, "username")
+		test.IsEqualString(t, admin.Password, "pwhash")
+		return ok
+	}, true)
+
+	runAllTypesNoOutput(t, func() {
+		err := EditSuperAdmin("username2", "")
+		test.IsNil(t, err)
+		admin, ok := GetSuperAdmin()
+		test.IsEqualBool(t, ok, true)
+		test.IsEqualString(t, admin.Name, "username2")
+		test.IsEqualString(t, admin.Password, "pwhash")
+	})
+	runAllTypesNoOutput(t, func() {
+		err := EditSuperAdmin("", "pwhash2")
+		test.IsNil(t, err)
+		admin, ok := GetSuperAdmin()
+		test.IsEqualBool(t, ok, true)
+		test.IsEqualString(t, admin.Name, "username2")
+		test.IsEqualString(t, admin.Password, "pwhash2")
+	})
+
+	user.Name = ""
+	defer test.ExpectPanic(t)
+	SaveUser(user, true)
+}
+
+func printDbName(db dbabstraction.Database) {
+	switch db.GetType() {
+	case dbabstraction.TypeSqlite:
+		fmt.Println("Testing SQLite")
+	case dbabstraction.TypeRedis:
+		fmt.Println("Testing Redis")
+	}
 }
 
 func TestUpgrade(t *testing.T) {

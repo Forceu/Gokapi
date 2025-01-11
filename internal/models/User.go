@@ -48,9 +48,9 @@ func (u *User) ToJson() string {
 	return string(result)
 }
 
-const UserLevelSuperAdmin = 0
-const UserLevelAdmin = 1
-const UserLevelUser = 2
+const UserLevelSuperAdmin uint8 = 0
+const UserLevelAdmin uint8 = 1
+const UserLevelUser uint8 = 2
 
 func (u *User) IsSuperAdmin() bool {
 	return u.UserLevel == UserLevelSuperAdmin

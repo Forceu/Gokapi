@@ -291,26 +291,26 @@ func GetSuperAdmin() (models.User, bool) {
 
 // EditSuperAdmin changes parameters of the super admin. If no user exists, a new superadmin will be created
 // Returns an error if at least one user exists, but no superadmin
-func EditSuperAdmin(email, password string) error {
+func EditSuperAdmin(username, passwordHash string) error {
 	user, ok := GetSuperAdmin()
 	if !ok {
 		if len(GetAllUsers()) != 0 {
 			return errors.New("at least one user exists, but no superadmin found")
 		}
 		newAdmin := models.User{
-			Name:        email,
+			Name:        username,
 			Permissions: models.UserPermissionAll,
 			UserLevel:   models.UserLevelSuperAdmin,
-			Password:    password,
+			Password:    passwordHash,
 		}
 		db.SaveUser(newAdmin, true)
 		return nil
 	}
-	if email != "" {
-		user.Name = email
+	if username != "" {
+		user.Name = username
 	}
-	if password != "" {
-		user.Password = password
+	if passwordHash != "" {
+		user.Password = passwordHash
 	}
 	db.SaveUser(user, false)
 	return nil
