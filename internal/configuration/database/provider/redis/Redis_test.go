@@ -239,6 +239,21 @@ func TestApiKeys(t *testing.T) {
 	key, ok := dbInstance.GetApiKey("newkey")
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, key.LastUsed == 10, true)
+
+	dbInstance.SaveApiKey(models.ApiKey{
+		Id:       "publicTest",
+		PublicId: "publicId",
+	})
+	_, ok = dbInstance.GetApiKey("publicTest")
+	test.IsEqualBool(t, ok, true)
+	_, ok = dbInstance.GetApiKey("publicId")
+	test.IsEqualBool(t, ok, false)
+	_, ok = dbInstance.GetApiKeyByPublicKey("publicTest")
+	test.IsEqualBool(t, ok, false)
+	keyName, ok := dbInstance.GetApiKeyByPublicKey("publicId")
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualString(t, keyName, "publicTest")
+
 }
 
 func TestDatabaseProvider_IncreaseDownloadCount(t *testing.T) {
@@ -372,6 +387,34 @@ func TestSession(t *testing.T) {
 	test.IsEqualBool(t, ok, false)
 	_, ok = dbInstance.GetSession("anothersession")
 	test.IsEqualBool(t, ok, false)
+
+	session = models.Session{
+		RenewAt:    2147483645,
+		ValidUntil: 2147483645,
+		UserId:     20,
+	}
+	dbInstance.SaveSession("sess_user1", session)
+	dbInstance.SaveSession("sess_user2", session)
+	dbInstance.SaveSession("sess_user3", session)
+	session.UserId = 40
+	dbInstance.SaveSession("sess_user4", session)
+	_, ok = dbInstance.GetSession("sess_user1")
+	test.IsEqualBool(t, ok, true)
+	_, ok = dbInstance.GetSession("sess_user2")
+	test.IsEqualBool(t, ok, true)
+	_, ok = dbInstance.GetSession("sess_user3")
+	test.IsEqualBool(t, ok, true)
+	_, ok = dbInstance.GetSession("sess_user4")
+	test.IsEqualBool(t, ok, true)
+	dbInstance.DeleteAllSessionsByUser(20)
+	_, ok = dbInstance.GetSession("sess_user1")
+	test.IsEqualBool(t, ok, false)
+	_, ok = dbInstance.GetSession("sess_user2")
+	test.IsEqualBool(t, ok, false)
+	_, ok = dbInstance.GetSession("sess_user3")
+	test.IsEqualBool(t, ok, false)
+	_, ok = dbInstance.GetSession("sess_user4")
+	test.IsEqualBool(t, ok, true)
 }
 
 func TestMetaData(t *testing.T) {

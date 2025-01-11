@@ -25,8 +25,8 @@ var authSettings models.AuthenticationConfig
 
 // Init needs to be called first to process the authentication configuration
 func Init(config models.AuthenticationConfig) {
-	valid, err := isValid(config)
-	if !valid {
+	err := checkAuthConfig(config)
+	if err != nil {
 		log.Println("Error while initiating authentication method:")
 		log.Println(err)
 		osExit(3)
@@ -37,34 +37,37 @@ func Init(config models.AuthenticationConfig) {
 
 var osExit = os.Exit
 
-// isValid checks if the config is actually valid, and returns true or returns false and an error
-func isValid(config models.AuthenticationConfig) (bool, error) {
+// checkAuthConfig checks if the config is actually valid, and returns an error otherwise
+func checkAuthConfig(config models.AuthenticationConfig) error {
 	switch config.Method {
 	case models.AuthenticationInternal:
 		if len(config.Username) < 3 {
-			return false, errors.New("username too short")
+			return errors.New("username too short")
 		}
-		return true, nil
+		return nil
 	case models.AuthenticationOAuth2:
 		if config.OAuthProvider == "" {
-			return false, errors.New("oauth provider was not set")
+			return errors.New("oauth provider was not set")
 		}
 		if config.OAuthClientId == "" {
-			return false, errors.New("oauth client id was not set")
+			return errors.New("oauth client id was not set")
 		}
 		if config.OAuthClientSecret == "" {
-			return false, errors.New("oauth client secret was not set")
+			return errors.New("oauth client secret was not set")
 		}
-		return true, nil
+		if config.OAuthRecheckInterval < 1 {
+			return errors.New("oauth recheck interval invalid")
+		}
+		return nil
 	case models.AuthenticationHeader:
 		if config.HeaderKey == "" {
-			return false, errors.New("header key is not set")
+			return errors.New("header key is not set")
 		}
-		return true, nil
+		return nil
 	case models.AuthenticationDisabled:
-		return true, nil
+		return nil
 	default:
-		return false, errors.New("unknown authentication selected")
+		return errors.New("unknown authentication selected")
 	}
 }
 

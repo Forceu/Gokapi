@@ -54,6 +54,7 @@ func TestApiKeys(t *testing.T) {
 	newApiKey := models.ApiKey{
 		Id:           "test",
 		FriendlyName: "testKey",
+		PublicId:     "wfwefewwfefwe",
 		LastUsed:     1000,
 		Permissions:  10,
 	}
@@ -68,6 +69,28 @@ func TestApiKeys(t *testing.T) {
 	runAllTypesCompareTwoOutputs(t, func() (any, any) {
 		return GetApiKey("test")
 	}, models.ApiKey{}, false)
+
+	runAllTypesNoOutput(t, func() {
+		SaveApiKey(models.ApiKey{
+			Id:       "publicTest",
+			PublicId: "publicId",
+		})
+	})
+	runAllTypesCompareOutput(t, func() any {
+		_, ok := GetApiKey("publicTest")
+		return ok
+	}, true)
+	runAllTypesCompareOutput(t, func() any {
+		_, ok := GetApiKeyByPublicKey("publicTest")
+		return ok
+	}, false)
+	runAllTypesCompareOutput(t, func() any {
+		_, ok := GetApiKey("publicId")
+		return ok
+	}, false)
+	runAllTypesCompareTwoOutputs(t, func() (any, any) {
+		return GetApiKeyByPublicKey("publicId")
+	}, "publicTest", true)
 }
 
 func TestE2E(t *testing.T) {
@@ -98,6 +121,52 @@ func TestSessions(t *testing.T) {
 	runAllTypesCompareTwoOutputs(t, func() (any, any) { return GetSession("newsession") }, input, true)
 	runAllTypesNoOutput(t, func() { DeleteAllSessions() })
 	runAllTypesCompareTwoOutputs(t, func() (any, any) { return GetSession("newsession") }, models.Session{}, false)
+
+	runAllTypesNoOutput(t, func() {
+		SaveSession("session1", models.Session{
+			RenewAt:    2147483645,
+			ValidUntil: 2147483645,
+			UserId:     20,
+		})
+		SaveSession("session2", models.Session{
+			RenewAt:    2147483645,
+			ValidUntil: 2147483645,
+			UserId:     20,
+		})
+		SaveSession("session3", models.Session{
+			RenewAt:    2147483645,
+			ValidUntil: 2147483645,
+			UserId:     40,
+		})
+	})
+
+	runAllTypesCompareOutput(t, func() any {
+		_, ok := GetSession("session1")
+		return ok
+	}, true)
+	runAllTypesCompareOutput(t, func() any {
+		_, ok := GetSession("session2")
+		return ok
+	}, true)
+	runAllTypesCompareOutput(t, func() any {
+		_, ok := GetSession("session3")
+		return ok
+	}, true)
+	runAllTypesNoOutput(t, func() {
+		DeleteAllSessionsByUser(20)
+	})
+	runAllTypesCompareOutput(t, func() any {
+		_, ok := GetSession("session1")
+		return ok
+	}, false)
+	runAllTypesCompareOutput(t, func() any {
+		_, ok := GetSession("session2")
+		return ok
+	}, false)
+	runAllTypesCompareOutput(t, func() any {
+		_, ok := GetSession("session3")
+		return ok
+	}, true)
 }
 
 func TestHotlinks(t *testing.T) {

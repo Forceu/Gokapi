@@ -34,6 +34,46 @@ func TestInit(t *testing.T) {
 	test.IsEqualString(t, authSettings.Username, "test")
 }
 
+func TestIsValid(t *testing.T) {
+	config := models.AuthenticationConfig{
+		Method:    models.AuthenticationInternal,
+		SaltAdmin: "1234",
+		SaltFiles: "1234",
+		Username:  "2s",
+	}
+	err := checkAuthConfig(config)
+	test.IsNotNil(t, err)
+	config.Username = "long name"
+	err = checkAuthConfig(config)
+	test.IsNil(t, err)
+
+	config.Method = models.AuthenticationHeader
+	err = checkAuthConfig(config)
+	test.IsNotNil(t, err)
+	config.HeaderKey = "header"
+	err = checkAuthConfig(config)
+	test.IsNil(t, err)
+
+	config.Method = models.AuthenticationOAuth2
+	err = checkAuthConfig(config)
+	test.IsNotNil(t, err)
+	config.OAuthProvider = "xxx"
+	err = checkAuthConfig(config)
+	test.IsNotNil(t, err)
+	config.OAuthClientId = "xxx"
+	err = checkAuthConfig(config)
+	test.IsNotNil(t, err)
+	config.OAuthClientSecret = "xxx"
+	err = checkAuthConfig(config)
+	test.IsNotNil(t, err)
+	config.OAuthRecheckInterval = -1
+	err = checkAuthConfig(config)
+	test.IsNotNil(t, err)
+	config.OAuthRecheckInterval = 1
+	err = checkAuthConfig(config)
+	test.IsNil(t, err)
+}
+
 func TestIsCorrectUsernameAndPassword(t *testing.T) {
 	user, ok := IsCorrectUsernameAndPassword("test", "adminadmin")
 	test.IsEqualBool(t, ok, true)
@@ -381,12 +421,13 @@ var modelUserPW = models.AuthenticationConfig{
 	Username:  "test",
 }
 var modelOauth = models.AuthenticationConfig{
-	Method:            models.AuthenticationOAuth2,
-	SaltAdmin:         testconfiguration.SaltAdmin,
-	SaltFiles:         "1234",
-	OAuthProvider:     "test",
-	OAuthClientId:     "test",
-	OAuthClientSecret: "test",
+	Method:               models.AuthenticationOAuth2,
+	SaltAdmin:            testconfiguration.SaltAdmin,
+	SaltFiles:            "1234",
+	OAuthProvider:        "test",
+	OAuthClientId:        "test",
+	OAuthClientSecret:    "test",
+	OAuthRecheckInterval: 1,
 }
 var modelHeader = models.AuthenticationConfig{
 	Method:    models.AuthenticationHeader,
