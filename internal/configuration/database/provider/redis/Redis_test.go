@@ -254,6 +254,46 @@ func TestApiKeys(t *testing.T) {
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualString(t, keyName, "publicTest")
 
+	_, ok = dbInstance.GetSystemKey(4)
+	test.IsEqualBool(t, ok, false)
+	dbInstance.SaveApiKey(models.ApiKey{
+		Id:          "sysKey1",
+		PublicId:    "publicSysKey1",
+		IsSystemKey: true,
+		UserId:      5,
+		Expiry:      time.Now().Add(time.Hour).Unix(),
+	})
+	_, ok = dbInstance.GetSystemKey(4)
+	test.IsEqualBool(t, ok, false)
+	dbInstance.SaveApiKey(models.ApiKey{
+		Id:          "sysKey2",
+		PublicId:    "publicSysKey2",
+		IsSystemKey: true,
+		UserId:      4,
+		Expiry:      time.Now().Add(-1 * time.Hour).Unix(),
+	})
+	_, ok = dbInstance.GetSystemKey(4)
+	test.IsEqualBool(t, ok, false)
+	_, ok = dbInstance.GetSystemKey(5)
+	test.IsEqualBool(t, ok, true)
+	dbInstance.SaveApiKey(models.ApiKey{
+		Id:          "sysKey3",
+		PublicId:    "publicSysKey2",
+		IsSystemKey: true,
+		UserId:      4,
+		Expiry:      time.Now().Add(2 * time.Hour).Unix(),
+	})
+	dbInstance.SaveApiKey(models.ApiKey{
+		Id:          "sysKey4",
+		PublicId:    "publicSysKey4",
+		IsSystemKey: true,
+		UserId:      4,
+		Expiry:      time.Now().Add(4 * time.Hour).Unix(),
+	})
+	key, ok = dbInstance.GetSystemKey(4)
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualString(t, key.Id, "sysKey4")
+	test.IsEqualBool(t, key.IsSystemKey, true)
 }
 
 func TestDatabaseProvider_IncreaseDownloadCount(t *testing.T) {
@@ -558,5 +598,8 @@ func TestUsers(t *testing.T) {
 	test.IsEqualString(t, users[2].Name, "test1")
 	test.IsEqualString(t, users[3].Name, "test3")
 	test.IsEqualString(t, users[4].Name, "test0")
+
+	_, err = dbToUser([]any{"invalid"})
+	test.IsNotNil(t, err)
 	defer instance.Close()
 }

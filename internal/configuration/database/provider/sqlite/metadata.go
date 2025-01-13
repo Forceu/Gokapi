@@ -58,9 +58,6 @@ func (rowData schemaMetaData) ToFileModel() (models.File, error) {
 
 // GetAllMetadata returns a map of all available files
 func (p DatabaseProvider) GetAllMetadata() map[string]models.File {
-	if p.sqliteDb == nil {
-		panic("Database not loaded!")
-	}
 	result := make(map[string]models.File)
 	rows, err := p.sqliteDb.Query("SELECT * FROM FileMetaData")
 	helper.Check(err)
@@ -82,9 +79,6 @@ func (p DatabaseProvider) GetAllMetadata() map[string]models.File {
 
 // GetAllMetaDataIds returns all Ids that contain metadata
 func (p DatabaseProvider) GetAllMetaDataIds() []string {
-	if p.sqliteDb == nil {
-		panic("Database not loaded!")
-	}
 	keys := make([]string, 0)
 	rows, err := p.sqliteDb.Query("SELECT Id FROM FileMetaData")
 	helper.Check(err)
