@@ -388,7 +388,7 @@ func showUserAdmin(w http.ResponseWriter, r *http.Request) {
 
 // Handling of /api/
 func processApi(w http.ResponseWriter, r *http.Request) {
-	api.Process(w, r, configuration.Get().MaxMemory)
+	api.Process(w, r)
 }
 
 // Handling of /login

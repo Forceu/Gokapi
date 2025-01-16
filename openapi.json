@@ -703,17 +703,7 @@
           {
             "name": "username",
             "in": "header",
-            "description": "Full name of new user, must be at least 2 characters",
-            "required": true,
-            "style": "simple",
-            "explode": false,
-            "schema": {
-              "type": "string"
-            }
-          },{
-            "name": "email",
-            "in": "header",
-            "description": "Email address of new user. Must be at least 4 characters and include an @ sign",
+            "description": "Name of new user, must be at least 4 characters",
             "required": true,
             "style": "simple",
             "explode": false,

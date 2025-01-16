@@ -11,6 +11,7 @@ import (
 	"github.com/forceu/gokapi/internal/test/testconfiguration"
 	"io"
 	"mime/multipart"
+	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
@@ -24,17 +25,247 @@ func TestMain(m *testing.M) {
 	testconfiguration.Create(true)
 	configuration.Load()
 	configuration.ConnectDatabase()
+	generateTestUsers()
 	exitVal := m.Run()
 	testconfiguration.Delete()
 	os.Exit(exitVal)
 }
 
-const maxMemory = 20
-
 var newKeyId string
 
+func generateTestUsers() {
+	newUser := models.User{
+		Id:            100,
+		Name:          "TestUser",
+		Permissions:   models.UserPermissionNone,
+		UserLevel:     models.UserLevelUser,
+		ResetPassword: false,
+	}
+	newSuperAdmin := models.User{
+		Id:            101,
+		Name:          "TestSuperAdmin",
+		Permissions:   models.UserPermissionAll,
+		UserLevel:     models.UserLevelSuperAdmin,
+		ResetPassword: false,
+	}
+	newAdmin := models.User{
+		Id:            102,
+		Name:          "TestAdmin",
+		Permissions:   models.UserPermissionAll,
+		UserLevel:     models.UserLevelAdmin,
+		ResetPassword: false,
+	}
+	database.SaveUser(newUser, false)
+	database.SaveUser(newSuperAdmin, false)
+	database.SaveUser(newAdmin, false)
+}
+
+func getRecorder(url, apikey string, headers []test.Header) (*httptest.ResponseRecorder, *http.Request) {
+	var passedHeaders []test.Header
+	if apikey != "" {
+		passedHeaders = append(passedHeaders, test.Header{
+			Name:  "apikey",
+			Value: apikey,
+		})
+	}
+	for _, header := range headers {
+		passedHeaders = append(passedHeaders, header)
+	}
+	return test.GetRecorder("GET", url, nil, passedHeaders, nil)
+}
+
+func testAuthorisation(t *testing.T, url string, requiredPermission uint8) models.ApiKey {
+	t.Helper()
+	w, r := getRecorder(url, "", []test.Header{{}})
+	Process(w, r)
+	test.IsEqualBool(t, w.Code != 200, true)
+	test.ResponseBodyContains(t, w, `{"Result":"error","ErrorMessage":"Unauthorized"}`)
+
+	w, r = getRecorder(url, "invalid", []test.Header{{}})
+	Process(w, r)
+	test.IsEqualBool(t, w.Code != 200, true)
+	test.ResponseBodyContains(t, w, `{"Result":"error","ErrorMessage":"Unauthorized"}`)
+
+	newApiKeyUser := generateNewKey(false, 100)
+	w, r = getRecorder(url, newApiKeyUser.Id, []test.Header{{}})
+	Process(w, r)
+	test.IsEqualBool(t, w.Code != 200, true)
+	test.ResponseBodyContains(t, w, `{"Result":"error","ErrorMessage":"Unauthorized"}`)
+
+	for _, permission := range getAvailablePermissions(t) {
+		if permission == requiredPermission {
+			continue
+		}
+		newApiKeyUser.GrantPermission(permission)
+		database.SaveApiKey(newApiKeyUser)
+		w, r = getRecorder(url, newApiKeyUser.Id, []test.Header{{}})
+		Process(w, r)
+		test.IsEqualBool(t, w.Code != 200, true)
+		test.ResponseBodyContains(t, w, `{"Result":"error","ErrorMessage":"Unauthorized"}`)
+		newApiKeyUser.RemovePermission(permission)
+		database.SaveApiKey(newApiKeyUser)
+	}
+	newApiKeyUser.Permissions = models.ApiPermAll
+	newApiKeyUser.RemovePermission(requiredPermission)
+	database.SaveApiKey(newApiKeyUser)
+	w, r = getRecorder(url, newApiKeyUser.Id, []test.Header{{}})
+	Process(w, r)
+	test.IsEqualBool(t, w.Code != 200, true)
+	test.ResponseBodyContains(t, w, `{"Result":"error","ErrorMessage":"Unauthorized"}`)
+	newApiKeyUser.Permissions = models.ApiPermNone
+	newApiKeyUser.GrantPermission(requiredPermission)
+	database.SaveApiKey(newApiKeyUser)
+	return newApiKeyUser
+}
+
+type invalidParameterValue struct {
+	Value        string
+	ErrorMessage string
+	StatusCode   int
+}
+
+func testInvalidParameters(t *testing.T, url string, apiKey models.ApiKey, correctHeaders []test.Header, headerName string, invalidValues []invalidParameterValue) {
+	t.Helper()
+	for _, invalidHeader := range invalidValues {
+		headers := make([]test.Header, len(correctHeaders))
+		copy(headers, correctHeaders)
+		headers = append(headers, test.Header{
+			Name:  headerName,
+			Value: invalidHeader.Value,
+		})
+		w, r := getRecorder(url, apiKey.Id, headers)
+		Process(w, r)
+		test.IsEqualInt(t, w.Code, invalidHeader.StatusCode)
+		test.ResponseBodyContains(t, w, invalidHeader.ErrorMessage)
+		if invalidHeader.Value == "" {
+			w, r = getRecorder(url, apiKey.Id, correctHeaders)
+			Process(w, r)
+			test.IsEqualInt(t, w.Code, invalidHeader.StatusCode)
+			test.ResponseBodyContains(t, w, invalidHeader.ErrorMessage)
+		}
+	}
+}
+
+func TestUserCreate(t *testing.T) {
+	const apiUrl = "/user/create"
+	const headerUsername = "username"
+
+	apiKey := testAuthorisation(t, apiUrl, models.ApiPermManageUsers)
+
+	w, r := getRecorder(apiUrl, apiKey.Id, []test.Header{{
+		Name:  headerUsername,
+		Value: "1234",
+	}})
+	Process(w, r)
+	test.ResponseBodyContains(t, w, `{"id":103,"name":"1234","permissions":0,"userLevel":2,"lastOnline":0,"resetPassword":false}`)
+
+	var invalidParameter = []invalidParameterValue{
+		{
+			Value:        "",
+			ErrorMessage: `{"Result":"error","ErrorMessage":"Invalid username provided."}`,
+			StatusCode:   400,
+		},
+		{
+			Value:        "123",
+			ErrorMessage: `{"Result":"error","ErrorMessage":"Invalid username provided."}`,
+			StatusCode:   400,
+		},
+		{
+			Value:        "123",
+			ErrorMessage: `{"Result":"error","ErrorMessage":"Invalid username provided."}`,
+			StatusCode:   400,
+		},
+		{
+			Value:        "1234",
+			ErrorMessage: `{"Result":"error","ErrorMessage":"User already exists."}`,
+			StatusCode:   409,
+		},
+	}
+	testInvalidParameters(t, apiUrl, apiKey, []test.Header{{}}, headerUsername, invalidParameter)
+}
+
+func TestUserChangeRank(t *testing.T) {
+	const apiUrl = "/user/changeRank"
+	const headerUserId = "userid"
+	const headerNewRank = "newRank"
+
+	apiKey := testAuthorisation(t, apiUrl, models.ApiPermManageUsers)
+
+	var invalidParameter = []invalidParameterValue{
+		{
+			Value:        "",
+			ErrorMessage: `{"Result":"error","ErrorMessage":"Invalid user id provided."}`,
+			StatusCode:   404,
+		},
+		{
+			Value:        "99",
+			ErrorMessage: `{"Result":"error","ErrorMessage":"Invalid user id provided."}`,
+			StatusCode:   404,
+		},
+		{
+			Value:        "100",
+			ErrorMessage: `{"Result":"error","ErrorMessage":"Cannot modify yourself"}`,
+			StatusCode:   400,
+		},
+		{
+			Value:        "101",
+			ErrorMessage: `{"Result":"error","ErrorMessage":"Cannot modify super admin"}`,
+			StatusCode:   400,
+		},
+	}
+
+	testInvalidParameters(t, apiUrl, apiKey, []test.Header{{}}, headerUserId, invalidParameter)
+	var validHeaders = []test.Header{
+		{
+			Name:  headerUserId,
+			Value: "102",
+		},
+	}
+	invalidParameter = []invalidParameterValue{
+		{
+			Value:        "",
+			ErrorMessage: `{"Result":"error","ErrorMessage":"invalid rank sent"}`,
+			StatusCode:   400,
+		},
+		{
+			Value:        "invalid",
+			ErrorMessage: `{"Result":"error","ErrorMessage":"invalid rank sent"}`,
+			StatusCode:   400,
+		},
+	}
+	testInvalidParameters(t, apiUrl, apiKey, validHeaders, headerNewRank, invalidParameter)
+
+	user, ok := database.GetUser(102)
+	test.IsEqualBool(t, ok, true)
+	test.IsEqual(t, user.UserLevel, models.UserLevelAdmin)
+	w, r := getRecorder(apiUrl, apiKey.Id, []test.Header{{
+		Name:  headerUserId,
+		Value: "102",
+	}, {
+		Name:  headerNewRank,
+		Value: "USER",
+	}})
+	Process(w, r)
+	test.IsEqualInt(t, w.Code, 200)
+	user, ok = database.GetUser(102)
+	test.IsEqualBool(t, ok, true)
+	test.IsEqual(t, user.UserLevel, models.UserLevelUser)
+	w, r = getRecorder(apiUrl, apiKey.Id, []test.Header{{
+		Name:  headerUserId,
+		Value: "102",
+	}, {
+		Name:  headerNewRank,
+		Value: "ADMIN",
+	}})
+	Process(w, r)
+	test.IsEqualInt(t, w.Code, 200)
+	user, ok = database.GetUser(102)
+	test.IsEqualBool(t, ok, true)
+	test.IsEqual(t, user.UserLevel, models.UserLevelAdmin)
+}
+
 func TestNewKey(t *testing.T) {
-	newKey := NewKey(true, 5)
+	newKey := generateNewKey(true, 5)
 	newKeyId = newKey.Id
 	key, ok := database.GetApiKey(newKeyId)
 	test.IsEqualBool(t, ok, true)
@@ -43,7 +274,7 @@ func TestNewKey(t *testing.T) {
 	test.IsEqualBool(t, key.Permissions == models.ApiPermDefault, true)
 	test.IsEqualInt(t, key.UserId, 5)
 
-	newKey = NewKey(false, 5)
+	newKey = generateNewKey(false, 5)
 	newKeyId = newKey.Id
 	key, ok = database.GetApiKey(newKeyId)
 	test.IsEqualBool(t, ok, true)
@@ -54,52 +285,52 @@ func TestDeleteKey(t *testing.T) {
 	key, ok := database.GetApiKey(newKeyId)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualString(t, key.FriendlyName, "Unnamed key")
-	result := DeleteKey(newKeyId)
+	result := deleteApiKey(newKeyId)
 	test.IsEqualBool(t, result, true)
 	_, ok = database.GetApiKey(newKeyId)
 	test.IsEqualBool(t, ok, false)
-	result = DeleteKey("invalid")
+	result = deleteApiKey("invalid")
 	test.IsEqualBool(t, result, false)
 }
 
 func TestIsValidApiKey(t *testing.T) {
-	user, isValid := IsValidApiKey("", false, models.ApiPermNone)
+	user, isValid := isValidApiKey("", false, models.ApiPermNone)
 	test.IsEqualBool(t, isValid, false)
-	_, isValid = IsValidApiKey("invalid", false, models.ApiPermNone)
+	_, isValid = isValidApiKey("invalid", false, models.ApiPermNone)
 	test.IsEqualBool(t, isValid, false)
-	user, isValid = IsValidApiKey("validkey", false, models.ApiPermNone)
+	user, isValid = isValidApiKey("validkey", false, models.ApiPermNone)
 	test.IsEqualBool(t, isValid, true)
 	test.IsEqualInt(t, user.Id, 5)
 	key, ok := database.GetApiKey("validkey")
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, key.LastUsed == 0, true)
-	user, isValid = IsValidApiKey("validkey", true, models.ApiPermNone)
+	user, isValid = isValidApiKey("validkey", true, models.ApiPermNone)
 	test.IsEqualBool(t, isValid, true)
 	test.IsEqualInt(t, user.Id, 5)
 	key, ok = database.GetApiKey("validkey")
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, key.LastUsed == 0, false)
 
-	newApiKey := NewKey(false, 5)
-	user, isValid = IsValidApiKey(newApiKey.Id, true, models.ApiPermNone)
+	newApiKey := generateNewKey(false, 5)
+	user, isValid = isValidApiKey(newApiKey.Id, true, models.ApiPermNone)
 	test.IsEqualBool(t, isValid, true)
 	for _, permission := range getAvailablePermissions(t) {
-		_, isValid = IsValidApiKey(newApiKey.Id, true, permission)
+		_, isValid = isValidApiKey(newApiKey.Id, true, permission)
 		test.IsEqualBool(t, isValid, false)
 	}
 	for _, newPermission := range getAvailablePermissions(t) {
 		setPermissionApikey(newApiKey.Id, newPermission, t)
 		for _, permission := range getAvailablePermissions(t) {
-			_, isValid = IsValidApiKey(newApiKey.Id, true, permission)
+			_, isValid = isValidApiKey(newApiKey.Id, true, permission)
 			test.IsEqualBool(t, isValid, permission == newPermission)
 		}
 	}
 	setPermissionApikey(newApiKey.Id, models.ApiPermEdit|models.ApiPermDelete, t)
-	_, isValid = IsValidApiKey(newApiKey.Id, true, models.ApiPermEdit)
+	_, isValid = isValidApiKey(newApiKey.Id, true, models.ApiPermEdit)
 	test.IsEqualBool(t, isValid, true)
-	_, isValid = IsValidApiKey(newApiKey.Id, true, models.ApiPermAll)
+	_, isValid = isValidApiKey(newApiKey.Id, true, models.ApiPermAll)
 	test.IsEqualBool(t, isValid, false)
-	_, isValid = IsValidApiKey(newApiKey.Id, true, models.ApiPermView)
+	_, isValid = isValidApiKey(newApiKey.Id, true, models.ApiPermView)
 	test.IsEqualBool(t, isValid, false)
 }
 
@@ -141,6 +372,41 @@ func TestGetSystemKey(t *testing.T) {
 	database.SaveApiKey(retrievedSystemKey)
 	newKey = GetSystemKey(5)
 	test.IsEqualBool(t, systemKey != newKey, true)
+
+	newUser := models.User{
+		Id:          70,
+		Name:        "TestNoUser",
+		Permissions: models.UserPermissionAll,
+		UserLevel:   models.UserLevelUser,
+		LastOnline:  0,
+	}
+	newUser.RemovePermission(models.UserPermManageUsers)
+	database.SaveUser(newUser, false)
+	newUser = models.User{
+		Id:          71,
+		Name:        "TestNoReplace",
+		Permissions: models.UserPermissionAll,
+		UserLevel:   models.UserLevelUser,
+		LastOnline:  0,
+	}
+	newUser.RemovePermission(models.UserPermReplaceUploads)
+	database.SaveUser(newUser, false)
+
+	newKey = GetSystemKey(70)
+	systemApiKey, ok := database.GetApiKey(newKey)
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualBool(t, systemApiKey.HasPermissionEdit(), true)
+	test.IsEqualBool(t, systemApiKey.HasPermissionManageUsers(), false)
+	test.IsEqualBool(t, systemApiKey.HasPermissionReplace(), true)
+	newKey = GetSystemKey(71)
+	systemApiKey, ok = database.GetApiKey(newKey)
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualBool(t, systemApiKey.HasPermissionEdit(), true)
+	test.IsEqualBool(t, systemApiKey.HasPermissionManageUsers(), true)
+	test.IsEqualBool(t, systemApiKey.HasPermissionReplace(), false)
+
+	defer test.ExpectPanic(t)
+	GetSystemKey(99)
 }
 
 func TestDelete(t *testing.T) {
@@ -156,13 +422,13 @@ func TestDelete(t *testing.T) {
 		Name:  "apikey",
 		Value: "invalid",
 	}}, nil)
-	Process(w, r, maxMemory)
+	Process(w, r)
 	test.ResponseBodyContains(t, w, "{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}")
 	w, r = test.GetRecorder("GET", "/auth/delete", nil, []test.Header{{
 		Name:  "apiKeyToModify",
 		Value: "toDelete",
 	}}, nil)
-	Process(w, r, maxMemory)
+	Process(w, r)
 	test.ResponseBodyContains(t, w, "{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}")
 
 	w, r = test.GetRecorder("GET", "/auth/delete", nil, []test.Header{{
@@ -172,7 +438,7 @@ func TestDelete(t *testing.T) {
 		Name:  "apikey",
 		Value: getNewKeyWithPermissionMissing(t, models.ApiPermApiMod).Id,
 	}}, nil)
-	Process(w, r, maxMemory)
+	Process(w, r)
 	test.ResponseBodyContains(t, w, "{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}")
 
 	w, r = test.GetRecorder("GET", "/auth/delete", nil, []test.Header{{
@@ -182,10 +448,7 @@ func TestDelete(t *testing.T) {
 		Name:  "apikey",
 		Value: getNewKeyWithAllPermissions(t).Id,
 	}}, nil)
-	keys := database.GetAllApiKeys()
-	Process(w, r, maxMemory)
-	keys = database.GetAllApiKeys()
-	fmt.Println(keys)
+	Process(w, r)
 	test.IsEqualInt(t, w.Code, 200)
 	_, ok = database.GetApiKey("toDelete")
 	test.IsEqualBool(t, ok, false)
@@ -197,12 +460,12 @@ func TestDelete(t *testing.T) {
 		Name:  "apikey",
 		Value: "validkey",
 	}}, nil)
-	Process(w, r, maxMemory)
+	Process(w, r)
 	test.ResponseBodyContains(t, w, "{\"Result\":\"error\",\"ErrorMessage\":\"Invalid api key provided.\"}")
 }
 
 func getNewKeyWithAllPermissions(t *testing.T) models.ApiKey {
-	key := NewKey(false, 5)
+	key := generateNewKey(false, 5)
 	validKey, ok := database.GetApiKey(key.Id)
 	test.IsEqualBool(t, ok, true)
 	validKey.GrantPermission(models.ApiPermAll)
@@ -211,7 +474,7 @@ func getNewKeyWithAllPermissions(t *testing.T) models.ApiKey {
 }
 
 func getNewKeyWithPermissionMissing(t *testing.T, removePerm uint8) models.ApiKey {
-	key := NewKey(false, 5)
+	key := generateNewKey(false, 5)
 	validKey, ok := database.GetApiKey(key.Id)
 	test.IsEqualBool(t, ok, true)
 	validKey.GrantPermission(models.ApiPermAll)
@@ -230,10 +493,10 @@ func TestNewApiKey(t *testing.T) {
 		Name:  "apikey",
 		Value: "invalid",
 	}}, nil)
-	Process(w, r, maxMemory)
+	Process(w, r)
 	test.ResponseBodyContains(t, w, "{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}")
 	w, r = test.GetRecorder("GET", "/auth/create", nil, nil, nil)
-	Process(w, r, maxMemory)
+	Process(w, r)
 	test.ResponseBodyContains(t, w, "{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}")
 
 	w, r = test.GetRecorder("GET", "/auth/create", nil, []test.Header{{
@@ -243,7 +506,7 @@ func TestNewApiKey(t *testing.T) {
 		Name:  "friendlyName",
 		Value: "New Key",
 	}}, nil)
-	Process(w, r, maxMemory)
+	Process(w, r)
 	test.IsEqualInt(t, w.Code, 200)
 	keysAfter := countApiKeys()
 	test.IsEqualInt(t, keysAfter, keysBefore+1)
@@ -259,7 +522,7 @@ func TestNewApiKey(t *testing.T) {
 		Name:  "apikey",
 		Value: "validkey",
 	}}, nil)
-	Process(w, r, maxMemory)
+	Process(w, r)
 	test.IsEqualInt(t, w.Code, 200)
 	keysAfter = countApiKeys()
 	test.IsEqualInt(t, keysAfter, keysBefore+2)
@@ -274,38 +537,38 @@ func TestNewApiKey(t *testing.T) {
 		Name:  "apikey",
 		Value: getNewKeyWithPermissionMissing(t, models.ApiPermApiMod).Id,
 	}}, nil)
-	Process(w, r, maxMemory)
+	Process(w, r)
 	test.ResponseBodyContains(t, w, "{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}")
 }
 
 func TestProcess(t *testing.T) {
 	w, r := test.GetRecorder("GET", "/api/auth/friendlyname", nil, nil, nil)
-	Process(w, r, maxMemory)
+	Process(w, r)
 	test.ResponseBodyContains(t, w, "{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}")
 	w, r = test.GetRecorder("GET", "/api/auth/friendlyname", []test.Cookie{{
 		Name:  "session_token",
 		Value: "validsession",
 	}}, nil, nil)
-	Process(w, r, maxMemory)
+	Process(w, r)
 	test.ResponseBodyContains(t, w, "{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}")
 	w, r = test.GetRecorder("GET", "/api/invalid", nil, nil, nil)
-	Process(w, r, maxMemory)
+	Process(w, r)
 	test.ResponseBodyContains(t, w, "Invalid request")
 	w, r = test.GetRecorder("GET", "/api/invalid", nil, []test.Header{{
 		Name:  "apikey",
 		Value: "validkey",
 	}}, nil)
-	Process(w, r, maxMemory)
+	Process(w, r)
 	test.ResponseBodyContains(t, w, "Invalid request")
 }
 
 func TestAuthDisabledLogin(t *testing.T) {
 	w, r := test.GetRecorder("GET", "/api/auth/friendlyname", nil, nil, nil)
-	Process(w, r, maxMemory)
+	Process(w, r)
 	test.ResponseBodyContains(t, w, "{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}")
 	configuration.Get().Authentication.Method = models.AuthenticationDisabled
 	w, r = test.GetRecorder("GET", "/api/auth/friendlyname", nil, nil, nil)
-	Process(w, r, maxMemory)
+	Process(w, r)
 	test.ResponseBodyContains(t, w, "{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}")
 	configuration.Get().Authentication.Method = models.AuthenticationInternal
 }
@@ -315,12 +578,12 @@ func TestChangeFriendlyName(t *testing.T) {
 		Name:  "apikey",
 		Value: "validkey",
 	}}, nil)
-	Process(w, r, maxMemory)
+	Process(w, r)
 	test.ResponseBodyContains(t, w, "Invalid api key provided.")
 	w, r = test.GetRecorder("GET", "/api/auth/friendlyname", nil, []test.Header{{
 		Name: "apikey", Value: "validkey"}, {
 		Name: "apiKeyToModify", Value: "validkey"}}, nil)
-	Process(w, r, maxMemory)
+	Process(w, r)
 	test.IsEqualInt(t, w.Code, 200)
 
 	key, ok := database.GetApiKey("validkey")
@@ -330,20 +593,20 @@ func TestChangeFriendlyName(t *testing.T) {
 		Name: "apikey", Value: "validkey"}, {
 		Name: "apiKeyToModify", Value: "validkey"}, {
 		Name: "friendlyName", Value: "NewName"}}, nil)
-	Process(w, r, maxMemory)
+	Process(w, r)
 	test.IsEqualInt(t, w.Code, 200)
 	key, ok = database.GetApiKey("validkey")
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualString(t, key.FriendlyName, "NewName")
 	w = httptest.NewRecorder()
-	Process(w, r, maxMemory)
+	Process(w, r)
 	test.IsEqualInt(t, w.Code, 200)
 
 	w, r = test.GetRecorder("GET", "/api/auth/friendlyname", nil, []test.Header{{
 		Name: "apikey", Value: getNewKeyWithPermissionMissing(t, models.ApiPermApiMod).Id}, {
 		Name: "apiKeyToModify", Value: "validkey"}, {
 		Name: "friendlyName", Value: "NewName2"}}, nil)
-	Process(w, r, maxMemory)
+	Process(w, r)
 	test.ResponseBodyContains(t, w, "{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}")
 }
 
@@ -352,7 +615,7 @@ func TestDeleteFile(t *testing.T) {
 		Name:  "apikey",
 		Value: "validkey",
 	}}, nil)
-	Process(w, r, maxMemory)
+	Process(w, r)
 	test.ResponseBodyContains(t, w, "Invalid file ID provided")
 	w, r = test.GetRecorder("GET", "/api/files/delete", nil, []test.Header{{
 		Name:  "apikey",
@@ -362,7 +625,7 @@ func TestDeleteFile(t *testing.T) {
 		Value: "invalid",
 	},
 	}, nil)
-	Process(w, r, maxMemory)
+	Process(w, r)
 	test.ResponseBodyContains(t, w, "Invalid file ID provided")
 	file, ok := database.GetMetaDataById("jpLXGJKigM4hjtA6T6sN2")
 	test.IsEqualBool(t, ok, true)
@@ -375,7 +638,7 @@ func TestDeleteFile(t *testing.T) {
 		Value: "jpLXGJKigM4hjtA6T6sN2",
 	},
 	}, nil)
-	Process(w, r, maxMemory)
+	Process(w, r)
 	test.IsEqualInt(t, w.Code, 200)
 	time.Sleep(time.Second)
 	_, ok = database.GetMetaDataById("jpLXGJKigM4hjtA6T6sN2")
@@ -404,7 +667,7 @@ func TestUploadAndDuplication(t *testing.T) {
 	}}, body)
 	r.Header.Add("Content-Type", writer.FormDataContentType())
 
-	Process(w, r, maxMemory)
+	Process(w, r)
 	response, err := io.ReadAll(w.Result().Body)
 	test.IsNil(t, err)
 	result := models.Result{}
@@ -421,7 +684,7 @@ func TestUploadAndDuplication(t *testing.T) {
 		Name:  "apikey",
 		Value: "validkey",
 	}}, body)
-	Process(w, r, maxMemory)
+	Process(w, r)
 	test.ResponseBodyContains(t, w, "Content-Type isn't multipart/form-data")
 	test.IsEqualInt(t, w.Code, 400)
 
@@ -432,14 +695,14 @@ func TestUploadAndDuplication(t *testing.T) {
 		Name:  "apikey",
 		Value: "validkey",
 	}}, nil)
-	Process(w, r, maxMemory)
+	Process(w, r)
 	test.ResponseBodyContains(t, w, "Invalid id provided.")
 	w, r = test.GetRecorder("POST", "/api/files/duplicate", nil, []test.Header{
 		{Name: "apikey", Value: "validkey"},
 		{Name: "id", Value: "invalid"},
 		{Name: "Content-type", Value: "application/x-www-form-urlencoded"},
 	}, nil)
-	Process(w, r, maxMemory)
+	Process(w, r)
 	test.ResponseBodyContains(t, w, "Invalid id provided.")
 
 	w, r = test.GetRecorder("POST", "/api/files/duplicate", nil, []test.Header{
@@ -447,7 +710,7 @@ func TestUploadAndDuplication(t *testing.T) {
 		{Name: "id", Value: "invalid"},
 		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
 		strings.NewReader("§$§$%&(&//&/invalid"))
-	Process(w, r, maxMemory)
+	Process(w, r)
 	test.ResponseBodyContains(t, w, "invalid URL escape")
 
 	data := url.Values{}
@@ -458,7 +721,7 @@ func TestUploadAndDuplication(t *testing.T) {
 		{Name: "id", Value: "invalid"},
 		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
 		strings.NewReader(data.Encode()))
-	Process(w, r, maxMemory)
+	Process(w, r)
 	resultDuplication := models.FileApiOutput{}
 	response, err = io.ReadAll(w.Result().Body)
 	test.IsNil(t, err)
@@ -479,7 +742,7 @@ func TestUploadAndDuplication(t *testing.T) {
 		{Name: "id", Value: "invalid"},
 		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
 		strings.NewReader(data.Encode()))
-	Process(w, r, maxMemory)
+	Process(w, r)
 	resultDuplication = models.FileApiOutput{}
 	response, err = io.ReadAll(w.Result().Body)
 	test.IsNil(t, err)
@@ -497,7 +760,7 @@ func TestUploadAndDuplication(t *testing.T) {
 		{Name: "id", Value: "invalid"},
 		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
 		strings.NewReader(data.Encode()))
-	Process(w, r, maxMemory)
+	Process(w, r)
 	resultDuplication = models.FileApiOutput{}
 	response, err = io.ReadAll(w.Result().Body)
 	test.IsNil(t, err)
@@ -514,7 +777,7 @@ func TestUploadAndDuplication(t *testing.T) {
 		{Name: "id", Value: "invalid"},
 		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
 		strings.NewReader(data.Encode()))
-	Process(w, r, maxMemory)
+	Process(w, r)
 	test.ResponseBodyContains(t, w, "strconv.Atoi: parsing \"invalid\": invalid syntax")
 
 	data = url.Values{}
@@ -526,7 +789,7 @@ func TestUploadAndDuplication(t *testing.T) {
 		{Name: "id", Value: "invalid"},
 		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
 		strings.NewReader(data.Encode()))
-	Process(w, r, maxMemory)
+	Process(w, r)
 	test.ResponseBodyContains(t, w, "strconv.Atoi: parsing \"invalid\": invalid syntax")
 
 	data = url.Values{}
@@ -538,7 +801,7 @@ func TestUploadAndDuplication(t *testing.T) {
 		{Name: "id", Value: "invalid"},
 		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
 		strings.NewReader(data.Encode()))
-	Process(w, r, maxMemory)
+	Process(w, r)
 	resultDuplication = models.FileApiOutput{}
 	response, err = io.ReadAll(w.Result().Body)
 	test.IsNil(t, err)
@@ -555,7 +818,7 @@ func TestUploadAndDuplication(t *testing.T) {
 		{Name: "id", Value: "invalid"},
 		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
 		strings.NewReader(data.Encode()))
-	Process(w, r, maxMemory)
+	Process(w, r)
 	resultDuplication = models.FileApiOutput{}
 	response, err = io.ReadAll(w.Result().Body)
 	test.IsNil(t, err)
@@ -572,7 +835,7 @@ func TestUploadAndDuplication(t *testing.T) {
 		{Name: "apikey", Value: "validkey"},
 		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
 		strings.NewReader(data.Encode()))
-	Process(w, r, maxMemory)
+	Process(w, r)
 	resultDuplication = models.FileApiOutput{}
 	response, err = io.ReadAll(w.Result().Body)
 	test.IsNil(t, err)
@@ -588,7 +851,7 @@ func TestUploadAndDuplication(t *testing.T) {
 		{Name: "apikey", Value: "validkey"},
 		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
 		strings.NewReader(data.Encode()))
-	Process(w, r, maxMemory)
+	Process(w, r)
 	resultDuplication = models.FileApiOutput{}
 	response, err = io.ReadAll(w.Result().Body)
 	test.IsNil(t, err)
@@ -604,7 +867,7 @@ func TestUploadAndDuplication(t *testing.T) {
 		{Name: "apikey", Value: "validkey"},
 		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
 		strings.NewReader(data.Encode()))
-	Process(w, r, maxMemory)
+	Process(w, r)
 	resultDuplication = models.FileApiOutput{}
 	response, err = io.ReadAll(w.Result().Body)
 	test.IsNil(t, err)
@@ -619,7 +882,7 @@ func TestUploadAndDuplication(t *testing.T) {
 		{Name: "apikey", Value: "validkey"},
 		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
 		strings.NewReader(data.Encode()))
-	Process(w, r, maxMemory)
+	Process(w, r)
 	resultDuplication = models.FileApiOutput{}
 	response, err = io.ReadAll(w.Result().Body)
 	test.IsNil(t, err)
@@ -650,7 +913,7 @@ func TestChunkUpload(t *testing.T) {
 		Value: "validkey",
 	}}, body)
 	r.Header.Add("Content-Type", formcontent)
-	Process(w, r, maxMemory)
+	Process(w, r)
 	test.IsEqualInt(t, w.Code, 200)
 	test.ResponseBodyContains(t, w, "OK")
 
@@ -673,7 +936,7 @@ func TestChunkUpload(t *testing.T) {
 		Value: "validkey",
 	}}, body)
 	r.Header.Add("Content-Type", formcontent)
-	Process(w, r, maxMemory)
+	Process(w, r)
 	test.IsEqualInt(t, w.Code, 400)
 	test.ResponseBodyContains(t, w, "error")
 }
@@ -688,7 +951,7 @@ func TestChunkComplete(t *testing.T) {
 		{Name: "apikey", Value: "validkey"},
 		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
 		strings.NewReader(data.Encode()))
-	Process(w, r, maxMemory)
+	Process(w, r)
 	test.IsEqualInt(t, w.Code, 200)
 	result := struct {
 		FileInfo models.FileApiOutput `json:"FileInfo"`
@@ -706,7 +969,7 @@ func TestChunkComplete(t *testing.T) {
 		{Name: "apikey", Value: "validkey"},
 		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
 		strings.NewReader(data.Encode()))
-	Process(w, r, maxMemory)
+	Process(w, r)
 	test.IsEqualInt(t, w.Code, 400)
 	test.ResponseBodyContains(t, w, "error")
 
@@ -714,7 +977,7 @@ func TestChunkComplete(t *testing.T) {
 		{Name: "apikey", Value: "validkey"},
 		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
 		strings.NewReader("invalid&&§$%"))
-	Process(w, r, maxMemory)
+	Process(w, r)
 	test.IsEqualInt(t, w.Code, 400)
 	test.ResponseBodyContains(t, w, "error")
 }
@@ -724,7 +987,7 @@ func TestList(t *testing.T) {
 		Name:  "apikey",
 		Value: "validkey",
 	}}, nil)
-	Process(w, r, maxMemory)
+	Process(w, r)
 	test.IsEqualInt(t, w.Code, 200)
 	test.ResponseBodyContains(t, w, "picture.jpg")
 }
