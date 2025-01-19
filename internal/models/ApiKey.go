@@ -20,10 +20,10 @@ const (
 )
 
 // ApiPermNone means no permission granted
-const ApiPermNone = 0
+const ApiPermNone uint8 = 0
 
 // ApiPermAll means all permission granted
-const ApiPermAll = 127
+const ApiPermAll uint8 = 127
 
 // ApiPermDefault means all permission granted, except ApiPermApiMod, ApiPermManageUsers and ApiPermReplace
 // This is the default for new API keys that are created from the UI
