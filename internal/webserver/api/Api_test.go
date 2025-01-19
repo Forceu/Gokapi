@@ -3,9 +3,9 @@ package api
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/database"
+	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/test"
 	"github.com/forceu/gokapi/internal/test/testconfiguration"
@@ -32,33 +32,55 @@ func TestMain(m *testing.M) {
 	os.Exit(exitVal)
 }
 
-var newKeyId string
+const (
+	idInvalidUser            = 99
+	idSuperAdmin             = 100
+	idAdmin                  = 101
+	idUser                   = 102
+	idApiKeyAdmin            = "ApiKeyAdmin"
+	idApiKeySuperAdmin       = "ApiKeySuperAdmin"
+	idPublicApiKeySuperAdmin = "OGeidahfiep1Akeevahkoh1quechieP6ael"
+)
 
 func generateTestUsers() {
 	newUser := models.User{
-		Id:            100,
+		Id:            idUser,
 		Name:          "TestUser",
 		Permissions:   models.UserPermissionNone,
 		UserLevel:     models.UserLevelUser,
 		ResetPassword: false,
 	}
-	newSuperAdmin := models.User{
-		Id:            101,
-		Name:          "TestSuperAdmin",
-		Permissions:   models.UserPermissionAll,
-		UserLevel:     models.UserLevelSuperAdmin,
-		ResetPassword: false,
-	}
 	newAdmin := models.User{
-		Id:            102,
+		Id:            idAdmin,
 		Name:          "TestAdmin",
 		Permissions:   models.UserPermissionAll,
 		UserLevel:     models.UserLevelAdmin,
 		ResetPassword: false,
 	}
+	newSuperAdmin := models.User{
+		Id:            idSuperAdmin,
+		Name:          "TestSuperAdmin",
+		Permissions:   models.UserPermissionAll,
+		UserLevel:     models.UserLevelSuperAdmin,
+		ResetPassword: false,
+	}
 	database.SaveUser(newUser, false)
-	database.SaveUser(newSuperAdmin, false)
 	database.SaveUser(newAdmin, false)
+	database.SaveUser(newSuperAdmin, false)
+	database.SaveApiKey(models.ApiKey{
+		Id:           idApiKeyAdmin,
+		PublicId:     idApiKeyAdmin,
+		FriendlyName: "Admin",
+		Permissions:  models.ApiPermAll,
+		UserId:       idAdmin,
+	})
+	database.SaveApiKey(models.ApiKey{
+		Id:           idApiKeySuperAdmin,
+		PublicId:     idPublicApiKeySuperAdmin,
+		FriendlyName: "SuperAdmin",
+		Permissions:  models.ApiPermAll,
+		UserId:       idSuperAdmin,
+	})
 }
 
 func getRecorder(url, apikey string, headers []test.Header) (*httptest.ResponseRecorder, *http.Request) {
@@ -87,7 +109,7 @@ func testAuthorisation(t *testing.T, url string, requiredPermission uint8) model
 	test.IsEqualBool(t, w.Code != 200, true)
 	test.ResponseBodyContains(t, w, `{"Result":"error","ErrorMessage":"Unauthorized"}`)
 
-	newApiKeyUser := generateNewKey(false, 100)
+	newApiKeyUser := generateNewKey(false, idUser)
 	w, r = getRecorder(url, newApiKeyUser.Id, []test.Header{{}})
 	Process(w, r)
 	test.IsEqualBool(t, w.Code != 200, true)
@@ -97,14 +119,12 @@ func testAuthorisation(t *testing.T, url string, requiredPermission uint8) model
 		if permission == requiredPermission {
 			continue
 		}
-		newApiKeyUser.GrantPermission(permission)
-		database.SaveApiKey(newApiKeyUser)
+		setPermissionApikey(t, newApiKeyUser.Id, permission)
 		w, r = getRecorder(url, newApiKeyUser.Id, []test.Header{{}})
 		Process(w, r)
 		test.IsEqualBool(t, w.Code != 200, true)
 		test.ResponseBodyContains(t, w, `{"Result":"error","ErrorMessage":"Unauthorized"}`)
-		newApiKeyUser.RemovePermission(permission)
-		database.SaveApiKey(newApiKeyUser)
+		removePermissionApikey(t, newApiKeyUser.Id, permission)
 	}
 	newApiKeyUser.Permissions = models.ApiPermAll
 	newApiKeyUser.RemovePermission(requiredPermission)
@@ -147,7 +167,7 @@ func testInvalidParameters(t *testing.T, url, apiKey string, correctHeaders []te
 	}
 }
 
-func testInvalidUserId(t *testing.T, url, apiKey string, invalidUser, superAdmin, self int) {
+func testInvalidUserId(t *testing.T, url, apiKey string) {
 	t.Helper()
 	const headerUserId = "userid"
 
@@ -158,7 +178,7 @@ func testInvalidUserId(t *testing.T, url, apiKey string, invalidUser, superAdmin
 			StatusCode:   404,
 		},
 		{
-			Value:        strconv.Itoa(invalidUser),
+			Value:        strconv.Itoa(idInvalidUser),
 			ErrorMessage: `{"Result":"error","ErrorMessage":"Invalid user id provided."}`,
 			StatusCode:   404,
 		},
@@ -168,18 +188,51 @@ func testInvalidUserId(t *testing.T, url, apiKey string, invalidUser, superAdmin
 			StatusCode:   400,
 		},
 		{
-			Value:        strconv.Itoa(self),
+			Value:        strconv.Itoa(idUser),
 			ErrorMessage: `{"Result":"error","ErrorMessage":"Cannot`,
 			StatusCode:   400,
 		},
 		{
-			Value:        strconv.Itoa(superAdmin),
+			Value:        strconv.Itoa(idSuperAdmin),
 			ErrorMessage: `{"Result":"error","ErrorMessage":"Cannot`,
 			StatusCode:   400,
 		},
 	}
-
 	testInvalidParameters(t, url, apiKey, []test.Header{{}}, headerUserId, invalidParameter)
+}
+
+func testInvalidApiKey(t *testing.T, url, apiKey string) {
+	t.Helper()
+	const headerApiKey = "apiKeyToModify"
+
+	var invalidParameter = []invalidParameterValue{
+		{
+			Value:        "",
+			ErrorMessage: `{"Result":"error","ErrorMessage":"Invalid api key provided."}`,
+			StatusCode:   404,
+		},
+		{
+			Value:        "invalid",
+			ErrorMessage: `{"Result":"error","ErrorMessage":"Invalid api key provided."}`,
+			StatusCode:   404,
+		},
+		{
+			Value:        idApiKeySuperAdmin,
+			ErrorMessage: `{"Result":"error","ErrorMessage":"No permission to `,
+			StatusCode:   401,
+		},
+		{
+			Value:        idPublicApiKeySuperAdmin,
+			ErrorMessage: `{"Result":"error","ErrorMessage":"No permission to `,
+			StatusCode:   401,
+		},
+		{
+			Value:        idApiKeyAdmin,
+			ErrorMessage: `{"Result":"error","ErrorMessage":"No permission to `,
+			StatusCode:   401,
+		},
+	}
+	testInvalidParameters(t, url, apiKey, []test.Header{{}}, headerApiKey, invalidParameter)
 }
 
 func TestUserCreate(t *testing.T) {
@@ -226,11 +279,11 @@ func TestUserChangeRank(t *testing.T) {
 	const headerNewRank = "newRank"
 
 	apiKey := testAuthorisation(t, apiUrl, models.ApiPermManageUsers)
-	testInvalidUserId(t, apiUrl, apiKey.Id, 99, 101, 100)
+	testInvalidUserId(t, apiUrl, apiKey.Id)
 	var validHeaders = []test.Header{
 		{
 			Name:  headerUserId,
-			Value: "102",
+			Value: strconv.Itoa(idAdmin),
 		},
 	}
 	invalidParameter := []invalidParameterValue{
@@ -247,31 +300,31 @@ func TestUserChangeRank(t *testing.T) {
 	}
 	testInvalidParameters(t, apiUrl, apiKey.Id, validHeaders, headerNewRank, invalidParameter)
 
-	user, ok := database.GetUser(102)
+	user, ok := database.GetUser(idAdmin)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqual(t, user.UserLevel, models.UserLevelAdmin)
 	w, r := getRecorder(apiUrl, apiKey.Id, []test.Header{{
 		Name:  headerUserId,
-		Value: "102",
+		Value: strconv.Itoa(idAdmin),
 	}, {
 		Name:  headerNewRank,
 		Value: "USER",
 	}})
 	Process(w, r)
 	test.IsEqualInt(t, w.Code, 200)
-	user, ok = database.GetUser(102)
+	user, ok = database.GetUser(idAdmin)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqual(t, user.UserLevel, models.UserLevelUser)
 	w, r = getRecorder(apiUrl, apiKey.Id, []test.Header{{
 		Name:  headerUserId,
-		Value: "102",
+		Value: strconv.Itoa(idAdmin),
 	}, {
 		Name:  headerNewRank,
 		Value: "ADMIN",
 	}})
 	Process(w, r)
 	test.IsEqualInt(t, w.Code, 200)
-	user, ok = database.GetUser(102)
+	user, ok = database.GetUser(idAdmin)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqual(t, user.UserLevel, models.UserLevelAdmin)
 }
@@ -279,7 +332,7 @@ func TestUserChangeRank(t *testing.T) {
 func TestUserDelete(t *testing.T) {
 	const apiUrl = "/user/delete"
 	apiKey := testAuthorisation(t, apiUrl, models.ApiPermManageUsers)
-	testInvalidUserId(t, apiUrl, apiKey.Id, 99, 101, 100)
+	testInvalidUserId(t, apiUrl, apiKey.Id)
 	testDeleteCall(t, apiKey.Id, false)
 	testDeleteCall(t, apiKey.Id, true)
 }
@@ -296,7 +349,7 @@ func testDeleteCall(t *testing.T, apiKey string, testDeleteFiles bool) {
 	database.SaveUser(user, true)
 	retrievedUser, ok := database.GetUserByName("ToDelete")
 	test.IsEqualBool(t, ok, true)
-	test.IsEqualBool(t, retrievedUser.Id != 100, true)
+	test.IsEqualBool(t, retrievedUser.Id != idUser, true)
 	session := models.Session{
 		RenewAt:    2147483645,
 		ValidUntil: 2147483645,
@@ -343,7 +396,7 @@ func testDeleteCall(t *testing.T, apiKey string, testDeleteFiles bool) {
 	testFile, ok = database.GetMetaDataById("testFileApiDelete")
 	test.IsEqualBool(t, ok, !testDeleteFiles)
 	if !testDeleteFiles {
-		test.IsEqualInt(t, testFile.UserId, 100)
+		test.IsEqualInt(t, testFile.UserId, idUser)
 	}
 }
 
@@ -353,12 +406,12 @@ func TestUserModify(t *testing.T) {
 	const headerPermission = "userpermission"
 
 	apiKey := testAuthorisation(t, apiUrl, models.ApiPermManageUsers)
-	testInvalidUserId(t, apiUrl, apiKey.Id, 99, 101, 100)
+	testInvalidUserId(t, apiUrl, apiKey.Id)
 
 	var validHeaders = []test.Header{
 		{
 			Name:  headerUserId,
-			Value: "102",
+			Value: strconv.Itoa(idAdmin),
 		},
 	}
 	invalidParameter := []invalidParameterValue{
@@ -373,7 +426,7 @@ func TestUserModify(t *testing.T) {
 			StatusCode:   400,
 		},
 		{
-			Value:        "PERM_VIEWW",
+			Value:        "PERM_REPLACEE",
 			ErrorMessage: `{"Result":"error","ErrorMessage":"Invalid permission sent"}`,
 			StatusCode:   400,
 		},
@@ -388,9 +441,9 @@ func TestUserModify(t *testing.T) {
 	database.SaveUser(user, true)
 	retrievedUser, ok := database.GetUserByName("ToModify")
 	test.IsEqualBool(t, ok, true)
-	test.IsEqualBool(t, retrievedUser.Id != 100, true)
+	test.IsEqualBool(t, retrievedUser.Id != idUser, true)
 
-	for permissionUint, permissionString := range getUserPermMap() {
+	for permissionUint, permissionString := range getUserPermMap(t) {
 		test.IsEqualBool(t, retrievedUser.HasPermission(permissionUint), false)
 		testUserModifyCall(t, apiKey.Id, retrievedUser.Id, permissionString, true)
 		retrievedUser, ok = database.GetUserByName("ToModify")
@@ -400,7 +453,6 @@ func TestUserModify(t *testing.T) {
 		retrievedUser, ok = database.GetUserByName("ToModify")
 		test.IsEqualBool(t, ok, true)
 		test.IsEqualBool(t, retrievedUser.HasPermission(permissionUint), false)
-
 	}
 }
 
@@ -410,22 +462,22 @@ func TestUserPasswordReset(t *testing.T) {
 	const headerSetNewPw = "generateNewPassword"
 
 	apiKey := testAuthorisation(t, apiUrl, models.ApiPermManageUsers)
-	testInvalidUserId(t, apiUrl, apiKey.Id, 99, 101, 100)
-	user, ok := database.GetUser(102)
+	testInvalidUserId(t, apiUrl, apiKey.Id)
+	user, ok := database.GetUser(idAdmin)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, user.ResetPassword, false)
 	user.Password = "1234"
 	database.SaveUser(user, false)
 	w, r := getRecorder(apiUrl, apiKey.Id, []test.Header{{
 		Name:  headerUserId,
-		Value: "102",
+		Value: strconv.Itoa(idAdmin),
 	}, {
 		Name:  headerSetNewPw,
 		Value: "false",
 	}})
 	Process(w, r)
 	test.IsEqualInt(t, w.Code, 200)
-	user, ok = database.GetUser(102)
+	user, ok = database.GetUser(idAdmin)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, user.ResetPassword, true)
 	test.IsEqualString(t, user.Password, "1234")
@@ -433,20 +485,20 @@ func TestUserPasswordReset(t *testing.T) {
 
 	user.ResetPassword = false
 	database.SaveUser(user, false)
-	user, ok = database.GetUser(102)
+	user, ok = database.GetUser(idAdmin)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, user.ResetPassword, false)
 
 	w, r = getRecorder(apiUrl, apiKey.Id, []test.Header{{
 		Name:  headerUserId,
-		Value: "102",
+		Value: strconv.Itoa(idAdmin),
 	}, {
 		Name:  headerSetNewPw,
 		Value: "true",
 	}})
 	Process(w, r)
 	test.IsEqualInt(t, w.Code, 200)
-	user, ok = database.GetUser(102)
+	user, ok = database.GetUser(idAdmin)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, user.ResetPassword, true)
 	test.IsEqualBool(t, user.Password != "1234", true)
@@ -485,33 +537,56 @@ func testUserModifyCall(t *testing.T, apiKey string, userId int, permission stri
 	test.IsEqualInt(t, w.Code, 200)
 }
 
-func TestNewKey(t *testing.T) {
-	newKey := generateNewKey(true, 5)
-	newKeyId = newKey.Id
-	key, ok := database.GetApiKey(newKeyId)
-	test.IsEqualBool(t, ok, true)
-	test.IsEqual(t, newKey, key)
-	test.IsEqualString(t, key.FriendlyName, "Unnamed key")
-	test.IsEqualBool(t, key.Permissions == models.ApiPermDefault, true)
-	test.IsEqualInt(t, key.UserId, 5)
+func TestNewApiKey(t *testing.T) {
+	const apiUrl = "/auth/create"
+	const headerFriendlyName = "friendlyName"
+	const headerDefaultPerm = "basicPermissions"
 
-	newKey = generateNewKey(false, 5)
-	newKeyId = newKey.Id
-	key, ok = database.GetApiKey(newKeyId)
-	test.IsEqualBool(t, ok, true)
-	test.IsEqualBool(t, key.Permissions == models.ApiPermNone, true)
-}
+	const (
+		testNoParam = iota
+		testFriendlyName
+		testBasicPermission
+		testBoth
+	)
 
-func TestDeleteKey(t *testing.T) {
-	key, ok := database.GetApiKey(newKeyId)
-	test.IsEqualBool(t, ok, true)
-	test.IsEqualString(t, key.FriendlyName, "Unnamed key")
-	result := deleteApiKey(newKeyId)
-	test.IsEqualBool(t, result, true)
-	_, ok = database.GetApiKey(newKeyId)
-	test.IsEqualBool(t, ok, false)
-	result = deleteApiKey("invalid")
-	test.IsEqualBool(t, result, false)
+	apiKey := testAuthorisation(t, apiUrl, models.ApiPermApiMod)
+	keysBefore := countApiKeys()
+
+	for i := testNoParam; i <= testBoth; i++ {
+		friendlyName := "Unnamed key"
+		expectedPermissions := models.ApiPermNone
+		var headers []test.Header
+		if i == testFriendlyName || i == testBoth {
+			friendlyName = helper.GenerateRandomString(40)
+			headers = append(headers, test.Header{
+				Name:  headerFriendlyName,
+				Value: friendlyName,
+			})
+		}
+		if i == testBasicPermission || i == testBoth {
+			headers = append(headers, test.Header{
+				Name:  headerDefaultPerm,
+				Value: "true",
+			})
+			expectedPermissions = models.ApiPermDefault
+		}
+		w, r := getRecorder(apiUrl, apiKey.Id, headers)
+		Process(w, r)
+		test.IsEqualInt(t, w.Code, 200)
+		var response models.ApiKeyOutput
+		err := json.Unmarshal(w.Body.Bytes(), &response)
+		test.IsNil(t, err)
+		test.IsEqualString(t, response.Result, "OK")
+		test.IsNotEmpty(t, response.Id)
+		test.IsNotEmpty(t, response.PublicId)
+		test.IsEqualBool(t, response.PublicId != response.Id, true)
+		retrievedKey, ok := database.GetApiKey(response.Id)
+		test.IsEqualBool(t, ok, true)
+		test.IsEqualString(t, response.PublicId, retrievedKey.PublicId)
+		test.IsEqualString(t, retrievedKey.FriendlyName, friendlyName)
+		test.IsEqualInt(t, countApiKeys(), keysBefore+i+1)
+		test.IsEqual(t, retrievedKey.Permissions, expectedPermissions)
+	}
 }
 
 func TestIsValidApiKey(t *testing.T) {
@@ -540,13 +615,14 @@ func TestIsValidApiKey(t *testing.T) {
 		test.IsEqualBool(t, isValid, false)
 	}
 	for _, newPermission := range getAvailableApiPermissions(t) {
-		setPermissionApikey(newApiKey.Id, newPermission, t)
+		setPermissionApikey(t, newApiKey.Id, newPermission)
 		for _, permission := range getAvailableApiPermissions(t) {
 			_, isValid = isValidApiKey(newApiKey.Id, true, permission)
 			test.IsEqualBool(t, isValid, permission == newPermission)
 		}
+		removePermissionApikey(t, newApiKey.Id, newPermission)
 	}
-	setPermissionApikey(newApiKey.Id, models.ApiPermEdit|models.ApiPermDelete, t)
+	setPermissionApikey(t, newApiKey.Id, models.ApiPermEdit|models.ApiPermDelete)
 	_, isValid = isValidApiKey(newApiKey.Id, true, models.ApiPermEdit)
 	test.IsEqualBool(t, isValid, true)
 	_, isValid = isValidApiKey(newApiKey.Id, true, models.ApiPermAll)
@@ -555,10 +631,16 @@ func TestIsValidApiKey(t *testing.T) {
 	test.IsEqualBool(t, isValid, false)
 }
 
-func setPermissionApikey(key string, newPermission uint8, t *testing.T) {
+func setPermissionApikey(t *testing.T, key string, newPermission uint8) {
 	apiKey, ok := database.GetApiKey(key)
 	test.IsEqualBool(t, ok, true)
-	apiKey.Permissions = newPermission
+	apiKey.GrantPermission(newPermission)
+	database.SaveApiKey(apiKey)
+}
+func removePermissionApikey(t *testing.T, key string, newPermission uint8) {
+	apiKey, ok := database.GetApiKey(key)
+	test.IsEqualBool(t, ok, true)
+	apiKey.RemovePermission(newPermission)
 	database.SaveApiKey(apiKey)
 }
 
@@ -581,7 +663,7 @@ func getAvailableApiPermissions(t *testing.T) []uint8 {
 	return result
 }
 
-func getApiPermMap() map[uint8]string {
+func getApiPermMap(t *testing.T) map[uint8]string {
 	result := make(map[uint8]string)
 	result[models.ApiPermView] = "PERM_VIEW"
 	result[models.ApiPermUpload] = "PERM_UPLOAD"
@@ -590,30 +672,19 @@ func getApiPermMap() map[uint8]string {
 	result[models.ApiPermEdit] = "PERM_EDIT"
 	result[models.ApiPermReplace] = "PERM_REPLACE"
 	result[models.ApiPermManageUsers] = "PERM_MANAGE_USERS"
-	return result
-}
 
-func getAvailableUserPermissions(t *testing.T) []uint16 {
-	result := []uint16{
-		models.UserPermReplaceUploads,
-		models.UserPermListOtherUploads,
-		models.UserPermEditOtherUploads,
-		models.UserPermReplaceOtherUploads,
-		models.UserPermDeleteOtherUploads,
-		models.UserPermManageLogs,
-		models.UserPermManageApiKeys,
-		models.UserPermManageUsers}
 	sum := 0
-	for _, perm := range result {
+	for perm, _ := range result {
 		sum = sum + int(perm)
 	}
-	if sum != int(models.UserPermissionAll) {
+	if sum != int(models.ApiPermAll) {
 		t.Fatal("List of permissions are incorrect")
 	}
+
 	return result
 }
 
-func getUserPermMap() map[uint16]string {
+func getUserPermMap(t *testing.T) map[uint16]string {
 	result := make(map[uint16]string)
 	result[models.UserPermReplaceUploads] = "PERM_REPLACE"
 	result[models.UserPermListOtherUploads] = "PERM_LIST"
@@ -623,6 +694,14 @@ func getUserPermMap() map[uint16]string {
 	result[models.UserPermManageLogs] = "PERM_LOGS"
 	result[models.UserPermManageApiKeys] = "PERM_API"
 	result[models.UserPermManageUsers] = "PERM_USERS"
+
+	sum := 0
+	for perm, _ := range result {
+		sum = sum + int(perm)
+	}
+	if sum != int(models.UserPermissionAll) {
+		t.Fatal("List of permissions are incorrect")
+	}
 	return result
 }
 
@@ -679,208 +758,174 @@ func TestGetSystemKey(t *testing.T) {
 	test.IsEqualBool(t, systemApiKey.HasPermissionReplace(), false)
 
 	defer test.ExpectPanic(t)
-	GetSystemKey(99)
+	GetSystemKey(idInvalidUser)
 }
 
 func TestDelete(t *testing.T) {
+	const apiUrl = "/auth/delete"
+	const headerApiDelete = "apiKeyToModify"
+	apiKey := testAuthorisation(t, apiUrl, models.ApiPermApiMod)
+	testInvalidApiKey(t, apiUrl, apiKey.Id)
+
 	database.SaveApiKey(models.ApiKey{
 		Id:       "toDelete",
 		PublicId: "toDelete",
-		UserId:   5,
+		UserId:   idUser,
 	})
 	_, ok := database.GetApiKey("toDelete")
 	test.IsEqualBool(t, ok, true)
-
-	w, r := test.GetRecorder("GET", "/auth/delete", nil, []test.Header{{
-		Name:  "apikey",
-		Value: "invalid",
-	}}, nil)
-	Process(w, r)
-	test.ResponseBodyContains(t, w, "{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}")
-	w, r = test.GetRecorder("GET", "/auth/delete", nil, []test.Header{{
-		Name:  "apiKeyToModify",
-		Value: "toDelete",
-	}}, nil)
-	Process(w, r)
-	test.ResponseBodyContains(t, w, "{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}")
-
-	w, r = test.GetRecorder("GET", "/auth/delete", nil, []test.Header{{
-		Name:  "apiKeyToModify",
-		Value: "toDelete",
-	}, {
-		Name:  "apikey",
-		Value: getNewKeyWithPermissionMissing(t, models.ApiPermApiMod).Id,
-	}}, nil)
-	Process(w, r)
-	test.ResponseBodyContains(t, w, "{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}")
-
-	w, r = test.GetRecorder("GET", "/auth/delete", nil, []test.Header{{
-		Name:  "apiKeyToModify",
-		Value: "toDelete",
-	}, {
-		Name:  "apikey",
-		Value: getNewKeyWithAllPermissions(t).Id,
-	}}, nil)
+	w, r := getRecorder(apiUrl, apiKey.Id, []test.Header{{
+		Name:  headerApiDelete,
+		Value: apiKey.Id,
+	}})
 	Process(w, r)
 	test.IsEqualInt(t, w.Code, 200)
-	_, ok = database.GetApiKey("toDelete")
+	_, ok = database.GetApiKey(apiKey.Id)
 	test.IsEqualBool(t, ok, false)
 
-	w, r = test.GetRecorder("GET", "/auth/delete", nil, []test.Header{{
-		Name:  "apiKeyToModify",
-		Value: "toDelete",
-	}, {
-		Name:  "apikey",
-		Value: "validkey",
-	}}, nil)
-	Process(w, r)
-	test.ResponseBodyContains(t, w, "{\"Result\":\"error\",\"ErrorMessage\":\"Invalid api key provided.\"}")
-}
-
-func getNewKeyWithAllPermissions(t *testing.T) models.ApiKey {
-	key := generateNewKey(false, 5)
-	validKey, ok := database.GetApiKey(key.Id)
-	test.IsEqualBool(t, ok, true)
-	validKey.GrantPermission(models.ApiPermAll)
-	database.SaveApiKey(validKey)
-	return validKey
-}
-
-func getNewKeyWithPermissionMissing(t *testing.T, removePerm uint8) models.ApiKey {
-	key := generateNewKey(false, 5)
-	validKey, ok := database.GetApiKey(key.Id)
-	test.IsEqualBool(t, ok, true)
-	validKey.GrantPermission(models.ApiPermAll)
-	validKey.RemovePermission(removePerm)
-	database.SaveApiKey(validKey)
-	return validKey
 }
 
 func countApiKeys() int {
 	return len(database.GetAllApiKeys())
 }
 
-func TestNewApiKey(t *testing.T) {
-	keysBefore := countApiKeys()
-	w, r := test.GetRecorder("GET", "/auth/create", nil, []test.Header{{
-		Name:  "apikey",
-		Value: "invalid",
-	}}, nil)
-	Process(w, r)
-	test.ResponseBodyContains(t, w, "{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}")
-	w, r = test.GetRecorder("GET", "/auth/create", nil, nil, nil)
-	Process(w, r)
-	test.ResponseBodyContains(t, w, "{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}")
-
-	w, r = test.GetRecorder("GET", "/auth/create", nil, []test.Header{{
-		Name:  "apikey",
-		Value: "validkey",
-	}, {
-		Name:  "friendlyName",
-		Value: "New Key",
-	}}, nil)
-	Process(w, r)
-	test.IsEqualInt(t, w.Code, 200)
-	keysAfter := countApiKeys()
-	test.IsEqualInt(t, keysAfter, keysBefore+1)
-	var result models.ApiKeyOutput
-	err := json.Unmarshal(w.Body.Bytes(), &result)
-	test.IsNil(t, err)
-
-	newKey, ok := database.GetApiKey(result.Id)
-	test.IsEqualBool(t, ok, true)
-	test.IsEqualString(t, newKey.FriendlyName, "New Key")
-
-	w, r = test.GetRecorder("GET", "/auth/create", nil, []test.Header{{
-		Name:  "apikey",
-		Value: "validkey",
-	}}, nil)
-	Process(w, r)
-	test.IsEqualInt(t, w.Code, 200)
-	keysAfter = countApiKeys()
-	test.IsEqualInt(t, keysAfter, keysBefore+2)
-	err = json.Unmarshal(w.Body.Bytes(), &result)
-	test.IsNil(t, err)
-
-	newKey, ok = database.GetApiKey(result.Id)
-	test.IsEqualBool(t, ok, true)
-	test.IsEqualString(t, newKey.FriendlyName, "Unnamed key")
-
-	w, r = test.GetRecorder("GET", "/auth/create", nil, []test.Header{{
-		Name:  "apikey",
-		Value: getNewKeyWithPermissionMissing(t, models.ApiPermApiMod).Id,
-	}}, nil)
-	Process(w, r)
-	test.ResponseBodyContains(t, w, "{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}")
-}
-
-func TestProcess(t *testing.T) {
-	w, r := test.GetRecorder("GET", "/api/auth/friendlyname", nil, nil, nil)
-	Process(w, r)
-	test.ResponseBodyContains(t, w, "{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}")
-	w, r = test.GetRecorder("GET", "/api/auth/friendlyname", []test.Cookie{{
-		Name:  "session_token",
-		Value: "validsession",
-	}}, nil, nil)
-	Process(w, r)
-	test.ResponseBodyContains(t, w, "{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}")
-	w, r = test.GetRecorder("GET", "/api/invalid", nil, nil, nil)
-	Process(w, r)
-	test.ResponseBodyContains(t, w, "Invalid request")
-	w, r = test.GetRecorder("GET", "/api/invalid", nil, []test.Header{{
-		Name:  "apikey",
-		Value: "validkey",
-	}}, nil)
-	Process(w, r)
-	test.ResponseBodyContains(t, w, "Invalid request")
-}
-
-func TestAuthDisabledLogin(t *testing.T) {
-	w, r := test.GetRecorder("GET", "/api/auth/friendlyname", nil, nil, nil)
-	Process(w, r)
-	test.ResponseBodyContains(t, w, "{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}")
-	configuration.Get().Authentication.Method = models.AuthenticationDisabled
-	w, r = test.GetRecorder("GET", "/api/auth/friendlyname", nil, nil, nil)
-	Process(w, r)
-	test.ResponseBodyContains(t, w, "{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}")
-	configuration.Get().Authentication.Method = models.AuthenticationInternal
-}
-
 func TestChangeFriendlyName(t *testing.T) {
-	w, r := test.GetRecorder("GET", "/api/auth/friendlyname", nil, []test.Header{{
-		Name:  "apikey",
-		Value: "validkey",
-	}}, nil)
-	Process(w, r)
-	test.ResponseBodyContains(t, w, "Invalid api key provided.")
-	w, r = test.GetRecorder("GET", "/api/auth/friendlyname", nil, []test.Header{{
-		Name: "apikey", Value: "validkey"}, {
-		Name: "apiKeyToModify", Value: "validkey"}}, nil)
+	const apiUrl = "/auth/friendlyname"
+	const headerApiKeyModify = "apiKeyToModify"
+	const headerNewName = "friendlyName"
+	apiKey := testAuthorisation(t, apiUrl, models.ApiPermApiMod)
+	testInvalidApiKey(t, apiUrl, apiKey.Id)
+	test.IsEqualString(t, apiKey.FriendlyName, "Unnamed key")
+	w, r := getRecorder(apiUrl, apiKey.Id, []test.Header{{
+		Name:  headerApiKeyModify,
+		Value: apiKey.Id,
+	}, {
+		Name:  headerNewName,
+		Value: "New name for the key",
+	}})
 	Process(w, r)
 	test.IsEqualInt(t, w.Code, 200)
+	key, ok := database.GetApiKey(apiKey.Id)
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualString(t, key.FriendlyName, "New name for the key")
 
-	key, ok := database.GetApiKey("validkey")
+	w, r = getRecorder(apiUrl, apiKey.Id, []test.Header{{
+		Name:  headerApiKeyModify,
+		Value: apiKey.Id,
+	}, {
+		Name:  headerNewName,
+		Value: "",
+	}})
+	Process(w, r)
+	test.IsEqualInt(t, w.Code, 200)
+	key, ok = database.GetApiKey(apiKey.Id)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualString(t, key.FriendlyName, "Unnamed key")
-	w, r = test.GetRecorder("GET", "/api/auth/friendlyname", nil, []test.Header{{
-		Name: "apikey", Value: "validkey"}, {
-		Name: "apiKeyToModify", Value: "validkey"}, {
-		Name: "friendlyName", Value: "NewName"}}, nil)
-	Process(w, r)
-	test.IsEqualInt(t, w.Code, 200)
-	key, ok = database.GetApiKey("validkey")
-	test.IsEqualBool(t, ok, true)
-	test.IsEqualString(t, key.FriendlyName, "NewName")
-	w = httptest.NewRecorder()
-	Process(w, r)
-	test.IsEqualInt(t, w.Code, 200)
+}
 
-	w, r = test.GetRecorder("GET", "/api/auth/friendlyname", nil, []test.Header{{
-		Name: "apikey", Value: getNewKeyWithPermissionMissing(t, models.ApiPermApiMod).Id}, {
-		Name: "apiKeyToModify", Value: "validkey"}, {
-		Name: "friendlyName", Value: "NewName2"}}, nil)
+func TestApikeyModify(t *testing.T) {
+	const apiUrl = "/auth/modify"
+	const headerApiKeyModify = "apiKeyToModify"
+	const headerPermission = "permission"
+	const headerModifier = "permissionModifier"
+
+	apiKey := testAuthorisation(t, apiUrl, models.ApiPermApiMod)
+	testInvalidApiKey(t, apiUrl, apiKey.Id)
+
+	newApiKey := models.ApiKey{
+		Id:           "modifyTest",
+		PublicId:     "modifyTest",
+		FriendlyName: "modifyTest",
+		UserId:       idUser,
+	}
+	database.SaveApiKey(newApiKey)
+	retrievedApiKey, ok := database.GetApiKey("modifyTest")
+	test.IsEqualBool(t, ok, true)
+	test.IsEqual(t, retrievedApiKey.Permissions, models.ApiPermNone)
+
+	var validHeaders = []test.Header{
+		{
+			Name:  headerApiKeyModify,
+			Value: retrievedApiKey.Id,
+		},
+		{
+			Name:  headerModifier,
+			Value: "GRANT",
+		},
+	}
+	invalidParameter := []invalidParameterValue{
+		{
+			Value:        "",
+			ErrorMessage: `{"Result":"error","ErrorMessage":"Invalid permission sent"}`,
+			StatusCode:   400,
+		},
+		{
+			Value:        "invalid",
+			ErrorMessage: `{"Result":"error","ErrorMessage":"Invalid permission sent"}`,
+			StatusCode:   400,
+		},
+		{
+			Value:        "PERM_VIEWW",
+			ErrorMessage: `{"Result":"error","ErrorMessage":"Invalid permission sent"}`,
+			StatusCode:   400,
+		},
+		{
+			Value:        "PERM_REPLACE",
+			ErrorMessage: `{"Result":"error","ErrorMessage":"Insufficient user permission for owner to set this API permission"}`,
+			StatusCode:   401,
+		},
+		{
+			Value:        "PERM_MANAGE_USERS",
+			ErrorMessage: `{"Result":"error","ErrorMessage":"Insufficient user permission for owner to set this API permission"}`,
+			StatusCode:   401,
+		},
+	}
+	testInvalidParameters(t, apiUrl, apiKey.Id, validHeaders, headerPermission, invalidParameter)
+
+	user, ok := database.GetUser(idUser)
+	test.IsEqualBool(t, ok, true)
+	user.GrantPermission(models.UserPermReplaceUploads)
+	user.GrantPermission(models.UserPermManageUsers)
+	database.SaveUser(user, false)
+
+	for permissionUint, permissionString := range getApiPermMap(t) {
+		test.IsEqualBool(t, retrievedApiKey.HasPermission(permissionUint), false)
+		testApiModifyCall(t, apiKey.Id, retrievedApiKey.Id, permissionString, true)
+		retrievedApiKey, ok = database.GetApiKey("modifyTest")
+		test.IsEqualBool(t, ok, true)
+		test.IsEqualBool(t, retrievedApiKey.HasPermission(permissionUint), true)
+		testApiModifyCall(t, apiKey.Id, retrievedApiKey.Id, permissionString, false)
+		retrievedApiKey, ok = database.GetApiKey("modifyTest")
+		test.IsEqualBool(t, ok, true)
+		test.IsEqualBool(t, retrievedApiKey.HasPermission(permissionUint), false)
+	}
+	user.RemovePermission(models.UserPermReplaceUploads)
+	user.RemovePermission(models.UserPermManageUsers)
+	database.SaveUser(user, false)
+}
+
+func testApiModifyCall(t *testing.T, apiKey, apiKeyToModify string, permission string, grant bool) {
+	const apiUrl = "/auth/modify"
+	const headerApiKeyModify = "apiKeyToModify"
+	const headerPermission = "permission"
+	const headerModifier = "permissionModifier"
+
+	modifier := "REVOKE"
+	if grant {
+		modifier = "GRANT"
+	}
+	w, r := getRecorder(apiUrl, apiKey, []test.Header{{
+		Name:  headerApiKeyModify,
+		Value: apiKeyToModify,
+	}, {
+		Name:  headerPermission,
+		Value: permission,
+	}, {
+		Name:  headerModifier,
+		Value: modifier,
+	}})
 	Process(w, r)
-	test.ResponseBodyContains(t, w, "{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}")
+	test.IsEqualInt(t, w.Code, 200)
 }
 
 func TestDeleteFile(t *testing.T) {
@@ -1230,7 +1275,6 @@ func TestChunkComplete(t *testing.T) {
 		FileInfo models.FileApiOutput `json:"FileInfo"`
 	}{}
 	response, err := io.ReadAll(w.Result().Body)
-	fmt.Println(string(response))
 	test.IsNil(t, err)
 	err = json.Unmarshal(response, &result)
 	test.IsNil(t, err)

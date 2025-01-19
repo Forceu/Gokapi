@@ -228,7 +228,7 @@ func deleteApiKey(id string) bool {
 	return true
 }
 
-// generateNewKey generates a new API key
+// generateNewKey generates and saves a new API key
 func generateNewKey(defaultPermissions bool, userId int) models.ApiKey {
 	newKey := models.ApiKey{
 		Id:           helper.GenerateRandomString(lengthApiKey),
@@ -288,7 +288,7 @@ func GetSystemKey(userId int) string {
 func apiDeleteKey(w http.ResponseWriter, request apiRequest, user models.User) {
 	apiKeyOwner, ok := isValidKeyForEditing(w, request)
 	if !ok {
-		sendError(w, http.StatusNotFound, "Invalid file ID provided.")
+		sendError(w, http.StatusNotFound, "Invalid key ID provided.")
 		return
 	}
 	if apiKeyOwner.Id != user.Id && !user.HasPermission(models.UserPermManageApiKeys) {
@@ -301,7 +301,7 @@ func apiDeleteKey(w http.ResponseWriter, request apiRequest, user models.User) {
 func apiModifyApiKey(w http.ResponseWriter, request apiRequest, user models.User) {
 	apiKeyOwner, ok := isValidKeyForEditing(w, request)
 	if !ok {
-		sendError(w, http.StatusNotFound, "Invalid file ID provided.")
+		sendError(w, http.StatusNotFound, "Invalid key ID provided.")
 		return
 	}
 	if apiKeyOwner.Id != user.Id && !user.HasPermission(models.UserPermManageApiKeys) {
@@ -320,12 +320,12 @@ func apiModifyApiKey(w http.ResponseWriter, request apiRequest, user models.User
 	switch request.apiInfo.permission {
 	case models.ApiPermReplace:
 		if !apiKeyOwner.HasPermissionReplace() {
-			sendError(w, http.StatusBadRequest, "Insufficient user permission for owner to set this API permission")
+			sendError(w, http.StatusUnauthorized, "Insufficient user permission for owner to set this API permission")
 			return
 		}
 	case models.ApiPermManageUsers:
 		if !apiKeyOwner.HasPermissionManageUsers() {
-			sendError(w, http.StatusBadRequest, "Insufficient user permission for owner to set this API permission")
+			sendError(w, http.StatusUnauthorized, "Insufficient user permission for owner to set this API permission")
 			return
 		}
 	default:
