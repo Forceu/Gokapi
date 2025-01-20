@@ -147,9 +147,9 @@ func TestApiPermAll(t *testing.T) {
 }
 
 // Helper function to check only one permission is set
-func checkOnlyPermissionSet(t *testing.T, key *ApiKey, perm uint8) {
+func checkOnlyPermissionSet(t *testing.T, key *ApiKey, perm ApiPermission) {
 	allPermissions := []struct {
-		perm     uint8
+		perm     ApiPermission
 		permName string
 	}{
 		{ApiPermView, "ApiPermView"},
@@ -179,7 +179,7 @@ func TestSetIndividualPermissions(t *testing.T) {
 
 	// Test each individual permission
 	permissions := []struct {
-		perm     uint8
+		perm     ApiPermission
 		permName string
 	}{
 		{ApiPermView, "ApiPermView"},
@@ -199,7 +199,7 @@ func TestSetIndividualPermissions(t *testing.T) {
 }
 
 // Helper function to check combined permissions are set
-func checkCombinedPermissions(t *testing.T, key *ApiKey, perms []uint8) {
+func checkCombinedPermissions(t *testing.T, key *ApiKey, perms []ApiPermission) {
 	for _, perm := range perms {
 		if !key.HasPermission(perm) {
 			t.Errorf("expected permission %d to be set", perm)
@@ -209,7 +209,7 @@ func checkCombinedPermissions(t *testing.T, key *ApiKey, perms []uint8) {
 
 func TestSetCombinedPermissions(t *testing.T) {
 	key := &ApiKey{}
-	allPermissions := []uint8{
+	allPermissions := []ApiPermission{
 		ApiPermView,
 		ApiPermUpload,
 		ApiPermDelete,
