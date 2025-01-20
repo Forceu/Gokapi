@@ -235,6 +235,8 @@ func testInvalidApiKey(t *testing.T, url, apiKey string) {
 	testInvalidParameters(t, url, apiKey, []test.Header{{}}, headerApiKey, invalidParameter)
 }
 
+// ## /user/##
+
 func TestUserCreate(t *testing.T) {
 	const apiUrl = "/user/create"
 	const headerUsername = "username"
@@ -333,11 +335,11 @@ func TestUserDelete(t *testing.T) {
 	const apiUrl = "/user/delete"
 	apiKey := testAuthorisation(t, apiUrl, models.ApiPermManageUsers)
 	testInvalidUserId(t, apiUrl, apiKey.Id)
-	testDeleteCall(t, apiKey.Id, false)
-	testDeleteCall(t, apiKey.Id, true)
+	testDeleteUserCall(t, apiKey.Id, false)
+	testDeleteUserCall(t, apiKey.Id, true)
 }
 
-func testDeleteCall(t *testing.T, apiKey string, testDeleteFiles bool) {
+func testDeleteUserCall(t *testing.T, apiKey string, testDeleteFiles bool) {
 	const apiUrl = "/user/delete"
 	const headerUserId = "userid"
 	const headerDeleteFiles = "deleteFiles"
@@ -582,6 +584,8 @@ func testUserModifyCall(t *testing.T, apiKey string, userId int, permission stri
 	test.IsEqualInt(t, w.Code, 200)
 }
 
+// ## /auth ##
+
 func TestNewApiKey(t *testing.T) {
 	const apiUrl = "/auth/create"
 	const headerFriendlyName = "friendlyName"
@@ -806,7 +810,20 @@ func TestGetSystemKey(t *testing.T) {
 	GetSystemKey(idInvalidUser)
 }
 
-func TestDelete(t *testing.T) {
+func grantUserPermission(t *testing.T, userId int, permission uint16) {
+	user, ok := database.GetUser(userId)
+	test.IsEqualBool(t, ok, true)
+	user.GrantPermission(permission)
+	database.SaveUser(user, false)
+}
+func removeUserPermission(t *testing.T, userId int, permission uint16) {
+	user, ok := database.GetUser(userId)
+	test.IsEqualBool(t, ok, true)
+	user.RemovePermission(permission)
+	database.SaveUser(user, false)
+}
+
+func TestDeleteApiKey(t *testing.T) {
 	const apiUrl = "/auth/delete"
 	const headerApiDelete = "apiKeyToModify"
 	apiKey := testAuthorisation(t, apiUrl, models.ApiPermApiMod)
@@ -969,6 +986,8 @@ func testApiModifyCall(t *testing.T, apiKey, apiKeyToModify string, permission s
 	test.IsEqualInt(t, w.Code, 200)
 }
 
+// ## /files ##
+
 func TestDeleteFile(t *testing.T) {
 	database.SaveMetaData(models.File{
 		Id:                 "smalltestfile1",
@@ -996,6 +1015,8 @@ func TestDeleteFile(t *testing.T) {
 	testDeleteFileCall(t, apiKey.Id, "invalid", 404, `{"Result":"error","ErrorMessage":"Invalid file ID provided."}`)
 	testDeleteFileCall(t, apiKey.Id, "smalltestfile1", 200, "")
 	testDeleteFileCall(t, apiKey.Id, "smalltestfile2", 401, `{"Result":"error","ErrorMessage":"No permission to delete this file"}`)
+	_, ok = database.GetMetaDataById("smalltestfile2")
+	test.IsEqualBool(t, ok, true)
 	grantUserPermission(t, idUser, models.UserPermDeleteOtherUploads)
 	testDeleteFileCall(t, apiKey.Id, "smalltestfile2", 200, "")
 	removeUserPermission(t, idUser, models.UserPermDeleteOtherUploads)
@@ -1004,19 +1025,6 @@ func TestDeleteFile(t *testing.T) {
 	test.IsEqualBool(t, ok, false)
 	_, ok = database.GetMetaDataById("smalltestfile2")
 	test.IsEqualBool(t, ok, false)
-}
-
-func grantUserPermission(t *testing.T, userId int, permission uint16) {
-	user, ok := database.GetUser(userId)
-	test.IsEqualBool(t, ok, true)
-	user.GrantPermission(permission)
-	database.SaveUser(user, false)
-}
-func removeUserPermission(t *testing.T, userId int, permission uint16) {
-	user, ok := database.GetUser(userId)
-	test.IsEqualBool(t, ok, true)
-	user.RemovePermission(permission)
-	database.SaveUser(user, false)
 }
 
 func testDeleteFileCall(t *testing.T, apiKey, fileId string, resultCode int, expectedResponse string) {
@@ -1035,10 +1043,82 @@ func testDeleteFileCall(t *testing.T, apiKey, fileId string, resultCode int, exp
 	}
 }
 
+func TestList(t *testing.T) {
+	const apiUrl = "/files/list"
+	apiKey := testAuthorisation(t, apiUrl, models.ApiPermView)
+	w, r := getRecorder(apiUrl, apiKey.Id, []test.Header{})
+	Process(w, r)
+	test.IsEqualInt(t, w.Code, 200)
+	test.ResponseBodyContains(t, w, "null")
+
+	var result []models.FileApiOutput
+	grantUserPermission(t, idUser, models.UserPermListOtherUploads)
+	w, r = getRecorder(apiUrl, apiKey.Id, []test.Header{})
+	Process(w, r)
+	test.IsEqualInt(t, w.Code, 200)
+	err := json.Unmarshal(w.Body.Bytes(), &result)
+	test.IsNil(t, err)
+	test.IsEqualInt(t, len(result), 9)
+
+	database.SaveMetaData(models.File{
+		Id:                 "newTestFile",
+		Name:               "newTestFileName",
+		SHA1:               "e017693e4a04a59d0b0f400fe98177fe7ee13cf7",
+		UnlimitedDownloads: true,
+		UnlimitedTime:      true,
+		UserId:             idUser,
+	})
+	w, r = getRecorder(apiUrl, apiKey.Id, []test.Header{})
+	Process(w, r)
+	test.IsEqualInt(t, w.Code, 200)
+	err = json.Unmarshal(w.Body.Bytes(), &result)
+	test.IsNil(t, err)
+	test.IsEqualInt(t, len(result), 10)
+
+	removeUserPermission(t, idUser, models.UserPermListOtherUploads)
+	w, r = getRecorder(apiUrl, apiKey.Id, []test.Header{})
+	Process(w, r)
+	test.IsEqualInt(t, w.Code, 200)
+	err = json.Unmarshal(w.Body.Bytes(), &result)
+	test.IsNil(t, err)
+	test.IsEqualInt(t, len(result), 1)
+	test.IsEqualString(t, result[0].Name, "newTestFileName")
+}
+
+func TestListSingle(t *testing.T) {
+	const apiUrl = "/files/list/"
+	_ = testAuthorisation(t, apiUrl, models.ApiPermView)
+	apiKey := testAuthorisation(t, apiUrl+"newTestFile", models.ApiPermView)
+	var result models.FileApiOutput
+
+	w, r := getRecorder(apiUrl+"newTestFile", apiKey.Id, []test.Header{})
+	Process(w, r)
+	test.IsEqualInt(t, w.Code, 200)
+	err := json.Unmarshal(w.Body.Bytes(), &result)
+	test.IsNil(t, err)
+	test.IsEqualString(t, result.Name, "newTestFileName")
+
+	w, r = getRecorder(apiUrl+"e4TjE7CokWK0giiLNxDL", apiKey.Id, []test.Header{})
+	Process(w, r)
+	test.IsEqualInt(t, w.Code, 401)
+	test.ResponseBodyContains(t, w, `{"Result":"error","ErrorMessage":"No permission to view file"}`)
+	w, r = getRecorder(apiUrl+"invalid", apiKey.Id, []test.Header{})
+	Process(w, r)
+	test.IsEqualInt(t, w.Code, 404)
+	test.ResponseBodyContains(t, w, `{"Result":"error","ErrorMessage":"File not found"}`)
+
+	grantUserPermission(t, idUser, models.UserPermListOtherUploads)
+	w, r = getRecorder(apiUrl+"e4TjE7CokWK0giiLNxDL", apiKey.Id, []test.Header{})
+	Process(w, r)
+	test.IsEqualInt(t, w.Code, 200)
+	err = json.Unmarshal(w.Body.Bytes(), &result)
+	test.IsNil(t, err)
+	test.IsEqualString(t, result.Id, "e4TjE7CokWK0giiLNxDL")
+	removeUserPermission(t, idUser, models.UserPermListOtherUploads)
+}
+
 func TestUploadAndDuplication(t *testing.T) {
-	//
 	// Upload
-	//
 	file, err := os.Open("test/fileupload.jpg")
 	test.IsNil(t, err)
 	defer file.Close()
@@ -1078,9 +1158,7 @@ func TestUploadAndDuplication(t *testing.T) {
 	test.ResponseBodyContains(t, w, "Content-Type isn't multipart/form-data")
 	test.IsEqualInt(t, w.Code, 400)
 
-	//
 	// Duplication
-	//
 	w, r = test.GetRecorder("POST", "/api/files/duplicate", nil, []test.Header{{
 		Name:  "apikey",
 		Value: "validkey",
@@ -1369,16 +1447,6 @@ func TestChunkComplete(t *testing.T) {
 	Process(w, r)
 	test.IsEqualInt(t, w.Code, 400)
 	test.ResponseBodyContains(t, w, "error")
-}
-
-func TestList(t *testing.T) {
-	w, r := test.GetRecorder("GET", "/api/files/list", nil, []test.Header{{
-		Name:  "apikey",
-		Value: "validkey",
-	}}, nil)
-	Process(w, r)
-	test.IsEqualInt(t, w.Code, 200)
-	test.ResponseBodyContains(t, w, "picture.jpg")
 }
 
 func TestApiRequestToUploadRequest(t *testing.T) {

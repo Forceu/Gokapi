@@ -34,7 +34,7 @@ func (r apiRoute) Continue(w http.ResponseWriter, request apiRequest, user model
 
 type apiFunc func(w http.ResponseWriter, request apiRequest, user models.User)
 
-var routes []apiRoute = []apiRoute{
+var routes = []apiRoute{
 	{
 		Url:       "/files/list",
 		ApiPerm:   models.ApiPermView,
@@ -207,25 +207,12 @@ func apiEditFile(w http.ResponseWriter, request apiRequest, user models.User) {
 
 func getRouting(requestUrl string) (apiRoute, bool) {
 	for _, route := range routes {
-		// TODO change
-		if route.HasWildcard && strings.HasPrefix(requestUrl, route.Url) {
-			return route, true
-		}
-		if !route.HasWildcard && requestUrl == route.Url {
+		if (!route.HasWildcard && requestUrl == route.Url) ||
+			(route.HasWildcard && strings.HasPrefix(requestUrl, route.Url)) {
 			return route, true
 		}
 	}
 	return apiRoute{}, false
-}
-
-// deleteApiKey deletes the selected API key
-func deleteApiKey(id string) bool {
-	_, ok := isValidApiKey(id, false, models.ApiPermNone)
-	if !ok {
-		return false
-	}
-	database.DeleteApiKey(id)
-	return true
 }
 
 // generateNewKey generates and saves a new API key
@@ -295,7 +282,7 @@ func apiDeleteKey(w http.ResponseWriter, request apiRequest, user models.User) {
 		sendError(w, http.StatusUnauthorized, "No permission to delete this API key")
 		return
 	}
-	deleteApiKey(request.apiInfo.apiKeyToModify)
+	database.DeleteApiKey(request.apiInfo.apiKeyToModify)
 }
 
 func apiModifyApiKey(w http.ResponseWriter, request apiRequest, user models.User) {
@@ -505,14 +492,14 @@ func apiList(w http.ResponseWriter, _ apiRequest, user models.User) {
 }
 
 func apiListSingle(w http.ResponseWriter, request apiRequest, user models.User) {
-	id := strings.TrimPrefix(request.requestUrl, "/files/apiList/")
+	id := strings.TrimPrefix(request.requestUrl, "/files/list/")
 	file, ok := storage.GetFile(id)
 	if !ok {
-		sendError(w, http.StatusNotFound, "Could not find file with id "+id)
+		sendError(w, http.StatusNotFound, "File not found")
 		return
 	}
 	if file.UserId != user.Id && !user.HasPermission(models.UserPermListOtherUploads) {
-		sendError(w, http.StatusUnauthorized, "No permission to view file with id "+id)
+		sendError(w, http.StatusUnauthorized, "No permission to view file")
 		return
 	}
 	config := configuration.Get()
