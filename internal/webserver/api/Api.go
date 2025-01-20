@@ -22,10 +22,10 @@ const lengthApiKey = 30
 const minLengthUser = 4
 
 type apiRoute struct {
-	Url           string
-	HasWildcard   bool
-	ApiPermission uint8
-	execution     apiFunc
+	Url         string
+	HasWildcard bool
+	ApiPerm     models.ApiPermission
+	execution   apiFunc
 }
 
 func (r apiRoute) Continue(w http.ResponseWriter, request apiRequest, user models.User) {
@@ -36,95 +36,95 @@ type apiFunc func(w http.ResponseWriter, request apiRequest, user models.User)
 
 var routes []apiRoute = []apiRoute{
 	{
-		Url:           "/files/list",
-		ApiPermission: models.ApiPermView,
-		execution:     apiList,
+		Url:       "/files/list",
+		ApiPerm:   models.ApiPermView,
+		execution: apiList,
 	},
 	{
-		Url:           "/files/list/",
-		ApiPermission: models.ApiPermView,
-		execution:     apiListSingle,
-		HasWildcard:   true,
+		Url:         "/files/list/",
+		ApiPerm:     models.ApiPermView,
+		execution:   apiListSingle,
+		HasWildcard: true,
 	},
 	{
-		Url:           "/chunk/add",
-		ApiPermission: models.ApiPermUpload,
-		execution:     apiChunkAdd,
+		Url:       "/chunk/add",
+		ApiPerm:   models.ApiPermUpload,
+		execution: apiChunkAdd,
 	},
 	{
-		Url:           "/chunk/complete",
-		ApiPermission: models.ApiPermUpload,
-		execution:     apiChunkComplete,
+		Url:       "/chunk/complete",
+		ApiPerm:   models.ApiPermUpload,
+		execution: apiChunkComplete,
 	},
 	{
-		Url:           "/files/add",
-		ApiPermission: models.ApiPermUpload,
-		execution:     apiUploadFile,
+		Url:       "/files/add",
+		ApiPerm:   models.ApiPermUpload,
+		execution: apiUploadFile,
 	},
 	{
-		Url:           "/files/delete",
-		ApiPermission: models.ApiPermDelete,
-		execution:     apiDeleteFile,
+		Url:       "/files/delete",
+		ApiPerm:   models.ApiPermDelete,
+		execution: apiDeleteFile,
 	},
 	{
-		Url:           "/files/duplicate",
-		ApiPermission: models.ApiPermUpload,
-		execution:     apiDuplicateFile,
+		Url:       "/files/duplicate",
+		ApiPerm:   models.ApiPermUpload,
+		execution: apiDuplicateFile,
 	},
 	{
-		Url:           "/files/modify",
-		ApiPermission: models.ApiPermEdit,
-		execution:     apiEditFile,
+		Url:       "/files/modify",
+		ApiPerm:   models.ApiPermEdit,
+		execution: apiEditFile,
 	},
 	{
-		Url:           "/files/replace",
-		ApiPermission: models.ApiPermReplace,
-		execution:     apiReplaceFile,
+		Url:       "/files/replace",
+		ApiPerm:   models.ApiPermReplace,
+		execution: apiReplaceFile,
 	},
 	{
-		Url:           "/auth/create",
-		ApiPermission: models.ApiPermApiMod,
-		execution:     apiCreateApiKey,
+		Url:       "/auth/create",
+		ApiPerm:   models.ApiPermApiMod,
+		execution: apiCreateApiKey,
 	},
 	{
-		Url:           "/auth/friendlyname",
-		ApiPermission: models.ApiPermApiMod,
-		execution:     apiChangeFriendlyName,
+		Url:       "/auth/friendlyname",
+		ApiPerm:   models.ApiPermApiMod,
+		execution: apiChangeFriendlyName,
 	},
 	{
-		Url:           "/auth/modify",
-		ApiPermission: models.ApiPermApiMod,
-		execution:     apiModifyApiKey,
+		Url:       "/auth/modify",
+		ApiPerm:   models.ApiPermApiMod,
+		execution: apiModifyApiKey,
 	},
 	{
-		Url:           "/auth/delete",
-		ApiPermission: models.ApiPermApiMod,
-		execution:     apiDeleteKey,
+		Url:       "/auth/delete",
+		ApiPerm:   models.ApiPermApiMod,
+		execution: apiDeleteKey,
 	},
 	{
-		Url:           "/user/create",
-		ApiPermission: models.ApiPermManageUsers,
-		execution:     apiCreateUser,
+		Url:       "/user/create",
+		ApiPerm:   models.ApiPermManageUsers,
+		execution: apiCreateUser,
 	},
 	{
-		Url:           "/user/changeRank",
-		ApiPermission: models.ApiPermManageUsers,
-		execution:     apiChangeUserRank,
+		Url:       "/user/changeRank",
+		ApiPerm:   models.ApiPermManageUsers,
+		execution: apiChangeUserRank,
 	},
 	{
-		Url:           "/user/delete",
-		ApiPermission: models.ApiPermManageUsers,
-		execution:     apiDeleteUser,
+		Url:       "/user/delete",
+		ApiPerm:   models.ApiPermManageUsers,
+		execution: apiDeleteUser,
 	},
 	{
-		Url:           "/user/modify",
-		ApiPermission: models.ApiPermManageUsers,
-		execution:     apiModifyUser,
+		Url:       "/user/modify",
+		ApiPerm:   models.ApiPermManageUsers,
+		execution: apiModifyUser,
 	},
 	{
-		Url:           "/user/resetPassword",
-		ApiPermission: models.ApiPermManageUsers,
-		execution:     apiResetPassword,
+		Url:       "/user/resetPassword",
+		ApiPerm:   models.ApiPermManageUsers,
+		execution: apiResetPassword,
 	},
 }
 
@@ -309,7 +309,7 @@ func apiModifyApiKey(w http.ResponseWriter, request apiRequest, user models.User
 		return
 	}
 
-	validPermissions := []uint8{models.ApiPermView,
+	validPermissions := []models.ApiPermission{models.ApiPermView,
 		models.ApiPermUpload, models.ApiPermDelete,
 		models.ApiPermApiMod, models.ApiPermEdit,
 		models.ApiPermReplace, models.ApiPermManageUsers}
@@ -443,11 +443,13 @@ func apiDeleteFile(w http.ResponseWriter, request apiRequest, user models.User) 
 	file, ok := database.GetMetaDataById(request.fileInfo.id)
 	if !ok {
 		sendError(w, http.StatusNotFound, "Invalid file ID provided.")
+		return
 	}
 	if file.UserId == user.Id || user.HasPermission(models.UserPermDeleteOtherUploads) {
 		_ = storage.DeleteFile(request.fileInfo.id, true)
 	} else {
 		sendError(w, http.StatusUnauthorized, "No permission to delete this file")
+		return
 	}
 }
 
@@ -576,7 +578,7 @@ func apiReplaceFile(w http.ResponseWriter, request apiRequest, user models.User)
 		return
 	}
 	if fileOriginal.UserId != user.Id && !user.HasPermission(models.UserPermReplaceOtherUploads) {
-		sendError(w, http.StatusUnauthorized, "No permission to duplicate this file")
+		sendError(w, http.StatusUnauthorized, "No permission to replace this file")
 		return
 	}
 
@@ -685,7 +687,7 @@ func apiChangeUserRank(w http.ResponseWriter, request apiRequest, user models.Us
 }
 
 func updateApiKeyPermsOnUserPermChange(userId int, userPerm uint16, isNewlyGranted bool) {
-	var affectedPermission uint8
+	var affectedPermission models.ApiPermission
 	switch userPerm {
 	case models.UserPermManageUsers:
 		affectedPermission = models.ApiPermManageUsers
@@ -768,7 +770,7 @@ func apiDeleteUser(w http.ResponseWriter, request apiRequest, user models.User) 
 }
 
 func isAuthorisedForApi(w http.ResponseWriter, request apiRequest, routing apiRoute) (models.User, bool) {
-	user, ok := isValidApiKey(request.apiKey, true, routing.ApiPermission)
+	user, ok := isValidApiKey(request.apiKey, true, routing.ApiPerm)
 	if ok {
 		return user, true
 	}
@@ -824,7 +826,7 @@ type fileInfo struct {
 type apiModInfo struct {
 	friendlyName     string
 	apiKeyToModify   string
-	permission       uint8
+	permission       models.ApiPermission
 	grantPermission  bool
 	basicPermissions bool
 }
@@ -912,7 +914,7 @@ func parseRequest(r *http.Request) (apiRequest, error) {
 		apiInfo: apiModInfo{
 			friendlyName:     r.Header.Get("friendlyName"),
 			apiKeyToModify:   publicKeyToApiKey(r.Header.Get("apiKeyToModify")),
-			permission:       uint8(apiPermission),
+			permission:       apiPermission,
 			grantPermission:  r.Header.Get("permissionModifier") == "GRANT",
 			basicPermissions: r.Header.Get("basicPermissions") == "true",
 		},
@@ -999,7 +1001,7 @@ func apiRequestToUploadRequest(request *http.Request) (models.UploadRequest, int
 
 // isValidApiKey checks if the API key provides is valid. If modifyTime is true, it also automatically updates
 // the lastUsed timestamp
-func isValidApiKey(key string, modifyTime bool, requiredPermissionApiKey uint8) (models.User, bool) {
+func isValidApiKey(key string, modifyTime bool, requiredPermissionApiKey models.ApiPermission) (models.User, bool) {
 	if key == "" {
 		return models.User{}, false
 	}

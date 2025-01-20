@@ -20,10 +20,10 @@ const (
 )
 
 // ApiPermNone means no permission granted
-const ApiPermNone uint8 = 0
+const ApiPermNone ApiPermission = 0
 
 // ApiPermAll means all permission granted
-const ApiPermAll uint8 = 127
+const ApiPermAll ApiPermission = 127
 
 // ApiPermDefault means all permission granted, except ApiPermApiMod, ApiPermManageUsers and ApiPermReplace
 // This is the default for new API keys that are created from the UI
@@ -31,15 +31,17 @@ const ApiPermDefault = ApiPermAll - ApiPermApiMod - ApiPermManageUsers - ApiPerm
 
 // ApiKey contains data of a single api key
 type ApiKey struct {
-	Id           string `json:"Id" redis:"Id"`
-	PublicId     string `json:"PublicId" redis:"PublicId"`
-	FriendlyName string `json:"FriendlyName" redis:"FriendlyName"`
-	LastUsed     int64  `json:"LastUsed" redis:"LastUsed"`
-	Permissions  uint8  `json:"Permissions" redis:"Permissions"`
-	Expiry       int64  `json:"Expiry" redis:"Expiry"` // Does not expire if 0
-	IsSystemKey  bool   `json:"IsSystemKey" redis:"IsSystemKey"`
-	UserId       int    `json:"UserId" redis:"UserId"`
+	Id           string        `json:"Id" redis:"Id"`
+	PublicId     string        `json:"PublicId" redis:"PublicId"`
+	FriendlyName string        `json:"FriendlyName" redis:"FriendlyName"`
+	LastUsed     int64         `json:"LastUsed" redis:"LastUsed"`
+	Permissions  ApiPermission `json:"Permissions" redis:"Permissions"`
+	Expiry       int64         `json:"Expiry" redis:"Expiry"` // Does not expire if 0
+	IsSystemKey  bool          `json:"IsSystemKey" redis:"IsSystemKey"`
+	UserId       int           `json:"UserId" redis:"UserId"`
 }
+
+type ApiPermission uint8
 
 // GetReadableDate returns the date as YYYY-MM-DD HH:MM:SS
 func (key *ApiKey) GetReadableDate() string {
@@ -56,17 +58,17 @@ func (key *ApiKey) GetRedactedId() string {
 }
 
 // GrantPermission sets one or more permissions
-func (key *ApiKey) GrantPermission(permission uint8) {
+func (key *ApiKey) GrantPermission(permission ApiPermission) {
 	key.Permissions |= permission
 }
 
 // RemovePermission revokes one or more permissions
-func (key *ApiKey) RemovePermission(permission uint8) {
+func (key *ApiKey) RemovePermission(permission ApiPermission) {
 	key.Permissions &^= permission
 }
 
 // HasPermission returns true if the key has the permission(s)
-func (key *ApiKey) HasPermission(permission uint8) bool {
+func (key *ApiKey) HasPermission(permission ApiPermission) bool {
 	if permission == ApiPermNone {
 		return true
 	}
