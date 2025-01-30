@@ -767,7 +767,10 @@ func isValidPwCookie(r *http.Request, file models.File) bool {
 
 // Adds a header to disable external caching
 func addNoCacheHeader(w http.ResponseWriter) {
-	w.Header().Set("cache-control", "no-store")
+	w.Header().Set("cdn-cache-control", "no-store, no-cache")
+	w.Header().Set("Cloudflare-CDN-Cache-Control", "no-store, no-cache")
+	w.Header().Set("cache-control", "no-store, no-cache")
+	w.Header().Set("Pragma", "no-cache")
 }
 
 // A view containing parameters for a generic template
