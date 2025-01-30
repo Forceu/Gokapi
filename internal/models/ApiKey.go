@@ -4,7 +4,7 @@ import "time"
 
 const (
 	// ApiPermView is the permission for viewing metadata of all uploaded files
-	ApiPermView = 1 << iota
+	ApiPermView ApiPermission = 1 << iota
 	// ApiPermUpload is the permission for creating new files
 	ApiPermUpload
 	// ApiPermDelete is the permission for deleting files

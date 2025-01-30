@@ -920,14 +920,24 @@
         ],
         "parameters": [
           {
-            "name": "generateNewPassword",
+            "name": "userid",
             "in": "header",
-            "description": "Generate a new password",
+            "description": "The user to reset",
             "required": true,
             "style": "simple",
             "explode": false,
             "schema": {
               "type": "string"
+            }
+          },{
+            "name": "generateNewPassword",
+            "in": "header",
+            "description": "Generate a new password",
+            "required": false,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "boolean"
             }
           }
         ],
@@ -1204,7 +1214,7 @@
           },
           "originalPassword": {
             "type": "boolean",
-            "description": "Set to true to use original password. Field \"password\" will be ignored if set."
+            "description": "Set to true to use original password. Field \"password\" will be ignored if not set."
           },
           "filename": {
             "type": "string",

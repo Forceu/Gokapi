@@ -11,7 +11,6 @@ import (
 	"github.com/forceu/gokapi/internal/webserver/fileupload"
 	"io"
 	"net/http"
-	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -20,113 +19,6 @@ import (
 const lengthPublicId = 35
 const lengthApiKey = 30
 const minLengthUser = 4
-
-type apiRoute struct {
-	Url         string
-	HasWildcard bool
-	ApiPerm     models.ApiPermission
-	execution   apiFunc
-}
-
-func (r apiRoute) Continue(w http.ResponseWriter, request apiRequest, user models.User) {
-	r.execution(w, request, user)
-}
-
-type apiFunc func(w http.ResponseWriter, request apiRequest, user models.User)
-
-var routes = []apiRoute{
-	{
-		Url:       "/files/list",
-		ApiPerm:   models.ApiPermView,
-		execution: apiList,
-	},
-	{
-		Url:         "/files/list/",
-		ApiPerm:     models.ApiPermView,
-		execution:   apiListSingle,
-		HasWildcard: true,
-	},
-	{
-		Url:       "/chunk/add",
-		ApiPerm:   models.ApiPermUpload,
-		execution: apiChunkAdd,
-	},
-	{
-		Url:       "/chunk/complete",
-		ApiPerm:   models.ApiPermUpload,
-		execution: apiChunkComplete,
-	},
-	{
-		Url:       "/files/add",
-		ApiPerm:   models.ApiPermUpload,
-		execution: apiUploadFile,
-	},
-	{
-		Url:       "/files/delete",
-		ApiPerm:   models.ApiPermDelete,
-		execution: apiDeleteFile,
-	},
-	{
-		Url:       "/files/duplicate",
-		ApiPerm:   models.ApiPermUpload,
-		execution: apiDuplicateFile,
-	},
-	{
-		Url:       "/files/modify",
-		ApiPerm:   models.ApiPermEdit,
-		execution: apiEditFile,
-	},
-	{
-		Url:       "/files/replace",
-		ApiPerm:   models.ApiPermReplace,
-		execution: apiReplaceFile,
-	},
-	{
-		Url:       "/auth/create",
-		ApiPerm:   models.ApiPermApiMod,
-		execution: apiCreateApiKey,
-	},
-	{
-		Url:       "/auth/friendlyname",
-		ApiPerm:   models.ApiPermApiMod,
-		execution: apiChangeFriendlyName,
-	},
-	{
-		Url:       "/auth/modify",
-		ApiPerm:   models.ApiPermApiMod,
-		execution: apiModifyApiKey,
-	},
-	{
-		Url:       "/auth/delete",
-		ApiPerm:   models.ApiPermApiMod,
-		execution: apiDeleteKey,
-	},
-	{
-		Url:       "/user/create",
-		ApiPerm:   models.ApiPermManageUsers,
-		execution: apiCreateUser,
-	},
-	{
-		Url:       "/user/changeRank",
-		ApiPerm:   models.ApiPermManageUsers,
-		execution: apiChangeUserRank,
-	},
-	{
-		Url:       "/user/delete",
-		ApiPerm:   models.ApiPermManageUsers,
-		execution: apiDeleteUser,
-	},
-	{
-		Url:       "/user/modify",
-		ApiPerm:   models.ApiPermManageUsers,
-		execution: apiModifyUser,
-	},
-	{
-		Url:       "/user/resetPassword",
-		ApiPerm:   models.ApiPermManageUsers,
-		execution: apiResetPassword,
-	},
-}
 
 // Process parses the request and executes the API call or returns an error message to the sender
 func Process(w http.ResponseWriter, r *http.Request) {
@@ -144,16 +36,25 @@ func Process(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var user models.User
-	user, ok = isAuthorisedForApi(w, request, routing)
+	user, ok = isAuthorisedForApi(request, routing)
 	if !ok {
 		sendError(w, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
-	routing.Continue(w, request, user)
+	err = parseParameters(&routing.Parsing, r)
+	if err != nil {
+		sendError(w, http.StatusBadRequest, "Invalid request")
+		return
+	}
+	routing.Continue(w, routing.Parsing, user)
 }
 
-func apiEditFile(w http.ResponseWriter, request apiRequest, user models.User) {
-	file, ok := database.GetMetaDataById(request.filemodInfo.id)
+func apiEditFile(w http.ResponseWriter, r paramInfo, user models.User) {
+	request, ok := r.(*paramFilesModify)
+	if !ok {
+		panic("invalid parameter passed")
+	}
+	file, ok := database.GetMetaDataById(request.Id)
 	if !ok {
 		sendError(w, http.StatusNotFound, "Invalid file ID provided.")
 		return
@@ -162,36 +63,26 @@ func apiEditFile(w http.ResponseWriter, request apiRequest, user models.User) {
 		sendError(w, http.StatusUnauthorized, "No permission to edit file.")
 		return
 	}
-	if request.filemodInfo.downloads != "" {
-		downloadsInt, err := strconv.Atoi(request.filemodInfo.downloads)
-		if err != nil {
-			sendError(w, http.StatusBadRequest, "Invalid download count provided.")
-			return
-		}
-		if downloadsInt != 0 {
-			file.DownloadsRemaining = downloadsInt
+	if request.UnlimitedDownloads {
+		file.UnlimitedDownloads = true
+	} else {
+		if request.AllowedDownloads != 0 {
+			file.DownloadsRemaining = request.AllowedDownloads
 			file.UnlimitedDownloads = false
-		} else {
-			file.UnlimitedDownloads = true
 		}
 	}
-	if request.filemodInfo.expiry != "" {
-		expiryInt, err := strconv.ParseInt(request.filemodInfo.expiry, 10, 64)
-		if err != nil {
-			sendError(w, http.StatusBadRequest, "Invalid expiry timestamp provided.")
-			return
-		}
-		if expiryInt != 0 {
-			file.ExpireAt = expiryInt
-			file.ExpireAtString = storage.FormatTimestamp(expiryInt)
+	if request.UnlimitedExpiry {
+		file.UnlimitedTime = true
+	} else {
+		if request.ExpiryTimestamp != 0 {
+			file.ExpireAt = request.ExpiryTimestamp
+			file.ExpireAtString = storage.FormatTimestamp(request.ExpiryTimestamp)
 			file.UnlimitedTime = false
-		} else {
-			file.UnlimitedTime = true
 		}
 	}
 
-	if !request.filemodInfo.originalPassword {
-		file.PasswordHash = configuration.HashPassword(request.filemodInfo.password, true)
+	if !request.KeepPassword {
+		file.PasswordHash = configuration.HashPassword(request.Password, true)
 	}
 
 	if file.HotlinkId != "" && !storage.IsAbleHotlink(file) {
@@ -205,22 +96,15 @@ func apiEditFile(w http.ResponseWriter, request apiRequest, user models.User) {
 	outputFileInfo(w, file)
 }
 
-func getRouting(requestUrl string) (apiRoute, bool) {
-	for _, route := range routes {
-		if (!route.HasWildcard && requestUrl == route.Url) ||
-			(route.HasWildcard && strings.HasPrefix(requestUrl, route.Url)) {
-			return route, true
-		}
-	}
-	return apiRoute{}, false
-}
-
 // generateNewKey generates and saves a new API key
-func generateNewKey(defaultPermissions bool, userId int) models.ApiKey {
+func generateNewKey(defaultPermissions bool, userId int, friendlyName string) models.ApiKey {
+	if friendlyName == "" {
+		friendlyName = "Unnamed key"
+	}
 	newKey := models.ApiKey{
 		Id:           helper.GenerateRandomString(lengthApiKey),
 		PublicId:     helper.GenerateRandomString(lengthPublicId),
-		FriendlyName: "Unnamed key",
+		FriendlyName: friendlyName,
 		Permissions:  models.ApiPermDefault,
 		IsSystemKey:  false,
 		UserId:       userId,
@@ -272,8 +156,12 @@ func GetSystemKey(userId int) string {
 	return key.Id
 }
 
-func apiDeleteKey(w http.ResponseWriter, request apiRequest, user models.User) {
-	apiKeyOwner, ok := isValidKeyForEditing(w, request)
+func apiDeleteKey(w http.ResponseWriter, r paramInfo, user models.User) {
+	request, ok := r.(*paramAuthDelete)
+	if !ok {
+		panic("invalid parameter passed")
+	}
+	apiKeyOwner, ok := isValidKeyForEditing(w, request.KeyId)
 	if !ok {
 		sendError(w, http.StatusNotFound, "Invalid key ID provided.")
 		return
@@ -282,11 +170,15 @@ func apiDeleteKey(w http.ResponseWriter, request apiRequest, user models.User) {
 		sendError(w, http.StatusUnauthorized, "No permission to delete this API key")
 		return
 	}
-	database.DeleteApiKey(request.apiInfo.apiKeyToModify)
+	database.DeleteApiKey(request.KeyId)
 }
 
-func apiModifyApiKey(w http.ResponseWriter, request apiRequest, user models.User) {
-	apiKeyOwner, ok := isValidKeyForEditing(w, request)
+func apiModifyApiKey(w http.ResponseWriter, r paramInfo, user models.User) {
+	request, ok := r.(*paramAuthModify)
+	if !ok {
+		panic("invalid parameter passed")
+	}
+	apiKeyOwner, ok := isValidKeyForEditing(w, request.KeyId)
 	if !ok {
 		sendError(w, http.StatusNotFound, "Invalid key ID provided.")
 		return
@@ -296,15 +188,7 @@ func apiModifyApiKey(w http.ResponseWriter, request apiRequest, user models.User
 		return
 	}
 
-	validPermissions := []models.ApiPermission{models.ApiPermView,
-		models.ApiPermUpload, models.ApiPermDelete,
-		models.ApiPermApiMod, models.ApiPermEdit,
-		models.ApiPermReplace, models.ApiPermManageUsers}
-	if !slices.Contains(validPermissions, request.apiInfo.permission) {
-		sendError(w, http.StatusBadRequest, "Invalid permission sent")
-		return
-	}
-	switch request.apiInfo.permission {
+	switch request.Permission {
 	case models.ApiPermReplace:
 		if !apiKeyOwner.HasPermissionReplace() {
 			sendError(w, http.StatusUnauthorized, "Insufficient user permission for owner to set this API permission")
@@ -318,24 +202,24 @@ func apiModifyApiKey(w http.ResponseWriter, request apiRequest, user models.User
 	default:
 		// do nothing
 	}
-	key, ok := database.GetApiKey(request.apiInfo.apiKeyToModify)
+	key, ok := database.GetApiKey(request.KeyId)
 	if !ok {
 		sendError(w, http.StatusInternalServerError, "Could not modify API key")
 		return
 	}
-	if request.apiInfo.grantPermission && !key.HasPermission(request.apiInfo.permission) {
-		key.GrantPermission(request.apiInfo.permission)
+	if request.GrantPermission && !key.HasPermission(request.Permission) {
+		key.GrantPermission(request.Permission)
 		database.SaveApiKey(key)
 		return
 	}
-	if !request.apiInfo.grantPermission && key.HasPermission(request.apiInfo.permission) {
-		key.RemovePermission(request.apiInfo.permission)
+	if !request.GrantPermission && key.HasPermission(request.Permission) {
+		key.RemovePermission(request.Permission)
 		database.SaveApiKey(key)
 	}
 }
 
-func isValidKeyForEditing(w http.ResponseWriter, request apiRequest) (models.User, bool) {
-	user, ok := isValidApiKey(request.apiInfo.apiKeyToModify, false, models.ApiPermNone)
+func isValidKeyForEditing(w http.ResponseWriter, apiKey string) (models.User, bool) {
+	user, ok := isValidApiKey(apiKey, false, models.ApiPermNone)
 	if !ok {
 		sendError(w, http.StatusNotFound, "Invalid api key provided.")
 		return models.User{}, false
@@ -343,8 +227,8 @@ func isValidKeyForEditing(w http.ResponseWriter, request apiRequest) (models.Use
 	return user, true
 }
 
-func isValidUserForEditing(w http.ResponseWriter, request apiRequest) (models.User, bool) {
-	user, ok := database.GetUser(request.usermodInfo.userId)
+func isValidUserForEditing(w http.ResponseWriter, userId int) (models.User, bool) {
+	user, ok := database.GetUser(userId)
 	if !ok {
 		sendError(w, http.StatusNotFound, "Invalid user id provided.")
 		return models.User{}, false
@@ -352,42 +236,42 @@ func isValidUserForEditing(w http.ResponseWriter, request apiRequest) (models.Us
 	return user, true
 }
 
-func apiCreateApiKey(w http.ResponseWriter, request apiRequest, user models.User) {
-	key := generateNewKey(request.apiInfo.basicPermissions, user.Id)
+func apiCreateApiKey(w http.ResponseWriter, r paramInfo, user models.User) {
+	request, ok := r.(*paramAuthCreate)
+	if !ok {
+		panic("invalid parameter passed")
+	}
+	key := generateNewKey(request.BasicPermissions, user.Id, request.FriendlyName)
 	output := models.ApiKeyOutput{
 		Result:   "OK",
 		Id:       key.Id,
 		PublicId: key.PublicId,
-	}
-	if request.apiInfo.friendlyName != "" {
-		err := renameApiKeyFriendlyName(key.Id, request.apiInfo.friendlyName)
-		if err != nil {
-			sendError(w, http.StatusInternalServerError, err.Error())
-			return
-		}
 	}
 	result, err := json.Marshal(output)
 	helper.Check(err)
 	_, _ = w.Write(result)
 }
 
-func apiCreateUser(w http.ResponseWriter, request apiRequest, _ models.User) {
-	name := request.usermodInfo.newUserName
-	if len(name) < minLengthUser {
+func apiCreateUser(w http.ResponseWriter, r paramInfo, _ models.User) {
+	request, ok := r.(*paramUserCreate)
+	if !ok {
+		panic("invalid parameter passed")
+	}
+	if len(request.Username) < minLengthUser {
 		sendError(w, http.StatusBadRequest, "Invalid username provided.")
 		return
 	}
-	_, ok := database.GetUserByName(name)
+	_, ok = database.GetUserByName(request.Username)
 	if ok {
 		sendError(w, http.StatusConflict, "User already exists.")
 		return
 	}
 	newUser := models.User{
-		Name:      name,
+		Name:      request.Username,
 		UserLevel: models.UserLevelUser,
 	}
 	database.SaveUser(newUser, true)
-	newUser, ok = database.GetUserByName(name)
+	newUser, ok = database.GetUserByName(request.Username)
 	if !ok {
 		sendError(w, http.StatusInternalServerError, "Could not save user")
 		return
@@ -395,8 +279,12 @@ func apiCreateUser(w http.ResponseWriter, request apiRequest, _ models.User) {
 	_, _ = w.Write([]byte(newUser.ToJson()))
 }
 
-func apiChangeFriendlyName(w http.ResponseWriter, request apiRequest, user models.User) {
-	ownerApiKey, ok := isValidKeyForEditing(w, request)
+func apiChangeFriendlyName(w http.ResponseWriter, r paramInfo, user models.User) {
+	request, ok := r.(*paramAuthFriendlyName)
+	if !ok {
+		panic("invalid parameter passed")
+	}
+	ownerApiKey, ok := isValidKeyForEditing(w, request.KeyId)
 	if !ok {
 		sendError(w, http.StatusNotFound, "Invalid api key provided.")
 		return
@@ -405,9 +293,10 @@ func apiChangeFriendlyName(w http.ResponseWriter, request apiRequest, user model
 		sendError(w, http.StatusUnauthorized, "No permission to edit this key")
 		return
 	}
-	err := renameApiKeyFriendlyName(request.apiInfo.apiKeyToModify, request.apiInfo.friendlyName)
+	err := renameApiKeyFriendlyName(request.KeyId, request.FriendlyName)
 	if err != nil {
 		sendError(w, http.StatusInternalServerError, err.Error())
+		return
 	}
 }
 
@@ -426,21 +315,25 @@ func renameApiKeyFriendlyName(id string, newName string) error {
 	return nil
 }
 
-func apiDeleteFile(w http.ResponseWriter, request apiRequest, user models.User) {
-	file, ok := database.GetMetaDataById(request.fileInfo.id)
+func apiDeleteFile(w http.ResponseWriter, r paramInfo, user models.User) {
+	request, ok := r.(*paramFilesDelete)
+	if !ok {
+		panic("invalid parameter passed")
+	}
+	file, ok := database.GetMetaDataById(request.Id)
 	if !ok {
 		sendError(w, http.StatusNotFound, "Invalid file ID provided.")
 		return
 	}
 	if file.UserId == user.Id || user.HasPermission(models.UserPermDeleteOtherUploads) {
-		_ = storage.DeleteFile(request.fileInfo.id, true)
+		_ = storage.DeleteFile(request.Id, true)
 	} else {
 		sendError(w, http.StatusUnauthorized, "No permission to delete this file")
 		return
 	}
 }
 
-func apiChunkAdd(w http.ResponseWriter, request apiRequest, user models.User) {
+func apiChunkAdd(w http.ResponseWriter, request apiRequest, _ models.User) {
 	maxUpload := int64(configuration.Get().MaxFileSizeMB) * 1024 * 1024
 	if request.request.ContentLength > maxUpload {
 		sendError(w, http.StatusBadRequest, storage.ErrorFileTooLarge.Error())
@@ -451,6 +344,7 @@ func apiChunkAdd(w http.ResponseWriter, request apiRequest, user models.User) {
 	err := fileupload.ProcessNewChunk(w, request.request, true)
 	if err != nil {
 		sendError(w, http.StatusBadRequest, err.Error())
+		return
 	}
 }
 func apiChunkComplete(w http.ResponseWriter, request apiRequest, user models.User) {
@@ -473,7 +367,7 @@ func apiChunkComplete(w http.ResponseWriter, request apiRequest, user models.Use
 	_, _ = io.WriteString(w, file.ToJsonResult(config.ExternalUrl, configuration.Get().IncludeFilename))
 }
 
-func apiList(w http.ResponseWriter, _ apiRequest, user models.User) {
+func apiList(w http.ResponseWriter, _ paramInfo, user models.User) {
 	var validFiles []models.FileApiOutput
 	timeNow := time.Now().Unix()
 	config := configuration.Get()
@@ -491,8 +385,12 @@ func apiList(w http.ResponseWriter, _ apiRequest, user models.User) {
 	_, _ = w.Write(result)
 }
 
-func apiListSingle(w http.ResponseWriter, request apiRequest, user models.User) {
-	id := strings.TrimPrefix(request.requestUrl, "/files/list/")
+func apiListSingle(w http.ResponseWriter, r paramInfo, user models.User) {
+	request, ok := r.(*paramFilesListSingle)
+	if !ok {
+		panic("invalid parameter passed")
+	}
+	id := strings.TrimPrefix(request.RequestUrl, "/files/list/")
 	file, ok := storage.GetFile(id)
 	if !ok {
 		sendError(w, http.StatusNotFound, "File not found")
@@ -525,24 +423,18 @@ func apiUploadFile(w http.ResponseWriter, request apiRequest, user models.User) 
 	}
 }
 
-func apiDuplicateFile(w http.ResponseWriter, request apiRequest, user models.User) {
-	err := request.parseForm()
-	if err != nil {
-		sendError(w, http.StatusBadRequest, err.Error())
-		return
+func apiDuplicateFile(w http.ResponseWriter, r paramInfo, user models.User) {
+	request, ok := r.(*paramFilesDuplicate)
+	if !ok {
+		panic("invalid parameter passed")
 	}
-	file, ok := storage.GetFile(request.fileInfo.id)
+	file, ok := storage.GetFile(request.Id)
 	if !ok {
 		sendError(w, http.StatusNotFound, "Invalid id provided.")
 		return
 	}
 	if file.UserId != user.Id && !user.HasPermission(models.UserPermListOtherUploads) {
 		sendError(w, http.StatusUnauthorized, "No permission to duplicate this file")
-		return
-	}
-	err = request.parseUploadRequest()
-	if err != nil {
-		sendError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	newFile, err := storage.DuplicateFile(file, request.fileInfo.paramsToChange, request.fileInfo.filename, request.fileInfo.uploadRequest)
@@ -553,13 +445,12 @@ func apiDuplicateFile(w http.ResponseWriter, request apiRequest, user models.Use
 	outputFileInfo(w, newFile)
 }
 
-func apiReplaceFile(w http.ResponseWriter, request apiRequest, user models.User) {
-	err := request.parseForm()
-	if err != nil {
-		sendError(w, http.StatusBadRequest, err.Error())
-		return
+func apiReplaceFile(w http.ResponseWriter, r paramInfo, user models.User) {
+	request, ok := r.(*paramFilesReplace)
+	if !ok {
+		panic("invalid parameter passed")
 	}
-	fileOriginal, ok := storage.GetFile(request.fileInfo.id)
+	fileOriginal, ok := storage.GetFile(request.Id)
 	if !ok {
 		sendError(w, http.StatusNotFound, "Invalid id provided.")
 		return
@@ -569,7 +460,7 @@ func apiReplaceFile(w http.ResponseWriter, request apiRequest, user models.User)
 		return
 	}
 
-	fileNewContent, ok := storage.GetFile(request.filemodInfo.idNewContent)
+	fileNewContent, ok := storage.GetFile(request.IdNewContent)
 	if !ok {
 		sendError(w, http.StatusNotFound, "Invalid id provided.")
 		return
@@ -579,7 +470,7 @@ func apiReplaceFile(w http.ResponseWriter, request apiRequest, user models.User)
 		return
 	}
 
-	modifiedFile, err := storage.ReplaceFile(request.fileInfo.id, request.filemodInfo.idNewContent, request.filemodInfo.deleteNewFile)
+	modifiedFile, err := storage.ReplaceFile(request.Id, request.IdNewContent, request.Delete)
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrorReplaceE2EFile):
@@ -603,8 +494,12 @@ func outputFileInfo(w http.ResponseWriter, file models.File) {
 	_, _ = w.Write(result)
 }
 
-func apiModifyUser(w http.ResponseWriter, request apiRequest, user models.User) {
-	userEdit, ok := isValidUserForEditing(w, request)
+func apiModifyUser(w http.ResponseWriter, r paramInfo, user models.User) {
+	request, ok := r.(*paramUserModify)
+	if !ok {
+		panic("invalid parameter passed")
+	}
+	userEdit, ok := isValidUserForEditing(w, request.Id)
 	if !ok {
 		return
 	}
@@ -616,35 +511,27 @@ func apiModifyUser(w http.ResponseWriter, request apiRequest, user models.User) 
 		sendError(w, http.StatusBadRequest, "Cannot modify yourself")
 		return
 	}
-	reqPermission := request.usermodInfo.permission
-	addPerm := request.usermodInfo.grantPermission
-	validPermissions := []uint16{models.UserPermReplaceUploads,
-		models.UserPermListOtherUploads, models.UserPermEditOtherUploads,
-		models.UserPermReplaceOtherUploads, models.UserPermDeleteOtherUploads,
-		models.UserPermManageLogs, models.UserPermManageApiKeys,
-		models.UserPermManageUsers}
-	if !slices.Contains(validPermissions, reqPermission) {
-		sendError(w, http.StatusBadRequest, "Invalid permission sent")
-		return
-	}
-
-	if addPerm {
-		if !userEdit.HasPermission(reqPermission) {
-			userEdit.GrantPermission(reqPermission)
+	if request.GrantPermission {
+		if !userEdit.HasPermission(request.Permission) {
+			userEdit.GrantPermission(request.Permission)
 			database.SaveUser(userEdit, false)
-			updateApiKeyPermsOnUserPermChange(userEdit.Id, reqPermission, true)
+			updateApiKeyPermsOnUserPermChange(userEdit.Id, request.Permission, true)
 		}
 		return
 	}
-	if userEdit.HasPermission(reqPermission) {
-		userEdit.RemovePermission(reqPermission)
+	if userEdit.HasPermission(request.Permission) {
+		userEdit.RemovePermission(request.Permission)
 		database.SaveUser(userEdit, false)
-		updateApiKeyPermsOnUserPermChange(userEdit.Id, reqPermission, false)
+		updateApiKeyPermsOnUserPermChange(userEdit.Id, request.Permission, false)
 	}
 }
 
-func apiChangeUserRank(w http.ResponseWriter, request apiRequest, user models.User) {
-	userEdit, ok := isValidUserForEditing(w, request)
+func apiChangeUserRank(w http.ResponseWriter, r paramInfo, user models.User) {
+	request, ok := r.(*paramUserChangeRank)
+	if !ok {
+		panic("invalid parameter passed")
+	}
+	userEdit, ok := isValidUserForEditing(w, request.Id)
 	if !ok {
 		return
 	}
@@ -656,24 +543,24 @@ func apiChangeUserRank(w http.ResponseWriter, request apiRequest, user models.Us
 		sendError(w, http.StatusBadRequest, "Cannot modify super admin")
 		return
 	}
-	switch request.usermodInfo.newRank {
-	case "ADMIN":
-		userEdit.UserLevel = models.UserLevelAdmin
+	userEdit.UserLevel = request.NewRank
+	switch request.NewRank {
+	case models.UserLevelAdmin:
 		userEdit.Permissions = models.UserPermissionAll
 		updateApiKeyPermsOnUserPermChange(userEdit.Id, models.UserPermReplaceUploads, true)
 		updateApiKeyPermsOnUserPermChange(userEdit.Id, models.UserPermManageUsers, true)
-	case "USER":
-		userEdit.UserLevel = models.UserLevelUser
+	case models.UserLevelUser:
 		userEdit.Permissions = models.UserPermissionNone
 		updateApiKeyPermsOnUserPermChange(userEdit.Id, models.UserPermReplaceUploads, false)
 		updateApiKeyPermsOnUserPermChange(userEdit.Id, models.UserPermManageUsers, false)
 	default:
 		sendError(w, http.StatusBadRequest, "invalid rank sent")
+		return
 	}
 	database.SaveUser(userEdit, false)
 }
 
-func updateApiKeyPermsOnUserPermChange(userId int, userPerm uint16, isNewlyGranted bool) {
+func updateApiKeyPermsOnUserPermChange(userId int, userPerm models.UserPermission, isNewlyGranted bool) {
 	var affectedPermission models.ApiPermission
 	switch userPerm {
 	case models.UserPermManageUsers:
@@ -699,8 +586,12 @@ func updateApiKeyPermsOnUserPermChange(userId int, userPerm uint16, isNewlyGrant
 	}
 }
 
-func apiResetPassword(w http.ResponseWriter, request apiRequest, user models.User) {
-	userToEdit, ok := isValidUserForEditing(w, request)
+func apiResetPassword(w http.ResponseWriter, r paramInfo, user models.User) {
+	request, ok := r.(*paramUserResetPw)
+	if !ok {
+		panic("invalid parameter passed")
+	}
+	userToEdit, ok := isValidUserForEditing(w, request.Id)
 	if !ok {
 		return
 	}
@@ -714,7 +605,7 @@ func apiResetPassword(w http.ResponseWriter, request apiRequest, user models.Use
 	}
 	userToEdit.ResetPassword = true
 	password := ""
-	if request.usermodInfo.setNewPw {
+	if request.NewPassword {
 		password = helper.GenerateRandomString(configuration.MinLengthPassword + 2)
 		userToEdit.Password = configuration.HashPassword(password, false)
 	}
@@ -723,8 +614,12 @@ func apiResetPassword(w http.ResponseWriter, request apiRequest, user models.Use
 	_, _ = w.Write([]byte("{\"Result\":\"ok\",\"password\":\"" + password + "\"}"))
 }
 
-func apiDeleteUser(w http.ResponseWriter, request apiRequest, user models.User) {
-	userToDelete, ok := isValidUserForEditing(w, request)
+func apiDeleteUser(w http.ResponseWriter, r paramInfo, user models.User) {
+	request, ok := r.(*paramUserDelete)
+	if !ok {
+		panic("invalid parameter passed")
+	}
+	userToDelete, ok := isValidUserForEditing(w, request.Id)
 	if !ok {
 		return
 	}
@@ -739,7 +634,7 @@ func apiDeleteUser(w http.ResponseWriter, request apiRequest, user models.User) 
 	database.DeleteUser(userToDelete.Id)
 	for _, file := range database.GetAllMetadata() {
 		if file.UserId == userToDelete.Id {
-			if request.usermodInfo.deleteUserFiles {
+			if request.DeleteFiles {
 				database.DeleteMetaData(file.Id)
 			} else {
 				file.UserId = user.Id
@@ -756,13 +651,12 @@ func apiDeleteUser(w http.ResponseWriter, request apiRequest, user models.User) 
 	database.DeleteEnd2EndInfo(userToDelete.Id)
 }
 
-func isAuthorisedForApi(w http.ResponseWriter, request apiRequest, routing apiRoute) (models.User, bool) {
+func isAuthorisedForApi(request apiRequest, routing apiRoute) (models.User, bool) {
 	user, ok := isValidApiKey(request.apiKey, true, routing.ApiPerm)
-	if ok {
-		return user, true
+	if !ok {
+		return models.User{}, false
 	}
-	sendError(w, http.StatusUnauthorized, "Unauthorized")
-	return models.User{}, false
+	return user, true
 }
 
 // Probably from new API permission system
@@ -819,7 +713,7 @@ type apiModInfo struct {
 }
 type userModInfo struct {
 	userId           int
-	permission       uint16
+	permission       models.UserPermission
 	grantPermission  bool
 	basicPermissions bool
 	deleteUserFiles  bool

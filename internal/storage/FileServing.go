@@ -386,6 +386,10 @@ func ReplaceFile(fileId, newFileContentId string, delete bool) (models.File, err
 	return file, nil
 }
 
+func isChangeRequested(parametersToChange, parameter int) bool {
+	return parametersToChange&parameter != 0
+}
+
 // DuplicateFile creates a copy of an existing file with new parameters
 func DuplicateFile(file models.File, parametersToChange int, newFileName string, fileParameters models.UploadRequest) (models.File, error) {
 	var newFile models.File
@@ -394,10 +398,10 @@ func DuplicateFile(file models.File, parametersToChange int, newFileName string,
 		return models.File{}, err
 	}
 
-	changeExpiry := parametersToChange&ParamExpiry != 0
-	changeDownloads := parametersToChange&ParamDownloads != 0
-	changePassword := parametersToChange&ParamPassword != 0
-	changeName := parametersToChange&ParamName != 0
+	changeExpiry := isChangeRequested(parametersToChange, ParamExpiry)
+	changeDownloads := isChangeRequested(parametersToChange, ParamDownloads)
+	changePassword := isChangeRequested(parametersToChange, ParamPassword)
+	changeName := isChangeRequested(parametersToChange, ParamName)
 
 	if changeExpiry {
 		newFile.ExpireAt = fileParameters.ExpiryTimestamp
@@ -481,13 +485,9 @@ func isEncryptionRequested() bool {
 	switch configuration.Get().Encryption.Level {
 	case encryption.NoEncryption:
 		return false
-	case encryption.LocalEncryptionStored:
-		fallthrough
-	case encryption.LocalEncryptionInput:
+	case encryption.LocalEncryptionStored, encryption.LocalEncryptionInput:
 		return !aws.IsAvailable()
-	case encryption.FullEncryptionStored:
-		fallthrough
-	case encryption.FullEncryptionInput:
+	case encryption.FullEncryptionStored, encryption.FullEncryptionInput:
 		return true
 	case encryption.EndToEndEncryption:
 		return false

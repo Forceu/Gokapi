@@ -12,7 +12,7 @@ type schemaUser struct {
 	Id            int
 	Name          string
 	Password      sql.NullString
-	Permissions   uint16
+	Permissions   models.UserPermission
 	UserLevel     uint8
 	LastOnline    int64
 	ResetPassword int

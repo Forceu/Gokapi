@@ -6,14 +6,16 @@ import (
 	"time"
 )
 
+type UserPermission uint16
+
 type User struct {
-	Id            int    `json:"id" redis:"id"`
-	Name          string `json:"name" redis:"Name"`
-	Permissions   uint16 `json:"permissions" redis:"Permissions"`
-	UserLevel     uint8  `json:"userLevel" redis:"UserLevel"`
-	LastOnline    int64  `json:"lastOnline" redis:"LastOnline"`
-	Password      string `json:"-" redis:"Password"`
-	ResetPassword bool   `json:"resetPassword" redis:"ResetPassword"`
+	Id            int            `json:"id" redis:"id"`
+	Name          string         `json:"name" redis:"Name"`
+	Permissions   UserPermission `json:"permissions" redis:"Permissions"`
+	UserLevel     UserRank       `json:"userLevel" redis:"UserLevel"`
+	LastOnline    int64          `json:"lastOnline" redis:"LastOnline"`
+	Password      string         `json:"-" redis:"Password"`
+	ResetPassword bool           `json:"resetPassword" redis:"ResetPassword"`
 }
 
 // GetReadableDate returns the date as YYYY-MM-DD HH:MM
@@ -48,9 +50,11 @@ func (u *User) ToJson() string {
 	return string(result)
 }
 
-const UserLevelSuperAdmin uint8 = 0
-const UserLevelAdmin uint8 = 1
-const UserLevelUser uint8 = 2
+const UserLevelSuperAdmin UserRank = 0
+const UserLevelAdmin UserRank = 1
+const UserLevelUser UserRank = 2
+
+type UserRank uint8
 
 func (u *User) IsSuperAdmin() bool {
 	return u.UserLevel == UserLevelSuperAdmin
@@ -60,7 +64,7 @@ func (u *User) IsSameUser(userId int) bool {
 }
 
 const (
-	UserPermReplaceUploads = 1 << iota
+	UserPermReplaceUploads UserPermission = 1 << iota
 	UserPermListOtherUploads
 	UserPermEditOtherUploads
 	UserPermReplaceOtherUploads
@@ -69,21 +73,21 @@ const (
 	UserPermManageApiKeys
 	UserPermManageUsers
 )
-const UserPermissionNone uint16 = 0
-const UserPermissionAll uint16 = 255
+const UserPermissionNone UserPermission = 0
+const UserPermissionAll UserPermission = 255
 
 // GrantPermission grants one or more permissions
-func (u *User) GrantPermission(permission uint16) {
+func (u *User) GrantPermission(permission UserPermission) {
 	u.Permissions |= permission
 }
 
 // RemovePermission revokes one or more permissions
-func (u *User) RemovePermission(permission uint16) {
+func (u *User) RemovePermission(permission UserPermission) {
 	u.Permissions &^= permission
 }
 
 // HasPermission returns true if the key has the permission(s)
-func (u *User) HasPermission(permission uint16) bool {
+func (u *User) HasPermission(permission UserPermission) bool {
 	if permission == UserPermissionNone {
 		return true
 	}

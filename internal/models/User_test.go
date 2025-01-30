@@ -49,9 +49,9 @@ func TestUserPermAll(t *testing.T) {
 }
 
 // Helper function to check only one permission is set
-func checkOnlyUserPermissionSet(t *testing.T, user *User, perm uint16) {
+func checkOnlyUserPermissionSet(t *testing.T, user *User, perm UserPermission) {
 	allPermissions := []struct {
-		perm     uint16
+		perm     UserPermission
 		permName string
 	}{
 		{UserPermReplaceUploads, "UserPermReplaceUploads"},
@@ -82,7 +82,7 @@ func TestSetIndividualUserPermissions(t *testing.T) {
 
 	// Test each individual permission
 	permissions := []struct {
-		perm     uint16
+		perm     UserPermission
 		permName string
 	}{
 		{UserPermReplaceUploads, "UserPermReplaceUploads"},
@@ -103,7 +103,7 @@ func TestSetIndividualUserPermissions(t *testing.T) {
 }
 
 // Helper function to check combined permissions are set
-func checkCombinedUserPermissions(t *testing.T, user *User, perms []uint16) {
+func checkCombinedUserPermissions(t *testing.T, user *User, perms []UserPermission) {
 	for _, perm := range perms {
 		if !user.HasPermission(perm) {
 			t.Errorf("expected permission %d to be set", perm)
@@ -113,7 +113,7 @@ func checkCombinedUserPermissions(t *testing.T, user *User, perms []uint16) {
 
 func TestSetCombinedUserPermissions(t *testing.T) {
 	user := &User{}
-	allPermissions := []uint16{
+	allPermissions := []UserPermission{
 		UserPermReplaceUploads,
 		UserPermListOtherUploads,
 		UserPermEditOtherUploads,
