@@ -20,7 +20,6 @@ import (
 	"github.com/forceu/gokapi/internal/logging"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
-	"github.com/forceu/gokapi/internal/storage/processingstatus"
 	"github.com/forceu/gokapi/internal/webserver/api"
 	"github.com/forceu/gokapi/internal/webserver/authentication"
 	"github.com/forceu/gokapi/internal/webserver/authentication/oauth"
@@ -110,7 +109,6 @@ func Start() {
 	mux.HandleFunc("/logs", requireLogin(showLogs, true, false))
 	mux.HandleFunc("/logout", doLogout)
 	mux.HandleFunc("/uploadChunk", requireLogin(uploadChunk, false, false))
-	mux.HandleFunc("/uploadComplete", requireLogin(uploadComplete, false, false))
 	mux.HandleFunc("/uploadStatus", requireLogin(sse.GetStatusSSE, false, false))
 	mux.HandleFunc("/users", requireLogin(showUserAdmin, true, false))
 	mux.Handle("/main.wasm", gziphandler.GzipHandler(http.HandlerFunc(serveDownloadWasm)))
@@ -826,29 +824,6 @@ func uploadChunk(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, maxUpload)
 	err := fileupload.ProcessNewChunk(w, r, false)
 	responseError(w, err)
-}
-
-// Handling of /uploadComplete
-// If the user is authenticated, this parses the uploaded chunk and stores it
-func uploadComplete(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	chunkId, header, config, err := fileupload.ParseFileHeader(r)
-	if err != nil {
-		responseError(w, err)
-		return
-	}
-	user, err := authentication.GetUserFromRequest(r)
-	if err != nil {
-		panic(err)
-	}
-	go func() {
-		_, err = fileupload.CompleteChunk(chunkId, header, user.Id, config)
-		if err != nil {
-			processingstatus.Set(chunkId, processingstatus.StatusError, models.File{}, err)
-			fmt.Println(err)
-		}
-	}()
-	_, _ = io.WriteString(w, "{\"result\":\"OK\"}")
 }
 
 // Outputs an error in json format if err!=nil

@@ -13,7 +13,7 @@ type schemaUser struct {
 	Name          string
 	Password      sql.NullString
 	Permissions   models.UserPermission
-	UserLevel     uint8
+	UserLevel     models.UserRank
 	LastOnline    int64
 	ResetPassword int
 }

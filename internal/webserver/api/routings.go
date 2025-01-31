@@ -3,6 +3,7 @@ package api
 import (
 	"errors"
 	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/storage/chunking"
 	"net/http"
 	"reflect"
 	"slices"
@@ -366,13 +367,17 @@ func (p *paramChunkAdd) ProcessParameter(_ []string) error { return nil }
 type paramChunkComplete struct {
 	Uuid               string `header:"uuid" required:"true"`
 	FileName           string `header:"filename" required:"true"`
-	FileSize           int    `header:"filesize" required:"true"`
+	FileSize           int64  `header:"filesize" required:"true"`
+	RealSize           int64  `header:"realsize" required:"true"`
 	ContentType        string `header:"contenttype"`
 	AllowedDownloads   int    `header:"allowedDownloads"`
 	ExpiryDays         int    `header:"expiryDays"`
 	Password           string `header:"password"`
+	IsE2E              bool   `header:"isE2E"`
+	IsNonBlocking      bool   `header:"nonblocking"`
 	UnlimitedDownloads bool
-	UnlimitedExpiry    bool
+	UnlimitedTime      bool
+	FileHeader         chunking.FileHeader
 }
 
 func (p *paramChunkComplete) ProcessParameter(fields []string) error {
@@ -380,7 +385,12 @@ func (p *paramChunkComplete) ProcessParameter(fields []string) error {
 		p.UnlimitedDownloads = true
 	}
 	if slices.Contains(fields, "expiryDays") && p.ExpiryDays == 0 {
-		p.UnlimitedExpiry = true
+		p.UnlimitedTime = true
+	}
+	p.FileHeader = chunking.FileHeader{
+		Filename:    p.FileName,
+		ContentType: p.ContentType,
+		Size:        p.FileSize,
 	}
 	return nil
 }

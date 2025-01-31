@@ -87,6 +87,23 @@ func CompleteChunk(chunkId string, header chunking.FileHeader, userId int, confi
 	return storage.NewFileFromChunk(chunkId, header, userId, config)
 }
 
+// CreateUploadConfig populates a new models.UploadRequest struct
+func CreateUploadConfig(allowedDownloads, expiryDays int, password string, unlimitedTime, unlimitedDownload, isEnd2End bool, realSize int64) models.UploadRequest {
+	settings := configuration.Get()
+	return models.UploadRequest{
+		AllowedDownloads:    allowedDownloads,
+		Expiry:              expiryDays,
+		ExpiryTimestamp:     time.Now().Add(time.Duration(expiryDays) * time.Hour * 24).Unix(),
+		Password:            password,
+		ExternalUrl:         settings.ServerUrl,
+		MaxMemory:           settings.MaxMemory,
+		UnlimitedTime:       unlimitedTime,
+		UnlimitedDownload:   unlimitedDownload,
+		IsEndToEndEncrypted: isEnd2End,
+		RealSize:            realSize,
+	}
+}
+
 func parseConfig(values formOrHeader) (models.UploadRequest, error) {
 	allowedDownloads := values.Get("allowedDownloads")
 	expiryDays := values.Get("expiryDays")
@@ -120,19 +137,7 @@ func parseConfig(values formOrHeader) (models.UploadRequest, error) {
 			return models.UploadRequest{}, err
 		}
 	}
-	settings := configuration.Get()
-	return models.UploadRequest{
-		AllowedDownloads:    allowedDownloadsInt,
-		Expiry:              expiryDaysInt,
-		ExpiryTimestamp:     time.Now().Add(time.Duration(expiryDaysInt) * time.Hour * 24).Unix(),
-		Password:            password,
-		ExternalUrl:         settings.ServerUrl,
-		MaxMemory:           settings.MaxMemory,
-		UnlimitedTime:       unlimitedTime,
-		UnlimitedDownload:   unlimitedDownload,
-		IsEndToEndEncrypted: isEnd2End,
-		RealSize:            realSize,
-	}, nil
+	return CreateUploadConfig(allowedDownloadsInt, expiryDaysInt, password, unlimitedTime, unlimitedDownload, isEnd2End, realSize), nil
 }
 
 type formOrHeader interface {

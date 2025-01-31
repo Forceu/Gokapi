@@ -109,6 +109,43 @@ async function apiAuthCreate() {
 
 
 
+// /chunk
+
+
+async function apiChunkComplete(uuid, filename, realsize, contenttype, allowedDownloads, expiryDays, password, isE2E, nonblocking) {
+    const apiUrl = './api/chunk/complete';
+
+    const requestOptions = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'apikey': systemKey,
+            'uuid': uuid,
+            'filename': filename,
+            'realsize': realsize,
+            'contenttype': contenttype,
+            'allowedDownloads': allowedDownloads,
+            'expiryDays': expiryDays,
+            'password': password,
+            'isE2E': isE2E,
+            'nonblocking': nonblocking
+        },
+    };
+
+    try {
+        const response = await fetch(apiUrl, requestOptions);
+        if (!response.ok) {
+            throw new Error(`Request failed with status: ${response.status}`);
+        }
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error("Error in apiChunkComplete:", error);
+        throw error;
+    }
+}
+
+
 // /files
 
 

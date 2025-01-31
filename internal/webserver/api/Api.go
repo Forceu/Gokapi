@@ -347,24 +347,39 @@ func apiChunkAdd(w http.ResponseWriter, request apiRequest, _ models.User) {
 		return
 	}
 }
-func apiChunkComplete(w http.ResponseWriter, request apiRequest, user models.User) {
-	err := request.request.ParseForm()
+
+func apiChunkComplete(w http.ResponseWriter, r paramInfo, user models.User) {
+	request, ok := r.(*paramChunkComplete)
+	if !ok {
+		panic("invalid parameter passed")
+	}
+	if request.IsNonBlocking {
+		go doBlockingPartCompleteChunk(nil, request, user)
+		_, _ = io.WriteString(w, "{\"result\":\"OK\"}")
+		return
+	} else {
+		doBlockingPartCompleteChunk(w, request, user)
+	}
+
+}
+
+func doBlockingPartCompleteChunk(w http.ResponseWriter, request *paramChunkComplete, user models.User) {
+	uploadRequest := fileupload.CreateUploadConfig(request.AllowedDownloads,
+		request.ExpiryDays,
+		request.Password,
+		request.UnlimitedTime,
+		request.UnlimitedDownloads,
+		request.IsE2E,
+		request.FileSize)
+	file, err := fileupload.CompleteChunk(request.Uuid, request.FileHeader, user.Id, uploadRequest)
 	if err != nil {
 		sendError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	request.request.Form.Set("chunkid", request.request.Form.Get("uuid"))
-	chunkId, header, config, err := fileupload.ParseFileHeader(request.request)
-	if err != nil {
-		sendError(w, http.StatusBadRequest, err.Error())
-		return
+	if w != nil {
+		config := configuration.Get()
+		_, _ = io.WriteString(w, file.ToJsonResult(config.ServerUrl, config.IncludeFilename))
 	}
-	file, err := fileupload.CompleteChunk(chunkId, header, user.Id, config)
-	if err != nil {
-		sendError(w, http.StatusBadRequest, err.Error())
-		return
-	}
-	_, _ = io.WriteString(w, file.ToJsonResult(config.ExternalUrl, configuration.Get().IncludeFilename))
 }
 
 func apiList(w http.ResponseWriter, _ paramInfo, user models.User) {
@@ -661,6 +676,9 @@ func isAuthorisedForApi(request apiRequest, routing apiRoute) (models.User, bool
 
 // Probably from new API permission system
 func sendError(w http.ResponseWriter, errorInt int, errorMessage string) {
+	if w == nil {
+		return
+	}
 	w.WriteHeader(errorInt)
 	_, _ = w.Write([]byte("{\"Result\":\"error\",\"ErrorMessage\":\"" + errorMessage + "\"}"))
 }

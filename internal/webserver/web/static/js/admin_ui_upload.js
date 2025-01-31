@@ -181,60 +181,47 @@ function urlencodeFormData(fd) {
     return s;
 }
 
+
 function sendChunkComplete(file, done) {
-    var xhr = new XMLHttpRequest();
-    xhr.open("POST", "./uploadComplete", true);
-    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-
-    let formData = new FormData();
-    formData.append("allowedDownloads", document.getElementById("allowedDownloads").value);
-    formData.append("expiryDays", document.getElementById("expiryDays").value);
-    formData.append("password", document.getElementById("password").value);
-    formData.append("isUnlimitedDownload", !document.getElementById("enableDownloadLimit").checked);
-    formData.append("isUnlimitedTime", !document.getElementById("enableTimeLimit").checked);
-    formData.append("chunkid", file.upload.uuid);
-
-    if (file.isEndToEndEncrypted === true) {
-        formData.append("filesize", file.sizeEncrypted);
-        formData.append("filename", "Encrypted File");
-        formData.append("filecontenttype", "");
-        formData.append("isE2E", "true");
-        formData.append("realSize", file.size);
-    } else {
-        formData.append("filesize", file.size);
-        formData.append("filename", file.name);
-        formData.append("filecontenttype", file.type);
+    let uuid = file.upload.uuid;
+    let filename = file.name;
+    let realsize = file.size;
+    let contenttype = file.type;
+    let allowedDownloads = document.getElementById("allowedDownloads").value;
+    let expiryDays = document.getElementById("expiryDays").value;
+    let password = document.getElementById("password").value;
+    let isE2E = file.isEndToEndEncrypted;
+    let nonblocking = true;
+    
+    if (!document.getElementById("enableDownloadLimit").checked) {
+    	allowedDownloads = 0;
     }
-
-    xhr.onreadystatechange = function() {
-        if (this.readyState == 4) {
-            if (this.status == 200) {
-                done();
+    if (!document.getElementById("enableTimeLimit").checked) {
+    	expiryDays = 0;
+    }
+    
+    if (isE2E) {
+	    filename = "Encrypted File");
+	    contenttype = "";
+    }
+    
+     apiChunkComplete(uuid, filename,  realsize, contenttype, allowedDownloads, expiryDays, password, isE2E, nonblocking)
+            .then(data => {
+               done();
                 let progressText = document.getElementById(`us-progress-info-${file.upload.uuid}`);
                 if (progressText != null)
                     progressText.innerText = "In Queue...";
-            } else {
-                dropzoneUploadError(file, getErrorMessage(xhr.responseText));
-            }
-        }
-    };
-    xhr.send(urlencodeFormData(formData));
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                dropzoneUploadError(file, error);
+            });
 }
 
 function dropzoneUploadError(file, errormessage) {
     file.accepted = false;
     dropzoneObject._errorProcessing([file], errormessage);
     showError(file, errormessage);
-}
-
-function getErrorMessage(response) {
-    let result;
-    try {
-        result = JSON.parse(response);
-    } catch (e) {
-        return "Unknown error: Server could not process file";
-    }
-    return "Error: " + result.ErrorMessage;
 }
 
 function dropzoneGetFile(uid) {
