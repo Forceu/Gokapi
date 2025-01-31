@@ -423,6 +423,13 @@ function handleEditCheckboxChange(checkbox) {
 }
 
 function showEditModal(filename, id, downloads, expiry, password, unlimitedown, unlimitedtime, isE2e) {
+    // Cloning removes any previous values or form validation
+    let originalModal = $('#modaledit').clone();
+    $("#modaledit").on('hide.bs.modal', function() {
+        $('#modaledit').remove();
+        let myClone = originalModal.clone();
+        $('body').append(myClone);
+    });
     document.getElementById("m_filenamelabel").innerHTML = filename;
     document.getElementById("mc_expiry").setAttribute("data-timestamp", expiry);
     document.getElementById("mb_save").setAttribute('data-fileid', id);
@@ -477,7 +484,7 @@ function showEditModal(filename, id, downloads, expiry, password, unlimitedown, 
     }
 
 
-    new bootstrap.Modal('#modaledit', {}).show();
+    $('#modaledit').modal('show');
 }
 
 function selectTextForPw(input) {
