@@ -43,7 +43,7 @@ func Process(w http.ResponseWriter, r *http.Request) {
 	}
 	err = routing.Parsing.ParseRequest(r)
 	if err != nil {
-		sendError(w, http.StatusBadRequest, "Invalid request")
+		sendError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	routing.Continue(w, routing.Parsing, user)

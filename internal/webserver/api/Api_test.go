@@ -107,7 +107,7 @@ func getRecorder(url, apikey string, headers []test.Header) (*httptest.ResponseR
 
 func getRecorderPost(url, apikey string, headers []test.Header, body io.Reader) (*httptest.ResponseRecorder, *http.Request) {
 	headers = append(headers, test.Header{Name: "Content-type", Value: "application/x-www-form-urlencoded"})
-	return getRecorderWithBody(url, apikey, "POST", headers, nil)
+	return getRecorderWithBody(url, apikey, "POST", headers, body)
 }
 
 func getRecorderWithBody(url, apikey, method string, headers []test.Header, body io.Reader) (*httptest.ResponseRecorder, *http.Request) {
@@ -136,7 +136,7 @@ func testAuthorisation(t *testing.T, url string, requiredPermission models.ApiPe
 	test.IsEqualBool(t, w.Code != 200, true)
 	test.ResponseBodyContains(t, w, `{"Result":"error","ErrorMessage":"Unauthorized"}`)
 
-	newApiKeyUser := generateNewKey(false, idUser)
+	newApiKeyUser := generateNewKey(false, idUser, "")
 	w, r = getRecorder(url, newApiKeyUser.Id, []test.Header{{}})
 	Process(w, r)
 	test.IsEqualBool(t, w.Code != 200, true)
@@ -172,7 +172,7 @@ type invalidParameterValue struct {
 	StatusCode   int
 }
 
-func testInvalidParameters(t *testing.T, url, apiKey, method string, correctHeaders []test.Header, headerName string, invalidValues []invalidParameterValue) {
+func testInvalidParameters(t *testing.T, url, apiKey string, correctHeaders []test.Header, headerName string, invalidValues []invalidParameterValue) {
 	t.Helper()
 	for _, invalidHeader := range invalidValues {
 		headers := make([]test.Header, len(correctHeaders))
@@ -181,7 +181,7 @@ func testInvalidParameters(t *testing.T, url, apiKey, method string, correctHead
 			Name:  headerName,
 			Value: invalidHeader.Value,
 		})
-		w, r := getRecorderWithBody(url, apiKey, method, headers, nil)
+		w, r := getRecorderWithBody(url, apiKey, "GET", headers, nil)
 		Process(w, r)
 		test.IsEqualInt(t, w.Code, invalidHeader.StatusCode)
 		test.ResponseBodyContains(t, w, invalidHeader.ErrorMessage)
@@ -426,7 +426,7 @@ func testDeleteUserCall(t *testing.T, apiKey string, testDeleteFiles bool) {
 	database.SaveSession("sessionApiDelete", session)
 	_, ok = database.GetSession("sessionApiDelete")
 	test.IsEqualBool(t, ok, true)
-	userApiKey := generateNewKey(false, retrievedUser.Id)
+	userApiKey := generateNewKey(false, retrievedUser.Id, "")
 	_, ok = database.GetApiKey(userApiKey.Id)
 	test.IsEqualBool(t, ok, true)
 	testFile := models.File{
@@ -722,7 +722,7 @@ func TestIsValidApiKey(t *testing.T) {
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, key.LastUsed == 0, false)
 
-	newApiKey := generateNewKey(false, 5)
+	newApiKey := generateNewKey(false, 5, "")
 	user, isValid = isValidApiKey(newApiKey.Id, true, models.ApiPermNone)
 	test.IsEqualBool(t, isValid, true)
 	for _, permission := range getAvailableApiPermissions(t) {
@@ -799,7 +799,7 @@ func getApiPermMap(t *testing.T) map[models.ApiPermission]string {
 	return result
 }
 
-func getUserPermMap(t *testing.T) map[models.UserPermission]]string {
+func getUserPermMap(t *testing.T) map[models.UserPermission]string {
 	result := make(map[models.UserPermission]string)
 	result[models.UserPermReplaceUploads] = "PERM_REPLACE"
 	result[models.UserPermListOtherUploads] = "PERM_LIST"
@@ -1421,8 +1421,7 @@ func TestDuplicate(t *testing.T) {
 	testInvalidFileId(t, apiUrl, apiKey.Id, false)
 	testInvalidForm(t, apiUrl, apiKey.Id)
 
-	validHeader := []test.Header{{Name: headerId, Value: idFileUser},
-		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}}
+	validHeader := []test.Header{{Name: headerId, Value: idFileUser}}
 	invalidParameter := []invalidParameterValue{
 		{
 			Value:        "invalid",
@@ -1498,8 +1497,7 @@ func TestChunkComplete(t *testing.T) {
 	data.Set("filesize", "13")
 
 	w, r := test.GetRecorder("POST", "/api/chunk/complete", nil, []test.Header{
-		{Name: "apikey", Value: "validkey"},
-		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
+		{Name: "apikey", Value: "validkey"}},
 		strings.NewReader(data.Encode()))
 	Process(w, r)
 	test.IsEqualInt(t, w.Code, 200)
@@ -1515,16 +1513,14 @@ func TestChunkComplete(t *testing.T) {
 	data.Set("filesize", "15")
 
 	w, r = test.GetRecorder("POST", "/api/chunk/complete", nil, []test.Header{
-		{Name: "apikey", Value: "validkey"},
-		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
+		{Name: "apikey", Value: "validkey"}},
 		strings.NewReader(data.Encode()))
 	Process(w, r)
 	test.IsEqualInt(t, w.Code, 400)
 	test.ResponseBodyContains(t, w, "error")
 
 	w, r = test.GetRecorder("POST", "/api/chunk/complete", nil, []test.Header{
-		{Name: "apikey", Value: "validkey"},
-		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
+		{Name: "apikey", Value: "validkey"}},
 		strings.NewReader("invalid&&§$%"))
 	Process(w, r)
 	test.IsEqualInt(t, w.Code, 400)
@@ -1532,8 +1528,7 @@ func TestChunkComplete(t *testing.T) {
 }
 
 func TestApiRequestToUploadRequest(t *testing.T) {
-	_, r := test.GetRecorder("POST", "/api/chunk/complete", nil, []test.Header{
-		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}}, strings.NewReader("invalid&&§$%"))
+	_, r := test.GetRecorder("POST", "/api/chunk/complete", nil, []test.Header{}, strings.NewReader("invalid&&§$%"))
 	_, _, _, err := apiRequestToUploadRequest(r)
 	test.IsNotNil(t, err)
 }
