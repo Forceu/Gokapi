@@ -185,12 +185,13 @@ function urlencodeFormData(fd) {
 function sendChunkComplete(file, done) {
     let uuid = file.upload.uuid;
     let filename = file.name;
+    let filesize = file.size;
     let realsize = file.size;
     let contenttype = file.type;
     let allowedDownloads = document.getElementById("allowedDownloads").value;
     let expiryDays = document.getElementById("expiryDays").value;
     let password = document.getElementById("password").value;
-    let isE2E = file.isEndToEndEncrypted;
+    let isE2E = file.isEndToEndEncrypted === true;
     let nonblocking = true;
     
     if (!document.getElementById("enableDownloadLimit").checked) {
@@ -201,11 +202,12 @@ function sendChunkComplete(file, done) {
     }
     
     if (isE2E) {
-	    filename = "Encrypted File");
+            filesize = file.sizeEncrypted;
+	    filename = "Encrypted File";
 	    contenttype = "";
     }
     
-     apiChunkComplete(uuid, filename,  realsize, contenttype, allowedDownloads, expiryDays, password, isE2E, nonblocking)
+     apiChunkComplete(uuid, filename, filesize, realsize, contenttype, allowedDownloads, expiryDays, password, isE2E, nonblocking)
             .then(data => {
                done();
                 let progressText = document.getElementById(`us-progress-info-${file.upload.uuid}`);

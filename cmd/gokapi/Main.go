@@ -39,6 +39,7 @@ const versionGokapi = "2.0.0-beta1"
 // The following calls update the version numbers, update documentation, minify Js/CSS and build the WASM modules
 //go:generate go run "../../build/go-generate/updateVersionNumbers.go"
 //go:generate go run "../../build/go-generate/updateProtectedUrls.go"
+//go:generate go run "../../build/go-generate/updateApiRouting.go"
 //go:generate go run "../../build/go-generate/buildWasm.go"
 //go:generate go run "../../build/go-generate/copyStaticFiles.go"
 //go:generate go run "../../build/go-generate/minifyStaticContent.go"

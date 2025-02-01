@@ -112,7 +112,7 @@ async function apiAuthCreate() {
 // /chunk
 
 
-async function apiChunkComplete(uuid, filename, realsize, contenttype, allowedDownloads, expiryDays, password, isE2E, nonblocking) {
+async function apiChunkComplete(uuid, filename, filesize, realsize, contenttype, allowedDownloads, expiryDays, password, isE2E, nonblocking) {
     const apiUrl = './api/chunk/complete';
 
     const requestOptions = {
@@ -122,6 +122,7 @@ async function apiChunkComplete(uuid, filename, realsize, contenttype, allowedDo
             'apikey': systemKey,
             'uuid': uuid,
             'filename': filename,
+            'filesize': filesize,
             'realsize': realsize,
             'contenttype': contenttype,
             'allowedDownloads': allowedDownloads,
@@ -134,9 +135,20 @@ async function apiChunkComplete(uuid, filename, realsize, contenttype, allowedDo
 
     try {
         const response = await fetch(apiUrl, requestOptions);
-        if (!response.ok) {
-            throw new Error(`Request failed with status: ${response.status}`);
-        }
+   if (!response.ok) {
+    let errorMessage;
+
+    // Attempt to parse JSON, fallback to text if parsing fails
+    try {
+      const errorResponse = await response.json();
+      errorMessage = errorResponse.ErrorMessage || `Request failed with status: ${response.status}`;
+    } catch {
+      // Handle non-JSON error
+      const errorText = await response.text();
+      errorMessage = errorText || `Request failed with status: ${response.status}`;
+    }
+    throw new Error(errorMessage);
+  }
         const data = await response.json();
         return data;
     } catch (error) {

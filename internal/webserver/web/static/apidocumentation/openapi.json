@@ -1278,6 +1278,10 @@
           "password": {
             "type": "string",
             "description": "Password for this file to be set. No password will be used if empty"
+          },
+          "nonblocking": {
+            "type": "boolean",
+            "description": "If true, the call is non blocking and does not wait until the upload is fully processed. No info regarding the file or any errors during the processing will be included in the output."
           }
         }
     }

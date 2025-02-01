@@ -41,7 +41,7 @@ func Process(w http.ResponseWriter, r *http.Request) {
 		sendError(w, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
-	err = parseParameters(&routing.Parsing, r)
+	err = routing.Parsing.ParseRequest(r)
 	if err != nil {
 		sendError(w, http.StatusBadRequest, "Invalid request")
 		return
@@ -333,15 +333,19 @@ func apiDeleteFile(w http.ResponseWriter, r paramInfo, user models.User) {
 	}
 }
 
-func apiChunkAdd(w http.ResponseWriter, request apiRequest, _ models.User) {
+func apiChunkAdd(w http.ResponseWriter, r paramInfo, _ models.User) {
+	request, ok := r.(*paramChunkAdd)
+	if !ok {
+		panic("invalid parameter passed")
+	}
 	maxUpload := int64(configuration.Get().MaxFileSizeMB) * 1024 * 1024
-	if request.request.ContentLength > maxUpload {
+	if request.Request.ContentLength > maxUpload {
 		sendError(w, http.StatusBadRequest, storage.ErrorFileTooLarge.Error())
 		return
 	}
 
-	request.request.Body = http.MaxBytesReader(w, request.request.Body, maxUpload)
-	err := fileupload.ProcessNewChunk(w, request.request, true)
+	request.Request.Body = http.MaxBytesReader(w, request.Request.Body, maxUpload)
+	err := fileupload.ProcessNewChunk(w, request.Request, true)
 	if err != nil {
 		sendError(w, http.StatusBadRequest, err.Error())
 		return
@@ -423,15 +427,19 @@ func apiListSingle(w http.ResponseWriter, r paramInfo, user models.User) {
 	_, _ = w.Write(result)
 }
 
-func apiUploadFile(w http.ResponseWriter, request apiRequest, user models.User) {
+func apiUploadFile(w http.ResponseWriter, r paramInfo, user models.User) {
+	request, ok := r.(*paramFilesAdd)
+	if !ok {
+		panic("invalid parameter passed")
+	}
 	maxUpload := int64(configuration.Get().MaxFileSizeMB) * 1024 * 1024
-	if request.request.ContentLength > maxUpload {
+	if request.Request.ContentLength > maxUpload {
 		sendError(w, http.StatusBadRequest, storage.ErrorFileTooLarge.Error())
 		return
 	}
 
-	request.request.Body = http.MaxBytesReader(w, request.request.Body, maxUpload)
-	err := fileupload.ProcessCompleteFile(w, request.request, user.Id, configuration.Get().MaxMemory)
+	request.Request.Body = http.MaxBytesReader(w, request.Request.Body, maxUpload)
+	err := fileupload.ProcessCompleteFile(w, request.Request, user.Id, configuration.Get().MaxMemory)
 	if err != nil {
 		sendError(w, http.StatusBadRequest, err.Error())
 		return
@@ -452,7 +460,14 @@ func apiDuplicateFile(w http.ResponseWriter, r paramInfo, user models.User) {
 		sendError(w, http.StatusUnauthorized, "No permission to duplicate this file")
 		return
 	}
-	newFile, err := storage.DuplicateFile(file, request.fileInfo.paramsToChange, request.fileInfo.filename, request.fileInfo.uploadRequest)
+	uploadRequest := fileupload.CreateUploadConfig(request.AllowedDownloads,
+		request.ExpiryDays,
+		request.Password,
+		request.UnlimitedTime,
+		request.UnlimitedDownloads,
+		false, // is not being used by storage.DuplicateFile
+		0)     // is not being used by storage.DuplicateFile
+	newFile, err := storage.DuplicateFile(file, request.RequestedChanges, request.FileName, uploadRequest)
 	if err != nil {
 		sendError(w, http.StatusBadRequest, err.Error())
 		return

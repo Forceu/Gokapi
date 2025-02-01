@@ -234,7 +234,6 @@ This option disables Gokapis internal authentication completely, except for API 
 - ``/e2eSetup``
 - ``/logs``
 - ``/uploadChunk``
-- ``/uploadComplete``
 - ``/uploadStatus``
 - ``/users``
 

@@ -392,6 +392,10 @@ func isChangeRequested(parametersToChange, parameter int) bool {
 
 // DuplicateFile creates a copy of an existing file with new parameters
 func DuplicateFile(file models.File, parametersToChange int, newFileName string, fileParameters models.UploadRequest) (models.File, error) {
+
+	// apiDuplicateFile expects fileParameters.IsEndToEndEncrypted and fileParameters.RealSize not to be used,
+	// change in apiDuplicateFile if using in this function!
+
 	var newFile models.File
 	err := copier.Copy(&newFile, &file)
 	if err != nil {
