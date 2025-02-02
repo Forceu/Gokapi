@@ -259,6 +259,13 @@ func writeApiKeys() {
 		PublicId:     "Queime3iun",
 	})
 	database.SaveApiKey(models.ApiKey{
+		Id:           "validkeyid7",
+		FriendlyName: "Key for uid 7",
+		Permissions:  models.ApiPermAll, // TODO
+		UserId:       7,
+		PublicId:     "Queime3iun7",
+	})
+	database.SaveApiKey(models.ApiKey{
 		Id:           "GAh1IhXDvYnqfYLazWBqMB9HSFmNPO",
 		FriendlyName: "Second Key",
 		LastUsed:     1620671580,

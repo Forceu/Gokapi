@@ -449,13 +449,6 @@ func TestPostUploadNoAuth(t *testing.T) {
 
 		RequiredContent: []string{"{\"Result\":\"error\",\"ErrorMessage\":\"Not authenticated\"}"},
 	})
-	test.HttpPostUploadRequest(t, test.HttpTestConfig{
-		Url:             "http://127.0.0.1:53843/uploadComplete",
-		UploadFileName:  "test/fileupload.jpg",
-		UploadFieldName: "file",
-		ResultCode:      http.StatusUnauthorized,
-		RequiredContent: []string{"{\"Result\":\"error\",\"ErrorMessage\":\"Not authenticated\"}"},
-	})
 }
 
 func TestPostUpload(t *testing.T) {
@@ -507,20 +500,14 @@ func TestPostUpload(t *testing.T) {
 	go func() {
 		time.Sleep(200 * time.Millisecond)
 		test.HttpPostRequest(t, test.HttpTestConfig{
-			Url: "http://127.0.0.1:53843/uploadComplete",
-			PostValues: []test.PostBody{{
-				Key:   "chunkid",
-				Value: "eeng4ier3Taen7a",
-			}, {
-				Key:   "filename",
-				Value: "fileupload.jpg",
-			}, {
-				Key:   "filecontenttype",
-				Value: "test-content",
-			}, {
-				Key:   "filesize",
-				Value: "50",
-			}},
+			Url: "http://127.0.0.1:53843/api/chunk/complete",
+			Headers: []test.Header{
+				{"apikey", "validkeyid7"},
+				{"uuid", "eeng4ier3Taen7a"},
+				{"filename", "fileupload.jpg"},
+				{"filecontenttype", "test-content"},
+				{"filesize", "50"},
+			},
 			RequiredContent: []string{"{\"result\":\"OK\"}"},
 			Cookies: []test.Cookie{{
 				Name:  "session_token",

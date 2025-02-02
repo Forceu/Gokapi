@@ -415,6 +415,9 @@ func HttpPostRequest(t MockT, config HttpTestConfig) []*http.Cookie {
 		})
 	}
 	r.Header.Set("Content-type", "application/x-www-form-urlencoded")
+	for _, header := range config.Headers {
+		r.Header.Set(header.Name, header.Value)
+	}
 	client := &http.Client{}
 	response, err := client.Do(r)
 	IsNil(t, err)
