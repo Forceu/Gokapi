@@ -14,7 +14,7 @@ import (
 const fileRouting = "../../internal/webserver/api/routings.go"
 const fileOutput = "../../internal/webserver/api/routingParsing.go"
 
-// Function to find all declared types referenced in the Parsing field
+// Function to find all declared types referenced in the RequestParser field
 func findDeclaredTypes(filePath string) ([]*ast.TypeSpec, error) {
 	// Open the source file containing the struct
 	file, err := os.Open(filePath)
@@ -89,14 +89,16 @@ func generateParseRequestMethod(typeName string, fields []*ast.Field) string {
 				// tag header, this method does nothing, except calling ProcessParameter()
 				func (p *%s) ParseRequest(r *http.Request) error {
 					return p.ProcessParameter(r)
-				}`, typeName, typeName)
+				}
+				%s`, typeName, typeName, writeNewInstanceCode(typeName))
 	}
 
 	method := fmt.Sprintf(`// ParseRequest reads r and saves the passed header values in the %s struct
-// In the end, ProcessParameter() is called
-func (p *%s) ParseRequest(r *http.Request) error {
-var err error
-p.foundHeaders = make(map[string]bool)`, typeName, typeName)
+		// In the end, ProcessParameter() is called
+		func (p *%s) ParseRequest(r *http.Request) error {
+			var err error
+			var exists bool
+			p.foundHeaders = make(map[string]bool)`, typeName, typeName)
 
 	// Iterate over the fields and generate parsing logic for those with a header tag
 	for _, field := range fields {
@@ -115,7 +117,13 @@ p.foundHeaders = make(map[string]bool)`, typeName, typeName)
 						// Extract header name after 'header:'
 						headerName := strings.TrimPrefix(part, "header:")
 
-						// Check for the "required" tag
+						method += fmt.Sprintf("\n"+`
+							// RequestParser header value %s, required: %v
+							exists, err = checkHeaderExists(r, %s, %v)
+							if err != nil {
+								return err
+							}
+							p.foundHeaders[%s] = exists`, headerName, required, headerName, required, headerName)
 
 						fieldType := field.Type.(*ast.Ident).Name
 
@@ -123,35 +131,43 @@ p.foundHeaders = make(map[string]bool)`, typeName, typeName)
 						switch fieldType {
 						case "string":
 							method += fmt.Sprintf(`
-							p.%s, err = parseHeaderString(r, %s, %v, p.foundHeaders)
-							if err != nil {
-								return fmt.Errorf("invalid value in header %s supplied")
+							if (exists) {
+								p.%s, err = parseHeaderString(r, %s)
+								if err != nil {
+									return fmt.Errorf("invalid value in header %s supplied")
+								}
 							}
-							`, field.Names[0].Name, headerName, required, strings.Replace(headerName, "\"", "", -1))
+							`, field.Names[0].Name, headerName, strings.Replace(headerName, "\"", "", -1))
 
 						case "bool":
 							method += fmt.Sprintf(`
-							p.%s, err = parseHeaderBool(r, %s, %v, p.foundHeaders)
-							if err != nil {
-								 return	fmt.Errorf("invalid value in header %s supplied")
+							if (exists) {
+								p.%s, err = parseHeaderBool(r, %s)
+								if err != nil {
+									 return	fmt.Errorf("invalid value in header %s supplied")
+								}
 							}
-							`, field.Names[0].Name, headerName, required, strings.Replace(headerName, "\"", "", -1))
+							`, field.Names[0].Name, headerName, strings.Replace(headerName, "\"", "", -1))
 
 						case "int":
 							method += fmt.Sprintf(`
-								p.%s, err = parseHeaderInt(r, %s, %v, p.foundHeaders)
-								if err != nil {
-								    return fmt.Errorf("invalid value in header %s supplied")
+							if (exists) {
+								p.%s, err = parseHeaderInt(r, %s)
+									if err != nil {
+										return fmt.Errorf("invalid value in header %s supplied")
+								}
 							}
-							`, field.Names[0].Name, headerName, required, strings.Replace(headerName, "\"", "", -1))
+							`, field.Names[0].Name, headerName, strings.Replace(headerName, "\"", "", -1))
 
 						case "int64":
 							method += fmt.Sprintf(`
-								p.%s, err = parseHeaderInt64(r, %s, %v, p.foundHeaders)
+							if (exists) {
+								p.%s, err = parseHeaderInt64(r, %s)
 								if err != nil {
 								    return fmt.Errorf("invalid value in header %s supplied")
+								}
 							}
-							`, field.Names[0].Name, headerName, required, strings.Replace(headerName, "\"", "", -1))
+							`, field.Names[0].Name, headerName, strings.Replace(headerName, "\"", "", -1))
 
 						default:
 							panic("unsupported field type")
@@ -162,10 +178,18 @@ p.foundHeaders = make(map[string]bool)`, typeName, typeName)
 		}
 	}
 
-	// Close the ParseRequest method
-	method += "\nreturn p.ProcessParameter(r)\n}"
+	method += "\nreturn p.ProcessParameter(r)\n}\n"
+	method += writeNewInstanceCode(typeName)
 
 	return method
+}
+
+func writeNewInstanceCode(name string) string {
+	return fmt.Sprintf(`
+				// New returns a new instance of %s struct
+				func (p *%s) New() paramInfo {
+					return &%s{}
+				}`, name, name, name)
 }
 
 func writeAndFormatCode(generatedCode string, filePath string) error {

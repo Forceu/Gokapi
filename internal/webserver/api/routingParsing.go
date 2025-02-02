@@ -15,279 +15,644 @@ func (p *paramFilesListSingle) ParseRequest(r *http.Request) error {
 	return p.ProcessParameter(r)
 }
 
+// New returns a new instance of paramFilesListSingle struct
+func (p *paramFilesListSingle) New() requestParser {
+	return &paramFilesListSingle{}
+}
+
 // ParseRequest parses the header file. As paramFilesAdd has no fields with the
 // tag header, this method does nothing, except calling ProcessParameter()
 func (p *paramFilesAdd) ParseRequest(r *http.Request) error {
 	return p.ProcessParameter(r)
 }
 
+// New returns a new instance of paramFilesAdd struct
+func (p *paramFilesAdd) New() requestParser {
+	return &paramFilesAdd{}
+}
+
 // ParseRequest reads r and saves the passed header values in the paramFilesDuplicate struct
 // In the end, ProcessParameter() is called
 func (p *paramFilesDuplicate) ParseRequest(r *http.Request) error {
 	var err error
+	var exists bool
 	p.foundHeaders = make(map[string]bool)
-	p.Id, err = parseHeaderString(r, "id", true, p.foundHeaders)
+
+	// RequestParser header value "id", required: true
+	exists, err = checkHeaderExists(r, "id", true)
 	if err != nil {
-		return fmt.Errorf("invalid value in header id supplied")
+		return err
+	}
+	p.foundHeaders["id"] = exists
+	if exists {
+		p.Id, err = parseHeaderString(r, "id")
+		if err != nil {
+			return fmt.Errorf("invalid value in header id supplied")
+		}
 	}
 
-	p.AllowedDownloads, err = parseHeaderInt(r, "allowedDownloads", false, p.foundHeaders)
+	// RequestParser header value "allowedDownloads", required: false
+	exists, err = checkHeaderExists(r, "allowedDownloads", false)
 	if err != nil {
-		return fmt.Errorf("invalid value in header allowedDownloads supplied")
+		return err
+	}
+	p.foundHeaders["allowedDownloads"] = exists
+	if exists {
+		p.AllowedDownloads, err = parseHeaderInt(r, "allowedDownloads")
+		if err != nil {
+			return fmt.Errorf("invalid value in header allowedDownloads supplied")
+		}
 	}
 
-	p.ExpiryDays, err = parseHeaderInt(r, "expiryDays", false, p.foundHeaders)
+	// RequestParser header value "expiryDays", required: false
+	exists, err = checkHeaderExists(r, "expiryDays", false)
 	if err != nil {
-		return fmt.Errorf("invalid value in header expiryDays supplied")
+		return err
+	}
+	p.foundHeaders["expiryDays"] = exists
+	if exists {
+		p.ExpiryDays, err = parseHeaderInt(r, "expiryDays")
+		if err != nil {
+			return fmt.Errorf("invalid value in header expiryDays supplied")
+		}
 	}
 
-	p.Password, err = parseHeaderString(r, "password", false, p.foundHeaders)
+	// RequestParser header value "password", required: false
+	exists, err = checkHeaderExists(r, "password", false)
 	if err != nil {
-		return fmt.Errorf("invalid value in header password supplied")
+		return err
+	}
+	p.foundHeaders["password"] = exists
+	if exists {
+		p.Password, err = parseHeaderString(r, "password")
+		if err != nil {
+			return fmt.Errorf("invalid value in header password supplied")
+		}
 	}
 
-	p.KeepPassword, err = parseHeaderBool(r, "originalPassword", false, p.foundHeaders)
+	// RequestParser header value "originalPassword", required: false
+	exists, err = checkHeaderExists(r, "originalPassword", false)
 	if err != nil {
-		return fmt.Errorf("invalid value in header originalPassword supplied")
+		return err
+	}
+	p.foundHeaders["originalPassword"] = exists
+	if exists {
+		p.KeepPassword, err = parseHeaderBool(r, "originalPassword")
+		if err != nil {
+			return fmt.Errorf("invalid value in header originalPassword supplied")
+		}
 	}
 
-	p.FileName, err = parseHeaderString(r, "filename", false, p.foundHeaders)
+	// RequestParser header value "filename", required: false
+	exists, err = checkHeaderExists(r, "filename", false)
 	if err != nil {
-		return fmt.Errorf("invalid value in header filename supplied")
+		return err
+	}
+	p.foundHeaders["filename"] = exists
+	if exists {
+		p.FileName, err = parseHeaderString(r, "filename")
+		if err != nil {
+			return fmt.Errorf("invalid value in header filename supplied")
+		}
 	}
 
 	return p.ProcessParameter(r)
+}
+
+// New returns a new instance of paramFilesDuplicate struct
+func (p *paramFilesDuplicate) New() requestParser {
+	return &paramFilesDuplicate{}
 }
 
 // ParseRequest reads r and saves the passed header values in the paramFilesModify struct
 // In the end, ProcessParameter() is called
 func (p *paramFilesModify) ParseRequest(r *http.Request) error {
 	var err error
+	var exists bool
 	p.foundHeaders = make(map[string]bool)
-	p.Id, err = parseHeaderString(r, "id", true, p.foundHeaders)
+
+	// RequestParser header value "id", required: true
+	exists, err = checkHeaderExists(r, "id", true)
 	if err != nil {
-		return fmt.Errorf("invalid value in header id supplied")
+		return err
+	}
+	p.foundHeaders["id"] = exists
+	if exists {
+		p.Id, err = parseHeaderString(r, "id")
+		if err != nil {
+			return fmt.Errorf("invalid value in header id supplied")
+		}
 	}
 
-	p.AllowedDownloads, err = parseHeaderInt(r, "allowedDownloads", false, p.foundHeaders)
+	// RequestParser header value "allowedDownloads", required: false
+	exists, err = checkHeaderExists(r, "allowedDownloads", false)
 	if err != nil {
-		return fmt.Errorf("invalid value in header allowedDownloads supplied")
+		return err
+	}
+	p.foundHeaders["allowedDownloads"] = exists
+	if exists {
+		p.AllowedDownloads, err = parseHeaderInt(r, "allowedDownloads")
+		if err != nil {
+			return fmt.Errorf("invalid value in header allowedDownloads supplied")
+		}
 	}
 
-	p.ExpiryTimestamp, err = parseHeaderInt64(r, "expiryTimestamp", false, p.foundHeaders)
+	// RequestParser header value "expiryTimestamp", required: false
+	exists, err = checkHeaderExists(r, "expiryTimestamp", false)
 	if err != nil {
-		return fmt.Errorf("invalid value in header expiryTimestamp supplied")
+		return err
+	}
+	p.foundHeaders["expiryTimestamp"] = exists
+	if exists {
+		p.ExpiryTimestamp, err = parseHeaderInt64(r, "expiryTimestamp")
+		if err != nil {
+			return fmt.Errorf("invalid value in header expiryTimestamp supplied")
+		}
 	}
 
-	p.Password, err = parseHeaderString(r, "password", false, p.foundHeaders)
+	// RequestParser header value "password", required: false
+	exists, err = checkHeaderExists(r, "password", false)
 	if err != nil {
-		return fmt.Errorf("invalid value in header password supplied")
+		return err
+	}
+	p.foundHeaders["password"] = exists
+	if exists {
+		p.Password, err = parseHeaderString(r, "password")
+		if err != nil {
+			return fmt.Errorf("invalid value in header password supplied")
+		}
 	}
 
-	p.KeepPassword, err = parseHeaderBool(r, "originalPassword", false, p.foundHeaders)
+	// RequestParser header value "originalPassword", required: false
+	exists, err = checkHeaderExists(r, "originalPassword", false)
 	if err != nil {
-		return fmt.Errorf("invalid value in header originalPassword supplied")
+		return err
+	}
+	p.foundHeaders["originalPassword"] = exists
+	if exists {
+		p.KeepPassword, err = parseHeaderBool(r, "originalPassword")
+		if err != nil {
+			return fmt.Errorf("invalid value in header originalPassword supplied")
+		}
 	}
 
 	return p.ProcessParameter(r)
+}
+
+// New returns a new instance of paramFilesModify struct
+func (p *paramFilesModify) New() requestParser {
+	return &paramFilesModify{}
 }
 
 // ParseRequest reads r and saves the passed header values in the paramFilesReplace struct
 // In the end, ProcessParameter() is called
 func (p *paramFilesReplace) ParseRequest(r *http.Request) error {
 	var err error
+	var exists bool
 	p.foundHeaders = make(map[string]bool)
-	p.Id, err = parseHeaderString(r, "id", true, p.foundHeaders)
+
+	// RequestParser header value "id", required: true
+	exists, err = checkHeaderExists(r, "id", true)
 	if err != nil {
-		return fmt.Errorf("invalid value in header id supplied")
+		return err
+	}
+	p.foundHeaders["id"] = exists
+	if exists {
+		p.Id, err = parseHeaderString(r, "id")
+		if err != nil {
+			return fmt.Errorf("invalid value in header id supplied")
+		}
 	}
 
-	p.IdNewContent, err = parseHeaderString(r, "idNewContent", true, p.foundHeaders)
+	// RequestParser header value "idNewContent", required: true
+	exists, err = checkHeaderExists(r, "idNewContent", true)
 	if err != nil {
-		return fmt.Errorf("invalid value in header idNewContent supplied")
+		return err
+	}
+	p.foundHeaders["idNewContent"] = exists
+	if exists {
+		p.IdNewContent, err = parseHeaderString(r, "idNewContent")
+		if err != nil {
+			return fmt.Errorf("invalid value in header idNewContent supplied")
+		}
 	}
 
-	p.Delete, err = parseHeaderBool(r, "deleteNewFile", false, p.foundHeaders)
+	// RequestParser header value "deleteNewFile", required: false
+	exists, err = checkHeaderExists(r, "deleteNewFile", false)
 	if err != nil {
-		return fmt.Errorf("invalid value in header deleteNewFile supplied")
+		return err
+	}
+	p.foundHeaders["deleteNewFile"] = exists
+	if exists {
+		p.Delete, err = parseHeaderBool(r, "deleteNewFile")
+		if err != nil {
+			return fmt.Errorf("invalid value in header deleteNewFile supplied")
+		}
 	}
 
 	return p.ProcessParameter(r)
+}
+
+// New returns a new instance of paramFilesReplace struct
+func (p *paramFilesReplace) New() requestParser {
+	return &paramFilesReplace{}
 }
 
 // ParseRequest reads r and saves the passed header values in the paramFilesDelete struct
 // In the end, ProcessParameter() is called
 func (p *paramFilesDelete) ParseRequest(r *http.Request) error {
 	var err error
+	var exists bool
 	p.foundHeaders = make(map[string]bool)
-	p.Id, err = parseHeaderString(r, "id", true, p.foundHeaders)
+
+	// RequestParser header value "id", required: true
+	exists, err = checkHeaderExists(r, "id", true)
 	if err != nil {
-		return fmt.Errorf("invalid value in header id supplied")
+		return err
+	}
+	p.foundHeaders["id"] = exists
+	if exists {
+		p.Id, err = parseHeaderString(r, "id")
+		if err != nil {
+			return fmt.Errorf("invalid value in header id supplied")
+		}
 	}
 
 	return p.ProcessParameter(r)
+}
+
+// New returns a new instance of paramFilesDelete struct
+func (p *paramFilesDelete) New() requestParser {
+	return &paramFilesDelete{}
 }
 
 // ParseRequest reads r and saves the passed header values in the paramAuthCreate struct
 // In the end, ProcessParameter() is called
 func (p *paramAuthCreate) ParseRequest(r *http.Request) error {
 	var err error
+	var exists bool
 	p.foundHeaders = make(map[string]bool)
-	p.FriendlyName, err = parseHeaderString(r, "friendlyName", false, p.foundHeaders)
+
+	// RequestParser header value "friendlyName", required: false
+	exists, err = checkHeaderExists(r, "friendlyName", false)
 	if err != nil {
-		return fmt.Errorf("invalid value in header friendlyName supplied")
+		return err
+	}
+	p.foundHeaders["friendlyName"] = exists
+	if exists {
+		p.FriendlyName, err = parseHeaderString(r, "friendlyName")
+		if err != nil {
+			return fmt.Errorf("invalid value in header friendlyName supplied")
+		}
 	}
 
-	p.BasicPermissions, err = parseHeaderBool(r, "basicPermissions", false, p.foundHeaders)
+	// RequestParser header value "basicPermissions", required: false
+	exists, err = checkHeaderExists(r, "basicPermissions", false)
 	if err != nil {
-		return fmt.Errorf("invalid value in header basicPermissions supplied")
+		return err
+	}
+	p.foundHeaders["basicPermissions"] = exists
+	if exists {
+		p.BasicPermissions, err = parseHeaderBool(r, "basicPermissions")
+		if err != nil {
+			return fmt.Errorf("invalid value in header basicPermissions supplied")
+		}
 	}
 
 	return p.ProcessParameter(r)
+}
+
+// New returns a new instance of paramAuthCreate struct
+func (p *paramAuthCreate) New() requestParser {
+	return &paramAuthCreate{}
 }
 
 // ParseRequest reads r and saves the passed header values in the paramAuthFriendlyName struct
 // In the end, ProcessParameter() is called
 func (p *paramAuthFriendlyName) ParseRequest(r *http.Request) error {
 	var err error
+	var exists bool
 	p.foundHeaders = make(map[string]bool)
-	p.KeyId, err = parseHeaderString(r, "apiKeyToModify", true, p.foundHeaders)
+
+	// RequestParser header value "apiKeyToModify", required: true
+	exists, err = checkHeaderExists(r, "apiKeyToModify", true)
 	if err != nil {
-		return fmt.Errorf("invalid value in header apiKeyToModify supplied")
+		return err
+	}
+	p.foundHeaders["apiKeyToModify"] = exists
+	if exists {
+		p.KeyId, err = parseHeaderString(r, "apiKeyToModify")
+		if err != nil {
+			return fmt.Errorf("invalid value in header apiKeyToModify supplied")
+		}
 	}
 
-	p.FriendlyName, err = parseHeaderString(r, "friendlyName", true, p.foundHeaders)
+	// RequestParser header value "friendlyName", required: true
+	exists, err = checkHeaderExists(r, "friendlyName", true)
 	if err != nil {
-		return fmt.Errorf("invalid value in header friendlyName supplied")
+		return err
+	}
+	p.foundHeaders["friendlyName"] = exists
+	if exists {
+		p.FriendlyName, err = parseHeaderString(r, "friendlyName")
+		if err != nil {
+			return fmt.Errorf("invalid value in header friendlyName supplied")
+		}
 	}
 
 	return p.ProcessParameter(r)
+}
+
+// New returns a new instance of paramAuthFriendlyName struct
+func (p *paramAuthFriendlyName) New() requestParser {
+	return &paramAuthFriendlyName{}
 }
 
 // ParseRequest reads r and saves the passed header values in the paramAuthModify struct
 // In the end, ProcessParameter() is called
 func (p *paramAuthModify) ParseRequest(r *http.Request) error {
 	var err error
+	var exists bool
 	p.foundHeaders = make(map[string]bool)
-	p.KeyId, err = parseHeaderString(r, "apiKeyToModify", true, p.foundHeaders)
+
+	// RequestParser header value "apiKeyToModify", required: true
+	exists, err = checkHeaderExists(r, "apiKeyToModify", true)
 	if err != nil {
-		return fmt.Errorf("invalid value in header apiKeyToModify supplied")
+		return err
+	}
+	p.foundHeaders["apiKeyToModify"] = exists
+	if exists {
+		p.KeyId, err = parseHeaderString(r, "apiKeyToModify")
+		if err != nil {
+			return fmt.Errorf("invalid value in header apiKeyToModify supplied")
+		}
 	}
 
-	p.permissionRaw, err = parseHeaderString(r, "permission", true, p.foundHeaders)
+	// RequestParser header value "permission", required: true
+	exists, err = checkHeaderExists(r, "permission", true)
 	if err != nil {
-		return fmt.Errorf("invalid value in header permission supplied")
+		return err
+	}
+	p.foundHeaders["permission"] = exists
+	if exists {
+		p.permissionRaw, err = parseHeaderString(r, "permission")
+		if err != nil {
+			return fmt.Errorf("invalid value in header permission supplied")
+		}
 	}
 
-	p.GrantPermission, err = parseHeaderBool(r, "permissionModifier", true, p.foundHeaders)
+	// RequestParser header value "permissionModifier", required: true
+	exists, err = checkHeaderExists(r, "permissionModifier", true)
 	if err != nil {
-		return fmt.Errorf("invalid value in header permissionModifier supplied")
+		return err
+	}
+	p.foundHeaders["permissionModifier"] = exists
+	if exists {
+		p.permissionModifier, err = parseHeaderString(r, "permissionModifier")
+		if err != nil {
+			return fmt.Errorf("invalid value in header permissionModifier supplied")
+		}
 	}
 
 	return p.ProcessParameter(r)
+}
+
+// New returns a new instance of paramAuthModify struct
+func (p *paramAuthModify) New() requestParser {
+	return &paramAuthModify{}
 }
 
 // ParseRequest reads r and saves the passed header values in the paramAuthDelete struct
 // In the end, ProcessParameter() is called
 func (p *paramAuthDelete) ParseRequest(r *http.Request) error {
 	var err error
+	var exists bool
 	p.foundHeaders = make(map[string]bool)
-	p.KeyId, err = parseHeaderString(r, "apiKeyToModify", true, p.foundHeaders)
+
+	// RequestParser header value "apiKeyToModify", required: true
+	exists, err = checkHeaderExists(r, "apiKeyToModify", true)
 	if err != nil {
-		return fmt.Errorf("invalid value in header apiKeyToModify supplied")
+		return err
+	}
+	p.foundHeaders["apiKeyToModify"] = exists
+	if exists {
+		p.KeyId, err = parseHeaderString(r, "apiKeyToModify")
+		if err != nil {
+			return fmt.Errorf("invalid value in header apiKeyToModify supplied")
+		}
 	}
 
 	return p.ProcessParameter(r)
+}
+
+// New returns a new instance of paramAuthDelete struct
+func (p *paramAuthDelete) New() requestParser {
+	return &paramAuthDelete{}
 }
 
 // ParseRequest reads r and saves the passed header values in the paramUserCreate struct
 // In the end, ProcessParameter() is called
 func (p *paramUserCreate) ParseRequest(r *http.Request) error {
 	var err error
+	var exists bool
 	p.foundHeaders = make(map[string]bool)
-	p.Username, err = parseHeaderString(r, "username", true, p.foundHeaders)
+
+	// RequestParser header value "username", required: true
+	exists, err = checkHeaderExists(r, "username", true)
 	if err != nil {
-		return fmt.Errorf("invalid value in header username supplied")
+		return err
+	}
+	p.foundHeaders["username"] = exists
+	if exists {
+		p.Username, err = parseHeaderString(r, "username")
+		if err != nil {
+			return fmt.Errorf("invalid value in header username supplied")
+		}
 	}
 
 	return p.ProcessParameter(r)
+}
+
+// New returns a new instance of paramUserCreate struct
+func (p *paramUserCreate) New() requestParser {
+	return &paramUserCreate{}
 }
 
 // ParseRequest reads r and saves the passed header values in the paramUserChangeRank struct
 // In the end, ProcessParameter() is called
 func (p *paramUserChangeRank) ParseRequest(r *http.Request) error {
 	var err error
+	var exists bool
 	p.foundHeaders = make(map[string]bool)
-	p.Id, err = parseHeaderInt(r, "userid", true, p.foundHeaders)
+
+	// RequestParser header value "userid", required: true
+	exists, err = checkHeaderExists(r, "userid", true)
 	if err != nil {
-		return fmt.Errorf("invalid value in header userid supplied")
+		return err
+	}
+	p.foundHeaders["userid"] = exists
+	if exists {
+		p.Id, err = parseHeaderInt(r, "userid")
+		if err != nil {
+			return fmt.Errorf("invalid value in header userid supplied")
+		}
 	}
 
-	p.newRankRaw, err = parseHeaderString(r, "newRank", true, p.foundHeaders)
+	// RequestParser header value "newRank", required: true
+	exists, err = checkHeaderExists(r, "newRank", true)
 	if err != nil {
-		return fmt.Errorf("invalid value in header newRank supplied")
+		return err
+	}
+	p.foundHeaders["newRank"] = exists
+	if exists {
+		p.newRankRaw, err = parseHeaderString(r, "newRank")
+		if err != nil {
+			return fmt.Errorf("invalid value in header newRank supplied")
+		}
 	}
 
 	return p.ProcessParameter(r)
+}
+
+// New returns a new instance of paramUserChangeRank struct
+func (p *paramUserChangeRank) New() requestParser {
+	return &paramUserChangeRank{}
 }
 
 // ParseRequest reads r and saves the passed header values in the paramUserDelete struct
 // In the end, ProcessParameter() is called
 func (p *paramUserDelete) ParseRequest(r *http.Request) error {
 	var err error
+	var exists bool
 	p.foundHeaders = make(map[string]bool)
-	p.Id, err = parseHeaderInt(r, "userid", true, p.foundHeaders)
+
+	// RequestParser header value "userid", required: true
+	exists, err = checkHeaderExists(r, "userid", true)
 	if err != nil {
-		return fmt.Errorf("invalid value in header userid supplied")
+		return err
+	}
+	p.foundHeaders["userid"] = exists
+	if exists {
+		p.Id, err = parseHeaderInt(r, "userid")
+		if err != nil {
+			return fmt.Errorf("invalid value in header userid supplied")
+		}
 	}
 
-	p.DeleteFiles, err = parseHeaderBool(r, "deleteFiles", false, p.foundHeaders)
+	// RequestParser header value "deleteFiles", required: false
+	exists, err = checkHeaderExists(r, "deleteFiles", false)
 	if err != nil {
-		return fmt.Errorf("invalid value in header deleteFiles supplied")
+		return err
+	}
+	p.foundHeaders["deleteFiles"] = exists
+	if exists {
+		p.DeleteFiles, err = parseHeaderBool(r, "deleteFiles")
+		if err != nil {
+			return fmt.Errorf("invalid value in header deleteFiles supplied")
+		}
 	}
 
 	return p.ProcessParameter(r)
+}
+
+// New returns a new instance of paramUserDelete struct
+func (p *paramUserDelete) New() requestParser {
+	return &paramUserDelete{}
 }
 
 // ParseRequest reads r and saves the passed header values in the paramUserModify struct
 // In the end, ProcessParameter() is called
 func (p *paramUserModify) ParseRequest(r *http.Request) error {
 	var err error
+	var exists bool
 	p.foundHeaders = make(map[string]bool)
-	p.Id, err = parseHeaderInt(r, "userid", true, p.foundHeaders)
+
+	// RequestParser header value "userid", required: true
+	exists, err = checkHeaderExists(r, "userid", true)
 	if err != nil {
-		return fmt.Errorf("invalid value in header userid supplied")
+		return err
+	}
+	p.foundHeaders["userid"] = exists
+	if exists {
+		p.Id, err = parseHeaderInt(r, "userid")
+		if err != nil {
+			return fmt.Errorf("invalid value in header userid supplied")
+		}
 	}
 
-	p.permissionRaw, err = parseHeaderString(r, "userpermission", true, p.foundHeaders)
+	// RequestParser header value "userpermission", required: true
+	exists, err = checkHeaderExists(r, "userpermission", true)
 	if err != nil {
-		return fmt.Errorf("invalid value in header userpermission supplied")
+		return err
+	}
+	p.foundHeaders["userpermission"] = exists
+	if exists {
+		p.permissionRaw, err = parseHeaderString(r, "userpermission")
+		if err != nil {
+			return fmt.Errorf("invalid value in header userpermission supplied")
+		}
 	}
 
-	p.GrantPermission, err = parseHeaderBool(r, "permissionModifier", true, p.foundHeaders)
+	// RequestParser header value "permissionModifier", required: true
+	exists, err = checkHeaderExists(r, "permissionModifier", true)
 	if err != nil {
-		return fmt.Errorf("invalid value in header permissionModifier supplied")
+		return err
+	}
+	p.foundHeaders["permissionModifier"] = exists
+	if exists {
+		p.permissionModifier, err = parseHeaderString(r, "permissionModifier")
+		if err != nil {
+			return fmt.Errorf("invalid value in header permissionModifier supplied")
+		}
 	}
 
 	return p.ProcessParameter(r)
+}
+
+// New returns a new instance of paramUserModify struct
+func (p *paramUserModify) New() requestParser {
+	return &paramUserModify{}
 }
 
 // ParseRequest reads r and saves the passed header values in the paramUserResetPw struct
 // In the end, ProcessParameter() is called
 func (p *paramUserResetPw) ParseRequest(r *http.Request) error {
 	var err error
+	var exists bool
 	p.foundHeaders = make(map[string]bool)
-	p.Id, err = parseHeaderInt(r, "userid", true, p.foundHeaders)
+
+	// RequestParser header value "userid", required: true
+	exists, err = checkHeaderExists(r, "userid", true)
 	if err != nil {
-		return fmt.Errorf("invalid value in header userid supplied")
+		return err
+	}
+	p.foundHeaders["userid"] = exists
+	if exists {
+		p.Id, err = parseHeaderInt(r, "userid")
+		if err != nil {
+			return fmt.Errorf("invalid value in header userid supplied")
+		}
 	}
 
-	p.NewPassword, err = parseHeaderBool(r, "generateNewPassword", false, p.foundHeaders)
+	// RequestParser header value "generateNewPassword", required: false
+	exists, err = checkHeaderExists(r, "generateNewPassword", false)
 	if err != nil {
-		return fmt.Errorf("invalid value in header generateNewPassword supplied")
+		return err
+	}
+	p.foundHeaders["generateNewPassword"] = exists
+	if exists {
+		p.NewPassword, err = parseHeaderBool(r, "generateNewPassword")
+		if err != nil {
+			return fmt.Errorf("invalid value in header generateNewPassword supplied")
+		}
 	}
 
 	return p.ProcessParameter(r)
+}
+
+// New returns a new instance of paramUserResetPw struct
+func (p *paramUserResetPw) New() requestParser {
+	return &paramUserResetPw{}
 }
 
 // ParseRequest parses the header file. As paramChunkAdd has no fields with the
@@ -296,60 +661,152 @@ func (p *paramChunkAdd) ParseRequest(r *http.Request) error {
 	return p.ProcessParameter(r)
 }
 
+// New returns a new instance of paramChunkAdd struct
+func (p *paramChunkAdd) New() requestParser {
+	return &paramChunkAdd{}
+}
+
 // ParseRequest reads r and saves the passed header values in the paramChunkComplete struct
 // In the end, ProcessParameter() is called
 func (p *paramChunkComplete) ParseRequest(r *http.Request) error {
 	var err error
+	var exists bool
 	p.foundHeaders = make(map[string]bool)
-	p.Uuid, err = parseHeaderString(r, "uuid", true, p.foundHeaders)
+
+	// RequestParser header value "uuid", required: true
+	exists, err = checkHeaderExists(r, "uuid", true)
 	if err != nil {
-		return fmt.Errorf("invalid value in header uuid supplied")
+		return err
+	}
+	p.foundHeaders["uuid"] = exists
+	if exists {
+		p.Uuid, err = parseHeaderString(r, "uuid")
+		if err != nil {
+			return fmt.Errorf("invalid value in header uuid supplied")
+		}
 	}
 
-	p.FileName, err = parseHeaderString(r, "filename", true, p.foundHeaders)
+	// RequestParser header value "filename", required: true
+	exists, err = checkHeaderExists(r, "filename", true)
 	if err != nil {
-		return fmt.Errorf("invalid value in header filename supplied")
+		return err
+	}
+	p.foundHeaders["filename"] = exists
+	if exists {
+		p.FileName, err = parseHeaderString(r, "filename")
+		if err != nil {
+			return fmt.Errorf("invalid value in header filename supplied")
+		}
 	}
 
-	p.FileSize, err = parseHeaderInt64(r, "filesize", true, p.foundHeaders)
+	// RequestParser header value "filesize", required: true
+	exists, err = checkHeaderExists(r, "filesize", true)
 	if err != nil {
-		return fmt.Errorf("invalid value in header filesize supplied")
+		return err
+	}
+	p.foundHeaders["filesize"] = exists
+	if exists {
+		p.FileSize, err = parseHeaderInt64(r, "filesize")
+		if err != nil {
+			return fmt.Errorf("invalid value in header filesize supplied")
+		}
 	}
 
-	p.RealSize, err = parseHeaderInt64(r, "realsize", true, p.foundHeaders)
+	// RequestParser header value "realsize", required: true
+	exists, err = checkHeaderExists(r, "realsize", true)
 	if err != nil {
-		return fmt.Errorf("invalid value in header realsize supplied")
+		return err
+	}
+	p.foundHeaders["realsize"] = exists
+	if exists {
+		p.RealSize, err = parseHeaderInt64(r, "realsize")
+		if err != nil {
+			return fmt.Errorf("invalid value in header realsize supplied")
+		}
 	}
 
-	p.ContentType, err = parseHeaderString(r, "contenttype", false, p.foundHeaders)
+	// RequestParser header value "contenttype", required: false
+	exists, err = checkHeaderExists(r, "contenttype", false)
 	if err != nil {
-		return fmt.Errorf("invalid value in header contenttype supplied")
+		return err
+	}
+	p.foundHeaders["contenttype"] = exists
+	if exists {
+		p.ContentType, err = parseHeaderString(r, "contenttype")
+		if err != nil {
+			return fmt.Errorf("invalid value in header contenttype supplied")
+		}
 	}
 
-	p.AllowedDownloads, err = parseHeaderInt(r, "allowedDownloads", false, p.foundHeaders)
+	// RequestParser header value "allowedDownloads", required: false
+	exists, err = checkHeaderExists(r, "allowedDownloads", false)
 	if err != nil {
-		return fmt.Errorf("invalid value in header allowedDownloads supplied")
+		return err
+	}
+	p.foundHeaders["allowedDownloads"] = exists
+	if exists {
+		p.AllowedDownloads, err = parseHeaderInt(r, "allowedDownloads")
+		if err != nil {
+			return fmt.Errorf("invalid value in header allowedDownloads supplied")
+		}
 	}
 
-	p.ExpiryDays, err = parseHeaderInt(r, "expiryDays", false, p.foundHeaders)
+	// RequestParser header value "expiryDays", required: false
+	exists, err = checkHeaderExists(r, "expiryDays", false)
 	if err != nil {
-		return fmt.Errorf("invalid value in header expiryDays supplied")
+		return err
+	}
+	p.foundHeaders["expiryDays"] = exists
+	if exists {
+		p.ExpiryDays, err = parseHeaderInt(r, "expiryDays")
+		if err != nil {
+			return fmt.Errorf("invalid value in header expiryDays supplied")
+		}
 	}
 
-	p.Password, err = parseHeaderString(r, "password", false, p.foundHeaders)
+	// RequestParser header value "password", required: false
+	exists, err = checkHeaderExists(r, "password", false)
 	if err != nil {
-		return fmt.Errorf("invalid value in header password supplied")
+		return err
+	}
+	p.foundHeaders["password"] = exists
+	if exists {
+		p.Password, err = parseHeaderString(r, "password")
+		if err != nil {
+			return fmt.Errorf("invalid value in header password supplied")
+		}
 	}
 
-	p.IsE2E, err = parseHeaderBool(r, "isE2E", false, p.foundHeaders)
+	// RequestParser header value "isE2E", required: false
+	exists, err = checkHeaderExists(r, "isE2E", false)
 	if err != nil {
-		return fmt.Errorf("invalid value in header isE2E supplied")
+		return err
+	}
+	p.foundHeaders["isE2E"] = exists
+	if exists {
+		p.IsE2E, err = parseHeaderBool(r, "isE2E")
+		if err != nil {
+			return fmt.Errorf("invalid value in header isE2E supplied")
+		}
 	}
 
-	p.IsNonBlocking, err = parseHeaderBool(r, "nonblocking", false, p.foundHeaders)
+	// RequestParser header value "nonblocking", required: false
+	exists, err = checkHeaderExists(r, "nonblocking", false)
 	if err != nil {
-		return fmt.Errorf("invalid value in header nonblocking supplied")
+		return err
+	}
+	p.foundHeaders["nonblocking"] = exists
+	if exists {
+		p.IsNonBlocking, err = parseHeaderBool(r, "nonblocking")
+		if err != nil {
+			return fmt.Errorf("invalid value in header nonblocking supplied")
+		}
 	}
 
 	return p.ProcessParameter(r)
+}
+
+// New returns a new instance of paramChunkComplete struct
+func (p *paramChunkComplete) New() requestParser {
+	return &paramChunkComplete{}
 }

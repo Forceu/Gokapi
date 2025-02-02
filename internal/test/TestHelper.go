@@ -43,7 +43,7 @@ func ResponseBodyContains(t MockT, got *httptest.ResponseRecorder, want string) 
 	result, err := io.ReadAll(got.Result().Body)
 	IsNil(t, err)
 	if !strings.Contains(string(result), want) {
-		t.Errorf("Assertion failed, got: %s, want: %s.", got, want)
+		t.Errorf("Assertion failed, got: %v \n want: %s.\n\n", got, want)
 	}
 }
 

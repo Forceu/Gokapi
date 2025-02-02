@@ -24,32 +24,37 @@ const minLengthUser = 4
 func Process(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("cache-control", "no-store")
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	requestUrl := parseRequestUrl(r)
 
-	request, err := parseRequest(r)
-	if err != nil {
-		sendError(w, http.StatusBadRequest, "Invalid request")
-		return
-	}
-	routing, ok := getRouting(request.requestUrl)
+	routing, ok := getRouting(requestUrl)
 	if !ok {
 		sendError(w, http.StatusBadRequest, "Invalid request")
 		return
 	}
 	var user models.User
-	user, ok = isAuthorisedForApi(request, routing)
+	user, ok = isAuthorisedForApi(r, routing)
 	if !ok {
 		sendError(w, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
-	err = routing.Parsing.ParseRequest(r)
+	if routing.RequestParser == nil {
+		routing.Continue(w, nil, user)
+		return
+	}
+	parser := routing.RequestParser.New()
+	err := parser.ParseRequest(r)
 	if err != nil {
 		sendError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	routing.Continue(w, routing.Parsing, user)
+	routing.Continue(w, parser, user)
 }
 
-func apiEditFile(w http.ResponseWriter, r paramInfo, user models.User) {
+func parseRequestUrl(r *http.Request) string {
+	return strings.Replace(r.URL.String(), "/api", "", 1)
+}
+
+func apiEditFile(w http.ResponseWriter, r requestParser, user models.User) {
 	request, ok := r.(*paramFilesModify)
 	if !ok {
 		panic("invalid parameter passed")
@@ -156,7 +161,7 @@ func GetSystemKey(userId int) string {
 	return key.Id
 }
 
-func apiDeleteKey(w http.ResponseWriter, r paramInfo, user models.User) {
+func apiDeleteKey(w http.ResponseWriter, r requestParser, user models.User) {
 	request, ok := r.(*paramAuthDelete)
 	if !ok {
 		panic("invalid parameter passed")
@@ -173,7 +178,7 @@ func apiDeleteKey(w http.ResponseWriter, r paramInfo, user models.User) {
 	database.DeleteApiKey(request.KeyId)
 }
 
-func apiModifyApiKey(w http.ResponseWriter, r paramInfo, user models.User) {
+func apiModifyApiKey(w http.ResponseWriter, r requestParser, user models.User) {
 	request, ok := r.(*paramAuthModify)
 	if !ok {
 		panic("invalid parameter passed")
@@ -236,7 +241,7 @@ func isValidUserForEditing(w http.ResponseWriter, userId int) (models.User, bool
 	return user, true
 }
 
-func apiCreateApiKey(w http.ResponseWriter, r paramInfo, user models.User) {
+func apiCreateApiKey(w http.ResponseWriter, r requestParser, user models.User) {
 	request, ok := r.(*paramAuthCreate)
 	if !ok {
 		panic("invalid parameter passed")
@@ -252,7 +257,7 @@ func apiCreateApiKey(w http.ResponseWriter, r paramInfo, user models.User) {
 	_, _ = w.Write(result)
 }
 
-func apiCreateUser(w http.ResponseWriter, r paramInfo, _ models.User) {
+func apiCreateUser(w http.ResponseWriter, r requestParser, _ models.User) {
 	request, ok := r.(*paramUserCreate)
 	if !ok {
 		panic("invalid parameter passed")
@@ -279,7 +284,7 @@ func apiCreateUser(w http.ResponseWriter, r paramInfo, _ models.User) {
 	_, _ = w.Write([]byte(newUser.ToJson()))
 }
 
-func apiChangeFriendlyName(w http.ResponseWriter, r paramInfo, user models.User) {
+func apiChangeFriendlyName(w http.ResponseWriter, r requestParser, user models.User) {
 	request, ok := r.(*paramAuthFriendlyName)
 	if !ok {
 		panic("invalid parameter passed")
@@ -315,7 +320,7 @@ func renameApiKeyFriendlyName(id string, newName string) error {
 	return nil
 }
 
-func apiDeleteFile(w http.ResponseWriter, r paramInfo, user models.User) {
+func apiDeleteFile(w http.ResponseWriter, r requestParser, user models.User) {
 	request, ok := r.(*paramFilesDelete)
 	if !ok {
 		panic("invalid parameter passed")
@@ -333,7 +338,7 @@ func apiDeleteFile(w http.ResponseWriter, r paramInfo, user models.User) {
 	}
 }
 
-func apiChunkAdd(w http.ResponseWriter, r paramInfo, _ models.User) {
+func apiChunkAdd(w http.ResponseWriter, r requestParser, _ models.User) {
 	request, ok := r.(*paramChunkAdd)
 	if !ok {
 		panic("invalid parameter passed")
@@ -352,7 +357,7 @@ func apiChunkAdd(w http.ResponseWriter, r paramInfo, _ models.User) {
 	}
 }
 
-func apiChunkComplete(w http.ResponseWriter, r paramInfo, user models.User) {
+func apiChunkComplete(w http.ResponseWriter, r requestParser, user models.User) {
 	request, ok := r.(*paramChunkComplete)
 	if !ok {
 		panic("invalid parameter passed")
@@ -386,7 +391,7 @@ func doBlockingPartCompleteChunk(w http.ResponseWriter, request *paramChunkCompl
 	}
 }
 
-func apiList(w http.ResponseWriter, _ paramInfo, user models.User) {
+func apiList(w http.ResponseWriter, _ requestParser, user models.User) {
 	var validFiles []models.FileApiOutput
 	timeNow := time.Now().Unix()
 	config := configuration.Get()
@@ -404,7 +409,7 @@ func apiList(w http.ResponseWriter, _ paramInfo, user models.User) {
 	_, _ = w.Write(result)
 }
 
-func apiListSingle(w http.ResponseWriter, r paramInfo, user models.User) {
+func apiListSingle(w http.ResponseWriter, r requestParser, user models.User) {
 	request, ok := r.(*paramFilesListSingle)
 	if !ok {
 		panic("invalid parameter passed")
@@ -427,7 +432,7 @@ func apiListSingle(w http.ResponseWriter, r paramInfo, user models.User) {
 	_, _ = w.Write(result)
 }
 
-func apiUploadFile(w http.ResponseWriter, r paramInfo, user models.User) {
+func apiUploadFile(w http.ResponseWriter, r requestParser, user models.User) {
 	request, ok := r.(*paramFilesAdd)
 	if !ok {
 		panic("invalid parameter passed")
@@ -446,7 +451,7 @@ func apiUploadFile(w http.ResponseWriter, r paramInfo, user models.User) {
 	}
 }
 
-func apiDuplicateFile(w http.ResponseWriter, r paramInfo, user models.User) {
+func apiDuplicateFile(w http.ResponseWriter, r requestParser, user models.User) {
 	request, ok := r.(*paramFilesDuplicate)
 	if !ok {
 		panic("invalid parameter passed")
@@ -475,7 +480,7 @@ func apiDuplicateFile(w http.ResponseWriter, r paramInfo, user models.User) {
 	outputFileInfo(w, newFile)
 }
 
-func apiReplaceFile(w http.ResponseWriter, r paramInfo, user models.User) {
+func apiReplaceFile(w http.ResponseWriter, r requestParser, user models.User) {
 	request, ok := r.(*paramFilesReplace)
 	if !ok {
 		panic("invalid parameter passed")
@@ -524,7 +529,7 @@ func outputFileInfo(w http.ResponseWriter, file models.File) {
 	_, _ = w.Write(result)
 }
 
-func apiModifyUser(w http.ResponseWriter, r paramInfo, user models.User) {
+func apiModifyUser(w http.ResponseWriter, r requestParser, user models.User) {
 	request, ok := r.(*paramUserModify)
 	if !ok {
 		panic("invalid parameter passed")
@@ -556,7 +561,7 @@ func apiModifyUser(w http.ResponseWriter, r paramInfo, user models.User) {
 	}
 }
 
-func apiChangeUserRank(w http.ResponseWriter, r paramInfo, user models.User) {
+func apiChangeUserRank(w http.ResponseWriter, r requestParser, user models.User) {
 	request, ok := r.(*paramUserChangeRank)
 	if !ok {
 		panic("invalid parameter passed")
@@ -616,7 +621,7 @@ func updateApiKeyPermsOnUserPermChange(userId int, userPerm models.UserPermissio
 	}
 }
 
-func apiResetPassword(w http.ResponseWriter, r paramInfo, user models.User) {
+func apiResetPassword(w http.ResponseWriter, r requestParser, user models.User) {
 	request, ok := r.(*paramUserResetPw)
 	if !ok {
 		panic("invalid parameter passed")
@@ -644,7 +649,7 @@ func apiResetPassword(w http.ResponseWriter, r paramInfo, user models.User) {
 	_, _ = w.Write([]byte("{\"Result\":\"ok\",\"password\":\"" + password + "\"}"))
 }
 
-func apiDeleteUser(w http.ResponseWriter, r paramInfo, user models.User) {
+func apiDeleteUser(w http.ResponseWriter, r requestParser, user models.User) {
 	request, ok := r.(*paramUserDelete)
 	if !ok {
 		panic("invalid parameter passed")
@@ -681,8 +686,9 @@ func apiDeleteUser(w http.ResponseWriter, r paramInfo, user models.User) {
 	database.DeleteEnd2EndInfo(userToDelete.Id)
 }
 
-func isAuthorisedForApi(request apiRequest, routing apiRoute) (models.User, bool) {
-	user, ok := isValidApiKey(request.apiKey, true, routing.ApiPerm)
+func isAuthorisedForApi(r *http.Request, routing apiRoute) (models.User, bool) {
+	apiKey := r.Header.Get("apikey")
+	user, ok := isValidApiKey(apiKey, true, routing.ApiPerm)
 	if !ok {
 		return models.User{}, false
 	}

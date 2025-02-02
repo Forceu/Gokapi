@@ -11,128 +11,128 @@ import (
 )
 
 type apiRoute struct {
-	Url         string
-	HasWildcard bool
-	ApiPerm     models.ApiPermission
-	Parsing     paramInfo
-	execution   apiFunc
+	Url           string
+	HasWildcard   bool
+	ApiPerm       models.ApiPermission
+	RequestParser requestParser
+	execution     apiFunc
 }
 
-func (r apiRoute) Continue(w http.ResponseWriter, request paramInfo, user models.User) {
+func (r apiRoute) Continue(w http.ResponseWriter, request requestParser, user models.User) {
 	r.execution(w, request, user)
 }
 
-type apiFunc func(w http.ResponseWriter, request paramInfo, user models.User)
+type apiFunc func(w http.ResponseWriter, request requestParser, user models.User)
 
 var routes = []apiRoute{
 	{
-		Url:       "/files/list",
-		ApiPerm:   models.ApiPermView,
-		execution: apiList,
-		Parsing:   nil,
+		Url:           "/files/list",
+		ApiPerm:       models.ApiPermView,
+		execution:     apiList,
+		RequestParser: nil,
 	},
 	{
-		Url:         "/files/list/",
-		ApiPerm:     models.ApiPermView,
-		execution:   apiListSingle,
-		HasWildcard: true,
-		Parsing:     &paramFilesListSingle{},
+		Url:           "/files/list/",
+		ApiPerm:       models.ApiPermView,
+		execution:     apiListSingle,
+		HasWildcard:   true,
+		RequestParser: &paramFilesListSingle{},
 	},
 	{
-		Url:       "/chunk/add",
-		ApiPerm:   models.ApiPermUpload,
-		execution: apiChunkAdd,
-		Parsing:   &paramChunkAdd{},
+		Url:           "/chunk/add",
+		ApiPerm:       models.ApiPermUpload,
+		execution:     apiChunkAdd,
+		RequestParser: &paramChunkAdd{},
 	},
 	{
-		Url:       "/chunk/complete",
-		ApiPerm:   models.ApiPermUpload,
-		execution: apiChunkComplete,
-		Parsing:   &paramChunkComplete{},
+		Url:           "/chunk/complete",
+		ApiPerm:       models.ApiPermUpload,
+		execution:     apiChunkComplete,
+		RequestParser: &paramChunkComplete{},
 	},
 	{
-		Url:       "/files/add",
-		ApiPerm:   models.ApiPermUpload,
-		execution: apiUploadFile,
-		Parsing:   &paramFilesAdd{},
+		Url:           "/files/add",
+		ApiPerm:       models.ApiPermUpload,
+		execution:     apiUploadFile,
+		RequestParser: &paramFilesAdd{},
 	},
 	{
-		Url:       "/files/delete",
-		ApiPerm:   models.ApiPermDelete,
-		execution: apiDeleteFile,
-		Parsing:   &paramFilesDelete{},
+		Url:           "/files/delete",
+		ApiPerm:       models.ApiPermDelete,
+		execution:     apiDeleteFile,
+		RequestParser: &paramFilesDelete{},
 	},
 	{
-		Url:       "/files/duplicate",
-		ApiPerm:   models.ApiPermUpload,
-		execution: apiDuplicateFile,
-		Parsing:   &paramFilesDuplicate{},
+		Url:           "/files/duplicate",
+		ApiPerm:       models.ApiPermUpload,
+		execution:     apiDuplicateFile,
+		RequestParser: &paramFilesDuplicate{},
 	},
 	{
-		Url:       "/files/modify",
-		ApiPerm:   models.ApiPermEdit,
-		execution: apiEditFile,
-		Parsing:   &paramFilesModify{},
+		Url:           "/files/modify",
+		ApiPerm:       models.ApiPermEdit,
+		execution:     apiEditFile,
+		RequestParser: &paramFilesModify{},
 	},
 	{
-		Url:       "/files/replace",
-		ApiPerm:   models.ApiPermReplace,
-		execution: apiReplaceFile,
-		Parsing:   &paramFilesReplace{},
+		Url:           "/files/replace",
+		ApiPerm:       models.ApiPermReplace,
+		execution:     apiReplaceFile,
+		RequestParser: &paramFilesReplace{},
 	},
 	{
-		Url:       "/auth/create",
-		ApiPerm:   models.ApiPermApiMod,
-		execution: apiCreateApiKey,
-		Parsing:   &paramAuthCreate{},
+		Url:           "/auth/create",
+		ApiPerm:       models.ApiPermApiMod,
+		execution:     apiCreateApiKey,
+		RequestParser: &paramAuthCreate{},
 	},
 	{
-		Url:       "/auth/friendlyname",
-		ApiPerm:   models.ApiPermApiMod,
-		execution: apiChangeFriendlyName,
-		Parsing:   &paramAuthFriendlyName{},
+		Url:           "/auth/friendlyname",
+		ApiPerm:       models.ApiPermApiMod,
+		execution:     apiChangeFriendlyName,
+		RequestParser: &paramAuthFriendlyName{},
 	},
 	{
-		Url:       "/auth/modify",
-		ApiPerm:   models.ApiPermApiMod,
-		execution: apiModifyApiKey,
-		Parsing:   &paramAuthModify{},
+		Url:           "/auth/modify",
+		ApiPerm:       models.ApiPermApiMod,
+		execution:     apiModifyApiKey,
+		RequestParser: &paramAuthModify{},
 	},
 	{
-		Url:       "/auth/delete",
-		ApiPerm:   models.ApiPermApiMod,
-		execution: apiDeleteKey,
-		Parsing:   &paramAuthDelete{},
+		Url:           "/auth/delete",
+		ApiPerm:       models.ApiPermApiMod,
+		execution:     apiDeleteKey,
+		RequestParser: &paramAuthDelete{},
 	},
 	{
-		Url:       "/user/create",
-		ApiPerm:   models.ApiPermManageUsers,
-		execution: apiCreateUser,
-		Parsing:   &paramUserCreate{},
+		Url:           "/user/create",
+		ApiPerm:       models.ApiPermManageUsers,
+		execution:     apiCreateUser,
+		RequestParser: &paramUserCreate{},
 	},
 	{
-		Url:       "/user/changeRank",
-		ApiPerm:   models.ApiPermManageUsers,
-		execution: apiChangeUserRank,
-		Parsing:   &paramUserChangeRank{},
+		Url:           "/user/changeRank",
+		ApiPerm:       models.ApiPermManageUsers,
+		execution:     apiChangeUserRank,
+		RequestParser: &paramUserChangeRank{},
 	},
 	{
-		Url:       "/user/delete",
-		ApiPerm:   models.ApiPermManageUsers,
-		execution: apiDeleteUser,
-		Parsing:   &paramUserDelete{},
+		Url:           "/user/delete",
+		ApiPerm:       models.ApiPermManageUsers,
+		execution:     apiDeleteUser,
+		RequestParser: &paramUserDelete{},
 	},
 	{
-		Url:       "/user/modify",
-		ApiPerm:   models.ApiPermManageUsers,
-		execution: apiModifyUser,
-		Parsing:   &paramUserModify{},
+		Url:           "/user/modify",
+		ApiPerm:       models.ApiPermManageUsers,
+		execution:     apiModifyUser,
+		RequestParser: &paramUserModify{},
 	},
 	{
-		Url:       "/user/resetPassword",
-		ApiPerm:   models.ApiPermManageUsers,
-		execution: apiResetPassword,
-		Parsing:   &paramUserResetPw{},
+		Url:           "/user/resetPassword",
+		ApiPerm:       models.ApiPermManageUsers,
+		execution:     apiResetPassword,
+		RequestParser: &paramUserResetPw{},
 	},
 }
 
@@ -146,10 +146,11 @@ func getRouting(requestUrl string) (apiRoute, bool) {
 	return apiRoute{}, false
 }
 
-type paramInfo interface {
+type requestParser interface {
 	ProcessParameter(r *http.Request) error
-	// ParseRequest reads the supplied headers and is autogenerated from the header field tags
+	// ParseRequest reads the supplied headers
 	ParseRequest(r *http.Request) error
+	New() requestParser
 }
 
 type paramFilesListSingle struct {
@@ -157,7 +158,7 @@ type paramFilesListSingle struct {
 }
 
 func (p *paramFilesListSingle) ProcessParameter(r *http.Request) error {
-	p.RequestUrl = strings.Replace(r.URL.String(), "/api", "", 1)
+	p.RequestUrl = parseRequestUrl(r)
 	return nil
 }
 
@@ -261,11 +262,12 @@ type paramAuthFriendlyName struct {
 func (p *paramAuthFriendlyName) ProcessParameter(_ *http.Request) error { return nil }
 
 type paramAuthModify struct {
-	KeyId           string `header:"apiKeyToModify" required:"true"`
-	Permission      models.ApiPermission
-	permissionRaw   string `header:"permission" required:"true"`
-	GrantPermission bool   `header:"permissionModifier" required:"true"`
-	foundHeaders    map[string]bool
+	KeyId              string `header:"apiKeyToModify" required:"true"`
+	permissionRaw      string `header:"permission" required:"true"`
+	permissionModifier string `header:"permissionModifier" required:"true"`
+	Permission         models.ApiPermission
+	GrantPermission    bool
+	foundHeaders       map[string]bool
 }
 
 func (p *paramAuthModify) ProcessParameter(_ *http.Request) error {
@@ -286,6 +288,14 @@ func (p *paramAuthModify) ProcessParameter(_ *http.Request) error {
 		p.Permission = models.ApiPermManageUsers
 	default:
 		return errors.New("invalid permission")
+	}
+	switch strings.ToUpper(p.permissionModifier) {
+	case "GRANT":
+		p.GrantPermission = true
+	case "REVOKE":
+		p.GrantPermission = false
+	default:
+		return errors.New("invalid permission modifier")
 	}
 	return nil
 }
@@ -332,11 +342,12 @@ type paramUserDelete struct {
 func (p *paramUserDelete) ProcessParameter(_ *http.Request) error { return nil }
 
 type paramUserModify struct {
-	Id              int `header:"userid" required:"true"`
-	Permission      models.UserPermission
-	permissionRaw   string `header:"userpermission" required:"true"`
-	GrantPermission bool   `header:"permissionModifier" required:"true"`
-	foundHeaders    map[string]bool
+	Id                 int `header:"userid" required:"true"`
+	Permission         models.UserPermission
+	permissionRaw      string `header:"userpermission" required:"true"`
+	permissionModifier string `header:"permissionModifier" required:"true"`
+	GrantPermission    bool
+	foundHeaders       map[string]bool
 }
 
 func (p *paramUserModify) ProcessParameter(_ *http.Request) error {
@@ -359,6 +370,14 @@ func (p *paramUserModify) ProcessParameter(_ *http.Request) error {
 		p.Permission = models.UserPermManageUsers
 	default:
 		return errors.New("invalid permission")
+	}
+	switch strings.ToUpper(p.permissionModifier) {
+	case "GRANT":
+		p.GrantPermission = true
+	case "REVOKE":
+		p.GrantPermission = false
+	default:
+		return errors.New("invalid permission modifier")
 	}
 	return nil
 }
@@ -412,47 +431,36 @@ func (p *paramChunkComplete) ProcessParameter(_ *http.Request) error {
 	return nil
 }
 
-func parseHeaderString(r *http.Request, key string, isRequired bool, foundHeaders map[string]bool) (string, error) {
-	value := r.Header.Get(key)
-	isSet := value != ""
-
-	foundHeaders[key] = isSet
-	if !isSet && isRequired {
-		return "", errors.New("header " + key + " is required")
+func checkHeaderExists(r *http.Request, key string, isRequired bool) (bool, error) {
+	exists := r.Header.Get(key) != ""
+	if isRequired && !exists {
+		return false, errors.New("header " + key + " is required")
 	}
-	return value, nil
+	return exists, nil
 }
 
-func parseHeaderBool(r *http.Request, key string, isRequired bool, foundHeaders map[string]bool) (bool, error) {
-	valueString, err := parseHeaderString(r, key, isRequired, foundHeaders)
-	if err != nil {
-		return false, err
-	}
-	value, err := strconv.ParseBool(valueString)
+func parseHeaderString(r *http.Request, key string) (string, error) {
+	return r.Header.Get(key), nil
+}
+
+func parseHeaderBool(r *http.Request, key string) (bool, error) {
+	value, err := strconv.ParseBool(r.Header.Get(key))
 	if err != nil {
 		return false, err
 	}
 	return value, nil
 }
 
-func parseHeaderInt64(r *http.Request, key string, isRequired bool, foundHeaders map[string]bool) (int64, error) {
-	valueString, err := parseHeaderString(r, key, isRequired, foundHeaders)
-	if err != nil {
-		return 0, err
-	}
-	value, err := strconv.ParseInt(valueString, 10, 64)
+func parseHeaderInt64(r *http.Request, key string) (int64, error) {
+	value, err := strconv.ParseInt(r.Header.Get(key), 10, 64)
 	if err != nil {
 		return 0, err
 	}
 	return value, nil
 }
 
-func parseHeaderInt(r *http.Request, key string, isRequired bool, foundHeaders map[string]bool) (int, error) {
-	valueString, err := parseHeaderString(r, key, isRequired, foundHeaders)
-	if err != nil {
-		return 0, err
-	}
-	value, err := strconv.Atoi(valueString)
+func parseHeaderInt(r *http.Request, key string) (int, error) {
+	value, err := strconv.Atoi(r.Header.Get(key))
 	if err != nil {
 		return 0, err
 	}

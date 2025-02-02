@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/helper"
@@ -194,15 +195,15 @@ func testInvalidParameters(t *testing.T, url, apiKey string, correctHeaders []te
 	}
 }
 
-func testInvalidUserId(t *testing.T, url, apiKey string) {
+func testInvalidUserId(t *testing.T, url, apiKey string, correctHeaders []test.Header) {
 	t.Helper()
 	const headerUserId = "userid"
 
 	var invalidParameter = []invalidParameterValue{
 		{
 			Value:        "",
-			ErrorMessage: `{"Result":"error","ErrorMessage":"Invalid user id provided."}`,
-			StatusCode:   404,
+			ErrorMessage: `{"Result":"error","ErrorMessage":"header userid is required"}`,
+			StatusCode:   400,
 		},
 		{
 			Value:        strconv.Itoa(idInvalidUser),
@@ -211,7 +212,7 @@ func testInvalidUserId(t *testing.T, url, apiKey string) {
 		},
 		{
 			Value:        "invalid",
-			ErrorMessage: `{"Result":"error","ErrorMessage":"Invalid request"}`,
+			ErrorMessage: `{"Result":"error","ErrorMessage":"invalid value in header userid supplied"}`,
 			StatusCode:   400,
 		},
 		{
@@ -225,7 +226,7 @@ func testInvalidUserId(t *testing.T, url, apiKey string) {
 			StatusCode:   400,
 		},
 	}
-	testInvalidParameters(t, url, apiKey, []test.Header{{}}, headerUserId, invalidParameter)
+	testInvalidParameters(t, url, apiKey, correctHeaders, headerUserId, invalidParameter)
 }
 
 func testInvalidApiKey(t *testing.T, url, apiKey string) {
@@ -319,12 +320,7 @@ func TestUserCreate(t *testing.T) {
 	var invalidParameter = []invalidParameterValue{
 		{
 			Value:        "",
-			ErrorMessage: `{"Result":"error","ErrorMessage":"Invalid username provided."}`,
-			StatusCode:   400,
-		},
-		{
-			Value:        "123",
-			ErrorMessage: `{"Result":"error","ErrorMessage":"Invalid username provided."}`,
+			ErrorMessage: `{"Result":"error","ErrorMessage":"header username is required"}`,
 			StatusCode:   400,
 		},
 		{
@@ -347,7 +343,7 @@ func TestUserChangeRank(t *testing.T) {
 	const headerNewRank = "newRank"
 
 	apiKey := testAuthorisation(t, apiUrl, models.ApiPermManageUsers)
-	testInvalidUserId(t, apiUrl, apiKey.Id)
+	testInvalidUserId(t, apiUrl, apiKey.Id, []test.Header{{Name: headerNewRank, Value: "admin"}})
 	var validHeaders = []test.Header{
 		{
 			Name:  headerUserId,
@@ -357,12 +353,12 @@ func TestUserChangeRank(t *testing.T) {
 	invalidParameter := []invalidParameterValue{
 		{
 			Value:        "",
-			ErrorMessage: `{"Result":"error","ErrorMessage":"invalid rank sent"}`,
+			ErrorMessage: `{"Result":"error","ErrorMessage":"header newRank is required"}`,
 			StatusCode:   400,
 		},
 		{
 			Value:        "invalid",
-			ErrorMessage: `{"Result":"error","ErrorMessage":"invalid rank sent"}`,
+			ErrorMessage: `{"Result":"error","ErrorMessage":"invalid rank"}`,
 			StatusCode:   400,
 		},
 	}
@@ -400,12 +396,19 @@ func TestUserChangeRank(t *testing.T) {
 func TestUserDelete(t *testing.T) {
 	const apiUrl = "/user/delete"
 	apiKey := testAuthorisation(t, apiUrl, models.ApiPermManageUsers)
-	testInvalidUserId(t, apiUrl, apiKey.Id)
-	testDeleteUserCall(t, apiKey.Id, false)
-	testDeleteUserCall(t, apiKey.Id, true)
+	testInvalidUserId(t, apiUrl, apiKey.Id, []test.Header{})
+	testDeleteUserCall(t, apiKey.Id, deleteUserCallModeDeleteFiles)
+	testDeleteUserCall(t, apiKey.Id, deleteUserCallModeKeepFiles)
+	testDeleteUserCall(t, apiKey.Id, deleteUserCallModeInvalidOperator)
 }
 
-func testDeleteUserCall(t *testing.T, apiKey string, testDeleteFiles bool) {
+const (
+	deleteUserCallModeDeleteFiles     = iota
+	deleteUserCallModeKeepFiles       = iota
+	deleteUserCallModeInvalidOperator = iota
+)
+
+func testDeleteUserCall(t *testing.T, apiKey string, mode int) {
 	const apiUrl = "/user/delete"
 	const headerUserId = "userid"
 	const headerDeleteFiles = "deleteFiles"
@@ -441,9 +444,14 @@ func testDeleteUserCall(t *testing.T, apiKey string, testDeleteFiles bool) {
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualInt(t, testFile.UserId, retrievedUser.Id)
 
-	deleteMetaFile := "invalid"
-	if testDeleteFiles {
+	var deleteMetaFile string
+	switch mode {
+	case deleteUserCallModeDeleteFiles:
 		deleteMetaFile = "true"
+	case deleteUserCallModeKeepFiles:
+		deleteMetaFile = "false"
+	case deleteUserCallModeInvalidOperator:
+		deleteMetaFile = "invalid"
 	}
 
 	w, r := getRecorder(apiUrl, apiKey, []test.Header{{
@@ -454,49 +462,62 @@ func testDeleteUserCall(t *testing.T, apiKey string, testDeleteFiles bool) {
 		Value: deleteMetaFile,
 	}})
 	Process(w, r)
-	test.IsEqualInt(t, w.Code, 200)
-	_, ok = database.GetUser(retrievedUser.Id)
-	test.IsEqualBool(t, ok, false)
-	_, ok = database.GetSession("sessionApiDelete")
-	test.IsEqualBool(t, ok, false)
-	_, ok = database.GetApiKey(userApiKey.Id)
-	test.IsEqualBool(t, ok, false)
-	testFile, ok = database.GetMetaDataById("testFileApiDelete")
-	test.IsEqualBool(t, ok, !testDeleteFiles)
-	if !testDeleteFiles {
-		test.IsEqualInt(t, testFile.UserId, idUser)
+
+	if mode == deleteUserCallModeInvalidOperator {
+		test.IsEqualInt(t, w.Code, 400)
+	} else {
+		test.IsEqualInt(t, w.Code, 200)
+		_, ok = database.GetUser(retrievedUser.Id)
+		test.IsEqualBool(t, ok, false)
+		_, ok = database.GetSession("sessionApiDelete")
+		test.IsEqualBool(t, ok, false)
+		_, ok = database.GetApiKey(userApiKey.Id)
+		test.IsEqualBool(t, ok, false)
+		testFile, ok = database.GetMetaDataById("testFileApiDelete")
+		test.IsEqualBool(t, ok, mode == deleteUserCallModeKeepFiles)
+		if mode == deleteUserCallModeKeepFiles {
+			test.IsEqualBool(t, ok, true)
+			test.IsEqualInt(t, testFile.UserId, idUser)
+		} else {
+			test.IsEqualBool(t, ok, false)
+		}
 	}
+
 }
 
 func TestUserModify(t *testing.T) {
 	const apiUrl = "/user/modify"
 	const headerUserId = "userid"
 	const headerPermission = "userpermission"
+	const headerModifier = "permissionModifier"
 	const idNewKey = "idNewKey"
 
 	apiKey := testAuthorisation(t, apiUrl, models.ApiPermManageUsers)
-	testInvalidUserId(t, apiUrl, apiKey.Id)
+	testInvalidUserId(t, apiUrl, apiKey.Id, []test.Header{{Name: headerPermission, Value: "PERM_REPLACE"}, {Name: headerModifier, Value: "GRANT"}})
 
 	var validHeaders = []test.Header{
 		{
 			Name:  headerUserId,
 			Value: strconv.Itoa(idAdmin),
+		}, {
+			Name:  headerModifier,
+			Value: "GRANT",
 		},
 	}
 	invalidParameter := []invalidParameterValue{
 		{
 			Value:        "",
-			ErrorMessage: `{"Result":"error","ErrorMessage":"Invalid permission sent"}`,
+			ErrorMessage: `{"Result":"error","ErrorMessage":"header userpermission is required"}`,
 			StatusCode:   400,
 		},
 		{
 			Value:        "invalid",
-			ErrorMessage: `{"Result":"error","ErrorMessage":"Invalid permission sent"}`,
+			ErrorMessage: `{"Result":"error","ErrorMessage":"invalid permission"}`,
 			StatusCode:   400,
 		},
 		{
 			Value:        "PERM_REPLACEE",
-			ErrorMessage: `{"Result":"error","ErrorMessage":"Invalid permission sent"}`,
+			ErrorMessage: `{"Result":"error","ErrorMessage":"invalid permission"}`,
 			StatusCode:   400,
 		},
 	}
@@ -575,7 +596,7 @@ func TestUserPasswordReset(t *testing.T) {
 	const headerSetNewPw = "generateNewPassword"
 
 	apiKey := testAuthorisation(t, apiUrl, models.ApiPermManageUsers)
-	testInvalidUserId(t, apiUrl, apiKey.Id)
+	testInvalidUserId(t, apiUrl, apiKey.Id, []test.Header{})
 	user, ok := database.GetUser(idAdmin)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, user.ResetPassword, false)
@@ -684,6 +705,9 @@ func TestNewApiKey(t *testing.T) {
 				Value: "true",
 			})
 			expectedPermissions = models.ApiPermDefault
+		}
+		if i == 2 {
+			fmt.Println("now")
 		}
 		w, r := getRecorder(apiUrl, apiKey.Id, headers)
 		Process(w, r)
