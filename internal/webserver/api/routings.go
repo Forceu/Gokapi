@@ -403,7 +403,7 @@ type paramChunkComplete struct {
 	Uuid               string `header:"uuid" required:"true"`
 	FileName           string `header:"filename" required:"true"`
 	FileSize           int64  `header:"filesize" required:"true"`
-	RealSize           int64  `header:"realsize" required:"true"`
+	RealSize           int64  `header:"realsize"`
 	ContentType        string `header:"contenttype"`
 	AllowedDownloads   int    `header:"allowedDownloads"`
 	ExpiryDays         int    `header:"expiryDays"`
@@ -417,6 +417,15 @@ type paramChunkComplete struct {
 }
 
 func (p *paramChunkComplete) ProcessParameter(_ *http.Request) error {
+
+	if !p.foundHeaders["realsize"] {
+		if !p.IsE2E {
+			p.RealSize = p.FileSize
+		} else {
+			return errors.New("e2e set, but realsize not submitted")
+		}
+	}
+
 	if p.foundHeaders["allowedDownloads"] && p.AllowedDownloads == 0 {
 		p.UnlimitedDownloads = true
 	}

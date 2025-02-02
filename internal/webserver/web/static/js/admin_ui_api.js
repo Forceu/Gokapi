@@ -92,6 +92,9 @@ function addFriendlyNameChange(apiKey) {
             return;
         allowEdit = false;
         let newName = input.value;
+        if (newName == "") {
+        	newName = "Unnamed key";
+        }
         cell.innerHTML = newName;
 
         cell.classList.remove("isBeingEdited");

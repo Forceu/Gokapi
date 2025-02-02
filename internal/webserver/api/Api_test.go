@@ -3,7 +3,6 @@ package api
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/helper"
@@ -14,7 +13,6 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -173,11 +171,11 @@ type invalidParameterValue struct {
 	StatusCode   int
 }
 
-func testInvalidParameters(t *testing.T, url, apiKey string, correctHeaders []test.Header, headerName string, invalidValues []invalidParameterValue) {
+func testInvalidParameters(t *testing.T, url, apiKey string, validHeaders []test.Header, headerName string, invalidValues []invalidParameterValue) {
 	t.Helper()
 	for _, invalidHeader := range invalidValues {
-		headers := make([]test.Header, len(correctHeaders))
-		copy(headers, correctHeaders)
+		headers := make([]test.Header, len(validHeaders))
+		copy(headers, validHeaders)
 		headers = append(headers, test.Header{
 			Name:  headerName,
 			Value: invalidHeader.Value,
@@ -187,7 +185,7 @@ func testInvalidParameters(t *testing.T, url, apiKey string, correctHeaders []te
 		test.IsEqualInt(t, w.Code, invalidHeader.StatusCode)
 		test.ResponseBodyContains(t, w, invalidHeader.ErrorMessage)
 		if invalidHeader.Value == "" {
-			w, r = getRecorder(url, apiKey, correctHeaders)
+			w, r = getRecorder(url, apiKey, validHeaders)
 			Process(w, r)
 			test.IsEqualInt(t, w.Code, invalidHeader.StatusCode)
 			test.ResponseBodyContains(t, w, invalidHeader.ErrorMessage)
@@ -195,7 +193,7 @@ func testInvalidParameters(t *testing.T, url, apiKey string, correctHeaders []te
 	}
 }
 
-func testInvalidUserId(t *testing.T, url, apiKey string, correctHeaders []test.Header) {
+func testInvalidUserId(t *testing.T, url, apiKey string, validHeaders []test.Header) {
 	t.Helper()
 	const headerUserId = "userid"
 
@@ -226,18 +224,18 @@ func testInvalidUserId(t *testing.T, url, apiKey string, correctHeaders []test.H
 			StatusCode:   400,
 		},
 	}
-	testInvalidParameters(t, url, apiKey, correctHeaders, headerUserId, invalidParameter)
+	testInvalidParameters(t, url, apiKey, validHeaders, headerUserId, invalidParameter)
 }
 
-func testInvalidApiKey(t *testing.T, url, apiKey string) {
+func testInvalidApiKey(t *testing.T, url, apiKey string, validHeaders []test.Header) {
 	t.Helper()
 	const headerApiKey = "apiKeyToModify"
 
 	var invalidParameter = []invalidParameterValue{
 		{
 			Value:        "",
-			ErrorMessage: `{"Result":"error","ErrorMessage":"Invalid api key provided."}`,
-			StatusCode:   404,
+			ErrorMessage: `{"Result":"error","ErrorMessage":"header apiKeyToModify is required"}`,
+			StatusCode:   400,
 		},
 		{
 			Value:        "invalid",
@@ -260,7 +258,7 @@ func testInvalidApiKey(t *testing.T, url, apiKey string) {
 			StatusCode:   401,
 		},
 	}
-	testInvalidParameters(t, url, apiKey, []test.Header{{}}, headerApiKey, invalidParameter)
+	testInvalidParameters(t, url, apiKey, validHeaders, headerApiKey, invalidParameter)
 }
 
 func testInvalidFileId(t *testing.T, url, apiKey string, isReplacingCall bool) {
@@ -276,8 +274,8 @@ func testInvalidFileId(t *testing.T, url, apiKey string, isReplacingCall bool) {
 	var invalidParameter = []invalidParameterValue{
 		{
 			Value:        "",
-			ErrorMessage: `{"Result":"error","ErrorMessage":"Invalid id provided."}`,
-			StatusCode:   404,
+			ErrorMessage: `{"Result":"error","ErrorMessage":"header id is required"}`,
+			StatusCode:   400,
 		},
 		{
 			Value:        "invalidFile",
@@ -706,9 +704,6 @@ func TestNewApiKey(t *testing.T) {
 			})
 			expectedPermissions = models.ApiPermDefault
 		}
-		if i == 2 {
-			fmt.Println("now")
-		}
 		w, r := getRecorder(apiUrl, apiKey.Id, headers)
 		Process(w, r)
 		test.IsEqualInt(t, w.Code, 200)
@@ -729,44 +724,46 @@ func TestNewApiKey(t *testing.T) {
 }
 
 func TestIsValidApiKey(t *testing.T) {
-	user, isValid := isValidApiKey("", false, models.ApiPermNone)
+	user, apiKey, isValid := isValidApiKey("", false, models.ApiPermNone)
 	test.IsEqualBool(t, isValid, false)
-	_, isValid = isValidApiKey("invalid", false, models.ApiPermNone)
+	_, _, isValid = isValidApiKey("invalid", false, models.ApiPermNone)
 	test.IsEqualBool(t, isValid, false)
-	user, isValid = isValidApiKey("validkey", false, models.ApiPermNone)
+	user, apiKey, isValid = isValidApiKey("validkey", false, models.ApiPermNone)
 	test.IsEqualBool(t, isValid, true)
+	test.IsEqualString(t, apiKey.Id, "validkey")
 	test.IsEqualInt(t, user.Id, 5)
 	key, ok := database.GetApiKey("validkey")
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, key.LastUsed == 0, true)
-	user, isValid = isValidApiKey("validkey", true, models.ApiPermNone)
+	user, apiKey, isValid = isValidApiKey("validkey", true, models.ApiPermNone)
 	test.IsEqualBool(t, isValid, true)
 	test.IsEqualInt(t, user.Id, 5)
+	test.IsEqualString(t, apiKey.Id, "validkey")
 	key, ok = database.GetApiKey("validkey")
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, key.LastUsed == 0, false)
 
 	newApiKey := generateNewKey(false, 5, "")
-	user, isValid = isValidApiKey(newApiKey.Id, true, models.ApiPermNone)
+	user, _, isValid = isValidApiKey(newApiKey.Id, true, models.ApiPermNone)
 	test.IsEqualBool(t, isValid, true)
 	for _, permission := range getAvailableApiPermissions(t) {
-		_, isValid = isValidApiKey(newApiKey.Id, true, permission)
+		_, _, isValid = isValidApiKey(newApiKey.Id, true, permission)
 		test.IsEqualBool(t, isValid, false)
 	}
 	for _, newPermission := range getAvailableApiPermissions(t) {
 		setPermissionApikey(t, newApiKey.Id, newPermission)
 		for _, permission := range getAvailableApiPermissions(t) {
-			_, isValid = isValidApiKey(newApiKey.Id, true, permission)
+			_, _, isValid = isValidApiKey(newApiKey.Id, true, permission)
 			test.IsEqualBool(t, isValid, permission == newPermission)
 		}
 		removePermissionApikey(t, newApiKey.Id, newPermission)
 	}
 	setPermissionApikey(t, newApiKey.Id, models.ApiPermEdit|models.ApiPermDelete)
-	_, isValid = isValidApiKey(newApiKey.Id, true, models.ApiPermEdit)
+	_, _, isValid = isValidApiKey(newApiKey.Id, true, models.ApiPermEdit)
 	test.IsEqualBool(t, isValid, true)
-	_, isValid = isValidApiKey(newApiKey.Id, true, models.ApiPermAll)
+	_, _, isValid = isValidApiKey(newApiKey.Id, true, models.ApiPermAll)
 	test.IsEqualBool(t, isValid, false)
-	_, isValid = isValidApiKey(newApiKey.Id, true, models.ApiPermView)
+	_, _, isValid = isValidApiKey(newApiKey.Id, true, models.ApiPermView)
 	test.IsEqualBool(t, isValid, false)
 }
 
@@ -917,7 +914,7 @@ func TestDeleteApiKey(t *testing.T) {
 	const apiUrl = "/auth/delete"
 	const headerApiDelete = "apiKeyToModify"
 	apiKey := testAuthorisation(t, apiUrl, models.ApiPermApiMod)
-	testInvalidApiKey(t, apiUrl, apiKey.Id)
+	testInvalidApiKey(t, apiUrl, apiKey.Id, []test.Header{})
 
 	database.SaveApiKey(models.ApiKey{
 		Id:       "toDelete",
@@ -946,7 +943,7 @@ func TestChangeFriendlyName(t *testing.T) {
 	const headerApiKeyModify = "apiKeyToModify"
 	const headerNewName = "friendlyName"
 	apiKey := testAuthorisation(t, apiUrl, models.ApiPermApiMod)
-	testInvalidApiKey(t, apiUrl, apiKey.Id)
+	testInvalidApiKey(t, apiUrl, apiKey.Id, []test.Header{{Name: headerNewName, Value: "new name"}})
 	test.IsEqualString(t, apiKey.FriendlyName, "Unnamed key")
 	w, r := getRecorder(apiUrl, apiKey.Id, []test.Header{{
 		Name:  headerApiKeyModify,
@@ -969,10 +966,7 @@ func TestChangeFriendlyName(t *testing.T) {
 		Value: "",
 	}})
 	Process(w, r)
-	test.IsEqualInt(t, w.Code, 200)
-	key, ok = database.GetApiKey(apiKey.Id)
-	test.IsEqualBool(t, ok, true)
-	test.IsEqualString(t, key.FriendlyName, "Unnamed key")
+	test.IsEqualInt(t, w.Code, 400)
 }
 
 func TestApikeyModify(t *testing.T) {
@@ -982,7 +976,7 @@ func TestApikeyModify(t *testing.T) {
 	const headerModifier = "permissionModifier"
 
 	apiKey := testAuthorisation(t, apiUrl, models.ApiPermApiMod)
-	testInvalidApiKey(t, apiUrl, apiKey.Id)
+	testInvalidApiKey(t, apiUrl, apiKey.Id, []test.Header{{Name: headerPermission, Value: "PERM_VIEW"}, {Name: headerModifier, Value: "GRANT"}})
 
 	newApiKey := models.ApiKey{
 		Id:           "modifyTest",
@@ -1008,17 +1002,17 @@ func TestApikeyModify(t *testing.T) {
 	invalidParameter := []invalidParameterValue{
 		{
 			Value:        "",
-			ErrorMessage: `{"Result":"error","ErrorMessage":"Invalid permission sent"}`,
+			ErrorMessage: `{"Result":"error","ErrorMessage":"header permission is required"}`,
 			StatusCode:   400,
 		},
 		{
 			Value:        "invalid",
-			ErrorMessage: `{"Result":"error","ErrorMessage":"Invalid permission sent"}`,
+			ErrorMessage: `{"Result":"error","ErrorMessage":"invalid permission"}`,
 			StatusCode:   400,
 		},
 		{
 			Value:        "PERM_VIEWW",
-			ErrorMessage: `{"Result":"error","ErrorMessage":"Invalid permission sent"}`,
+			ErrorMessage: `{"Result":"error","ErrorMessage":"invalid permission"}`,
 			StatusCode:   400,
 		},
 		{
@@ -1101,7 +1095,7 @@ func TestDeleteFile(t *testing.T) {
 	test.IsEqualBool(t, ok, true)
 
 	apiKey := testAuthorisation(t, "/files/delete", models.ApiPermDelete)
-	testDeleteFileCall(t, apiKey.Id, "", 404, `{"Result":"error","ErrorMessage":"Invalid file ID provided."}`)
+	testDeleteFileCall(t, apiKey.Id, "", 400, `{"Result":"error","ErrorMessage":"header id is required"}`)
 	testDeleteFileCall(t, apiKey.Id, "invalid", 404, `{"Result":"error","ErrorMessage":"Invalid file ID provided."}`)
 	testDeleteFileCall(t, apiKey.Id, "smalltestfile1", 200, "")
 	testDeleteFileCall(t, apiKey.Id, "smalltestfile2", 401, `{"Result":"error","ErrorMessage":"No permission to delete this file"}`)
@@ -1234,206 +1228,6 @@ func TestUploadAndDuplication(t *testing.T) {
 	Process(w, r)
 	test.ResponseBodyContains(t, w, "Content-Type isn't multipart/form-data")
 	test.IsEqualInt(t, w.Code, 400)
-	//
-	// // Duplication
-	// w, r = test.GetRecorder("POST", "/api/files/duplicate", nil, []test.Header{{
-	// 	Name:  "apikey",
-	// 	Value: "validkey",
-	// }}, nil)
-	// Process(w, r)
-	// test.ResponseBodyContains(t, w, "Invalid id provided.")
-	// w, r = test.GetRecorder("POST", "/api/files/duplicate", nil, []test.Header{
-	// 	{Name: "apikey", Value: "validkey"},
-	// 	{Name: "id", Value: "invalid"},
-	// 	{Name: "Content-type", Value: "application/x-www-form-urlencoded"},
-	// }, nil)
-	// Process(w, r)
-	// test.ResponseBodyContains(t, w, "Invalid id provided.")
-	//
-	// w, r = test.GetRecorder("POST", "/api/files/duplicate", nil, []test.Header{
-	// 	{Name: "apikey", Value: "validkey"},
-	// 	{Name: "id", Value: "invalid"},
-	// 	{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
-	// 	strings.NewReader("§$§$%&(&//&/invalid"))
-	// Process(w, r)
-	// test.ResponseBodyContains(t, w, "invalid URL escape")
-	//
-	// data := url.Values{}
-	// data.Set("id", newFileId)
-	//
-	// w, r = test.GetRecorder("POST", "/api/files/duplicate", nil, []test.Header{
-	// 	{Name: "apikey", Value: "validkey"},
-	// 	{Name: "id", Value: "invalid"},
-	// 	{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
-	// 	strings.NewReader(data.Encode()))
-	// Process(w, r)
-	// resultDuplication := models.FileApiOutput{}
-	// response, err = io.ReadAll(w.Result().Body)
-	// test.IsNil(t, err)
-	// err = json.Unmarshal(response, &resultDuplication)
-	// test.IsNil(t, err)
-	// test.IsEqualInt(t, resultDuplication.DownloadsRemaining, 200)
-	// test.IsEqualBool(t, resultDuplication.UnlimitedTime, false)
-	// test.IsEqualBool(t, resultDuplication.UnlimitedDownloads, false)
-	// test.IsEqualInt(t, resultDuplication.DownloadCount, 0)
-	// test.IsEqualBool(t, resultDuplication.IsPasswordProtected, false)
-	//
-	// data = url.Values{}
-	// data.Set("id", newFileId)
-	// data.Set("allowedDownloads", "100")
-	//
-	// w, r = test.GetRecorder("POST", "/api/files/duplicate", nil, []test.Header{
-	// 	{Name: "apikey", Value: "validkey"},
-	// 	{Name: "id", Value: "invalid"},
-	// 	{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
-	// 	strings.NewReader(data.Encode()))
-	// Process(w, r)
-	// resultDuplication = models.FileApiOutput{}
-	// response, err = io.ReadAll(w.Result().Body)
-	// test.IsNil(t, err)
-	// err = json.Unmarshal(response, &resultDuplication)
-	// test.IsNil(t, err)
-	// test.IsEqualInt(t, resultDuplication.DownloadsRemaining, 100)
-	// test.IsEqualBool(t, resultDuplication.UnlimitedDownloads, false)
-	//
-	// data = url.Values{}
-	// data.Set("id", newFileId)
-	// data.Set("allowedDownloads", "0")
-	//
-	// w, r = test.GetRecorder("POST", "/api/files/duplicate", nil, []test.Header{
-	// 	{Name: "apikey", Value: "validkey"},
-	// 	{Name: "id", Value: "invalid"},
-	// 	{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
-	// 	strings.NewReader(data.Encode()))
-	// Process(w, r)
-	// resultDuplication = models.FileApiOutput{}
-	// response, err = io.ReadAll(w.Result().Body)
-	// test.IsNil(t, err)
-	// err = json.Unmarshal(response, &resultDuplication)
-	// test.IsNil(t, err)
-	// test.IsEqualBool(t, resultDuplication.UnlimitedDownloads, true)
-	//
-	// data = url.Values{}
-	// data.Set("id", newFileId)
-	// data.Set("allowedDownloads", "invalid")
-	//
-	// w, r = test.GetRecorder("POST", "/api/files/duplicate", nil, []test.Header{
-	// 	{Name: "apikey", Value: "validkey"},
-	// 	{Name: "id", Value: "invalid"},
-	// 	{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
-	// 	strings.NewReader(data.Encode()))
-	// Process(w, r)
-	// test.ResponseBodyContains(t, w, "strconv.Atoi: parsing \"invalid\": invalid syntax")
-	//
-	// data = url.Values{}
-	// data.Set("id", newFileId)
-	// data.Set("expiryDays", "invalid")
-	//
-	// w, r = test.GetRecorder("POST", "/api/files/duplicate", nil, []test.Header{
-	// 	{Name: "apikey", Value: "validkey"},
-	// 	{Name: "id", Value: "invalid"},
-	// 	{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
-	// 	strings.NewReader(data.Encode()))
-	// Process(w, r)
-	// test.ResponseBodyContains(t, w, "strconv.Atoi: parsing \"invalid\": invalid syntax")
-	//
-	// data = url.Values{}
-	// data.Set("id", newFileId)
-	// data.Set("expiryDays", "20")
-	//
-	// w, r = test.GetRecorder("POST", "/api/files/duplicate", nil, []test.Header{
-	// 	{Name: "apikey", Value: "validkey"},
-	// 	{Name: "id", Value: "invalid"},
-	// 	{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
-	// 	strings.NewReader(data.Encode()))
-	// Process(w, r)
-	// resultDuplication = models.FileApiOutput{}
-	// response, err = io.ReadAll(w.Result().Body)
-	// test.IsNil(t, err)
-	// err = json.Unmarshal(response, &resultDuplication)
-	// test.IsNil(t, err)
-	// test.IsEqualBool(t, resultDuplication.UnlimitedTime, false)
-	//
-	// data = url.Values{}
-	// data.Set("id", newFileId)
-	// data.Set("expiryDays", "0")
-	//
-	// w, r = test.GetRecorder("POST", "/api/files/duplicate", nil, []test.Header{
-	// 	{Name: "apikey", Value: "validkey"},
-	// 	{Name: "id", Value: "invalid"},
-	// 	{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
-	// 	strings.NewReader(data.Encode()))
-	// Process(w, r)
-	// resultDuplication = models.FileApiOutput{}
-	// response, err = io.ReadAll(w.Result().Body)
-	// test.IsNil(t, err)
-	// err = json.Unmarshal(response, &resultDuplication)
-	// test.IsNil(t, err)
-	// test.IsEqualBool(t, resultDuplication.UnlimitedTime, true)
-	//
-	// data = url.Values{}
-	// data.Set("id", newFileId)
-	// data.Set("password", "")
-	// data.Set("originalPassword", "true")
-	//
-	// w, r = test.GetRecorder("POST", "/api/files/duplicate", nil, []test.Header{
-	// 	{Name: "apikey", Value: "validkey"},
-	// 	{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
-	// 	strings.NewReader(data.Encode()))
-	// Process(w, r)
-	// resultDuplication = models.FileApiOutput{}
-	// response, err = io.ReadAll(w.Result().Body)
-	// test.IsNil(t, err)
-	// err = json.Unmarshal(response, &resultDuplication)
-	// test.IsNil(t, err)
-	// test.IsEqualBool(t, resultDuplication.IsPasswordProtected, true)
-	//
-	// data = url.Values{}
-	// data.Set("id", newFileId)
-	// data.Set("password", "")
-	//
-	// w, r = test.GetRecorder("POST", "/api/files/duplicate", nil, []test.Header{
-	// 	{Name: "apikey", Value: "validkey"},
-	// 	{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
-	// 	strings.NewReader(data.Encode()))
-	// Process(w, r)
-	// resultDuplication = models.FileApiOutput{}
-	// response, err = io.ReadAll(w.Result().Body)
-	// test.IsNil(t, err)
-	// err = json.Unmarshal(response, &resultDuplication)
-	// test.IsNil(t, err)
-	// test.IsEqualBool(t, resultDuplication.IsPasswordProtected, false)
-	// test.IsEqualString(t, resultDuplication.Name, "fileupload.jpg")
-	//
-	// data = url.Values{}
-	// data.Set("id", newFileId)
-	// data.Set("filename", "")
-	// w, r = test.GetRecorder("POST", "/api/files/duplicate", nil, []test.Header{
-	// 	{Name: "apikey", Value: "validkey"},
-	// 	{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
-	// 	strings.NewReader(data.Encode()))
-	// Process(w, r)
-	// resultDuplication = models.FileApiOutput{}
-	// response, err = io.ReadAll(w.Result().Body)
-	// test.IsNil(t, err)
-	// err = json.Unmarshal(response, &resultDuplication)
-	// test.IsNil(t, err)
-	// test.IsEqualString(t, resultDuplication.Name, "fileupload.jpg")
-	//
-	// data = url.Values{}
-	// data.Set("id", newFileId)
-	// data.Set("filename", "test.test")
-	// w, r = test.GetRecorder("POST", "/api/files/duplicate", nil, []test.Header{
-	// 	{Name: "apikey", Value: "validkey"},
-	// 	{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
-	// 	strings.NewReader(data.Encode()))
-	// Process(w, r)
-	// resultDuplication = models.FileApiOutput{}
-	// response, err = io.ReadAll(w.Result().Body)
-	// test.IsNil(t, err)
-	// err = json.Unmarshal(response, &resultDuplication)
-	// test.IsNil(t, err)
-	// test.IsEqualString(t, resultDuplication.Name, "test.test")
 }
 
 func TestDuplicate(t *testing.T) {
@@ -1449,7 +1243,7 @@ func TestDuplicate(t *testing.T) {
 	invalidParameter := []invalidParameterValue{
 		{
 			Value:        "invalid",
-			ErrorMessage: `{"Result":"error","ErrorMessage":"Invalid permission sent"}`,
+			ErrorMessage: `{"Result":"error","ErrorMessage":"invalid value in header allowedDownloads supplied"}`,
 			StatusCode:   400,
 		},
 	}
@@ -1515,14 +1309,12 @@ func TestChunkUpload(t *testing.T) {
 }
 
 func TestChunkComplete(t *testing.T) {
-	data := url.Values{}
-	data.Set("uuid", "tmpupload123")
-	data.Set("filename", "test.upload")
-	data.Set("filesize", "13")
-
 	w, r := test.GetRecorder("POST", "/api/chunk/complete", nil, []test.Header{
-		{Name: "apikey", Value: "validkey"}},
-		strings.NewReader(data.Encode()))
+		{Name: "apikey", Value: "validkey"},
+		{Name: "uuid", Value: "tmpupload123"},
+		{Name: "filename", Value: "test.upload"},
+		{Name: "filesize", Value: "13"}},
+		nil)
 	Process(w, r)
 	test.IsEqualInt(t, w.Code, 200)
 	result := struct {
@@ -1534,25 +1326,14 @@ func TestChunkComplete(t *testing.T) {
 	test.IsNil(t, err)
 	test.IsEqualString(t, result.FileInfo.Name, "test.upload")
 
-	data.Set("filesize", "15")
+	// data.Set("filesize", "15")
 
 	w, r = test.GetRecorder("POST", "/api/chunk/complete", nil, []test.Header{
-		{Name: "apikey", Value: "validkey"}},
-		strings.NewReader(data.Encode()))
+		{Name: "apikey", Value: "validkey"},
+		{Name: "uuid", Value: "tmpupload123"},
+		{Name: "filename", Value: "test.upload"},
+		{Name: "filesize", Value: "15"}}, nil)
 	Process(w, r)
 	test.IsEqualInt(t, w.Code, 400)
 	test.ResponseBodyContains(t, w, "error")
-
-	w, r = test.GetRecorder("POST", "/api/chunk/complete", nil, []test.Header{
-		{Name: "apikey", Value: "validkey"}},
-		strings.NewReader("invalid&&§$%"))
-	Process(w, r)
-	test.IsEqualInt(t, w.Code, 400)
-	test.ResponseBodyContains(t, w, "error")
-}
-
-func TestApiRequestToUploadRequest(t *testing.T) {
-	_, r := test.GetRecorder("POST", "/api/chunk/complete", nil, []test.Header{}, strings.NewReader("invalid&&§$%"))
-	_, _, _, err := apiRequestToUploadRequest(r)
-	test.IsNotNil(t, err)
 }

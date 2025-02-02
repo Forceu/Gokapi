@@ -187,7 +187,7 @@ func generateParseRequestMethod(typeName string, fields []*ast.Field) string {
 func writeNewInstanceCode(name string) string {
 	return fmt.Sprintf(`
 				// New returns a new instance of %s struct
-				func (p *%s) New() paramInfo {
+				func (p *%s) New() requestParser {
 					return &%s{}
 				}`, name, name, name)
 }

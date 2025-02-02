@@ -712,8 +712,8 @@ func (p *paramChunkComplete) ParseRequest(r *http.Request) error {
 		}
 	}
 
-	// RequestParser header value "realsize", required: true
-	exists, err = checkHeaderExists(r, "realsize", true)
+	// RequestParser header value "realsize", required: false
+	exists, err = checkHeaderExists(r, "realsize", false)
 	if err != nil {
 		return err
 	}

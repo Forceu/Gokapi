@@ -166,7 +166,7 @@ func apiDeleteKey(w http.ResponseWriter, r requestParser, user models.User) {
 	if !ok {
 		panic("invalid parameter passed")
 	}
-	apiKeyOwner, ok := isValidKeyForEditing(w, request.KeyId)
+	apiKeyOwner, apiKey, ok := isValidKeyForEditing(w, request.KeyId)
 	if !ok {
 		sendError(w, http.StatusNotFound, "Invalid key ID provided.")
 		return
@@ -175,7 +175,7 @@ func apiDeleteKey(w http.ResponseWriter, r requestParser, user models.User) {
 		sendError(w, http.StatusUnauthorized, "No permission to delete this API key")
 		return
 	}
-	database.DeleteApiKey(request.KeyId)
+	database.DeleteApiKey(apiKey.Id)
 }
 
 func apiModifyApiKey(w http.ResponseWriter, r requestParser, user models.User) {
@@ -183,7 +183,7 @@ func apiModifyApiKey(w http.ResponseWriter, r requestParser, user models.User) {
 	if !ok {
 		panic("invalid parameter passed")
 	}
-	apiKeyOwner, ok := isValidKeyForEditing(w, request.KeyId)
+	apiKeyOwner, apiKey, ok := isValidKeyForEditing(w, request.KeyId)
 	if !ok {
 		sendError(w, http.StatusNotFound, "Invalid key ID provided.")
 		return
@@ -207,29 +207,27 @@ func apiModifyApiKey(w http.ResponseWriter, r requestParser, user models.User) {
 	default:
 		// do nothing
 	}
-	key, ok := database.GetApiKey(request.KeyId)
-	if !ok {
-		sendError(w, http.StatusInternalServerError, "Could not modify API key")
+	if request.GrantPermission && !apiKey.HasPermission(request.Permission) {
+		apiKey.GrantPermission(request.Permission)
+		database.SaveApiKey(apiKey)
 		return
 	}
-	if request.GrantPermission && !key.HasPermission(request.Permission) {
-		key.GrantPermission(request.Permission)
-		database.SaveApiKey(key)
-		return
-	}
-	if !request.GrantPermission && key.HasPermission(request.Permission) {
-		key.RemovePermission(request.Permission)
-		database.SaveApiKey(key)
+	if !request.GrantPermission && apiKey.HasPermission(request.Permission) {
+		apiKey.RemovePermission(request.Permission)
+		database.SaveApiKey(apiKey)
 	}
 }
 
-func isValidKeyForEditing(w http.ResponseWriter, apiKey string) (models.User, bool) {
-	user, ok := isValidApiKey(apiKey, false, models.ApiPermNone)
+// isValidKeyForEditing checks if the provided API key is either a public or private ID and returns the user and API
+// key model (including the private ID)
+func isValidKeyForEditing(w http.ResponseWriter, apiKey string) (models.User, models.ApiKey, bool) {
+	apiKey = publicKeyToApiKey(apiKey)
+	user, fullApiKey, ok := isValidApiKey(apiKey, false, models.ApiPermNone)
 	if !ok {
 		sendError(w, http.StatusNotFound, "Invalid api key provided.")
-		return models.User{}, false
+		return models.User{}, models.ApiKey{}, false
 	}
-	return user, true
+	return user, fullApiKey, true
 }
 
 func isValidUserForEditing(w http.ResponseWriter, userId int) (models.User, bool) {
@@ -289,7 +287,7 @@ func apiChangeFriendlyName(w http.ResponseWriter, r requestParser, user models.U
 	if !ok {
 		panic("invalid parameter passed")
 	}
-	ownerApiKey, ok := isValidKeyForEditing(w, request.KeyId)
+	ownerApiKey, apiKey, ok := isValidKeyForEditing(w, request.KeyId)
 	if !ok {
 		sendError(w, http.StatusNotFound, "Invalid api key provided.")
 		return
@@ -298,7 +296,7 @@ func apiChangeFriendlyName(w http.ResponseWriter, r requestParser, user models.U
 		sendError(w, http.StatusUnauthorized, "No permission to edit this key")
 		return
 	}
-	err := renameApiKeyFriendlyName(request.KeyId, request.FriendlyName)
+	err := renameApiKeyFriendlyName(apiKey.Id, request.FriendlyName)
 	if err != nil {
 		sendError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -688,7 +686,7 @@ func apiDeleteUser(w http.ResponseWriter, r requestParser, user models.User) {
 
 func isAuthorisedForApi(r *http.Request, routing apiRoute) (models.User, bool) {
 	apiKey := r.Header.Get("apikey")
-	user, ok := isValidApiKey(apiKey, true, routing.ApiPerm)
+	user, _, ok := isValidApiKey(apiKey, true, routing.ApiPerm)
 	if !ok {
 		return models.User{}, false
 	}
@@ -702,153 +700,6 @@ func sendError(w http.ResponseWriter, errorInt int, errorMessage string) {
 	}
 	w.WriteHeader(errorInt)
 	_, _ = w.Write([]byte("{\"Result\":\"error\",\"ErrorMessage\":\"" + errorMessage + "\"}"))
-}
-
-type apiRequest struct {
-	apiKey      string
-	requestUrl  string
-	request     *http.Request
-	fileInfo    fileInfo
-	apiInfo     apiModInfo
-	filemodInfo fileModInfo
-	usermodInfo userModInfo
-}
-
-func (a *apiRequest) parseUploadRequest() error {
-	uploadRequest, paramsToChange, filename, err := apiRequestToUploadRequest(a.request)
-	if err != nil {
-		return err
-	}
-	a.fileInfo.uploadRequest = uploadRequest
-	a.fileInfo.paramsToChange = paramsToChange
-	a.fileInfo.filename = filename
-	return nil
-}
-
-func (a *apiRequest) parseForm() error {
-	err := a.request.ParseForm()
-	if err != nil {
-		return err
-	}
-	if a.request.Form.Get("id") != "" {
-		a.fileInfo.id = a.request.Form.Get("id")
-	}
-	return nil
-}
-
-type fileInfo struct {
-	id             string               // apiRequest.parseForm() needs to be called first if id is encoded in form
-	uploadRequest  models.UploadRequest // apiRequest.parseUploadRequest() needs to be called first
-	paramsToChange int                  // apiRequest.parseUploadRequest() needs to be called first
-	filename       string               // apiRequest.parseUploadRequest() needs to be called first
-}
-
-type apiModInfo struct {
-	friendlyName     string
-	apiKeyToModify   string
-	permission       models.ApiPermission
-	grantPermission  bool
-	basicPermissions bool
-}
-type userModInfo struct {
-	userId           int
-	permission       models.UserPermission
-	grantPermission  bool
-	basicPermissions bool
-	deleteUserFiles  bool
-	setNewPw         bool
-	newRank          string
-	newUserName      string
-}
-type fileModInfo struct {
-	id               string
-	idNewContent     string
-	downloads        string
-	expiry           string
-	password         string
-	originalPassword bool
-	deleteNewFile    bool
-}
-
-func parseRequest(r *http.Request) (apiRequest, error) {
-	apiPermission := models.ApiPermNone
-	switch r.Header.Get("permission") {
-	case "PERM_VIEW":
-		apiPermission = models.ApiPermView
-	case "PERM_UPLOAD":
-		apiPermission = models.ApiPermUpload
-	case "PERM_DELETE":
-		apiPermission = models.ApiPermDelete
-	case "PERM_API_MOD":
-		apiPermission = models.ApiPermApiMod
-	case "PERM_EDIT":
-		apiPermission = models.ApiPermEdit
-	case "PERM_REPLACE":
-		apiPermission = models.ApiPermReplace
-	case "PERM_MANAGE_USERS":
-		apiPermission = models.ApiPermManageUsers
-	}
-	userPermission := models.UserPermissionNone
-	switch r.Header.Get("userpermission") {
-	case "PERM_REPLACE":
-		userPermission = models.UserPermReplaceUploads
-	case "PERM_LIST":
-		userPermission = models.UserPermListOtherUploads
-	case "PERM_EDIT":
-		userPermission = models.UserPermEditOtherUploads
-	case "PERM_REPLACE_OTHER":
-		userPermission = models.UserPermReplaceOtherUploads
-	case "PERM_DELETE":
-		userPermission = models.UserPermDeleteOtherUploads
-	case "PERM_LOGS":
-		userPermission = models.UserPermManageLogs
-	case "PERM_API":
-		userPermission = models.UserPermManageApiKeys
-	case "PERM_USERS":
-		userPermission = models.UserPermManageUsers
-	}
-	userId := -1
-	userIdString := r.Header.Get("userid")
-	if userIdString != "" {
-		var err error
-		userId, err = strconv.Atoi(userIdString)
-		if err != nil {
-			return apiRequest{}, err
-		}
-	}
-
-	return apiRequest{
-		apiKey:     r.Header.Get("apikey"),
-		requestUrl: strings.Replace(r.URL.String(), "/api", "", 1),
-		request:    r,
-		fileInfo:   fileInfo{id: r.Header.Get("id")},
-		filemodInfo: fileModInfo{
-			id:               r.Header.Get("id"),
-			idNewContent:     r.Header.Get("idNewContent"),
-			downloads:        r.Header.Get("allowedDownloads"),
-			expiry:           r.Header.Get("expiryTimestamp"),
-			password:         r.Header.Get("password"),
-			originalPassword: r.Header.Get("originalPassword") == "true",
-			deleteNewFile:    r.Header.Get("deleteOriginal") == "true",
-		},
-		apiInfo: apiModInfo{
-			friendlyName:     r.Header.Get("friendlyName"),
-			apiKeyToModify:   publicKeyToApiKey(r.Header.Get("apiKeyToModify")),
-			permission:       apiPermission,
-			grantPermission:  r.Header.Get("permissionModifier") == "GRANT",
-			basicPermissions: r.Header.Get("basicPermissions") == "true",
-		},
-		usermodInfo: userModInfo{
-			userId:           userId,
-			permission:       userPermission,
-			newRank:          r.Header.Get("newRank"),
-			grantPermission:  r.Header.Get("permissionModifier") == "GRANT",
-			basicPermissions: r.Header.Get("basicPermissions") == "true",
-			deleteUserFiles:  r.Header.Get("deleteFiles") == "true",
-			newUserName:      r.Header.Get("username"),
-			setNewPw:         r.Header.Get("generateNewPassword") == "true",
-		},
-	}, nil
 }
 
 // publicKeyToApiKey tries to convert a (possible) public key to a private key
@@ -921,9 +772,9 @@ func apiRequestToUploadRequest(request *http.Request) (models.UploadRequest, int
 
 // isValidApiKey checks if the API key provides is valid. If modifyTime is true, it also automatically updates
 // the lastUsed timestamp
-func isValidApiKey(key string, modifyTime bool, requiredPermissionApiKey models.ApiPermission) (models.User, bool) {
+func isValidApiKey(key string, modifyTime bool, requiredPermissionApiKey models.ApiPermission) (models.User, models.ApiKey, bool) {
 	if key == "" {
-		return models.User{}, false
+		return models.User{}, models.ApiKey{}, false
 	}
 	savedKey, ok := database.GetApiKey(key)
 	if ok && savedKey.Id != "" && (savedKey.Expiry == 0 || savedKey.Expiry > time.Now().Unix()) {
@@ -932,13 +783,13 @@ func isValidApiKey(key string, modifyTime bool, requiredPermissionApiKey models.
 			database.UpdateTimeApiKey(savedKey)
 		}
 		if !savedKey.HasPermission(requiredPermissionApiKey) {
-			return models.User{}, false
+			return models.User{}, models.ApiKey{}, false
 		}
 		user, ok := database.GetUser(savedKey.UserId)
 		if !ok {
-			return models.User{}, false
+			return models.User{}, models.ApiKey{}, false
 		}
-		return user, true
+		return user, savedKey, true
 	}
-	return models.User{}, false
+	return models.User{}, models.ApiKey{}, false
 }
