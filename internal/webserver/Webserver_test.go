@@ -507,6 +507,7 @@ func TestPostUpload(t *testing.T) {
 				{"filename", "fileupload.jpg"},
 				{"filecontenttype", "test-content"},
 				{"filesize", "50"},
+				{"nonblocking", "true"},
 			},
 			RequiredContent: []string{"{\"result\":\"OK\"}"},
 			Cookies: []test.Cookie{{

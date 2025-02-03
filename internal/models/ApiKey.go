@@ -1,6 +1,8 @@
 package models
 
-import "time"
+import (
+	"time"
+)
 
 const (
 	// ApiPermView is the permission for viewing metadata of all uploaded files
@@ -53,8 +55,7 @@ func (key *ApiKey) GetReadableDate() string {
 
 // GetRedactedId returns a redacted version of the API key
 func (key *ApiKey) GetRedactedId() string {
-	return key.Id[0:2] + "**************************" + key.Id[28:]
-
+	return key.Id[0:2] + "**************************" + key.Id[len(key.Id)-2:]
 }
 
 // GrantPermission sets one or more permissions

@@ -256,14 +256,14 @@ func writeApiKeys() {
 		FriendlyName: "First Key",
 		Permissions:  models.ApiPermAll, // TODO
 		UserId:       5,
-		PublicId:     "Queime3iun",
+		PublicId:     "taiyeo6uLie6nu6eip0ieweiM5mahv",
 	})
 	database.SaveApiKey(models.ApiKey{
 		Id:           "validkeyid7",
 		FriendlyName: "Key for uid 7",
 		Permissions:  models.ApiPermAll, // TODO
 		UserId:       7,
-		PublicId:     "Queime3iun7",
+		PublicId:     "vu0eemi8eehaisuth3pahDai2eo6ze",
 	})
 	database.SaveApiKey(models.ApiKey{
 		Id:           "GAh1IhXDvYnqfYLazWBqMB9HSFmNPO",
@@ -271,21 +271,21 @@ func writeApiKeys() {
 		LastUsed:     1620671580,
 		Permissions:  models.ApiPermAll, // TODO
 		UserId:       5,
-		PublicId:     "Xoox8chaiX",
+		PublicId:     "yaeVohng1ohNohsh1vailizeil5ka5",
 	})
 	database.SaveApiKey(models.ApiKey{
 		Id:           "jiREglQJW0bOqJakfjdVfe8T1EM8n8",
 		FriendlyName: "Unnamed Key",
 		Permissions:  models.ApiPermAll, // TODO
 		UserId:       5,
-		PublicId:     "giD8peitoo",
+		PublicId:     "ahYie4ophoo5OoGhahCe1neic6thah",
 	})
 	database.SaveApiKey(models.ApiKey{
 		Id:           "okeCMWqhVMZSpt5c1qpCWhKvJJPifb",
 		FriendlyName: "Unnamed Key",
 		Permissions:  models.ApiPermAll, // TODO
 		UserId:       5,
-		PublicId:     "gahNg6geaf",
+		PublicId:     "ugoo0roowoanahthei7ohSail5OChu",
 	})
 }
 
