@@ -132,12 +132,9 @@ func generateParseRequestMethod(typeName string, fields []*ast.Field) string {
 						case "string":
 							method += fmt.Sprintf(`
 							if (exists) {
-								p.%s, err = parseHeaderString(r, %s)
-								if err != nil {
-									return fmt.Errorf("invalid value in header %s supplied")
-								}
+								p.%s = r.Header.Get(%s)
 							}
-							`, field.Names[0].Name, headerName, strings.Replace(headerName, "\"", "", -1))
+							`, field.Names[0].Name, headerName)
 
 						case "bool":
 							method += fmt.Sprintf(`
@@ -177,7 +174,6 @@ func generateParseRequestMethod(typeName string, fields []*ast.Field) string {
 			}
 		}
 	}
-
 	method += "\nreturn p.ProcessParameter(r)\n}\n"
 	method += writeNewInstanceCode(typeName)
 

@@ -45,10 +45,7 @@ func (p *paramFilesDuplicate) ParseRequest(r *http.Request) error {
 	}
 	p.foundHeaders["id"] = exists
 	if exists {
-		p.Id, err = parseHeaderString(r, "id")
-		if err != nil {
-			return fmt.Errorf("invalid value in header id supplied")
-		}
+		p.Id = r.Header.Get("id")
 	}
 
 	// RequestParser header value "allowedDownloads", required: false
@@ -84,10 +81,7 @@ func (p *paramFilesDuplicate) ParseRequest(r *http.Request) error {
 	}
 	p.foundHeaders["password"] = exists
 	if exists {
-		p.Password, err = parseHeaderString(r, "password")
-		if err != nil {
-			return fmt.Errorf("invalid value in header password supplied")
-		}
+		p.Password = r.Header.Get("password")
 	}
 
 	// RequestParser header value "originalPassword", required: false
@@ -110,10 +104,7 @@ func (p *paramFilesDuplicate) ParseRequest(r *http.Request) error {
 	}
 	p.foundHeaders["filename"] = exists
 	if exists {
-		p.FileName, err = parseHeaderString(r, "filename")
-		if err != nil {
-			return fmt.Errorf("invalid value in header filename supplied")
-		}
+		p.FileName = r.Header.Get("filename")
 	}
 
 	return p.ProcessParameter(r)
@@ -138,10 +129,7 @@ func (p *paramFilesModify) ParseRequest(r *http.Request) error {
 	}
 	p.foundHeaders["id"] = exists
 	if exists {
-		p.Id, err = parseHeaderString(r, "id")
-		if err != nil {
-			return fmt.Errorf("invalid value in header id supplied")
-		}
+		p.Id = r.Header.Get("id")
 	}
 
 	// RequestParser header value "allowedDownloads", required: false
@@ -177,10 +165,7 @@ func (p *paramFilesModify) ParseRequest(r *http.Request) error {
 	}
 	p.foundHeaders["password"] = exists
 	if exists {
-		p.Password, err = parseHeaderString(r, "password")
-		if err != nil {
-			return fmt.Errorf("invalid value in header password supplied")
-		}
+		p.Password = r.Header.Get("password")
 	}
 
 	// RequestParser header value "originalPassword", required: false
@@ -218,10 +203,7 @@ func (p *paramFilesReplace) ParseRequest(r *http.Request) error {
 	}
 	p.foundHeaders["id"] = exists
 	if exists {
-		p.Id, err = parseHeaderString(r, "id")
-		if err != nil {
-			return fmt.Errorf("invalid value in header id supplied")
-		}
+		p.Id = r.Header.Get("id")
 	}
 
 	// RequestParser header value "idNewContent", required: true
@@ -231,10 +213,7 @@ func (p *paramFilesReplace) ParseRequest(r *http.Request) error {
 	}
 	p.foundHeaders["idNewContent"] = exists
 	if exists {
-		p.IdNewContent, err = parseHeaderString(r, "idNewContent")
-		if err != nil {
-			return fmt.Errorf("invalid value in header idNewContent supplied")
-		}
+		p.IdNewContent = r.Header.Get("idNewContent")
 	}
 
 	// RequestParser header value "deleteNewFile", required: false
@@ -272,10 +251,7 @@ func (p *paramFilesDelete) ParseRequest(r *http.Request) error {
 	}
 	p.foundHeaders["id"] = exists
 	if exists {
-		p.Id, err = parseHeaderString(r, "id")
-		if err != nil {
-			return fmt.Errorf("invalid value in header id supplied")
-		}
+		p.Id = r.Header.Get("id")
 	}
 
 	return p.ProcessParameter(r)
@@ -300,10 +276,7 @@ func (p *paramAuthCreate) ParseRequest(r *http.Request) error {
 	}
 	p.foundHeaders["friendlyName"] = exists
 	if exists {
-		p.FriendlyName, err = parseHeaderString(r, "friendlyName")
-		if err != nil {
-			return fmt.Errorf("invalid value in header friendlyName supplied")
-		}
+		p.FriendlyName = r.Header.Get("friendlyName")
 	}
 
 	// RequestParser header value "basicPermissions", required: false
@@ -341,10 +314,7 @@ func (p *paramAuthFriendlyName) ParseRequest(r *http.Request) error {
 	}
 	p.foundHeaders["apiKeyToModify"] = exists
 	if exists {
-		p.KeyId, err = parseHeaderString(r, "apiKeyToModify")
-		if err != nil {
-			return fmt.Errorf("invalid value in header apiKeyToModify supplied")
-		}
+		p.KeyId = r.Header.Get("apiKeyToModify")
 	}
 
 	// RequestParser header value "friendlyName", required: true
@@ -354,10 +324,7 @@ func (p *paramAuthFriendlyName) ParseRequest(r *http.Request) error {
 	}
 	p.foundHeaders["friendlyName"] = exists
 	if exists {
-		p.FriendlyName, err = parseHeaderString(r, "friendlyName")
-		if err != nil {
-			return fmt.Errorf("invalid value in header friendlyName supplied")
-		}
+		p.FriendlyName = r.Header.Get("friendlyName")
 	}
 
 	return p.ProcessParameter(r)
@@ -382,10 +349,7 @@ func (p *paramAuthModify) ParseRequest(r *http.Request) error {
 	}
 	p.foundHeaders["apiKeyToModify"] = exists
 	if exists {
-		p.KeyId, err = parseHeaderString(r, "apiKeyToModify")
-		if err != nil {
-			return fmt.Errorf("invalid value in header apiKeyToModify supplied")
-		}
+		p.KeyId = r.Header.Get("apiKeyToModify")
 	}
 
 	// RequestParser header value "permission", required: true
@@ -395,10 +359,7 @@ func (p *paramAuthModify) ParseRequest(r *http.Request) error {
 	}
 	p.foundHeaders["permission"] = exists
 	if exists {
-		p.permissionRaw, err = parseHeaderString(r, "permission")
-		if err != nil {
-			return fmt.Errorf("invalid value in header permission supplied")
-		}
+		p.permissionRaw = r.Header.Get("permission")
 	}
 
 	// RequestParser header value "permissionModifier", required: true
@@ -408,10 +369,7 @@ func (p *paramAuthModify) ParseRequest(r *http.Request) error {
 	}
 	p.foundHeaders["permissionModifier"] = exists
 	if exists {
-		p.permissionModifier, err = parseHeaderString(r, "permissionModifier")
-		if err != nil {
-			return fmt.Errorf("invalid value in header permissionModifier supplied")
-		}
+		p.permissionModifier = r.Header.Get("permissionModifier")
 	}
 
 	return p.ProcessParameter(r)
@@ -436,10 +394,7 @@ func (p *paramAuthDelete) ParseRequest(r *http.Request) error {
 	}
 	p.foundHeaders["apiKeyToModify"] = exists
 	if exists {
-		p.KeyId, err = parseHeaderString(r, "apiKeyToModify")
-		if err != nil {
-			return fmt.Errorf("invalid value in header apiKeyToModify supplied")
-		}
+		p.KeyId = r.Header.Get("apiKeyToModify")
 	}
 
 	return p.ProcessParameter(r)
@@ -464,10 +419,7 @@ func (p *paramUserCreate) ParseRequest(r *http.Request) error {
 	}
 	p.foundHeaders["username"] = exists
 	if exists {
-		p.Username, err = parseHeaderString(r, "username")
-		if err != nil {
-			return fmt.Errorf("invalid value in header username supplied")
-		}
+		p.Username = r.Header.Get("username")
 	}
 
 	return p.ProcessParameter(r)
@@ -505,10 +457,7 @@ func (p *paramUserChangeRank) ParseRequest(r *http.Request) error {
 	}
 	p.foundHeaders["newRank"] = exists
 	if exists {
-		p.newRankRaw, err = parseHeaderString(r, "newRank")
-		if err != nil {
-			return fmt.Errorf("invalid value in header newRank supplied")
-		}
+		p.newRankRaw = r.Header.Get("newRank")
 	}
 
 	return p.ProcessParameter(r)
@@ -587,10 +536,7 @@ func (p *paramUserModify) ParseRequest(r *http.Request) error {
 	}
 	p.foundHeaders["userpermission"] = exists
 	if exists {
-		p.permissionRaw, err = parseHeaderString(r, "userpermission")
-		if err != nil {
-			return fmt.Errorf("invalid value in header userpermission supplied")
-		}
+		p.permissionRaw = r.Header.Get("userpermission")
 	}
 
 	// RequestParser header value "permissionModifier", required: true
@@ -600,10 +546,7 @@ func (p *paramUserModify) ParseRequest(r *http.Request) error {
 	}
 	p.foundHeaders["permissionModifier"] = exists
 	if exists {
-		p.permissionModifier, err = parseHeaderString(r, "permissionModifier")
-		if err != nil {
-			return fmt.Errorf("invalid value in header permissionModifier supplied")
-		}
+		p.permissionModifier = r.Header.Get("permissionModifier")
 	}
 
 	return p.ProcessParameter(r)
@@ -680,10 +623,7 @@ func (p *paramChunkComplete) ParseRequest(r *http.Request) error {
 	}
 	p.foundHeaders["uuid"] = exists
 	if exists {
-		p.Uuid, err = parseHeaderString(r, "uuid")
-		if err != nil {
-			return fmt.Errorf("invalid value in header uuid supplied")
-		}
+		p.Uuid = r.Header.Get("uuid")
 	}
 
 	// RequestParser header value "filename", required: true
@@ -693,10 +633,7 @@ func (p *paramChunkComplete) ParseRequest(r *http.Request) error {
 	}
 	p.foundHeaders["filename"] = exists
 	if exists {
-		p.FileName, err = parseHeaderString(r, "filename")
-		if err != nil {
-			return fmt.Errorf("invalid value in header filename supplied")
-		}
+		p.FileName = r.Header.Get("filename")
 	}
 
 	// RequestParser header value "filesize", required: true
@@ -732,10 +669,7 @@ func (p *paramChunkComplete) ParseRequest(r *http.Request) error {
 	}
 	p.foundHeaders["contenttype"] = exists
 	if exists {
-		p.ContentType, err = parseHeaderString(r, "contenttype")
-		if err != nil {
-			return fmt.Errorf("invalid value in header contenttype supplied")
-		}
+		p.ContentType = r.Header.Get("contenttype")
 	}
 
 	// RequestParser header value "allowedDownloads", required: false
@@ -771,10 +705,7 @@ func (p *paramChunkComplete) ParseRequest(r *http.Request) error {
 	}
 	p.foundHeaders["password"] = exists
 	if exists {
-		p.Password, err = parseHeaderString(r, "password")
-		if err != nil {
-			return fmt.Errorf("invalid value in header password supplied")
-		}
+		p.Password = r.Header.Get("password")
 	}
 
 	// RequestParser header value "isE2E", required: false

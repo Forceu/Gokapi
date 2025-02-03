@@ -147,9 +147,11 @@ func getRouting(requestUrl string) (apiRoute, bool) {
 }
 
 type requestParser interface {
-	ProcessParameter(r *http.Request) error
-	// ParseRequest reads the supplied headers
+	// ParseRequest reads the supplied headers, stores them and afterwards calls ProcessParameter()
 	ParseRequest(r *http.Request) error
+	// ProcessParameter goes through the submitted parameters, checks them and converts them to expected values
+	ProcessParameter(r *http.Request) error
+	// New returns an empty struct of the type
 	New() requestParser
 }
 
@@ -446,10 +448,6 @@ func checkHeaderExists(r *http.Request, key string, isRequired bool) (bool, erro
 		return false, errors.New("header " + key + " is required")
 	}
 	return exists, nil
-}
-
-func parseHeaderString(r *http.Request, key string) (string, error) {
-	return r.Header.Get(key), nil
 }
 
 func parseHeaderBool(r *http.Request, key string) (bool, error) {
