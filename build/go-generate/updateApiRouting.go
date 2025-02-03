@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-const fileRouting = "../../internal/webserver/api/routings.go"
+const fileRouting = "../../internal/webserver/api/routing.go"
 const fileOutput = "../../internal/webserver/api/routingParsing.go"
 
 // Function to find all declared types referenced in the RequestParser field

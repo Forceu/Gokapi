@@ -222,7 +222,7 @@ func (p *paramFilesModify) ProcessParameter(_ *http.Request) error {
 	if p.foundHeaders["allowedDownloads"] && p.AllowedDownloads == 0 {
 		p.UnlimitedDownloads = true
 	}
-	if p.foundHeaders["expiryDays"] && p.ExpiryTimestamp == 0 {
+	if p.foundHeaders["expiryTimestamp"] && p.ExpiryTimestamp == 0 {
 		p.UnlimitedExpiry = true
 	}
 	p.IsPasswordSet = p.foundHeaders["password"]
