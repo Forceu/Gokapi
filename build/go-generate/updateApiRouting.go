@@ -81,6 +81,16 @@ func hasRequiredTag(tags []string) bool {
 	return false
 }
 
+func headerExists(headerName string, required, isString bool) string {
+	return fmt.Sprintf("\n"+`
+							// RequestParser header value %s, required: %v
+							exists, err = checkHeaderExists(r, %s, %v, %v)
+							if err != nil {
+								return err
+							}
+							p.foundHeaders[%s] = exists`, headerName, required, headerName, required, isString, headerName)
+}
+
 func generateParseRequestMethod(typeName string, fields []*ast.Field) string {
 	// Start generating the ParseRequest method
 	if !hasTags(fields) {
@@ -117,19 +127,12 @@ func generateParseRequestMethod(typeName string, fields []*ast.Field) string {
 						// Extract header name after 'header:'
 						headerName := strings.TrimPrefix(part, "header:")
 
-						method += fmt.Sprintf("\n"+`
-							// RequestParser header value %s, required: %v
-							exists, err = checkHeaderExists(r, %s, %v)
-							if err != nil {
-								return err
-							}
-							p.foundHeaders[%s] = exists`, headerName, required, headerName, required, headerName)
-
 						fieldType := field.Type.(*ast.Ident).Name
 
 						// Use appropriate parsing function based on the field type
 						switch fieldType {
 						case "string":
+							method += headerExists(headerName, required, true)
 							method += fmt.Sprintf(`
 							if (exists) {
 								p.%s = r.Header.Get(%s)
@@ -137,6 +140,7 @@ func generateParseRequestMethod(typeName string, fields []*ast.Field) string {
 							`, field.Names[0].Name, headerName)
 
 						case "bool":
+							method += headerExists(headerName, required, false)
 							method += fmt.Sprintf(`
 							if (exists) {
 								p.%s, err = parseHeaderBool(r, %s)
@@ -147,6 +151,7 @@ func generateParseRequestMethod(typeName string, fields []*ast.Field) string {
 							`, field.Names[0].Name, headerName, strings.Replace(headerName, "\"", "", -1))
 
 						case "int":
+							method += headerExists(headerName, required, false)
 							method += fmt.Sprintf(`
 							if (exists) {
 								p.%s, err = parseHeaderInt(r, %s)
@@ -157,6 +162,7 @@ func generateParseRequestMethod(typeName string, fields []*ast.Field) string {
 							`, field.Names[0].Name, headerName, strings.Replace(headerName, "\"", "", -1))
 
 						case "int64":
+							method += headerExists(headerName, required, false)
 							method += fmt.Sprintf(`
 							if (exists) {
 								p.%s, err = parseHeaderInt64(r, %s)

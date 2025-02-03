@@ -39,7 +39,7 @@ func (p *paramFilesDuplicate) ParseRequest(r *http.Request) error {
 	p.foundHeaders = make(map[string]bool)
 
 	// RequestParser header value "id", required: true
-	exists, err = checkHeaderExists(r, "id", true)
+	exists, err = checkHeaderExists(r, "id", true, true)
 	if err != nil {
 		return err
 	}
@@ -49,7 +49,7 @@ func (p *paramFilesDuplicate) ParseRequest(r *http.Request) error {
 	}
 
 	// RequestParser header value "allowedDownloads", required: false
-	exists, err = checkHeaderExists(r, "allowedDownloads", false)
+	exists, err = checkHeaderExists(r, "allowedDownloads", false, false)
 	if err != nil {
 		return err
 	}
@@ -62,7 +62,7 @@ func (p *paramFilesDuplicate) ParseRequest(r *http.Request) error {
 	}
 
 	// RequestParser header value "expiryDays", required: false
-	exists, err = checkHeaderExists(r, "expiryDays", false)
+	exists, err = checkHeaderExists(r, "expiryDays", false, false)
 	if err != nil {
 		return err
 	}
@@ -75,7 +75,7 @@ func (p *paramFilesDuplicate) ParseRequest(r *http.Request) error {
 	}
 
 	// RequestParser header value "password", required: false
-	exists, err = checkHeaderExists(r, "password", false)
+	exists, err = checkHeaderExists(r, "password", false, true)
 	if err != nil {
 		return err
 	}
@@ -85,7 +85,7 @@ func (p *paramFilesDuplicate) ParseRequest(r *http.Request) error {
 	}
 
 	// RequestParser header value "originalPassword", required: false
-	exists, err = checkHeaderExists(r, "originalPassword", false)
+	exists, err = checkHeaderExists(r, "originalPassword", false, false)
 	if err != nil {
 		return err
 	}
@@ -98,7 +98,7 @@ func (p *paramFilesDuplicate) ParseRequest(r *http.Request) error {
 	}
 
 	// RequestParser header value "filename", required: false
-	exists, err = checkHeaderExists(r, "filename", false)
+	exists, err = checkHeaderExists(r, "filename", false, true)
 	if err != nil {
 		return err
 	}
@@ -123,7 +123,7 @@ func (p *paramFilesModify) ParseRequest(r *http.Request) error {
 	p.foundHeaders = make(map[string]bool)
 
 	// RequestParser header value "id", required: true
-	exists, err = checkHeaderExists(r, "id", true)
+	exists, err = checkHeaderExists(r, "id", true, true)
 	if err != nil {
 		return err
 	}
@@ -133,7 +133,7 @@ func (p *paramFilesModify) ParseRequest(r *http.Request) error {
 	}
 
 	// RequestParser header value "allowedDownloads", required: false
-	exists, err = checkHeaderExists(r, "allowedDownloads", false)
+	exists, err = checkHeaderExists(r, "allowedDownloads", false, false)
 	if err != nil {
 		return err
 	}
@@ -146,7 +146,7 @@ func (p *paramFilesModify) ParseRequest(r *http.Request) error {
 	}
 
 	// RequestParser header value "expiryTimestamp", required: false
-	exists, err = checkHeaderExists(r, "expiryTimestamp", false)
+	exists, err = checkHeaderExists(r, "expiryTimestamp", false, false)
 	if err != nil {
 		return err
 	}
@@ -159,7 +159,7 @@ func (p *paramFilesModify) ParseRequest(r *http.Request) error {
 	}
 
 	// RequestParser header value "password", required: false
-	exists, err = checkHeaderExists(r, "password", false)
+	exists, err = checkHeaderExists(r, "password", false, true)
 	if err != nil {
 		return err
 	}
@@ -169,7 +169,7 @@ func (p *paramFilesModify) ParseRequest(r *http.Request) error {
 	}
 
 	// RequestParser header value "originalPassword", required: false
-	exists, err = checkHeaderExists(r, "originalPassword", false)
+	exists, err = checkHeaderExists(r, "originalPassword", false, false)
 	if err != nil {
 		return err
 	}
@@ -197,7 +197,7 @@ func (p *paramFilesReplace) ParseRequest(r *http.Request) error {
 	p.foundHeaders = make(map[string]bool)
 
 	// RequestParser header value "id", required: true
-	exists, err = checkHeaderExists(r, "id", true)
+	exists, err = checkHeaderExists(r, "id", true, true)
 	if err != nil {
 		return err
 	}
@@ -207,7 +207,7 @@ func (p *paramFilesReplace) ParseRequest(r *http.Request) error {
 	}
 
 	// RequestParser header value "idNewContent", required: true
-	exists, err = checkHeaderExists(r, "idNewContent", true)
+	exists, err = checkHeaderExists(r, "idNewContent", true, true)
 	if err != nil {
 		return err
 	}
@@ -217,7 +217,7 @@ func (p *paramFilesReplace) ParseRequest(r *http.Request) error {
 	}
 
 	// RequestParser header value "deleteNewFile", required: false
-	exists, err = checkHeaderExists(r, "deleteNewFile", false)
+	exists, err = checkHeaderExists(r, "deleteNewFile", false, false)
 	if err != nil {
 		return err
 	}
@@ -245,7 +245,7 @@ func (p *paramFilesDelete) ParseRequest(r *http.Request) error {
 	p.foundHeaders = make(map[string]bool)
 
 	// RequestParser header value "id", required: true
-	exists, err = checkHeaderExists(r, "id", true)
+	exists, err = checkHeaderExists(r, "id", true, true)
 	if err != nil {
 		return err
 	}
@@ -270,7 +270,7 @@ func (p *paramAuthCreate) ParseRequest(r *http.Request) error {
 	p.foundHeaders = make(map[string]bool)
 
 	// RequestParser header value "friendlyName", required: false
-	exists, err = checkHeaderExists(r, "friendlyName", false)
+	exists, err = checkHeaderExists(r, "friendlyName", false, true)
 	if err != nil {
 		return err
 	}
@@ -280,7 +280,7 @@ func (p *paramAuthCreate) ParseRequest(r *http.Request) error {
 	}
 
 	// RequestParser header value "basicPermissions", required: false
-	exists, err = checkHeaderExists(r, "basicPermissions", false)
+	exists, err = checkHeaderExists(r, "basicPermissions", false, false)
 	if err != nil {
 		return err
 	}
@@ -308,7 +308,7 @@ func (p *paramAuthFriendlyName) ParseRequest(r *http.Request) error {
 	p.foundHeaders = make(map[string]bool)
 
 	// RequestParser header value "targetKey", required: true
-	exists, err = checkHeaderExists(r, "targetKey", true)
+	exists, err = checkHeaderExists(r, "targetKey", true, true)
 	if err != nil {
 		return err
 	}
@@ -318,7 +318,7 @@ func (p *paramAuthFriendlyName) ParseRequest(r *http.Request) error {
 	}
 
 	// RequestParser header value "friendlyName", required: true
-	exists, err = checkHeaderExists(r, "friendlyName", true)
+	exists, err = checkHeaderExists(r, "friendlyName", true, true)
 	if err != nil {
 		return err
 	}
@@ -343,7 +343,7 @@ func (p *paramAuthModify) ParseRequest(r *http.Request) error {
 	p.foundHeaders = make(map[string]bool)
 
 	// RequestParser header value "targetKey", required: true
-	exists, err = checkHeaderExists(r, "targetKey", true)
+	exists, err = checkHeaderExists(r, "targetKey", true, true)
 	if err != nil {
 		return err
 	}
@@ -353,7 +353,7 @@ func (p *paramAuthModify) ParseRequest(r *http.Request) error {
 	}
 
 	// RequestParser header value "permission", required: true
-	exists, err = checkHeaderExists(r, "permission", true)
+	exists, err = checkHeaderExists(r, "permission", true, true)
 	if err != nil {
 		return err
 	}
@@ -363,7 +363,7 @@ func (p *paramAuthModify) ParseRequest(r *http.Request) error {
 	}
 
 	// RequestParser header value "permissionModifier", required: true
-	exists, err = checkHeaderExists(r, "permissionModifier", true)
+	exists, err = checkHeaderExists(r, "permissionModifier", true, true)
 	if err != nil {
 		return err
 	}
@@ -388,7 +388,7 @@ func (p *paramAuthDelete) ParseRequest(r *http.Request) error {
 	p.foundHeaders = make(map[string]bool)
 
 	// RequestParser header value "targetKey", required: true
-	exists, err = checkHeaderExists(r, "targetKey", true)
+	exists, err = checkHeaderExists(r, "targetKey", true, true)
 	if err != nil {
 		return err
 	}
@@ -413,7 +413,7 @@ func (p *paramUserCreate) ParseRequest(r *http.Request) error {
 	p.foundHeaders = make(map[string]bool)
 
 	// RequestParser header value "username", required: true
-	exists, err = checkHeaderExists(r, "username", true)
+	exists, err = checkHeaderExists(r, "username", true, true)
 	if err != nil {
 		return err
 	}
@@ -438,7 +438,7 @@ func (p *paramUserChangeRank) ParseRequest(r *http.Request) error {
 	p.foundHeaders = make(map[string]bool)
 
 	// RequestParser header value "userid", required: true
-	exists, err = checkHeaderExists(r, "userid", true)
+	exists, err = checkHeaderExists(r, "userid", true, false)
 	if err != nil {
 		return err
 	}
@@ -451,7 +451,7 @@ func (p *paramUserChangeRank) ParseRequest(r *http.Request) error {
 	}
 
 	// RequestParser header value "newRank", required: true
-	exists, err = checkHeaderExists(r, "newRank", true)
+	exists, err = checkHeaderExists(r, "newRank", true, true)
 	if err != nil {
 		return err
 	}
@@ -476,7 +476,7 @@ func (p *paramUserDelete) ParseRequest(r *http.Request) error {
 	p.foundHeaders = make(map[string]bool)
 
 	// RequestParser header value "userid", required: true
-	exists, err = checkHeaderExists(r, "userid", true)
+	exists, err = checkHeaderExists(r, "userid", true, false)
 	if err != nil {
 		return err
 	}
@@ -489,7 +489,7 @@ func (p *paramUserDelete) ParseRequest(r *http.Request) error {
 	}
 
 	// RequestParser header value "deleteFiles", required: false
-	exists, err = checkHeaderExists(r, "deleteFiles", false)
+	exists, err = checkHeaderExists(r, "deleteFiles", false, false)
 	if err != nil {
 		return err
 	}
@@ -517,7 +517,7 @@ func (p *paramUserModify) ParseRequest(r *http.Request) error {
 	p.foundHeaders = make(map[string]bool)
 
 	// RequestParser header value "userid", required: true
-	exists, err = checkHeaderExists(r, "userid", true)
+	exists, err = checkHeaderExists(r, "userid", true, false)
 	if err != nil {
 		return err
 	}
@@ -530,7 +530,7 @@ func (p *paramUserModify) ParseRequest(r *http.Request) error {
 	}
 
 	// RequestParser header value "userpermission", required: true
-	exists, err = checkHeaderExists(r, "userpermission", true)
+	exists, err = checkHeaderExists(r, "userpermission", true, true)
 	if err != nil {
 		return err
 	}
@@ -540,7 +540,7 @@ func (p *paramUserModify) ParseRequest(r *http.Request) error {
 	}
 
 	// RequestParser header value "permissionModifier", required: true
-	exists, err = checkHeaderExists(r, "permissionModifier", true)
+	exists, err = checkHeaderExists(r, "permissionModifier", true, true)
 	if err != nil {
 		return err
 	}
@@ -565,7 +565,7 @@ func (p *paramUserResetPw) ParseRequest(r *http.Request) error {
 	p.foundHeaders = make(map[string]bool)
 
 	// RequestParser header value "userid", required: true
-	exists, err = checkHeaderExists(r, "userid", true)
+	exists, err = checkHeaderExists(r, "userid", true, false)
 	if err != nil {
 		return err
 	}
@@ -578,7 +578,7 @@ func (p *paramUserResetPw) ParseRequest(r *http.Request) error {
 	}
 
 	// RequestParser header value "generateNewPassword", required: false
-	exists, err = checkHeaderExists(r, "generateNewPassword", false)
+	exists, err = checkHeaderExists(r, "generateNewPassword", false, false)
 	if err != nil {
 		return err
 	}
@@ -617,7 +617,7 @@ func (p *paramChunkComplete) ParseRequest(r *http.Request) error {
 	p.foundHeaders = make(map[string]bool)
 
 	// RequestParser header value "uuid", required: true
-	exists, err = checkHeaderExists(r, "uuid", true)
+	exists, err = checkHeaderExists(r, "uuid", true, true)
 	if err != nil {
 		return err
 	}
@@ -627,7 +627,7 @@ func (p *paramChunkComplete) ParseRequest(r *http.Request) error {
 	}
 
 	// RequestParser header value "filename", required: true
-	exists, err = checkHeaderExists(r, "filename", true)
+	exists, err = checkHeaderExists(r, "filename", true, true)
 	if err != nil {
 		return err
 	}
@@ -637,7 +637,7 @@ func (p *paramChunkComplete) ParseRequest(r *http.Request) error {
 	}
 
 	// RequestParser header value "filesize", required: true
-	exists, err = checkHeaderExists(r, "filesize", true)
+	exists, err = checkHeaderExists(r, "filesize", true, false)
 	if err != nil {
 		return err
 	}
@@ -650,7 +650,7 @@ func (p *paramChunkComplete) ParseRequest(r *http.Request) error {
 	}
 
 	// RequestParser header value "realsize", required: false
-	exists, err = checkHeaderExists(r, "realsize", false)
+	exists, err = checkHeaderExists(r, "realsize", false, false)
 	if err != nil {
 		return err
 	}
@@ -663,7 +663,7 @@ func (p *paramChunkComplete) ParseRequest(r *http.Request) error {
 	}
 
 	// RequestParser header value "contenttype", required: false
-	exists, err = checkHeaderExists(r, "contenttype", false)
+	exists, err = checkHeaderExists(r, "contenttype", false, true)
 	if err != nil {
 		return err
 	}
@@ -673,7 +673,7 @@ func (p *paramChunkComplete) ParseRequest(r *http.Request) error {
 	}
 
 	// RequestParser header value "allowedDownloads", required: false
-	exists, err = checkHeaderExists(r, "allowedDownloads", false)
+	exists, err = checkHeaderExists(r, "allowedDownloads", false, false)
 	if err != nil {
 		return err
 	}
@@ -686,7 +686,7 @@ func (p *paramChunkComplete) ParseRequest(r *http.Request) error {
 	}
 
 	// RequestParser header value "expiryDays", required: false
-	exists, err = checkHeaderExists(r, "expiryDays", false)
+	exists, err = checkHeaderExists(r, "expiryDays", false, false)
 	if err != nil {
 		return err
 	}
@@ -699,7 +699,7 @@ func (p *paramChunkComplete) ParseRequest(r *http.Request) error {
 	}
 
 	// RequestParser header value "password", required: false
-	exists, err = checkHeaderExists(r, "password", false)
+	exists, err = checkHeaderExists(r, "password", false, true)
 	if err != nil {
 		return err
 	}
@@ -709,7 +709,7 @@ func (p *paramChunkComplete) ParseRequest(r *http.Request) error {
 	}
 
 	// RequestParser header value "isE2E", required: false
-	exists, err = checkHeaderExists(r, "isE2E", false)
+	exists, err = checkHeaderExists(r, "isE2E", false, false)
 	if err != nil {
 		return err
 	}
@@ -722,7 +722,7 @@ func (p *paramChunkComplete) ParseRequest(r *http.Request) error {
 	}
 
 	// RequestParser header value "nonblocking", required: false
-	exists, err = checkHeaderExists(r, "nonblocking", false)
+	exists, err = checkHeaderExists(r, "nonblocking", false, false)
 	if err != nil {
 		return err
 	}

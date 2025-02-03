@@ -199,8 +199,10 @@ func (p *paramFilesDuplicate) ProcessParameter(r *http.Request) error {
 			p.UnlimitedTime = true
 		}
 	}
-	if p.foundHeaders["password"] {
-		p.RequestedChanges |= storage.ParamPassword
+	if !p.KeepPassword {
+		if p.foundHeaders["password"] {
+			p.RequestedChanges |= storage.ParamPassword
+		}
 	}
 	if p.foundHeaders["filename"] {
 		p.RequestedChanges |= storage.ParamName
@@ -442,12 +444,17 @@ func (p *paramChunkComplete) ProcessParameter(_ *http.Request) error {
 	return nil
 }
 
-func checkHeaderExists(r *http.Request, key string, isRequired bool) (bool, error) {
-	exists := r.Header.Get(key) != ""
-	if isRequired && !exists {
+func checkHeaderExists(r *http.Request, key string, isRequired, isString bool) (bool, error) {
+	if r.Header.Get(key) != "" {
+		return true, nil
+	}
+	if isRequired {
 		return false, errors.New("header " + key + " is required")
 	}
-	return exists, nil
+	if isString {
+		return len(r.Header.Values(key)) > 0, nil
+	}
+	return false, nil
 }
 
 func parseHeaderBool(r *http.Request, key string) (bool, error) {

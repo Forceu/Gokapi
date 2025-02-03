@@ -166,7 +166,7 @@ func apiDeleteKey(w http.ResponseWriter, r requestParser, user models.User) {
 	if !ok {
 		panic("invalid parameter passed")
 	}
-	apiKeyOwner, apiKey, ok := isValidKeyForEditing(w, request.KeyId)
+	apiKeyOwner, apiKey, ok := isValidKeyForEditing(request.KeyId)
 	if !ok {
 		sendError(w, http.StatusNotFound, "Invalid key ID provided.")
 		return
@@ -183,7 +183,7 @@ func apiModifyApiKey(w http.ResponseWriter, r requestParser, user models.User) {
 	if !ok {
 		panic("invalid parameter passed")
 	}
-	apiKeyOwner, apiKey, ok := isValidKeyForEditing(w, request.KeyId)
+	apiKeyOwner, apiKey, ok := isValidKeyForEditing(request.KeyId)
 	if !ok {
 		sendError(w, http.StatusNotFound, "Invalid key ID provided.")
 		return
@@ -220,11 +220,10 @@ func apiModifyApiKey(w http.ResponseWriter, r requestParser, user models.User) {
 
 // isValidKeyForEditing checks if the provided API key is either a public or private ID and returns the user and API
 // key model (including the private ID)
-func isValidKeyForEditing(w http.ResponseWriter, apiKey string) (models.User, models.ApiKey, bool) {
+func isValidKeyForEditing(apiKey string) (models.User, models.ApiKey, bool) {
 	apiKey = publicKeyToApiKey(apiKey)
 	user, fullApiKey, ok := isValidApiKey(apiKey, false, models.ApiPermNone)
 	if !ok {
-		sendError(w, http.StatusNotFound, "Invalid api key provided.")
 		return models.User{}, models.ApiKey{}, false
 	}
 	return user, fullApiKey, true
@@ -287,9 +286,9 @@ func apiChangeFriendlyName(w http.ResponseWriter, r requestParser, user models.U
 	if !ok {
 		panic("invalid parameter passed")
 	}
-	ownerApiKey, apiKey, ok := isValidKeyForEditing(w, request.KeyId)
+	ownerApiKey, apiKey, ok := isValidKeyForEditing(request.KeyId)
 	if !ok {
-		sendError(w, http.StatusNotFound, "Invalid api key provided.")
+		sendError(w, http.StatusNotFound, "Invalid key ID provided.")
 		return
 	}
 	if ownerApiKey.Id != user.Id && !user.HasPermission(models.UserPermManageApiKeys) {
@@ -472,7 +471,7 @@ func apiDuplicateFile(w http.ResponseWriter, r requestParser, user models.User) 
 		0)     // is not being used by storage.DuplicateFile
 	newFile, err := storage.DuplicateFile(file, request.RequestedChanges, request.FileName, uploadRequest)
 	if err != nil {
-		sendError(w, http.StatusBadRequest, err.Error())
+		sendError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	outputFileInfo(w, newFile)
