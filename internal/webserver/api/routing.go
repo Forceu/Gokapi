@@ -256,7 +256,7 @@ type paramAuthCreate struct {
 func (p *paramAuthCreate) ProcessParameter(_ *http.Request) error { return nil }
 
 type paramAuthFriendlyName struct {
-	KeyId        string `header:"apiKeyToModify" required:"true"`
+	KeyId        string `header:"targetKey" required:"true"`
 	FriendlyName string `header:"friendlyName" required:"true"`
 	foundHeaders map[string]bool
 }
@@ -264,7 +264,7 @@ type paramAuthFriendlyName struct {
 func (p *paramAuthFriendlyName) ProcessParameter(_ *http.Request) error { return nil }
 
 type paramAuthModify struct {
-	KeyId              string `header:"apiKeyToModify" required:"true"`
+	KeyId              string `header:"targetKey" required:"true"`
 	permissionRaw      string `header:"permission" required:"true"`
 	permissionModifier string `header:"permissionModifier" required:"true"`
 	Permission         models.ApiPermission
@@ -303,7 +303,7 @@ func (p *paramAuthModify) ProcessParameter(_ *http.Request) error {
 }
 
 type paramAuthDelete struct {
-	KeyId        string `header:"apiKeyToModify" required:"true"`
+	KeyId        string `header:"targetKey" required:"true"`
 	foundHeaders map[string]bool
 }
 

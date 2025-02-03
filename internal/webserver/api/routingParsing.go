@@ -307,14 +307,14 @@ func (p *paramAuthFriendlyName) ParseRequest(r *http.Request) error {
 	var exists bool
 	p.foundHeaders = make(map[string]bool)
 
-	// RequestParser header value "apiKeyToModify", required: true
-	exists, err = checkHeaderExists(r, "apiKeyToModify", true)
+	// RequestParser header value "targetKey", required: true
+	exists, err = checkHeaderExists(r, "targetKey", true)
 	if err != nil {
 		return err
 	}
-	p.foundHeaders["apiKeyToModify"] = exists
+	p.foundHeaders["targetKey"] = exists
 	if exists {
-		p.KeyId = r.Header.Get("apiKeyToModify")
+		p.KeyId = r.Header.Get("targetKey")
 	}
 
 	// RequestParser header value "friendlyName", required: true
@@ -342,14 +342,14 @@ func (p *paramAuthModify) ParseRequest(r *http.Request) error {
 	var exists bool
 	p.foundHeaders = make(map[string]bool)
 
-	// RequestParser header value "apiKeyToModify", required: true
-	exists, err = checkHeaderExists(r, "apiKeyToModify", true)
+	// RequestParser header value "targetKey", required: true
+	exists, err = checkHeaderExists(r, "targetKey", true)
 	if err != nil {
 		return err
 	}
-	p.foundHeaders["apiKeyToModify"] = exists
+	p.foundHeaders["targetKey"] = exists
 	if exists {
-		p.KeyId = r.Header.Get("apiKeyToModify")
+		p.KeyId = r.Header.Get("targetKey")
 	}
 
 	// RequestParser header value "permission", required: true
@@ -387,14 +387,14 @@ func (p *paramAuthDelete) ParseRequest(r *http.Request) error {
 	var exists bool
 	p.foundHeaders = make(map[string]bool)
 
-	// RequestParser header value "apiKeyToModify", required: true
-	exists, err = checkHeaderExists(r, "apiKeyToModify", true)
+	// RequestParser header value "targetKey", required: true
+	exists, err = checkHeaderExists(r, "targetKey", true)
 	if err != nil {
 		return err
 	}
-	p.foundHeaders["apiKeyToModify"] = exists
+	p.foundHeaders["targetKey"] = exists
 	if exists {
-		p.KeyId = r.Header.Get("apiKeyToModify")
+		p.KeyId = r.Header.Get("targetKey")
 	}
 
 	return p.ProcessParameter(r)

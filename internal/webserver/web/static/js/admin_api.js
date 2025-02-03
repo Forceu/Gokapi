@@ -12,7 +12,7 @@ async function apiAuthModify(apiKey, permission, modifier) {
         headers: {
             'Content-Type': 'application/json',
             'apikey': systemKey,
-            'apiKeyToModify': apiKey,
+            'targetKey': apiKey,
             'permission': permission,
             'permissionModifier': modifier
 
@@ -39,7 +39,7 @@ async function apiAuthFriendlyName(apiKey, newName) {
         headers: {
             'Content-Type': 'application/json',
             'apikey': systemKey,
-            'apiKeyToModify': apiKey,
+            'targetKey': apiKey,
             'friendlyName': newName
 
         },
@@ -65,7 +65,7 @@ async function apiAuthDelete(apiKey) {
         headers: {
             'Content-Type': 'application/json',
             'apikey': systemKey,
-            'apiKeyToModify': apiKey,
+            'targetKey': apiKey,
         },
     };
 

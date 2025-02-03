@@ -655,7 +655,7 @@
         ],
         "parameters": [
           {
-            "name": "apiKeyToModify",
+            "name": "targetKey",
             "in": "header",
             "description": "The API key to change the name of. Can be either the public ID or the actual API key",
             "required": true,
@@ -705,7 +705,7 @@
         ],
         "parameters": [
           {
-            "name": "apiKeyToModify",
+            "name": "targetKey",
             "in": "header",
             "description": "The API key to change the permission of. Can be either the public ID or the actual API key",
             "required": true,
@@ -771,7 +771,7 @@
         ],
         "parameters": [
           {
-            "name": "apiKeyToModify",
+            "name": "targetKey",
             "in": "header",
             "description": "The API key to delete. Can be either the public ID or the actual API key",
             "required": true,

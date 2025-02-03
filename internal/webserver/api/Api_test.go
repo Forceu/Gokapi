@@ -229,12 +229,12 @@ func testInvalidUserId(t *testing.T, url, apiKey string, validHeaders []test.Hea
 
 func testInvalidApiKey(t *testing.T, url, apiKey string, validHeaders []test.Header) {
 	t.Helper()
-	const headerApiKey = "apiKeyToModify"
+	const headerApiKey = "targetKey"
 
 	var invalidParameter = []invalidParameterValue{
 		{
 			Value:        "",
-			ErrorMessage: `{"Result":"error","ErrorMessage":"header apiKeyToModify is required"}`,
+			ErrorMessage: `{"Result":"error","ErrorMessage":"header targetKey is required"}`,
 			StatusCode:   400,
 		},
 		{
@@ -912,7 +912,7 @@ func removeUserPermission(t *testing.T, userId int, permission models.UserPermis
 
 func TestDeleteApiKey(t *testing.T) {
 	const apiUrl = "/auth/delete"
-	const headerApiDelete = "apiKeyToModify"
+	const headerApiDelete = "targetKey"
 	apiKey := testAuthorisation(t, apiUrl, models.ApiPermApiMod)
 	testInvalidApiKey(t, apiUrl, apiKey.Id, []test.Header{})
 
@@ -940,7 +940,7 @@ func countApiKeys() int {
 
 func TestChangeFriendlyName(t *testing.T) {
 	const apiUrl = "/auth/friendlyname"
-	const headerApiKeyModify = "apiKeyToModify"
+	const headerApiKeyModify = "targetKey"
 	const headerNewName = "friendlyName"
 	apiKey := testAuthorisation(t, apiUrl, models.ApiPermApiMod)
 	testInvalidApiKey(t, apiUrl, apiKey.Id, []test.Header{{Name: headerNewName, Value: "new name"}})
@@ -971,7 +971,7 @@ func TestChangeFriendlyName(t *testing.T) {
 
 func TestApikeyModify(t *testing.T) {
 	const apiUrl = "/auth/modify"
-	const headerApiKeyModify = "apiKeyToModify"
+	const headerApiKeyModify = "targetKey"
 	const headerPermission = "permission"
 	const headerModifier = "permissionModifier"
 
@@ -1046,9 +1046,9 @@ func TestApikeyModify(t *testing.T) {
 	removeUserPermission(t, idUser, models.UserPermManageUsers)
 }
 
-func testApiModifyCall(t *testing.T, apiKey, apiKeyToModify string, permission string, grant bool) {
+func testApiModifyCall(t *testing.T, apiKey, targetKey string, permission string, grant bool) {
 	const apiUrl = "/auth/modify"
-	const headerApiKeyModify = "apiKeyToModify"
+	const headerApiKeyModify = "targetKey"
 	const headerPermission = "permission"
 	const headerModifier = "permissionModifier"
 
@@ -1058,7 +1058,7 @@ func testApiModifyCall(t *testing.T, apiKey, apiKeyToModify string, permission s
 	}
 	w, r := getRecorder(apiUrl, apiKey, []test.Header{{
 		Name:  headerApiKeyModify,
-		Value: apiKeyToModify,
+		Value: targetKey,
 	}, {
 		Name:  headerPermission,
 		Value: permission,
