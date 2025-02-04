@@ -11,7 +11,6 @@ import (
 	"github.com/forceu/gokapi/internal/webserver/fileupload"
 	"io"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -468,7 +467,7 @@ func apiDuplicateFile(w http.ResponseWriter, r requestParser, user models.User) 
 		request.UnlimitedTime,
 		request.UnlimitedDownloads,
 		false, // is not being used by storage.DuplicateFile
-		0)     // is not being used by storage.DuplicateFile
+		0) // is not being used by storage.DuplicateFile
 	newFile, err := storage.DuplicateFile(file, request.RequestedChanges, request.FileName, uploadRequest)
 	if err != nil {
 		sendError(w, http.StatusInternalServerError, err.Error())
@@ -711,62 +710,6 @@ func publicKeyToApiKey(publicKey string) string {
 		}
 	}
 	return publicKey
-}
-
-func apiRequestToUploadRequest(request *http.Request) (models.UploadRequest, int, string, error) {
-	paramsToChange := 0
-	allowedDownloads := 0
-	daysExpiry := 0
-	unlimitedTime := false
-	unlimitedDownloads := false
-	password := ""
-	fileName := ""
-
-	err := request.ParseForm()
-	if err != nil {
-		return models.UploadRequest{}, 0, "", err
-	}
-
-	if request.Form.Get("allowedDownloads") != "" {
-		paramsToChange = paramsToChange | storage.ParamDownloads
-		allowedDownloads, err = strconv.Atoi(request.Form.Get("allowedDownloads"))
-		if err != nil {
-			return models.UploadRequest{}, 0, "", err
-		}
-		if allowedDownloads == 0 {
-			unlimitedDownloads = true
-		}
-	}
-
-	if request.Form.Get("expiryDays") != "" {
-		paramsToChange = paramsToChange | storage.ParamExpiry
-		daysExpiry, err = strconv.Atoi(request.Form.Get("expiryDays"))
-		if err != nil {
-			return models.UploadRequest{}, 0, "", err
-		}
-		if daysExpiry == 0 {
-			unlimitedTime = true
-		}
-	}
-
-	if strings.ToLower(request.Form.Get("originalPassword")) != "true" {
-		paramsToChange = paramsToChange | storage.ParamPassword
-		password = request.Form.Get("password")
-	}
-
-	if request.Form.Get("filename") != "" {
-		paramsToChange = paramsToChange | storage.ParamName
-		fileName = request.Form.Get("filename")
-	}
-
-	return models.UploadRequest{
-		AllowedDownloads:  allowedDownloads,
-		Expiry:            daysExpiry,
-		UnlimitedTime:     unlimitedTime,
-		UnlimitedDownload: unlimitedDownloads,
-		Password:          password,
-		ExpiryTimestamp:   time.Now().Add(time.Duration(daysExpiry) * time.Hour * 24).Unix(),
-	}, paramsToChange, fileName, nil
 }
 
 // isValidApiKey checks if the API key provides is valid. If modifyTime is true, it also automatically updates
