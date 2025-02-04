@@ -2,7 +2,6 @@
 // All files named admin_*.js will be merged together and minimised by calling
 // go generate ./...
 
-var clipboard = new ClipboardJS('.btn');
 
 var dropzoneObject;
 var isE2EEnabled = false;
@@ -182,60 +181,49 @@ function urlencodeFormData(fd) {
     return s;
 }
 
+
 function sendChunkComplete(file, done) {
-    var xhr = new XMLHttpRequest();
-    xhr.open("POST", "./uploadComplete", true);
-    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-
-    let formData = new FormData();
-    formData.append("allowedDownloads", document.getElementById("allowedDownloads").value);
-    formData.append("expiryDays", document.getElementById("expiryDays").value);
-    formData.append("password", document.getElementById("password").value);
-    formData.append("isUnlimitedDownload", !document.getElementById("enableDownloadLimit").checked);
-    formData.append("isUnlimitedTime", !document.getElementById("enableTimeLimit").checked);
-    formData.append("chunkid", file.upload.uuid);
-
-    if (file.isEndToEndEncrypted === true) {
-        formData.append("filesize", file.sizeEncrypted);
-        formData.append("filename", "Encrypted File");
-        formData.append("filecontenttype", "");
-        formData.append("isE2E", "true");
-        formData.append("realSize", file.size);
-    } else {
-        formData.append("filesize", file.size);
-        formData.append("filename", file.name);
-        formData.append("filecontenttype", file.type);
+    let uuid = file.upload.uuid;
+    let filename = file.name;
+    let filesize = file.size;
+    let realsize = file.size;
+    let contenttype = file.type;
+    let allowedDownloads = document.getElementById("allowedDownloads").value;
+    let expiryDays = document.getElementById("expiryDays").value;
+    let password = document.getElementById("password").value;
+    let isE2E = file.isEndToEndEncrypted === true;
+    let nonblocking = true;
+    
+    if (!document.getElementById("enableDownloadLimit").checked) {
+    	allowedDownloads = 0;
     }
-
-    xhr.onreadystatechange = function() {
-        if (this.readyState == 4) {
-            if (this.status == 200) {
-                done();
+    if (!document.getElementById("enableTimeLimit").checked) {
+    	expiryDays = 0;
+    }
+    
+    if (isE2E) {
+            filesize = file.sizeEncrypted;
+	    filename = "Encrypted File";
+	    contenttype = "";
+    }
+    
+     apiChunkComplete(uuid, filename, filesize, realsize, contenttype, allowedDownloads, expiryDays, password, isE2E, nonblocking)
+            .then(data => {
+               done();
                 let progressText = document.getElementById(`us-progress-info-${file.upload.uuid}`);
                 if (progressText != null)
                     progressText.innerText = "In Queue...";
-            } else {
-                dropzoneUploadError(file, getErrorMessage(xhr.responseText));
-            }
-        }
-    };
-    xhr.send(urlencodeFormData(formData));
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                dropzoneUploadError(file, error);
+            });
 }
 
 function dropzoneUploadError(file, errormessage) {
     file.accepted = false;
     dropzoneObject._errorProcessing([file], errormessage);
     showError(file, errormessage);
-}
-
-function getErrorMessage(response) {
-    let result;
-    try {
-        result = JSON.parse(response);
-    } catch (e) {
-        return "Unknown error: Server could not process file";
-    }
-    return "Error: " + result.ErrorMessage;
 }
 
 function dropzoneGetFile(uid) {
@@ -354,8 +342,8 @@ function editFile() {
     let replaceFile = false;
     let replaceId = "";
     if (document.getElementById('mc_replace').checked) {
-        replaceFile = true;
         replaceId = document.getElementById('mi_edit_replace').value;
+        replaceFile = (replaceId != "");
     }
 
     apiFilesModify(id, allowedDownloads, expiryTimestamp, password, originalPassword)
@@ -422,7 +410,7 @@ function handleEditCheckboxChange(checkbox) {
 
 }
 
-function showEditModal(filename, id, downloads, expiry, password, unlimitedown, unlimitedtime, isE2e) {
+function showEditModal(filename, id, downloads, expiry, password, unlimitedown, unlimitedtime, isE2e, canReplace) {
     // Cloning removes any previous values or form validation
     let originalModal = $('#modaledit').clone();
     $("#modaledit").on('hide.bs.modal', function() {
@@ -430,6 +418,7 @@ function showEditModal(filename, id, downloads, expiry, password, unlimitedown, 
         let myClone = originalModal.clone();
         $('body').append(myClone);
     });
+    
     document.getElementById("m_filenamelabel").innerHTML = filename;
     document.getElementById("mc_expiry").setAttribute("data-timestamp", expiry);
     document.getElementById("mb_save").setAttribute('data-fileid', id);
@@ -468,23 +457,29 @@ function showEditModal(filename, id, downloads, expiry, password, unlimitedown, 
     }
 
     let selectReplace = document.getElementById("mi_edit_replace");
-    if (!isE2e) {
-        let files = getAllAvailableFiles();
-        for (let i = 0; i < files[0].length; i++) {
-            if (files[0][i] == id)
-                continue;
-            selectReplace.add(new Option(files[1][i] + " (" + files[0][i] + ")", files[0][i]));
+    if (canReplace) {
+        document.getElementById("replaceGroup").style.display = 'flex';
+        if (!isE2e) {
+            let files = getAllAvailableFiles();
+            for (let i = 0; i < files[0].length; i++) {
+                if (files[0][i] == id)
+                    continue;
+                selectReplace.add(new Option(files[1][i] + " (" + files[0][i] + ")", files[0][i]));
+            }
+        } else {
+            document.getElementById("mc_replace").disabled = true;
+            document.getElementById("mc_replace").title = "Replacing content is not available for end-to-end encrypted files";
+            selectReplace.add(new Option("Unavailable", 0));
+            selectReplace.title = "Replacing content is not available for end-to-end encrypted files";
+            selectReplace.value = "0";
         }
     } else {
-        document.getElementById("mc_replace").disabled = true;
-        document.getElementById("mc_replace").title = "Replacing content is not available for end-to-end encrypted files";
-        selectReplace.add(new Option("Unavailable", 0));
-        selectReplace.title = "Replacing content is not available for end-to-end encrypted files";
-        selectReplace.value = "0";
+        document.getElementById("replaceGroup").style.display = 'none';
     }
 
 
-    $('#modaledit').modal('show');
+
+    new bootstrap.Modal('#modaledit', {}).show();
 }
 
 function selectTextForPw(input) {
@@ -699,14 +694,14 @@ function addRow(item) {
     cellDownloadCount.innerHTML = '0';
     cellUrl.innerHTML = '<a  target="_blank" style="color: inherit" id="url-href-' + item.Id + '" href="' + item.UrlDownload + '">' + item.Id + '</a>' + lockIcon;
 
-    let buttons = '<button type="button" onclick="showToast()" id="url-button-' + item.Id + '"  data-clipboard-text="' + item.UrlDownload + '" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> URL</button> ';
+    let buttons = '<button type="button" onclick="showToast(1000)" id="url-button-' + item.Id + '"  data-clipboard-text="' + item.UrlDownload + '" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> URL</button> ';
     if (item.UrlHotlink === "") {
         buttons = buttons + '<button type="button"class="copyurl btn btn-outline-light btn-sm disabled"><i class="bi bi-copy"></i> Hotlink</button> ';
     } else {
-        buttons = buttons + '<button type="button" onclick="showToast()" data-clipboard-text="' + item.UrlHotlink + '" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> Hotlink</button> ';
+        buttons = buttons + '<button type="button" onclick="showToast(1000)" data-clipboard-text="' + item.UrlHotlink + '" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> Hotlink</button> ';
     }
     buttons = buttons + '<button type="button" id="qrcode-' + item.Id + '" title="QR Code" class="btn btn-outline-light btn-sm" onclick="showQrCode(\'' + item.UrlDownload + '\');"><i class="bi bi-qr-code"></i></button> ';
-    buttons = buttons + '<button type="button" title="Edit" class="btn btn-outline-light btn-sm" onclick="showEditModal(\'' + item.Name + '\',\'' + item.Id + '\', ' + item.DownloadsRemaining + ', ' + item.ExpireAt + ', ' + item.IsPasswordProtected + ', ' + item.UnlimitedDownloads + ', ' + item.UnlimitedTime + ', ' + item.IsEndToEndEncrypted + ');"><i class="bi bi-pencil"></i></button> ';
+    buttons = buttons + '<button type="button" title="Edit" class="btn btn-outline-light btn-sm" onclick="showEditModal(\'' + item.Name + '\',\'' + item.Id + '\', ' + item.DownloadsRemaining + ', ' + item.ExpireAt + ', ' + item.IsPasswordProtected + ', ' + item.UnlimitedDownloads + ', ' + item.UnlimitedTime + ', ' + item.IsEndToEndEncrypted + ', canReplaceOwnFiles);"><i class="bi bi-pencil"></i></button> ';
     buttons = buttons + '<button type="button" id="button-delete-' + item.Id + '" title="Delete" class="btn btn-outline-danger btn-sm" onclick="deleteFile(\'' + item.Id + '\')"><i class="bi bi-trash3"></i></button>';
 
     cellButtons.innerHTML = buttons;
@@ -755,12 +750,4 @@ function showQrCode(url) {
         correctLevel: QRCode.CorrectLevel.H
     });
     overlay.addEventListener("click", hideQrCode);
-}
-
-function showToast() {
-    let notification = document.getElementById("toastnotification");
-    notification.classList.add("show");
-    setTimeout(() => {
-        notification.classList.remove("show");
-    }, 1000);
 }

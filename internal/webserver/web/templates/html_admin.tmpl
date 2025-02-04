@@ -79,15 +79,15 @@
 			{{ end }}
 						<td id="cell-downloads-{{ .Id }}">{{ .DownloadCount }}</td>
 						<td><a id="url-href-{{ .Id }}" target="_blank" href="{{ .UrlDownload }}">{{ .Id }}</a>{{ if .IsPasswordProtected }}  <i title="Password protected" class="bi bi-key"></i>{{ end }}</td>
-						<td><button id="url-button-{{ .Id }}" type="button" onclick="showToast()" data-clipboard-text="{{ .UrlDownload }}" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> URL</button> 
+						<td><button id="url-button-{{ .Id }}" type="button" onclick="showToast(1000)" data-clipboard-text="{{ .UrlDownload }}" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> URL</button> 
 			{{ if ne .UrlHotlink "" }}
- 						<button type="button" onclick="showToast()" data-clipboard-text="{{ .UrlHotlink }}" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> Hotlink</button>
+ 						<button type="button" onclick="showToast(1000)" data-clipboard-text="{{ .UrlHotlink }}" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> Hotlink</button>
 			{{ else }}
  						<button type="button"class="copyurl btn btn-outline-light btn-sm disabled"><i class="bi bi-copy"></i> Hotlink</button>
 			{{ end }}
 						<button type="button" id="qrcode-{{ .Id }}" title="QR Code" class="btn btn-outline-light btn-sm" onclick="showQrCode('{{ .UrlDownload }}');"><i class="bi bi-qr-code"></i></button>
-						<button type="button" title="Edit" class="btn btn-outline-light btn-sm" onclick="showEditModal('{{.Name }}','{{.Id}}', {{.DownloadsRemaining }}, {{.ExpireAt }}, {{.IsPasswordProtected}}, {{.UnlimitedDownloads }}, {{.UnlimitedTime}}, {{.IsEndToEndEncrypted}});"><i class="bi bi-pencil"></i></button>
-						<button id="button-delete-{{ .Id }}" type="button" title="Delete" class="btn btn-outline-danger btn-sm" onclick="deleteFile('{{ .Id }}')"><i class="bi bi-trash3"></i></button></td>
+						{{ template "admin_button_edit" (newAdminButtonContext . $.ActiveUser) }}
+						{{ template "admin_button_delete" (newAdminButtonContext . $.ActiveUser) }}</td>
 					</tr>
 		{{ end }}
 	{{ end }}
@@ -100,57 +100,10 @@
 	    </div>
    	 </div>
 	
-	<!-- Modal for editing-->
-	<div class="modal fade" id="modaledit" tabindex="-1" aria-labelledby="m_filenamelabel" aria-hidden="true">
-	  <div class="modal-dialog  modal-lg gokapi-dialog">
-	    <div class="modal-content gokapi-dialog">
-	      <div class="modal-header">
-		<h1 class="modal-title fs-5" id="m_filenamelabel">Filename</h1>
-	      </div>
-	      <div class="modal-body">
-		<div class="input-group mb-3">
-		  <div class="input-group-text">
-      			<input type="checkbox" id="mc_download"  checked aria-label="Limit downloads" title="Limit downloads"  data-toggle-target="mi_edit_down" onchange="handleEditCheckboxChange(this)">
-   		 </div>
-		  <span class="input-group-text" id="edit_down">Limit Downloads</span>
-		  <input type="number" min="1" id="mi_edit_down" class="form-control" aria-label="Downloads Remaining" aria-describedby="edit_down">
-		</div>
-		<div class="input-group mb-3">
-		  <div class="input-group-text">
-      			<input id="mc_expiry" type="checkbox" checked aria-label="Expire files" title="Expire files"  data-toggle-target="mi_edit_expiry" data-timestamp="" onchange="handleEditCheckboxChange(this)">
-   		 </div>
-		  <span class="input-group-text" id="edit_expdate">Expiry&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
-		  <input type="text" id="mi_edit_expiry" class="form-control" aria-label="Expiry" aria-describedby="edit_expdate">
-		</div>
-		<div class="input-group mb-3">
-		  <div class="input-group-text">
-      			<input type="checkbox" id="mc_password" aria-label="Require password" title="Require password" data-toggle-target="mi_edit_pw" onchange="handleEditCheckboxChange(this)">
-   		 </div>
-		  <span class="input-group-text" id="edit_pw">Password&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
-		  <input type="text" id="mi_edit_pw" class="form-control" aria-label="Password" disabled onclick="selectTextForPw(this)" aria-describedby="edit_pw">
-		</div>
-		
-	      <div class="input-group mb-3">
-		  <div class="input-group-text">
-		    <input type="checkbox" id="mc_replace" aria-label="Replace file content" title="Replace file content" data-toggle-target="mi_edit_replace" onchange="handleEditCheckboxChange(this)">
-		  </div>
-		  <span class="input-group-text" id="edit_replace">Replace Content&nbsp;&nbsp;</span>
-		  <select id="mi_edit_replace" class="form-select" aria-label="Replace File Content" disabled>
-		  </select>
-		</div>
-	      </div>
-	      <div class="modal-footer">
-		<button type="button" class="btn btn-outline-light"  aria-label="Close" data-bs-dismiss="modal">Close</button>
-		<button type="button" class="btn btn-primary" data-fileid="" id="mb_save" onclick="editFile();">Save changes</button>
-	      </div>
-	    </div>
-	  </div>
-	</div>
-	
+	{{ template "admin_modal_edit" }}
 	
 
-
-	<div id="toastnotification" class="toastnotification">URL copied to clipboard</div>
+	<div id="toastnotification" class="toastnotification" data-default="URL copied to clipboard">Toast Text</div>
 	<div id="qroverlay">
 	  <div id="qrcode"></div>
 	</div>
@@ -192,6 +145,7 @@
 	registerChangeHandler();
 		
 	var systemKey = "{{.SystemKey}}";
+	var canReplaceOwnFiles = {{.ActiveUser.HasPermissionReplace}};
 	setUploadDefaults();
 	
 	
@@ -219,4 +173,88 @@
 
 
 {{ template "footer" true}}
+{{ end }}
+
+{{ define "admin_button_edit" }}
+			<button
+			    type="button"
+			    title="Edit"
+			    {{ if and (ne .ActiveUser.Id .CurrentFile.UploaderId) (not .ActiveUser.HasPermissionEditOtherUploads) }}
+			    	disabled
+			    {{ end }}
+			    class="btn btn-outline-light btn-sm"
+			    onclick="showEditModal('{{.CurrentFile.Name }}',
+			    	'{{.CurrentFile.Id}}', {{.CurrentFile.DownloadsRemaining }},
+			    	 {{.CurrentFile.ExpireAt }}, {{.CurrentFile.IsPasswordProtected}},
+			    	 {{.CurrentFile.UnlimitedDownloads }}, {{.CurrentFile.UnlimitedTime}},
+			    	 {{.CurrentFile.IsEndToEndEncrypted}},
+			    	 {{ or (and (eq .ActiveUser.Id .CurrentFile.UploaderId) (.ActiveUser.HasPermissionReplace))
+			    	 	(.ActiveUser.HasPermissionReplaceOtherUploads) }});">
+		   	    <i class="bi bi-pencil"></i>
+			</button>
+
+{{ end }}
+
+
+{{ define "admin_button_delete" }}
+			<button id="button-delete-{{ .CurrentFile.Id}}"
+			   type="button"
+			   title="Delete"
+			    {{ if and (ne .ActiveUser.Id .CurrentFile.UploaderId) (not .ActiveUser.HasPermissionDeleteOtherUploads) }}
+			    	disabled
+			    {{ end }}
+			   class="btn btn-outline-danger btn-sm"
+			   onclick="deleteFile('{{ .CurrentFile.Id }}')">
+			   <i class="bi bi-trash3"></i>
+			</button>
+{{ end }}
+
+{{ define "admin_modal_edit" }}
+
+	<div class="modal fade" id="modaledit" tabindex="-1" aria-labelledby="m_filenamelabel" aria-hidden="true">
+	  <div class="modal-dialog  modal-lg gokapi-dialog">
+	    <div class="modal-content gokapi-dialog">
+	      <div class="modal-header">
+		<h1 class="modal-title fs-5" id="m_filenamelabel">Filename</h1>
+	      </div>
+	      <div class="modal-body">
+		<div class="input-group mb-3">
+		  <div class="input-group-text">
+      			<input type="checkbox" id="mc_download"  checked aria-label="Limit downloads" title="Limit downloads"  data-toggle-target="mi_edit_down" onchange="handleEditCheckboxChange(this)">
+   		 </div>
+		  <span class="input-group-text" id="edit_down">Limit Downloads</span>
+		  <input type="number" min="1" id="mi_edit_down" class="form-control" aria-label="Downloads Remaining" aria-describedby="edit_down">
+		</div>
+		<div class="input-group mb-3">
+		  <div class="input-group-text">
+      			<input id="mc_expiry" type="checkbox" checked aria-label="Expire files" title="Expire files"  data-toggle-target="mi_edit_expiry" data-timestamp="" onchange="handleEditCheckboxChange(this)">
+   		 </div>
+		  <span class="input-group-text" id="edit_expdate">Expiry&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+		  <input type="text" id="mi_edit_expiry" class="form-control" aria-label="Expiry" aria-describedby="edit_expdate">
+		</div>
+		<div class="input-group mb-3">
+		  <div class="input-group-text">
+      			<input type="checkbox" id="mc_password" aria-label="Require password" title="Require password" data-toggle-target="mi_edit_pw" onchange="handleEditCheckboxChange(this)">
+   		 </div>
+		  <span class="input-group-text" id="edit_pw">Password&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+		  <input type="text" id="mi_edit_pw" class="form-control" aria-label="Password" disabled onclick="selectTextForPw(this)" aria-describedby="edit_pw">
+		</div>
+		
+	      <div class="input-group mb-3" id="replaceGroup">
+		  <div class="input-group-text">
+		    <input type="checkbox" id="mc_replace" aria-label="Replace file content" title="Replace file content" data-toggle-target="mi_edit_replace" onchange="handleEditCheckboxChange(this)">
+		  </div>
+		  <span class="input-group-text" id="edit_replace">Replace Content&nbsp;&nbsp;</span>
+		  <select id="mi_edit_replace" class="form-select" aria-label="Replace File Content" disabled>
+		  </select>
+		</div>
+	      </div>
+	      <div class="modal-footer">
+		<button type="button" class="btn btn-outline-light"  aria-label="Close" data-bs-dismiss="modal">Close</button>
+		<button type="button" class="btn btn-primary" data-fileid="" id="mb_save" onclick="editFile();">Save changes</button>
+	      </div>
+	    </div>
+	  </div>
+	</div>
+
 {{ end }}

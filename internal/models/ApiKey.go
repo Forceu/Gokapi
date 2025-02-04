@@ -1,10 +1,12 @@
 package models
 
-import "time"
+import (
+	"time"
+)
 
 const (
 	// ApiPermView is the permission for viewing metadata of all uploaded files
-	ApiPermView = 1 << iota
+	ApiPermView ApiPermission = 1 << iota
 	// ApiPermUpload is the permission for creating new files
 	ApiPermUpload
 	// ApiPermDelete is the permission for deleting files
@@ -15,27 +17,33 @@ const (
 	ApiPermEdit
 	// ApiPermReplace is the permission for replacing the content of uploaded files
 	ApiPermReplace
+	// ApiPermManageUsers is the permission for managing users
+	ApiPermManageUsers
 )
 
 // ApiPermNone means no permission granted
-const ApiPermNone = 0
+const ApiPermNone ApiPermission = 0
 
 // ApiPermAll means all permission granted
-const ApiPermAll = 63
+const ApiPermAll ApiPermission = 127
 
-// ApiPermAllNoApiMod means all permission granted, except ApiPermApiMod and ApiPermReplace
+// ApiPermDefault means all permission granted, except ApiPermApiMod, ApiPermManageUsers and ApiPermReplace
 // This is the default for new API keys that are created from the UI
-const ApiPermAllNoApiMod = ApiPermAll - ApiPermApiMod - ApiPermReplace
+const ApiPermDefault = ApiPermAll - ApiPermApiMod - ApiPermManageUsers - ApiPermReplace
 
 // ApiKey contains data of a single api key
 type ApiKey struct {
-	Id           string `json:"Id" redis:"Id"`
-	FriendlyName string `json:"FriendlyName" redis:"FriendlyName"`
-	LastUsed     int64  `json:"LastUsed" redis:"LastUsed"`
-	Permissions  uint8  `json:"Permissions" redis:"Permissions"`
-	Expiry       int64  `json:"Expiry" redis:"Expiry"` // Does not expire if 0
-	IsSystemKey  bool   `json:"IsSystemKey" redis:"IsSystemKey"`
+	Id           string        `json:"Id" redis:"Id"`
+	PublicId     string        `json:"PublicId" redis:"PublicId"`
+	FriendlyName string        `json:"FriendlyName" redis:"FriendlyName"`
+	LastUsed     int64         `json:"LastUsed" redis:"LastUsed"`
+	Permissions  ApiPermission `json:"Permissions" redis:"Permissions"`
+	Expiry       int64         `json:"Expiry" redis:"Expiry"` // Does not expire if 0
+	IsSystemKey  bool          `json:"IsSystemKey" redis:"IsSystemKey"`
+	UserId       int           `json:"UserId" redis:"UserId"`
 }
+
+type ApiPermission uint8
 
 // GetReadableDate returns the date as YYYY-MM-DD HH:MM:SS
 func (key *ApiKey) GetReadableDate() string {
@@ -45,18 +53,23 @@ func (key *ApiKey) GetReadableDate() string {
 	return time.Unix(key.LastUsed, 0).Format("2006-01-02 15:04:05")
 }
 
-// SetPermission grants one or more permissions
-func (key *ApiKey) SetPermission(permission uint8) {
+// GetRedactedId returns a redacted version of the API key
+func (key *ApiKey) GetRedactedId() string {
+	return key.Id[0:2] + "**************************" + key.Id[len(key.Id)-2:]
+}
+
+// GrantPermission sets one or more permissions
+func (key *ApiKey) GrantPermission(permission ApiPermission) {
 	key.Permissions |= permission
 }
 
 // RemovePermission revokes one or more permissions
-func (key *ApiKey) RemovePermission(permission uint8) {
+func (key *ApiKey) RemovePermission(permission ApiPermission) {
 	key.Permissions &^= permission
 }
 
 // HasPermission returns true if the key has the permission(s)
-func (key *ApiKey) HasPermission(permission uint8) bool {
+func (key *ApiKey) HasPermission(permission ApiPermission) bool {
 	if permission == ApiPermNone {
 		return true
 	}
@@ -93,8 +106,14 @@ func (key *ApiKey) HasPermissionReplace() bool {
 	return key.HasPermission(ApiPermReplace)
 }
 
+// HasPermissionManageUsers returns true if ApiPermManageUsers is granted
+func (key *ApiKey) HasPermissionManageUsers() bool {
+	return key.HasPermission(ApiPermManageUsers)
+}
+
 // ApiKeyOutput is the output that is used after a new key is created
 type ApiKeyOutput struct {
-	Result string
-	Id     string
+	Result   string
+	Id       string
+	PublicId string
 }

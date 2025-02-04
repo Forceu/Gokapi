@@ -3,7 +3,7 @@
   "info": {
     "title": "Gokapi",
     "description": "[https://github.com/Forceu/Gokapi](https://github.com/Forceu/Gokapi)\n",
-    "version": "1.0"
+    "version": "2.0"
   },
   "servers": [
     {
@@ -22,6 +22,12 @@
     },
     {
       "name": "auth"
+    },
+    {
+      "name": "user"
+    },
+    {
+      "name": "chunk"
     }
   ],
   "paths": {
@@ -31,7 +37,7 @@
           "files"
         ],
         "summary": "Lists all files",
-        "description": "This API call lists all files that are not expired. Returns null, if no files are stored. Requires permission VIEW",
+        "description": "This API call lists all files that are not expired. Returns null, if no files are stored. Requires API permission VIEW. To view files that were not uploaded by the user, the user needs to have the user permission LIST",
         "operationId": "list",
         "security": [
           {
@@ -57,7 +63,7 @@
             "description": "Invalid input"
           },
           "401": {
-            "description": "Invalid API key provided"
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
           }
         }
       }
@@ -68,7 +74,7 @@
           "files"
         ],
         "summary": "Get metadata by ID",
-        "description": "This API call lists all metadata about a file that is not expired. Returns 404 if an invalid/expired ID was passed. Requires permission VIEW",
+        "description": "This API call lists all metadata about a file that is not expired. Returns 404 if an invalid/expired ID was passed. Requires API permission VIEW. To view files that were not uploaded by the user, the user needs to have the user permission LIST",
         "operationId": "listbyid",
        "parameters": [
       {
@@ -102,7 +108,7 @@
             "description": "Invalid input"
           },
           "401": {
-            "description": "Invalid API key provided"
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
           },
           "404": {
             "description": "Invalid ID provided or file has expired"
@@ -116,7 +122,7 @@
           "chunk"
         ],
         "summary": "Uploads a new chunk",
-        "description": "Uploads a file in chunks, in case a reverse proxy does not support upload of larger files. Parallel uploading is supported. Must call /chunk/complete after all chunks have been uploaded. WARNING: Does not support end-to-end encryption! If server is setup to utilise end-to-end encryption, file will be stored in plain-text! Requires permission UPLOAD",
+        "description": "Uploads a file in chunks, in case a reverse proxy does not support upload of larger files. Parallel uploading is supported. Must call /chunk/complete after all chunks have been uploaded. WARNING: Does not support end-to-end encryption! If server is setup to utilise end-to-end encryption, file will be stored in plain-text! Requires API permission UPLOAD",
         "operationId": "chunkadd",
         "security": [
           {
@@ -148,7 +154,7 @@
             "description": "Invalid input"
           },
           "401": {
-            "description": "Invalid API key provided"
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
           }
         }
       }
@@ -159,23 +165,86 @@
           "chunk"
         ],
         "summary": "Finalises uploaded chunks",
-        "description": "Needs to be called after all chunks have been uploaded. Adds the uploaded file to Gokapi. Requires permission UPLOAD",
+        "description": "Needs to be called after all chunks have been uploaded. Adds the uploaded file to Gokapi. Requires API permission UPLOAD",
         "operationId": "chunkcomplete",
         "security": [
           {
             "apikey": ["UPLOAD"]
           },
         ],
-        "requestBody": {
-          "content": {
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/chunkingcomplete"
-              }
-            }
-          },
-          "required": true
+               "parameters": [
+      {
+        "name": "uuid",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string"
         },
+        "description": "The unique ID that was used for the uploaded chunks"
+      },{
+        "name": "filename",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string"
+        },
+        "description": "The filename of the uploaded file"
+      },
+      {
+        "name": "filesize",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "integer"
+        },
+        "description": "The total filesize of the uploaded file in bytes"
+      },
+      {
+        "name": "contenttype",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "The MIME content type. If empty, application/octet-stream will be used."
+      },
+      {
+        "name": "allowedDownloads",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "integer"
+        },
+        "description": "How many downloads are allowed. Default of 1 will be used if empty. Unlimited if 0 is passed."
+      },
+      {
+        "name": "expiryDays",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "integer"
+        },
+        "description": "How many days the file will be stored. Original value will be used if empty. Unlimited if 0 is passed."
+      },
+      {
+        "name": "password",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Password for this file to be set. No password will be used if empty value is passed."
+      },
+      {
+        "name": "nonblocking",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "boolean"
+        },
+        "description": "If true, the call is non blocking and does not wait until the upload is fully processed. No info regarding the file or any errors during the processing will be included in the output."
+      }
+    ],
         "responses": {
           "200": {
             "description": "Operation successful",
@@ -191,7 +260,7 @@
             "description": "Invalid input"
           },
           "401": {
-            "description": "Invalid API key provided"
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
           }
         }
       }
@@ -202,7 +271,7 @@
           "files"
         ],
         "summary": "Adds a new file without chunking",
-        "description": "Uploads the submitted file to Gokapi. Please note: This method does not use chunking, therefore if you are behind a reverse proxy or have a provider that limits upload filesizes, this might not work for bigger files (e.g. Cloudflare). WARNING: Does not support end-to-end encryption! If server is setup to utilise end-to-end encryption, file will be stored in plain-text! Requires permission UPLOAD",
+        "description": "Uploads the submitted file to Gokapi. Please note: This method does not use chunking, therefore if you are behind a reverse proxy or have a provider that limits upload filesizes, this might not work for bigger files (e.g. Cloudflare). WARNING: Does not support end-to-end encryption! If server is setup to utilise end-to-end encryption, file will be stored in plain-text! Requires API permission UPLOAD",
         "operationId": "add",
         "security": [
           {
@@ -234,7 +303,7 @@
             "description": "Invalid input"
           },
           "401": {
-            "description": "Invalid API key provided"
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
           }
         }
       }
@@ -245,23 +314,69 @@
           "files"
         ],
         "summary": "Duplicates an existing file",
-        "description": "This API call duplicates an existing file with new parameters. Requires permission UPLOAD",
+        "description": "This API call duplicates an existing file with new parameters. Requires API permission UPLOAD. To duplicate files that were not uploaded by the user, the user needs to have the user permission LIST",
         "operationId": "duplicate",
         "security": [
           {
             "apikey": ["VIEW","UPLOAD"]
           },
         ],
-        "requestBody": {
-          "content": {
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/duplicate"
-              }
-            }
-          },
-          "required": true
+        "parameters": [
+      {
+        "name": "id",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string"
         },
+        "description": "ID of file to be duplicated"
+      },
+      {
+        "name": "allowedDownloads",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "integer"
+        },
+        "description": "How many remaining downloads are allowed. Original value will be used if empty. Unlimited if 0 is passed."
+      },
+      {
+        "name": "expiryDays",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "integer"
+        },
+        "description": "How many days the file will be stored. Original value will be used if empty. Unlimited if 0 is passed."
+      },
+      {
+        "name": "password",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Password for this file to be set. No password will be used if empty value is passed."
+      },
+      {
+        "name": "originalPassword",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "boolean"
+        },
+        "description": "Set to true to use the original password. Field \"password\" will be ignored if set."
+      },
+      {
+        "name": "filename",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Sets a new filename. Filename will be unchanged if empty."
+      }
+    ],
         "responses": {
           "200": {
             "description": "Operation successful",
@@ -277,7 +392,7 @@
             "description": "Invalid input"
           },
           "401": {
-            "description": "Invalid API key provided"
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
           },
           "404": {
             "description": "Invalid ID provided or file has expired"
@@ -291,7 +406,7 @@
           "files"
         ],
         "summary": "Changes parameters of an uploaded file",
-        "description": "This API call changes parameters of an uploaded file.  Requires permission EDIT",
+        "description": "This API call changes parameters of an uploaded file. Requires API permission EDIT. To edit files that were not uploaded by the user, the user needs to have the user permission EDIT",
         "operationId": "modifyfile",
         "security": [
           {
@@ -360,7 +475,7 @@
             "description": "Invalid ID supplied or incorrect data type sent"
           },
           "401": {
-            "description": "Invalid API key provided"
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
           },
           "404": {
             "description": "Invalid ID provided or file has expired"
@@ -374,7 +489,7 @@
           "files"
         ],
         "summary": "Replaces an uploaded file",
-        "description": "This API replaces the content of an uploaded file with the content of a different (already uplaoded) file. Note: Replacing end-to-end ecrypted files is NOT possible and will result in an error. Requires permission REPLACE",
+        "description": "This API replaces the content of an uploaded file with the content of a different (already uplaoded) file. Note: Replacing end-to-end ecrypted files is NOT possible and will result in an error. Requires API permission REPLACE. To replace a file that was not uploaded by the user, the user needs to have the user permission REPLACE_OTHERS. To replace a file with the content uploaded by another user, the user needs to have the user permission LIST",
         "operationId": "replacefile",
         "security": [
           {
@@ -424,7 +539,7 @@
             "description": "Invalid ID supplied or incorrect data type sent"
           },
           "401": {
-            "description": "Invalid API key provided"
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
           },
           "404": {
             "description": "Invalid ID provided or file has expired"
@@ -438,7 +553,7 @@
           "files"
         ],
         "summary": "Deletes the selected file",
-        "description": "This API call deletes the selected file and runs the clean-up procedure which purges all expired files from the data directory immediately. Requires permission DELETE",
+        "description": "This API call deletes the selected file and runs the clean-up procedure which purges all expired files from the data directory immediately. Requires API permission DELETE. To delete a file that was not uploaded by the user, the user needs to have the user permission DELETE",
         "operationId": "delete",
         "security": [
           {
@@ -462,11 +577,11 @@
           "200": {
             "description": "Operation successful"
           },
-          "400": {
-            "description": "Invalid ID supplied"
-          },
           "401": {
-            "description": "Invalid API key provided"
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
+          },
+          "404": {
+            "description": "Invalid ID supplied"
           }
         }
       }
@@ -477,7 +592,7 @@
           "auth"
         ],
         "summary": "Creates a new API key",
-        "description": "This API call returns a new API key. The new key does not have any permissions, unless specified. Requires permission API_MOD",
+        "description": "This API call returns a new API key. The new key does not have any permissions, unless specified. Requires API permission API_MOD",
         "operationId": "create",
         "security": [
           {
@@ -520,7 +635,7 @@
             }
           },
           "401": {
-            "description": "Invalid API key provided"
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
           }
         }
       }
@@ -531,7 +646,7 @@
           "auth"
         ],
         "summary": "Changes the name of the API key",
-        "description": "This API call changes the name of the API key that is shown in the API overview. Requires permission API_MOD",
+        "description": "This API call changes the name of the API key that is shown in the API overview. Requires API permission API_MOD. To change the name of an API key not owned by the user, the user needs to have the user permission API",
         "operationId": "friendlyname",
         "security": [
           {
@@ -540,9 +655,9 @@
         ],
         "parameters": [
           {
-            "name": "apiKeyToModify",
+            "name": "targetKey",
             "in": "header",
-            "description": "The API key to change the name of",
+            "description": "The API key to change the name of. Can be either the public ID or the actual API key",
             "required": true,
             "style": "simple",
             "explode": false,
@@ -566,11 +681,11 @@
           "200": {
             "description": "Operation successful"
           },
-          "400": {
-            "description": "Invalid ID supplied"
-          },
           "401": {
-            "description": "Invalid API key provided"
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
+          },
+          "404": {
+            "description": "API key not found"
           }
         }
       }
@@ -581,7 +696,7 @@
           "auth"
         ],
         "summary": "Changes the permissions of the API key",
-        "description": "This API call changes the permissions for the given API key. Requires permission API_MOD",
+        "description": "This API call changes the permission for the given API key. Requires API permission API_MOD. To to edit an API key not owned by the user, the user needs to have the user permission API",
         "operationId": "modifypermission",
         "security": [
           {
@@ -590,9 +705,9 @@
         ],
         "parameters": [
           {
-            "name": "apiKeyToModify",
+            "name": "targetKey",
             "in": "header",
-            "description": "The API key to change the permission of",
+            "description": "The API key to change the permission of. Can be either the public ID or the actual API key",
             "required": true,
             "style": "simple",
             "explode": false,
@@ -609,7 +724,7 @@
             "explode": false,
             "schema": {
               "type": "string",
-              "enum": ["PERM_VIEW", "PERM_UPLOAD", "PERM_EDIT", "PERM_DELETE", "PERM_API_MOD"]
+              "enum": ["PERM_VIEW", "PERM_UPLOAD", "PERM_EDIT", "PERM_DELETE", "PERM_REPLACE", "PERM_MANAGE_USERS", "PERM_API_MOD"]
             }
           },
           {
@@ -630,10 +745,13 @@
             "description": "Operation successful"
           },
           "400": {
-            "description": "Invalid ID supplied"
+            "description": "Invalid parameter supplied or API key owner does not have the sufficient user permissions"
           },
           "401": {
-            "description": "Invalid API key provided"
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
+          },
+          "404": {
+            "description": "API key not found"
           }
         }
       }
@@ -644,7 +762,7 @@
           "auth"
         ],
         "summary": "Deletes an API key",
-        "description": "This API call deletes the given API key. Requires permission API_MOD",
+        "description": "This API call deletes the given API key. Requires API permission API_MOD. To to delete an API key not owned by the user, the user needs to have the user permission API",
         "operationId": "apidelete",
         "security": [
           {
@@ -653,9 +771,9 @@
         ],
         "parameters": [
           {
-            "name": "apiKeyToModify",
+            "name": "targetKey",
             "in": "header",
-            "description": "The API key to delete",
+            "description": "The API key to delete. Can be either the public ID or the actual API key",
             "required": true,
             "style": "simple",
             "explode": false,
@@ -671,12 +789,287 @@
           "400": {
             "description": "Invalid ID supplied"
           },
-          "401": {
-            "description": "Invalid API key provided"
+          "404": {
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
           }
         }
       }
-    }
+    },
+    "/user/create": {
+      "post": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Creates a new user",
+        "description": "This API call adds a new user. The new user does not have any specific permissions and is userlevel USER. Requires API permission MANAGE_USERS",
+        "operationId": "createuser",
+        "security": [
+          {
+            "apikey": ["MANAGE_USERS"]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "username",
+            "in": "header",
+            "description": "Name of new user, must be at least 4 characters",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NewUser"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid parameters supplied"
+          },
+          "401": {
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
+          },
+          "409": {
+            "description": "A user already exists with that email address"
+          }
+        }
+      }
+    },
+    "/user/modify": {
+      "put": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Changes the permissions of a user",
+        "description": "This API call changes the permission for the given user. Requires API permission MANAGE_USERS",
+        "operationId": "usermodify",
+        "security": [
+          {
+            "apikey": ["MANAGE_USERS"]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userid",
+            "in": "header",
+            "description": "The user to change the permission of",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userpermission",
+            "in": "header",
+            "description": "The name of the permission",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "enum": ["PERM_REPLACE", "PERM_LIST", "PERM_EDIT", "PERM_REPLACE_OTHER", "PERM_DELETE", "PERM_LOGS", "PERM_API", "PERM_USERS"]
+            }
+          },
+          {
+            "name": "permissionModifier",
+            "in": "header",
+            "description": "If the permission shall be granted or revoked",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "enum": ["GRANT", "REVOKE"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Invalid parameter supplied"
+          },
+          "401": {
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        }
+      }
+    },
+    "/user/changeRank": {
+      "put": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Changes the rank of a user",
+        "description": "This API call changes the rank for the given user. Requires API permission MANAGE_USERS",
+        "operationId": "userchangerank",
+        "security": [
+          {
+            "apikey": ["MANAGE_USERS"]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userid",
+            "in": "header",
+            "description": "The user to change the rank of",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "newRank",
+            "in": "header",
+            "description": "The name of the new rank",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "enum": ["ADMIN", "USER"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Invalid parameter supplied"
+          },
+          "401": {
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        }
+      }
+    },
+    "/user/delete": {
+      "delete": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Deletes the selected user",
+        "description": "This API call changes deletes the given user. If files are associated with the user, they will be linked with the user that initiated the deletion. If deleteFiles is \"true\", the files will be deleted instead.  Requires API permission MANAGE_USERS",
+        "operationId": "userdelete",
+        "security": [
+          {
+            "apikey": ["MANAGE_USERS"]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userid",
+            "in": "header",
+            "description": "The user to be deleted",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deleteFiles",
+            "in": "header",
+            "description": "Delete all associated uploads from this user",
+            "required": false,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Invalid ID or parameters supplied"
+          },
+          "401": {
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
+          }
+        }
+      }
+    },
+    "/user/resetPassword": {
+      "put": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Resets the password of the current user",
+        "description": "This API call forces a passwrd change once the given user logs in the next time. If generateNewPassword is \"true\", the current password will be replaced with a generated one.  Requires API permission MANAGE_USERS",
+        "operationId": "userresetpw",
+        "security": [
+          {
+            "apikey": ["MANAGE_USERS"]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userid",
+            "in": "header",
+            "description": "The user to reset",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string"
+            }
+          },{
+            "name": "generateNewPassword",
+            "in": "header",
+            "description": "Generate a new password",
+            "required": false,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasswordReset"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid ID or parameters supplied, user is super admin or user is equal to owner of API key"
+          },
+          "401": {
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
+          }
+        }
+      }
+    },
   },
   "components": {
     "schemas": {
@@ -826,9 +1219,60 @@
           "Id": {
             "type": "string",
             "example": "ar3iecahghiethiemeeR"
+          },
+          "PublicId": {
+            "type": "string",
+            "example": "oepah5iesae8YeeZohrain5ahNgax8su"
           }
         },
         "description": "NewApiKey is the struct used for the result after creating a new API key",
+        "x-go-package": "Gokapi/internal/models"
+      },
+      "NewUser": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "user@gokapi"
+          },
+          "id": {
+            "type": "integer",
+            "example": 14
+          },
+         "lastOnline": {
+            "type": "integer",
+            "example": 0
+          },
+          "name": {
+            "type": "string",
+            "example": "Gokapi user"
+          },
+          "permissions": {
+            "type": "integer",
+            "example": 0
+          },
+          "userLevel": {
+            "type": "integer",
+            "example": 2
+          }
+        },
+        "description": "NewUser is the struct used for the result after creating a new API key",
+        "x-go-package": "Gokapi/internal/models"
+      },
+      "PasswordReset": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": "string",
+            "example": "OK"
+          },
+          "password": {
+            "type": "string",
+            "description": "Empty if no new password was generated, otherwise contains the new password",
+            "example": "ahseth6ahV"
+          }
+        },
+        "description": "NewUser is the struct used for the result after creating a new API key",
         "x-go-package": "Gokapi/internal/models"
       },
       "body": {
@@ -855,38 +1299,7 @@
             "description": "Password for this file to be set. No password will be used if empty"
           }
         }
-      },"duplicate": {
-        "required": [
-          "id"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "ID of file to be duplicated"
-          },
-          "allowedDownloads": {
-            "type": "integer",
-            "description": "How many downloads are allowed. Original value from web interface will be used if empty. Unlimited if 0 is passed."
-          },
-          "expiryDays": {
-            "type": "integer",
-            "description": "How many days the file will be stored. Original value from web interface will be used if empty. Unlimited if 0 is passed."
-          },
-          "password": {
-            "type": "string",
-            "description": "Password for this file to be set. No password will be used if empty."
-          },
-          "originalPassword": {
-            "type": "boolean",
-            "description": "Set to true to use original password. Field \"password\" will be ignored if set."
-          },
-          "filename": {
-            "type": "string",
-            "description": "Sets a new filename. Filename will be unchanged if empty."
-          }
-        }
-    },"chunking": {
+      },"chunking": {
         "required": [
           "file","uuid","filesize","offset"
         ],
@@ -908,41 +1321,6 @@
           "offset": {
             "type": "integer",
             "description": "The chunk's offset starting at the beginning of the file"
-          }
-        }
-    },"chunkingcomplete": {
-        "required": [
-          "uuid","filename","filesize"
-        ],
-        "type": "object",
-        "properties": {
-          "uuid": {
-            "type": "string",
-            "description": "The unique ID that was used for the uploaded chunks"
-          },
-          "filename": {
-            "type": "string",
-            "description": "The filename of the uploaded file"
-          },
-          "filesize": {
-            "type": "integer",
-            "description": "The total filesize of the uploaded file in bytes"
-          },
-          "contenttype": {
-            "type": "string",
-            "description": "The MIME content type. If empty, application/octet-stream will be used."
-          },
-          "allowedDownloads": {
-            "type": "integer",
-            "description": "How many downloads are allowed. Default of 1 will be used if empty. Unlimited if 0 is passed."
-          },
-          "expiryDays": {
-            "type": "integer",
-            "description": "How many days the file will be stored. Default of 14 will be used if empty. Unlimited if 0 is passed."
-          },
-          "password": {
-            "type": "string",
-            "description": "Password for this file to be set. No password will be used if empty"
           }
         }
     }

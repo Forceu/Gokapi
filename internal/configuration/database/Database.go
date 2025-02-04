@@ -66,7 +66,11 @@ func Migrate(configOld, configNew models.DbConnection) {
 	for _, apiKey := range apiKeys {
 		dbNew.SaveApiKey(apiKey)
 	}
-	dbNew.SaveEnd2EndInfo(dbOld.GetEnd2EndInfo())
+	users := dbOld.GetAllUsers()
+	for _, user := range users {
+		dbNew.SaveUser(user, false)
+		dbNew.SaveEnd2EndInfo(dbOld.GetEnd2EndInfo(user.Id), user.Id)
+	}
 	files := dbOld.GetAllMetadata()
 	for _, file := range files {
 		dbNew.SaveMetaData(file)
@@ -127,28 +131,33 @@ func DeleteApiKey(id string) {
 }
 
 // GetSystemKey returns the latest UI API key
-func GetSystemKey() (models.ApiKey, bool) {
-	return db.GetSystemKey()
+func GetSystemKey(userId int) (models.ApiKey, bool) {
+	return db.GetSystemKey(userId)
+}
+
+// GetApiKeyByPublicKey returns an API key by using the public key
+func GetApiKeyByPublicKey(publicKey string) (string, bool) {
+	return db.GetApiKeyByPublicKey(publicKey)
 }
 
 // E2E Section
 
 // SaveEnd2EndInfo stores the encrypted e2e info
-func SaveEnd2EndInfo(info models.E2EInfoEncrypted) {
+func SaveEnd2EndInfo(info models.E2EInfoEncrypted, userId int) {
 	info.AvailableFiles = nil
-	db.SaveEnd2EndInfo(info)
+	db.SaveEnd2EndInfo(info, userId)
 }
 
 // GetEnd2EndInfo retrieves the encrypted e2e info
-func GetEnd2EndInfo() models.E2EInfoEncrypted {
-	info := db.GetEnd2EndInfo()
+func GetEnd2EndInfo(userId int) models.E2EInfoEncrypted {
+	info := db.GetEnd2EndInfo(userId)
 	info.AvailableFiles = GetAllMetaDataIds()
 	return info
 }
 
 // DeleteEnd2EndInfo resets the encrypted e2e info
-func DeleteEnd2EndInfo() {
-	db.DeleteEnd2EndInfo()
+func DeleteEnd2EndInfo(userId int) {
+	db.DeleteEnd2EndInfo(userId)
 }
 
 // Hotlink Section
@@ -225,4 +234,84 @@ func DeleteSession(id string) {
 // DeleteAllSessions logs all users out
 func DeleteAllSessions() {
 	db.DeleteAllSessions()
+}
+
+// DeleteAllSessionsByUser logs the specific users out
+func DeleteAllSessionsByUser(userId int) {
+	db.DeleteAllSessionsByUser(userId)
+}
+
+// User Section
+
+// GetAllUsers returns a map with all users
+func GetAllUsers() []models.User {
+	return db.GetAllUsers()
+}
+
+// GetUser returns a models.User if valid or false if the ID is not valid
+func GetUser(id int) (models.User, bool) {
+	return db.GetUser(id)
+}
+
+// GetUserByName returns a models.User if valid or false if the email is not valid
+func GetUserByName(username string) (models.User, bool) {
+	username = strings.ToLower(username)
+	return db.GetUserByName(username)
+}
+
+// SaveUser saves a user to the database. If isNewUser is true, a new Id will be generated
+func SaveUser(user models.User, isNewUser bool) {
+	if user.Name == "" {
+		panic("username cannot be empty")
+	}
+	user.Name = strings.ToLower(user.Name)
+	db.SaveUser(user, isNewUser)
+}
+
+// UpdateUserLastOnline writes the last online time to the database
+func UpdateUserLastOnline(id int) {
+	db.UpdateUserLastOnline(id)
+}
+
+// DeleteUser deletes a user with the given ID
+func DeleteUser(id int) {
+	db.DeleteUser(id)
+}
+
+// GetSuperAdmin returns the models.User data for the super admin
+func GetSuperAdmin() (models.User, bool) {
+	users := db.GetAllUsers()
+	for _, user := range users {
+		if user.UserLevel == models.UserLevelSuperAdmin {
+			return user, true
+		}
+	}
+	return models.User{}, false
+}
+
+// EditSuperAdmin changes parameters of the super admin. If no user exists, a new superadmin will be created
+// Returns an error if at least one user exists, but no superadmin
+func EditSuperAdmin(username, passwordHash string) error {
+	user, ok := GetSuperAdmin()
+	if !ok {
+		if len(GetAllUsers()) != 0 {
+			return errors.New("at least one user exists, but no superadmin found")
+		}
+		newAdmin := models.User{
+			Name:        username,
+			Permissions: models.UserPermissionAll,
+			UserLevel:   models.UserLevelSuperAdmin,
+			Password:    passwordHash,
+		}
+		db.SaveUser(newAdmin, true)
+		return nil
+	}
+	if username != "" {
+		user.Name = username
+	}
+	if passwordHash != "" {
+		user.Password = passwordHash
+	}
+	db.SaveUser(user, false)
+	return nil
 }

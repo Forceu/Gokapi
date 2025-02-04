@@ -70,12 +70,14 @@ func TestFunctions(t *testing.T) {
 	mockT.WantNoFail()
 	IsNil(mockT, nil)
 	mockT.WantNoFail()
+	IsEqualByteSlice(mockT, []byte("test"), []byte("test"))
+	mockT.WantNoFail()
 	FileDoesNotExist(mockT, "testfile")
 	os.WriteFile("testfile", []byte("content"), 0777)
 	mockT.WantNoFail()
 	FileExists(mockT, "testfile")
 	mockT.WantNoFail()
-	IsEqualStruct(mockT, testStruct{Value1: 1337}, testStruct{Value1: 1337})
+	IsEqual(mockT, testStruct{Value1: 1337}, testStruct{Value1: 1337})
 
 	mockT.WantNoFail()
 	IsNotNil(mockT, errors.New("hello"))
@@ -85,6 +87,8 @@ func TestFunctions(t *testing.T) {
 	IsEqualString(mockT, "test", "test2")
 	mockT.WantFail()
 	IsNotEqualString(mockT, "test", "test")
+	mockT.WantFail()
+	IsEqualByteSlice(mockT, []byte("test1"), []byte("test2"))
 	mockT.WantFail()
 	IsEqualBool(mockT, true, false)
 	mockT.WantFail()
@@ -111,7 +115,7 @@ func TestFunctions(t *testing.T) {
 	mockT.WantFail()
 	FileExists(mockT, "testfile")
 	mockT.WantFail()
-	IsEqualStruct(mockT, testStruct{Value1: 1337}, testStruct{Value1: 1338})
+	IsEqual(mockT, testStruct{Value1: 1337}, testStruct{Value1: 1338})
 	mockT.Check()
 }
 
@@ -128,6 +132,19 @@ func TestMockInputStdin(t *testing.T) {
 	result := helper.ReadLine()
 	StopMockInputStdin(original)
 	IsEqualString(t, result, "test input")
+}
+
+func TestFolderExists(t *testing.T) {
+	mockT := MockTest{reference: t}
+	mockT.WantFail()
+	FolderExists(mockT, "testfolder")
+	os.Mkdir("testfolder", 0777)
+	mockT.WantNoFail()
+	FolderExists(mockT, "testfolder")
+	mockT.WantFail()
+	os.RemoveAll("testfolder")
+	FolderExists(mockT, "testfolder")
+	mockT.Check()
 }
 
 func TestHttpPageResult(t *testing.T) {

@@ -47,7 +47,7 @@ var ErrorFileNotFound = errors.New("file not found")
 // NewFile creates a new file in the system. Called after an upload from the API has been completed. If a file with the same sha1 hash
 // already exists, it is deduplicated. This function gathers information about the file, creates an ID and saves
 // it into the global configuration. It is now only used by the API, the web UI uses NewFileFromChunk
-func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequest models.UploadRequest) (models.File, error) {
+func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, userId int, uploadRequest models.UploadRequest) (models.File, error) {
 	if !isAllowedFileSize(fileHeader.Size) {
 		return models.File{}, ErrorFileTooLarge
 	}
@@ -58,7 +58,7 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, uploadRequ
 	if err != nil {
 		return models.File{}, err
 	}
-	file := createNewMetaData(hex.EncodeToString(hash), header, uploadRequest)
+	file := createNewMetaData(hex.EncodeToString(hash), header, userId, uploadRequest)
 	file.Encryption = encInfo
 	filename := configuration.Get().DataDir + "/" + file.SHA1
 	dataDir := configuration.Get().DataDir
@@ -132,10 +132,23 @@ func validateChunkInfo(file *os.File, fileHeader chunking.FileHeader) error {
 	return nil
 }
 
+// GetUploadCounts returns the currently uploaded files per user
+func GetUploadCounts() map[int]int {
+	result := make(map[int]int)
+	timeNow := time.Now().Unix()
+	files := database.GetAllMetadata()
+	for _, file := range files {
+		if !IsExpiredFile(file, timeNow) {
+			result[file.UserId] = result[file.UserId] + 1
+		}
+	}
+	return result
+}
+
 // NewFileFromChunk creates a new file in the system after a chunk upload has fully completed. If a file with the same sha1 hash
 // already exists, it is deduplicated. This function gathers information about the file, creates an ID and saves
 // it into the global configuration.
-func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, uploadRequest models.UploadRequest) (models.File, error) {
+func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, userId int, uploadRequest models.UploadRequest) (models.File, error) {
 	file, err := chunking.GetFileByChunkId(chunkId)
 	if err != nil {
 		return models.File{}, err
@@ -151,7 +164,7 @@ func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, uploadRequ
 	if err != nil {
 		return models.File{}, err
 	}
-	metaData := createNewMetaData(hash, fileHeader, uploadRequest)
+	metaData := createNewMetaData(hash, fileHeader, userId, uploadRequest)
 	fileExists := FileExists(metaData, configuration.Get().DataDir)
 	if fileExists {
 		fileExists = copyEncryptionInfo(&metaData)
@@ -273,7 +286,7 @@ func FormatTimestamp(timestamp int64) string {
 	return time.Unix(timestamp, 0).Format("2006-01-02 15:04")
 }
 
-func createNewMetaData(hash string, fileHeader chunking.FileHeader, uploadRequest models.UploadRequest) models.File {
+func createNewMetaData(hash string, fileHeader chunking.FileHeader, userId int, uploadRequest models.UploadRequest) models.File {
 	file := models.File{
 		Id:                 createNewId(),
 		Name:               fileHeader.Filename,
@@ -287,6 +300,7 @@ func createNewMetaData(hash string, fileHeader chunking.FileHeader, uploadReques
 		UnlimitedTime:      uploadRequest.UnlimitedTime,
 		UnlimitedDownloads: uploadRequest.UnlimitedDownload,
 		PasswordHash:       configuration.HashPassword(uploadRequest.Password, true),
+		UserId:             userId,
 	}
 	if uploadRequest.IsEndToEndEncrypted {
 		file.Encryption = models.EncryptionInfo{IsEndToEndEncrypted: true, IsEncrypted: true}
@@ -372,18 +386,26 @@ func ReplaceFile(fileId, newFileContentId string, delete bool) (models.File, err
 	return file, nil
 }
 
+func isChangeRequested(parametersToChange, parameter int) bool {
+	return parametersToChange&parameter != 0
+}
+
 // DuplicateFile creates a copy of an existing file with new parameters
 func DuplicateFile(file models.File, parametersToChange int, newFileName string, fileParameters models.UploadRequest) (models.File, error) {
+
+	// apiDuplicateFile expects fileParameters.IsEndToEndEncrypted and fileParameters.RealSize not to be used,
+	// change in apiDuplicateFile if using in this function!
+
 	var newFile models.File
 	err := copier.Copy(&newFile, &file)
 	if err != nil {
 		return models.File{}, err
 	}
 
-	changeExpiry := parametersToChange&ParamExpiry != 0
-	changeDownloads := parametersToChange&ParamDownloads != 0
-	changePassword := parametersToChange&ParamPassword != 0
-	changeName := parametersToChange&ParamName != 0
+	changeExpiry := isChangeRequested(parametersToChange, ParamExpiry)
+	changeDownloads := isChangeRequested(parametersToChange, ParamDownloads)
+	changePassword := isChangeRequested(parametersToChange, ParamPassword)
+	changeName := isChangeRequested(parametersToChange, ParamName)
 
 	if changeExpiry {
 		newFile.ExpireAt = fileParameters.ExpiryTimestamp
@@ -467,13 +489,9 @@ func isEncryptionRequested() bool {
 	switch configuration.Get().Encryption.Level {
 	case encryption.NoEncryption:
 		return false
-	case encryption.LocalEncryptionStored:
-		fallthrough
-	case encryption.LocalEncryptionInput:
+	case encryption.LocalEncryptionStored, encryption.LocalEncryptionInput:
 		return !aws.IsAvailable()
-	case encryption.FullEncryptionStored:
-		fallthrough
-	case encryption.FullEncryptionInput:
+	case encryption.FullEncryptionStored, encryption.FullEncryptionInput:
 		return true
 	case encryption.EndToEndEncryption:
 		return false
@@ -740,6 +758,8 @@ func deleteSource(file models.File, dataDir string) {
 
 // DeleteFile is called when an admin requests deletion of a file
 // Returns true if file was deleted or false if ID did not exist
+// deleteSource forces a clean-up and will delete the source if it is not
+// used by a different file
 func DeleteFile(keyId string, deleteSource bool) bool {
 	if keyId == "" {
 		return false

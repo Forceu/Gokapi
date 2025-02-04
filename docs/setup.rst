@@ -93,7 +93,7 @@ During the first start, a new configuration file will be created and you will be
 
 Database
 """"""""""""""
-By default, Gokapi stores its data in a database located in the ``data`` directory. You can specify a different database location in this menu. If no changes are needed, you can proceed as is. Experimental Redis support is also available.
+By default, Gokapi stores its data in a database located in the ``data`` directory. You can specify a different database location in this menu. If no changes are needed, you can proceed as is. Redis is recommended for servers with a high frequency of downloads.
 
 You can configure the following settings:
 
@@ -229,12 +229,13 @@ This option disables Gokapis internal authentication completely, except for API 
 
 - ``/admin``
 - ``/apiKeys``
+- ``/changePassword``
 - ``/e2eInfo``
 - ``/e2eSetup``
 - ``/logs``
 - ``/uploadChunk``
-- ``/uploadComplete``
 - ``/uploadStatus``
+- ``/users``
 
 .. warning::
    This option has potential to be *very* dangerous, only proceed if you know what you are doing!

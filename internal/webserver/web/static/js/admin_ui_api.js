@@ -3,16 +3,16 @@
 // go generate ./...
 
 
-function changeApiPermission(apiKey, permission, buttonId) {
+function changeApiPermission(userId, permission, buttonId) {
 
     var indicator = document.getElementById(buttonId);
-    if (indicator.classList.contains("apiperm-processing")) {
+    if (indicator.classList.contains("perm-processing") || indicator.classList.contains("perm-nochange")) {
         return;
     }
-    var wasGranted = indicator.classList.contains("apiperm-granted");
-    indicator.classList.add("apiperm-processing");
-    indicator.classList.remove("apiperm-granted");
-    indicator.classList.remove("apiperm-notgranted");
+    var wasGranted = indicator.classList.contains("perm-granted");
+    indicator.classList.add("perm-processing");
+    indicator.classList.remove("perm-granted");
+    indicator.classList.remove("perm-notgranted");
 
     var modifier = "GRANT";
     if (wasGranted) {
@@ -20,22 +20,22 @@ function changeApiPermission(apiKey, permission, buttonId) {
     }
 
 
-    apiAuthModify(apiKey, permission, modifier)
+    apiAuthModify(userId, permission, modifier)
         .then(data => {
             if (wasGranted) {
-                indicator.classList.add("apiperm-notgranted");
+                indicator.classList.add("perm-notgranted");
             } else {
-                indicator.classList.add("apiperm-granted");
+                indicator.classList.add("perm-granted");
             }
-            indicator.classList.remove("apiperm-processing");
+            indicator.classList.remove("perm-processing");
         })
         .catch(error => {
             if (wasGranted) {
-                indicator.classList.add("apiperm-granted");
+                indicator.classList.add("perm-granted");
             } else {
-                indicator.classList.add("apiperm-notgranted");
+                indicator.classList.add("perm-notgranted");
             }
-            indicator.classList.remove("apiperm-processing");
+            indicator.classList.remove("perm-processing");
             alert("Unable to set permission: " + error);
             console.error('Error:', error);
         });
@@ -47,7 +47,10 @@ function deleteApiKey(apiKey) {
 
     apiAuthDelete(apiKey)
         .then(data => {
+        document.getElementById("row-" + apiKey).classList.add("rowDeleting");
+        setTimeout(() => {
             document.getElementById("row-" + apiKey).remove();
+    }, 290);
         })
         .catch(error => {
             alert("Unable to delete API key: " + error);
@@ -61,7 +64,7 @@ function newApiKey() {
     document.getElementById("button-newapi").disabled = true;
     apiAuthCreate()
         .then(data => {
-            addRowApi(data.Id);
+            addRowApi(data.Id, data.PublicId);
             document.getElementById("button-newapi").disabled = false;
         })
         .catch(error => {
@@ -89,6 +92,9 @@ function addFriendlyNameChange(apiKey) {
             return;
         allowEdit = false;
         let newName = input.value;
+        if (newName == "") {
+        	newName = "Unnamed key";
+        }
         cell.innerHTML = newName;
 
         cell.classList.remove("isBeingEdited");
@@ -116,41 +122,63 @@ function addFriendlyNameChange(apiKey) {
 
 
 
-function addRowApi(apiKey) {
+function addRowApi(apiKey, publicId) {
 
     let table = document.getElementById("apitable");
     let row = table.insertRow(0);
-    row.id = "row-" + apiKey;
-    let cellFriendlyName = row.insertCell(0);
-    let cellId = row.insertCell(1);
-    let cellLastUsed = row.insertCell(2);
-    let cellPermissions = row.insertCell(3);
-    let cellButtons = row.insertCell(4);
-    let cellEmpty = row.insertCell(5);
+    
+    row.id = "row-" + publicId;
+    let cellCount = 0;
+    let cellFriendlyName = row.insertCell(cellCount++);
+    let cellId = row.insertCell(cellCount++);
+    let cellLastUsed = row.insertCell(cellCount++);
+    let cellPermissions = row.insertCell(cellCount++);
+    let cellUserName;
+    if (canViewOtherApiKeys) {
+    	cellUserName= row.insertCell(cellCount++);
+    	}
+    let cellButtons= row.insertCell(cellCount++);
+    
+    if (canViewOtherApiKeys) {
+    cellUserName.classList.add("newApiKey");
+    cellUserName.innerText = userName;
+    }
 
     cellFriendlyName.classList.add("newApiKey");
     cellId.classList.add("newApiKey");
     cellLastUsed.classList.add("newApiKey");
     cellPermissions.classList.add("newApiKey");
+    cellPermissions.classList.add("prevent-select");
     cellButtons.classList.add("newApiKey");
-    cellEmpty.classList.add("newApiKey");
 
 
     cellFriendlyName.innerText = "Unnamed key";
-    cellFriendlyName.id = "friendlyname-" + apiKey;
+    cellFriendlyName.id = "friendlyname-" + publicId;
     cellFriendlyName.onclick = function() {
-        addFriendlyNameChange(apiKey);
+        addFriendlyNameChange(publicId);
     };
-    cellId.innerText = apiKey;
+    cellId.innerHTML = '<div class="font-monospace">'+apiKey+'</div>';
     cellLastUsed.innerText = "Never";
-    cellButtons.innerHTML = '<button type="button" data-clipboard-text="' + apiKey + '"  onclick="showToast()" title="Copy API Key" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i></button> <button id="delete-' + apiKey + '" type="button" class="btn btn-outline-danger btn-sm" onclick="deleteApiKey(\'' + apiKey + '\')" title="Delete"><i class="bi bi-trash3"></i></button>';
+    cellButtons.innerHTML = '<button type="button" data-clipboard-text="' + apiKey + '"  onclick="showToast(1000)" title="Copy API Key" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i></button> <button id="delete-' + publicId + '" type="button" class="btn btn-outline-danger btn-sm" onclick="deleteApiKey(\'' + publicId + '\')" title="Delete"><i class="bi bi-trash3"></i></button>';
     cellPermissions.innerHTML = `
-	    	<i id="perm_view_` + apiKey + `" class="bi bi-eye apiperm-granted" title="List Uploads" onclick='changeApiPermission("` + apiKey + `","PERM_VIEW", "perm_view_` + apiKey + `");'></i>
-	    	<i id="perm_upload_` + apiKey + `" class="bi bi-file-earmark-arrow-up apiperm-granted" title="Upload" onclick='changeApiPermission("` + apiKey + `","PERM_UPLOAD", "perm_upload_` + apiKey + `");'></i>
-	    	<i id="perm_edit_` + apiKey + `" class="bi bi-pencil apiperm-granted" title="Edit Uploads" onclick='changeApiPermission("` + apiKey + `","PERM_EDIT", "perm_edit_` + apiKey + `");'></i>
-	    	<i id="perm_delete_` + apiKey + `" class="bi bi-trash3 apiperm-granted" title="Delete Uploads" onclick='changeApiPermission("` + apiKey + `","PERM_DELETE", "perm_delete_` + apiKey + `");'></i>
-	    	<i id="perm_replace_` + apiKey + `" class="bi bi-recycle apiperm-notgranted" title="Replace Uploads" onclick='changeApiPermission("` + apiKey + `","PERM_REPLACE", "perm_replace_` + apiKey + `");'></i>
-	    	<i id="perm_api_` + apiKey + `" class="bi bi-sliders2 apiperm-notgranted" title="Manage API Keys" onclick='changeApiPermission("` + apiKey + `","PERM_API_MOD", "perm_api_` + apiKey + `");'></i>`;
+	    	<i id="perm_view_` + publicId + `" class="bi bi-eye perm-granted" title="List Uploads" onclick='changeApiPermission("` + publicId + `","PERM_VIEW", "perm_view_` + publicId + `");'></i>
+	    	<i id="perm_upload_` + publicId + `" class="bi bi-file-earmark-arrow-up perm-granted" title="Upload" onclick='changeApiPermission("` + publicId + `","PERM_UPLOAD", "perm_upload_` + publicId + `");'></i>
+	    	<i id="perm_edit_` + publicId + `" class="bi bi-pencil perm-granted" title="Edit Uploads" onclick='changeApiPermission("` + publicId + `","PERM_EDIT", "perm_edit_` + publicId + `");'></i>
+	    	<i id="perm_delete_` + publicId + `" class="bi bi-trash3 perm-granted" title="Delete Uploads" onclick='changeApiPermission("` + publicId + `","PERM_DELETE", "perm_delete_` + publicId + `");'></i>
+	    	<i id="perm_replace_` + publicId + `" class="bi bi-recycle perm-notgranted" title="Replace Uploads" onclick='changeApiPermission("` + publicId + `","PERM_REPLACE", "perm_replace_` + publicId + `");'></i>
+	    	<i id="perm_users_` + publicId + `" class="bi bi-people perm-notgranted" title="Manage Users" onclick='changeApiPermission("` + publicId + `", "PERM_MANAGE_USERS", "` + publicId + `");'></i>
+	    	<i id="perm_api_` + publicId + `" class="bi bi-sliders2 perm-notgranted" title="Manage API Keys" onclick='changeApiPermission("` + publicId + `","PERM_API_MOD", "perm_api_` + publicId + `");'></i>`;
+   
+    if (!canReplaceFiles) {
+    	let cell = document.getElementById("perm_replace_"+publicId);
+    	cell.classList.add("perm-unavailable");
+    	cell.classList.add("perm-nochange");
+    }
+    if (!canManageUsers) {
+    	let cell = document.getElementById("perm_users_"+publicId);
+    	cell.classList.add("perm-unavailable");
+    	cell.classList.add("perm-nochange");
+    }
 
     setTimeout(() => {
         cellFriendlyName.classList.remove("newApiKey");
@@ -158,7 +186,6 @@ function addRowApi(apiKey) {
         cellLastUsed.classList.remove("newApiKey");
         cellPermissions.classList.remove("newApiKey");
         cellButtons.classList.remove("newApiKey");
-        cellEmpty.classList.remove("newApiKey");
     }, 700);
 
 }

@@ -1,4 +1,8 @@
-// API related
+// This file contains JS code to connect to the API
+// All files named admin_*.js will be merged together and minimised by calling
+// go generate ./...
+
+// /auth
 
 async function apiAuthModify(apiKey, permission, modifier) {
     const apiUrl = './api/auth/modify';
@@ -8,7 +12,7 @@ async function apiAuthModify(apiKey, permission, modifier) {
         headers: {
             'Content-Type': 'application/json',
             'apikey': systemKey,
-            'apiKeyToModify': apiKey,
+            'targetKey': apiKey,
             'permission': permission,
             'permissionModifier': modifier
 
@@ -35,7 +39,7 @@ async function apiAuthFriendlyName(apiKey, newName) {
         headers: {
             'Content-Type': 'application/json',
             'apikey': systemKey,
-            'apiKeyToModify': apiKey,
+            'targetKey': apiKey,
             'friendlyName': newName
 
         },
@@ -61,7 +65,7 @@ async function apiAuthDelete(apiKey) {
         headers: {
             'Content-Type': 'application/json',
             'apikey': systemKey,
-            'apiKeyToModify': apiKey,
+            'targetKey': apiKey,
         },
     };
 
@@ -105,7 +109,56 @@ async function apiAuthCreate() {
 
 
 
-// File related
+// /chunk
+
+
+async function apiChunkComplete(uuid, filename, filesize, realsize, contenttype, allowedDownloads, expiryDays, password, isE2E, nonblocking) {
+    const apiUrl = './api/chunk/complete';
+
+    const requestOptions = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'apikey': systemKey,
+            'uuid': uuid,
+            'filename': filename,
+            'filesize': filesize,
+            'realsize': realsize,
+            'contenttype': contenttype,
+            'allowedDownloads': allowedDownloads,
+            'expiryDays': expiryDays,
+            'password': password,
+            'isE2E': isE2E,
+            'nonblocking': nonblocking
+        },
+    };
+
+    try {
+        const response = await fetch(apiUrl, requestOptions);
+   if (!response.ok) {
+    let errorMessage;
+
+    // Attempt to parse JSON, fallback to text if parsing fails
+    try {
+      const errorResponse = await response.json();
+      errorMessage = errorResponse.ErrorMessage || `Request failed with status: ${response.status}`;
+    } catch {
+      // Handle non-JSON error
+      const errorText = await response.text();
+      errorMessage = errorText || `Request failed with status: ${response.status}`;
+    }
+    throw new Error(errorMessage);
+  }
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error("Error in apiChunkComplete:", error);
+        throw error;
+    }
+}
+
+
+// /files
 
 
 async function apiFilesReplace(id, newId) {
@@ -202,7 +255,6 @@ async function apiFilesDelete(id) {
         },
     };
 
-
     try {
         const response = await fetch(apiUrl, requestOptions);
         if (!response.ok) {
@@ -213,3 +265,142 @@ async function apiFilesDelete(id) {
         throw error;
     }
 }
+
+
+// users
+
+
+async function apiUserCreate(userName) {
+    const apiUrl = './api/user/create';
+
+    const requestOptions = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'apikey': systemKey,
+            'username': userName
+
+        },
+    };
+
+    try {
+        const response = await fetch(apiUrl, requestOptions);
+        if (!response.ok) {
+        	if (response.status==409) {
+        		throw new Error("duplicate");
+        	} 
+            throw new Error(`Request failed with status: ${response.status}`);
+        }
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error("Error in apiUserModify:", error);
+        throw error;
+    }
+}
+
+
+async function apiUserModify(userId, permission, modifier) {
+    const apiUrl = './api/user/modify';
+
+    const requestOptions = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'apikey': systemKey,
+            'userid': userId,
+            'userpermission': permission,
+            'permissionModifier': modifier
+
+        },
+    };
+
+    try {
+        const response = await fetch(apiUrl, requestOptions);
+        if (!response.ok) {
+            throw new Error(`Request failed with status: ${response.status}`);
+        }
+    } catch (error) {
+        console.error("Error in apiUserModify:", error);
+        throw error;
+    }
+}
+
+
+async function apiUserChangeRank(userId, newRank) {
+    const apiUrl = './api/user/changeRank';
+
+    const requestOptions = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'apikey': systemKey,
+            'userid': userId,
+            'newRank': newRank
+
+        },
+    };
+
+    try {
+        const response = await fetch(apiUrl, requestOptions);
+        if (!response.ok) {
+            throw new Error(`Request failed with status: ${response.status}`);
+        }
+    } catch (error) {
+        console.error("Error in apiUserModify:", error);
+        throw error;
+    }
+}
+
+async function apiUserDelete(id, deleteFiles) {
+    const apiUrl = './api/user/delete';
+
+    const requestOptions = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'apikey': systemKey,
+            'userid': id,
+            'deleteFiles': deleteFiles
+        },
+    };
+
+    try {
+        const response = await fetch(apiUrl, requestOptions);
+        if (!response.ok) {
+            throw new Error(`Request failed with status: ${response.status}`);
+        }
+    } catch (error) {
+        console.error("Error in apiUserDelete:", error);
+        throw error;
+    }
+}
+
+
+
+async function apiUserResetPassword(id, generatePw) {
+    const apiUrl = './api/user/resetPassword';
+
+    const requestOptions = {
+        method: 'POST', 
+        headers: {
+            'Content-Type': 'application/json',
+            'apikey': systemKey,
+            'userid': id,
+            'generateNewPassword': generatePw
+        },
+    };
+
+    try {
+        const response = await fetch(apiUrl, requestOptions);
+        if (!response.ok) {
+            throw new Error(`Request failed with status: ${response.status}`);
+        }
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error("Error in apiUserResetPassword:", error);
+        throw error;
+    }
+}
+

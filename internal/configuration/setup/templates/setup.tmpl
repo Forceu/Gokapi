@@ -57,6 +57,7 @@
 			    #label_ousers, #label_ogroups {
 			      margin-right: 10px;
 			    }
+			    
 
 		</style>
 		<!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
@@ -105,15 +106,21 @@
 			</div>
 			<!-- Step 1 DB Location -->
 			<div class="wizard-card wizard-card-overlay" data-cardname="dblocation">
-				<h3>Database</h3>
+				<h3 style="display:none">Database</h3>
 
 				<div class="wizard-input-section">
 					<div class="form-group">
+					
+{{ if not .IsInitialSetup }}
+				<p>
+					<span style="color:red"><b>Warning:</b> When changing database parameters, ensure you first migrate the database to the new location using <code>gokapi --migrate-database</code> before finalising the setup.
+				</p><br>
+{{ end }}
 
 							  <label for="dbtype_sel">Type of database</label>
 						<select name="dbtype_sel" id="dbtype_sel"  style="width:350px;" class="select form-control"  onChange="dbChanged()">	
 								<option value="0" selected>SQLite</option>
-								<option value="1">Redis (experimental)</option>
+								<option value="1">Redis</option>
 
 						</select><br>
 						<div id="divsqlite">
@@ -142,7 +149,7 @@
 			
 			<!-- Step 2 Webserver -->
 			<div class="wizard-card wizard-card-overlay" data-cardname="webserver1">
-				<h3>Webserver 1/2</h3>
+				<h3 style="display:none">Webserver 1/2</h3>
 
 				<div class="wizard-input-section">
 					<div class="form-group">
@@ -182,37 +189,29 @@
 			
 			<!-- Step 3 Webserver 2 -->
 			<div class="wizard-card wizard-card-overlay" data-cardname="webserver2">
-				<h3>Webserver 2/2</h3>
+				<h3 style="display:none">Webserver 2/2</h3>
 
 				<div class="wizard-input-section">
 					<div class="form-group">
 
-							<div class="col-sm-8">
 							  <label for="public_name">Public Name:</label>
 								<input type="text" class="form-control" id="public_name" name="public_name" value="Gokapi" placeholder="Public Name" required>
-							</div><br><br><br>
-							<div class="col-sm-8">
-							  <label for="port">Port:</label>
+							  <br><label for="port">Port:</label>
 {{ if .IsDocker }}
 							<input type="number" class="form-control" id="port" value="53842" placeholder="Port number" disabled>
 							<input type="hidden" class="form-control" name="port" value="53842">
 {{ else }}
 							<input type="number" class="form-control" id="port" name="port" value="53842" min="1" max="65535" placeholder="Port number" data-min="1" data-validate="validateMinLength" required onChange="urlParamChanged()">
 {{ end }}
-							</div><br><br><br>
 							
 
-							<div class="col-sm-8">
-							  <label for="url">Public facing URL:</label>
+							  <br><label for="url">Public facing URL:</label>
 								<input type="text" class="form-control" id="url" name="url" value="http://127.0.0.1:53842/" onfocusout="extUrlChanged(this)" placeholder="Public URL" data-min="8" required data-validate="validateUrl">
-							</div><br><br><br>
 							
 							
 
-							<div class="col-sm-8">
-							  <label for="url_redirection">Redirection URL for the index:</label>
+							  <br><label for="url_redirection">Redirection URL for the index:</label>
 								<input type="text" class="form-control" id="url_redirection" name="url_redirection" value="https://github.com/Forceu/Gokapi/" placeholder="Redirection URL" required data-min="1" data-validate="validateMinLength">
-							</div>
 						</div>
 				</div>
 			</div>
@@ -222,7 +221,7 @@
 
 			<!-- Step 4 Auth -->
 			<div class="wizard-card wizard-card-overlay" data-cardname="authentication">
-				<h3>Authentication</h3>
+				<h3 style="display:none">Authentication</h3>
 
 				<div class="wizard-input-section">
 					<div class="form-group">
@@ -238,7 +237,7 @@
 							</optgroup>
 
 							<optgroup label="Reverse Proxy">
-								<option value="2">Header Authentication</option>
+								<option value="2">Trusted Header Authentication</option>
 								<option value="3">Disabled / Access Restriction</option>
 							</optgroup>
 
@@ -249,7 +248,7 @@
 
 			<!-- Step 5a Credentials PW -->
 			<div class="wizard-card wizard-card-overlay" data-cardname="credentials">
-				<h3>Credentials</h3>
+				<h3 style="display:none">Credentials</h3>
 
 
 				<div class="wizard-input-section">
@@ -275,7 +274,7 @@
 			
 			<!-- Step 5b Credentials Oauth -->
 			<div class="wizard-card wizard-card-overlay" data-cardname="credentials-oauth">
-				<h3>Credentials</h3>
+				<h3 style="display:none">Credentials</h3>
 
 
 					<div class="wizard-input-section">
@@ -299,6 +298,10 @@
 								<input type="text" class="form-control" id="oauth_secret" name="oauth_secret" placeholder="Client Secret" data-min="1" required data-validate="validateMinLength">
 							</div>
 							<div class="col-sm-8" style="width:90%">
+							  <label for="oauth_admin_user">Admin email address:</label>
+								<input type="text" class="form-control" id="oauth_admin_user" name="oauth_admin_user" placeholder="Admin email address" data-min="3" required data-validate="validateMinLength">
+							</div>
+							<div class="col-sm-8" style="width:90%">
 							Recheck identity every 
 							<select name="oauth_recheck_interval" id="oauth_recheck_interval" style="width:350px;" class="select form-control">
 								<option value="6"> 6 hours</option>
@@ -314,28 +317,26 @@
 							<br>Restrict to:
 								  <div class="oauthscopecontainer">
 								    <div class="oauthscopes">
-								      <input type="hidden" name="oauth_restrict_users.unchecked" value="false"/>
-								      <input type="checkbox" id="oauth_restrict_users" name="oauth_restrict_users" onchange="handleOauthCheckboxChange(this)"  value="true">
-								      <label id="label_ousers" for="oauth_restrict_users" class="checkboxLabel">Users &nbsp;</label>
-								      <input type="text" id="oauth_scope_users" name="oauth_scope_users" class="input-field" placeholder="Scope identifier" data-min="1" data-validate="validateMinLength" disabled>&nbsp;
-								      <input type="text" id="oauth_allowed_users" name="oauth_allowed_users" class="input-field" placeholder="Authorised users" data-min="1" data-validate="validateMinLength" disabled>
-								    </div>
-
-								    <div class="oauthscopes">
 								      <input type="hidden" name="oauth_restrict_groups.unchecked" value="false"/>
 								      <input type="checkbox" id="oauth_restrict_groups" name="oauth_restrict_groups" onchange="handleOauthCheckboxChange(this)"  value="true">
 								      <label id="label_ogroups" for="oauth_restrict_groups" class="checkboxLabel">Groups</label>
 								      <input type="text" id="oauth_scope_groups" name="oauth_scope_groups" class="input-field" placeholder="Scope identifier" data-min="1" data-validate="validateMinLength" disabled>&nbsp;
 								      <input type="text" id="oauth_allowed_groups" name="oauth_allowed_groups" class="input-field" placeholder="Authorised groups" data-min="1" data-validate="validateMinLength" disabled>
 								    </div>
+								    
+								     <div><br>
+								     <input type="hidden" name="oauth_only_registered_users.unchecked" value="false"/>
+								     <input  id="oauth_only_registered_users" name="oauth_only_registered_users" type="checkbox" value="true"/>
+								     <span>&nbsp;Only allow already existing users to log in</span>
+								     </div>
 								  </div>
 							</div> 
 							<div class="col-sm-8" style="width:90%">
 							 <label for="oauth_redir"><br>Redirection URL:</label>
 {{ if .IsInitialSetup }}
-								<input type="text" class="form-control" id="oauth_redir" name="oauth_redir" disabled value="http://127.0.0.1:53842/oauth-callback">
+								<input type="text" style="cursor:default" class="form-control" id="oauth_redir" name="oauth_redir" disabled value="http://127.0.0.1:53842/oauth-callback">
 {{ else }}
-								<input type="text" class="form-control" id="oauth_redir" name="oauth_redir" disabled value="{{ .Settings.ServerUrl }}oauth-callback">
+								<input type="text" style="cursor:default" class="form-control" id="oauth_redir" name="oauth_redir" disabled value="{{ .Settings.ServerUrl }}oauth-callback">
 {{ end }}
 							</div><br><br>
 
@@ -346,30 +347,35 @@
 			
 			<!-- Step 5c Credentials Header -->
 			<div class="wizard-card wizard-card-overlay" data-cardname="credentials-header">
-				<h3>Credentials</h3>
+				<h3 style="display:none">Credentials</h3>
 
 
 				<div class="wizard-input-section">
 						<div class="form-group">
 					<p>
-						Enter the key of the header that will be provided from your reverse proxy containing the username.<br>Add the allowed users to the list below (seperated by semicolon) or leave it blank if access is granted to all authenticated users.<br><br>
+						Enter the key of the header that will be provided from your reverse proxy containing the username.<br><br>
 					</p>
 
-							<div class="col-sm-8">
+							<p>
 							  <label for="auth_headerkey">Header Key:</label>
-								<input type="text" class="form-control" id="auth_headerkey" name="auth_headerkey" required placeholder="Header Key" data-validate="validateMinLength">
-							</div><br><br>
+								<input type="text" class="form-control" id="auth_headerkey" name="auth_headerkey" data-min="1" required placeholder="Header Key" data-validate="validateMinLength">
+							</p>
 							
-							<div class="col-sm-8">
-							  <label for="auth_header_users">Authorised users:</label>
-								<input type="text" class="form-control" id="auth_header_users" name="auth_header_users" placeholder="Authorised users">
-							</div>
+							<p>
+							  <label for="auth_header_admin">Admin user name:</label>
+								<input type="text" class="form-control" id="auth_header_admin" name="auth_header_admin" data-min="3"  data-validate="validateMinLength" required placeholder="Admin user name">
+							</p>
+						
+						    <br>
+						     <input type="hidden" name="auth_header_only_registered_users.unchecked" value="false"/>
+						     <input id="auth_header_only_registered_users" name="auth_header_only_registered_users" type="checkbox" value="true"/>
+						     <span>&nbsp;Only allow already existing users to log in</span>
 					</div>
 				</div>
 			</div>
 			<!-- Step 5d Credentials Disbabled -->
 			<div class="wizard-card wizard-card-overlay" data-cardname="credentials-disabled">
-				<h3>Credentials</h3>
+				<h3 style="display:none">Credentials</h3>
 
 
 				<div class="wizard-input-section">
@@ -392,7 +398,7 @@
 
 			<!-- Step 6 Storage -->
 			<div class="wizard-card wizard-card-overlay" data-cardname="storage">
-				<h3>Storage</h3>
+				<h3 style="display:none">Storage</h3>
 
 				<div class="wizard-input-section">
 					<p>
@@ -437,7 +443,7 @@
 			
 			<!-- Step 7 S3 Credentials -->
 			<div class="wizard-card wizard-card-overlay" data-cardname="s3credentials">
-				<h3>S3 Credentials</h3>
+				<h3 style="display:none">S3 Credentials</h3>
 
 				<div class="wizard-input-section">
 				
@@ -525,7 +531,7 @@ function TestAWS(button, isManual) {
 
 			<!-- Step 7 Encryption -->
 			<div class="wizard-card wizard-card-overlay" data-cardname="encryption">
-				<h3>Encryption Level</h3>
+				<h3 style="display:none">Encryption Level</h3>
 
 				<div class="wizard-input-section">
 						<div class="form-group">
@@ -655,7 +661,7 @@ function TestAWS(button, isManual) {
 
 			<!-- Step 8 Encryption PW -->
 			<div class="wizard-card wizard-card-overlay" data-cardname="encryptionpw">
-				<h3>Encryption Master Password</h3>
+				<h3 style="display:none">Encryption Master Password</h3>
 
 				<div class="wizard-input-section">
 						<div class="form-group">
@@ -798,14 +804,9 @@ function TestAWS(button, isManual) {
 				    document.getElementById("oauth_provider").value = "{{ .Auth.OAuthProvider }}";
 				    document.getElementById("oauth_id").value = "{{ .Auth.OAuthClientId }}";
 				    document.getElementById("oauth_secret").value = "{{ .Auth.OAuthClientSecret }}";
+				    document.getElementById("oauth_admin_user").value = "{{ .Auth.Username }}";
 				    document.getElementById("oauth_recheck_interval").value = "{{ .Auth.OAuthRecheckInterval }}";
-	{{ if ne .OAuthUsers "" }}
-				    document.getElementById("oauth_restrict_users").checked = true;
-				    document.getElementById("oauth_scope_users").disabled = false;
-				    document.getElementById("oauth_scope_users").value = "{{ .Auth.OAuthUserScope }}";
-				    document.getElementById("oauth_allowed_users").disabled = false;
-				    document.getElementById("oauth_allowed_users").value = "{{ .OAuthUsers }}";
-	{{ end }}
+				    document.getElementById("oauth_only_registered_users").checked = {{.Auth.OnlyRegisteredUsers}};
 	{{ if ne .OAuthGroups "" }}
 				    document.getElementById("oauth_restrict_groups").checked = true;
 				    document.getElementById("oauth_scope_groups").disabled = false;
@@ -816,7 +817,8 @@ function TestAWS(button, isManual) {
 				    break;
 				  case 2:
 				    document.getElementById("auth_headerkey").value = "{{ .Auth.HeaderKey }}";
-				    document.getElementById("auth_header_users").value = "{{ .HeaderUsers }}";
+				    document.getElementById("auth_header_admin").value = "{{ .Auth.Username }}";
+				    document.getElementById("auth_header_only_registered_users").checked = {{.Auth.OnlyRegisteredUsers}};
 				    break;
 				}
 				
@@ -850,8 +852,6 @@ function TestAWS(button, isManual) {
 				
 				    /* enable inputs again, otherwise they will not be submitted */
 				    document.getElementById("oauth_scope_groups").disabled = false;
-				    document.getElementById("oauth_scope_users").disabled = false;
-				    document.getElementById("oauth_allowed_users").disabled = false;
 				    document.getElementById("oauth_allowed_groups").disabled = false;
 					
 					 $.ajax({

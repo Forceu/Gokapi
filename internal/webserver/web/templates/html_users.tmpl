@@ -1,0 +1,209 @@
+{{ define "users" }}
+{{ template "header" . }}
+<div class="row">
+    <div class="col">
+        <div id="container" class="card" style="width: 80%">
+    <div class="card-body">
+		<div class="container">
+		  <div class="row mb-4">
+		    <div class="col">
+		    </div>
+		    <div class="col text-center">
+		      <h3 class="card-title mb-0">Users</h3>
+		    </div>
+		    <div class="col text-end">
+		      <button id="add-user-btn" class="btn btn-outline-light" onclick="showAddUserModal()">
+                    <i class="bi bi-plus-circle-fill"></i>
+                </button>
+		    </div>
+		  </div>
+		</div>
+                <div class="table-responsive">
+                    <table class="table table-dark">
+                        <thead>
+                            <tr>
+                                <th scope="col">User</th>
+                                <th scope="col">Group</th>
+            			<th scope="col">Last online</th>
+            			<th scope="col">Uploads</th>
+            			<th scope="col">Permissions</th>
+                                <th scope="col">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usertable">
+{{ range .Users }}
+                            <tr id="row-{{ .User.Id }}">
+                                <td>{{ .User.Name }}</td>
+                                <td  id="userlevel_{{ .User.Id }}">{{ .User.GetReadableUserLevel }}</td>
+            			<td>{{ .User.GetReadableDate }}</td>
+                                <td>{{ .UploadCount }}</td>
+            			<td class="prevent-select">
+            			
+		<i id="perm_replace_{{ .User.Id }}" class="bi bi-recycle {{if not .User.HasPermissionReplace}}perm-notgranted{{else}}perm-granted{{end}} {{if or (eq .User.UserLevel 0) (eq .User.Id $.ActiveUser.Id)}}perm-nochange{{end}}" title="Replace own uploads" onclick='changeUserPermission("{{ .User.Id }}","PERM_REPLACE", "perm_replace_{{ .User.Id }}");'></i>
+		
+		<i id="perm_list_{{ .User.Id }}" class="bi bi-eye {{if not .User.HasPermissionListOtherUploads}}perm-notgranted{{else}}perm-granted{{end}} {{if or (eq .User.UserLevel 0) (eq .User.Id $.ActiveUser.Id)}}perm-nochange{{end}}" title="List other uploads" onclick='changeUserPermission("{{ .User.Id }}","PERM_LIST", "perm_list_{{ .User.Id }}");'></i>
+		
+		<i id="perm_edit_{{ .User.Id }}" class="bi bi-pencil {{if not .User.HasPermissionEditOtherUploads}}perm-notgranted{{else}}perm-granted{{end}} {{if or (eq .User.UserLevel 0) (eq .User.Id $.ActiveUser.Id)}}perm-nochange{{end}}" title="Edit other uploads" onclick='changeUserPermission("{{ .User.Id }}","PERM_EDIT", "perm_edit_{{ .User.Id }}");'></i>
+		
+		<i id="perm_delete_{{ .User.Id }}" class="bi bi-trash3 {{if not .User.HasPermissionDeleteOtherUploads}}perm-notgranted{{else}}perm-granted{{end}} {{if or (eq .User.UserLevel 0) (eq .User.Id $.ActiveUser.Id)}}perm-nochange{{end}}" title="Delete other uploads" onclick='changeUserPermission("{{ .User.Id }}","PERM_DELETE", "perm_delete_{{ .User.Id }}");'></i>
+		
+		<i id="perm_replace_other_{{ .User.Id }}" class="bi bi-arrow-left-right {{if not .User.HasPermissionReplaceOtherUploads}}perm-notgranted{{else}}perm-granted{{end}} {{if or (eq .User.UserLevel 0) (eq .User.Id $.ActiveUser.Id)}}perm-nochange{{end}}" title="Replace other uploads" onclick='changeUserPermission("{{ .User.Id }}","PERM_REPLACE_OTHER", "perm_replace_other_{{ .User.Id }}");'></i>
+		
+		<i id="perm_logs_{{ .User.Id }}" class="bi bi-card-list {{if not .User.HasPermissionManageLogs}}perm-notgranted{{else}}perm-granted{{end}} {{if or (eq .User.UserLevel 0) (eq .User.Id $.ActiveUser.Id)}}perm-nochange{{end}}" title="Manage system logs" onclick='changeUserPermission("{{ .User.Id }}","PERM_LOGS", "perm_logs_{{ .User.Id }}");'></i>
+
+		<i id="perm_users_{{ .User.Id }}" class="bi bi-people {{if not .User.HasPermissionManageUsers}}perm-notgranted{{else}}perm-granted{{end}} {{if or (eq .User.UserLevel 0) (eq .User.Id $.ActiveUser.Id)}}perm-nochange{{end}}" title="Manage users" onclick='changeUserPermission("{{ .User.Id }}","PERM_USERS", "perm_users_{{ .User.Id }}");'></i>
+
+		<i id="perm_api_{{ .User.Id }}" class="bi bi-sliders2 {{if not .User.HasPermissionManageApi}}perm-notgranted{{else}}perm-granted{{end}} {{if or (eq .User.UserLevel 0) (eq .User.Id $.ActiveUser.Id)}}perm-nochange{{end}}" title="Manage API keys" onclick='changeUserPermission("{{ .User.Id }}","PERM_API", "perm_api_{{ .User.Id }}");'></i>
+		
+            			</td>
+                                <td>
+                                {{if $.IsInternalAuth}}
+                                <button id="pwchange-{{ .User.Id }}" type="button" class="btn btn-outline-light btn-sm" {{if or (eq .User.UserLevel 0) (eq .User.Id $.ActiveUser.Id)}}disabled{{end}} onclick="showResetPwModal('{{ .User.Id }}', '{{ .User.Name }}')" title="Reset Password"><i class="bi bi-key-fill"></i></button>&nbsp;
+                                {{end}}
+                                
+                                {{if gt .User.UserLevel 1}}
+		                        <button id="changeRank_{{ .User.Id }}" type="button" onclick="changeRank({{ .User.Id }}, 'ADMIN', 'changeRank_{{ .User.Id }}')" title="Promote User" {{ if eq .User.Id $.ActiveUser.Id}}disabled{{end}} class="btn btn-outline-light btn-sm">
+		                        	<i class="bi bi-chevron-double-up"></i></button>
+                                {{ else }}
+                       			 <button id="changeRank_{{ .User.Id }}" type="button" onclick="changeRank({{ .User.Id }}, 'USER', 'changeRank_{{ .User.Id }}')" {{if or (eq .User.UserLevel 0) (eq .User.Id $.ActiveUser.Id)}}disabled{{end}} title="Demote User" class="btn btn-outline-light btn-sm">
+		                        	<i class="bi bi-chevron-double-down"></i></button>                                
+                                {{ end }}
+                                
+                                
+                                &nbsp;<button id="delete-{{ .User.Id }}" type="button" class="btn btn-outline-danger btn-sm" {{if or (eq .User.UserLevel 0) (eq .User.Id $.ActiveUser.Id)}}disabled{{end}} onclick="showDeleteModal('{{ .User.Id }}', '{{ .User.Name }}')" title="Delete"><i class="bi bi-trash3"></i></button></td>
+                            </tr>
+{{ end }}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+	<div id="toastnotification" class="toastnotification" data-default="Invalid notification">Toast Text</div>
+	
+	<!-- Modal for deletion confirmation -->
+	<div class="modal" tabindex="-1" id="deleteModal">
+	  <div class="modal-dialog gokapi-dialog">
+	    <div class="modal-content gokapi-dialog">
+	      <div class="modal-header">
+		<h5 class="modal-title">Delete User</h5>
+	      </div>
+	      <div class="modal-body">
+		<p>Are you sure you want to delete user <span id="deleteModalBody" class="fw-bold"></span>?
+		This action cannot be undone.</p>
+		<div class="form-check form-check-inline">
+		  <input class="form-check-input" type="checkbox"  id="checkboxDelete" value="">
+		  <label class="form-check-label" for="checkboxDelete">
+		    Permanently delete all files uploaded by this user.
+		  </label>
+		</div>
+		</div>
+	      <div class="modal-footer">
+		<button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
+		<button type="button" id="buttonDelete" class="btn btn-danger">Delete User</button>
+	      </div>
+	    </div>
+	  </div>
+	</div>
+	
+	
+	
+	<!-- Bootstrap Modal for Adding a New User -->
+	<div class="modal fade" id="newUserModal" tabindex="-1" aria-labelledby="newUserModalLabel" aria-hidden="true">
+	  <div class="modal-dialog gokapi-dialog">
+	    <div class="modal-content gokapi-dialog">
+	      <div class="modal-header">
+		<h5 class="modal-title" id="newUserModalLabel">Create New User</h5>
+	      </div>
+	      <div class="modal-body">
+		<form id="newUserForm">
+		  <div class="mb-3">
+		  <div class="text-start">
+		    <label for="e_userName" class="form-label">Username</label>
+		    </div>
+		    <input type="text" class="form-control" id="e_userName" minlength="2" placeholder="Enter a username" required>
+	         </div>
+		</form>
+	      <div class="modal-footer">
+		<button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
+		<button type="submit" form="newUserForm" onclick="addNewUser();" id="mb_addUser" class="btn btn-primary">Add User</button>
+	      </div>
+	    </div>
+	  </div>
+	  </div>
+	  </div>
+	
+	
+	<!-- Modal for Reset Password -->
+	<div class="modal  fade" id="resetPasswordModal" tabindex="-1" aria-labelledby="resetPasswordModalLabel" aria-hidden="true">
+	  <div class="modal-dialog gokapi-dialog text-start">
+	    <div class="modal-content gokapi-dialog">
+	      <!-- Modal Header -->
+	      <div class="modal-header">
+		<h5 class="modal-title" id="resetPasswordModalLabel">Reset Password</h5>
+	      </div>
+
+	      <!-- Modal Body -->
+	      <div class="modal-body">
+		
+		<div id="formentryReset">
+		<p>Choose an option to reset the password for the user <span  class="fw-bold" id="l_userpwreset"></span>:</p>
+
+		<!-- Option 1: Force user to set a new password on next login -->
+		<div class="form-check mb-3">
+		  <input 
+		    type="radio" 
+		    id="forceNewPassword" 
+		    name="resetOption" 
+		    class="form-check-input" 
+		    value="forceNew" 
+		    checked>
+		  <label for="forceNewPassword" class="form-check-label">
+		    Force user to set a new password on next login
+		  </label>
+		</div>
+
+		<!-- Option 2: Generate and display a random password -->
+		<div class="form-check mb-3">
+		  <input 
+		    type="radio" 
+		    id="generateRandomPassword" 
+		    name="resetOption" 
+		    class="form-check-input" 
+		    value="generateRandom">
+		  <label for="generateRandomPassword" class="form-check-label">
+		    Generate a new random password (user will be forced to change it on next login)
+		  </label>
+		</div>
+		
+		
+		</div>
+
+		 <!-- Display Random Password (Inline) -->
+		<div id="randomPasswordContainer" class="mt-3" style="display: none;">
+		  <label class="form-label">
+		    New Password: 
+		    <span class="highlighted-password" id="l_returnedPw"></span> <button type="button" id="copypwclip" title="Copy Password" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i></button>
+		  </label>
+		</div>
+	      </div>
+	      <!-- Modal Footer -->
+	      <div class="modal-footer">
+		<button type="button" id="cancelPasswordButton"class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
+		<button type="button" id="resetPasswordButton" class="btn btn-primary">Confirm</button>
+		<button type="button" style="display:none" id="closeModalResetPw" class="btn btn-primary" data-bs-dismiss="modal" >OK</button>
+	      </div>
+	    </div>
+	  </div>
+	  </div>
+
+
+    </div>
+</div>
+
+<script src="./js/min/admin.min.{{ template "js_admin_version"}}.js"></script>
+<script>
+	var systemKey = "{{.SystemKey}}";
+	var isInternalAuth = {{.IsInternalAuth}};
+</script>
+{{ template "footer" true }}
+{{ end }}

@@ -43,7 +43,7 @@ func ResponseBodyContains(t MockT, got *httptest.ResponseRecorder, want string) 
 	result, err := io.ReadAll(got.Result().Body)
 	IsNil(t, err)
 	if !strings.Contains(string(result), want) {
-		t.Errorf("Assertion failed, got: %s, want: %s.", got, want)
+		t.Errorf("Assertion failed, got: %v \n want: %s.\n\n", got, want)
 	}
 }
 
@@ -60,14 +60,6 @@ func IsEqualBool(t MockT, got, want bool) {
 	t.Helper()
 	if got != want {
 		t.Errorf("Assertion failed, got: %t, want: %t.", got, want)
-	}
-}
-
-// IsEqualStruct fails test if got and want are not identical
-func IsEqualStruct(t MockT, got, want any) {
-	t.Helper()
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("Assertion failed, got: %+v, want: %+v.", got, want)
 	}
 }
 
@@ -172,6 +164,7 @@ func IsNotNil(t MockT, got any) {
 	}
 }
 
+// IsEqual fails test if got and want are not identical
 func IsEqual(t MockT, got, expected any) {
 	t.Helper()
 	if !reflect.DeepEqual(got, expected) {
@@ -293,7 +286,7 @@ func checkResponse(t MockT, response *http.Response, config HttpTestConfig) {
 	t.Helper()
 	IsEqualBool(t, response != nil, true)
 	if response.StatusCode != config.ResultCode {
-		t.Errorf("Status Code - Got: %d Want: %d", config.ResultCode, response.StatusCode)
+		t.Errorf("Status Code - Got: %d Want: %d", response.StatusCode, config.ResultCode)
 	}
 
 	content, err := io.ReadAll(response.Body)
@@ -422,6 +415,9 @@ func HttpPostRequest(t MockT, config HttpTestConfig) []*http.Cookie {
 		})
 	}
 	r.Header.Set("Content-type", "application/x-www-form-urlencoded")
+	for _, header := range config.Headers {
+		r.Header.Set(header.Name, header.Value)
+	}
 	client := &http.Client{}
 	response, err := client.Do(r)
 	IsNil(t, err)

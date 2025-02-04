@@ -6,12 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"github.com/forceu/gokapi/internal/configuration"
+	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/webserver/authentication/sessionmanager"
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"regexp"
 	"strings"
 )
@@ -19,103 +21,103 @@ import (
 // CookieOauth is the cookie name used for login
 const CookieOauth = "state"
 
-// Internal authentication method uses a user / password combination handled by Gokapi
-const Internal = 0
-
-// OAuth2 authentication retrieves the users email with Open Connect ID
-const OAuth2 = 1
-
-// Header authentication relies on a header from a reverse proxy to parse the username
-const Header = 2
-
-// Disabled authentication ignores all internal authentication procedures. A reverse proxy needs to restrict access
-const Disabled = 3
-
 var authSettings models.AuthenticationConfig
 
 // Init needs to be called first to process the authentication configuration
 func Init(config models.AuthenticationConfig) {
-	valid, err := isValid(config)
-	if !valid {
+	err := checkAuthConfig(config)
+	if err != nil {
 		log.Println("Error while initiating authentication method:")
-		log.Fatal(err)
+		log.Println(err)
+		osExit(3)
+		return
 	}
 	authSettings = config
 }
 
-// isValid checks if the config is actually valid, and returns true or returns false and an error
-func isValid(config models.AuthenticationConfig) (bool, error) {
+var osExit = os.Exit
+
+// checkAuthConfig checks if the config is actually valid, and returns an error otherwise
+func checkAuthConfig(config models.AuthenticationConfig) error {
 	switch config.Method {
-	case Internal:
+	case models.AuthenticationInternal:
 		if len(config.Username) < 3 {
-			return false, errors.New("username too short")
+			return errors.New("username too short")
 		}
-		if len(config.Password) != 40 {
-			return false, errors.New("password does not appear to be a SHA-1 hash")
-		}
-		return true, nil
-	case OAuth2:
+		return nil
+	case models.AuthenticationOAuth2:
 		if config.OAuthProvider == "" {
-			return false, errors.New("oauth provider was not set")
+			return errors.New("oauth provider was not set")
 		}
 		if config.OAuthClientId == "" {
-			return false, errors.New("oauth client id was not set")
+			return errors.New("oauth client id was not set")
 		}
 		if config.OAuthClientSecret == "" {
-			return false, errors.New("oauth client secret was not set")
+			return errors.New("oauth client secret was not set")
 		}
-		return true, nil
-	case Header:
+		if config.OAuthRecheckInterval < 1 {
+			return errors.New("oauth recheck interval invalid")
+		}
+		return nil
+	case models.AuthenticationHeader:
 		if config.HeaderKey == "" {
-			return false, errors.New("header key is not set")
+			return errors.New("header key is not set")
 		}
-		return true, nil
-	case Disabled:
-		return true, nil
+		return nil
+	case models.AuthenticationDisabled:
+		return nil
 	default:
-		return false, errors.New("unknown authentication selected")
+		return errors.New("unknown authentication selected")
 	}
 }
 
-// IsAuthenticated returns true if the user provides a valid authentication
-func IsAuthenticated(w http.ResponseWriter, r *http.Request) bool {
-	switch authSettings.Method {
-	case Internal:
-		return isGrantedSession(w, r)
-	case OAuth2:
-		return isGrantedSession(w, r)
-	case Header:
-		return isGrantedHeader(r)
-	case Disabled:
-		return true
+func GetUserFromRequest(r *http.Request) (models.User, error) {
+	c := r.Context()
+	user, ok := c.Value("user").(models.User)
+	if !ok {
+		return models.User{}, errors.New("user not found in context")
 	}
-	return false
+	return user, nil
+}
+
+// IsAuthenticated returns true and the user ID if authenticated
+func IsAuthenticated(w http.ResponseWriter, r *http.Request) (models.User, bool) {
+	switch authSettings.Method {
+	case models.AuthenticationInternal:
+		user, ok := isGrantedSession(w, r)
+		if ok {
+			return user, true
+		}
+	case models.AuthenticationOAuth2:
+		user, ok := isGrantedSession(w, r)
+		if ok {
+			return user, true
+		}
+	case models.AuthenticationHeader:
+		user, ok := isGrantedHeader(r)
+		if ok {
+			return user, true
+		}
+	case models.AuthenticationDisabled:
+		adminUser, ok := database.GetSuperAdmin()
+		if !ok {
+			panic("no super admin found")
+		}
+		return adminUser, true
+	}
+	return models.User{}, false
 }
 
 // isGrantedHeader returns true if the user was authenticated by a proxy header if enabled
-func isGrantedHeader(r *http.Request) bool {
+func isGrantedHeader(r *http.Request) (models.User, bool) {
 	if authSettings.HeaderKey == "" {
-		return false
+		return models.User{}, false
 	}
-	value := r.Header.Get(authSettings.HeaderKey)
-	if value == "" {
-		return false
+	userName := r.Header.Get(authSettings.HeaderKey)
+	if userName == "" {
+		return models.User{}, false
 	}
-	if len(authSettings.HeaderUsers) == 0 {
-		return true
-	}
-	return isUserInArray(value, authSettings.HeaderUsers)
-}
-
-func isUserInArray(userEntered string, allowedUsers []string) bool {
-	for _, allowedUser := range allowedUsers {
-		matches, err := matchesWithWildcard(strings.ToLower(allowedUser), strings.ToLower(userEntered))
-		helper.Check(err)
-		if matches {
-			return true
-		}
-	}
-	return false
+	return getOrCreateUser(userName)
 }
 
 func matchesWithWildcard(pattern, input string) (bool, error) {
@@ -185,33 +187,6 @@ func extractOauthGroups(userInfo OAuthUserClaims, groupScope string) ([]string, 
 	return groups, nil
 }
 
-func extractFieldValue(userInfo OAuthUserClaims, fieldName string) (string, error) {
-	var claims json.RawMessage
-
-	err := userInfo.Claims(&claims)
-	if err != nil {
-		return "", err
-	}
-	var fieldMap map[string]interface{}
-	err = json.Unmarshal(claims, &fieldMap)
-	if err != nil {
-		return "", err
-	}
-
-	// Extract the field value based on the provided fieldName
-	fieldValue, ok := fieldMap[fieldName]
-	if !ok {
-		return "", fmt.Errorf("%s scope not found in reply", fieldName)
-	}
-
-	strValue, ok := fieldValue.(string)
-	if !ok {
-		return "", fmt.Errorf("value of %s scope is not a string", fieldName)
-	}
-
-	return strValue, nil
-}
-
 // OAuthUserInfo is used to make testing easier. This results in an additional parameter for the subject unfortunately
 type OAuthUserInfo struct {
 	Subject    string
@@ -226,59 +201,74 @@ type OAuthUserClaims interface {
 
 // CheckOauthUserAndRedirect checks if the user is allowed to use the Gokapi instance
 func CheckOauthUserAndRedirect(userInfo OAuthUserInfo, w http.ResponseWriter) error {
-	var username string
 	var groups []string
 	var err error
 
-	if authSettings.OAuthUserScope != "" {
-		if authSettings.OAuthUserScope == "email" {
-			username = userInfo.Email
-		} else {
-			username, err = extractFieldValue(userInfo.ClaimsSent, authSettings.OAuthUserScope)
-			if err != nil {
-				return err
-			}
-		}
-	}
 	if authSettings.OAuthGroupScope != "" {
 		groups, err = extractOauthGroups(userInfo.ClaimsSent, authSettings.OAuthGroupScope)
 		if err != nil {
 			return err
 		}
 	}
-	if isValidOauthUser(userInfo, username, groups) {
-		sessionmanager.CreateSession(w, authSettings.Method == OAuth2, authSettings.OAuthRecheckInterval)
-		redirect(w, "admin")
-		return nil
+	if isValidOauthUser(userInfo, groups) {
+		user, ok := getOrCreateUser(userInfo.Email)
+		if ok {
+			sessionmanager.CreateSession(w, true, authSettings.OAuthRecheckInterval, user.Id)
+			redirect(w, "admin")
+		}
 	}
 	redirect(w, "error-auth")
 	return nil
 }
 
-func isValidOauthUser(userInfo OAuthUserInfo, username string, groups []string) bool {
+func getOrCreateUser(username string) (models.User, bool) {
+	user, ok := database.GetUserByName(username)
+	if !ok {
+		if authSettings.OnlyRegisteredUsers {
+			return models.User{}, false
+		}
+		user = models.User{
+			Name:      username,
+			UserLevel: models.UserLevelUser,
+		}
+		database.SaveUser(user, true)
+		user, ok = database.GetUserByName(username)
+		if !ok {
+			panic("unable to read new user")
+		}
+	}
+	return user, true
+}
+
+func isValidOauthUser(userInfo OAuthUserInfo, groups []string) bool {
 	if userInfo.Subject == "" {
 		return false
 	}
-	isValidUser := true
-	if len(authSettings.OAuthUsers) > 0 {
-		isValidUser = isUserInArray(username, authSettings.OAuthUsers)
+	if userInfo.Email == "" {
+		return false
 	}
 	isValidGroup := true
 	if len(authSettings.OAuthGroups) > 0 {
 		isValidGroup = isGroupInArray(groups, authSettings.OAuthGroups)
 	}
-	return isValidUser && isValidGroup
+	return isValidGroup
 }
 
 // isGrantedSession returns true if the user holds a valid internal session cookie
-func isGrantedSession(w http.ResponseWriter, r *http.Request) bool {
-	return sessionmanager.IsValidSession(w, r, authSettings.Method == OAuth2, authSettings.OAuthRecheckInterval)
+func isGrantedSession(w http.ResponseWriter, r *http.Request) (models.User, bool) {
+	return sessionmanager.IsValidSession(w, r, authSettings.Method == models.AuthenticationOAuth2, authSettings.OAuthRecheckInterval)
 }
 
 // IsCorrectUsernameAndPassword checks if a provided username and password is correct
-func IsCorrectUsernameAndPassword(username, password string) bool {
-	return IsEqualStringConstantTime(username, authSettings.Username) &&
-		IsEqualStringConstantTime(configuration.HashPasswordCustomSalt(password, authSettings.SaltAdmin), authSettings.Password)
+func IsCorrectUsernameAndPassword(username, password string) (models.User, bool) {
+	user, ok := database.GetUserByName(username)
+	if !ok {
+		return models.User{}, false
+	}
+	if IsEqualStringConstantTime(configuration.HashPasswordCustomSalt(password, authSettings.SaltAdmin), user.Password) {
+		return user, true
+	}
+	return models.User{}, false
 }
 
 // IsEqualStringConstantTime uses ConstantTimeCompare to prevent timing attack.
@@ -295,10 +285,10 @@ func redirect(w http.ResponseWriter, url string) {
 
 // Logout logs the user out and removes the session
 func Logout(w http.ResponseWriter, r *http.Request) {
-	if authSettings.Method == Internal || authSettings.Method == OAuth2 {
+	if authSettings.Method == models.AuthenticationInternal || authSettings.Method == models.AuthenticationOAuth2 {
 		sessionmanager.LogoutSession(w, r)
 	}
-	if authSettings.Method == OAuth2 {
+	if authSettings.Method == models.AuthenticationOAuth2 {
 		redirect(w, "login?consent=true")
 	} else {
 		redirect(w, "login")
@@ -307,5 +297,5 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 
 // IsLogoutAvailable returns true if a logout button should be shown with the current form of authentication
 func IsLogoutAvailable() bool {
-	return authSettings.Method == Internal || authSettings.Method == OAuth2
+	return authSettings.Method == models.AuthenticationInternal || authSettings.Method == models.AuthenticationOAuth2
 }

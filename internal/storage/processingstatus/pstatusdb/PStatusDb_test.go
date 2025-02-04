@@ -8,6 +8,7 @@ import (
 )
 
 func TestSetStatus(t *testing.T) {
+	isGbStarted = true
 	const id = "testchunk"
 	status, ok := getStatus(id)
 	test.IsEqualBool(t, ok, false)

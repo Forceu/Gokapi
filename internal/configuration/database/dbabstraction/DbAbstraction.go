@@ -44,14 +44,16 @@ type Database interface {
 	// DeleteApiKey deletes an API key with the given ID
 	DeleteApiKey(id string)
 	// GetSystemKey returns the latest UI API key
-	GetSystemKey() (models.ApiKey, bool)
+	GetSystemKey(userId int) (models.ApiKey, bool)
+	// GetApiKeyByPublicKey returns an API key by using the public key
+	GetApiKeyByPublicKey(publicKey string) (string, bool)
 
 	// SaveEnd2EndInfo stores the encrypted e2e info
-	SaveEnd2EndInfo(info models.E2EInfoEncrypted)
+	SaveEnd2EndInfo(info models.E2EInfoEncrypted, userId int)
 	// GetEnd2EndInfo retrieves the encrypted e2e info
-	GetEnd2EndInfo() models.E2EInfoEncrypted
+	GetEnd2EndInfo(userId int) models.E2EInfoEncrypted
 	// DeleteEnd2EndInfo resets the encrypted e2e info
-	DeleteEnd2EndInfo()
+	DeleteEnd2EndInfo(userId int)
 
 	// GetHotlink returns the id of the file associated or false if not found
 	GetHotlink(id string) (string, bool)
@@ -83,6 +85,21 @@ type Database interface {
 	DeleteSession(id string)
 	// DeleteAllSessions logs all users out
 	DeleteAllSessions()
+	// DeleteAllSessionsByUser logs the specific users out
+	DeleteAllSessionsByUser(userId int)
+
+	// GetAllUsers returns a map with all users
+	GetAllUsers() []models.User
+	// GetUser returns a models.User if valid or false if the ID is not valid
+	GetUser(id int) (models.User, bool)
+	// GetUserByName returns a models.User if valid or false if the username is not valid
+	GetUserByName(email string) (models.User, bool)
+	// SaveUser saves a user to the database. If isNewUser is true, a new Id will be generated
+	SaveUser(user models.User, isNewUser bool)
+	// UpdateUserLastOnline writes the last online time to the database
+	UpdateUserLastOnline(id int)
+	// DeleteUser deletes a user with the given ID
+	DeleteUser(id int)
 }
 
 // GetNew connects to the given database and initialises it

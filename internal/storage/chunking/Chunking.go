@@ -114,9 +114,7 @@ func parseContentType(r *http.Request) string {
 	}
 	fileExt := strings.ToLower(filepath.Ext(r.Form.Get("filename")))
 	switch fileExt {
-	case ".jpeg":
-		fallthrough
-	case ".jpg":
+	case ".jpg", ".jpeg":
 		contentType = "image/jpeg"
 	case ".png":
 		contentType = "image/png"
@@ -128,9 +126,7 @@ func parseContentType(r *http.Request) string {
 		contentType = "image/bmp"
 	case ".svg":
 		contentType = "image/svg+xml"
-	case ".tiff":
-		fallthrough
-	case ".tif":
+	case ".tif", ".tiff":
 		contentType = "image/tiff"
 	case ".ico":
 		contentType = "image/vnd.microsoft.icon"

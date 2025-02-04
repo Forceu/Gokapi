@@ -22,6 +22,7 @@ type File struct {
 	SizeBytes               int64          `json:"SizeBytes" redis:"SizeBytes"`                   // Filesize in bytes
 	DownloadsRemaining      int            `json:"DownloadsRemaining" redis:"DownloadsRemaining"` // The remaining downloads for this file
 	DownloadCount           int            `json:"DownloadCount" redis:"DownloadCount"`           // The amount of times the file has been downloaded
+	UserId                  int            `json:"UserId" redis:"UserId"`                         // The user ID of the uploader
 	Encryption              EncryptionInfo `json:"Encryption" redis:"-"`                          // If the file is encrypted, this stores all info for decrypting
 	UnlimitedDownloads      bool           `json:"UnlimitedDownloads" redis:"UnlimitedDownloads"` // True if the uploader did not limit the downloads
 	UnlimitedTime           bool           `json:"UnlimitedTime" redis:"UnlimitedTime"`           // True if the uploader did not limit the time
@@ -49,6 +50,7 @@ type FileApiOutput struct {
 	IsEndToEndEncrypted          bool   `json:"IsEndToEndEncrypted"`          // True if the file is end-to-end encrypted
 	IsPasswordProtected          bool   `json:"IsPasswordProtected"`          // True if a password has to be entered before downloading the file
 	IsSavedOnLocalStorage        bool   `json:"IsSavedOnLocalStorage"`        // True if the file does not use cloud storage
+	UploaderId                   int    `json:"UploaderId"`                   // The user ID of the uploader
 }
 
 // EncryptionInfo holds information about the encryption used on the file
@@ -80,6 +82,7 @@ func (f *File) ToFileApiOutput(serverUrl string, useFilenameInUrl bool) (FileApi
 	result.IsEndToEndEncrypted = f.Encryption.IsEndToEndEncrypted
 	result.UrlHotlink = getHotlinkUrl(result, serverUrl, useFilenameInUrl)
 	result.UrlDownload = getDownloadUrl(result, serverUrl, useFilenameInUrl)
+	result.UploaderId = f.UserId
 
 	return result, nil
 }

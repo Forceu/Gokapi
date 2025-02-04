@@ -8,6 +8,7 @@ import (
 	"errors"
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/database"
+	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage/processingstatus"
 	"github.com/forceu/gokapi/internal/test"
 	"github.com/forceu/gokapi/internal/test/testconfiguration"
@@ -24,6 +25,7 @@ func TestMain(m *testing.M) {
 	testconfiguration.Create(true)
 	configuration.Load()
 	configuration.ConnectDatabase()
+	authentication.Init(configuration.Get().Authentication)
 	go Start()
 	time.Sleep(1 * time.Second)
 	exitVal := m.Run()
@@ -32,9 +34,13 @@ func TestMain(m *testing.M) {
 }
 
 func TestEmbedFs(t *testing.T) {
-	templates, err := template.ParseFS(templateFolderEmbedded, "web/templates/*.tmpl")
+	funcMap := template.FuncMap{
+		"newAdminButtonContext": newAdminButtonContext,
+	}
+	templates, err := template.New("").Funcs(funcMap).ParseFS(templateFolderEmbedded, "web/templates/*.tmpl")
 	if err != nil {
 		t.Error("Unable to read templates")
+		return
 	}
 	if !strings.Contains(templates.DefinedTemplates(), "header") {
 		t.Error("Unable to parse templates")
@@ -88,6 +94,7 @@ func TestLogin(t *testing.T) {
 		ResultCode: 200,
 	}
 	test.HttpPostRequest(t, config)
+
 	config.PostValues = []test.PostBody{
 		{
 			Key:   "username",
@@ -100,7 +107,7 @@ func TestLogin(t *testing.T) {
 	test.HttpPostRequest(t, config)
 
 	oauthConfig := configuration.Get()
-	oauthConfig.Authentication.Method = authentication.OAuth2
+	oauthConfig.Authentication.Method = models.AuthenticationOAuth2
 	oauthConfig.Authentication.OAuthProvider = "http://test.com"
 	oauthConfig.Authentication.OAuthClientSecret = "secret"
 	oauthConfig.Authentication.OAuthClientId = "client"
@@ -108,7 +115,7 @@ func TestLogin(t *testing.T) {
 	config.RequiredContent = []string{"\"Refresh\" content=\"0; URL=./oauth-login\""}
 	config.PostValues = []test.PostBody{}
 	test.HttpPageResult(t, config)
-	configuration.Get().Authentication.Method = authentication.Internal
+	configuration.Get().Authentication.Method = models.AuthenticationInternal
 	authentication.Init(configuration.Get().Authentication)
 
 	buf := config.RequiredContent
@@ -120,7 +127,7 @@ func TestLogin(t *testing.T) {
 			Value: "test",
 		}, {
 			Key:   "password",
-			Value: "testtest",
+			Value: "adminadmin",
 		},
 	}
 	cookies := test.HttpPostRequest(t, config)
@@ -260,7 +267,7 @@ func TestLoginCorrect(t *testing.T) {
 		RequiredContent: []string{"URL=./admin\""},
 		IsHtml:          true,
 		Method:          "POST",
-		PostValues:      []test.PostBody{{"username", "test"}, {"password", "testtest"}},
+		PostValues:      []test.PostBody{{"username", "test"}, {"password", "adminadmin"}},
 	})
 }
 
@@ -442,13 +449,6 @@ func TestPostUploadNoAuth(t *testing.T) {
 
 		RequiredContent: []string{"{\"Result\":\"error\",\"ErrorMessage\":\"Not authenticated\"}"},
 	})
-	test.HttpPostUploadRequest(t, test.HttpTestConfig{
-		Url:             "http://127.0.0.1:53843/uploadComplete",
-		UploadFileName:  "test/fileupload.jpg",
-		UploadFieldName: "file",
-		ResultCode:      http.StatusUnauthorized,
-		RequiredContent: []string{"{\"Result\":\"error\",\"ErrorMessage\":\"Not authenticated\"}"},
-	})
 }
 
 func TestPostUpload(t *testing.T) {
@@ -500,20 +500,15 @@ func TestPostUpload(t *testing.T) {
 	go func() {
 		time.Sleep(200 * time.Millisecond)
 		test.HttpPostRequest(t, test.HttpTestConfig{
-			Url: "http://127.0.0.1:53843/uploadComplete",
-			PostValues: []test.PostBody{{
-				Key:   "chunkid",
-				Value: "eeng4ier3Taen7a",
-			}, {
-				Key:   "filename",
-				Value: "fileupload.jpg",
-			}, {
-				Key:   "filecontenttype",
-				Value: "test-content",
-			}, {
-				Key:   "filesize",
-				Value: "50",
-			}},
+			Url: "http://127.0.0.1:53843/api/chunk/complete",
+			Headers: []test.Header{
+				{"apikey", "validkeyid7"},
+				{"uuid", "eeng4ier3Taen7a"},
+				{"filename", "fileupload.jpg"},
+				{"filecontenttype", "test-content"},
+				{"filesize", "50"},
+				{"nonblocking", "true"},
+			},
 			RequiredContent: []string{"{\"result\":\"OK\"}"},
 			Cookies: []test.Cookie{{
 				Name:  "session_token",
@@ -628,7 +623,7 @@ func TestDisableLogin(t *testing.T) {
 			Value: "invalid",
 		}},
 	})
-	configuration.Get().Authentication.Method = authentication.Disabled
+	configuration.Get().Authentication.Method = models.AuthenticationDisabled
 	authentication.Init(configuration.Get().Authentication)
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://localhost:53843/admin",
@@ -639,7 +634,7 @@ func TestDisableLogin(t *testing.T) {
 			Value: "invalid",
 		}},
 	})
-	configuration.Get().Authentication.Method = authentication.Internal
+	configuration.Get().Authentication.Method = models.AuthenticationInternal
 	authentication.Init(configuration.Get().Authentication)
 }
 

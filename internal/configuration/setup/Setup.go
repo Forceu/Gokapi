@@ -49,8 +49,8 @@ var templateFolderEmbedded embed.FS
 
 var srv http.Server
 var isInitialSetup = true
-var username string
-var password string
+var credentialUsername string
+var credentialPassword string
 
 // debugDisableAuth can be set to true for testing purposes. It will disable the
 // password requirement for accessing the setup page
@@ -67,13 +67,13 @@ func RunIfFirstStart() {
 // RunConfigModification starts a blocking webserver for reconfiguration setup
 func RunConfigModification() {
 	isInitialSetup = false
-	username = helper.GenerateRandomString(6)
-	password = helper.GenerateRandomString(10)
+	credentialUsername = helper.GenerateRandomString(6)
+	credentialPassword = helper.GenerateRandomString(10)
 	fmt.Println()
 	fmt.Println("###################################################################")
 	fmt.Println("Use the following credentials for modifying the configuration:")
-	fmt.Println("Username: " + username)
-	fmt.Println("Password: " + password)
+	fmt.Println("Username: " + credentialUsername)
+	fmt.Println("Password: " + credentialPassword)
 	fmt.Println("###################################################################")
 	fmt.Println()
 	startSetupWebserver()
@@ -90,8 +90,8 @@ func basicAuth(next http.HandlerFunc) http.HandlerFunc {
 
 		enteredUser, enteredPw, ok := r.BasicAuth()
 		if ok {
-			usernameMatch := authentication.IsEqualStringConstantTime(enteredUser, username)
-			passwordMatch := authentication.IsEqualStringConstantTime(enteredPw, password)
+			usernameMatch := authentication.IsEqualStringConstantTime(enteredUser, credentialUsername)
+			passwordMatch := authentication.IsEqualStringConstantTime(enteredPw, credentialPassword)
 			if usernameMatch && passwordMatch {
 				next.ServeHTTP(w, r)
 				return
@@ -224,7 +224,16 @@ func getFormValueInt(formObjects *[]jsonFormObject, key string) (int, error) {
 	return result, nil
 }
 
-func toConfiguration(formObjects *[]jsonFormObject) (models.Configuration, *cloudconfig.CloudConfig, configuration.End2EndReconfigParameters, error) {
+type authSettings struct {
+	UserInternalAuth          string
+	UserOAuth                 string
+	UserHeader                string
+	PasswordInternalAuth      string
+	OnlyRegisteredUsersOAuth  bool
+	OnlyRegisteredUsersHeader bool
+}
+
+func toConfiguration(formObjects *[]jsonFormObject) (models.Configuration, *cloudconfig.CloudConfig, configuration.End2EndReconfigParameters, authSettings, error) {
 	var err error
 	var e2eConfig configuration.End2EndReconfigParameters
 	parsedEnv := environment.New()
@@ -239,6 +248,7 @@ func toConfiguration(formObjects *[]jsonFormObject) (models.Configuration, *clou
 		ConfigVersion:      configupgrade.CurrentConfigVersion,
 		Authentication:     models.AuthenticationConfig{},
 	}
+	authInfo := authSettings{}
 
 	if isInitialSetup {
 		result.Authentication.SaltFiles = helper.GenerateRandomString(30)
@@ -249,41 +259,54 @@ func toConfiguration(formObjects *[]jsonFormObject) (models.Configuration, *clou
 
 	err = parseDatabaseSettings(&result, formObjects)
 	if err != nil {
-		return models.Configuration{}, nil, configuration.End2EndReconfigParameters{}, err
+		return models.Configuration{}, nil, configuration.End2EndReconfigParameters{}, authSettings{}, err
 	}
 
-	err = parseBasicAuthSettings(&result, formObjects)
+	err = parseBasicAuthSettings(&result, &authInfo, formObjects)
 	if err != nil {
-		return models.Configuration{}, nil, configuration.End2EndReconfigParameters{}, err
+		return models.Configuration{}, nil, configuration.End2EndReconfigParameters{}, authSettings{}, err
 	}
 
-	err = parseOAuthSettings(&result, formObjects)
+	err = parseOAuthSettings(&result, &authInfo, formObjects)
 	if err != nil {
-		return models.Configuration{}, nil, configuration.End2EndReconfigParameters{}, err
+		return models.Configuration{}, nil, configuration.End2EndReconfigParameters{}, authSettings{}, err
 	}
 
-	err = parseHeaderAuthSettings(&result, formObjects)
+	err = parseHeaderAuthSettings(&result, &authInfo, formObjects)
 	if err != nil {
-		return models.Configuration{}, nil, configuration.End2EndReconfigParameters{}, err
+		return models.Configuration{}, nil, configuration.End2EndReconfigParameters{}, authSettings{}, err
 	}
 
 	err = parseServerSettings(&result, formObjects)
 	if err != nil {
-		return models.Configuration{}, nil, configuration.End2EndReconfigParameters{}, err
+		return models.Configuration{}, nil, configuration.End2EndReconfigParameters{}, authSettings{}, err
 	}
 
 	e2eConfig, err = parseEncryptionAndDelete(&result, formObjects)
 	if err != nil {
-		return models.Configuration{}, nil, configuration.End2EndReconfigParameters{}, err
+		return models.Configuration{}, nil, configuration.End2EndReconfigParameters{}, authSettings{}, err
 	}
 
 	var cloudSettings *cloudconfig.CloudConfig
 	cloudSettings, err = parseCloudSettings(formObjects)
 	if err != nil {
-		return models.Configuration{}, nil, configuration.End2EndReconfigParameters{}, err
+		return models.Configuration{}, nil, configuration.End2EndReconfigParameters{}, authSettings{}, err
 	}
 
-	return result, cloudSettings, e2eConfig, nil
+	switch result.Authentication.Method {
+	case models.AuthenticationInternal:
+		result.Authentication.Username = authInfo.UserInternalAuth
+	case models.AuthenticationOAuth2:
+		result.Authentication.Username = authInfo.UserOAuth
+		result.Authentication.OnlyRegisteredUsers = authInfo.OnlyRegisteredUsersOAuth
+	case models.AuthenticationHeader:
+		result.Authentication.Username = authInfo.UserHeader
+		result.Authentication.OnlyRegisteredUsers = authInfo.OnlyRegisteredUsersHeader
+	case models.AuthenticationDisabled:
+		result.Authentication.Username = "admin@gokapi"
+	}
+
+	return result, cloudSettings, e2eConfig, authInfo, nil
 }
 
 func parseDatabaseSettings(result *models.Configuration, formObjects *[]jsonFormObject) error {
@@ -360,12 +383,12 @@ func checkForAllDbValues(formObjects *[]jsonFormObject) error {
 	return err
 }
 
-func parseBasicAuthSettings(result *models.Configuration, formObjects *[]jsonFormObject) error {
-	var err error
-	result.Authentication.Username, err = getFormValueString(formObjects, "auth_username")
+func parseBasicAuthSettings(result *models.Configuration, authInfo *authSettings, formObjects *[]jsonFormObject) error {
+	username, err := getFormValueString(formObjects, "auth_username")
 	if err != nil {
 		return err
 	}
+	authInfo.UserInternalAuth = username
 
 	pw, err := getFormValueString(formObjects, "auth_pw")
 	if err != nil {
@@ -373,14 +396,16 @@ func parseBasicAuthSettings(result *models.Configuration, formObjects *[]jsonFor
 	}
 	// Password is not displayed in reconf setup, but a placeholder "unc". If this is submitted as a password, the
 	// old password is kept
-	if isInitialSetup || pw != "unc" {
+	if isInitialSetup {
 		result.Authentication.SaltAdmin = helper.GenerateRandomString(30)
-		result.Authentication.Password = configuration.HashPasswordCustomSalt(pw, result.Authentication.SaltAdmin)
+	}
+	if isInitialSetup || pw != "unc" {
+		authInfo.PasswordInternalAuth = configuration.HashPasswordCustomSalt(pw, result.Authentication.SaltAdmin)
 	}
 	return nil
 }
 
-func parseOAuthSettings(result *models.Configuration, formObjects *[]jsonFormObject) error {
+func parseOAuthSettings(result *models.Configuration, authInfo *authSettings, formObjects *[]jsonFormObject) error {
 	var err error
 	result.Authentication.OAuthProvider, err = getFormValueString(formObjects, "oauth_provider")
 	if err != nil {
@@ -397,31 +422,20 @@ func parseOAuthSettings(result *models.Configuration, formObjects *[]jsonFormObj
 		return err
 	}
 
-	restrictUsers, err := getFormValueBool(formObjects, "oauth_restrict_users")
-	if err != nil {
-		return err
-	}
-
 	result.Authentication.OAuthRecheckInterval, err = getFormValueInt(formObjects, "oauth_recheck_interval")
 	if err != nil {
 		return err
 	}
 
-	scopeUsers, err := getFormValueString(formObjects, "oauth_scope_users")
+	username, err := getFormValueString(formObjects, "oauth_admin_user")
 	if err != nil {
 		return err
 	}
+	authInfo.UserOAuth = username
 
-	oauthAllowedUsers, err := getFormValueString(formObjects, "oauth_allowed_users")
+	authInfo.OnlyRegisteredUsersOAuth, err = getFormValueBool(formObjects, "oauth_only_registered_users")
 	if err != nil {
 		return err
-	}
-	if restrictUsers {
-		result.Authentication.OAuthUserScope = scopeUsers
-		result.Authentication.OAuthUsers = splitAndTrim(oauthAllowedUsers)
-	} else {
-		result.Authentication.OAuthUsers = []string{}
-		result.Authentication.OAuthUserScope = ""
 	}
 
 	restrictGroups, err := getFormValueBool(formObjects, "oauth_restrict_groups")
@@ -447,18 +461,21 @@ func parseOAuthSettings(result *models.Configuration, formObjects *[]jsonFormObj
 	return nil
 }
 
-func parseHeaderAuthSettings(result *models.Configuration, formObjects *[]jsonFormObject) error {
-	var err error
+func parseHeaderAuthSettings(result *models.Configuration, authInfo *authSettings, formObjects *[]jsonFormObject) error {
+	username, err := getFormValueString(formObjects, "auth_header_admin")
+	if err != nil {
+		return err
+	}
+	authInfo.UserHeader = username
 	result.Authentication.HeaderKey, err = getFormValueString(formObjects, "auth_headerkey")
 	if err != nil {
 		return err
 	}
 
-	headerAllowedUsers, err := getFormValueString(formObjects, "auth_header_users")
+	authInfo.OnlyRegisteredUsersHeader, err = getFormValueBool(formObjects, "auth_header_only_registered_users")
 	if err != nil {
 		return err
 	}
-	result.Authentication.HeaderUsers = splitAndTrim(headerAllowedUsers)
 	return nil
 }
 
@@ -681,9 +698,7 @@ type setupView struct {
 	IsDataNotMounted   bool
 	IsConfigNotMounted bool
 	Port               int
-	OAuthUsers         string
 	OAuthGroups        string
-	HeaderUsers        string
 	Auth               models.AuthenticationConfig
 	Settings           models.Configuration
 	CloudSettings      cloudconfig.CloudConfig
@@ -708,9 +723,7 @@ func (v *setupView) loadFromConfig() {
 	v.Settings = *settings
 	v.Auth = settings.Authentication
 	v.CloudSettings, _ = cloudconfig.Load()
-	v.OAuthUsers = strings.Join(settings.Authentication.OAuthUsers, ";")
 	v.OAuthGroups = strings.Join(settings.Authentication.OAuthGroups, ";")
-	v.HeaderUsers = strings.Join(settings.Authentication.HeaderUsers, ";")
 
 	if strings.Contains(settings.Port, "localhost") || strings.Contains(settings.Port, "127.0.0.1") {
 		v.LocalhostOnly = true
@@ -771,12 +784,12 @@ func handleResult(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newConfig, cloudSettings, e2eConfig, err := toConfiguration(&setupResult)
+	newConfig, cloudSettings, e2eConfig, authInfo, err := toConfiguration(&setupResult)
 	if err != nil {
 		outputError(w, err)
 		return
 	}
-	configuration.LoadFromSetup(newConfig, cloudSettings, e2eConfig)
+	configuration.LoadFromSetup(newConfig, cloudSettings, e2eConfig, authInfo.PasswordInternalAuth)
 	w.WriteHeader(200)
 	_, _ = w.Write([]byte("{ \"result\": \"OK\"}"))
 	go func() {

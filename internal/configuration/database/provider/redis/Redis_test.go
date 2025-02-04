@@ -239,6 +239,61 @@ func TestApiKeys(t *testing.T) {
 	key, ok := dbInstance.GetApiKey("newkey")
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, key.LastUsed == 10, true)
+
+	dbInstance.SaveApiKey(models.ApiKey{
+		Id:       "publicTest",
+		PublicId: "publicId",
+	})
+	_, ok = dbInstance.GetApiKey("publicTest")
+	test.IsEqualBool(t, ok, true)
+	_, ok = dbInstance.GetApiKey("publicId")
+	test.IsEqualBool(t, ok, false)
+	_, ok = dbInstance.GetApiKeyByPublicKey("publicTest")
+	test.IsEqualBool(t, ok, false)
+	keyName, ok := dbInstance.GetApiKeyByPublicKey("publicId")
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualString(t, keyName, "publicTest")
+
+	_, ok = dbInstance.GetSystemKey(4)
+	test.IsEqualBool(t, ok, false)
+	dbInstance.SaveApiKey(models.ApiKey{
+		Id:          "sysKey1",
+		PublicId:    "publicSysKey1",
+		IsSystemKey: true,
+		UserId:      5,
+		Expiry:      time.Now().Add(time.Hour).Unix(),
+	})
+	_, ok = dbInstance.GetSystemKey(4)
+	test.IsEqualBool(t, ok, false)
+	dbInstance.SaveApiKey(models.ApiKey{
+		Id:          "sysKey2",
+		PublicId:    "publicSysKey2",
+		IsSystemKey: true,
+		UserId:      4,
+		Expiry:      time.Now().Add(-1 * time.Hour).Unix(),
+	})
+	_, ok = dbInstance.GetSystemKey(4)
+	test.IsEqualBool(t, ok, false)
+	_, ok = dbInstance.GetSystemKey(5)
+	test.IsEqualBool(t, ok, true)
+	dbInstance.SaveApiKey(models.ApiKey{
+		Id:          "sysKey3",
+		PublicId:    "publicSysKey2",
+		IsSystemKey: true,
+		UserId:      4,
+		Expiry:      time.Now().Add(2 * time.Hour).Unix(),
+	})
+	dbInstance.SaveApiKey(models.ApiKey{
+		Id:          "sysKey4",
+		PublicId:    "publicSysKey4",
+		IsSystemKey: true,
+		UserId:      4,
+		Expiry:      time.Now().Add(4 * time.Hour).Unix(),
+	})
+	key, ok = dbInstance.GetSystemKey(4)
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualString(t, key.Id, "sysKey4")
+	test.IsEqualBool(t, key.IsSystemKey, true)
 }
 
 func TestDatabaseProvider_IncreaseDownloadCount(t *testing.T) {
@@ -291,13 +346,13 @@ func TestE2EConfig(t *testing.T) {
 		Content:        []byte("testcontent"),
 		AvailableFiles: nil,
 	}
-	dbInstance.SaveEnd2EndInfo(e2econfig)
-	retrieved := dbInstance.GetEnd2EndInfo()
+	dbInstance.SaveEnd2EndInfo(e2econfig, 2)
+	retrieved := dbInstance.GetEnd2EndInfo(2)
 	test.IsEqualInt(t, retrieved.Version, 1)
 	test.IsEqualString(t, string(retrieved.Nonce), "testnonce")
 	test.IsEqualString(t, string(retrieved.Content), "testcontent")
-	dbInstance.DeleteEnd2EndInfo()
-	retrieved = dbInstance.GetEnd2EndInfo()
+	dbInstance.DeleteEnd2EndInfo(2)
+	retrieved = dbInstance.GetEnd2EndInfo(2)
 	test.IsEqualInt(t, retrieved.Version, 0)
 }
 
@@ -372,6 +427,34 @@ func TestSession(t *testing.T) {
 	test.IsEqualBool(t, ok, false)
 	_, ok = dbInstance.GetSession("anothersession")
 	test.IsEqualBool(t, ok, false)
+
+	session = models.Session{
+		RenewAt:    2147483645,
+		ValidUntil: 2147483645,
+		UserId:     20,
+	}
+	dbInstance.SaveSession("sess_user1", session)
+	dbInstance.SaveSession("sess_user2", session)
+	dbInstance.SaveSession("sess_user3", session)
+	session.UserId = 40
+	dbInstance.SaveSession("sess_user4", session)
+	_, ok = dbInstance.GetSession("sess_user1")
+	test.IsEqualBool(t, ok, true)
+	_, ok = dbInstance.GetSession("sess_user2")
+	test.IsEqualBool(t, ok, true)
+	_, ok = dbInstance.GetSession("sess_user3")
+	test.IsEqualBool(t, ok, true)
+	_, ok = dbInstance.GetSession("sess_user4")
+	test.IsEqualBool(t, ok, true)
+	dbInstance.DeleteAllSessionsByUser(20)
+	_, ok = dbInstance.GetSession("sess_user1")
+	test.IsEqualBool(t, ok, false)
+	_, ok = dbInstance.GetSession("sess_user2")
+	test.IsEqualBool(t, ok, false)
+	_, ok = dbInstance.GetSession("sess_user3")
+	test.IsEqualBool(t, ok, false)
+	_, ok = dbInstance.GetSession("sess_user4")
+	test.IsEqualBool(t, ok, true)
 }
 
 func TestMetaData(t *testing.T) {
@@ -437,4 +520,86 @@ func TestGetAllMetaDataIds(t *testing.T) {
 	instance.Close()
 	defer test.ExpectPanic(t)
 	_ = instance.GetAllMetaDataIds()
+}
+
+func TestUsers(t *testing.T) {
+	instance, err := New(config)
+	test.IsNil(t, err)
+	users := instance.GetAllUsers()
+	test.IsEqualInt(t, len(users), 0)
+	user := models.User{
+		Id:            2,
+		Name:          "test",
+		Permissions:   models.UserPermissionAll,
+		UserLevel:     models.UserLevelUser,
+		LastOnline:    1337,
+		Password:      "123456",
+		ResetPassword: true,
+	}
+	instance.SaveUser(user, false)
+	retrievedUser, ok := instance.GetUser(2)
+	test.IsEqualBool(t, ok, true)
+	test.IsEqual(t, retrievedUser, user)
+	users = instance.GetAllUsers()
+	test.IsEqualInt(t, len(users), 1)
+	test.IsEqualInt(t, retrievedUser.Id, 2)
+
+	_, ok = instance.GetUser(0)
+	test.IsEqualBool(t, ok, false)
+	_, ok = instance.GetUserByName("invalid")
+	test.IsEqualBool(t, ok, false)
+	retrievedUser, ok = instance.GetUserByName("test")
+	test.IsEqualBool(t, ok, true)
+	test.IsEqual(t, retrievedUser, user)
+
+	instance.DeleteUser(2)
+	_, ok = instance.GetUser(2)
+	test.IsEqualBool(t, ok, false)
+
+	user = models.User{
+		Id:            1000,
+		Name:          "test2",
+		Permissions:   models.UserPermissionNone,
+		UserLevel:     models.UserLevelAdmin,
+		LastOnline:    1338,
+		Password:      "1234568",
+		ResetPassword: true,
+	}
+	instance.SaveUser(user, true)
+	_, ok = instance.GetUser(1000)
+	test.IsEqualBool(t, ok, false)
+	retrievedUser, ok = instance.GetUserByName("test2")
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualBool(t, retrievedUser.Id == 1000, false)
+	user.Id = retrievedUser.Id
+	test.IsEqual(t, retrievedUser, user)
+
+	instance.UpdateUserLastOnline(retrievedUser.Id)
+	retrievedUser, ok = instance.GetUser(retrievedUser.Id)
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualBool(t, time.Now().Unix()-retrievedUser.LastOnline < 5, true)
+	test.IsEqualBool(t, time.Now().Unix()-retrievedUser.LastOnline > -1, true)
+
+	user.Name = "test1"
+	instance.SaveUser(user, true)
+	user.Name = "test3"
+	instance.SaveUser(user, true)
+	user.Name = "test99"
+	user.UserLevel = models.UserLevelSuperAdmin
+	instance.SaveUser(user, true)
+	user.Name = "test0"
+	user.UserLevel = models.UserLevelUser
+	instance.SaveUser(user, true)
+
+	users = instance.GetAllUsers()
+	test.IsEqualInt(t, len(users), 5)
+	test.IsEqualString(t, users[0].Name, "test99")
+	test.IsEqualString(t, users[1].Name, "test2")
+	test.IsEqualString(t, users[2].Name, "test1")
+	test.IsEqualString(t, users[3].Name, "test3")
+	test.IsEqualString(t, users[4].Name, "test0")
+
+	_, err = dbToUser([]any{"invalid"})
+	test.IsNotNil(t, err)
+	defer instance.Close()
 }

@@ -3,6 +3,9 @@
 package testconfiguration
 
 import (
+	"crypto/sha1"
+	"encoding/hex"
+	"errors"
 	"fmt"
 	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/helper"
@@ -22,6 +25,8 @@ const (
 	baseDir    = "test"
 	dataDir    = baseDir + "/data"
 	configFile = baseDir + "/config.json"
+	SqliteUrl  = "sqlite://" + dataDir + "/gokapi.sqlite"
+	SaltAdmin  = "LW6fW4Pjv8GtdWVLSZD66gYEev6NAaXxOVBw7C"
 )
 
 func SetDirEnv() {
@@ -37,10 +42,6 @@ func SetDirEnv() {
 	}
 }
 
-func GetSqliteUrl() string {
-	return "sqlite://" + dataDir + "/gokapi.sqlite"
-}
-
 // Create creates a configuration for unit testing. If initFiles is set, test metaData and content is created
 func Create(initFiles bool) {
 	SetDirEnv()
@@ -48,11 +49,12 @@ func Create(initFiles bool) {
 	if err != nil {
 		panic(err)
 	}
-	config, err := database.ParseUrl(GetSqliteUrl(), false)
+	config, err := database.ParseUrl(SqliteUrl, false)
 	if err != nil {
 		panic(err)
 	}
 	database.Connect(config)
+	writeUsers()
 	writeTestSessions()
 	writeTestFiles()
 	database.SaveHotlink(models.File{Id: "n1tSTAGj8zan9KaT4u6p", HotlinkId: "PhSs6mFtf8O5YGlLMfNw9rYXx9XRNkzCnJZpQBi7inunv3Z4A.jpg", ExpireAt: time.Now().Add(time.Hour).Unix()})
@@ -69,6 +71,43 @@ func Create(initFiles bool) {
 		os.WriteFile(dataDir+"/unlimitedtest", []byte("def"), 0777)
 		os.WriteFile(baseDir+"/fileupload.jpg", []byte("abc"), 0777)
 	}
+}
+
+func writeUsers() {
+	admin := models.User{
+		Id:            5,
+		Name:          "Test",
+		Permissions:   models.UserPermissionAll,
+		UserLevel:     models.UserLevelSuperAdmin,
+		LastOnline:    0,
+		Password:      hashSalt("adminadmin", "LW6fW4Pjv8GtdWVLSZD66gYEev6NAaXxOVBw7C"),
+		ResetPassword: false,
+	}
+	user := models.User{
+		Id:            7,
+		Name:          "User",
+		Permissions:   models.UserPermissionNone,
+		UserLevel:     models.UserLevelUser,
+		LastOnline:    0,
+		Password:      hashSalt("useruser", "LW6fW4Pjv8GtdWVLSZD66gYEev6NAaXxOVBw7C"),
+		ResetPassword: false,
+	}
+	database.SaveUser(admin, false)
+	database.SaveUser(user, false)
+}
+
+// Copied from configuration
+func hashSalt(password, salt string) string {
+	if password == "" {
+		return ""
+	}
+	if salt == "" {
+		panic(errors.New("no salt provided"))
+	}
+	pwBytes := []byte(password + salt)
+	hash := sha1.New()
+	hash.Write(pwBytes)
+	return hex.EncodeToString(hash.Sum(nil))
 }
 
 // WriteEncryptedFile writes metadata for an encrypted file and returns the id
@@ -167,18 +206,37 @@ func writeTestSessions() {
 	database.SaveSession("validsession", models.Session{
 		RenewAt:    2147483645,
 		ValidUntil: 2147483646,
+		UserId:     7,
 	})
 	database.SaveSession("logoutsession", models.Session{
 		RenewAt:    2147483645,
 		ValidUntil: 2147483646,
+		UserId:     7,
+	})
+	database.SaveSession("logoutsession2", models.Session{
+		RenewAt:    2147483645,
+		ValidUntil: 2147483646,
+		UserId:     7,
 	})
 	database.SaveSession("needsRenewal", models.Session{
 		RenewAt:    0,
 		ValidUntil: 2147483646,
+		UserId:     7,
 	})
 	database.SaveSession("expiredsession", models.Session{
 		RenewAt:    0,
 		ValidUntil: 0,
+		UserId:     7,
+	})
+	database.SaveSession("validSessionInvalidUser", models.Session{
+		RenewAt:    2147483645,
+		ValidUntil: 2147483645,
+		UserId:     5000,
+	})
+	database.SaveSession("validSessionInvalidUser", models.Session{
+		RenewAt:    2147483645,
+		ValidUntil: 2147483645,
+		UserId:     5000,
 	})
 }
 func writeTestUploadStatus() {
@@ -197,22 +255,37 @@ func writeApiKeys() {
 		Id:           "validkey",
 		FriendlyName: "First Key",
 		Permissions:  models.ApiPermAll, // TODO
+		UserId:       5,
+		PublicId:     "taiyeo6uLie6nu6eip0ieweiM5mahv",
+	})
+	database.SaveApiKey(models.ApiKey{
+		Id:           "validkeyid7",
+		FriendlyName: "Key for uid 7",
+		Permissions:  models.ApiPermAll, // TODO
+		UserId:       7,
+		PublicId:     "vu0eemi8eehaisuth3pahDai2eo6ze",
 	})
 	database.SaveApiKey(models.ApiKey{
 		Id:           "GAh1IhXDvYnqfYLazWBqMB9HSFmNPO",
 		FriendlyName: "Second Key",
 		LastUsed:     1620671580,
 		Permissions:  models.ApiPermAll, // TODO
+		UserId:       5,
+		PublicId:     "yaeVohng1ohNohsh1vailizeil5ka5",
 	})
 	database.SaveApiKey(models.ApiKey{
 		Id:           "jiREglQJW0bOqJakfjdVfe8T1EM8n8",
 		FriendlyName: "Unnamed Key",
 		Permissions:  models.ApiPermAll, // TODO
+		UserId:       5,
+		PublicId:     "ahYie4ophoo5OoGhahCe1neic6thah",
 	})
 	database.SaveApiKey(models.ApiKey{
 		Id:           "okeCMWqhVMZSpt5c1qpCWhKvJJPifb",
 		FriendlyName: "Unnamed Key",
 		Permissions:  models.ApiPermAll, // TODO
+		UserId:       5,
+		PublicId:     "ugoo0roowoanahthei7ohSail5OChu",
 	})
 }
 
@@ -226,6 +299,7 @@ func writeTestFiles() {
 		ExpireAtString:     "2021-05-04 15:19",
 		DownloadsRemaining: 1,
 		ContentType:        "text/html",
+		UserId:             5,
 	})
 	database.SaveMetaData(models.File{
 		Id:                 "e4TjE7CokWK0giiLNxDL",
@@ -236,6 +310,7 @@ func writeTestFiles() {
 		ExpireAtString:     "2021-05-04 15:19",
 		DownloadsRemaining: 2,
 		ContentType:        "text/html",
+		UserId:             5,
 	})
 	database.SaveMetaData(models.File{
 		Id:                 "wefffewhtrhhtrhtrhtr",
@@ -246,6 +321,7 @@ func writeTestFiles() {
 		ExpireAtString:     "2021-05-04 15:19",
 		DownloadsRemaining: 1,
 		ContentType:        "text/html",
+		UserId:             5,
 	})
 	database.SaveMetaData(models.File{
 		Id:                 "deletedfile123456789",
@@ -256,6 +332,7 @@ func writeTestFiles() {
 		ExpireAtString:     "2021-05-04 15:19",
 		DownloadsRemaining: 2,
 		ContentType:        "text/html",
+		UserId:             5,
 	})
 	database.SaveMetaData(models.File{
 		Id:                 "jpLXGJKigM4hjtA6T6sN",
@@ -267,6 +344,7 @@ func writeTestFiles() {
 		DownloadsRemaining: 1,
 		ContentType:        "text/html",
 		PasswordHash:       "7b30508aa9b233ab4b8a11b2af5816bdb58ca3e7",
+		UserId:             5,
 	})
 	database.SaveMetaData(models.File{
 		Id:                 "jpLXGJKigM4hjtA6T6sN2",
@@ -278,6 +356,7 @@ func writeTestFiles() {
 		DownloadsRemaining: 1,
 		ContentType:        "text/html",
 		PasswordHash:       "7b30508aa9b233ab4b8a11b2af5816bdb58ca3e7",
+		UserId:             5,
 	})
 	database.SaveMetaData(models.File{
 		Id:                 "n1tSTAGj8zan9KaT4u6p",
@@ -289,6 +368,7 @@ func writeTestFiles() {
 		DownloadsRemaining: 1,
 		ContentType:        "text/html",
 		HotlinkId:          "PhSs6mFtf8O5YGlLMfNw9rYXx9XRNkzCnJZpQBi7inunv3Z4A.jpg",
+		UserId:             5,
 	})
 	database.SaveMetaData(models.File{
 		Id:                 "cleanuptest123456789",
@@ -299,6 +379,7 @@ func writeTestFiles() {
 		ExpireAtString:     "2021-05-04 15:19",
 		DownloadsRemaining: 0,
 		ContentType:        "text/html",
+		UserId:             5,
 	})
 	database.SaveMetaData(models.File{
 		Id:                 "awsTest1234567890123",
@@ -310,6 +391,7 @@ func writeTestFiles() {
 		DownloadsRemaining: 4,
 		ContentType:        "application/octet-stream",
 		AwsBucket:          "gokapi-test",
+		UserId:             5,
 	})
 	database.SaveMetaData(models.File{
 		Id:                 "unlimitedDownload",
@@ -321,6 +403,7 @@ func writeTestFiles() {
 		DownloadsRemaining: 0,
 		ContentType:        "text/html",
 		UnlimitedDownloads: true,
+		UserId:             5,
 	})
 	database.SaveMetaData(models.File{
 		Id:                 "unlimitedTime",
@@ -332,21 +415,20 @@ func writeTestFiles() {
 		DownloadsRemaining: 1,
 		ContentType:        "text/html",
 		UnlimitedTime:      true,
+		UserId:             5,
 	})
 }
 
 var configTestFile = []byte(`{
 "Authentication": {
     "Method": 0,
-    "SaltAdmin": "LW6fW4Pjv8GtdWVLSZD66gYEev6NAaXxOVBw7C",
+    "SaltAdmin": "` + SaltAdmin + `",
     "SaltFiles": "lL5wMTtnVCn5TPbpRaSe4vAQodWW0hgk00WCZE",
     "Username": "test",
-    "Password": "10340aece68aa4fb14507ae45b05506026f276cf",
     "HeaderKey": "",
     "OauthProvider": "",
     "OAuthClientId": "",
     "OAuthClientSecret": "",
-    "OauthUserScope": "",
     "OauthGroupScope": "",
     "OAuthRecheckInterval": 12,
     "HeaderUsers": null,
@@ -357,12 +439,20 @@ var configTestFile = []byte(`{
   "ServerUrl": "http://127.0.0.1:53843/",
   "RedirectUrl": "https://test.com/",
   "PublicName": "Gokapi Test Version",
-  "ConfigVersion": 20,
+  "DataDir": "` + dataDir + `",
+  "DatabaseUrl": "` + SqliteUrl + `",
+  "ConfigVersion": 22,
   "LengthId": 20,
-  "DataDir": "test/data",
   "MaxFileSizeMB": 25,
   "MaxMemory": 10,
   "ChunkSize": 45,
+  "Encryption": {
+    "Level": 0,
+    "Cipher": null,
+    "Salt": "",
+    "Checksum": "",
+    "ChecksumSalt": ""
+  },
   "MaxParallelUploads": 4,
   "UseSsl": false,
   "PicturesAlwaysLocal": false,

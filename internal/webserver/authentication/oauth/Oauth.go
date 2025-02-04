@@ -28,9 +28,6 @@ func Init(baseUrl string, credentials models.AuthenticationConfig) {
 
 	systemConfig := configuration.Get()
 	scopes := []string{oidc.ScopeOpenID, "profile"}
-	if systemConfig.Authentication.OAuthUserScope != "" {
-		scopes = append(scopes, systemConfig.Authentication.OAuthUserScope)
-	}
 	if systemConfig.Authentication.OAuthGroupScope != "" {
 		scopes = append(scopes, systemConfig.Authentication.OAuthGroupScope)
 	}
@@ -95,6 +92,10 @@ func HandlerCallback(w http.ResponseWriter, r *http.Request) {
 	userInfo, err := provider.UserInfo(ctx, oauth2.StaticTokenSource(oauth2Token))
 	if err != nil {
 		showOauthErrorPage(w, r, "Failed to get userinfo: "+err.Error())
+		return
+	}
+	if userInfo.Email == "" {
+		showOauthErrorPage(w, r, "An empty email address was provided, cannot continue.")
 		return
 	}
 	info := authentication.OAuthUserInfo{

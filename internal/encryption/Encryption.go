@@ -46,13 +46,9 @@ func Init(config models.Configuration) {
 	switch config.Encryption.Level {
 	case NoEncryption:
 		return
-	case LocalEncryptionStored:
-		fallthrough
-	case FullEncryptionStored:
+	case LocalEncryptionStored, FullEncryptionStored:
 		initWithCipher(config.Encryption.Cipher)
-	case LocalEncryptionInput:
-		fallthrough
-	case FullEncryptionInput:
+	case LocalEncryptionInput, FullEncryptionInput:
 		initWithPassword(config.Encryption.Salt, config.Encryption.Checksum, config.Encryption.ChecksumSalt)
 	case EndToEndEncryption:
 		return
