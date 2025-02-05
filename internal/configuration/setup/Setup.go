@@ -305,6 +305,7 @@ func toConfiguration(formObjects *[]jsonFormObject) (models.Configuration, *clou
 	case models.AuthenticationDisabled:
 		result.Authentication.Username = "admin@gokapi"
 	}
+	result.Authentication.Username = strings.ToLower(result.Authentication.Username)
 
 	return result, cloudSettings, e2eConfig, authInfo, nil
 }

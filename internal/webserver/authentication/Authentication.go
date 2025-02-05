@@ -215,6 +215,7 @@ func CheckOauthUserAndRedirect(userInfo OAuthUserInfo, w http.ResponseWriter) er
 		if ok {
 			sessionmanager.CreateSession(w, true, authSettings.OAuthRecheckInterval, user.Id)
 			redirect(w, "admin")
+			return nil
 		}
 	}
 	redirect(w, "error-auth")

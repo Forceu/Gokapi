@@ -27,7 +27,7 @@ func Init(baseUrl string, credentials models.AuthenticationConfig) {
 	}
 
 	systemConfig := configuration.Get()
-	scopes := []string{oidc.ScopeOpenID, "profile"}
+	scopes := []string{oidc.ScopeOpenID, "profile", "email"}
 	if systemConfig.Authentication.OAuthGroupScope != "" {
 		scopes = append(scopes, systemConfig.Authentication.OAuthGroupScope)
 	}
@@ -95,7 +95,7 @@ func HandlerCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if userInfo.Email == "" {
-		showOauthErrorPage(w, r, "An empty email address was provided, cannot continue.")
+		showOauthErrorPage(w, r, "An empty email address was provided.\nPlease make sure that you have your email address set in your authentication user backend.")
 		return
 	}
 	info := authentication.OAuthUserInfo{
