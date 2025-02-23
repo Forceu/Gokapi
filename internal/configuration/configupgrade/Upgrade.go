@@ -32,7 +32,7 @@ var LegacyPasswordHash string
 var LegacyUsersHeaderOauth []string
 
 // CurrentConfigVersion is the version of the configuration structure. Used for upgrading
-const CurrentConfigVersion = 22
+const CurrentConfigVersion = 23
 
 const minConfigVersion = 21
 
@@ -93,6 +93,10 @@ func updateConfig(settings *models.Configuration, env *environment.Environment) 
 				}
 			}
 		}
+	}
+
+	if settings.ConfigVersion < 23 {
+		settings.HotlinkFiletypes = []string{}
 	}
 }
 
