@@ -91,6 +91,9 @@ func Load() {
 	if serverSettings.ChunkSize == 0 {
 		serverSettings.ChunkSize = 45
 	}
+	if serverSettings.HotlinkFiletypes == nil {
+		serverSettings.HotlinkFiletypes = []string{}
+	}
 	helper.CreateDir(serverSettings.DataDir)
 	filesystem.Init(serverSettings.DataDir)
 	log.Init(Environment.DataDir)
