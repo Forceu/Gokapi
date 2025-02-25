@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	copyFile(build.Default.GOROOT+"/misc/wasm/wasm_exec.js", "../../internal/webserver/web/static/js/wasm_exec.js")
+	copyFile(build.Default.GOROOT+"/lib/wasm/wasm_exec.js", "../../internal/webserver/web/static/js/wasm_exec.js")
 	copyFile("../../go.mod", "../../build/go.mod")
 	copyFile("../../openapi.json", "../../internal/webserver/web/static/apidocumentation/openapi.json")
 }
