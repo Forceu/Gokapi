@@ -1,7 +1,9 @@
 package sqlite
 
 import (
+	"bytes"
 	"database/sql"
+	"encoding/gob"
 	"errors"
 	"fmt"
 	"github.com/forceu/gokapi/internal/helper"
@@ -38,6 +40,8 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 	}
 	// < v2.0.0-beta
 	if currentDbVersion < 7 {
+		legacyE2E := getLegacyE2EConfig(p)
+
 		err := p.rawSqlite(`ALTER TABLE "ApiKeys" ADD COLUMN UserId INTEGER NOT NULL DEFAULT 0;
 									 ALTER TABLE "ApiKeys" ADD COLUMN PublicId TEXT NOT NULL DEFAULT '';`)
 		helper.Check(err)
@@ -64,9 +68,40 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 			"ResetPassword"	INTEGER NOT NULL DEFAULT 0,
 			PRIMARY KEY("Id" AUTOINCREMENT)
 		);
+		DROP TABLE "E2EConfig"; CREATE TABLE "E2EConfig" (
+			"id"	INTEGER NOT NULL UNIQUE,
+			"Config"	BLOB NOT NULL,
+			"UserId" INTEGER NOT NULL UNIQUE ,
+			PRIMARY KEY("id" AUTOINCREMENT)
+		);
 	    DROP TABLE IF EXISTS "UploadConfig";`)
 		helper.Check(err)
+
+		if legacyE2E.Version != 0 {
+			p.SaveEnd2EndInfo(legacyE2E, 0)
+		}
 	}
+}
+
+func getLegacyE2EConfig(p DatabaseProvider) models.E2EInfoEncrypted {
+	result := models.E2EInfoEncrypted{}
+	rowResult := schemaE2EConfig{}
+
+	row := p.sqliteDb.QueryRow("SELECT Config FROM E2EConfig WHERE id = 1")
+	err := row.Scan(&rowResult.Config)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return result
+		}
+		helper.Check(err)
+		return result
+	}
+
+	buf := bytes.NewBuffer(rowResult.Config)
+	dec := gob.NewDecoder(buf)
+	err = dec.Decode(&result)
+	helper.Check(err)
+	return result
 }
 
 // GetDbVersion gets the version number of the database
@@ -152,7 +187,7 @@ func (p DatabaseProvider) createNewDatabase() error {
 		CREATE TABLE "E2EConfig" (
 			"id"	INTEGER NOT NULL UNIQUE,
 			"Config"	BLOB NOT NULL,
-			"UserId" INTEGER NOT NULL UNIQUE ,
+			"UserId" INTEGER NOT NULL UNIQUE,
 			PRIMARY KEY("id" AUTOINCREMENT)
 		);
 		CREATE TABLE "FileMetaData" (

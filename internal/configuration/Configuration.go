@@ -125,7 +125,7 @@ func MigrateToV2(authPassword string, allowedUsers []string) {
 		fmt.Println("ERROR: Could not retrieve new admin user after saving")
 		os.Exit(1)
 	}
-	fmt.Println("Created admin user ", adminUser.Name)
+	fmt.Println("Created admin user " + adminUser.Name)
 
 	for _, user := range allowedUsers {
 		newUser := models.User{
