@@ -2,6 +2,8 @@ package fileupload
 
 import (
 	"github.com/forceu/gokapi/internal/configuration"
+	"github.com/forceu/gokapi/internal/configuration/database"
+	"github.com/forceu/gokapi/internal/logging"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
 	"github.com/forceu/gokapi/internal/storage/chunking"
@@ -12,6 +14,8 @@ import (
 )
 
 // ProcessCompleteFile processes a file upload request
+// This is only used when a complete file is uploaded through the API with /files/add
+// Normally a file is created from a chunk
 func ProcessCompleteFile(w http.ResponseWriter, r *http.Request, userId, maxMemory int) error {
 	err := r.ParseMultipartForm(int64(maxMemory) * 1024 * 1024)
 	if err != nil {
@@ -32,6 +36,8 @@ func ProcessCompleteFile(w http.ResponseWriter, r *http.Request, userId, maxMemo
 	if err != nil {
 		return err
 	}
+	user, _ := database.GetUser(userId)
+	logging.LogUpload(result, user)
 	_, _ = io.WriteString(w, result.ToJsonResult(config.ExternalUrl, configuration.Get().IncludeFilename))
 	return nil
 }
