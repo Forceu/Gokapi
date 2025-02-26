@@ -524,7 +524,7 @@ func IsAbleHotlink(file models.File) bool {
 	if file.PasswordHash != "" {
 		return false
 	}
-	return isPictureFile(file.Name)
+	return isPictureFile(file.Name) || isInUserHotlinkConfig(file.Name)
 }
 
 // getFileExtension returns the file extension of a filename in lowercase
@@ -536,6 +536,11 @@ func getFileExtension(filename string) string {
 func isPictureFile(filename string) bool {
 	extension := getFileExtension(filename)
 	return helper.IsInArray(imageFileExtensions, extension)
+}
+
+func isInUserHotlinkConfig(filename string) bool {
+	extension := getFileExtension(filename)
+	return helper.IsInArray(configuration.Get().HotlinkFiletypes, extension)
 }
 
 // GetFile gets the file by id. Returns (empty File, false) if invalid / expired file
