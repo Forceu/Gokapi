@@ -34,11 +34,15 @@ func Init(filePath string) {
 }
 
 // GetAll returns all log entries as a single string and if the log file exists
-func GetAll() (string, bool) {
+func GetAll(reverse bool) (string, bool) {
 	if helper.FileExists(logPath) {
 		content, err := os.ReadFile(logPath)
 		helper.Check(err)
-		return string(content), true
+		result := string(content)
+		if reverse {
+			result = reverseLogFile(result)
+		}
+		return result, true
 	} else {
 		return fmt.Sprintf("[%s] No log file found!", categoryWarning), false
 	}
@@ -82,18 +86,49 @@ func LogDeploymentPassword() {
 }
 
 // LogDownload adds a log entry when a download was requested. Non-Blocking
-func LogDownload(file *models.File, r *http.Request, saveIp bool) {
+func LogDownload(file models.File, r *http.Request, saveIp bool) {
 	if saveIp {
-		createLogEntry(categoryDownload, fmt.Sprintf("Filename %s, IP %s, ID %s, Useragent %s", file.Name, getIpAddress(r), file.Id, r.UserAgent()), false)
+		createLogEntry(categoryDownload, fmt.Sprintf("%s, IP %s, ID %s, Useragent %s", file.Name, getIpAddress(r), file.Id, r.UserAgent()), false)
 	} else {
-		createLogEntry(categoryDownload, fmt.Sprintf("Filename %s, ID %s, Useragent %s", file.Name, file.Id, r.UserAgent()), false)
+		createLogEntry(categoryDownload, fmt.Sprintf("%s, ID %s, Useragent %s", file.Name, file.Id, r.UserAgent()), false)
 	}
+}
+
+// LogUpload adds a log entry when an upload was created. Non-Blocking
+func LogUpload(file models.File, user models.User) {
+	createLogEntry(categoryUpload, fmt.Sprintf("%s, ID %s, uploaded by %s (user #%d)", file.Name, file.Id, user.Name, user.Id), false)
+}
+
+type logEntry struct {
+	Previous *logEntry
+	Next     *logEntry
+	Content  string
+}
+
+func reverseLogFile(input string) string {
+	var reversedLogs strings.Builder
+	current := &logEntry{}
+	scanner := bufio.NewScanner(strings.NewReader(input))
+	for scanner.Scan() {
+		line := scanner.Text()
+		newEntry := logEntry{
+			Content:  line,
+			Previous: current,
+		}
+		current.Next = &newEntry
+		current = &newEntry
+	}
+	for current.Previous != nil {
+		reversedLogs.WriteString(current.Content + "\n")
+		current = current.Previous
+	}
+	return reversedLogs.String()
 }
 
 // UpgradeToV2 adds tags to existing logs
 // deprecated
 func UpgradeToV2() {
-	content, exists := GetAll()
+	content, exists := GetAll(false)
 	mutex.Lock()
 	if !exists {
 		return
@@ -119,7 +154,7 @@ func UpgradeToV2() {
 
 func DeleteLogs(userName string, userId int, r *http.Request) {
 	mutex.Lock()
-	message := createLogFormat(categoryWarning, fmt.Sprintf("Previous logs deleted by %s (user #%d). IP: %s",
+	message := createLogFormat(categoryWarning, fmt.Sprintf("Previous logs deleted by %s (user #%d). IP: %s\n",
 		userName, userId, getIpAddress(r)))
 	err := os.WriteFile(logPath, []byte(message), 0600)
 	helper.Check(err)

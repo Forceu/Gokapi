@@ -6,6 +6,7 @@ import (
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/logging"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
 	"github.com/forceu/gokapi/internal/webserver/fileupload"
@@ -381,6 +382,7 @@ func doBlockingPartCompleteChunk(w http.ResponseWriter, request *paramChunkCompl
 		sendError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	logging.LogUpload(file, user)
 	if w != nil {
 		config := configuration.Get()
 		_, _ = io.WriteString(w, file.ToJsonResult(config.ServerUrl, config.IncludeFilename))

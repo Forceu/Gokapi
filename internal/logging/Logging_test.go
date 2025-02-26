@@ -55,13 +55,13 @@ func TestAddDownload(t *testing.T) {
 	r := httptest.NewRequest("GET", "/test", nil)
 	r.Header.Set("User-Agent", "testAgent")
 	r.Header.Add("X-REAL-IP", "1.1.1.1")
-	LogDownload(&file, r, true)
+	LogDownload(file, r, true)
 	// Need sleep, as LogDownload() is non-blocking
 	time.Sleep(500 * time.Millisecond)
 	content, _ := os.ReadFile("test/log.txt")
 	test.IsEqualBool(t, strings.Contains(string(content), "UTC   Download: Filename testName, IP 1.1.1.1, ID testId, Useragent testAgent"), true)
 	r.Header.Add("X-REAL-IP", "2.2.2.2")
-	LogDownload(&file, r, false)
+	LogDownload(file, r, false)
 	// Need sleep, as LogDownload() is non-blocking
 	time.Sleep(500 * time.Millisecond)
 	content, _ = os.ReadFile("test/log.txt")
