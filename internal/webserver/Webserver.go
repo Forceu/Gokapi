@@ -32,7 +32,6 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
-	"os"
 	"sort"
 	"strings"
 	templatetext "text/template"
@@ -619,11 +618,11 @@ func showAdminMenu(w http.ResponseWriter, r *http.Request) {
 // Handling of /logs
 // If user is authenticated, this menu shows the stored logs
 func showLogs(w http.ResponseWriter, r *http.Request) {
-	userId, err := authentication.GetUserFromRequest(r)
+	user, err := authentication.GetUserFromRequest(r)
 	if err != nil {
 		panic(err)
 	}
-	view := (&UploadView{}).convertGlobalConfig(ViewLogs, userId)
+	view := (&UploadView{}).convertGlobalConfig(ViewLogs, user)
 	if !view.ActiveUser.HasPermissionManageLogs() {
 		redirect(w, "admin")
 		return
@@ -767,13 +766,7 @@ func (u *UploadView) convertGlobalConfig(view int, user models.User) *UploadView
 			return resultApi[i].LastUsed > resultApi[j].LastUsed
 		})
 	case ViewLogs:
-		if helper.FileExists(logging.GetLogPath()) {
-			content, err := os.ReadFile(logging.GetLogPath())
-			helper.Check(err)
-			u.Logs = string(content)
-		} else {
-			u.Logs = "Warning: Log file not found!"
-		}
+		u.Logs, _ = logging.GetAll()
 	case ViewUsers:
 		uploadCounts := storage.GetUploadCounts()
 		u.Users = make([]userInfo, 0)

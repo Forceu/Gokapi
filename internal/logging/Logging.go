@@ -1,6 +1,7 @@
 package logging
 
 import (
+	"bufio"
 	"fmt"
 	"github.com/forceu/gokapi/internal/environment"
 	"github.com/forceu/gokapi/internal/helper"
@@ -19,6 +20,7 @@ var mutex sync.Mutex
 const categoryInfo = "info"
 const categoryDownload = "download"
 const categoryUpload = "upload"
+const categoryEdit = "edit"
 const categoryAuth = "authentication"
 const categoryWarning = "warning"
 
@@ -31,9 +33,20 @@ func Init(filePath string) {
 	outputToStdout = env.LogToStdout
 }
 
+// GetAll returns all log entries as a single string and if the log file exists
+func GetAll() (string, bool) {
+	if helper.FileExists(logPath) {
+		content, err := os.ReadFile(logPath)
+		helper.Check(err)
+		return string(content), true
+	} else {
+		return fmt.Sprintf("[%s] No log file found!", categoryWarning), false
+	}
+}
+
 // createLogEntry adds a line to the logfile including the current date. Also outputs to Stdout if set.
 func createLogEntry(category, text string, blocking bool) {
-	output := fmt.Sprintf("%s   [%s] %s", getDate(), category, text)
+	output := createLogFormat(category, text)
 	if outputToStdout {
 		fmt.Println(output)
 	}
@@ -44,9 +57,8 @@ func createLogEntry(category, text string, blocking bool) {
 	}
 }
 
-// GetLogPath returns the relative path to the log file
-func GetLogPath() string {
-	return logPath
+func createLogFormat(category, text string) string {
+	return fmt.Sprintf("%s   [%s] %s", getDate(), category, text)
 }
 
 // LogStartup adds a log entry to indicate that Gokapi has started. Non-blocking
@@ -72,10 +84,46 @@ func LogDeploymentPassword() {
 // LogDownload adds a log entry when a download was requested. Non-Blocking
 func LogDownload(file *models.File, r *http.Request, saveIp bool) {
 	if saveIp {
-		createLogEntry(categoryDownload, fmt.Sprintf("Download: Filename %s, IP %s, ID %s, Useragent %s", file.Name, getIpAddress(r), file.Id, r.UserAgent()), false)
+		createLogEntry(categoryDownload, fmt.Sprintf("Filename %s, IP %s, ID %s, Useragent %s", file.Name, getIpAddress(r), file.Id, r.UserAgent()), false)
 	} else {
-		createLogEntry(categoryDownload, fmt.Sprintf("Download: Filename %s, ID %s, Useragent %s", file.Name, file.Id, r.UserAgent()), false)
+		createLogEntry(categoryDownload, fmt.Sprintf("Filename %s, ID %s, Useragent %s", file.Name, file.Id, r.UserAgent()), false)
 	}
+}
+
+// UpgradeToV2 adds tags to existing logs
+// deprecated
+func UpgradeToV2() {
+	content, exists := GetAll()
+	mutex.Lock()
+	if !exists {
+		return
+	}
+	var newLogs strings.Builder
+	scanner := bufio.NewScanner(strings.NewReader(content))
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.Contains(line, "Gokapi started") {
+			line = strings.Replace(line, "Gokapi started", "["+categoryInfo+"] Gokapi started", 1)
+		}
+		if strings.Contains(line, "Download: Filename") {
+			line = strings.Replace(line, "Download: Filename", "["+categoryDownload+"] Filename", 1)
+		}
+		newLogs.WriteString(line)
+		newLogs.WriteString("\n")
+	}
+	helper.Check(scanner.Err())
+	err := os.WriteFile(logPath, []byte(newLogs.String()), 0600)
+	helper.Check(err)
+	defer mutex.Unlock()
+}
+
+func DeleteLogs(userName string, userId int, r *http.Request) {
+	mutex.Lock()
+	message := createLogFormat(categoryWarning, fmt.Sprintf("Previous logs deleted by %s (user #%d). IP: %s",
+		userName, userId, getIpAddress(r)))
+	err := os.WriteFile(logPath, []byte(message), 0600)
+	helper.Check(err)
+	defer mutex.Unlock()
 }
 
 func writeToFile(text string) {
