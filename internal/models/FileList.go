@@ -16,7 +16,7 @@ type File struct {
 	PasswordHash            string         `json:"PasswordHash" redis:"PasswordHash"`             // The hash of the password (if the file is password protected)
 	HotlinkId               string         `json:"HotlinkId" redis:"HotlinkId"`                   // If file is a picture file and can be hotlinked, this is the ID for the hotlink
 	ContentType             string         `json:"ContentType" redis:"ContentType"`               // The MIME type for the file
-	AwsBucket               string         `json:"AwsBucket" redis:"AwsBucket"`                   // If the file is stored in the cloud, this is the bucket that is being used
+	AwsBucket               string         `json:"Bucket" redis:"Bucket"`                         // If the file is stored in the cloud, this is the bucket that is being used
 	ExpireAtString          string         `json:"ExpireAtString" redis:"ExpireAtString"`         // Time expiry in a human-readable format in local time
 	ExpireAt                int64          `json:"ExpireAt" redis:"ExpireAt"`                     // "UTC timestamp of file expiry
 	SizeBytes               int64          `json:"SizeBytes" redis:"SizeBytes"`                   // Filesize in bytes
