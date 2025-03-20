@@ -425,7 +425,7 @@ func DuplicateFile(file models.File, parametersToChange int, newFileName string,
 
 	newFile.Id = createNewId()
 	newFile.DownloadCount = 0
-	AddHotlink(&file)
+	AddHotlink(&newFile)
 
 	database.SaveMetaData(newFile)
 	return newFile, nil
