@@ -766,7 +766,7 @@ func (u *UploadView) convertGlobalConfig(view int, user models.User) *UploadView
 			return resultApi[i].LastUsed > resultApi[j].LastUsed
 		})
 	case ViewLogs:
-		u.Logs, _ = logging.GetAll(true)
+		u.Logs, _ = logging.GetAll()
 	case ViewUsers:
 		uploadCounts := storage.GetUploadCounts()
 		u.Users = make([]userInfo, 0)

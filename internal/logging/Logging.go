@@ -21,7 +21,7 @@ const categoryInfo = "info"
 const categoryDownload = "download"
 const categoryUpload = "upload"
 const categoryEdit = "edit"
-const categoryAuth = "authentication"
+const categoryAuth = "auth"
 const categoryWarning = "warning"
 
 var outputToStdout = false
@@ -34,15 +34,11 @@ func Init(filePath string) {
 }
 
 // GetAll returns all log entries as a single string and if the log file exists
-func GetAll(reverse bool) (string, bool) {
+func GetAll() (string, bool) {
 	if helper.FileExists(logPath) {
 		content, err := os.ReadFile(logPath)
 		helper.Check(err)
-		result := string(content)
-		if reverse {
-			result = reverseLogFile(result)
-		}
-		return result, true
+		return string(content), true
 	} else {
 		return fmt.Sprintf("[%s] No log file found!", categoryWarning), false
 	}
@@ -62,7 +58,10 @@ func createLogEntry(category, text string, blocking bool) {
 }
 
 func createLogFormat(category, text string) string {
-	return fmt.Sprintf("%s   [%s] %s", getDate(), category, text)
+	return createLogFormatCustomTimestamp(category, text, time.Now())
+}
+func createLogFormatCustomTimestamp(category, text string, timestamp time.Time) string {
+	return fmt.Sprintf("%s   [%s] %s", getDate(timestamp), category, text)
 }
 
 // LogStartup adds a log entry to indicate that Gokapi has started. Non-blocking
@@ -85,6 +84,24 @@ func LogDeploymentPassword() {
 	createLogEntry(categoryAuth, "Setting new admin password", false)
 }
 
+// LogUserDeletion adds a log entry to indicate that a user was deleted. Non-blocking
+func LogUserDeletion(modifiedUser, userEditor models.User) {
+	createLogEntry(categoryAuth, fmt.Sprintf("%s (#%d) was deleted by %s (user #%d)",
+		modifiedUser.Name, modifiedUser.Id, userEditor.Name, userEditor.Id), false)
+}
+
+// LogUserEdit adds a log entry to indicate that a user was modified. Non-blocking
+func LogUserEdit(modifiedUser, userEditor models.User) {
+	createLogEntry(categoryAuth, fmt.Sprintf("%s (#%d) was modified by %s (user #%d)",
+		modifiedUser.Name, modifiedUser.Id, userEditor.Name, userEditor.Id), false)
+}
+
+// LogUserCreation adds a log entry to indicate that a user was created. Non-blocking
+func LogUserCreation(modifiedUser, userEditor models.User) {
+	createLogEntry(categoryAuth, fmt.Sprintf("%s (#%d) was created by %s (user #%d)",
+		modifiedUser.Name, modifiedUser.Id, userEditor.Name, userEditor.Id), false)
+}
+
 // LogDownload adds a log entry when a download was requested. Non-Blocking
 func LogDownload(file models.File, r *http.Request, saveIp bool) {
 	if saveIp {
@@ -99,36 +116,26 @@ func LogUpload(file models.File, user models.User) {
 	createLogEntry(categoryUpload, fmt.Sprintf("%s, ID %s, uploaded by %s (user #%d)", file.Name, file.Id, user.Name, user.Id), false)
 }
 
-type logEntry struct {
-	Previous *logEntry
-	Next     *logEntry
-	Content  string
+// LogEdit adds a log entry when an upload was edited. Non-Blocking
+func LogEdit(file models.File, user models.User) {
+	createLogEntry(categoryEdit, fmt.Sprintf("%s, ID %s, edited by %s (user #%d)", file.Name, file.Id, user.Name, user.Id), false)
 }
 
-func reverseLogFile(input string) string {
-	var reversedLogs strings.Builder
-	current := &logEntry{}
-	scanner := bufio.NewScanner(strings.NewReader(input))
-	for scanner.Scan() {
-		line := scanner.Text()
-		newEntry := logEntry{
-			Content:  line,
-			Previous: current,
-		}
-		current.Next = &newEntry
-		current = &newEntry
-	}
-	for current.Previous != nil {
-		reversedLogs.WriteString(current.Content + "\n")
-		current = current.Previous
-	}
-	return reversedLogs.String()
+// LogReplace adds a log entry when an upload was replaced. Non-Blocking
+func LogReplace(originalFile, newContent models.File, user models.User) {
+	createLogEntry(categoryEdit, fmt.Sprintf("%s, ID %s had content replaced with %s (ID %s) by %s (user #%d)",
+		originalFile.Name, originalFile.Id, newContent.Name, newContent.Id, user.Name, user.Id), false)
+}
+
+// LogDelete adds a log entry when an upload was deleted. Non-Blocking
+func LogDelete(file models.File, user models.User) {
+	createLogEntry(categoryEdit, fmt.Sprintf("%s, ID %s, deleted by %s (user #%d)", file.Name, file.Id, user.Name, user.Id), false)
 }
 
 // UpgradeToV2 adds tags to existing logs
 // deprecated
 func UpgradeToV2() {
-	content, exists := GetAll(false)
+	content, exists := GetAll()
 	mutex.Lock()
 	if !exists {
 		return
@@ -152,13 +159,50 @@ func UpgradeToV2() {
 	defer mutex.Unlock()
 }
 
-func DeleteLogs(userName string, userId int, r *http.Request) {
+func DeleteLogs(userName string, userId int, cutoff int64, r *http.Request) {
+	if cutoff == 0 {
+		deleteAllLogs(userName, userId, r)
+		return
+	}
 	mutex.Lock()
-	message := createLogFormat(categoryWarning, fmt.Sprintf("Previous logs deleted by %s (user #%d). IP: %s\n",
-		userName, userId, getIpAddress(r)))
-	err := os.WriteFile(logPath, []byte(message), 0600)
+	logFile, err := os.ReadFile(logPath)
+	helper.Check(err)
+	var newFile strings.Builder
+	scanner := bufio.NewScanner(strings.NewReader(string(logFile)))
+	newFile.WriteString(getLogDeletionMessage(userName, userId, r, time.Unix(cutoff, 0)))
+	for scanner.Scan() {
+		line := scanner.Text()
+		timeEntry, err := parseTimeLogEntry(line)
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+		if timeEntry.Unix() > cutoff {
+			newFile.WriteString(line + "\n")
+		}
+	}
+	err = os.WriteFile(logPath, []byte(newFile.String()), 0600)
 	helper.Check(err)
 	defer mutex.Unlock()
+}
+
+func parseTimeLogEntry(input string) (time.Time, error) {
+	const layout = "Mon, 02 Jan 2006 15:04:05 MST"
+	lineContent := strings.Split(input, "   [")
+	return time.Parse(layout, lineContent[0])
+}
+
+func getLogDeletionMessage(userName string, userId int, r *http.Request, timestamp time.Time) string {
+	return createLogFormatCustomTimestamp(categoryWarning, fmt.Sprintf("Previous logs deleted by %s (user #%d) on %s. IP: %s\n",
+		userName, userId, getDate(time.Now()), getIpAddress(r)), timestamp)
+}
+
+func deleteAllLogs(userName string, userId int, r *http.Request) {
+	mutex.Lock()
+	defer mutex.Unlock()
+	message := getLogDeletionMessage(userName, userId, r, time.Now())
+	err := os.WriteFile(logPath, []byte(message), 0600)
+	helper.Check(err)
 }
 
 func writeToFile(text string) {
@@ -171,8 +215,8 @@ func writeToFile(text string) {
 	helper.Check(err)
 }
 
-func getDate() string {
-	return time.Now().UTC().Format(time.RFC1123)
+func getDate(timestamp time.Time) string {
+	return timestamp.UTC().Format(time.RFC1123)
 }
 
 func getIpAddress(r *http.Request) string {
