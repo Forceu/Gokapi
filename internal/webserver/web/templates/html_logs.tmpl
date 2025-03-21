@@ -9,17 +9,41 @@
                 
     <textarea class="form-control" id="logviewer" rows="20" readonly>
 {{ .Logs }}</textarea>
+            
+            <br>
+                 <div class="d-flex gap-3">
+                    <select id="logFilter" class="form-select" onchange="filterLogs(this.value)">
+                        <option value="all">Show all logs</option>
+                        <option value="warning">Show [warning]</option>
+                        <option value="auth">Show [auth]</option>
+                        <option value="download">Show [download]</option>
+                        <option value="upload">Show [upload]</option>
+                        <option value="edit">Show [edit]</option>
+                        <option value="info">Show [info]</option>
+                    </select>
+
+                    <select id="deleteLogs" class="form-select" onchange="deleteLogs(this.value)">
+                        <option value="none">Delete Logs...</option>
+                        <option value="2">Older than 2 days</option>
+                        <option value="7">Older than 7 days</option>
+                        <option value="14">Older than 14 days</option>
+                        <option value="30">Older than 30 days</option>
+                        <option value="all">Delete all logs</option>
+                    </select>
+                </div>
+            
+            <br>
+            
             </div>
         </div>
     </div>
 </div>
+<script src="./js/min/admin.min.{{ template "js_admin_version"}}.js"></script>
 	<script>
+		var systemKey = "{{.SystemKey}}";
 		let textarea = document.getElementById('logviewer');
-		textarea.scrollTop = textarea.scrollHeight;
-		
-		window.setTimeout( function() {
-		  window.location.reload();
-		}, 30000);
+   		textarea.scrollTop = textarea.scrollHeight;
+		var logContent = textarea.value;
 	</script>
 {{ template "footer" true}}
 {{ end }}

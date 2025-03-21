@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-const versionJsAdmin = 8
+const versionJsAdmin = 9
 const versionJsDropzone = 5
 const versionJsE2EAdmin = 5
 const versionCssMain = 4

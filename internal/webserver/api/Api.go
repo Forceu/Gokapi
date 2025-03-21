@@ -6,6 +6,7 @@ import (
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/logging"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
 	"github.com/forceu/gokapi/internal/webserver/fileupload"
@@ -97,6 +98,7 @@ func apiEditFile(w http.ResponseWriter, r requestParser, user models.User) {
 	}
 
 	database.SaveMetaData(file)
+	logging.LogEdit(file, user)
 	outputFileInfo(w, file)
 }
 
@@ -135,6 +137,9 @@ func newSystemKey(userId int) string {
 	}
 	if !user.HasPermissionManageUsers() {
 		tempKey.RemovePermission(models.ApiPermManageUsers)
+	}
+	if !user.HasPermissionManageLogs() {
+		tempKey.RemovePermission(models.ApiPermManageLogs)
 	}
 
 	newKey := models.ApiKey{
@@ -203,6 +208,11 @@ func apiModifyApiKey(w http.ResponseWriter, r requestParser, user models.User) {
 			sendError(w, http.StatusUnauthorized, "Insufficient user permission for owner to set this API permission")
 			return
 		}
+	case models.ApiPermManageLogs:
+		if !apiKeyOwner.HasPermissionManageLogs() {
+			sendError(w, http.StatusUnauthorized, "Insufficient user permission for owner to set this API permission")
+			return
+		}
 	default:
 		// do nothing
 	}
@@ -253,7 +263,7 @@ func apiCreateApiKey(w http.ResponseWriter, r requestParser, user models.User) {
 	_, _ = w.Write(result)
 }
 
-func apiCreateUser(w http.ResponseWriter, r requestParser, _ models.User) {
+func apiCreateUser(w http.ResponseWriter, r requestParser, user models.User) {
 	request, ok := r.(*paramUserCreate)
 	if !ok {
 		panic("invalid parameter passed")
@@ -277,6 +287,7 @@ func apiCreateUser(w http.ResponseWriter, r requestParser, _ models.User) {
 		sendError(w, http.StatusInternalServerError, "Could not save user")
 		return
 	}
+	logging.LogUserCreation(newUser, user)
 	_, _ = w.Write([]byte(newUser.ToJson()))
 }
 
@@ -326,12 +337,12 @@ func apiDeleteFile(w http.ResponseWriter, r requestParser, user models.User) {
 		sendError(w, http.StatusNotFound, "Invalid file ID provided.")
 		return
 	}
-	if file.UserId == user.Id || user.HasPermission(models.UserPermDeleteOtherUploads) {
-		_ = storage.DeleteFile(request.Id, true)
-	} else {
+	if file.UserId != user.Id && !user.HasPermission(models.UserPermDeleteOtherUploads) {
 		sendError(w, http.StatusUnauthorized, "No permission to delete this file")
 		return
 	}
+	logging.LogDelete(file, user)
+	_ = storage.DeleteFile(request.Id, true)
 }
 
 func apiChunkAdd(w http.ResponseWriter, r requestParser, _ models.User) {
@@ -381,6 +392,7 @@ func doBlockingPartCompleteChunk(w http.ResponseWriter, request *paramChunkCompl
 		sendError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	logging.LogUpload(file, user)
 	if w != nil {
 		config := configuration.Get()
 		_, _ = io.WriteString(w, file.ToJsonResult(config.ServerUrl, config.IncludeFilename))
@@ -467,7 +479,7 @@ func apiDuplicateFile(w http.ResponseWriter, r requestParser, user models.User) 
 		request.UnlimitedTime,
 		request.UnlimitedDownloads,
 		false, // is not being used by storage.DuplicateFile
-		0) // is not being used by storage.DuplicateFile
+		0)     // is not being used by storage.DuplicateFile
 	newFile, err := storage.DuplicateFile(file, request.RequestedChanges, request.FileName, uploadRequest)
 	if err != nil {
 		sendError(w, http.StatusInternalServerError, err.Error())
@@ -513,6 +525,7 @@ func apiReplaceFile(w http.ResponseWriter, r requestParser, user models.User) {
 		}
 		return
 	}
+	logging.LogReplace(fileOriginal, modifiedFile, user)
 	outputFileInfo(w, modifiedFile)
 }
 
@@ -542,6 +555,7 @@ func apiModifyUser(w http.ResponseWriter, r requestParser, user models.User) {
 		sendError(w, http.StatusBadRequest, "Cannot modify yourself")
 		return
 	}
+	logging.LogUserEdit(userEdit, user)
 	if request.GrantPermission {
 		if !userEdit.HasPermission(request.Permission) {
 			userEdit.GrantPermission(request.Permission)
@@ -588,6 +602,7 @@ func apiChangeUserRank(w http.ResponseWriter, r requestParser, user models.User)
 		sendError(w, http.StatusBadRequest, "invalid rank sent")
 		return
 	}
+	logging.LogUserEdit(userEdit, user)
 	database.SaveUser(userEdit, false)
 }
 
@@ -598,6 +613,8 @@ func updateApiKeyPermsOnUserPermChange(userId int, userPerm models.UserPermissio
 		affectedPermission = models.ApiPermManageUsers
 	case models.UserPermReplaceUploads:
 		affectedPermission = models.ApiPermReplace
+	case models.UserPermManageLogs:
+		affectedPermission = models.ApiPermManageLogs
 	default:
 		return
 	}
@@ -662,6 +679,7 @@ func apiDeleteUser(w http.ResponseWriter, r requestParser, user models.User) {
 		sendError(w, http.StatusBadRequest, "Cannot delete yourself")
 		return
 	}
+	logging.LogUserDeletion(userToDelete, user)
 	database.DeleteUser(userToDelete.Id)
 	for _, file := range database.GetAllMetadata() {
 		if file.UserId == userToDelete.Id {
@@ -680,6 +698,14 @@ func apiDeleteUser(w http.ResponseWriter, r requestParser, user models.User) {
 	}
 	database.DeleteAllSessionsByUser(userToDelete.Id)
 	database.DeleteEnd2EndInfo(userToDelete.Id)
+}
+
+func apiLogsDelete(_ http.ResponseWriter, r requestParser, user models.User) {
+	request, ok := r.(*paramLogsDelete)
+	if !ok {
+		panic("invalid parameter passed")
+	}
+	logging.DeleteLogs(user.Name, user.Id, request.Timestamp, request.Request)
 }
 
 func isAuthorisedForApi(r *http.Request, routing apiRoute) (models.User, bool) {

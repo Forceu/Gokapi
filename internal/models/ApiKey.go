@@ -19,17 +19,19 @@ const (
 	ApiPermReplace
 	// ApiPermManageUsers is the permission for managing users
 	ApiPermManageUsers
+	// ApiPermManageLogs is the permission required for managing the log file
+	ApiPermManageLogs
 )
 
 // ApiPermNone means no permission granted
 const ApiPermNone ApiPermission = 0
 
 // ApiPermAll means all permission granted
-const ApiPermAll ApiPermission = 127
+const ApiPermAll ApiPermission = 255
 
-// ApiPermDefault means all permission granted, except ApiPermApiMod, ApiPermManageUsers and ApiPermReplace
+// ApiPermDefault means all permission granted, except ApiPermApiMod, ApiPermManageUsers, ApiPermManageLogs and ApiPermReplace
 // This is the default for new API keys that are created from the UI
-const ApiPermDefault = ApiPermAll - ApiPermApiMod - ApiPermManageUsers - ApiPermReplace
+const ApiPermDefault = ApiPermAll - ApiPermApiMod - ApiPermManageUsers - ApiPermReplace - ApiPermManageLogs
 
 // ApiKey contains data of a single api key
 type ApiKey struct {
@@ -109,6 +111,11 @@ func (key *ApiKey) HasPermissionReplace() bool {
 // HasPermissionManageUsers returns true if ApiPermManageUsers is granted
 func (key *ApiKey) HasPermissionManageUsers() bool {
 	return key.HasPermission(ApiPermManageUsers)
+}
+
+// HasPermissionManageLogs returns true if ApiPermManageLogs is granted
+func (key *ApiKey) HasPermissionManageLogs() bool {
+	return key.HasPermission(ApiPermManageLogs)
 }
 
 // ApiKeyOutput is the output that is used after a new key is created

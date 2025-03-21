@@ -598,6 +598,34 @@ func (p *paramUserResetPw) New() requestParser {
 	return &paramUserResetPw{}
 }
 
+// ParseRequest reads r and saves the passed header values in the paramLogsDelete struct
+// In the end, ProcessParameter() is called
+func (p *paramLogsDelete) ParseRequest(r *http.Request) error {
+	var err error
+	var exists bool
+	p.foundHeaders = make(map[string]bool)
+
+	// RequestParser header value "timestamp", required: false
+	exists, err = checkHeaderExists(r, "timestamp", false, false)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["timestamp"] = exists
+	if exists {
+		p.Timestamp, err = parseHeaderInt64(r, "timestamp")
+		if err != nil {
+			return fmt.Errorf("invalid value in header timestamp supplied")
+		}
+	}
+
+	return p.ProcessParameter(r)
+}
+
+// New returns a new instance of paramLogsDelete struct
+func (p *paramLogsDelete) New() requestParser {
+	return &paramLogsDelete{}
+}
+
 // ParseRequest parses the header file. As paramChunkAdd has no fields with the
 // tag header, this method does nothing, except calling ProcessParameter()
 func (p *paramChunkAdd) ParseRequest(r *http.Request) error {

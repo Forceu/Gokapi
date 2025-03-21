@@ -134,6 +134,12 @@ var routes = []apiRoute{
 		execution:     apiResetPassword,
 		RequestParser: &paramUserResetPw{},
 	},
+	{
+		Url:           "/logs/delete",
+		ApiPerm:       models.ApiPermManageLogs,
+		execution:     apiLogsDelete,
+		RequestParser: &paramLogsDelete{},
+	},
 }
 
 func getRouting(requestUrl string) (apiRoute, bool) {
@@ -290,6 +296,8 @@ func (p *paramAuthModify) ProcessParameter(_ *http.Request) error {
 		p.Permission = models.ApiPermReplace
 	case "PERM_MANAGE_USERS":
 		p.Permission = models.ApiPermManageUsers
+	case "PERM_MANAGE_LOGS":
+		p.Permission = models.ApiPermManageLogs
 	default:
 		return errors.New("invalid permission")
 	}
@@ -393,6 +401,17 @@ type paramUserResetPw struct {
 }
 
 func (p *paramUserResetPw) ProcessParameter(_ *http.Request) error { return nil }
+
+type paramLogsDelete struct {
+	Timestamp    int64 `header:"timestamp"`
+	Request      *http.Request
+	foundHeaders map[string]bool
+}
+
+func (p *paramLogsDelete) ProcessParameter(r *http.Request) error {
+	p.Request = r
+	return nil
+}
 
 type paramChunkAdd struct {
 	Request *http.Request

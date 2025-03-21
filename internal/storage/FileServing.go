@@ -577,7 +577,7 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 	file.DownloadsRemaining = file.DownloadsRemaining - 1
 	file.DownloadCount = file.DownloadCount + 1
 	database.IncreaseDownloadCount(file.Id, !file.UnlimitedDownloads)
-	logging.AddDownload(&file, r, configuration.Get().SaveIp)
+	logging.LogDownload(file, r, configuration.Get().SaveIp)
 	go sse.PublishDownloadCount(file)
 
 	if !file.IsLocalStorage() {

@@ -800,7 +800,8 @@ func getAvailableApiPermissions(t *testing.T) []models.ApiPermission {
 		models.ApiPermApiMod,
 		models.ApiPermEdit,
 		models.ApiPermReplace,
-		models.ApiPermManageUsers}
+		models.ApiPermManageUsers,
+		models.ApiPermManageLogs}
 	sum := 0
 	for _, perm := range result {
 		sum = sum + int(perm)
@@ -820,6 +821,7 @@ func getApiPermMap(t *testing.T) map[models.ApiPermission]string {
 	result[models.ApiPermEdit] = "PERM_EDIT"
 	result[models.ApiPermReplace] = "PERM_REPLACE"
 	result[models.ApiPermManageUsers] = "PERM_MANAGE_USERS"
+	result[models.ApiPermManageLogs] = "PERM_MANAGE_LOGS"
 
 	sum := 0
 	for perm, _ := range result {
@@ -1064,6 +1066,7 @@ func TestApikeyModify(t *testing.T) {
 
 	grantUserPermission(t, idUser, models.UserPermReplaceUploads)
 	grantUserPermission(t, idUser, models.UserPermManageUsers)
+	grantUserPermission(t, idUser, models.UserPermManageLogs)
 
 	for permissionUint, permissionString := range getApiPermMap(t) {
 		test.IsEqualBool(t, retrievedApiKey.HasPermission(permissionUint), false)
@@ -1078,6 +1081,7 @@ func TestApikeyModify(t *testing.T) {
 	}
 	removeUserPermission(t, idUser, models.UserPermReplaceUploads)
 	removeUserPermission(t, idUser, models.UserPermManageUsers)
+	removeUserPermission(t, idUser, models.UserPermManageLogs)
 }
 
 func testApiModifyCall(t *testing.T, apiKey, targetKey string, permission string, grant bool) {
