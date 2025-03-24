@@ -28,6 +28,7 @@ type Environment struct {
 	WebserverPort      int    `env:"PORT" envDefault:"53842"`
 	DisableCorsCheck   bool   `env:"DISABLE_CORS_CHECK" envDefault:"false"`
 	LogToStdout        bool   `env:"LOG_STDOUT" envDefault:"false"`
+	HotlinkVideos      bool   `env:"ENABLE_HOTLINK_VIDEOS" envDefault:"false"`
 	AwsBucket          string `env:"AWS_BUCKET"`
 	AwsRegion          string `env:"AWS_REGION"`
 	AwsKeyId           string `env:"AWS_KEY"`

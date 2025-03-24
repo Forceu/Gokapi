@@ -22,10 +22,10 @@ Passing environment variables to Gokapi
 Docker
 ------
 
-Pass the variable with the ``-e`` argument. Example for setting the port in use to *12345* and the database filename to *database.sqlite*:
+Pass the variable with the ``-e`` argument. Example for setting the port in use to *12345* and the chunk size to *60MB*:
 ::
 
- docker run -it -e GOKAPI_PORT=12345 -e GOKAPI_DB_NAME=database.sqlite f0rc3/gokapi:latest
+ docker run -it -e GOKAPI_PORT=12345 -e GOKAPI_CHUNK_SIZE_MB=60 f0rc3/gokapi:latest
 
 
 Native Deployment
@@ -37,7 +37,7 @@ Linux / Unix
 For Linux / Unix environments, execute the binary in this format:
 ::
 
-  GOKAPI_PORT=12345 GOKAPI_DB_NAME=database.sqlite [...] ./Gokapi
+  GOKAPI_PORT=12345 GOKAPI_CHUNK_SIZE_MB=60 [...] ./Gokapi
 
 Windows
 """"""""
@@ -46,7 +46,7 @@ For Windows environments, you need to run ``setx`` first, e.g.:
 ::
 
   setx GOKAPI_PORT 12345
-  setx GOKAPI_DB_NAME database.sqlite
+  setx GOKAPI_CHUNK_SIZE_MB 60 database.sqlite
   [...]
   Gokapi.exe
 
@@ -86,15 +86,17 @@ Available environment variables
 +-------------------------------+-------------------------------------------------------------------------------------+-----------------+--------------------------------------+
 | GOKAPI_LOG_STDOUT             | Also outputs all log file entries to the console output                             | No              | false                                |
 +-------------------------------+-------------------------------------------------------------------------------------+-----------------+--------------------------------------+
+| GOKAPI_ENABLE_HOTLINK_VIDEOS  | Allow hotlinking of videos. Note: Due to buffering, playing a video might count as  | No              | false                                |
+|                               |                                                                                     |                 |                                      |
+|                               | multiple downloads. It is only recommend to use video hotlinking for uploads with   |                 |                                      |
+|                               |                                                                                     |                 |                                      |
+|                               | unlimited downloads enabled                                                         |                 |                                      |
++-------------------------------+-------------------------------------------------------------------------------------+-----------------+--------------------------------------+
 | DOCKER_NONROOT                | Docker only: Runs the binary in the container as a non-root user, if set to "true"  | No              | false                                |
 +-------------------------------+-------------------------------------------------------------------------------------+-----------------+--------------------------------------+
 | TMPDIR                        | Sets the path which contains temporary files                                        | No              | Non-Docker: Default OS path          |
 |                               |                                                                                     |                 |                                      |
 |                               |                                                                                     |                 | Docker: [DATA_DIR]                   |
-+-------------------------------+-------------------------------------------------------------------------------------+-----------------+--------------------------------------+
-| GOKAPI_DB_NAME *(deprecated)* | Sets the name for the database file.                                                | No              | gokapi.sqlite                        |
-|                               |                                                                                     |                 |                                      |
-|                               | *Deprecated: Only used during update. Will be removed with v1.10.0*                 |                 |                                      |
 +-------------------------------+-------------------------------------------------------------------------------------+-----------------+--------------------------------------+
 
 
@@ -163,13 +165,14 @@ Database URL format
 
 Database URLs must start with either ``sqlite://`` or ``redis://``.
 
+
 For SQLite, the path to the database follows the prefix. No additional options are allowed.
 
 For Redis, the URL can include authentication credentials (username and password), an optional prefix for keys, and parameter to use SSL.
 
 
 Redis URL Format
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+---------------------------------
 
 A Redis URL has the following structure:
 ::
