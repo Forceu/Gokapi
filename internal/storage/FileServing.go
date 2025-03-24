@@ -194,7 +194,11 @@ func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, userId int
 			fileToMove = tempFile
 		}
 		processingstatus.Set(chunkId, processingstatus.StatusUploading, models.File{}, nil)
-		err = filesystem.ActiveStorageSystem.MoveToFilesystem(fileToMove, metaData)
+		if metaData.IsLocalStorage() {
+			err = filesystem.GetLocal().MoveToFilesystem(fileToMove, metaData)
+		} else {
+			err = filesystem.ActiveStorageSystem.MoveToFilesystem(fileToMove, metaData)
+		}
 		if err != nil {
 			return models.File{}, err
 		}
