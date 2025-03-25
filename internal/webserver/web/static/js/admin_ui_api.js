@@ -166,7 +166,8 @@ function addRowApi(apiKey, publicId) {
 	    	<i id="perm_edit_` + publicId + `" class="bi bi-pencil perm-granted" title="Edit Uploads" onclick='changeApiPermission("` + publicId + `","PERM_EDIT", "perm_edit_` + publicId + `");'></i>
 	    	<i id="perm_delete_` + publicId + `" class="bi bi-trash3 perm-granted" title="Delete Uploads" onclick='changeApiPermission("` + publicId + `","PERM_DELETE", "perm_delete_` + publicId + `");'></i>
 	    	<i id="perm_replace_` + publicId + `" class="bi bi-recycle perm-notgranted" title="Replace Uploads" onclick='changeApiPermission("` + publicId + `","PERM_REPLACE", "perm_replace_` + publicId + `");'></i>
-	    	<i id="perm_users_` + publicId + `" class="bi bi-people perm-notgranted" title="Manage Users" onclick='changeApiPermission("` + publicId + `", "PERM_MANAGE_USERS", "` + publicId + `");'></i>
+	    	<i id="perm_users_` + publicId + `" class="bi bi-people perm-notgranted" title="Manage Users" onclick='changeApiPermission("` + publicId + `", "PERM_MANAGE_USERS", "perm_users_` + publicId + `");'></i>
+	    	<i id="perm_logs_` + publicId + `" class="bi bi-card-list perm-notgranted" title="Manage System Logs" onclick='changeApiPermission("` + publicId + `", "PERM_MANAGE_LOGS", "perm_logs_` + publicId + `");'></i>
 	    	<i id="perm_api_` + publicId + `" class="bi bi-sliders2 perm-notgranted" title="Manage API Keys" onclick='changeApiPermission("` + publicId + `","PERM_API_MOD", "perm_api_` + publicId + `");'></i>`;
    
     if (!canReplaceFiles) {

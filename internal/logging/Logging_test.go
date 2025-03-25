@@ -39,12 +39,10 @@ func TestInit(t *testing.T) {
 
 func TestAddString(t *testing.T) {
 	test.FileDoesNotExist(t, "test/log.txt")
-	AddString("Hello")
-	// Need sleep, as AddString() is non-blocking
-	time.Sleep(500 * time.Millisecond)
+	createLogEntry(categoryInfo, "Hello", true)
 	test.FileExists(t, "test/log.txt")
 	content, _ := os.ReadFile("test/log.txt")
-	test.IsEqualBool(t, strings.Contains(string(content), "UTC   Hello"), true)
+	test.IsEqualBool(t, strings.Contains(string(content), "UTC   [info] Hello"), true)
 }
 
 func TestAddDownload(t *testing.T) {
@@ -55,19 +53,15 @@ func TestAddDownload(t *testing.T) {
 	r := httptest.NewRequest("GET", "/test", nil)
 	r.Header.Set("User-Agent", "testAgent")
 	r.Header.Add("X-REAL-IP", "1.1.1.1")
-	AddDownload(&file, r, true)
-	// Need sleep, as AddDownload() is non-blocking
+	LogDownload(file, r, true)
+	// Need sleep, as LogDownload() is non-blocking
 	time.Sleep(500 * time.Millisecond)
 	content, _ := os.ReadFile("test/log.txt")
-	test.IsEqualBool(t, strings.Contains(string(content), "UTC   Download: Filename testName, IP 1.1.1.1, ID testId, Useragent testAgent"), true)
+	test.IsEqualBool(t, strings.Contains(string(content), "UTC   [download] testName, IP 1.1.1.1, ID testId, Useragent testAgent"), true)
 	r.Header.Add("X-REAL-IP", "2.2.2.2")
-	AddDownload(&file, r, false)
-	// Need sleep, as AddDownload() is non-blocking
+	LogDownload(file, r, false)
+	// Need sleep, as LogDownload() is non-blocking
 	time.Sleep(500 * time.Millisecond)
 	content, _ = os.ReadFile("test/log.txt")
 	test.IsEqualBool(t, strings.Contains(string(content), "2.2.2.2"), false)
-}
-
-func TestGetLogPath(t *testing.T) {
-	test.IsEqualString(t, GetLogPath(), "test/log.txt")
 }

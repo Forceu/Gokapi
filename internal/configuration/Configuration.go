@@ -16,7 +16,7 @@ import (
 	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/environment"
 	"github.com/forceu/gokapi/internal/helper"
-	log "github.com/forceu/gokapi/internal/logging"
+	"github.com/forceu/gokapi/internal/logging"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage/filesystem"
 	"io"
@@ -93,7 +93,7 @@ func Load() {
 	}
 	helper.CreateDir(serverSettings.DataDir)
 	filesystem.Init(serverSettings.DataDir)
-	log.Init(Environment.DataDir)
+	logging.Init(Environment.DataDir)
 }
 
 // ConnectDatabase loads the database that is defined in the configuration
@@ -152,6 +152,7 @@ func MigrateToV2(authPassword string, allowedUsers []string) {
 		database.SaveMetaData(file)
 	}
 	database.DeleteAllSessions()
+	logging.UpgradeToV2()
 	fmt.Println("Migration complete")
 }
 

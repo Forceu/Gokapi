@@ -404,3 +404,29 @@ async function apiUserResetPassword(id, generatePw) {
     }
 }
 
+
+
+async function apiLogsDelete(timestamp) {
+    const apiUrl = './api/logs/delete';
+
+    const requestOptions = {
+        method: 'POST', 
+        headers: {
+            'Content-Type': 'application/json',
+            'apikey': systemKey,
+            'timestamp': timestamp
+        },
+    };
+
+    try {
+        const response = await fetch(apiUrl, requestOptions);
+        if (!response.ok) {
+            throw new Error(`Request failed with status: ${response.status}`);
+        }
+    } catch (error) {
+        console.error("Error in apiLogsDelete:", error);
+        throw error;
+    }
+}
+
+

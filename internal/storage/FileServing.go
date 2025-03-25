@@ -13,6 +13,7 @@ import (
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/encryption"
+	"github.com/forceu/gokapi/internal/environment"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/logging"
 	"github.com/forceu/gokapi/internal/models"
@@ -193,7 +194,11 @@ func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, userId int
 			fileToMove = tempFile
 		}
 		processingstatus.Set(chunkId, processingstatus.StatusUploading, models.File{}, nil)
-		err = filesystem.ActiveStorageSystem.MoveToFilesystem(fileToMove, metaData)
+		if metaData.IsLocalStorage() {
+			err = filesystem.GetLocal().MoveToFilesystem(fileToMove, metaData)
+		} else {
+			err = filesystem.ActiveStorageSystem.MoveToFilesystem(fileToMove, metaData)
+		}
 		if err != nil {
 			return models.File{}, err
 		}
@@ -425,7 +430,7 @@ func DuplicateFile(file models.File, parametersToChange int, newFileName string,
 
 	newFile.Id = createNewId()
 	newFile.DownloadCount = 0
-	AddHotlink(&file)
+	AddHotlink(&newFile)
 
 	database.SaveMetaData(newFile)
 	return newFile, nil
@@ -504,6 +509,9 @@ func isEncryptionRequested() bool {
 // imageFileExtensions contains all known image extensions that can be used for hotlinks
 var imageFileExtensions = []string{".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg", ".tiff", ".tif", ".ico", ".avif", ".avifs", ".apng"}
 
+// videoFileExtensions contains all known video extensions that can be used for hotlinks, if enabled with the env var ENABLE_HOTLINK_VIDEOS
+var videoFileExtensions = []string{".3gp", ".avi", ".flv", ".m4v", ".mkv", ".mov", ".mp4", ".mpg", ".mpeg", ".ts", ".webm", ".wmv"}
+
 // AddHotlink will first check if the file may use a hotlink (e.g. not encrypted or password-protected).
 // If file is an image, it will generate a new hotlink in the database and add it to the parameter file
 // Otherwise no changes will be made
@@ -524,7 +532,14 @@ func IsAbleHotlink(file models.File) bool {
 	if file.PasswordHash != "" {
 		return false
 	}
-	return isPictureFile(file.Name)
+	if isPictureFile(file.Name) {
+		return true
+	}
+	env := environment.New()
+	if !env.HotlinkVideos {
+		return false
+	}
+	return isVideoFile(file.Name)
 }
 
 // getFileExtension returns the file extension of a filename in lowercase
@@ -536,6 +551,11 @@ func getFileExtension(filename string) string {
 func isPictureFile(filename string) bool {
 	extension := getFileExtension(filename)
 	return helper.IsInArray(imageFileExtensions, extension)
+}
+
+func isVideoFile(filename string) bool {
+	extension := getFileExtension(filename)
+	return helper.IsInArray(videoFileExtensions, extension)
 }
 
 // GetFile gets the file by id. Returns (empty File, false) if invalid / expired file
@@ -577,7 +597,7 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 	file.DownloadsRemaining = file.DownloadsRemaining - 1
 	file.DownloadCount = file.DownloadCount + 1
 	database.IncreaseDownloadCount(file.Id, !file.UnlimitedDownloads)
-	logging.AddDownload(&file, r, configuration.Get().SaveIp)
+	logging.LogDownload(file, r, configuration.Get().SaveIp)
 	go sse.PublishDownloadCount(file)
 
 	if !file.IsLocalStorage() {

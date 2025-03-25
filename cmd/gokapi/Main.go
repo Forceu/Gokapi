@@ -72,7 +72,7 @@ func main() {
 	createSsl(passedFlags)
 	initCloudConfig(passedFlags)
 	go storage.CleanUp(true)
-	logging.AddString("Gokapi started")
+	logging.LogStartup()
 	go webserver.Start()
 
 	c := make(chan os.Signal)
@@ -85,6 +85,7 @@ func main() {
 func shutdown() {
 	fmt.Println("Shutting down...")
 	webserver.Shutdown()
+	logging.LogShutdown()
 	database.Close()
 }
 
@@ -164,6 +165,7 @@ func initCloudConfig(passedFlags flagparser.MainFlags) {
 // Checks for command line arguments that have to be parsed after loading the configuration
 func reconfigureServer(passedFlags flagparser.MainFlags) bool {
 	if passedFlags.Reconfigure {
+		logging.LogSetup()
 		setup.RunConfigModification()
 		return true
 	}
@@ -210,7 +212,7 @@ func setDeploymentPassword(passedFlags flagparser.MainFlags) {
 	if passedFlags.DeploymentPassword == "" {
 		return
 	}
-	logging.AddString("Password has been changed for deployment")
+	logging.LogDeploymentPassword()
 	configuration.SetDeploymentPassword(passedFlags.DeploymentPassword)
 }
 

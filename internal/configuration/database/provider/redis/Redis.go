@@ -18,7 +18,7 @@ type DatabaseProvider struct {
 }
 
 // DatabaseSchemeVersion contains the version number to be expected from the current database. If lower, an upgrade will be performed
-const DatabaseSchemeVersion = 4
+const DatabaseSchemeVersion = 5
 
 // New returns an instance
 func New(dbConfig models.DbConnection) (DatabaseProvider, error) {
@@ -96,7 +96,7 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 	if currentDbVersion < 3 {
 		fmt.Println("Please update to v1.9.6 before upgrading to 2.0.0")
 	}
-	// < v2.0.0-beta
+	// < v2.0.0-beta1
 	if currentDbVersion < 4 {
 		p.DeleteAllSessions()
 		apiKeys := p.GetAllApiKeys()
@@ -108,6 +108,15 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 		legacyE2e := p.getLegacyE2EData()
 		p.SaveEnd2EndInfo(legacyE2e, 0)
 		p.deleteKey("e2einfo")
+	}
+	// < v2.0.0-beta2
+	if currentDbVersion < 5 {
+		keys := p.GetAllApiKeys()
+		for _, key := range keys {
+			if key.IsSystemKey {
+				p.DeleteApiKey(key.Id)
+			}
+		}
 	}
 }
 

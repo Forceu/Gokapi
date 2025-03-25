@@ -42,5 +42,11 @@ func SetLocal() {
 	ActiveStorageSystem = dataFilesystem
 }
 
+// GetLocal gets the local filesystem, regardless of what filesystem is used by default. This is required when encrypted
+// pictures are stored locally instead of the cloud to support hotlinking
+func GetLocal() interfaces.System {
+	return dataFilesystem
+}
+
 // isUnitTesting is only set to true when testing, to avoid login with aws
 var isUnitTesting = false
