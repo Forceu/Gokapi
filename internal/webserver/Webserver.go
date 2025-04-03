@@ -63,14 +63,19 @@ var wasmDownloadFile embed.FS
 //go:embed web/e2e.wasm
 var wasmE2EFile embed.FS
 
-const timeOutWebserverRead = 12 * time.Hour
+const timeOutWebserverRead = 2 * time.Hour
 const timeOutWebserverWrite = 12 * time.Hour
 
-// Variable containing all parsed templates
+// templateFolder contains all parsed templates
 var templateFolder *template.Template
 
+// customStaticInfo is passed to all templates, so custom CSS or JS can be embedded
+var customStaticInfo customStatic
+
+// imageExpiredPicture is sent for an expired hotlink
 var imageExpiredPicture []byte
 
+// srv is the web server that is used for this module
 var srv http.Server
 
 // Start the webserver on the port set in the config
@@ -80,15 +85,10 @@ func Start() {
 	var err error
 
 	mux := http.NewServeMux()
-
-	if helper.FolderExists("static") {
-		fmt.Println("Found folder 'static', using local folder instead of internal static folder")
-		mux.Handle("/", http.FileServer(http.Dir("static")))
-	} else {
-		mux.Handle("/", http.FileServer(http.FS(webserverDir)))
-	}
+	loadCustomCssJsInfo()
 	loadExpiryImage()
 
+	mux.Handle("/", http.FileServer(http.FS(webserverDir)))
 	mux.HandleFunc("/admin", requireLogin(showAdminMenu, true, false))
 	mux.HandleFunc("/api/", processApi)
 	mux.HandleFunc("/apiKeys", requireLogin(showApiAdmin, true, false))
@@ -112,9 +112,10 @@ func Start() {
 	mux.HandleFunc("/users", requireLogin(showUserAdmin, true, false))
 	mux.Handle("/main.wasm", gziphandler.GzipHandler(http.HandlerFunc(serveDownloadWasm)))
 	mux.Handle("/e2e.wasm", gziphandler.GzipHandler(http.HandlerFunc(serveE2EWasm)))
-
 	mux.HandleFunc("/d/{id}/{filename}", redirectFromFilename)
 	mux.HandleFunc("/dh/{id}/{filename}", downloadFileWithNameInUrl)
+
+	addMuxForCustomContent(mux)
 
 	if configuration.Get().Authentication.Method == models.AuthenticationOAuth2 {
 		oauth.Init(configuration.Get().ServerUrl, configuration.Get().Authentication)
