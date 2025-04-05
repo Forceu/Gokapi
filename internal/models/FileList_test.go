@@ -2,8 +2,9 @@ package models
 
 import (
 	"errors"
-	"github.com/forceu/gokapi/internal/test"
 	"testing"
+
+	"github.com/forceu/gokapi/internal/test"
 )
 
 func TestToJsonResult(t *testing.T) {
@@ -13,6 +14,7 @@ func TestToJsonResult(t *testing.T) {
 		Size:               "10 B",
 		SizeBytes:          10,
 		SHA1:               "sha256",
+		UploadTime:         25,
 		ExpireAt:           50,
 		ExpireAtString:     "future",
 		DownloadsRemaining: 1,
@@ -30,8 +32,8 @@ func TestToJsonResult(t *testing.T) {
 		UnlimitedDownloads: true,
 		UnlimitedTime:      true,
 	}
-	test.IsEqualString(t, file.ToJsonResult("serverurl/", false), `{"Result":"OK","FileInfo":{"Id":"testId","Name":"testName","Size":"10 B","HotlinkId":"hotlinkid","ContentType":"text/html","ExpireAtString":"future","UrlDownload":"serverurl/d?id=testId","UrlHotlink":"","ExpireAt":50,"SizeBytes":10,"DownloadsRemaining":1,"DownloadCount":3,"UnlimitedDownloads":true,"UnlimitedTime":true,"RequiresClientSideDecryption":true,"IsEncrypted":true,"IsEndToEndEncrypted":false,"IsPasswordProtected":true,"IsSavedOnLocalStorage":false,"UploaderId":2},"IncludeFilename":false}`)
-	test.IsEqualString(t, file.ToJsonResult("serverurl/", true), `{"Result":"OK","FileInfo":{"Id":"testId","Name":"testName","Size":"10 B","HotlinkId":"hotlinkid","ContentType":"text/html","ExpireAtString":"future","UrlDownload":"serverurl/d/testId/testName","UrlHotlink":"","ExpireAt":50,"SizeBytes":10,"DownloadsRemaining":1,"DownloadCount":3,"UnlimitedDownloads":true,"UnlimitedTime":true,"RequiresClientSideDecryption":true,"IsEncrypted":true,"IsEndToEndEncrypted":false,"IsPasswordProtected":true,"IsSavedOnLocalStorage":false,"UploaderId":2},"IncludeFilename":true}`)
+	test.IsEqualString(t, file.ToJsonResult("serverurl/", false), `{"Result":"OK","FileInfo":{"Id":"testId","Name":"testName","Size":"10 B","HotlinkId":"hotlinkid","ContentType":"text/html","ExpireAtString":"future","UrlDownload":"serverurl/d?id=testId","UrlHotlink":"","UploadTime":25,"ExpireAt":50,"SizeBytes":10,"DownloadsRemaining":1,"DownloadCount":3,"UnlimitedDownloads":true,"UnlimitedTime":true,"RequiresClientSideDecryption":true,"IsEncrypted":true,"IsEndToEndEncrypted":false,"IsPasswordProtected":true,"IsSavedOnLocalStorage":false,"UploaderId":2},"IncludeFilename":false}`)
+	test.IsEqualString(t, file.ToJsonResult("serverurl/", true), `{"Result":"OK","FileInfo":{"Id":"testId","Name":"testName","Size":"10 B","HotlinkId":"hotlinkid","ContentType":"text/html","ExpireAtString":"future","UrlDownload":"serverurl/d/testId/testName","UrlHotlink":"","UploadTime":25,"ExpireAt":50,"SizeBytes":10,"DownloadsRemaining":1,"DownloadCount":3,"UnlimitedDownloads":true,"UnlimitedTime":true,"RequiresClientSideDecryption":true,"IsEncrypted":true,"IsEndToEndEncrypted":false,"IsPasswordProtected":true,"IsSavedOnLocalStorage":false,"UploaderId":2},"IncludeFilename":true}`)
 }
 
 func TestIsLocalStorage(t *testing.T) {
