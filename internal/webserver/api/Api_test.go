@@ -1189,7 +1189,7 @@ func TestList(t *testing.T) {
 	test.IsEqualInt(t, w.Code, 200)
 	err := json.Unmarshal(w.Body.Bytes(), &result)
 	test.IsNil(t, err)
-	test.IsEqualInt(t, len(result), 11)
+	test.IsEqualInt(t, len(result), 12)
 
 	removeUserPermission(t, idUser, models.UserPermListOtherUploads)
 	w, r = getRecorder(apiUrl, apiKey.Id, []test.Header{})

@@ -99,7 +99,7 @@ func getHotlinkUrl(input FileApiOutput, serverUrl string, useFilename bool) stri
 		return ""
 	}
 	if input.HotlinkId != "" {
-		return serverUrl + "hotlink/" + input.HotlinkId
+		return serverUrl + "h/" + input.HotlinkId
 	}
 	if useFilename {
 		return serverUrl + "dh/" + input.Id + "/" + url.PathEscape(input.Name)

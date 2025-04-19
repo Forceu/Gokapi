@@ -75,7 +75,7 @@ func TestGetHolinkUrl(t *testing.T) {
 	test.IsEqualString(t, url, "")
 	file.RequiresClientSideDecryption = false
 	url = getHotlinkUrl(file, "testserver/", false)
-	test.IsEqualString(t, url, "testserver/hotlink/test")
+	test.IsEqualString(t, url, "testserver/h/test")
 	file.HotlinkId = ""
 	url = getHotlinkUrl(file, "testserver/", false)
 	test.IsEqualString(t, url, "testserver/downloadFile?id=testfile")
