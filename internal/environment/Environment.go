@@ -22,6 +22,7 @@ type Environment struct {
 	DataDir            string `env:"DATA_DIR" envDefault:"data"`
 	DatabaseUrl        string `env:"DATABASE_URL" envDefault:"sqlite://[data]/gokapi.sqlite"`
 	LengthId           int    `env:"LENGTH_ID" envDefault:"15"`
+	LengthHotlinkId    int    `env:"LENGTH_HOTLINK_ID" envDefault:"40"`
 	MaxFileSize        int    `env:"MAX_FILESIZE" envDefault:"102400"` // 102400==100GB
 	MaxMemory          int    `env:"MAX_MEMORY_UPLOAD" envDefault:"50"`
 	MaxParallelUploads int    `env:"MAX_PARALLEL_UPLOADS" envDefault:"4"`
@@ -73,6 +74,9 @@ func New() Environment {
 	}
 	if result.LengthId < 5 {
 		result.LengthId = 5
+	}
+	if result.LengthHotlinkId < 8 {
+		result.LengthHotlinkId = 8
 	}
 	if result.MaxMemory < 5 {
 		result.MaxMemory = 5

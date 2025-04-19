@@ -91,6 +91,8 @@ func Load() {
 	if serverSettings.ChunkSize == 0 {
 		serverSettings.ChunkSize = 45
 	}
+	serverSettings.LengthId = Environment.LengthId
+	serverSettings.LengthHotlinkId = Environment.LengthHotlinkId
 	helper.CreateDir(serverSettings.DataDir)
 	filesystem.Init(serverSettings.DataDir)
 	logging.Init(Environment.DataDir)

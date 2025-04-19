@@ -15,11 +15,12 @@ type Configuration struct {
 	DataDir             string               `json:"DataDir"`
 	DatabaseUrl         string               `json:"DatabaseUrl"`
 	ConfigVersion       int                  `json:"ConfigVersion"`
-	LengthId            int                  `json:"LengthId"`
 	MaxFileSizeMB       int                  `json:"MaxFileSizeMB"`
 	MaxMemory           int                  `json:"MaxMemory"`
 	ChunkSize           int                  `json:"ChunkSize"`
 	MaxParallelUploads  int                  `json:"MaxParallelUploads"`
+	LengthId            int                  `json:"-"`
+	LengthHotlinkId     int                  `json:"-"`
 	Encryption          Encryption           `json:"Encryption"`
 	UseSsl              bool                 `json:"UseSsl"`
 	PicturesAlwaysLocal bool                 `json:"PicturesAlwaysLocal"`

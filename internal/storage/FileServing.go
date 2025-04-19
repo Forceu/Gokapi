@@ -519,7 +519,7 @@ func AddHotlink(file *models.File) {
 	if !IsAbleHotlink(*file) {
 		return
 	}
-	link := helper.GenerateRandomString(40) + getFileExtension(file.Name)
+	link := helper.GenerateRandomString(configuration.Get().LengthHotlinkId) + getFileExtension(file.Name)
 	file.HotlinkId = link
 	database.SaveHotlink(*file)
 }

@@ -442,7 +442,6 @@ var configTestFile = []byte(`{
   "DataDir": "` + dataDir + `",
   "DatabaseUrl": "` + SqliteUrl + `",
   "ConfigVersion": 22,
-  "LengthId": 20,
   "MaxFileSizeMB": 25,
   "MaxMemory": 10,
   "ChunkSize": 45,
