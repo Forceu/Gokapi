@@ -204,7 +204,7 @@ func TestNewFile(t *testing.T) {
 	test.IsEqualString(t, retrievedFile.Size, "35 B")
 	test.IsEqualString(t, retrievedFile.ExpireAtString, "2038-01-19 03:13")
 	test.IsEqualInt(t, retrievedFile.DownloadsRemaining, 1)
-	test.IsEqualInt(t, len(retrievedFile.Id), 20)
+	test.IsEqualInt(t, len(retrievedFile.Id), 15)
 	test.IsEqualInt(t, int(retrievedFile.ExpireAt), 2147483600)
 	test.IsEqualBool(t, file.UnlimitedTime, false)
 	test.IsEqualBool(t, file.UnlimitedDownloads, false)
