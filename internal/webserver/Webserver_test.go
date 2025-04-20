@@ -331,9 +331,17 @@ func TestDownloadHotlink(t *testing.T) {
 		Url:             "http://127.0.0.1:53843/hotlink/PhSs6mFtf8O5YGlLMfNw9rYXx9XRNkzCnJZpQBi7inunv3Z4A.jpg",
 		RequiredContent: []string{"123"},
 	})
+	test.HttpPageResult(t, test.HttpTestConfig{
+		Url:             "http://127.0.0.1:53843/h/wjqlzpq2.jpg",
+		RequiredContent: []string{"123"},
+	})
 	// Download expired hotlink
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/hotlink/PhSs6mFtf8O5YGlLMfNw9rYXx9XRNkzCnJZpQBi7inunv3Z4A.jpg",
+		RequiredContent: []string{"The requested file has expired"},
+	})
+	test.HttpPageResult(t, test.HttpTestConfig{
+		Url:             "http://127.0.0.1:53843/h/wjqlzpq2.jpg",
 		RequiredContent: []string{"The requested file has expired"},
 	})
 }
