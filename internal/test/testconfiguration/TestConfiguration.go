@@ -58,6 +58,7 @@ func Create(initFiles bool) {
 	writeTestSessions()
 	writeTestFiles()
 	database.SaveHotlink(models.File{Id: "n1tSTAGj8zan9KaT4u6p", HotlinkId: "PhSs6mFtf8O5YGlLMfNw9rYXx9XRNkzCnJZpQBi7inunv3Z4A.jpg", ExpireAt: time.Now().Add(time.Hour).Unix()})
+	database.SaveHotlink(models.File{Id: "t4efyghvrill1w1zary2", HotlinkId: "wjqlzpq2.jpg", ExpireAt: time.Now().Add(time.Hour).Unix()})
 	writeApiKeys()
 	writeTestUploadStatus()
 	database.Close()
@@ -65,6 +66,7 @@ func Create(initFiles bool) {
 	if initFiles {
 		os.MkdirAll(dataDir, 0777)
 		os.WriteFile(dataDir+"/a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd0", []byte("123"), 0777)
+		os.WriteFile(dataDir+"/a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd1", []byte("123"), 0777)
 		os.WriteFile(dataDir+"/c4f9375f9834b4e7f0a528cc65c055702bf5f24a", []byte("456"), 0777)
 		os.WriteFile(dataDir+"/e017693e4a04a59d0b0f400fe98177fe7ee13cf7", []byte("789"), 0777)
 		os.WriteFile(dataDir+"/2341354656543213246465465465432456898794", []byte("abc"), 0777)
@@ -368,6 +370,18 @@ func writeTestFiles() {
 		DownloadsRemaining: 1,
 		ContentType:        "text/html",
 		HotlinkId:          "PhSs6mFtf8O5YGlLMfNw9rYXx9XRNkzCnJZpQBi7inunv3Z4A.jpg",
+		UserId:             5,
+	})
+	database.SaveMetaData(models.File{
+		Id:                 "t4efyghvrill1w1zary2",
+		Name:               "picture.jpg",
+		Size:               "4 B",
+		SHA1:               "a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd1",
+		ExpireAt:           2147483646,
+		ExpireAtString:     "2021-05-04 15:19",
+		DownloadsRemaining: 1,
+		ContentType:        "text/html",
+		HotlinkId:          "wjqlzpq2.jpg",
 		UserId:             5,
 	})
 	database.SaveMetaData(models.File{

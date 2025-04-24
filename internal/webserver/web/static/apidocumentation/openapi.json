@@ -1045,7 +1045,7 @@
           "UrlHotlink": {
             "type": "string",
             "description": "The public hotlink URL for the file",
-            "example": "https://gokapi.server/hotlink/tDMs0U8MvRFwK69PfjagI7F87C13UVeQuOGDvtCG.jpg"
+            "example": "https://gokapi.server/h/tDMs0U8MvRFwK69PfjagI7F87C13UVeQuOGDvtCG.jpg"
           },
           "ExpireAt": {
             "type": "integer",

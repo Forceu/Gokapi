@@ -102,7 +102,8 @@ func Start() {
 	mux.HandleFunc("/error-header", showErrorHeader)
 	mux.HandleFunc("/error-oauth", showErrorIntOAuth)
 	mux.HandleFunc("/forgotpw", forgotPassword)
-	mux.HandleFunc("/hotlink/", showHotlink)
+	mux.HandleFunc("/h/", showHotlink)
+	mux.HandleFunc("/hotlink/", showHotlink) // backward compatibility
 	mux.HandleFunc("/index", showIndex)
 	mux.HandleFunc("/login", showLogin)
 	mux.HandleFunc("/logs", requireLogin(showLogs, true, false))
@@ -511,10 +512,11 @@ func showDownload(w http.ResponseWriter, r *http.Request) {
 	helper.CheckIgnoreTimeout(err)
 }
 
-// Handling of /hotlink/
+// Handling of /h/ and /hotlink/
 // Hotlinks an image or returns a static error image if image has expired
 func showHotlink(w http.ResponseWriter, r *http.Request) {
 	hotlinkId := strings.Replace(r.URL.Path, "/hotlink/", "", 1)
+	hotlinkId = strings.Replace(hotlinkId, "/h/", "", 1)
 	addNoCacheHeader(w)
 	file, ok := storage.GetFileByHotlink(hotlinkId)
 	if !ok {
