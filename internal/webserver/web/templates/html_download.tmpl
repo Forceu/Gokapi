@@ -155,6 +155,9 @@
 			document.title = "{{.PublicName}}: "+ filename;
 		</script>
 {{ end }}
-
+        
+{{ template "pagename" "PublicDownload"}}
+{{ template "customjs" .}}
+        
 {{template "footer"}}    
 {{end}}

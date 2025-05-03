@@ -44,5 +44,7 @@
    		textarea.scrollTop = textarea.scrollHeight;
 		var logContent = textarea.value;
 	</script>
+{{ template "pagename" "LogOverview"}}
+{{ template "customjs" .}}
 {{ template "footer" true}}
 {{ end }}

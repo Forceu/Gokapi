@@ -1,0 +1,11 @@
+{{define "customjs"}}
+{{ if .IsAdminView }}
+    {{ if .CustomContent.UseCustomAdminJs }}
+	<script src="./custom/admin.v{{.CustomContent.Version}}.js"></script>
+    {{ end }}
+{{else}}
+    {{ if .CustomContent.UseCustomPublicJs }}
+	<script src="./custom/public.v{{.CustomContent.Version}}.js"></script>
+    {{ end }}
+{{end}}
+{{end}}
