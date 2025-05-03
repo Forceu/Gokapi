@@ -10,6 +10,16 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
+	"log"
+	"mime/multipart"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/encryption"
@@ -25,15 +35,6 @@ import (
 	"github.com/forceu/gokapi/internal/webserver/headers"
 	"github.com/forceu/gokapi/internal/webserver/sse"
 	"github.com/jinzhu/copier"
-	"io"
-	"log"
-	"mime/multipart"
-	"net/http"
-	"os"
-	"path/filepath"
-	"strconv"
-	"strings"
-	"time"
 )
 
 // ErrorFileTooLarge is an error that is called when a file larger than the set maximum is uploaded
@@ -299,6 +300,7 @@ func createNewMetaData(hash string, fileHeader chunking.FileHeader, userId int, 
 		Size:               helper.ByteCountSI(fileHeader.Size),
 		SizeBytes:          fileHeader.Size,
 		ContentType:        fileHeader.ContentType,
+		UploadTime:         uploadRequest.UploadTime,
 		ExpireAt:           uploadRequest.ExpiryTimestamp,
 		ExpireAtString:     FormatTimestamp(uploadRequest.ExpiryTimestamp),
 		DownloadsRemaining: uploadRequest.AllowedDownloads,

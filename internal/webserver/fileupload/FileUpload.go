@@ -1,16 +1,17 @@
 package fileupload
 
 import (
+	"io"
+	"net/http"
+	"strconv"
+	"time"
+
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/logging"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
 	"github.com/forceu/gokapi/internal/storage/chunking"
-	"io"
-	"net/http"
-	"strconv"
-	"time"
 )
 
 // ProcessCompleteFile processes a file upload request
@@ -99,6 +100,7 @@ func CreateUploadConfig(allowedDownloads, expiryDays int, password string, unlim
 	return models.UploadRequest{
 		AllowedDownloads:    allowedDownloads,
 		Expiry:              expiryDays,
+		UploadTime:          time.Now().Unix(),
 		ExpiryTimestamp:     time.Now().Add(time.Duration(expiryDays) * time.Hour * 24).Unix(),
 		Password:            password,
 		ExternalUrl:         settings.ServerUrl,

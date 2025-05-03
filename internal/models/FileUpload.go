@@ -11,6 +11,7 @@ type UploadRequest struct {
 	UnlimitedDownload   bool
 	UnlimitedTime       bool
 	IsEndToEndEncrypted bool
+	UploadTime          int64
 	ExpiryTimestamp     int64
 	RealSize            int64
 }
