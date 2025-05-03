@@ -193,31 +193,31 @@ function sendChunkComplete(file, done) {
     let password = document.getElementById("password").value;
     let isE2E = file.isEndToEndEncrypted === true;
     let nonblocking = true;
-    
+
     if (!document.getElementById("enableDownloadLimit").checked) {
-    	allowedDownloads = 0;
+        allowedDownloads = 0;
     }
     if (!document.getElementById("enableTimeLimit").checked) {
-    	expiryDays = 0;
+        expiryDays = 0;
     }
-    
+
     if (isE2E) {
-            filesize = file.sizeEncrypted;
-	    filename = "Encrypted File";
-	    contenttype = "";
+        filesize = file.sizeEncrypted;
+        filename = "Encrypted File";
+        contenttype = "";
     }
-    
-     apiChunkComplete(uuid, filename, filesize, realsize, contenttype, allowedDownloads, expiryDays, password, isE2E, nonblocking)
-            .then(data => {
-               done();
-                let progressText = document.getElementById(`us-progress-info-${file.upload.uuid}`);
-                if (progressText != null)
-                    progressText.innerText = "In Queue...";
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                dropzoneUploadError(file, error);
-            });
+
+    apiChunkComplete(uuid, filename, filesize, realsize, contenttype, allowedDownloads, expiryDays, password, isE2E, nonblocking)
+        .then(data => {
+            done();
+            let progressText = document.getElementById(`us-progress-info-${file.upload.uuid}`);
+            if (progressText != null)
+                progressText.innerText = "In Queue...";
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            dropzoneUploadError(file, error);
+        });
 }
 
 function dropzoneUploadError(file, errormessage) {
@@ -418,7 +418,7 @@ function showEditModal(filename, id, downloads, expiry, password, unlimitedown, 
         let myClone = originalModal.clone();
         $('body').append(myClone);
     });
-    
+
     document.getElementById("m_filenamelabel").innerHTML = filename;
     document.getElementById("mc_expiry").setAttribute("data-timestamp", expiry);
     document.getElementById("mb_save").setAttribute('data-fileid', id);
@@ -513,12 +513,10 @@ function getAllAvailableFiles() {
 
 
 function deleteFile(id) {
-
     document.getElementById("button-delete-" + id).disabled = true;
-
     apiFilesDelete(id)
         .then(data => {
-            location.reload();
+            changeRowCount(false, document.getElementById("row-" + id));
         })
         .catch(error => {
             alert("Unable to delete file: " + error);
@@ -716,13 +714,27 @@ function addRow(item) {
     cellUrl.classList.add('newItem');
     cellButtons.classList.add('newItem');
     cellFileSize.setAttribute('data-order', item.SizeBytes);
-    let datatable = $('#maintable').DataTable();
 
+    changeRowCount(true, row);
+    return item.Id;
+}
+
+function changeRowCount(add, row) {
+    let datatable = $('#maintable').DataTable();
     if (rowCount == -1) {
         rowCount = datatable.rows().count();
     }
-    rowCount = rowCount + 1;
-    datatable.row.add(row);
+    if (add) {
+        rowCount = rowCount + 1;
+        datatable.row.add(row);
+    } else {
+        rowCount = rowCount - 1;
+        row.classList.add("rowDeleting");
+        setTimeout(() => {
+            datatable.row(row).remove();
+            row.remove();
+        }, 290);
+    }
 
     let infoEmpty = document.getElementsByClassName("dataTables_empty")[0];
     if (typeof infoEmpty !== "undefined") {
@@ -730,8 +742,8 @@ function addRow(item) {
     } else {
         document.getElementsByClassName("dataTables_info")[0].innerText = "Files stored: " + rowCount;
     }
-    return item.Id;
 }
+
 
 function hideQrCode() {
     document.getElementById("qroverlay").style.display = "none";
