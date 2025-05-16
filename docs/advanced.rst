@@ -363,10 +363,12 @@ If you are using a Docker image, this has to be done by starting a container wit
 Customising
 ********************************
 
-By default, all files are included in the executable. If you want to change the layout (e.g. add your company logo or change the app name etc.), follow these steps:
+If you want to change the layout (e.g. add your company logo or add/disable certain features), follow these steps:
 
-1. Download the source code for the Gokapi version you are using. It is either attached to the specific release  `on Github <https://github.com/Forceu/Gokapi/releases>`_ or you can clone the repository and checkout the tag for the specific version.
-2. Copy either the folder ``static``, ``templates`` or both from the ``internal/webserver/web`` folder to the directory where the executable is located (if you are using Docker, mount the folders into the the ``/app/`` directory, e.g. ``/app/templates``).
-3. Make changes to the folders. ``static`` contains images, CSS files and JavaScript. ``templates`` contains the HTML code.
-4. Restart the server. If the folders exist, the server will use the local files instead of the embedded files.
-5. Optional: To embed the files permanently, copy the modified files back to the original folders and recompile with ``go generate ./...`` and then ``go build github.com/forceu/gokapi/cmd/gokapi``.
+1. Create a new folder named ``custom`` where your executable is. When using Docker, mount a new folder to ``/app/custom/``. Any file in this directory will be publicly available in the sub-URL ``/custom/``.
+2. To have custom CSS included, create a file in the folder named ``custom.css``. The CSS will be applied to all pages.
+3. To have custom JavaScript included, create the file ``public.js`` for all public pages and/or ``admin.js`` for all admin-related pages. Please note that the ``admin.js`` will be readable to all users.
+4. In order to prevent caching issues, you can version your files by creating the file ``version.txt`` with a version number.
+5. Restart the server. If the folders exist, the server will now add the local files.
+
+Optional: If you require further changes or want to embedded the changes permanently, you can clone the source code and then modify the templates in ``internal/webserver/web/templates``. Afterwards run ``make`` to build a new binary with these changes.

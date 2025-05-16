@@ -117,6 +117,7 @@ The following configuration can be set:
 -  **Use SSL** Generates a self-signed SSL certificate (which can be replaced with a valid one). Select this if you are not running Gokapi behind a reverse proxy. Please note: Gokapi needs to be restarted in order to renew a certificate.
 -  **Save IP** If set, the IP address of the client requesting a download will be saved to the log file. This might not be GDPR compliant.
 -  **Include filename in download URL** If set, all Gokapi URLs for file downloads will include the filename as well. Example: ``https:/gokapi.server/d/1234/File.pdf`` instead of ``https:/gokapi.server/d?id=1234``
+-  **Public Name** The name that is set in the title. You can for example use your company name
 -  **Webserver Port** Set the port that Gokapi can be accessed on
 -  **Public Facing URL** Enter the URL where users from an external network can use to reach Gokapi. The URL will be used for generating download links
 -  **Redirection URL**  By default Gokapi redirects to this URL instead of showing a generic page if no download link was passed
@@ -132,13 +133,13 @@ The following configuration can be set:
 Authentication
 """"""""""""""
 
-This menu guides you through the authentication setup, where you select how an admin user logs in (only user that can upload files). It is possible to disable authentication completely, but strongly discouraged.
+This menu guides you through the authentication setup, where you select how users log in. It is possible to disable authentication completely, but strongly discouraged.
 
 
 Username / Password 
 *********************
 
-The default authentication method. A single admin user will be generated that authenticates with a password
+The default authentication method. All users authenticate with a username and password. In the next step, you will be asked for the credentials for an admin account.
 
 
 OAuth2 OpenID Connect
@@ -147,49 +148,44 @@ OAuth2 OpenID Connect
 Setup interface
 ========================
 
-Use this to authenticate with an OIDC server, e.g. Google or an internal server like Authelia or Keycloak.
+Use this to authenticate with an OIDC server, e.g. Google or an internal server like Authelia or Keycloak. It is required that users have an email associated with their OIDC account.
 
-+--------------------+---------------------------------------------------------------------------------------------------+-----------------------------------------+
-| Option             | Expected Entry                                                                                    | Example                                 |
-+====================+===================================================================================================+=========================================+
-| Provider URL       | The URL to connect to the OIDC server                                                             | https://accounts.google.com             |
-+--------------------+---------------------------------------------------------------------------------------------------+-----------------------------------------+
-| Client ID          | Client ID provided by the OIDC server                                                             | [random String]                         |
-+--------------------+---------------------------------------------------------------------------------------------------+-----------------------------------------+
-| Client Secret      | Client secret provided by the OIDC server                                                         | [random String]                         |
-+--------------------+---------------------------------------------------------------------------------------------------+-----------------------------------------+
-| Recheck identity   | How often to recheck identity.                                                                    | 12 hours                                |
-|                    |                                                                                                   |                                         |
-|                    | If the OIDC server is configured to remember the consent, the user should not receive any further |                                         |
-|                    |                                                                                                   |                                         |
-|                    | login prompts and it can be ensured, that the user still exist on the server.                     |                                         |
-|                    |                                                                                                   |                                         |
-|                    | Otherwise the user has actively grant access every time the identity is rechecked. In that case   |                                         |
-|                    |                                                                                                   |                                         |
-|                    | a higher interval would make sense.                                                               |                                         |
-+--------------------+---------------------------------------------------------------------------------------------------+-----------------------------------------+
-| Restrict to users  | Only allow authorised users to access Gokapi that are listed below                                | true                                    |
-+--------------------+---------------------------------------------------------------------------------------------------+-----------------------------------------+
-| Scope for users    | The OIDC scope that contains the user info                                                        | email                                   |
-+--------------------+---------------------------------------------------------------------------------------------------+-----------------------------------------+
-| Authorised users   | List of users that are authorised to log in as an admin, separated by semicolon.                  | \*\@company.com;admin\@othercompany.com |
-|                    |                                                                                                   |                                         |
-|                    | ``*`` can be used as a wildcard                                                                   |                                         |
-+--------------------+---------------------------------------------------------------------------------------------------+-----------------------------------------+
-| Restrict to groups | Only allow users that are part of authorised groups to access Gokapi                              | true                                    |
-+--------------------+---------------------------------------------------------------------------------------------------+-----------------------------------------+
-| Scope for groups   | The OIDC scope that contains the group info                                                       | groups                                  |
-+--------------------+---------------------------------------------------------------------------------------------------+-----------------------------------------+
-| Authorised groups  | List of groups that are authorised to log their users in as an admin, separated by semicolon.     | admin;dev;gokapi-\*                     |
-|                    |                                                                                                   |                                         |
-|                    | ``*`` can be used as a wildcard                                                                   |                                         |
-+--------------------+---------------------------------------------------------------------------------------------------+-----------------------------------------+
++---------------------+---------------------------------------------------------------------------------------------------+-----------------------------------------+
+| Option              | Expected Entry                                                                                    | Example                                 |
++=====================+===================================================================================================+=========================================+
+| Provider URL        | The URL to connect to the OIDC server                                                             | https://accounts.google.com             |
++---------------------+---------------------------------------------------------------------------------------------------+-----------------------------------------+
+| Client ID           | Client ID provided by the OIDC server                                                             | [random String]                         |
++---------------------+---------------------------------------------------------------------------------------------------+-----------------------------------------+
+| Client Secret       | Client secret provided by the OIDC server                                                         | [random String]                         |
++---------------------+---------------------------------------------------------------------------------------------------+-----------------------------------------+
+| Admin email         | The email address used to identify the super-admin                                                | gokapi@company.com                      |
++---------------------+---------------------------------------------------------------------------------------------------+-----------------------------------------+
+| Recheck identity    | How often to recheck identity.                                                                    | 12 hours                                |
+|                     |                                                                                                   |                                         |
+|                     | If the OIDC server is configured to remember the consent, the user should not receive any further |                                         |
+|                     |                                                                                                   |                                         |
+|                     | login prompts and it can be ensured, that the user still exist on the server.                     |                                         |
+|                     |                                                                                                   |                                         |
+|                     | Otherwise the user has actively grant access every time the identity is rechecked. In that case   |                                         |
+|                     |                                                                                                   |                                         |
+|                     | a higher interval would make sense.                                                               |                                         |
++---------------------+---------------------------------------------------------------------------------------------------+-----------------------------------------+
+| Restrict to groups  | Only allow users that are part of authorised groups to access Gokapi                              | true                                    |
++---------------------+---------------------------------------------------------------------------------------------------+-----------------------------------------+
+| Scope for groups    | The OIDC scope that contains the group info                                                       | groups                                  |
++---------------------+---------------------------------------------------------------------------------------------------+-----------------------------------------+
+| Only existing users | When selected, a new user will not be created automatically                                       | checked                                 |
++---------------------+---------------------------------------------------------------------------------------------------+-----------------------------------------+
+| Authorised groups   | List of groups that are authorised to log their users in as an admin, separated by semicolon.     | admin;dev;gokapi-\*                     |
+|                     |                                                                                                   |                                         |
+|                     | ``*`` can be used as a wildcard                                                                   |                                         |
++---------------------+---------------------------------------------------------------------------------------------------+-----------------------------------------+
+
 
 .. note::
-   If login is restricted to users and groups, both need to be present for a user to access. That means if a user has only one of the two factors, access to the admin menu will be denied.
-
-.. note::
-   A user will be authenticated until the time specified in ``Recheck identity`` has passed. To log out all users immediately, re-run the setup with `--reconfigure`` and complete it. Thereafter all active session will be deleted. 
+   If a user was disabled in OIDC, the they will still be able to login to Gokapi until the time specified in ``Recheck identity`` has passed. To prevent the user from
+   logging in immediately, the respective Gokapi user account should be deleted through the UI.
    
    
 .. note::
@@ -217,7 +213,7 @@ Header Authentication
 Only use this if you are running Gokapi behind a reverse proxy that is capable of authenticating users, e.g. by using Authelia or Authentik. Keycloak does apparently not support this feature.
 
 Enter the key of the header that returns the username. For Authelia this would be ``Remote-User`` and for Authentik ``X-authentik-username``.
-Separate users with a semicolon or leave blank to allow any authenticated user, e.g. ``gokapiuser@gmail.com;companyadmin@gmail.com``
+Enter the username for the admin in the respective field. If ``Only allow already existing users to log in``, new users will not be able to use Gokapi until an account was created through the UI.
 
 
 Disabled / Access Restriction
@@ -245,7 +241,7 @@ This option disables Gokapis internal authentication completely, except for API 
 Storage
 """"""""""""""
 
-Here you can choose where uploaded files shall be stored. Use the option to always store image files to the local storage, if you want to use encryption for cloudstorage, but require hotlink support. 
+Here you can choose where uploaded files shall be stored. If you select cloud storage, you have the option to always store image files to the local storage. That way you can use encryption for cloudstorage, but also have hotlink support. 
 
 If using cloud storage, by default Gokapi creates a pre-signed download link for files to be downloaded (basically a URL that can only be used for a very short time). If your storage is not accessible from the internet or if you prefer to not expose any cloud storage URLs, you can choose to proxy the downloads. That way Gokapi downloads them and passes them to the user through the Gokapi service.
 

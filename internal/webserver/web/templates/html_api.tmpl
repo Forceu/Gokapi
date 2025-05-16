@@ -77,5 +77,10 @@
         var canReplaceFiles = {{.ActiveUser.HasPermissionManageApi }};
         var canManageUsers = {{.ActiveUser.HasPermissionManageApi }};
 </script>
+
+        
+{{ template "pagename" "ApiOverview"}}
+{{ template "customjs" .}}
+
 {{ template "footer" true }}
 {{ end }}

@@ -205,5 +205,7 @@
 	var systemKey = "{{.SystemKey}}";
 	var isInternalAuth = {{.IsInternalAuth}};
 </script>
+{{ template "pagename" "OverviewUsers"}}
+{{ template "customjs" .}}
 {{ template "footer" true }}
 {{ end }}
