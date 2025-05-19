@@ -63,14 +63,19 @@ var wasmDownloadFile embed.FS
 //go:embed web/e2e.wasm
 var wasmE2EFile embed.FS
 
-const timeOutWebserverRead = 12 * time.Hour
+const timeOutWebserverRead = 2 * time.Hour
 const timeOutWebserverWrite = 12 * time.Hour
 
-// Variable containing all parsed templates
+// templateFolder contains all parsed templates
 var templateFolder *template.Template
 
+// customStaticInfo is passed to all templates, so custom CSS or JS can be embedded
+var customStaticInfo customStatic
+
+// imageExpiredPicture is sent for an expired hotlink
 var imageExpiredPicture []byte
 
+// srv is the web server that is used for this module
 var srv http.Server
 
 // Start the webserver on the port set in the config
@@ -80,15 +85,10 @@ func Start() {
 	var err error
 
 	mux := http.NewServeMux()
-
-	if helper.FolderExists("static") {
-		fmt.Println("Found folder 'static', using local folder instead of internal static folder")
-		mux.Handle("/", http.FileServer(http.Dir("static")))
-	} else {
-		mux.Handle("/", http.FileServer(http.FS(webserverDir)))
-	}
+	loadCustomCssJsInfo()
 	loadExpiryImage()
 
+	mux.Handle("/", http.FileServer(http.FS(webserverDir)))
 	mux.HandleFunc("/admin", requireLogin(showAdminMenu, true, false))
 	mux.HandleFunc("/api/", processApi)
 	mux.HandleFunc("/apiKeys", requireLogin(showApiAdmin, true, false))
@@ -113,9 +113,10 @@ func Start() {
 	mux.HandleFunc("/users", requireLogin(showUserAdmin, true, false))
 	mux.Handle("/main.wasm", gziphandler.GzipHandler(http.HandlerFunc(serveDownloadWasm)))
 	mux.Handle("/e2e.wasm", gziphandler.GzipHandler(http.HandlerFunc(serveE2EWasm)))
-
 	mux.HandleFunc("/d/{id}/{filename}", redirectFromFilename)
 	mux.HandleFunc("/dh/{id}/{filename}", downloadFileWithNameInUrl)
+
+	addMuxForCustomContent(mux)
 
 	if configuration.Get().Authentication.Method == models.AuthenticationOAuth2 {
 		oauth.Init(configuration.Get().ServerUrl, configuration.Get().Authentication)
@@ -255,7 +256,9 @@ func doLogout(w http.ResponseWriter, r *http.Request) {
 
 // Handling of /index and redirecting to globalConfig.RedirectUrl
 func showIndex(w http.ResponseWriter, r *http.Request) {
-	err := templateFolder.ExecuteTemplate(w, "index", genericView{RedirectUrl: configuration.Get().RedirectUrl, PublicName: configuration.Get().PublicName})
+	err := templateFolder.ExecuteTemplate(w, "index", genericView{RedirectUrl: configuration.Get().RedirectUrl,
+		PublicName:    configuration.Get().PublicName,
+		CustomContent: customStaticInfo})
 	helper.CheckIgnoreTimeout(err)
 }
 
@@ -292,7 +295,8 @@ func changePassword(w http.ResponseWriter, r *http.Request) {
 	err = templateFolder.ExecuteTemplate(w, "changepw",
 		genericView{PublicName: configuration.Get().PublicName,
 			MinPasswordLength: configuration.MinLengthPassword,
-			ErrorMessage:      errMessage})
+			ErrorMessage:      errMessage,
+			CustomContent:     customStaticInfo})
 	helper.CheckIgnoreTimeout(err)
 }
 
@@ -323,25 +327,33 @@ func showError(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Query().Has("key") {
 		errorReason = wrongCipher
 	}
-	err := templateFolder.ExecuteTemplate(w, "error", genericView{ErrorId: errorReason, PublicName: configuration.Get().PublicName})
+	err := templateFolder.ExecuteTemplate(w, "error", genericView{
+		ErrorId:       errorReason,
+		PublicName:    configuration.Get().PublicName,
+		CustomContent: customStaticInfo})
 	helper.CheckIgnoreTimeout(err)
 }
 
 // Handling of /error-auth
 func showErrorAuth(w http.ResponseWriter, r *http.Request) {
-	err := templateFolder.ExecuteTemplate(w, "error_auth", genericView{PublicName: configuration.Get().PublicName})
+	err := templateFolder.ExecuteTemplate(w, "error_auth", genericView{
+		PublicName:    configuration.Get().PublicName,
+		CustomContent: customStaticInfo})
 	helper.CheckIgnoreTimeout(err)
 }
 
 // Handling of /error-header
 func showErrorHeader(w http.ResponseWriter, r *http.Request) {
-	err := templateFolder.ExecuteTemplate(w, "error_auth_header", genericView{PublicName: configuration.Get().PublicName})
+	err := templateFolder.ExecuteTemplate(w, "error_auth_header", genericView{
+		PublicName:    configuration.Get().PublicName,
+		CustomContent: customStaticInfo})
 	helper.CheckIgnoreTimeout(err)
 }
 
 // Handling of /error-oauth
 func showErrorIntOAuth(w http.ResponseWriter, r *http.Request) {
-	view := oauthErrorView{PublicName: configuration.Get().PublicName}
+	view := oauthErrorView{PublicName: configuration.Get().PublicName,
+		CustomContent: customStaticInfo}
 	view.IsAuthDenied = r.URL.Query().Get("isDenied") == "true"
 	view.ErrorProvidedName = r.URL.Query().Get("error")
 	view.ErrorProvidedMessage = r.URL.Query().Get("error_description")
@@ -352,7 +364,9 @@ func showErrorIntOAuth(w http.ResponseWriter, r *http.Request) {
 
 // Handling of /forgotpw
 func forgotPassword(w http.ResponseWriter, r *http.Request) {
-	err := templateFolder.ExecuteTemplate(w, "forgotpw", genericView{PublicName: configuration.Get().PublicName})
+	err := templateFolder.ExecuteTemplate(w, "forgotpw", genericView{
+		PublicName:    configuration.Get().PublicName,
+		CustomContent: customStaticInfo})
 	helper.CheckIgnoreTimeout(err)
 }
 
@@ -363,7 +377,7 @@ func showApiAdmin(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		panic(err)
 	}
-	view := (&UploadView{}).convertGlobalConfig(ViewAPI, userId)
+	view := (&AdminView{}).convertGlobalConfig(ViewAPI, userId)
 	err = templateFolder.ExecuteTemplate(w, "api", view)
 	helper.CheckIgnoreTimeout(err)
 }
@@ -375,7 +389,7 @@ func showUserAdmin(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		panic(err)
 	}
-	view := (&UploadView{}).convertGlobalConfig(ViewUsers, userId)
+	view := (&AdminView{}).convertGlobalConfig(ViewUsers, userId)
 	if !view.ActiveUser.HasPermissionManageUsers() || configuration.Get().Authentication.Method == models.AuthenticationDisabled {
 		redirect(w, "admin")
 		return
@@ -437,6 +451,7 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 		User:          user,
 		IsAdminView:   false,
 		PublicName:    configuration.Get().PublicName,
+		CustomContent: customStaticInfo,
 	})
 	helper.CheckIgnoreTimeout(err)
 }
@@ -448,6 +463,7 @@ type LoginView struct {
 	IsDownloadView bool
 	User           string
 	PublicName     string
+	CustomContent  customStatic
 }
 
 // Handling of /d
@@ -474,6 +490,7 @@ func showDownload(w http.ResponseWriter, r *http.Request) {
 		BaseUrl:            config.ServerUrl,
 		IsFailedLogin:      false,
 		UsesHttps:          configuration.UsesHttps(),
+		CustomContent:      customStaticInfo,
 	}
 
 	if file.RequiresClientDecryption() {
@@ -600,7 +617,6 @@ func queryUrl(w http.ResponseWriter, r *http.Request, redirectUrl string) string
 // Handling of /admin
 // If user is authenticated, this menu lists all uploads and enables uploading new files
 func showAdminMenu(w http.ResponseWriter, r *http.Request) {
-
 	user, err := authentication.GetUserFromRequest(r)
 	if err != nil {
 		panic(err)
@@ -613,7 +629,7 @@ func showAdminMenu(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	err = templateFolder.ExecuteTemplate(w, "admin", (&UploadView{}).convertGlobalConfig(ViewMain, user))
+	err = templateFolder.ExecuteTemplate(w, "admin", (&AdminView{}).convertGlobalConfig(ViewMain, user))
 	helper.CheckIgnoreTimeout(err)
 }
 
@@ -624,7 +640,7 @@ func showLogs(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		panic(err)
 	}
-	view := (&UploadView{}).convertGlobalConfig(ViewLogs, user)
+	view := (&AdminView{}).convertGlobalConfig(ViewLogs, user)
 	if !view.ActiveUser.HasPermissionManageLogs() {
 		redirect(w, "admin")
 		return
@@ -644,7 +660,10 @@ func showE2ESetup(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 	e2einfo := database.GetEnd2EndInfo(user.Id)
-	err = templateFolder.ExecuteTemplate(w, "e2esetup", e2ESetupView{HasBeenSetup: e2einfo.HasBeenSetUp(), PublicName: configuration.Get().PublicName})
+	err = templateFolder.ExecuteTemplate(w, "e2esetup", e2ESetupView{
+		HasBeenSetup:  e2einfo.HasBeenSetUp(),
+		PublicName:    configuration.Get().PublicName,
+		CustomContent: customStaticInfo})
 	helper.CheckIgnoreTimeout(err)
 }
 
@@ -663,6 +682,7 @@ type DownloadView struct {
 	ClientSideDecryption bool
 	EndToEndEncryption   bool
 	UsesHttps            bool
+	CustomContent        customStatic
 }
 
 type e2ESetupView struct {
@@ -670,10 +690,11 @@ type e2ESetupView struct {
 	IsDownloadView bool
 	HasBeenSetup   bool
 	PublicName     string
+	CustomContent  customStatic
 }
 
-// UploadView contains parameters for the admin menu template
-type UploadView struct {
+// AdminView contains parameters for all admin related pages
+type AdminView struct {
 	Items              []models.FileApiOutput
 	ApiKeys            []models.ApiKey
 	Users              []userInfo
@@ -696,6 +717,7 @@ type UploadView struct {
 	ChunkSize          int
 	MaxParallelUploads int
 	TimeNow            int64
+	CustomContent      customStatic
 }
 
 // getUserMap needs to return the map with pointers, otherwise template cannot call
@@ -720,9 +742,9 @@ const (
 	ViewUsers
 )
 
-// Converts the globalConfig variable to an UploadView struct to pass the infos to
+// Converts the globalConfig variable to an AdminView struct to pass the infos to
 // the admin template
-func (u *UploadView) convertGlobalConfig(view int, user models.User) *UploadView {
+func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 	var result []models.FileApiOutput
 	var resultApi []models.ApiKey
 
@@ -730,6 +752,7 @@ func (u *UploadView) convertGlobalConfig(view int, user models.User) *UploadView
 	u.IsInternalAuth = config.Authentication.Method == models.AuthenticationInternal
 	u.ActiveUser = user
 	u.UserMap = getUserMap()
+	u.CustomContent = customStaticInfo
 	switch view {
 	case ViewMain:
 		for _, element := range database.GetAllMetadata() {
@@ -946,6 +969,7 @@ type genericView struct {
 	ErrorMessage      string
 	ErrorId           int
 	MinPasswordLength int
+	CustomContent     customStatic
 }
 
 // A view containing parameters for an oauth error
@@ -957,4 +981,5 @@ type oauthErrorView struct {
 	ErrorGenericMessage  string
 	ErrorProvidedName    string
 	ErrorProvidedMessage string
+	CustomContent        customStatic
 }

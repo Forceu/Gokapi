@@ -24,7 +24,7 @@ Nginx  Configuration
 		ssl_certificate /your/certificate/fullchain.pem;
 		ssl_certificate_key /your/certificate/privkey.pem;
 
-		client_max_body_size 500M;
+		client_max_body_size 200M;
 		client_body_buffer_size 128k;
 
 		server_name your.server.url;
@@ -123,46 +123,40 @@ See the `Authelia documentation <https://www.authelia.com/configuration/identity
 
 * Set ``authorization_policy`` to ``two_factor`` to use OTP or a hardware key.
 * If ``consent_mode`` is ``pre-configured``, the user has the option to remember consent. That way you can use a lower ``Recheck identity`` interval in Gokapi. Logout through the Gokapi interface will not be possible anymore, unless the user logs out their Authelia account. If the option is set to  ``explicit``, the user always has to grant the permission after the ``Recheck identity`` interval has passed
-* ``scopes`` may exclude ``email`` and ``groups`` if these are not required for authentication, e.g. if all users registered with Authelia may access Gokapi.
+* ``scopes`` may exclude ``groups`` if these are not required for authentication, e.g. if all users registered with Authelia may access Gokapi.
 * Make sure ``redirect_uris`` is set to the correct value
 
 
 Gokapi Configuration
 """"""""""""""""""""""
 
-+--------------------------+-----------------------------------------------------------+-----------------------------------------+
-| Gokapi Configuration     | Input                                                     | Example                                 |
-+==========================+===========================================================+=========================================+
-| Provider URL             | URL to Authelia Server                                    | \https://auth.autheliaserver.com        |
-+--------------------------+-----------------------------------------------------------+-----------------------------------------+
-| Client ID                | Client ID provided in config                              | gokapi-dev                              |
-+--------------------------+-----------------------------------------------------------+-----------------------------------------+
-| Client Secret            | Client secret provided in config                          | AhXeV7_EXAMPLE_KEY                      |
-+--------------------------+-----------------------------------------------------------+-----------------------------------------+
-| Recheck identity         | If mode is ``pre-configured``, use a low interval         | 12 hours                                |
-+--------------------------+-----------------------------------------------------------+-----------------------------------------+
-| Restrict to user         | Check this, if only certain users shall be allowed to     | checked                                 |
-|                          |                                                           |                                         |
-|                          | access Gokapi admin menu                                  |                                         |
-+--------------------------+-----------------------------------------------------------+-----------------------------------------+
-| Scope identifier (user)  | Use a scope that is unique to the user, e.g. the username | email                                   |
-|                          |                                                           |                                         |
-|                          | or the email                                              |                                         |
-+--------------------------+-----------------------------------------------------------+-----------------------------------------+
-| Authorised users         | Enter all users, separated by semicolon                   | \*\@company.com;admin\@othercompany.com |
-|                          |                                                           |                                         |
-|                          | ``*`` can be used as a wildcard                           |                                         |
-+--------------------------+-----------------------------------------------------------+-----------------------------------------+
-| Restrict to group        | Check this, if only users from certain groups shall be    | checked                                 |
-|                          |                                                           |                                         |
-|                          | allowed to access Gokapi admin menu                       |                                         |
-+--------------------------+-----------------------------------------------------------+-----------------------------------------+
-| Scope identifier (group) | Use a scope that lists the user's groups                  | groups                                  |
-+--------------------------+-----------------------------------------------------------+-----------------------------------------+
-| Authorised groups        | Enter all groups, separated by semicolon                  | dev;admins;gokapi-*                     |
-|                          |                                                           |                                         |
-|                          | ``*`` can be used as a wildcard                           |                                         |
-+--------------------------+-----------------------------------------------------------+-----------------------------------------+
++---------------------------+-------------------------------------------------------------+-----------------------------------------+
+| Gokapi Configuration      | Input                                                       | Example                                 |
++===========================+=============================================================+=========================================+
+| Provider URL              | URL to Authelia Server                                      | \https://auth.autheliaserver.com        |
++---------------------------+-------------------------------------------------------------+-----------------------------------------+
+| Client ID                 | Client ID provided in config                                | gokapi-dev                              |
++---------------------------+-------------------------------------------------------------+-----------------------------------------+
+| Client Secret             | Client secret provided in config                            | AhXeV7_EXAMPLE_KEY                      |
++---------------------------+-------------------------------------------------------------+-----------------------------------------+
+| Admin email address       | The email address for the super-admin                       | gokapi@example.com                      |
++---------------------------+-------------------------------------------------------------+-----------------------------------------+
+| Recheck identity          | If mode is ``pre-configured``, use a low interval           | 12 hours                                |
++---------------------------+-------------------------------------------------------------+-----------------------------------------+
+| Restrict to group         | Check this, if only users from certain groups shall be      | checked                                 |
+|                           |                                                             |                                         |
+|                           | allowed to access Gokapi admin menu                         |                                         |
++---------------------------+-------------------------------------------------------------+-----------------------------------------+
+| Scope identifier (group)  | Use a scope that lists the user's groups                    | groups                                  |
++---------------------------+-------------------------------------------------------------+-----------------------------------------+
+| Authorised groups         | Enter all groups, separated by semicolon                    | dev;admins;gokapi-*                     |
+|                           |                                                             |                                         |
+|                           | ``*`` can be used as a wildcard                             |                                         |
++---------------------------+-------------------------------------------------------------+-----------------------------------------+
+| Only allow existing users | Check this, if you do not want authenticated users to       | unchecked                               |
+|                           |                                                             |                                         |
+|                           | automatically create a new account or restore a deleted one |                                         |
++---------------------------+-------------------------------------------------------------+-----------------------------------------+
 
 
 .. _oidcconfig_keycloak:
@@ -230,39 +224,33 @@ Addding a scope for exposing groups (optional)
 Gokapi Configuration
 """"""""""""""""""""""
 
-+--------------------------+-----------------------------------------------------------------------+--------------------------------------------+
-| Gokapi Configuration     | Input                                                                 | Example                                    |
-+==========================+=======================================================================+============================================+
-| Provider URL             | URL to Keycloak realm                                                 | \http://keycloak.server.com/realms/master  |
-+--------------------------+-----------------------------------------------------------------------+--------------------------------------------+
-| Client ID                | Client ID provided                                                    | gokapi-dev                                 |
-+--------------------------+-----------------------------------------------------------------------+--------------------------------------------+
-| Client Secret            | Client secret provided                                                | AhXeV7_EXAMPLE_KEY                         |
-+--------------------------+-----------------------------------------------------------------------+--------------------------------------------+
-| Recheck identity         | If open ``Consent required`` is disabled, use a low interval          | 12 hours                                   |
-+--------------------------+-----------------------------------------------------------------------+--------------------------------------------+
-| Restrict to user         | Check this, if only certain users shall be allowed to                 | checked                                    |
-|                          |                                                                       |                                            |
-|                          | access Gokapi admin menu                                              |                                            |
-+--------------------------+-----------------------------------------------------------------------+--------------------------------------------+
-| Scope identifier (user)  | Use a scope that is unique to the user, e.g. the username             | email                                      |
-|                          |                                                                       |                                            |
-|                          | or the email                                                          |                                            |
-+--------------------------+-----------------------------------------------------------------------+--------------------------------------------+
-| Authorised users         | Enter all users, separated by semicolon                               | \*\@company.com;admin\@othercompany.com    |
-|                          |                                                                       |                                            |
-|                          | ``*`` can be used as a wildcard                                       |                                            |
-+--------------------------+-----------------------------------------------------------------------+--------------------------------------------+
-| Restrict to group        | Check this, if only users from certain groups shall be                | checked                                    |
-|                          |                                                                       |                                            |
-|                          | allowed to access Gokapi admin menu                                   |                                            |
-+--------------------------+-----------------------------------------------------------------------+--------------------------------------------+
-| Scope identifier (group) | Use a scope that lists the user's groups                              | groups                                     |
-+--------------------------+-----------------------------------------------------------------------+--------------------------------------------+
-| Authorised groups        | Enter all groups, separated by semicolon                              | dev;admins;gokapi-*                        |
-|                          |                                                                       |                                            |
-|                          | ``*`` can be used as a wildcard                                       |                                            |
-+--------------------------+-----------------------------------------------------------------------+--------------------------------------------+
++---------------------------+-----------------------------------------------------------------------+--------------------------------------------+
+| Gokapi Configuration      | Input                                                                 | Example                                    |
++===========================+=======================================================================+============================================+
+| Provider URL              | URL to Keycloak realm                                                 | \http://keycloak.server.com/realms/master  |
++---------------------------+-----------------------------------------------------------------------+--------------------------------------------+
+| Client ID                 | Client ID provided                                                    | gokapi-dev                                 |
++---------------------------+-----------------------------------------------------------------------+--------------------------------------------+
+| Client Secret             | Client secret provided                                                | AhXeV7_EXAMPLE_KEY                         |
++---------------------------+-----------------------------------------------------------------------+--------------------------------------------+
+| Recheck identity          | If open ``Consent required`` is disabled, use a low interval          | 12 hours                                   |
++---------------------------+-----------------------------------------------------------------------+--------------------------------------------+
+| Admin email address       | The email address for the super-admin                                 | gokapi@example.com                         |
++---------------------------+-----------------------------------------------------------------------+--------------------------------------------+
+| Restrict to group         | Check this, if only users from certain groups shall be                | checked                                    |
+|                           |                                                                       |                                            |
+|                           | allowed to access Gokapi admin menu                                   |                                            |
++---------------------------+-----------------------------------------------------------------------+--------------------------------------------+
+| Scope identifier (group)  | Use a scope that lists the user's groups                              | groups                                     |
++---------------------------+-----------------------------------------------------------------------+--------------------------------------------+
+| Authorised groups         | Enter all groups, separated by semicolon                              | dev;admins;gokapi-*                        |
+|                           |                                                                       |                                            |
+|                           | ``*`` can be used as a wildcard                                       |                                            |
++---------------------------+-----------------------------------------------------------------------+--------------------------------------------+
+| Only allow existing users | Check this, if you do not want authenticated users to                 | unchecked                                  |
+|                           |                                                                       |                                            |
+|                           | automatically create a new account or restore a deleted one           |                                            |
++---------------------------+-----------------------------------------------------------------------+--------------------------------------------+
 
 
 .. note::
@@ -293,28 +281,25 @@ Server Configuration
 Gokapi Configuration
 """"""""""""""""""""""
 
-+-------------------------+--------------------------------------------------+----------------------------------+
-| Gokapi Configuration    | Input                                            | Example                          |
-+=========================+==================================================+==================================+
-| Provider URL            | \https://accounts.google.com                     | \https://accounts.google.com     |
-+-------------------------+--------------------------------------------------+----------------------------------+
-| Client ID               | Client ID provided                               | XXX.apps.googleusercontent.com   |
-+-------------------------+--------------------------------------------------+----------------------------------+
-| Client Secret           | Client secret provided                           | AhXeV7_EXAMPLE_KEY               |
-+-------------------------+--------------------------------------------------+----------------------------------+
-| Recheck identity        | Use a low interval                               | 12 hours                         |
-+-------------------------+--------------------------------------------------+----------------------------------+
-| Restrict to user        | Check this, otherwise any Google user can access | checked                          |
-|                         |                                                  |                                  |
-|                         |                                                  |                                  |
-|                         | your Gokapi admin menu                           |                                  |
-+-------------------------+--------------------------------------------------+----------------------------------+
-| Scope identifier (user) | email                                            | email                            |
-+-------------------------+--------------------------------------------------+----------------------------------+
-| Authorised users        | Enter all users, separated by semicolon          | user\@gmail.com;admin\@gmail.com |
-+-------------------------+--------------------------------------------------+----------------------------------+
-| Restrict to group       | Unsupported                                      | unchecked                        |
-+-------------------------+--------------------------------------------------+----------------------------------+
++---------------------------+-------------------------------------------------------------+----------------------------------+
+| Gokapi Configuration      | Input                                                       | Example                          |
++===========================+=============================================================+==================================+
+| Provider URL              | \https://accounts.google.com                                | \https://accounts.google.com     |
++---------------------------+-------------------------------------------------------------+----------------------------------+
+| Client ID                 | Client ID provided                                          | XXX.apps.googleusercontent.com   |
++---------------------------+-------------------------------------------------------------+----------------------------------+
+| Client Secret             | Client secret provided                                      | AhXeV7_EXAMPLE_KEY               |
++---------------------------+-------------------------------------------------------------+----------------------------------+
+| Recheck identity          | Use a low interval                                          | 12 hours                         |
++---------------------------+-------------------------------------------------------------+----------------------------------+
+| Admin email address       | The email address for the super-admin                       | gokapi@example.com               |
++---------------------------+-------------------------------------------------------------+----------------------------------+
+| Restrict to group         | Unsupported                                                 | unchecked                        |
++---------------------------+-------------------------------------------------------------+----------------------------------+
+| Only allow existing users | Check this, if you do not want authenticated users to       | unchecked                        |
+|                           |                                                             |                                  |
+|                           | automatically create a new account or restore a deleted one |                                  |
++---------------------------+-------------------------------------------------------------+----------------------------------+
 
 
 
@@ -359,18 +344,22 @@ Optional: Restricting Gokapi to specific users or groups:
 Gokapi Configuration
 """"""""""""""""""""""
 
-+----------------------+-------------------------------------------------------------------+-----------------------------------------------------------------------------+
-| Gokapi Configuration | Input                                                             | Example                                                                     |
-+======================+===================================================================+=============================================================================+
-| Provider URL         | \https://login.microsoftonline.com/REALM/v2.0/, replace ``REALM`` | \https://login.microsoftonline.com/abcdef-1234-4678-9540-abcdefabcdef/v2.0/ |
-+----------------------+-------------------------------------------------------------------+-----------------------------------------------------------------------------+
-| Client ID            | Client ID provided                                                | 11111122222-4444-55555-66666-abcdefabcdef                                   |
-+----------------------+-------------------------------------------------------------------+-----------------------------------------------------------------------------+
-| Client Secret        | Client secret provided                                            | ach5sho3Ru-Heop7aMaez-example                                               |
-+----------------------+-------------------------------------------------------------------+-----------------------------------------------------------------------------+
-| Recheck identity     | Use a low interval                                                | 12 hours                                                                    |
-+----------------------+-------------------------------------------------------------------+-----------------------------------------------------------------------------+
-| Restrict to user     | Unsupported                                                       | unchecked                                                                   |
-+----------------------+-------------------------------------------------------------------+-----------------------------------------------------------------------------+
-| Restrict to group    | Unsupported                                                       | unchecked                                                                   |
-+----------------------+-------------------------------------------------------------------+-----------------------------------------------------------------------------+
++---------------------------+-------------------------------------------------------------------+-----------------------------------------------------------------------------+
+| Gokapi Configuration      | Input                                                             | Example                                                                     |
++===========================+===================================================================+=============================================================================+
+| Provider URL              | \https://login.microsoftonline.com/REALM/v2.0/, replace ``REALM`` | \https://login.microsoftonline.com/abcdef-1234-4678-9540-abcdefabcdef/v2.0/ |
++---------------------------+-------------------------------------------------------------------+-----------------------------------------------------------------------------+
+| Client ID                 | Client ID provided                                                | 11111122222-4444-55555-66666-abcdefabcdef                                   |
++---------------------------+-------------------------------------------------------------------+-----------------------------------------------------------------------------+
+| Client Secret             | Client secret provided                                            | ach5sho3Ru-Heop7aMaez-example                                               |
++---------------------------+-------------------------------------------------------------------+-----------------------------------------------------------------------------+
+| Admin email address       | The email address for the super-admin                             | gokapi@example.com                                                          |
++---------------------------+-------------------------------------------------------------------+-----------------------------------------------------------------------------+
+| Recheck identity          | Use a low interval                                                | 12 hours                                                                    |
++---------------------------+-------------------------------------------------------------------+-----------------------------------------------------------------------------+
+| Restrict to group         | Unsupported                                                       | unchecked                                                                   |
++---------------------------+-------------------------------------------------------------------+-----------------------------------------------------------------------------+
+| Only allow existing users | Check this, if you do not want authenticated users to             | checked                                                                     |
+|                           |                                                                   |                                                                             |
+|                           | automatically create a new account or restore a deleted one       |                                                                             |
++---------------------------+-------------------------------------------------------------------+-----------------------------------------------------------------------------+

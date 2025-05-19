@@ -11,3 +11,4 @@ internal/webserver/web/e2e.wasm
 internal/webserver/web/static/js/wasm_exec.js
 internal/webserver/web/static/js/min/wasm_exec.min.js
 .vendor/
+custom/
