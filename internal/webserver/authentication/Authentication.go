@@ -171,17 +171,17 @@ func extractOauthGroups(userInfo OAuthUserClaims, groupScope string) ([]string, 
 		return nil, fmt.Errorf("claim %s was not passed on", groupScope)
 	}
 
-	// Convert the interface{} to a []string
-	if groupsInterface == nil {
-		return []string{}, nil
-	}
-	groupsCast, ok := groupsInterface.([]any)
-	if !ok {
-		return nil, fmt.Errorf("scope %s is not an array", groupScope)
-	}
+	// Handle both string and array cases
 	var groups []string
-	for _, group := range groupsCast {
-		groups = append(groups, group.(string))
+	switch v := groupsInterface.(type) {
+	case string:
+		groups = append(groups, v)
+	case []any:
+		for _, group := range v {
+			groups = append(groups, group.(string))
+		}
+	default:
+		return nil, fmt.Errorf("scope %s is not a valid type", groupScope)
 	}
 
 	return groups, nil
