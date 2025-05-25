@@ -27,6 +27,7 @@ type schemaMetaData struct {
 	UnlimitedDownloads int
 	UnlimitedTime      int
 	UserId             int
+	UploadDate         int64
 }
 
 func (rowData schemaMetaData) ToFileModel() (models.File, error) {
@@ -48,6 +49,7 @@ func (rowData schemaMetaData) ToFileModel() (models.File, error) {
 		UnlimitedDownloads: rowData.UnlimitedDownloads == 1,
 		UnlimitedTime:      rowData.UnlimitedTime == 1,
 		UserId:             rowData.UserId,
+		UploadDate:         rowData.UploadDate,
 	}
 
 	buf := bytes.NewBuffer(rowData.Encryption)
@@ -67,7 +69,7 @@ func (p DatabaseProvider) GetAllMetadata() map[string]models.File {
 		err = rows.Scan(&rowData.Id, &rowData.Name, &rowData.Size, &rowData.SHA1, &rowData.ExpireAt, &rowData.SizeBytes,
 			&rowData.ExpireAtString, &rowData.DownloadsRemaining, &rowData.DownloadCount, &rowData.PasswordHash,
 			&rowData.HotlinkId, &rowData.ContentType, &rowData.AwsBucket, &rowData.Encryption,
-			&rowData.UnlimitedDownloads, &rowData.UnlimitedTime, &rowData.UserId)
+			&rowData.UnlimitedDownloads, &rowData.UnlimitedTime, &rowData.UserId, &rowData.UploadDate)
 		helper.Check(err)
 		var metaData models.File
 		metaData, err = rowData.ToFileModel()
@@ -101,7 +103,7 @@ func (p DatabaseProvider) GetMetaDataById(id string) (models.File, bool) {
 	err := row.Scan(&rowData.Id, &rowData.Name, &rowData.Size, &rowData.SHA1, &rowData.ExpireAt, &rowData.SizeBytes,
 		&rowData.ExpireAtString, &rowData.DownloadsRemaining, &rowData.DownloadCount, &rowData.PasswordHash,
 		&rowData.HotlinkId, &rowData.ContentType, &rowData.AwsBucket, &rowData.Encryption,
-		&rowData.UnlimitedDownloads, &rowData.UnlimitedTime, &rowData.UserId)
+		&rowData.UnlimitedDownloads, &rowData.UnlimitedTime, &rowData.UserId, &rowData.UploadDate)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return result, false
@@ -131,6 +133,7 @@ func (p DatabaseProvider) SaveMetaData(file models.File) {
 		ContentType:        file.ContentType,
 		AwsBucket:          file.AwsBucket,
 		UserId:             file.UserId,
+		UploadDate:         file.UploadDate,
 	}
 
 	if file.UnlimitedDownloads {
@@ -148,10 +151,10 @@ func (p DatabaseProvider) SaveMetaData(file models.File) {
 
 	_, err = p.sqliteDb.Exec(`INSERT OR REPLACE INTO FileMetaData (Id, Name, Size, SHA1, ExpireAt, SizeBytes, ExpireAtString, 
                                    DownloadsRemaining, DownloadCount, PasswordHash, HotlinkId, ContentType, AwsBucket, Encryption,
-                                   UnlimitedDownloads, UnlimitedTime, UserId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                                   UnlimitedDownloads, UnlimitedTime, UserId, UploadDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		newData.Id, newData.Name, newData.Size, newData.SHA1, newData.ExpireAt, newData.SizeBytes, newData.ExpireAtString,
 		newData.DownloadsRemaining, newData.DownloadCount, newData.PasswordHash, newData.HotlinkId, newData.ContentType,
-		newData.AwsBucket, newData.Encryption, newData.UnlimitedDownloads, newData.UnlimitedTime, newData.UserId)
+		newData.AwsBucket, newData.Encryption, newData.UnlimitedDownloads, newData.UnlimitedTime, newData.UserId, newData.UploadDate)
 	helper.Check(err)
 }
 

@@ -1047,6 +1047,12 @@
             "description": "The public hotlink URL for the file",
             "example": "https://gokapi.server/h/tDMs0U8MvRFwK69PfjagI7F87C13UVeQuOGDvtCG.jpg"
           },
+          "UploadDate": {
+            "type": "integer",
+            "description": "UTC timestamp of file upload",
+            "format": "int64",
+            "example": "1708175121"
+          },
           "ExpireAt": {
             "type": "integer",
             "description": "UTC timestamp of file expiry",

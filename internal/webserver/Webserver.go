@@ -745,8 +745,8 @@ const (
 // Converts the globalConfig variable to an AdminView struct to pass the infos to
 // the admin template
 func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
-	var result []models.FileApiOutput
-	var resultApi []models.ApiKey
+	var metaDataList []models.FileApiOutput
+	var apiKeyList []models.ApiKey
 
 	config := configuration.Get()
 	u.IsInternalAuth = config.Authentication.Method == models.AuthenticationInternal
@@ -761,14 +761,9 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 			}
 			fileInfo, err := element.ToFileApiOutput(config.ServerUrl, config.IncludeFilename)
 			helper.Check(err)
-			result = append(result, fileInfo)
+			metaDataList = append(metaDataList, fileInfo)
 		}
-		sort.Slice(result[:], func(i, j int) bool {
-			if result[i].ExpireAt == result[j].ExpireAt {
-				return result[i].Id > result[j].Id
-			}
-			return result[i].ExpireAt > result[j].ExpireAt
-		})
+		metaDataList = sortMetaData(metaDataList)
 	case ViewAPI:
 		for _, apiKey := range database.GetAllApiKeys() {
 			// Double-checking if user of API key exists
@@ -780,16 +775,11 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 			}
 			if !apiKey.IsSystemKey {
 				if apiKey.UserId == user.Id || user.HasPermissionManageApi() {
-					resultApi = append(resultApi, apiKey)
+					apiKeyList = append(apiKeyList, apiKey)
 				}
 			}
 		}
-		sort.Slice(resultApi[:], func(i, j int) bool {
-			if resultApi[i].LastUsed == resultApi[j].LastUsed {
-				return resultApi[i].Id < resultApi[j].Id
-			}
-			return resultApi[i].LastUsed > resultApi[j].LastUsed
-		})
+		apiKeyList = sortApiKeys(apiKeyList)
 	case ViewLogs:
 		u.Logs, _ = logging.GetAll()
 	case ViewUsers:
@@ -809,9 +799,9 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 	}
 
 	u.ServerUrl = config.ServerUrl
-	u.Items = result
+	u.Items = metaDataList
 	u.PublicName = config.PublicName
-	u.ApiKeys = resultApi
+	u.ApiKeys = apiKeyList
 	u.TimeNow = time.Now().Unix()
 	u.IsAdminView = true
 	u.ActiveView = view
@@ -824,6 +814,33 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 	u.IncludeFilename = config.IncludeFilename
 	u.SystemKey = api.GetSystemKey(user.Id)
 	return u
+}
+
+// sortMetaData arranges the provided array so that Fies are sorted by most recent upload first and if that is equal
+// then by most time remaining first. If that is equal, then sort by ID.
+func sortMetaData(input []models.FileApiOutput) []models.FileApiOutput {
+	sort.Slice(input[:], func(i, j int) bool {
+		if input[i].UploadDate != input[j].UploadDate {
+			return input[i].UploadDate > input[j].UploadDate
+		}
+		if input[i].ExpireAt != input[j].ExpireAt {
+			return input[i].ExpireAt > input[j].ExpireAt
+		}
+		return input[i].Id > input[j].Id
+	})
+	return input
+}
+
+// sortApiKeys arranges the provided array so that API keys are sorted by most recent usage first and if that is equal
+// then by ID
+func sortApiKeys(input []models.ApiKey) []models.ApiKey {
+	sort.Slice(input[:], func(i, j int) bool {
+		if input[i].LastUsed != input[j].LastUsed {
+			return input[i].LastUsed > input[j].LastUsed
+		}
+		return input[i].Id < input[j].Id
+	})
+	return input
 }
 
 type userInfo struct {

@@ -20,7 +20,7 @@ type DatabaseProvider struct {
 }
 
 // DatabaseSchemeVersion contains the version number to be expected from the current database. If lower, an upgrade will be performed
-const DatabaseSchemeVersion = 8
+const DatabaseSchemeVersion = 9
 
 // New returns an instance
 func New(dbConfig models.DbConnection) (DatabaseProvider, error) {
@@ -89,6 +89,11 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 				p.DeleteApiKey(key.Id)
 			}
 		}
+	}
+	// < v2.0.0-beta3
+	if currentDbVersion < 9 {
+		err := p.rawSqlite(`ALTER TABLE "FileMetaData" ADD COLUMN UploadDate INTEGER NOT NULL DEFAULT 0;`)
+		helper.Check(err)
 	}
 }
 
@@ -217,6 +222,7 @@ func (p DatabaseProvider) createNewDatabase() error {
 			"UnlimitedDownloads"	INTEGER NOT NULL,
 			"UnlimitedTime"	INTEGER NOT NULL,
 			"UserId"	INTEGER NOT NULL,
+			"UploadDate"	INTEGER NOT NULL,
 			PRIMARY KEY("Id")
 		);
 		CREATE TABLE "Hotlinks" (
