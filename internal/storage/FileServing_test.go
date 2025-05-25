@@ -228,6 +228,9 @@ func TestNewFile(t *testing.T) {
 	test.IsEqualBool(t, file.UnlimitedTime, true)
 	test.IsEqualBool(t, file.UnlimitedDownloads, true)
 
+	withinLastSecond := file.UploadDate >= time.Now().Add(-1*time.Second).Unix() && file.UploadDate <= time.Now().Unix()
+	test.IsEqualBool(t, withinLastSecond, true)
+
 	createBigFile("bigfile", 20)
 	bigFile, _ := os.Open("bigfile")
 	mimeHeader := make(textproto.MIMEHeader)
@@ -399,6 +402,8 @@ func TestNewFileFromChunk(t *testing.T) {
 	retrievedFile, ok = database.GetMetaDataById(file.Id)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqual(t, file, retrievedFile)
+	withinLastSecond := file.UploadDate >= time.Now().Add(-1*time.Second).Unix() && file.UploadDate <= time.Now().Unix()
+	test.IsEqualBool(t, withinLastSecond, true)
 	err = os.Remove("test/data/6cca7a6905774e6d61a77dca3ad7a1f44581d6ab")
 	test.IsNil(t, err)
 

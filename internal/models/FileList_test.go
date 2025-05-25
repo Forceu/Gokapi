@@ -13,13 +13,14 @@ func TestToJsonResult(t *testing.T) {
 		Size:               "10 B",
 		SizeBytes:          10,
 		SHA1:               "sha256",
-		ExpireAt:           50,
-		ExpireAtString:     "future",
+		ExpireAt:           1750852108,
+		ExpireAtString:     "Wed Jun 25 2025 11:48:28",
 		DownloadsRemaining: 1,
 		PasswordHash:       "pwhash",
 		HotlinkId:          "hotlinkid",
 		ContentType:        "text/html",
 		AwsBucket:          "test",
+		UploadDate:         1748180908,
 		UserId:             2,
 		DownloadCount:      3,
 		Encryption: EncryptionInfo{
@@ -30,8 +31,8 @@ func TestToJsonResult(t *testing.T) {
 		UnlimitedDownloads: true,
 		UnlimitedTime:      true,
 	}
-	test.IsEqualString(t, file.ToJsonResult("serverurl/", false), `{"Result":"OK","FileInfo":{"Id":"testId","Name":"testName","Size":"10 B","HotlinkId":"hotlinkid","ContentType":"text/html","ExpireAtString":"future","UrlDownload":"serverurl/d?id=testId","UrlHotlink":"","ExpireAt":50,"SizeBytes":10,"DownloadsRemaining":1,"DownloadCount":3,"UnlimitedDownloads":true,"UnlimitedTime":true,"RequiresClientSideDecryption":true,"IsEncrypted":true,"IsEndToEndEncrypted":false,"IsPasswordProtected":true,"IsSavedOnLocalStorage":false,"UploaderId":2},"IncludeFilename":false}`)
-	test.IsEqualString(t, file.ToJsonResult("serverurl/", true), `{"Result":"OK","FileInfo":{"Id":"testId","Name":"testName","Size":"10 B","HotlinkId":"hotlinkid","ContentType":"text/html","ExpireAtString":"future","UrlDownload":"serverurl/d/testId/testName","UrlHotlink":"","ExpireAt":50,"SizeBytes":10,"DownloadsRemaining":1,"DownloadCount":3,"UnlimitedDownloads":true,"UnlimitedTime":true,"RequiresClientSideDecryption":true,"IsEncrypted":true,"IsEndToEndEncrypted":false,"IsPasswordProtected":true,"IsSavedOnLocalStorage":false,"UploaderId":2},"IncludeFilename":true}`)
+	test.IsEqualString(t, file.ToJsonResult("serverurl/", false), `{"Result":"OK","FileInfo":{"Id":"testId","Name":"testName","Size":"10 B","HotlinkId":"hotlinkid","ContentType":"text/html","ExpireAtString":"Wed Jun 25 2025 11:48:28","UrlDownload":"serverurl/d?id=testId","UrlHotlink":"","UploadDate":1748180908,"ExpireAt":1750852108,"SizeBytes":10,"DownloadsRemaining":1,"DownloadCount":3,"UnlimitedDownloads":true,"UnlimitedTime":true,"RequiresClientSideDecryption":true,"IsEncrypted":true,"IsEndToEndEncrypted":false,"IsPasswordProtected":true,"IsSavedOnLocalStorage":false,"UploaderId":2},"IncludeFilename":false}`)
+	test.IsEqualString(t, file.ToJsonResult("serverurl/", true), `{"Result":"OK","FileInfo":{"Id":"testId","Name":"testName","Size":"10 B","HotlinkId":"hotlinkid","ContentType":"text/html","ExpireAtString":"Wed Jun 25 2025 11:48:28","UrlDownload":"serverurl/d/testId/testName","UrlHotlink":"","UploadDate":1748180908,"ExpireAt":1750852108,"SizeBytes":10,"DownloadsRemaining":1,"DownloadCount":3,"UnlimitedDownloads":true,"UnlimitedTime":true,"RequiresClientSideDecryption":true,"IsEncrypted":true,"IsEndToEndEncrypted":false,"IsPasswordProtected":true,"IsSavedOnLocalStorage":false,"UploaderId":2},"IncludeFilename":true}`)
 }
 
 func TestIsLocalStorage(t *testing.T) {

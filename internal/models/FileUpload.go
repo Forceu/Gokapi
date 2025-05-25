@@ -5,12 +5,12 @@ type UploadRequest struct {
 	UserId              int
 	AllowedDownloads    int
 	Expiry              int
-	Password            string
-	ExternalUrl         string
 	MaxMemory           int
+	ExpiryTimestamp     int64
+	RealSize            int64
 	UnlimitedDownload   bool
 	UnlimitedTime       bool
 	IsEndToEndEncrypted bool
-	ExpiryTimestamp     int64
-	RealSize            int64
+	Password            string
+	ExternalUrl         string
 }

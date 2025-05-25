@@ -1460,6 +1460,9 @@ func TestChunkComplete(t *testing.T) {
 	err = json.Unmarshal(response, &result)
 	test.IsNil(t, err)
 	test.IsEqualString(t, result.FileInfo.Name, "test.upload")
+	withinLastTwoSeconds := result.FileInfo.UploadDate >= time.Now().Add(-2*time.Second).Unix() &&
+		result.FileInfo.UploadDate <= time.Now().Unix()
+	test.IsEqualBool(t, withinLastTwoSeconds, true)
 
 	// data.Set("filesize", "15")
 
