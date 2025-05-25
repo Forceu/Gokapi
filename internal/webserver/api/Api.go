@@ -373,10 +373,8 @@ func apiChunkComplete(w http.ResponseWriter, r requestParser, user models.User) 
 		go doBlockingPartCompleteChunk(nil, request, user)
 		_, _ = io.WriteString(w, "{\"result\":\"OK\"}")
 		return
-	} else {
-		doBlockingPartCompleteChunk(w, request, user)
 	}
-
+	doBlockingPartCompleteChunk(w, request, user)
 }
 
 func doBlockingPartCompleteChunk(w http.ResponseWriter, request *paramChunkComplete, user models.User) {

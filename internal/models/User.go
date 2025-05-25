@@ -6,8 +6,10 @@ import (
 	"time"
 )
 
+// UserPermission contains zero or more permissions as uint16
 type UserPermission uint16
 
+// User contains information about the Gokapi user
 type User struct {
 	Id            int            `json:"id" redis:"id"`
 	Name          string         `json:"name" redis:"Name"`
@@ -50,30 +52,51 @@ func (u *User) ToJson() string {
 	return string(result)
 }
 
+// UserLevelSuperAdmin indicates that this is the single user with the most permissions
 const UserLevelSuperAdmin UserRank = 0
+
+// UserLevelAdmin indicates that this user has by default all permissions (unless they affect the super-admin)
 const UserLevelAdmin UserRank = 1
+
+// UserLevelUser indicates that this user has only basic permissions by default
 const UserLevelUser UserRank = 2
 
+// UserRank indicates the rank that is assigned to the user
 type UserRank uint8
 
+// IsSuperAdmin returns true if the user has the Rank UserLevelSuperAdmin
 func (u *User) IsSuperAdmin() bool {
 	return u.UserLevel == UserLevelSuperAdmin
 }
+
+// IsSameUser returns true, if the user has the same ID
 func (u *User) IsSameUser(userId int) bool {
 	return u.Id == userId
 }
 
 const (
+	// UserPermReplaceUploads allows to replace uploads
 	UserPermReplaceUploads UserPermission = 1 << iota
+	// UserPermListOtherUploads allows to also list uploads by other users
 	UserPermListOtherUploads
+	// UserPermEditOtherUploads allows editing of uploads by other users
 	UserPermEditOtherUploads
+	// UserPermReplaceOtherUploads allows replacing of uploads by other users
 	UserPermReplaceOtherUploads
+	// UserPermDeleteOtherUploads allows deleting uploads by other users
 	UserPermDeleteOtherUploads
+	// UserPermManageLogs allows viewing and deleting logs
 	UserPermManageLogs
+	// UserPermManageApiKeys allows editing and deleting of API keys by other users
 	UserPermManageApiKeys
+	// UserPermManageUsers allows creating and editing of users, including granting and revoking permissions
 	UserPermManageUsers
 )
+
+// UserPermissionNone means that the user has no permissions
 const UserPermissionNone UserPermission = 0
+
+// UserPermissionAll means that the user has all permissions
 const UserPermissionAll UserPermission = 255
 
 // GrantPermission grants one or more permissions

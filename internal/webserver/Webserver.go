@@ -921,8 +921,7 @@ func requireLogin(next http.HandlerFunc, isUiCall, isPwChangeView bool) http.Han
 					return
 				}
 			}
-			c := context.WithValue(r.Context(), "user", user)
-			r = r.WithContext(c)
+			r = authentication.SetUserInRequest(r, user)
 			next.ServeHTTP(w, r)
 			return
 		}

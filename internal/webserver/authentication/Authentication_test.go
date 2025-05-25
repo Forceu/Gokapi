@@ -195,7 +195,7 @@ func TestGetUserFromRequest(t *testing.T) {
 	_, r := test.GetRecorder("GET", "/", nil, nil, nil)
 	_, err := GetUserFromRequest(r)
 	test.IsNotNil(t, err)
-	c := context.WithValue(r.Context(), "user", "invalid")
+	c := context.WithValue(r.Context(), userNameContextKey, "invalid")
 	rInvalid := r.WithContext(c)
 	_, err = GetUserFromRequest(rInvalid)
 	test.IsNotNil(t, err)
@@ -210,8 +210,7 @@ func TestGetUserFromRequest(t *testing.T) {
 		ResetPassword: true,
 	}
 
-	c = context.WithValue(r.Context(), "user", user)
-	rValid := r.WithContext(c)
+	rValid := SetUserInRequest(r, user)
 	retrievedUser, err := GetUserFromRequest(rValid)
 	test.IsNil(t, err)
 	test.IsEqual(t, retrievedUser, user)

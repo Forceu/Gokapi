@@ -45,6 +45,7 @@ type ApiKey struct {
 	UserId       int           `json:"UserId" redis:"UserId"`
 }
 
+// ApiPermission contains zero or more permissions as an uint8 format
 type ApiPermission uint8
 
 // GetReadableDate returns the date as YYYY-MM-DD HH:MM:SS

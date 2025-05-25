@@ -32,27 +32,27 @@ type File struct {
 
 // FileApiOutput will be displayed for public outputs from the ID, hiding sensitive information
 type FileApiOutput struct {
-	Id                           string `json:"Id"`                            // The internal ID of the file
-	Name                         string `json:"Name"`                          // The filename. Will be 'Encrypted file' for end-to-end encrypted files
-	Size                         string `json:"Size"`                          // Filesize in a human-readable format
-	HotlinkId                    string `json:"HotlinkId"`                     // If file is a picture file and can be hotlinked, this is the ID for the hotlink
-	ContentType                  string `json:"ContentType"`                   // The MIME type for the file
-	ExpireAtString               string `json:"ExpireAtString"`                // Time expiry in a human-readable format in local time
-	UrlDownload                  string `json:"UrlDownload"`                   // The public download URL for the file
-	UrlHotlink                   string `json:"UrlHotlink"`                    // The public hotlink URL for the file
-	UploadDate                   int64  `json:"UploadDate" redis:"UploadDate"` // UTC timestamp of upload time
-	ExpireAt                     int64  `json:"ExpireAt"`                      // "UTC timestamp of file expiry
-	SizeBytes                    int64  `json:"SizeBytes"`                     // Filesize in bytes
-	DownloadsRemaining           int    `json:"DownloadsRemaining"`            // The remaining downloads for this file
-	DownloadCount                int    `json:"DownloadCount"`                 // The amount of times the file has been downloaded
-	UnlimitedDownloads           bool   `json:"UnlimitedDownloads"`            // True if the uploader did not limit the downloads
-	UnlimitedTime                bool   `json:"UnlimitedTime"`                 // True if the uploader did not limit the time
-	RequiresClientSideDecryption bool   `json:"RequiresClientSideDecryption"`  // True if the file has to be decrypted client-side
-	IsEncrypted                  bool   `json:"IsEncrypted"`                   // True if the file is encrypted
-	IsEndToEndEncrypted          bool   `json:"IsEndToEndEncrypted"`           // True if the file is end-to-end encrypted
-	IsPasswordProtected          bool   `json:"IsPasswordProtected"`           // True if a password has to be entered before downloading the file
-	IsSavedOnLocalStorage        bool   `json:"IsSavedOnLocalStorage"`         // True if the file does not use cloud storage
-	UploaderId                   int    `json:"UploaderId"`                    // The user ID of the uploader
+	Id                           string `json:"Id"`                           // The internal ID of the file
+	Name                         string `json:"Name"`                         // The filename. Will be 'Encrypted file' for end-to-end encrypted files
+	Size                         string `json:"Size"`                         // Filesize in a human-readable format
+	HotlinkId                    string `json:"HotlinkId"`                    // If file is a picture file and can be hotlinked, this is the ID for the hotlink
+	ContentType                  string `json:"ContentType"`                  // The MIME type for the file
+	ExpireAtString               string `json:"ExpireAtString"`               // Time expiry in a human-readable format in local time
+	UrlDownload                  string `json:"UrlDownload"`                  // The public download URL for the file
+	UrlHotlink                   string `json:"UrlHotlink"`                   // The public hotlink URL for the file
+	UploadDate                   int64  `json:"UploadDate"`                   // UTC timestamp of upload time
+	ExpireAt                     int64  `json:"ExpireAt"`                     // "UTC timestamp of file expiry
+	SizeBytes                    int64  `json:"SizeBytes"`                    // Filesize in bytes
+	DownloadsRemaining           int    `json:"DownloadsRemaining"`           // The remaining downloads for this file
+	DownloadCount                int    `json:"DownloadCount"`                // The amount of times the file has been downloaded
+	UnlimitedDownloads           bool   `json:"UnlimitedDownloads"`           // True if the uploader did not limit the downloads
+	UnlimitedTime                bool   `json:"UnlimitedTime"`                // True if the uploader did not limit the time
+	RequiresClientSideDecryption bool   `json:"RequiresClientSideDecryption"` // True if the file has to be decrypted client-side
+	IsEncrypted                  bool   `json:"IsEncrypted"`                  // True if the file is encrypted
+	IsEndToEndEncrypted          bool   `json:"IsEndToEndEncrypted"`          // True if the file is end-to-end encrypted
+	IsPasswordProtected          bool   `json:"IsPasswordProtected"`          // True if a password has to be entered before downloading the file
+	IsSavedOnLocalStorage        bool   `json:"IsSavedOnLocalStorage"`        // True if the file does not use cloud storage
+	UploaderId                   int    `json:"UploaderId"`                   // The user ID of the uploader
 }
 
 // EncryptionInfo holds information about the encryption used on the file

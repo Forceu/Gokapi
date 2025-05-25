@@ -71,26 +71,25 @@ func updateConfig(settings *models.Configuration, env *environment.Environment) 
 				fmt.Println("--> See the release notes for more information")
 				osExit(1)
 				return
-			} else {
-				fmt.Println("Setting admin user to " + adminUser)
-				settings.Authentication.Username = adminUser
 			}
-			if settings.Authentication.Method == models.AuthenticationOAuth2 && len(oldAuth.Authentication.OAuthUsers) > 0 {
-				LegacyUsersHeaderOauth = oldAuth.Authentication.OAuthUsers
-				settings.Authentication.OnlyRegisteredUsers = true
-			}
-			if settings.Authentication.Method == models.AuthenticationHeader && len(oldAuth.Authentication.HeaderUsers) > 0 {
-				LegacyUsersHeaderOauth = oldAuth.Authentication.HeaderUsers
-				settings.Authentication.OnlyRegisteredUsers = true
-			}
-			for _, user := range LegacyUsersHeaderOauth {
-				if strings.Contains(user, "*") {
-					fmt.Println("FAILED UPDATE")
-					fmt.Println("--> If using Oauth or Header authentication and restricting the users, please remove any wildcards before upgrading.")
-					fmt.Println("--> See the release notes for more information")
-					osExit(1)
-					return
-				}
+			fmt.Println("Setting admin user to " + adminUser)
+			settings.Authentication.Username = adminUser
+		}
+		if settings.Authentication.Method == models.AuthenticationOAuth2 && len(oldAuth.Authentication.OAuthUsers) > 0 {
+			LegacyUsersHeaderOauth = oldAuth.Authentication.OAuthUsers
+			settings.Authentication.OnlyRegisteredUsers = true
+		}
+		if settings.Authentication.Method == models.AuthenticationHeader && len(oldAuth.Authentication.HeaderUsers) > 0 {
+			LegacyUsersHeaderOauth = oldAuth.Authentication.HeaderUsers
+			settings.Authentication.OnlyRegisteredUsers = true
+		}
+		for _, user := range LegacyUsersHeaderOauth {
+			if strings.Contains(user, "*") {
+				fmt.Println("FAILED UPDATE")
+				fmt.Println("--> If using Oauth or Header authentication and restricting the users, please remove any wildcards before upgrading.")
+				fmt.Println("--> See the release notes for more information")
+				osExit(1)
+				return
 			}
 		}
 	}

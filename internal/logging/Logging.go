@@ -39,9 +39,8 @@ func GetAll() (string, bool) {
 		content, err := os.ReadFile(logPath)
 		helper.Check(err)
 		return string(content), true
-	} else {
-		return fmt.Sprintf("[%s] No log file found!", categoryWarning), false
 	}
+	return fmt.Sprintf("[%s] No log file found!", categoryWarning), false
 }
 
 // createLogEntry adds a line to the logfile including the current date. Also outputs to Stdout if set.
@@ -159,6 +158,8 @@ func UpgradeToV2() {
 	defer mutex.Unlock()
 }
 
+// DeleteLogs removes all logs before the cutoff timestamp and inserts a new log that the user
+// deleted the previous logs
 func DeleteLogs(userName string, userId int, cutoff int64, r *http.Request) {
 	if cutoff == 0 {
 		deleteAllLogs(userName, userId, r)

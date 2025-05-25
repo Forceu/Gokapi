@@ -1,6 +1,7 @@
 package authentication
 
 import (
+	"context"
 	"crypto/subtle"
 	"encoding/json"
 	"errors"
@@ -18,8 +19,12 @@ import (
 	"strings"
 )
 
+type userNameContext string
+
 // CookieOauth is the cookie name used for login
 const CookieOauth = "state"
+
+const userNameContextKey userNameContext = "userName"
 
 var authSettings models.AuthenticationConfig
 
@@ -71,13 +76,20 @@ func checkAuthConfig(config models.AuthenticationConfig) error {
 	}
 }
 
+// GetUserFromRequest returns the user that has been authenticated with the request
 func GetUserFromRequest(r *http.Request) (models.User, error) {
 	c := r.Context()
-	user, ok := c.Value("user").(models.User)
+	user, ok := c.Value(userNameContextKey).(models.User)
 	if !ok {
 		return models.User{}, errors.New("user not found in context")
 	}
 	return user, nil
+}
+
+// SetUserInRequest saves the user that has been authenticated with the request
+func SetUserInRequest(r *http.Request, user models.User) *http.Request {
+	c := context.WithValue(r.Context(), userNameContextKey, user)
+	return r.WithContext(c)
 }
 
 // IsAuthenticated returns true and the user ID if authenticated

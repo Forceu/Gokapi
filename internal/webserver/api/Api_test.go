@@ -824,7 +824,7 @@ func getApiPermMap(t *testing.T) map[models.ApiPermission]string {
 	result[models.ApiPermManageLogs] = "PERM_MANAGE_LOGS"
 
 	sum := 0
-	for perm, _ := range result {
+	for perm := range result {
 		sum = sum + int(perm)
 	}
 	if sum != int(models.ApiPermAll) {
@@ -846,7 +846,7 @@ func getUserPermMap(t *testing.T) map[models.UserPermission]string {
 	result[models.UserPermManageUsers] = "PERM_USERS"
 
 	sum := 0
-	for perm, _ := range result {
+	for perm := range result {
 		sum = sum + int(perm)
 	}
 	if sum != int(models.UserPermissionAll) {
