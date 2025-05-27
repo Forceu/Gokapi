@@ -268,6 +268,33 @@ async function apiFilesDelete(id, delay) {
 }
 
 
+async function apiFilesRestore(id) {
+    const apiUrl = './api/files/restore';
+
+    const requestOptions = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'apikey': systemKey,
+            'id': id
+        },
+    };
+
+    try {
+        const response = await fetch(apiUrl, requestOptions);
+        if (!response.ok) {
+            throw new Error(`Request failed with status: ${response.status}`);
+        }
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error("Error in apiFilesRestore:", error);
+        throw error;
+    }
+}
+
+
+
 // users
 
 

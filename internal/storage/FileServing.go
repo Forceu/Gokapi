@@ -839,15 +839,15 @@ func DeleteFileSchedule(fileId string, delaySeconds int, deleteSource bool) bool
 
 // CancelPendingFileDeletion removes the pending deletion flag for a file identified by the given ID.
 // Returns false if the file was not found
-func CancelPendingFileDeletion(fileId string) bool {
+func CancelPendingFileDeletion(fileId string) (models.File, bool) {
 	if fileId == "" {
-		return false
+		return models.File{}, false
 	}
 	file, ok := database.GetMetaDataById(fileId)
 	if !ok {
-		return false
+		return models.File{}, false
 	}
 	file.PendingDeletion = 0
 	database.SaveMetaData(file)
-	return true
+	return file, true
 }

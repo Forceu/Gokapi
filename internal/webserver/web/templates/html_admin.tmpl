@@ -105,6 +105,10 @@
 	
 
 	<div id="toastnotification" class="toastnotification" data-default="URL copied to clipboard">Toast Text</div>
+	<div id="toastnotificationUndo" class="toastnotification">
+	  File deleted: <span id="toastFilename"></span>
+  	   <span id="toastUndoButton" class="toast-undo" onclick="handleUndo(this)">Restore</span>
+	</div>
 	<div id="qroverlay">
 	  <div id="qrcode"></div>
 	</div>

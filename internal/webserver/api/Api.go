@@ -99,7 +99,7 @@ func apiEditFile(w http.ResponseWriter, r requestParser, user models.User) {
 
 	database.SaveMetaData(file)
 	logging.LogEdit(file, user)
-	outputFileInfo(w, file)
+	outputFileApiInfo(w, file)
 }
 
 // generateNewKey generates and saves a new API key
@@ -363,16 +363,13 @@ func apiRestoreFile(w http.ResponseWriter, r requestParser, user models.User) {
 		sendError(w, http.StatusUnauthorized, "No permission to restore this file")
 		return
 	}
-	if !storage.CancelPendingFileDeletion(file.Id) {
+	file, ok = storage.CancelPendingFileDeletion(file.Id)
+	if !ok {
 		sendError(w, http.StatusNotFound, "Invalid file ID provided or file has already been deleted.")
+		return
 	}
 	logging.LogRestore(file, user)
-	config := configuration.Get()
-	publicOutput, err := file.ToFileApiOutput(config.ServerUrl, config.IncludeFilename)
-	helper.Check(err)
-	result, err := json.Marshal(publicOutput)
-	helper.Check(err)
-	_, _ = w.Write(result)
+	outputFileJson(w, file)
 }
 
 func apiChunkAdd(w http.ResponseWriter, r requestParser, _ models.User) {
@@ -421,10 +418,7 @@ func doBlockingPartCompleteChunk(w http.ResponseWriter, request *paramChunkCompl
 		return
 	}
 	logging.LogUpload(file, user)
-	if w != nil {
-		config := configuration.Get()
-		_, _ = io.WriteString(w, file.ToJsonResult(config.ServerUrl, config.IncludeFilename))
-	}
+	outputFileJson(w, file)
 }
 
 func apiList(w http.ResponseWriter, _ requestParser, user models.User) {
@@ -513,7 +507,7 @@ func apiDuplicateFile(w http.ResponseWriter, r requestParser, user models.User) 
 		sendError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	outputFileInfo(w, newFile)
+	outputFileApiInfo(w, newFile)
 }
 
 func apiReplaceFile(w http.ResponseWriter, r requestParser, user models.User) {
@@ -554,16 +548,24 @@ func apiReplaceFile(w http.ResponseWriter, r requestParser, user models.User) {
 		return
 	}
 	logging.LogReplace(fileOriginal, modifiedFile, user)
-	outputFileInfo(w, modifiedFile)
+	outputFileApiInfo(w, modifiedFile)
 }
 
-func outputFileInfo(w http.ResponseWriter, file models.File) {
+func outputFileApiInfo(w http.ResponseWriter, file models.File) {
 	config := configuration.Get()
 	publicOutput, err := file.ToFileApiOutput(config.ServerUrl, config.IncludeFilename)
 	helper.Check(err)
 	result, err := json.Marshal(publicOutput)
 	helper.Check(err)
 	_, _ = w.Write(result)
+}
+
+func outputFileJson(w http.ResponseWriter, file models.File) {
+	if w == nil {
+		return
+	}
+	config := configuration.Get()
+	_, _ = io.WriteString(w, file.ToJsonResult(config.ServerUrl, config.IncludeFilename))
 }
 
 func apiModifyUser(w http.ResponseWriter, r requestParser, user models.User) {

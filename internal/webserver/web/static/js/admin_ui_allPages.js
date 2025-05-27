@@ -14,10 +14,13 @@ function showToast(timeout, text) {
     else
         notification.innerText = notification.dataset.default;
     notification.classList.add("show");
-    
+
     clearTimeout(toastId);
     toastId = setTimeout(() => {
-        notification.classList.remove("show");
+        hideToast();
     }, timeout);
 }
 
+function hideToast() {
+    document.getElementById("toastnotification").classList.remove("show");
+}

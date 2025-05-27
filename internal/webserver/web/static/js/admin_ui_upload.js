@@ -517,6 +517,7 @@ function deleteFile(id) {
     apiFilesDelete(id, 10)
         .then(data => {
             changeRowCount(false, document.getElementById("row-" + id));
+            showToastFileDeletion(id);
         })
         .catch(error => {
             alert("Unable to delete file: " + error);
@@ -707,10 +708,8 @@ function addRow(item) {
     cellFilename.classList.add('newItem');
     cellFileSize.classList.add('newItem');
     cellRemainingDownloads.classList.add('newItem');
-    cellRemainingDownloads.style.backgroundColor = "green";
     cellStoredUntil.classList.add('newItem');
     cellDownloadCount.classList.add('newItem');
-    cellDownloadCount.style.backgroundColor = "green";
     cellUrl.classList.add('newItem');
     cellButtons.classList.add('newItem');
     cellFileSize.setAttribute('data-order', item.SizeBytes);
@@ -762,4 +761,39 @@ function showQrCode(url) {
         correctLevel: QRCode.CorrectLevel.H
     });
     overlay.addEventListener("click", hideQrCode);
+}
+
+
+function showToastFileDeletion(id) {
+    let notification = document.getElementById("toastnotificationUndo");
+    let filename = document.getElementById("cell-name-" + id).innerText;
+    let filenameToast = document.getElementById("toastFilename");
+    let button = document.getElementById("toastUndoButton");
+
+    filenameToast.innerText = filename;
+
+    button.dataset.fileid = id;
+    hideToast();
+    notification.classList.add("show");
+
+    clearTimeout(toastId);
+    toastId = setTimeout(() => {
+        hideFileToast();
+    }, 5000);
+}
+
+function hideFileToast() {
+	document.getElementById("toastnotificationUndo").classList.remove("show");
+}
+
+function handleUndo(button) {
+    hideFileToast();
+    apiFilesRestore(button.dataset.fileid)
+        .then(data => {
+            addRow(data.FileInfo);
+        })
+        .catch(error => {
+            alert("Unable to restore file: " + error);
+            console.error('Error:', error);
+        });
 }
