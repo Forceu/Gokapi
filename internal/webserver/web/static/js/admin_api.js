@@ -243,7 +243,7 @@ async function apiFilesModify(id, allowedDownloads, expiry, password, originalPw
 
 
 
-async function apiFilesDelete(id) {
+async function apiFilesDelete(id, delay) {
     const apiUrl = './api/files/delete';
 
     const requestOptions = {
@@ -251,7 +251,8 @@ async function apiFilesDelete(id) {
         headers: {
             'Content-Type': 'application/json',
             'apikey': systemKey,
-            'id': id
+            'id': id,
+            'delay': delay
         },
     };
 

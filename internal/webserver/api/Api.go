@@ -342,7 +342,37 @@ func apiDeleteFile(w http.ResponseWriter, r requestParser, user models.User) {
 		return
 	}
 	logging.LogDelete(file, user)
-	_ = storage.DeleteFile(request.Id, true)
+	if request.DelaySeconds == 0 {
+		_ = storage.DeleteFile(request.Id, true)
+	} else {
+		_ = storage.DeleteFileSchedule(request.Id, request.DelaySeconds, true)
+	}
+}
+
+func apiRestoreFile(w http.ResponseWriter, r requestParser, user models.User) {
+	request, ok := r.(*paramFilesRestore)
+	if !ok {
+		panic("invalid parameter passed")
+	}
+	file, ok := database.GetMetaDataById(request.Id)
+	if !ok {
+		sendError(w, http.StatusNotFound, "Invalid file ID provided or file has already been deleted.")
+		return
+	}
+	if file.UserId != user.Id && !user.HasPermission(models.UserPermDeleteOtherUploads) {
+		sendError(w, http.StatusUnauthorized, "No permission to restore this file")
+		return
+	}
+	if !storage.CancelPendingFileDeletion(file.Id) {
+		sendError(w, http.StatusNotFound, "Invalid file ID provided or file has already been deleted.")
+	}
+	logging.LogRestore(file, user)
+	config := configuration.Get()
+	publicOutput, err := file.ToFileApiOutput(config.ServerUrl, config.IncludeFilename)
+	helper.Check(err)
+	result, err := json.Marshal(publicOutput)
+	helper.Check(err)
+	_, _ = w.Write(result)
 }
 
 func apiChunkAdd(w http.ResponseWriter, r requestParser, _ models.User) {

@@ -664,18 +664,19 @@ func FileExists(file models.File, dataDir string) bool {
 
 // CleanUp removes expired files from the config and from the filesystem if they are not referenced by other files anymore
 // Will be called periodically or after a file has been manually deleted in the admin view.
-// If parameter periodic is true, this function is recursive and calls itself every hour.
+// If the parameter periodic is true, this function is recursive and calls itself every hour.
 func CleanUp(periodic bool) {
 	downloadstatus.Clean()
 	timeNow := time.Now().Unix()
 	wasItemDeleted := false
 	for key, element := range database.GetAllMetadata() {
 		fileExists := FileExists(element, configuration.Get().DataDir)
-		if !fileExists || isExpiredFileWithoutDownload(element, timeNow) {
+		if !fileExists || isExpiredFileWithoutDownload(element, timeNow) || isPendingToBeDeleted(element, timeNow) {
 			deleteFile := true
 			for _, secondLoopElement := range database.GetAllMetadata() {
 				if (element.Id != secondLoopElement.Id) && (element.SHA1 == secondLoopElement.SHA1) {
 					deleteFile = false
+					break
 				}
 			}
 			if deleteFile && fileExists {
@@ -749,6 +750,14 @@ func isOldTempFile(file os.DirEntry) bool {
 
 }
 
+// isPendingToBeDeleted returns true if a pending deletion has to be executed
+func isPendingToBeDeleted(file models.File, timeNow int64) bool {
+	if !file.IsPendingForDeletion() {
+		return false
+	}
+	return file.PendingDeletion < timeNow
+}
+
 // IsExpiredFile returns true if the file is expired, either due to download count
 // or if the provided timestamp is after the expiry timestamp
 func IsExpiredFile(file models.File, timeNow int64) bool {
@@ -777,24 +786,68 @@ func deleteSource(file models.File, dataDir string) {
 	}
 }
 
-// DeleteFile is called when an admin requests deletion of a file
-// Returns true if file was deleted or false if ID did not exist
+// DeleteFile is called when an admin requests deletion of a file.
+// Returns true if the file was deleted or false if ID did not exist.
 // deleteSource forces a clean-up and will delete the source if it is not
 // used by a different file
-func DeleteFile(keyId string, deleteSource bool) bool {
-	if keyId == "" {
+func DeleteFile(fileId string, deleteSource bool) bool {
+	if fileId == "" {
 		return false
 	}
-	item, ok := database.GetMetaDataById(keyId)
+	file, ok := database.GetMetaDataById(fileId)
 	if !ok {
 		return false
 	}
-	item.ExpireAt = 0
-	item.UnlimitedTime = false
-	database.SaveMetaData(item)
-	downloadstatus.SetAllComplete(item.Id)
+	file.ExpireAt = 0
+	file.UnlimitedTime = false
+	database.SaveMetaData(file)
+	downloadstatus.SetAllComplete(file.Id)
 	if deleteSource {
 		go CleanUp(false)
 	}
+	return true
+}
+
+// DeleteFileSchedule schedules a file for deletion after a specified delay and optionally deletes its source.
+// Returns true if scheduling is successful, false otherwise.
+func DeleteFileSchedule(fileId string, delaySeconds int, deleteSource bool) bool {
+	if fileId == "" {
+		return false
+	}
+	file, ok := database.GetMetaDataById(fileId)
+	if !ok {
+		return false
+	}
+	deletionTime := time.Now().Add(time.Duration(delaySeconds) * time.Second).Unix()
+	file.PendingDeletion = deletionTime
+	database.SaveMetaData(file)
+	go func() {
+		select {
+		case <-time.After(time.Duration(delaySeconds) * time.Second):
+		}
+		file, ok = database.GetMetaDataById(fileId)
+		if !ok {
+			return
+		}
+		// To prevent race conditions, it is checked if the deletion time is the same time that was originally set
+		if file.PendingDeletion == deletionTime {
+			DeleteFile(fileId, deleteSource)
+		}
+	}()
+	return true
+}
+
+// CancelPendingFileDeletion removes the pending deletion flag for a file identified by the given ID.
+// Returns false if the file was not found
+func CancelPendingFileDeletion(fileId string) bool {
+	if fileId == "" {
+		return false
+	}
+	file, ok := database.GetMetaDataById(fileId)
+	if !ok {
+		return false
+	}
+	file.PendingDeletion = 0
+	database.SaveMetaData(file)
 	return true
 }

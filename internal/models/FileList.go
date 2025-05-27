@@ -13,12 +13,13 @@ type File struct {
 	Name                    string         `json:"Name" redis:"Name"`                             // The filename. Will be 'Encrypted file' for end-to-end encrypted files
 	Size                    string         `json:"Size" redis:"Size"`                             // Filesize in a human-readable format
 	SHA1                    string         `json:"SHA1" redis:"SHA1"`                             // The hash of the file, used for deduplication
-	PasswordHash            string         `json:"PasswordHash" redis:"PasswordHash"`             // The hash of the password (if the file is password protected)
+	PasswordHash            string         `json:"PasswordHash" redis:"PasswordHash"`             // The hash of the password (if the file is password-protected)
 	HotlinkId               string         `json:"HotlinkId" redis:"HotlinkId"`                   // If file is a picture file and can be hotlinked, this is the ID for the hotlink
 	ContentType             string         `json:"ContentType" redis:"ContentType"`               // The MIME type for the file
 	AwsBucket               string         `json:"AwsBucket" redis:"AwsBucket"`                   // If the file is stored in the cloud, this is the bucket that is being used
 	ExpireAtString          string         `json:"ExpireAtString" redis:"ExpireAtString"`         // Time expiry in a human-readable format in local time
 	ExpireAt                int64          `json:"ExpireAt" redis:"ExpireAt"`                     // UTC timestamp of file expiry
+	PendingDeletion         int64          `json:"PendingDeletion" redis:"PendingDeletion"`       // UTC timestamp when the file will be deleted, if pending. Otherwise 0
 	SizeBytes               int64          `json:"SizeBytes" redis:"SizeBytes"`                   // Filesize in bytes
 	UploadDate              int64          `json:"UploadDate" redis:"UploadDate"`                 // UTC timestamp of upload time
 	DownloadsRemaining      int            `json:"DownloadsRemaining" redis:"DownloadsRemaining"` // The remaining downloads for this file
@@ -35,16 +36,16 @@ type FileApiOutput struct {
 	Id                           string `json:"Id"`                           // The internal ID of the file
 	Name                         string `json:"Name"`                         // The filename. Will be 'Encrypted file' for end-to-end encrypted files
 	Size                         string `json:"Size"`                         // Filesize in a human-readable format
-	HotlinkId                    string `json:"HotlinkId"`                    // If file is a picture file and can be hotlinked, this is the ID for the hotlink
+	HotlinkId                    string `json:"HotlinkId"`                    // If the file is a picture file and can be hotlinked, this is the ID for the hotlink
 	ContentType                  string `json:"ContentType"`                  // The MIME type for the file
 	ExpireAtString               string `json:"ExpireAtString"`               // Time expiry in a human-readable format in local time
 	UrlDownload                  string `json:"UrlDownload"`                  // The public download URL for the file
 	UrlHotlink                   string `json:"UrlHotlink"`                   // The public hotlink URL for the file
 	UploadDate                   int64  `json:"UploadDate"`                   // UTC timestamp of upload time
-	ExpireAt                     int64  `json:"ExpireAt"`                     // "UTC timestamp of file expiry
+	ExpireAt                     int64  `json:"ExpireAt"`                     // UTC timestamp of file expiry
 	SizeBytes                    int64  `json:"SizeBytes"`                    // Filesize in bytes
 	DownloadsRemaining           int    `json:"DownloadsRemaining"`           // The remaining downloads for this file
-	DownloadCount                int    `json:"DownloadCount"`                // The amount of times the file has been downloaded
+	DownloadCount                int    `json:"DownloadCount"`                // The number of times the file has been downloaded
 	UnlimitedDownloads           bool   `json:"UnlimitedDownloads"`           // True if the uploader did not limit the downloads
 	UnlimitedTime                bool   `json:"UnlimitedTime"`                // True if the uploader did not limit the time
 	RequiresClientSideDecryption bool   `json:"RequiresClientSideDecryption"` // True if the file has to be decrypted client-side
@@ -52,6 +53,7 @@ type FileApiOutput struct {
 	IsEndToEndEncrypted          bool   `json:"IsEndToEndEncrypted"`          // True if the file is end-to-end encrypted
 	IsPasswordProtected          bool   `json:"IsPasswordProtected"`          // True if a password has to be entered before downloading the file
 	IsSavedOnLocalStorage        bool   `json:"IsSavedOnLocalStorage"`        // True if the file does not use cloud storage
+	IsPendingDeletion            bool   `json:"IsPendingDeletion"`            // True if the file is about to be deleted
 	UploaderId                   int    `json:"UploaderId"`                   // The user ID of the uploader
 }
 
@@ -68,7 +70,12 @@ func (f *File) IsLocalStorage() bool {
 	return f.AwsBucket == ""
 }
 
-// ToFileApiOutput returns a json object without sensitive information
+// IsPendingForDeletion returns true if the file is pending to be deleted
+func (f *File) IsPendingForDeletion() bool {
+	return f.PendingDeletion != 0
+}
+
+// ToFileApiOutput returns a JSON object without sensitive information
 func (f *File) ToFileApiOutput(serverUrl string, useFilenameInUrl bool) (FileApiOutput, error) {
 	var result FileApiOutput
 	err := copier.Copy(&result, &f)
@@ -85,6 +92,7 @@ func (f *File) ToFileApiOutput(serverUrl string, useFilenameInUrl bool) (FileApi
 	result.UrlHotlink = getHotlinkUrl(result, serverUrl, useFilenameInUrl)
 	result.UrlDownload = getDownloadUrl(result, serverUrl, useFilenameInUrl)
 	result.UploaderId = f.UserId
+	result.IsPendingDeletion = f.IsPendingForDeletion()
 
 	return result, nil
 }

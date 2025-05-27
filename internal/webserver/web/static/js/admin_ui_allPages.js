@@ -5,6 +5,8 @@
 
 var clipboard = new ClipboardJS('.btn');
 
+var toastId;
+
 function showToast(timeout, text) {
     let notification = document.getElementById("toastnotification");
     if (typeof text !== 'undefined')
@@ -12,7 +14,9 @@ function showToast(timeout, text) {
     else
         notification.innerText = notification.dataset.default;
     notification.classList.add("show");
-    setTimeout(() => {
+    
+    clearTimeout(toastId);
+    toastId = setTimeout(() => {
         notification.classList.remove("show");
     }, timeout);
 }

@@ -514,7 +514,7 @@ function getAllAvailableFiles() {
 
 function deleteFile(id) {
     document.getElementById("button-delete-" + id).disabled = true;
-    apiFilesDelete(id)
+    apiFilesDelete(id, 10)
         .then(data => {
             changeRowCount(false, document.getElementById("row-" + id));
         })

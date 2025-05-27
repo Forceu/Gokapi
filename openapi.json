@@ -484,7 +484,7 @@
           "files"
         ],
         "summary": "Deletes the selected file",
-        "description": "This API call deletes the selected file and runs the clean-up procedure which purges all expired files from the data directory immediately. Requires API permission DELETE. To delete a file that was not uploaded by the user, the user needs to have the user permission DELETE",
+        "description": "This API call deletes the selected file and runs the clean-up procedure which purges all expired files from the data directory. Deletetion can be postponed with the parameter delay to be able to cancel deletion with the call /files/restore.  Requires API permission DELETE. To delete a file that was not uploaded by the user, the user needs to have the user permission DELETE",
         "operationId": "delete",
         "security": [
           {
@@ -497,10 +497,17 @@
             "in": "header",
             "description": "The ID of the file to be deleted",
             "required": true,
-            "style": "simple",
-            "explode": false,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "delay",
+            "in": "header",
+            "description": "The number of seconds to wait before deleting the file, in order to be able to restore it with /files/restore",
+            "required": false,
+            "schema": {
+              "type": "integer"
             }
           }
         ],
@@ -513,6 +520,50 @@
           },
           "404": {
             "description": "Invalid ID supplied"
+          }
+        }
+      }
+    },
+    "/files/restore": {
+      "post": {
+        "tags": [
+          "files"
+        ],
+        "summary": "Restores a file that is pending to be deleted",
+        "description": "This API call cancels a pending deletion of the selected file that originally deleted with /files/delete. The call to restore has to be within the timeframe specified in the delay parameter of /files/delete. Requires API permission DELETE. To delete a file that was not uploaded by the user, the user needs to have the user permission DELETE",
+        "operationId": "restore",
+        "security": [
+          {
+            "apikey": ["DELETE"]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "header",
+            "description": "The ID of the file to be restored",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/File"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
+          },
+          "404": {
+            "description": "Invalid ID supplied or the file has already been deleted"
           }
         }
       }
@@ -1111,6 +1162,16 @@
             "description": "True if the file does not use cloud storage",
             "type": "boolean",
             "example": "true"
+          },
+          "IsPendingDeletion": {
+            "description": "True if the file is about to be deleted",
+            "type": "boolean",
+            "example": "false"
+          },
+          "UploaderId": {
+            "description": "The user ID of the uploader",
+            "type": "integer",
+            "example": "3"
           }
         },
         "description": "File is a struct used for saving information about an uploaded file",

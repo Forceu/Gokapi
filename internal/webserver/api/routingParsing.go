@@ -254,12 +254,50 @@ func (p *paramFilesDelete) ParseRequest(r *http.Request) error {
 		p.Id = r.Header.Get("id")
 	}
 
+	// RequestParser header value "delay", required: false
+	exists, err = checkHeaderExists(r, "delay", false, false)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["delay"] = exists
+	if exists {
+		p.DelaySeconds, err = parseHeaderInt(r, "delay")
+		if err != nil {
+			return fmt.Errorf("invalid value in header delay supplied")
+		}
+	}
+
 	return p.ProcessParameter(r)
 }
 
 // New returns a new instance of paramFilesDelete struct
 func (p *paramFilesDelete) New() requestParser {
 	return &paramFilesDelete{}
+}
+
+// ParseRequest reads r and saves the passed header values in the paramFilesRestore struct
+// In the end, ProcessParameter() is called
+func (p *paramFilesRestore) ParseRequest(r *http.Request) error {
+	var err error
+	var exists bool
+	p.foundHeaders = make(map[string]bool)
+
+	// RequestParser header value "id", required: true
+	exists, err = checkHeaderExists(r, "id", true, true)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["id"] = exists
+	if exists {
+		p.Id = r.Header.Get("id")
+	}
+
+	return p.ProcessParameter(r)
+}
+
+// New returns a new instance of paramFilesRestore struct
+func (p *paramFilesRestore) New() requestParser {
+	return &paramFilesRestore{}
 }
 
 // ParseRequest reads r and saves the passed header values in the paramAuthCreate struct
