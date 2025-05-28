@@ -37,6 +37,8 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 	// < v1.9.6
 	if currentDbVersion < 6 {
 		fmt.Println("Please update to v1.9.6 before upgrading to 2.0.0")
+		osExit(1)
+		return
 	}
 	// < v2.0.0-beta
 	if currentDbVersion < 7 {
@@ -270,3 +272,5 @@ func (p DatabaseProvider) rawSqlite(statement string) error {
 	_, err := p.sqliteDb.Exec(statement)
 	return err
 }
+
+var osExit = os.Exit

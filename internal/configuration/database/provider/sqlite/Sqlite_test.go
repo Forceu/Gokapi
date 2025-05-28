@@ -660,12 +660,23 @@ func TestDatabaseProvider_Upgrade(t *testing.T) {
 		DROP TABLE IF EXISTS Users;
 		DROP TABLE IF EXISTS UploadConfig;`)
 	test.IsNil(t, err)
-	sqliteInit, version := getSqlInitV6()
+	sqliteInit := getSqlInitV6()
 	err = instance.rawSqlite(sqliteInit)
 	test.IsNil(t, err)
-	dbInstance.SetDbVersion(version)
 
-	dbInstance.Upgrade(DatabaseSchemeVersion)
+	exitCode := 0
+	osExit = func(code int) {
+		exitCode = code
+	}
+	instance.SetDbVersion(5)
+	instance.Upgrade(instance.GetDbVersion())
+	test.IsEqualInt(t, exitCode, 1)
+
+	exitCode = 0
+	instance.SetDbVersion(6)
+	instance.Upgrade(instance.GetDbVersion())
+	test.IsEqualInt(t, exitCode, 0)
+
 }
 
 func TestRawSql(t *testing.T) {
@@ -675,7 +686,7 @@ func TestRawSql(t *testing.T) {
 	_ = dbInstance.rawSqlite("Select * from Sessions")
 }
 
-func getSqlInitV6() (string, int) {
+func getSqlInitV6() string {
 	return `CREATE TABLE IF NOT EXISTS "ApiKeys" (
 	"Id"	TEXT NOT NULL UNIQUE,
 	"FriendlyName"	TEXT NOT NULL,
@@ -726,5 +737,5 @@ INSERT INTO "E2EConfig" VALUES (1,X'537f03010110453245496e666f456e63727970746564
 INSERT INTO "FileMetaData" VALUES ('M3dEz99HKN9sOgU','kodi_crashlog-20241106_102509.log','131.6 kB','0e9c019ec2698587cc973a9ee368713eb77e4fae',1737412393,134794,'2025-01-20 23:33',10,0,'','','text/x-log','',X'5f7f0301010e456e6372797074696f6e496e666f01ff80000104010b4973456e6372797074656401020001134973456e64546f456e64456e63727970746564010200010d44656372797074696f6e4b6579010a0001054e6f6e6365010a00000003ff8000',0,0);
 INSERT INTO "FileMetaData" VALUES ('b5Mf07AgTkwqpW2','Encrypted File','131.6 kB','e2e-ivCiN4YePueE1PcjYirB',1737412472,134938,'2025-01-20 23:34',10,0,'','','application/octet-stream','',X'60ff830301010e456e6372797074696f6e496e666f01ff84000104010b4973456e6372797074656401020001134973456e64546f456e64456e63727970746564010200010d44656372797074696f6e4b6579010a0001054e6f6e6365010a00000007ff840101010100',0,0);
 INSERT INTO "Hotlinks" VALUES ('Phie2AiW2aecaecahWoo','jun9keeNokae9iehinee');
-INSERT INTO "Sessions" VALUES ('zMUYkok9UZZiKBCHB5pO7KPTPzPP71ashpRf11W37wP0HMhMjTKcFL8Ai6Z3',173624606799,173879486799);`, 6
+INSERT INTO "Sessions" VALUES ('zMUYkok9UZZiKBCHB5pO7KPTPzPP71ashpRf11W37wP0HMhMjTKcFL8Ai6Z3',173624606799,173879486799);`
 }
