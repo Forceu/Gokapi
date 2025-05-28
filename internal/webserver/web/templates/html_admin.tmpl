@@ -61,33 +61,35 @@
 				</thead>
 				<tbody id="downloadtable">
 {{ range .Items }}
-	{{ if  or (gt .ExpireAt $.TimeNow) (.UnlimitedTime) }}
-		{{ if or (gt .DownloadsRemaining 0) (.UnlimitedDownloads) }}
+	{{ if not .IsPendingDeletion }}	
+		{{ if  or (gt .ExpireAt $.TimeNow) (.UnlimitedTime) }}
+			{{ if or (gt .DownloadsRemaining 0) (.UnlimitedDownloads) }}
 					<tr id="row-{{ .Id }}">
 						<td id="cell-name-{{ .Id }}">{{ .Name }}</td>
 						<td data-order="{{ .SizeBytes }}">{{ .Size }}</td>
-			{{ if .UnlimitedDownloads }}
+				{{ if .UnlimitedDownloads }}
 						<td>Unlimited</td>
-			{{ else }}
+				{{ else }}
 						<td id="cell-downloadsRemaining-{{ .Id }}">{{ .DownloadsRemaining }}</td>
-			{{ end }}
-			{{ if .UnlimitedTime }}
+				{{ end }}
+				{{ if .UnlimitedTime }}
 						<td>Unlimited</td>
-			{{ else }}
+				{{ else }}
 						<td>{{ .ExpireAtString }}</td>
-			{{ end }}
+				{{ end }}
 						<td id="cell-downloads-{{ .Id }}">{{ .DownloadCount }}</td>
 						<td><a id="url-href-{{ .Id }}" target="_blank" href="{{ .UrlDownload }}">{{ .Id }}</a>{{ if .IsPasswordProtected }}  <i title="Password protected" class="bi bi-key"></i>{{ end }}</td>
 						<td><button id="url-button-{{ .Id }}" type="button" onclick="showToast(1000)" data-clipboard-text="{{ .UrlDownload }}" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> URL</button> 
 			{{ if ne .UrlHotlink "" }}
  						<button type="button" onclick="showToast(1000)" data-clipboard-text="{{ .UrlHotlink }}" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> Hotlink</button>
-			{{ else }}
+				{{ else }}
  						<button type="button"class="copyurl btn btn-outline-light btn-sm disabled"><i class="bi bi-copy"></i> Hotlink</button>
-			{{ end }}
+				{{ end }}
 						<button type="button" id="qrcode-{{ .Id }}" title="QR Code" class="btn btn-outline-light btn-sm" onclick="showQrCode('{{ .UrlDownload }}');"><i class="bi bi-qr-code"></i></button>
 						{{ template "admin_button_edit" (newAdminButtonContext . $.ActiveUser) }}
 						{{ template "admin_button_delete" (newAdminButtonContext . $.ActiveUser) }}</td>
 					</tr>
+			{{ end }}
 		{{ end }}
 	{{ end }}
 {{ end }}
@@ -103,6 +105,10 @@
 	
 
 	<div id="toastnotification" class="toastnotification" data-default="URL copied to clipboard">Toast Text</div>
+	<div id="toastnotificationUndo" class="toastnotification">
+	  File deleted: <span id="toastFilename"></span>
+  	   <span id="toastUndoButton" class="toast-undo" onclick="handleUndo(this)">Restore</span>
+	</div>
 	<div id="qroverlay">
 	  <div id="qrcode"></div>
 	</div>

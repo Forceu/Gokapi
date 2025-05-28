@@ -20,7 +20,7 @@ type DatabaseProvider struct {
 }
 
 // DatabaseSchemeVersion contains the version number to be expected from the current database. If lower, an upgrade will be performed
-const DatabaseSchemeVersion = 9
+const DatabaseSchemeVersion = 10
 
 // New returns an instance
 func New(dbConfig models.DbConnection) (DatabaseProvider, error) {
@@ -37,6 +37,8 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 	// < v1.9.6
 	if currentDbVersion < 6 {
 		fmt.Println("Please update to v1.9.6 before upgrading to 2.0.0")
+		osExit(1)
+		return
 	}
 	// < v2.0.0-beta
 	if currentDbVersion < 7 {
@@ -93,6 +95,11 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 	// < v2.0.0-beta3
 	if currentDbVersion < 9 {
 		err := p.rawSqlite(`ALTER TABLE "FileMetaData" ADD COLUMN UploadDate INTEGER NOT NULL DEFAULT 0;`)
+		helper.Check(err)
+	}
+	// < v2.0.0-beta3
+	if currentDbVersion < 10 {
+		err := p.rawSqlite(`ALTER TABLE "FileMetaData" ADD COLUMN PendingDeletion INTEGER NOT NULL DEFAULT 0;`)
 		helper.Check(err)
 	}
 }
@@ -223,6 +230,7 @@ func (p DatabaseProvider) createNewDatabase() error {
 			"UnlimitedTime"	INTEGER NOT NULL,
 			"UserId"	INTEGER NOT NULL,
 			"UploadDate"	INTEGER NOT NULL,
+			"PendingDeletion"	INTEGER NOT NULL,
 			PRIMARY KEY("Id")
 		);
 		CREATE TABLE "Hotlinks" (
@@ -264,3 +272,5 @@ func (p DatabaseProvider) rawSqlite(statement string) error {
 	_, err := p.sqliteDb.Exec(statement)
 	return err
 }
+
+var osExit = os.Exit

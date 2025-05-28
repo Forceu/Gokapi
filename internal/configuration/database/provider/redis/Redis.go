@@ -6,6 +6,7 @@ import (
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	redigo "github.com/gomodule/redigo/redis"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -95,6 +96,8 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 	// < v1.9.6
 	if currentDbVersion < 3 {
 		fmt.Println("Please update to v1.9.6 before upgrading to 2.0.0")
+		osExit(1)
+		return
 	}
 	// < v2.0.0-beta1
 	if currentDbVersion < 4 {
@@ -336,3 +339,5 @@ func (p DatabaseProvider) runEval(cmd string) {
 func (p DatabaseProvider) deleteAllWithPrefix(prefix string) {
 	p.runEval("for _,k in ipairs(redis.call('keys','" + p.dbPrefix + prefix + "*')) do redis.call('del',k) end")
 }
+
+var osExit = os.Exit

@@ -221,6 +221,7 @@ func TestMetaData(t *testing.T) {
 		AwsBucket:          "aws1",
 		ExpireAtString:     "In 10 seconds",
 		ExpireAt:           time.Now().Add(10 * time.Second).Unix(),
+		PendingDeletion:    time.Now().Add(8 * time.Second).Unix(),
 		UploadDate:         time.Now().Unix(),
 		SizeBytes:          3 * 1024,
 		DownloadsRemaining: 2,

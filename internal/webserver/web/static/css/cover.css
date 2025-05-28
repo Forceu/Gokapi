@@ -179,6 +179,19 @@ a:hover {
     pointer-events: auto;
 }
 
+.toast-undo {
+    margin-left: 20px;
+    color: #4FC3F7;
+    cursor: pointer;
+    text-decoration: underline;
+    font-weight: bold;
+    pointer-events: auto;
+}
+
+.toast-undo:hover {
+    color: #81D4FA;
+}
+
 .perm-granted {
     cursor: pointer;
     color: #0edf00;
@@ -214,9 +227,6 @@ a:hover {
     color: #ddd;
 }
 
-td.newItem {
-    background-color: green;
-}
 
 /* Define a subtle animation */
 @keyframes subtleHighlight {
@@ -225,15 +235,6 @@ td.newItem {
   }
   100% {
     background-color: transparent; /* Original background */
-  }
-}
-
-@keyframes subtleHighlightNewItem {
-  0% {
-    background-color: #a8e6a3;  /* Pale green for new items */
-  }
-  100% {
-    background-color: green;
   }
 }
 
@@ -252,10 +253,6 @@ td.newItem {
   animation: subtleHighlight 0.5s ease-out;
 }
 
-/* Apply a different animation for cells with both 'updated' and 'newItem' classes */
-.updatedDownloadCount.newItem {
-  animation: subtleHighlightNewItem 0.5s ease-out;
-}
 
 .newApiKey {
   animation: subtleHighlightNewJson 0.7s ease-out;
@@ -263,6 +260,10 @@ td.newItem {
 
 .newUser {
   animation: subtleHighlightNewJson 0.7s ease-out;
+}
+
+.newItem {
+  animation: subtleHighlightNewJson 1.5s ease-out;
 }
 
 @keyframes fadeOut {

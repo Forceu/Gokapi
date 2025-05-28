@@ -81,6 +81,12 @@ var routes = []apiRoute{
 		RequestParser: &paramFilesReplace{},
 	},
 	{
+		Url:           "/files/restore",
+		ApiPerm:       models.ApiPermDelete,
+		execution:     apiRestoreFile,
+		RequestParser: &paramFilesRestore{},
+	},
+	{
 		Url:           "/auth/create",
 		ApiPerm:       models.ApiPermApiMod,
 		execution:     apiCreateApiKey,
@@ -250,10 +256,18 @@ func (p *paramFilesReplace) ProcessParameter(_ *http.Request) error { return nil
 
 type paramFilesDelete struct {
 	Id           string `header:"id" required:"true"`
+	DelaySeconds int    `header:"delay"`
 	foundHeaders map[string]bool
 }
 
 func (p *paramFilesDelete) ProcessParameter(_ *http.Request) error { return nil }
+
+type paramFilesRestore struct {
+	Id           string `header:"id" required:"true"`
+	foundHeaders map[string]bool
+}
+
+func (p *paramFilesRestore) ProcessParameter(_ *http.Request) error { return nil }
 
 type paramAuthCreate struct {
 	FriendlyName     string `header:"friendlyName"`

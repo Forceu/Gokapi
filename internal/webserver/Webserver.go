@@ -468,7 +468,7 @@ type LoginView struct {
 
 // Handling of /d
 // Checks if a file exists for the submitted ID
-// If it exists, a download form is shown or a password needs to be entered.
+// If it exists, a download form is shown, or a password needs to be entered.
 func showDownload(w http.ResponseWriter, r *http.Request) {
 	addNoCacheHeader(w)
 	keyId := queryUrl(w, r, "error")

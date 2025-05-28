@@ -243,8 +243,33 @@ async function apiFilesModify(id, allowedDownloads, expiry, password, originalPw
 
 
 
-async function apiFilesDelete(id) {
+async function apiFilesDelete(id, delay) {
     const apiUrl = './api/files/delete';
+
+    const requestOptions = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'apikey': systemKey,
+            'id': id,
+            'delay': delay
+        },
+    };
+
+    try {
+        const response = await fetch(apiUrl, requestOptions);
+        if (!response.ok) {
+            throw new Error(`Request failed with status: ${response.status}`);
+        }
+    } catch (error) {
+        console.error("Error in apiFilesDelete:", error);
+        throw error;
+    }
+}
+
+
+async function apiFilesRestore(id) {
+    const apiUrl = './api/files/restore';
 
     const requestOptions = {
         method: 'POST',
@@ -260,11 +285,14 @@ async function apiFilesDelete(id) {
         if (!response.ok) {
             throw new Error(`Request failed with status: ${response.status}`);
         }
+        const data = await response.json();
+        return data;
     } catch (error) {
-        console.error("Error in apiFilesDelete:", error);
+        console.error("Error in apiFilesRestore:", error);
         throw error;
     }
 }
+
 
 
 // users

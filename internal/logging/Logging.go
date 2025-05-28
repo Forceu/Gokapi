@@ -131,6 +131,11 @@ func LogDelete(file models.File, user models.User) {
 	createLogEntry(categoryEdit, fmt.Sprintf("%s, ID %s, deleted by %s (user #%d)", file.Name, file.Id, user.Name, user.Id), false)
 }
 
+// LogRestore adds a log entry when the pending deletion of a file was cancelled and the file restored. Non-Blocking
+func LogRestore(file models.File, user models.User) {
+	createLogEntry(categoryEdit, fmt.Sprintf("%s, ID %s, restored by %s (user #%d)", file.Name, file.Id, user.Name, user.Id), false)
+}
+
 // UpgradeToV2 adds tags to existing logs
 // deprecated
 func UpgradeToV2() {
