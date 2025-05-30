@@ -690,7 +690,7 @@ function addRow(item) {
     } else {
         cellStoredUntil.innerText = item.ExpireAtString;
     }
-    cellDownloadCount.innerHTML = '0';
+    cellDownloadCount.innerText = item.DownloadCount;
     cellUrl.innerHTML = '<a  target="_blank" style="color: inherit" id="url-href-' + item.Id + '" href="' + item.UrlDownload + '">' + item.Id + '</a>' + lockIcon;
 
     let buttons = '<button type="button" onclick="showToast(1000)" id="url-button-' + item.Id + '"  data-clipboard-text="' + item.UrlDownload + '" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> URL</button> ';
