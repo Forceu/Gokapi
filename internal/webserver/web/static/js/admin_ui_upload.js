@@ -419,7 +419,7 @@ function showEditModal(filename, id, downloads, expiry, password, unlimitedown, 
         $('body').append(myClone);
     });
 
-    document.getElementById("m_filenamelabel").innerHTML = filename;
+    document.getElementById("m_filenamelabel").innerText = filename;
     document.getElementById("mc_expiry").setAttribute("data-timestamp", expiry);
     document.getElementById("mb_save").setAttribute('data-fileid', id);
     createCalendar(expiry);
@@ -562,14 +562,14 @@ function parseSseData(data) {
 function setNewDownloadCount(id, downloadCount, downloadsRemaining) {
     let downloadCell = document.getElementById("cell-downloads-" + id);
     if (downloadCell != null) {
-        downloadCell.innerHTML = downloadCount;
+        downloadCell.innerText = downloadCount;
         downloadCell.classList.add("updatedDownloadCount");
         setTimeout(() => downloadCell.classList.remove("updatedDownloadCount"), 500);
     }
     if (downloadsRemaining != -1) {
         let downloadsRemainingCell = document.getElementById("cell-downloadsRemaining-" + id);
         if (downloadsRemainingCell != null) {
-            downloadsRemainingCell.innerHTML = downloadsRemaining;
+            downloadsRemainingCell.innerText = downloadsRemaining;
             downloadsRemainingCell.classList.add("updatedDownloadCount");
             setTimeout(() => downloadsRemainingCell.classList.remove("updatedDownloadCount"), 500);
         }
@@ -662,6 +662,7 @@ function removeFileStatus(chunkId) {
 function addRow(item) {
     let table = document.getElementById("downloadtable");
     let row = table.insertRow(0);
+    item.Id = sanitizeId(item.Id);
     row.id = "row-" + item.Id;
     let cellFilename = row.insertCell(0);
     let cellFileSize = row.insertCell(1);
@@ -670,11 +671,7 @@ function addRow(item) {
     let cellDownloadCount = row.insertCell(4);
     let cellUrl = row.insertCell(5);
     let cellButtons = row.insertCell(6);
-    let lockIcon = "";
 
-    if (item.IsPasswordProtected === true) {
-        lockIcon = '  <i  title="Password protected" class="bi bi-key"></i>';
-    }
     cellFilename.innerText = item.Name;
     cellFilename.id = "cell-name-" + item.Id;
     cellDownloadCount.id = "cell-downloads-" + item.Id;
@@ -691,19 +688,130 @@ function addRow(item) {
         cellStoredUntil.innerText = item.ExpireAtString;
     }
     cellDownloadCount.innerText = item.DownloadCount;
-    cellUrl.innerHTML = '<a  target="_blank" style="color: inherit" id="url-href-' + item.Id + '" href="' + item.UrlDownload + '">' + item.Id + '</a>' + lockIcon;
 
-    let buttons = '<button type="button" onclick="showToast(1000)" id="url-button-' + item.Id + '"  data-clipboard-text="' + item.UrlDownload + '" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> URL</button> ';
-    if (item.UrlHotlink === "") {
-        buttons = buttons + '<button type="button"class="copyurl btn btn-outline-light btn-sm disabled"><i class="bi bi-copy"></i> Hotlink</button> ';
-    } else {
-        buttons = buttons + '<button type="button" onclick="showToast(1000)" data-clipboard-text="' + item.UrlHotlink + '" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> Hotlink</button> ';
+    // === URL Link ===
+    const link = document.createElement('a');
+    link.href = item.UrlDownload;
+    link.target = '_blank';
+    link.style.color = 'inherit';
+    link.id = 'url-href-'+item.Id;
+    link.textContent = item.Id;
+
+    cellUrl.appendChild(link);
+
+    if (item.IsPasswordProtected === true) {
+        const icon = document.createElement('i');
+        icon.className = 'bi bi-key';
+        icon.title = 'Password protected';
+        cellUrl.appendChild(document.createTextNode(' '));
+        cellUrl.appendChild(icon);
     }
-    buttons = buttons + '<button type="button" id="qrcode-' + item.Id + '" title="QR Code" class="btn btn-outline-light btn-sm" onclick="showQrCode(\'' + item.UrlDownload + '\');"><i class="bi bi-qr-code"></i></button> ';
-    buttons = buttons + '<button type="button" title="Edit" class="btn btn-outline-light btn-sm" onclick="showEditModal(\'' + item.Name + '\',\'' + item.Id + '\', ' + item.DownloadsRemaining + ', ' + item.ExpireAt + ', ' + item.IsPasswordProtected + ', ' + item.UnlimitedDownloads + ', ' + item.UnlimitedTime + ', ' + item.IsEndToEndEncrypted + ', canReplaceOwnFiles);"><i class="bi bi-pencil"></i></button> ';
-    buttons = buttons + '<button type="button" id="button-delete-' + item.Id + '" title="Delete" class="btn btn-outline-danger btn-sm" onclick="deleteFile(\'' + item.Id + '\')"><i class="bi bi-trash3"></i></button>';
 
-    cellButtons.innerHTML = buttons;
+    // === Button: Copy URL ===
+    const copyUrlBtn = document.createElement('button');
+    copyUrlBtn.type = 'button';
+    copyUrlBtn.className = 'copyurl btn btn-outline-light btn-sm';
+    copyUrlBtn.dataset.clipboardText = item.UrlDownload;
+    copyUrlBtn.id = 'url-button-'+item.Id;
+    copyUrlBtn.title = 'Copy URL';
+
+    const copyIcon = document.createElement('i');
+    copyIcon.className = 'bi bi-copy';
+    copyUrlBtn.appendChild(copyIcon);
+    copyUrlBtn.appendChild(document.createTextNode(' URL'));
+
+    copyUrlBtn.addEventListener('click', () => {
+        showToast(1000);
+    });
+
+    cellButtons.appendChild(copyUrlBtn);
+    cellButtons.appendChild(document.createTextNode(' '));
+
+    // === Button: Copy Hotlink ===
+    const hotlinkBtn = document.createElement('button');
+    hotlinkBtn.type = 'button';
+    hotlinkBtn.className = 'copyurl btn btn-outline-light btn-sm';
+    hotlinkBtn.title = 'Copy Hotlink';
+
+    const hotlinkIcon = document.createElement('i');
+    hotlinkIcon.className = 'bi bi-copy';
+    hotlinkBtn.appendChild(hotlinkIcon);
+    hotlinkBtn.appendChild(document.createTextNode(' Hotlink'));
+
+    if (item.UrlHotlink) {
+        hotlinkBtn.dataset.clipboardText = item.UrlHotlink;
+        hotlinkBtn.addEventListener('click', () => {
+            showToast(1000);
+        });
+    } else {
+        hotlinkBtn.disabled = true;
+    }
+
+    cellButtons.appendChild(hotlinkBtn);
+    cellButtons.appendChild(document.createTextNode(' '));
+
+    // === Button: QR Code ===
+    const qrBtn = document.createElement('button');
+    qrBtn.type = 'button';
+    qrBtn.className = 'btn btn-outline-light btn-sm';
+    qrBtn.title = 'QR Code';
+    qrBtn.id = 'qrcode-'+item.Id;
+
+    const qrIcon = document.createElement('i');
+    qrIcon.className = 'bi bi-qr-code';
+    qrBtn.appendChild(qrIcon);
+
+    qrBtn.addEventListener('click', () => {
+        showQrCode(item.UrlDownload);
+    });
+
+    cellButtons.appendChild(qrBtn);
+    cellButtons.appendChild(document.createTextNode(' '));
+
+    // === Button: Edit ===
+    const editBtn = document.createElement('button');
+    editBtn.type = 'button';
+    editBtn.className = 'btn btn-outline-light btn-sm';
+    editBtn.title = 'Edit';
+
+    const editIcon = document.createElement('i');
+    editIcon.className = 'bi bi-pencil';
+    editBtn.appendChild(editIcon);
+
+    editBtn.addEventListener('click', () => {
+        showEditModal(
+            item.Name,
+            item.Id,
+            item.DownloadsRemaining,
+            item.ExpireAt,
+            item.IsPasswordProtected,
+            item.UnlimitedDownloads,
+            item.UnlimitedTime,
+            item.IsEndToEndEncrypted,
+            canReplaceOwnFiles
+        );
+    });
+
+    cellButtons.appendChild(editBtn);
+    cellButtons.appendChild(document.createTextNode(' '));
+
+    // === Button: Delete ===
+    const deleteBtn = document.createElement('button');
+    deleteBtn.type = 'button';
+    deleteBtn.className = 'btn btn-outline-danger btn-sm';
+    deleteBtn.title = 'Delete';
+    deleteBtn.id = 'button-delete-'+item.Id;
+
+    const deleteIcon = document.createElement('i');
+    deleteIcon.className = 'bi bi-trash3';
+    deleteBtn.appendChild(deleteIcon);
+
+    deleteBtn.addEventListener('click', () => {
+        deleteFile(item.Id);
+    });
+
+    cellButtons.appendChild(deleteBtn);
+
 
     cellFilename.classList.add('newItem');
     cellFileSize.classList.add('newItem');
@@ -716,6 +824,10 @@ function addRow(item) {
 
     changeRowCount(true, row);
     return item.Id;
+}
+
+function sanitizeId(str) {
+    return str.replace(/[^a-zA-Z0-9]/g, '');
 }
 
 function changeRowCount(add, row) {

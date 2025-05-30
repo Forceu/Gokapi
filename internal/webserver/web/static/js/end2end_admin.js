@@ -1,9 +1,17 @@
 function displayError(err) {
     document.getElementById("errordiv").style.display = "block";
-    document.getElementById("errormessage").innerHTML = "<b>Error: </b> " + err.toString().replace(/^Error:/gi, "");
-    console.error('Caught exception', err)
-}
+    const errorMessageEl = document.getElementById("errormessage");
 
+    errorMessageEl.innerText = "";
+    const bold = document.createElement("b");
+    bold.innerText = "Error: ";
+    const message = document.createTextNode(err.toString().replace(/^Error:/gi, ""));
+
+    errorMessageEl.appendChild(bold);
+    errorMessageEl.appendChild(message);
+
+    console.error('Caught exception', err);
+}
 
 function checkIfE2EKeyIsSet() {
     if (!isE2EKeySet()) {
@@ -165,10 +173,11 @@ function decryptFileEntry(id, filename, cipher) {
     for (let i = 0; i < rows.length; i++) {
         const cell = datatable.cell(i, 0).node();
         if ("cell-name-" + id === $(cell).attr("id")) {
-            datatable.cell(i, 0).data(filename);
+            let cellNode = datatable.cell(i, 0).node();
             let urlNode = datatable.cell(i, 5).node();
             let urlLink = urlNode.querySelector("a");
             let url = urlLink.getAttribute("href");
+            cellNode.textContent = filename;
             if (!url.includes(cipher)) {
                 if (IncludeFilename) {
                     url = url.replace("/Encrypted%20File", "/" + encodeURI(filename));
