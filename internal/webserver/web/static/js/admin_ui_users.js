@@ -193,6 +193,8 @@ function addNewUser() {
 
 function addRowUser(userid, name) {
 
+    userid = sanitizeId(userid);
+
     let table = document.getElementById("usertable");
     let row = table.insertRow(1);
     row.id = "row-" + userid;
@@ -215,28 +217,66 @@ function addRowUser(userid, name) {
     cellGroup.innerText = "User";
     cellLastOnline.innerText = "Never";
     cellUploads.innerText = "0";
-    let buttonResetPw = '<button id="pwchange-' + userid + '" type="button" class="btn btn-outline-light btn-sm" onclick="showResetPwModal(\'' + userid + '\', \'' + name + '\')" title="Reset Password"><i class="bi bi-key-fill"></i></button>&nbsp; ';
-    cellActions.innerHTML = '<button id="changeRank_' + userid + '" type="button" onclick="changeRank( ' + userid + ' , \'ADMIN\', \'changeRank_' + userid + '\')" title="Promote User" class="btn btn-outline-light btn-sm"><i class="bi bi-chevron-double-up"></i></button>&nbsp; <button id="delete-' + userid + '" type="button" class="btn btn-outline-danger btn-sm"  onclick="showDeleteModal(' + userid + ', \'' + name + '\')" title="Delete"><i class="bi bi-trash3"></i></button>';
+
+    // Create one button group
+    const btnGroup = document.createElement("div");
+    btnGroup.className = "btn-group";
+    btnGroup.setAttribute("role", "group");
+
+    // Password reset button (optional)
     if (isInternalAuth) {
-    	cellActions.innerHTML = buttonResetPw+cellActions.innerHTML;
+        const btnResetPw = document.createElement("button");
+        btnResetPw.id = `pwchange-${userid}`;
+        btnResetPw.type = "button";
+        btnResetPw.className = "btn btn-outline-light btn-sm";
+        btnResetPw.title = "Reset Password";
+        btnResetPw.onclick = () => showResetPwModal(userid, name);
+        btnResetPw.innerHTML = `<i class="bi bi-key-fill"></i>`;
+        btnGroup.appendChild(btnResetPw);
     }
 
+    // Promote button
+    const btnPromote = document.createElement("button");
+    btnPromote.id = `changeRank_${userid}`;
+    btnPromote.type = "button";
+    btnPromote.className = "btn btn-outline-light btn-sm";
+    btnPromote.title = "Promote User";
+    btnPromote.onclick = () => changeRank(userid, 'ADMIN', `changeRank_${userid}`);
+    btnPromote.innerHTML = `<i class="bi bi-chevron-double-up"></i>`;
+    btnGroup.appendChild(btnPromote);
+
+    // Delete button
+    const btnDelete = document.createElement("button");
+    btnDelete.id = `delete-${userid}`;
+    btnDelete.type = "button";
+    btnDelete.className = "btn btn-outline-danger btn-sm";
+    btnDelete.title = "Delete";
+    btnDelete.onclick = () => showDeleteModal(userid, name);
+    btnDelete.innerHTML = `<i class="bi bi-trash3"></i>`;
+    btnGroup.appendChild(btnDelete);
+
+    // Insert button group into cellActions
+    cellActions.innerHTML = '';
+    cellActions.appendChild(btnGroup);
+
+    // Permissions
     cellPermissions.innerHTML = `
-    <i id="perm_replace_` + userid + `" class="bi bi-recycle perm-notgranted " title="Replace own uploads" onclick='changeUserPermission(` + userid + `,"PERM_REPLACE", "perm_replace_` + userid + `");'></i>
-		
-		<i id="perm_list_` + userid + `" class="bi bi-eye perm-notgranted " title="List other uploads" onclick='changeUserPermission(` + userid + `,"PERM_LIST", "perm_list_` + userid + `");'></i>
-		
-		<i id="perm_edit_` + userid + `" class="bi bi-pencil perm-notgranted " title="Edit other uploads" onclick='changeUserPermission(` + userid + `,"PERM_EDIT", "perm_edit_` + userid + `");'></i>
-		
-		<i id="perm_delete_` + userid + `" class="bi bi-trash3 perm-notgranted " title="Delete other uploads" onclick='changeUserPermission(` + userid + `,"PERM_DELETE", "perm_delete_` + userid + `");'></i>
-		
-		<i id="perm_replace_other_` + userid + `" class="bi bi-arrow-left-right perm-notgranted " title="Replace other uploads" onclick='changeUserPermission(` + userid + `,"PERM_REPLACE_OTHER", "perm_replace_other_` + userid + `");'></i>
-		
-		<i id="perm_logs_` + userid + `" class="bi bi-card-list perm-notgranted " title="Manage system logs" onclick='changeUserPermission(` + userid + `,"PERM_LOGS", "perm_logs_` + userid + `");'></i>
+<i id="perm_replace_${userid}" class="bi bi-recycle perm-notgranted " title="Replace own uploads" onclick='changeUserPermission(${userid},"PERM_REPLACE", "perm_replace_${userid}");'></i>
 
-		<i id="perm_users_` + userid + `" class="bi bi-people perm-notgranted " title="Manage users" onclick='changeUserPermission(` + userid + `,"PERM_USERS", "perm_users_` + userid + `");'></i>
+<i id="perm_list_${userid}" class="bi bi-eye perm-notgranted " title="List other uploads" onclick='changeUserPermission(${userid},"PERM_LIST", "perm_list_${userid}");'></i>
 
-		<i id="perm_api_` + userid + `" class="bi bi-sliders2 perm-notgranted " title="Manage API keys" onclick='changeUserPermission(` + userid + `,"PERM_API", "perm_api_` + userid + `");'></i>`;
+<i id="perm_edit_${userid}" class="bi bi-pencil perm-notgranted " title="Edit other uploads" onclick='changeUserPermission(${userid},"PERM_EDIT", "perm_edit_${userid}");'></i>
+
+<i id="perm_delete_${userid}" class="bi bi-trash3 perm-notgranted " title="Delete other uploads" onclick='changeUserPermission(${userid},"PERM_DELETE", "perm_delete_${userid}");'></i>
+
+<i id="perm_replace_other_${userid}" class="bi bi-arrow-left-right perm-notgranted " title="Replace other uploads" onclick='changeUserPermission(${userid},"PERM_REPLACE_OTHER", "perm_replace_other_${userid}");'></i>
+
+<i id="perm_logs_${userid}" class="bi bi-card-list perm-notgranted " title="Manage system logs" onclick='changeUserPermission(${userid},"PERM_LOGS", "perm_logs_${userid}");'></i>
+
+<i id="perm_users_${userid}" class="bi bi-people perm-notgranted " title="Manage users" onclick='changeUserPermission(${userid},"PERM_USERS", "perm_users_${userid}");'></i>
+
+<i id="perm_api_${userid}" class="bi bi-sliders2 perm-notgranted " title="Manage API keys" onclick='changeUserPermission(${userid},"PERM_API", "perm_api_${userid}");'></i>`;
+
 
     setTimeout(() => {
 
@@ -247,5 +287,12 @@ function addRowUser(userid, name) {
         cellPermissions.classList.remove("newUser");
         cellActions.classList.remove("newUser");
     }, 700);
+}
 
+function sanitizeId(id) {
+    const numericId = id.toString().trim();
+    if (!/^\d+$/.test(numericId)) {
+        throw new Error("Invalid ID: must contain only digits.");
+    }
+    return numericId;
 }

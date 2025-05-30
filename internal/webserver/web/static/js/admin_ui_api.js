@@ -162,6 +162,11 @@ function addRowApi(apiKey, publicId) {
     cellLastUsed.innerText = "Never";
 
 
+    const btnGroup = document.createElement("div");
+    btnGroup.className = "btn-group";
+    btnGroup.setAttribute("role", "group");
+
+
     // === Buttons Cell ===
     const copyButton = document.createElement('button');
     copyButton.type = 'button';
@@ -185,9 +190,9 @@ function addRowApi(apiKey, publicId) {
     deleteIcon.className = 'bi bi-trash3';
     deleteButton.appendChild(deleteIcon);
 
-    cellButtons.appendChild(copyButton);
-    cellButtons.appendChild(document.createTextNode(' ')); // space between buttons
-    cellButtons.appendChild(deleteButton);
+    btnGroup.appendChild(copyButton);
+    btnGroup.appendChild(deleteButton);
+    cellButtons.appendChild(btnGroup);
 
     // === Permissions Cell ===
     const perms = [{

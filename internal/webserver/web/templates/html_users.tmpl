@@ -57,8 +57,9 @@
 		
             			</td>
                                 <td>
+			        <div class="btn-group" role="group">
                                 {{if $.IsInternalAuth}}
-                                <button id="pwchange-{{ .User.Id }}" type="button" class="btn btn-outline-light btn-sm" {{if or (eq .User.UserLevel 0) (eq .User.Id $.ActiveUser.Id)}}disabled{{end}} onclick="showResetPwModal('{{ .User.Id }}', '{{ .User.Name }}')" title="Reset Password"><i class="bi bi-key-fill"></i></button>&nbsp;
+                                <button id="pwchange-{{ .User.Id }}" type="button" class="btn btn-outline-light btn-sm" {{if or (eq .User.UserLevel 0) (eq .User.Id $.ActiveUser.Id)}}disabled{{end}} onclick="showResetPwModal('{{ .User.Id }}', '{{ .User.Name }}')" title="Reset Password"><i class="bi bi-key-fill"></i></button>
                                 {{end}}
                                 
                                 {{if gt .User.UserLevel 1}}
@@ -70,7 +71,8 @@
                                 {{ end }}
                                 
                                 
-                                &nbsp;<button id="delete-{{ .User.Id }}" type="button" class="btn btn-outline-danger btn-sm" {{if or (eq .User.UserLevel 0) (eq .User.Id $.ActiveUser.Id)}}disabled{{end}} onclick="showDeleteModal('{{ .User.Id }}', '{{ .User.Name }}')" title="Delete"><i class="bi bi-trash3"></i></button></td>
+                                <button id="delete-{{ .User.Id }}" type="button" class="btn btn-outline-danger btn-sm" {{if or (eq .User.UserLevel 0) (eq .User.Id $.ActiveUser.Id)}}disabled{{end}} onclick="showDeleteModal('{{ .User.Id }}', '{{ .User.Name }}')" title="Delete"><i class="bi bi-trash3"></i></button>
+                                </div></td>
                             </tr>
 {{ end }}
                         </tbody>
