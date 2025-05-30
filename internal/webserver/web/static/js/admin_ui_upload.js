@@ -689,12 +689,11 @@ function addRow(item) {
     }
     cellDownloadCount.innerText = item.DownloadCount;
 
-    // === URL Link ===
     const link = document.createElement('a');
     link.href = item.UrlDownload;
     link.target = '_blank';
     link.style.color = 'inherit';
-    link.id = 'url-href-'+item.Id;
+    link.id = 'url-href-' + item.Id;
     link.textContent = item.Id;
 
     cellUrl.appendChild(link);
@@ -707,110 +706,7 @@ function addRow(item) {
         cellUrl.appendChild(icon);
     }
 
-    // === Button: Copy URL ===
-    const copyUrlBtn = document.createElement('button');
-    copyUrlBtn.type = 'button';
-    copyUrlBtn.className = 'copyurl btn btn-outline-light btn-sm';
-    copyUrlBtn.dataset.clipboardText = item.UrlDownload;
-    copyUrlBtn.id = 'url-button-'+item.Id;
-    copyUrlBtn.title = 'Copy URL';
-
-    const copyIcon = document.createElement('i');
-    copyIcon.className = 'bi bi-copy';
-    copyUrlBtn.appendChild(copyIcon);
-    copyUrlBtn.appendChild(document.createTextNode(' URL'));
-
-    copyUrlBtn.addEventListener('click', () => {
-        showToast(1000);
-    });
-
-    cellButtons.appendChild(copyUrlBtn);
-    cellButtons.appendChild(document.createTextNode(' '));
-
-    // === Button: Copy Hotlink ===
-    const hotlinkBtn = document.createElement('button');
-    hotlinkBtn.type = 'button';
-    hotlinkBtn.className = 'copyurl btn btn-outline-light btn-sm';
-    hotlinkBtn.title = 'Copy Hotlink';
-
-    const hotlinkIcon = document.createElement('i');
-    hotlinkIcon.className = 'bi bi-copy';
-    hotlinkBtn.appendChild(hotlinkIcon);
-    hotlinkBtn.appendChild(document.createTextNode(' Hotlink'));
-
-    if (item.UrlHotlink) {
-        hotlinkBtn.dataset.clipboardText = item.UrlHotlink;
-        hotlinkBtn.addEventListener('click', () => {
-            showToast(1000);
-        });
-    } else {
-        hotlinkBtn.disabled = true;
-    }
-
-    cellButtons.appendChild(hotlinkBtn);
-    cellButtons.appendChild(document.createTextNode(' '));
-
-    // === Button: QR Code ===
-    const qrBtn = document.createElement('button');
-    qrBtn.type = 'button';
-    qrBtn.className = 'btn btn-outline-light btn-sm';
-    qrBtn.title = 'QR Code';
-    qrBtn.id = 'qrcode-'+item.Id;
-
-    const qrIcon = document.createElement('i');
-    qrIcon.className = 'bi bi-qr-code';
-    qrBtn.appendChild(qrIcon);
-
-    qrBtn.addEventListener('click', () => {
-        showQrCode(item.UrlDownload);
-    });
-
-    cellButtons.appendChild(qrBtn);
-    cellButtons.appendChild(document.createTextNode(' '));
-
-    // === Button: Edit ===
-    const editBtn = document.createElement('button');
-    editBtn.type = 'button';
-    editBtn.className = 'btn btn-outline-light btn-sm';
-    editBtn.title = 'Edit';
-
-    const editIcon = document.createElement('i');
-    editIcon.className = 'bi bi-pencil';
-    editBtn.appendChild(editIcon);
-
-    editBtn.addEventListener('click', () => {
-        showEditModal(
-            item.Name,
-            item.Id,
-            item.DownloadsRemaining,
-            item.ExpireAt,
-            item.IsPasswordProtected,
-            item.UnlimitedDownloads,
-            item.UnlimitedTime,
-            item.IsEndToEndEncrypted,
-            canReplaceOwnFiles
-        );
-    });
-
-    cellButtons.appendChild(editBtn);
-    cellButtons.appendChild(document.createTextNode(' '));
-
-    // === Button: Delete ===
-    const deleteBtn = document.createElement('button');
-    deleteBtn.type = 'button';
-    deleteBtn.className = 'btn btn-outline-danger btn-sm';
-    deleteBtn.title = 'Delete';
-    deleteBtn.id = 'button-delete-'+item.Id;
-
-    const deleteIcon = document.createElement('i');
-    deleteIcon.className = 'bi bi-trash3';
-    deleteBtn.appendChild(deleteIcon);
-
-    deleteBtn.addEventListener('click', () => {
-        deleteFile(item.Id);
-    });
-
-    cellButtons.appendChild(deleteBtn);
+    cellButtons.appendChild(createButtonGroup(item));
 
 
     cellFilename.classList.add('newItem');
@@ -824,6 +720,158 @@ function addRow(item) {
 
     changeRowCount(true, row);
     return item.Id;
+}
+
+function createButtonGroup(item) {
+    const groupContainer = document.createElement("div");
+    groupContainer.className = "btn-toolbar";
+    groupContainer.setAttribute("role", "toolbar");
+
+    const group1 = document.createElement("div");
+    group1.className = "btn-group me-2";
+    group1.setAttribute("role", "group");
+
+    // === Button: Copy URL ===
+    const copyUrlBtn = document.createElement('button');
+    copyUrlBtn.type = 'button';
+    copyUrlBtn.className = 'copyurl btn btn-outline-light btn-sm';
+    copyUrlBtn.dataset.clipboardText = item.UrlDownload;
+    copyUrlBtn.id = 'url-button-' + item.Id;
+    copyUrlBtn.title = 'Copy URL';
+
+    const copyIcon = document.createElement('i');
+    copyIcon.className = 'bi bi-copy';
+    copyUrlBtn.appendChild(copyIcon);
+    copyUrlBtn.appendChild(document.createTextNode(' URL'));
+
+    copyUrlBtn.addEventListener('click', () => {
+        showToast(1000);
+    });
+
+    group1.appendChild(copyUrlBtn);
+
+    // Dropdown toggle for Hotlink
+    const btnDropdown1 = document.createElement("button");
+    btnDropdown1.type = "button";
+    btnDropdown1.className = "btn btn-outline-light btn-sm dropdown-toggle dropdown-toggle-split";
+    btnDropdown1.setAttribute("data-bs-toggle", "dropdown");
+    btnDropdown1.setAttribute("aria-expanded", "false");
+    group1.appendChild(btnDropdown1);
+
+    const dropdown1 = document.createElement("ul");
+    dropdown1.className = "dropdown-menu dropdown-menu-end";
+    dropdown1.setAttribute("data-bs-theme", "dark");
+
+    const liDr1 = document.createElement("li");
+    const aDr1 = document.createElement("a");
+    if (item.UrlHotlink !== "") {
+        aDr1.className = "dropdown-item copyurl";
+        aDr1.title = "Copy hotlink";
+        aDr1.setAttribute("data-clipboard-text", item.UrlHotlink);
+        aDr1.onclick = () => showToast(1000);
+        aDr1.innerHTML = `<i class="bi bi-copy"></i> Hotlink`;
+    } else {
+        aDr1.className = "dropdown-item";
+        aDr1.innerText = "Hotlink not available";
+    }
+    liDr1.appendChild(aDr1);
+    dropdown1.appendChild(liDr1);
+    group1.appendChild(dropdown1);
+
+    // Share button
+    const btnShare = document.createElement("button");
+    btnShare.type = "button";
+    btnShare.className = "btn btn-outline-light btn-sm";
+    btnShare.title = "Share";
+    btnShare.onclick = () => shareUrl(item.Id);
+    btnShare.innerHTML = `<i class="bi bi-share"></i>`;
+    group1.appendChild(btnShare);
+
+
+    // Dropdown toggle 
+    const btnDropdown2 = document.createElement("button");
+    btnDropdown2.type = "button";
+    btnDropdown2.className = "btn btn-outline-light btn-sm dropdown-toggle dropdown-toggle-split";
+    btnDropdown2.setAttribute("data-bs-toggle", "dropdown");
+    btnDropdown2.setAttribute("aria-expanded", "false");
+    group1.appendChild(btnDropdown2);
+
+    const dropdown2 = document.createElement("ul");
+    dropdown2.className = "dropdown-menu dropdown-menu-end";
+    dropdown2.setAttribute("data-bs-theme", "dark");
+
+    const qrLi = document.createElement("li");
+    const qrA = document.createElement("a");
+    qrA.className = "dropdown-item";
+    qrA.id = `qrcode-${item.Id}`;
+    qrA.title = "Open QR Code";
+    qrA.onclick = () => showQrCode(item.UrlDownload);
+    qrA.innerHTML = `<i class="bi bi-qr-code"></i> QR Code`;
+    qrLi.appendChild(qrA);
+    dropdown2.appendChild(qrLi);
+
+    const emailLi = document.createElement("li");
+    const emailA = document.createElement("a");
+    emailA.className = "dropdown-item";
+    emailA.title = "Share via email";
+    emailA.target = "_blank";
+    emailA.href = `mailto:?body=${encodeURIComponent(item.UrlDownload)}`;
+    emailA.innerHTML = `<i class="bi bi-envelope"></i> Email`;
+    emailLi.appendChild(emailA);
+    dropdown2.appendChild(emailLi);
+    group1.appendChild(dropdown2);
+
+    // Button group for Edit/Delete
+    const group2 = document.createElement("div");
+    group2.className = "btn-group me-2";
+    group2.setAttribute("role", "group");
+
+    // === Button: Edit ===
+    const btnEdit = document.createElement('button');
+    btnEdit.type = 'button';
+    btnEdit.className = 'btn btn-outline-light btn-sm';
+    btnEdit.title = 'Edit';
+
+    const editIcon = document.createElement('i');
+    editIcon.className = 'bi bi-pencil';
+    btnEdit.appendChild(editIcon);
+
+    btnEdit.addEventListener('click', () => {
+        showEditModal(
+            item.Name,
+            item.Id,
+            item.DownloadsRemaining,
+            item.ExpireAt,
+            item.IsPasswordProtected,
+            item.UnlimitedDownloads,
+            item.UnlimitedTime,
+            item.IsEndToEndEncrypted,
+            canReplaceOwnFiles
+        );
+    });
+
+    group2.appendChild(btnEdit);
+
+    // === Button: Delete ===
+    const btnDelete = document.createElement('button');
+    btnDelete.type = 'button';
+    btnDelete.className = 'btn btn-outline-danger btn-sm';
+    btnDelete.title = 'Delete';
+    btnDelete.id = 'button-delete-' + item.Id;
+
+    const deleteIcon = document.createElement('i');
+    deleteIcon.className = 'bi bi-trash3';
+    btnDelete.appendChild(deleteIcon);
+
+    btnDelete.addEventListener('click', () => {
+        deleteFile(item.Id);
+    });
+    group2.appendChild(btnDelete);
+
+    groupContainer.appendChild(group1);
+    groupContainer.appendChild(group2);
+
+    return groupContainer;
 }
 
 function sanitizeId(str) {
@@ -895,7 +943,7 @@ function showToastFileDeletion(id) {
 }
 
 function hideFileToast() {
-	document.getElementById("toastnotificationUndo").classList.remove("show");
+    document.getElementById("toastnotificationUndo").classList.remove("show");
 }
 
 function handleUndo(button) {
@@ -908,4 +956,16 @@ function handleUndo(button) {
             alert("Unable to restore file: " + error);
             console.error('Error:', error);
         });
+}
+
+function shareUrl(id) {
+    if (!navigator.share) {
+        return;
+    }
+    let filename = document.getElementById("cell-name-" + id).innerText;
+    let url = document.getElementById("url-href-" + id).getAttribute("href");
+    navigator.share({
+        title: filename,
+        url: url,
+    })
 }

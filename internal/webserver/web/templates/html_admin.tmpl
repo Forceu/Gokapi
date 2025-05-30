@@ -79,15 +79,17 @@
 				{{ end }}
 						<td id="cell-downloads-{{ .Id }}">{{ .DownloadCount }}</td>
 						<td><a id="url-href-{{ .Id }}" target="_blank" href="{{ .UrlDownload }}">{{ .Id }}</a>{{ if .IsPasswordProtected }}  <i title="Password protected" class="bi bi-key"></i>{{ end }}</td>
-						<td><button id="url-button-{{ .Id }}" type="button" onclick="showToast(1000)" data-clipboard-text="{{ .UrlDownload }}" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> URL</button> 
-			{{ if ne .UrlHotlink "" }}
- 						<button type="button" onclick="showToast(1000)" data-clipboard-text="{{ .UrlHotlink }}" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i> Hotlink</button>
-				{{ else }}
- 						<button type="button"class="copyurl btn btn-outline-light btn-sm disabled"><i class="bi bi-copy"></i> Hotlink</button>
-				{{ end }}
-						<button type="button" id="qrcode-{{ .Id }}" title="QR Code" class="btn btn-outline-light btn-sm" onclick="showQrCode('{{ .UrlDownload }}');"><i class="bi bi-qr-code"></i></button>
-						{{ template "admin_button_edit" (newAdminButtonContext . $.ActiveUser) }}
-						{{ template "admin_button_delete" (newAdminButtonContext . $.ActiveUser) }}</td>
+						<td>
+						<div class="btn-toolbar" role="toolbar" >
+						  <div class="btn-group me-2" role="group">
+						     {{ template "admin_button_copyurl" (newAdminButtonContext . $.ActiveUser)}}
+						     {{ template "admin_button_share" (newAdminButtonContext . $.ActiveUser)}}
+						  </div>
+						  <div class="btn-group me-2" role="group">
+						     {{ template "admin_button_edit" (newAdminButtonContext . $.ActiveUser) }}
+						     {{ template "admin_button_delete" (newAdminButtonContext . $.ActiveUser) }}
+						 </div>
+						</div></td>
 					</tr>
 			{{ end }}
 		{{ end }}
@@ -115,7 +117,6 @@
 
 	<script src="./js/min/admin.min.{{ template "js_admin_version"}}.js"></script>
 	<script>
-	
 	
 	initDropzone();
 
@@ -216,6 +217,33 @@
 			   onclick="deleteFile('{{ .CurrentFile.Id }}')">
 			   <i class="bi bi-trash3"></i>
 			</button>
+{{ end }}
+
+{{ define "admin_button_copyurl" }}
+		    <button id="url-button-{{ .CurrentFile.Id }}" type="button" onclick="showToast(1000)"
+		    	data-clipboard-text="{{ .CurrentFile.UrlDownload }}" class="copyurl btn btn-outline-light btn-sm" title="Copy URL"><i class="bi bi-copy"></i> URL</button>
+		    <button type="button" class="btn btn-outline-light btn-sm dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+		    </button>
+			<ul class="dropdown-menu dropdown-menu-end" data-bs-theme="dark" >
+	{{ if ne .CurrentFile.UrlHotlink "" }}
+			    <li><a class="dropdown-item copyurl" title="Copy hotlink" onclick="showToast(1000)"
+			    	data-clipboard-text="{{ .CurrentFile.UrlHotlink }}"><i class="bi bi-copy"></i> Hotlink</a></li>
+		{{ else }}
+			    <li><a class="dropdown-item disabled">Hotlink not available</a></li>
+	{{ end }}
+			</ul>
+{{ end }}
+
+{{ define "admin_button_share" }}
+		    <button type="button" class="btn btn-outline-light btn-sm" title="Share" onclick="shareUrl('{{ .CurrentFile.Id }}',
+		       '{{ .CurrentFile.UrlDownload }}')"><i class="bi bi-share"></i></button>
+		    <button type="button" class="btn btn-outline-light btn-sm dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+		    </button>
+			<ul class="dropdown-menu dropdown-menu-end" data-bs-theme="dark" >
+			    <li><a class="dropdown-item" id="qrcode-{{ .CurrentFile.Id }}" title="Open QR Code" class="btn btn-outline-light btn-sm" onclick="showQrCode('{{ .CurrentFile.UrlDownload }}');"><i class="bi bi-qr-code"></i> QR Code</a></li>
+			    <li><a class="dropdown-item" id="email-{{ .CurrentFile.Id }}" href="mailto:?body={{ .CurrentFile.UrlDownload | urlquery}}"
+			       target="_blank" title="Share via email" class="btn btn-outline-light btn-sm"><i class="bi bi-envelope"></i> Email</a></li>
+			</ul>
 {{ end }}
 
 {{ define "admin_modal_edit" }}

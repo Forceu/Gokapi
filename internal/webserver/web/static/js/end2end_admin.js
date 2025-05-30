@@ -170,6 +170,8 @@ function decryptFileEntry(id, filename, cipher) {
     let datatable = $('#maintable').DataTable();
     const rows = datatable.rows().nodes();
 
+	
+
     for (let i = 0; i < rows.length; i++) {
         const cell = datatable.cell(i, 0).node();
         if ("cell-name-" + id === $(cell).attr("id")) {
@@ -180,7 +182,7 @@ function decryptFileEntry(id, filename, cipher) {
             cellNode.textContent = filename;
             if (!url.includes(cipher)) {
                 if (IncludeFilename) {
-                    url = url.replace("/Encrypted%20File", "/" + encodeURI(filename));
+                    url = url.replace("/Encrypted%20File", "/" + encodeURIComponent(filename));
                 }
                 url = url + "#" + cipher;
                 urlLink.setAttribute("href", url);
@@ -192,6 +194,7 @@ function decryptFileEntry(id, filename, cipher) {
             let button = buttonNode.querySelector("button");
             button.setAttribute("data-clipboard-text", url);
             document.getElementById("qrcode-"+id).onclick = function() {showQrCode(url);};
+            document.getElementById("email-"+id).href = "mailto:?body="+encodeURIComponent(url);
             datatable.cell(i, 6).node(buttonNode);
             break;
         }

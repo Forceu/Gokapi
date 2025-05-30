@@ -11,10 +11,10 @@ import (
 	"strings"
 )
 
-const versionJsAdmin = 9
+const versionJsAdmin = 10
 const versionJsDropzone = 5
-const versionJsE2EAdmin = 5
-const versionCssMain = 4
+const versionJsE2EAdmin = 6
+const versionCssMain = 5
 
 const fileMain = "../../cmd/gokapi/Main.go"
 const fileMinify = "../../build/go-generate/minifyStaticContent.go"
