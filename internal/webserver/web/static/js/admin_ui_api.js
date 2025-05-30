@@ -47,10 +47,10 @@ function deleteApiKey(apiKey) {
 
     apiAuthDelete(apiKey)
         .then(data => {
-        document.getElementById("row-" + apiKey).classList.add("rowDeleting");
-        setTimeout(() => {
-            document.getElementById("row-" + apiKey).remove();
-    }, 290);
+            document.getElementById("row-" + apiKey).classList.add("rowDeleting");
+            setTimeout(() => {
+                document.getElementById("row-" + apiKey).remove();
+            }, 290);
         })
         .catch(error => {
             alert("Unable to delete API key: " + error);
@@ -81,7 +81,7 @@ function addFriendlyNameChange(apiKey) {
     if (cell.classList.contains("isBeingEdited"))
         return;
     cell.classList.add("isBeingEdited");
-    let currentName = cell.innerHTML;
+    let currentName = cell.innerText;
     let input = document.createElement("input");
     input.size = 5;
     input.value = currentName;
@@ -93,9 +93,9 @@ function addFriendlyNameChange(apiKey) {
         allowEdit = false;
         let newName = input.value;
         if (newName == "") {
-        	newName = "Unnamed key";
+            newName = "Unnamed key";
         }
-        cell.innerHTML = newName;
+        cell.innerText = newName;
 
         cell.classList.remove("isBeingEdited");
 
@@ -114,7 +114,7 @@ function addFriendlyNameChange(apiKey) {
             submitEntry();
         }
     });
-    cell.innerHTML = "";
+    cell.innerText = "";
     cell.appendChild(input);
     input.focus();
 }
@@ -126,7 +126,7 @@ function addRowApi(apiKey, publicId) {
 
     let table = document.getElementById("apitable");
     let row = table.insertRow(0);
-    
+
     row.id = "row-" + publicId;
     let cellCount = 0;
     let cellFriendlyName = row.insertCell(cellCount++);
@@ -135,13 +135,13 @@ function addRowApi(apiKey, publicId) {
     let cellPermissions = row.insertCell(cellCount++);
     let cellUserName;
     if (canViewOtherApiKeys) {
-    	cellUserName= row.insertCell(cellCount++);
-    	}
-    let cellButtons= row.insertCell(cellCount++);
-    
+        cellUserName = row.insertCell(cellCount++);
+    }
+    let cellButtons = row.insertCell(cellCount++);
+
     if (canViewOtherApiKeys) {
-    cellUserName.classList.add("newApiKey");
-    cellUserName.innerText = userName;
+        cellUserName.classList.add("newApiKey");
+        cellUserName.innerText = userName;
     }
 
     cellFriendlyName.classList.add("newApiKey");
@@ -157,28 +157,115 @@ function addRowApi(apiKey, publicId) {
     cellFriendlyName.onclick = function() {
         addFriendlyNameChange(publicId);
     };
-    cellId.innerHTML = '<div class="font-monospace">'+apiKey+'</div>';
+    cellId.innerText = apiKey;
+    cellId.classList.add("font-monospace");
     cellLastUsed.innerText = "Never";
-    cellButtons.innerHTML = '<button type="button" data-clipboard-text="' + apiKey + '"  onclick="showToast(1000)" title="Copy API Key" class="copyurl btn btn-outline-light btn-sm"><i class="bi bi-copy"></i></button> <button id="delete-' + publicId + '" type="button" class="btn btn-outline-danger btn-sm" onclick="deleteApiKey(\'' + publicId + '\')" title="Delete"><i class="bi bi-trash3"></i></button>';
-    cellPermissions.innerHTML = `
-	    	<i id="perm_view_` + publicId + `" class="bi bi-eye perm-granted" title="List Uploads" onclick='changeApiPermission("` + publicId + `","PERM_VIEW", "perm_view_` + publicId + `");'></i>
-	    	<i id="perm_upload_` + publicId + `" class="bi bi-file-earmark-arrow-up perm-granted" title="Upload" onclick='changeApiPermission("` + publicId + `","PERM_UPLOAD", "perm_upload_` + publicId + `");'></i>
-	    	<i id="perm_edit_` + publicId + `" class="bi bi-pencil perm-granted" title="Edit Uploads" onclick='changeApiPermission("` + publicId + `","PERM_EDIT", "perm_edit_` + publicId + `");'></i>
-	    	<i id="perm_delete_` + publicId + `" class="bi bi-trash3 perm-granted" title="Delete Uploads" onclick='changeApiPermission("` + publicId + `","PERM_DELETE", "perm_delete_` + publicId + `");'></i>
-	    	<i id="perm_replace_` + publicId + `" class="bi bi-recycle perm-notgranted" title="Replace Uploads" onclick='changeApiPermission("` + publicId + `","PERM_REPLACE", "perm_replace_` + publicId + `");'></i>
-	    	<i id="perm_users_` + publicId + `" class="bi bi-people perm-notgranted" title="Manage Users" onclick='changeApiPermission("` + publicId + `", "PERM_MANAGE_USERS", "perm_users_` + publicId + `");'></i>
-	    	<i id="perm_logs_` + publicId + `" class="bi bi-card-list perm-notgranted" title="Manage System Logs" onclick='changeApiPermission("` + publicId + `", "PERM_MANAGE_LOGS", "perm_logs_` + publicId + `");'></i>
-	    	<i id="perm_api_` + publicId + `" class="bi bi-sliders2 perm-notgranted" title="Manage API Keys" onclick='changeApiPermission("` + publicId + `","PERM_API_MOD", "perm_api_` + publicId + `");'></i>`;
-   
+
+
+    // === Buttons Cell ===
+    const copyButton = document.createElement('button');
+    copyButton.type = 'button';
+    copyButton.dataset.clipboardText = apiKey;
+    copyButton.title = 'Copy API Key';
+    copyButton.className = 'copyurl btn btn-outline-light btn-sm';
+    copyButton.setAttribute('onclick', 'showToast(1000)');
+
+    const copyIcon = document.createElement('i');
+    copyIcon.className = 'bi bi-copy';
+    copyButton.appendChild(copyIcon);
+
+    const deleteButton = document.createElement('button');
+    deleteButton.type = 'button';
+    deleteButton.id = `delete-${publicId}`;
+    deleteButton.title = 'Delete';
+    deleteButton.className = 'btn btn-outline-danger btn-sm';
+    deleteButton.setAttribute('onclick', `deleteApiKey('${publicId}')`);
+
+    const deleteIcon = document.createElement('i');
+    deleteIcon.className = 'bi bi-trash3';
+    deleteButton.appendChild(deleteIcon);
+
+    cellButtons.appendChild(copyButton);
+    cellButtons.appendChild(document.createTextNode(' ')); // space between buttons
+    cellButtons.appendChild(deleteButton);
+
+    // === Permissions Cell ===
+    const perms = [{
+            perm: 'PERM_VIEW',
+            icon: 'bi-eye',
+            granted: true,
+            title: 'List Uploads'
+        },
+        {
+            perm: 'PERM_UPLOAD',
+            icon: 'bi-file-earmark-arrow-up',
+            granted: true,
+            title: 'Upload'
+        },
+        {
+            perm: 'PERM_EDIT',
+            icon: 'bi-pencil',
+            granted: true,
+            title: 'Edit Uploads'
+        },
+        {
+            perm: 'PERM_DELETE',
+            icon: 'bi-trash3',
+            granted: true,
+            title: 'Delete Uploads'
+        },
+        {
+            perm: 'PERM_REPLACE',
+            icon: 'bi-recycle',
+            granted: false,
+            title: 'Replace Uploads'
+        },
+        {
+            perm: 'PERM_MANAGE_USERS',
+            icon: 'bi-people',
+            granted: false,
+            title: 'Manage Users'
+        },
+        {
+            perm: 'PERM_MANAGE_LOGS',
+            icon: 'bi-card-list',
+            granted: false,
+            title: 'Manage System Logs'
+        },
+        {
+            perm: 'PERM_API_MOD',
+            icon: 'bi-sliders2',
+            granted: false,
+            title: 'Manage API Keys'
+        }
+    ];
+
+    perms.forEach(({
+        perm,
+        icon,
+        granted,
+        title
+    }) => {
+        const i = document.createElement('i');
+        const id = `perm_${perm.toLowerCase().replace('perm_', '')}_${publicId}`;
+        i.id = id;
+        i.className = `bi ${icon} ${granted ? 'perm-granted' : 'perm-notgranted'}`;
+        i.title = title;
+        i.setAttribute('onclick', `changeApiPermission("${publicId}","${perm}", "${id}");`);
+        cellPermissions.appendChild(i);
+        cellPermissions.appendChild(document.createTextNode(' '));
+    });
+
+
     if (!canReplaceFiles) {
-    	let cell = document.getElementById("perm_replace_"+publicId);
-    	cell.classList.add("perm-unavailable");
-    	cell.classList.add("perm-nochange");
+        let cell = document.getElementById("perm_replace_" + publicId);
+        cell.classList.add("perm-unavailable");
+        cell.classList.add("perm-nochange");
     }
     if (!canManageUsers) {
-    	let cell = document.getElementById("perm_users_"+publicId);
-    	cell.classList.add("perm-unavailable");
-    	cell.classList.add("perm-nochange");
+        let cell = document.getElementById("perm_users_" + publicId);
+        cell.classList.add("perm-unavailable");
+        cell.classList.add("perm-nochange");
     }
 
     setTimeout(() => {
