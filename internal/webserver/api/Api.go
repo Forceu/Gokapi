@@ -345,7 +345,7 @@ func apiDeleteFile(w http.ResponseWriter, r requestParser, user models.User) {
 	if request.DelaySeconds == 0 {
 		_ = storage.DeleteFile(request.Id, true)
 	} else {
-		_ = storage.DeleteFileSchedule(request.Id, request.DelaySeconds, true)
+		_ = storage.DeleteFileSchedule(request.Id, request.DelaySeconds*1000, true)
 	}
 }
 

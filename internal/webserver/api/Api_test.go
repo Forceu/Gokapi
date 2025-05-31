@@ -1227,10 +1227,9 @@ func TestRestoreFile(t *testing.T) {
 	testRestoreFileCall(t, apiKey.Id, fileUser.Id, 200, fileUser.ToJsonResult(config.ServerUrl, config.IncludeFilename))
 	testRestoreFileCall(t, apiKey.Id, fileAdmin.Id, 401, `{"Result":"error","ErrorMessage":"No permission to restore this file"}`)
 
-	storage.DeleteFileSchedule(fileUser.Id, 1, true)
-	storage.DeleteFileSchedule(fileAdmin.Id, 1, true)
+	storage.DeleteFileSchedule(fileUser.Id, 500, true)
+	storage.DeleteFileSchedule(fileAdmin.Id, 500, true)
 
-	time.Sleep(400 * time.Millisecond)
 	file, ok := database.GetMetaDataById(fileUser.Id)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, file.PendingDeletion != 0, true)
@@ -1248,12 +1247,38 @@ func TestRestoreFile(t *testing.T) {
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, file.PendingDeletion != 0, true)
 
-	time.Sleep(600 * time.Millisecond)
-	file, ok = database.GetMetaDataById(fileUser.Id)
-	test.IsEqualBool(t, ok, true)
+	startTime := time.Now()
+	for {
+		if time.Since(startTime) > 10*time.Second {
+			t.Errorf("Timeout waiting for file to be deleted")
+			break
+		}
+		_, ok = database.GetMetaDataById(fileAdmin.Id)
+		if !ok {
+			break
+		} else {
+			time.Sleep(50 * time.Millisecond)
+		}
+	}
+
+	startTime = time.Now()
+	for {
+		if time.Since(startTime) > 10*time.Second {
+			t.Errorf("Timeout waiting for file to be restored")
+			break
+		}
+		file, ok = database.GetMetaDataById(fileUser.Id)
+		if !ok {
+			t.Errorf("File was deleted")
+			break
+		}
+		if file.PendingDeletion == 0 {
+			break
+		} else {
+			time.Sleep(50 * time.Millisecond)
+		}
+	}
 	test.IsEqualInt64(t, file.PendingDeletion, 0)
-	_, ok = database.GetMetaDataById(fileAdmin.Id)
-	test.IsEqualBool(t, ok, false)
 	storage.DeleteFile(fileUser.Id, true)
 }
 

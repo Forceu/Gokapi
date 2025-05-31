@@ -68,11 +68,11 @@ func ParseChunkInfo(r *http.Request, isApiCall bool) (ChunkInfo, error) {
 	if len(info.UUID) < 10 {
 		return ChunkInfo{}, errors.New("invalid uuid submitted, needs to be at least 10 characters long")
 	}
-	info.UUID = sanitseUuid(info.UUID)
+	info.UUID = sanitiseUuid(info.UUID)
 	return info, nil
 }
 
-func sanitseUuid(input string) string {
+func sanitiseUuid(input string) string {
 	reg, err := regexp.Compile("[^a-zA-Z0-9-]")
 	helper.Check(err)
 	return reg.ReplaceAllString(input, "_")
