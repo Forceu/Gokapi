@@ -1,53 +1,76 @@
 # Gokapi
+
 [![Documentation Status](https://readthedocs.org/projects/gokapi/badge/?version=latest)](https://gokapi.readthedocs.io/en/stable/?badge=stable)
 [![Go Report Card](https://goreportcard.com/badge/github.com/forceu/gokapi)](https://goreportcard.com/report/github.com/forceu/gokapi)
-<a href='https://github.com/jpoles1/gopherbadger' target='_blank'>![gopherbadger-tag-do-not-edit](https://img.shields.io/badge/Go%20Coverage-83%25-brightgreen.svg?longCache=true&style=flat)</a>
+[![Coverage](https://img.shields.io/badge/Go%20Coverage-83%25-brightgreen.svg?longCache=true&style=flat)](https://github.com/jpoles1/gopherbadger)
 [![Docker Pulls](https://img.shields.io/docker/pulls/f0rc3/gokapi.svg)](https://hub.docker.com/r/f0rc3/gokapi/)
 
+**Gokapi** is a simple, self-hosted file sharing server with automatic expiration and encryption support — ideal for teams or individuals who want privacy, control, and no clutter.
 
 ### Available for:
 
-- Bare Metal
-- [Docker](https://hub.docker.com/r/f0rc3/gokapi)
+- **Bare Metal** (Linux/macOS/Windows)
+- **Docker**: [View on Docker Hub](https://hub.docker.com/r/f0rc3/gokapi)
 
-## About
+## Features
 
-Gokapi is a lightweight server to share files, which expire after a set amount of downloads or days. It is similar to the discontinued [Firefox Send](https://github.com/mozilla/send), with the difference that only the admin is allowed to upload files. 
-
-This enables companies or individuals to share their files very easily and having them removed afterwards, therefore saving disk space and having control over who downloads the file from the server.
-
-Identical files will be deduplicated. An API is available to interact with Gokapi. AWS S3 and Backblaze B2 can be used instead of local storage. Customization is very easy with HTML/CSS knowledge. Encryption including end-to-end encryption is available.
+- **Expiring file shares:** Automatically removed after a set number of downloads or days
+- **User management with roles:** Fine-grained permission control, only registered users can upload
+- **File deduplication:** Identical files use no extra space
+- **Cloud storage support:** AWS S3 (or S3 compatible like Backblaze B2), optional
+- **Built-in encryption:** Including end-to-end encrypted uploads
+- **OpenID Connect support:** Integrate with identity providers like Authelia or Keycloak
+- **REST API:** For automation and integration into other systems
+- **Customizable UI:** Adjust look and feel with custom CSS and JavaScript
 
 
 ## Screenshots
-Admin Menu ![image](https://github.com/Forceu/Gokapi/assets/1593467/faf1f45a-de86-4698-ace1-7b64673ab67a)
+**File Overview**
+
+<a href="https://github.com/user-attachments/assets/188ab076-6bed-43fc-a3d1-3d91f2ccdf0c" target="_blank">
+  <img src="https://github.com/user-attachments/assets/188ab076-6bed-43fc-a3d1-3d91f2ccdf0c" width="300" />
+</a>
+
+**API Overview**
+
+<a href="https://github.com/user-attachments/assets/dc0ace44-1c0b-4eb6-afd2-0cb11db173b3" target="_blank">
+  <img src="https://github.com/user-attachments/assets/dc0ace44-1c0b-4eb6-afd2-0cb11db173b3" width="300" />
+</a>
+
+**User Overview**
+
+<a href="https://github.com/user-attachments/assets/e808a20b-6cfc-472b-b539-f57c2001d822" target="_blank">
+  <img src="https://github.com/user-attachments/assets/e808a20b-6cfc-472b-b539-f57c2001d822" width="300" />
+</a>
+
+**Download Link**
+
+<a href="https://github.com/Forceu/Gokapi/assets/1593467/d26d0642-4f85-47f9-ae69-50c3b8bc7717" target="_blank">
+  <img src="https://github.com/Forceu/Gokapi/assets/1593467/d26d0642-4f85-47f9-ae69-50c3b8bc7717" width="300" />
+</a>
 
 
 
-Download Link ![image](https://github.com/Forceu/Gokapi/assets/1593467/d26d0642-4f85-47f9-ae69-50c3b8bc7717)
 
 
 
 
+## Getting Started
 
+You can deploy Gokapi in seconds using Docker or directly on your system.
 
+[Installation Guide](https://gokapi.readthedocs.io/en/latest/setup.html)  
+[Usage Instructions](https://gokapi.readthedocs.io/en/latest/usage.html)
 
-## Installation
+## License
 
-Can be deployed in only a few seconds. Please refer to the [documentation](https://gokapi.readthedocs.io/en/latest/setup.html)
-
-## Usage
-
-Please refer to the [documentation](https://gokapi.readthedocs.io/en/latest/usage.html)
+This project is licensed under the AGPL3 - see the [LICENSE.md](LICENSE.md) file for details
 
 ## Contributors
 <a href="https://github.com/forceu/gokapi/graphs/contributors">
   <img src="https://contributors-img.web.app/image?repo=forceu/gokapi" />
 </a>
 
-## License
-
-This project is licensed under the AGPL3 - see the [LICENSE.md](LICENSE.md) file for details
 
 
 ## Donations
