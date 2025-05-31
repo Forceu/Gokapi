@@ -821,19 +821,21 @@ func DeleteFileSchedule(fileId string, delaySeconds int, deleteSource bool) bool
 	deletionTime := time.Now().Add(time.Duration(delaySeconds) * time.Second).Unix()
 	file.PendingDeletion = deletionTime
 	database.SaveMetaData(file)
-	go func() {
+	// Explicit parameter to avoid accidental changes
+	go func(id string, timestamp int64) {
 		select {
 		case <-time.After(time.Duration(delaySeconds) * time.Second):
 		}
-		file, ok = database.GetMetaDataById(fileId)
-		if !ok {
+		// A new models.File needs to be assigned to avoid a racy mutation
+		retrievedFile, exists := database.GetMetaDataById(id)
+		if !exists {
 			return
 		}
 		// To prevent race conditions, it is checked if the deletion time is the same time that was originally set
-		if file.PendingDeletion == deletionTime {
-			DeleteFile(fileId, deleteSource)
+		if retrievedFile.PendingDeletion == timestamp {
+			DeleteFile(id, deleteSource)
 		}
-	}()
+	}(fileId, deletionTime)
 	return true
 }
 
