@@ -1,10 +1,13 @@
 name: Docker Publish Dev Multiarch
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: {}
   push:
-    branches: master
+    branches:
+      - master
 
+permissions:
+  contents: read
 
 jobs:
   build:

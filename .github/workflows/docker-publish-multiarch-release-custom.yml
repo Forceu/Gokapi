@@ -1,13 +1,15 @@
 name: Docker Publish Custom Release Multiarch
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: {}
     inputs:
       tagname:
         description: 'Tag name to be built'
         required: true
 
 
+permissions:
+  contents: read
 
 jobs:
   build:
