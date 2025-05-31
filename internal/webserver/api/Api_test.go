@@ -1248,7 +1248,7 @@ func TestRestoreFile(t *testing.T) {
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, file.PendingDeletion != 0, true)
 
-	time.Sleep(600 * time.Millisecond)
+	time.Sleep(800 * time.Millisecond)
 	file, ok = database.GetMetaDataById(fileUser.Id)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualInt64(t, file.PendingDeletion, 0)
