@@ -192,6 +192,14 @@ a:hover {
     color: #81D4FA;
 }
 
+.toastnotification:not(.show) {
+    pointer-events: none !important;
+}
+
+.toastnotification:not(.show) .toast-undo {
+    pointer-events: none;
+}
+
 .perm-granted {
     cursor: pointer;
     color: #0edf00;
