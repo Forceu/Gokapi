@@ -1118,7 +1118,7 @@ func TestDeleteFile(t *testing.T) {
 	database.SaveMetaData(models.File{
 		Id:                 "smalltestfile1",
 		Name:               "smalltestfile1",
-		SHA1:               "smalltestfile1",
+		SHA1:               "03cfd743661f07975fa2f1220c5194cbaff48451",
 		ExpireAt:           2147483646,
 		DownloadsRemaining: 1,
 		UserId:             idUser,
@@ -1126,7 +1126,7 @@ func TestDeleteFile(t *testing.T) {
 	database.SaveMetaData(models.File{
 		Id:                 "smalltestfile2",
 		Name:               "smalltestfile2",
-		SHA1:               "smalltestfile2",
+		SHA1:               "03cfd743661f07975fa2f1220c5194cbaff48451",
 		ExpireAt:           2147483646,
 		DownloadsRemaining: 1,
 		UserId:             idSuperAdmin,
@@ -1134,7 +1134,7 @@ func TestDeleteFile(t *testing.T) {
 	database.SaveMetaData(models.File{
 		Id:                 "smalltestfileDelay",
 		Name:               "smalltestfileDelay",
-		SHA1:               "2341354656543213246465465465432456898794",
+		SHA1:               "03cfd743661f07975fa2f1220c5194cbaff48451",
 		ExpireAt:           2147483646,
 		DownloadsRemaining: 1,
 		UserId:             idUser,
@@ -1199,38 +1199,38 @@ func testDeleteFileCall(t *testing.T, apiKey, fileId, delay string, resultCode i
 func TestRestoreFile(t *testing.T) {
 	config := configuration.Get()
 	fileUser := models.File{
-		Id:                 "smalltestfile1",
-		Name:               "smalltestfile1",
-		SHA1:               "e017693e4a04a59d0b0f400fe98177fe7ee13cf7",
+		Id:                 "pendingdeletion1",
+		Name:               "pendingdeletion1",
+		SHA1:               "pendingdeletion",
 		ExpireAt:           2147483646,
 		DownloadsRemaining: 1,
 		UserId:             idUser,
 	}
 	fileAdmin := models.File{
-		Id:                 "smalltestfile2",
-		Name:               "smalltestfile2",
-		SHA1:               "2341354656543213246465465465432456898794",
+		Id:                 "pendingdeletion2",
+		Name:               "pendingdeletion2",
+		SHA1:               "pendingdeletion",
 		ExpireAt:           2147483646,
 		DownloadsRemaining: 1,
 		UserId:             idSuperAdmin,
 	}
 	database.SaveMetaData(fileUser)
 	database.SaveMetaData(fileAdmin)
-	_, ok := database.GetMetaDataById("smalltestfile1")
+	_, ok := database.GetMetaDataById(fileUser.Id)
 	test.IsEqualBool(t, ok, true)
-	_, ok = database.GetMetaDataById("smalltestfile2")
+	_, ok = database.GetMetaDataById(fileAdmin.Id)
 	test.IsEqualBool(t, ok, true)
 
 	apiKey := testAuthorisation(t, "/files/restore", models.ApiPermDelete)
 	testRestoreFileCall(t, apiKey.Id, "", 400, `{"Result":"error","ErrorMessage":"header id is required"}`)
 	testRestoreFileCall(t, apiKey.Id, "invalid", 404, `{"Result":"error","ErrorMessage":"Invalid file ID provided or file has already been deleted."}`)
-	testRestoreFileCall(t, apiKey.Id, "smalltestfile1", 200, fileUser.ToJsonResult(config.ServerUrl, config.IncludeFilename))
-	testRestoreFileCall(t, apiKey.Id, "smalltestfile2", 401, `{"Result":"error","ErrorMessage":"No permission to restore this file"}`)
+	testRestoreFileCall(t, apiKey.Id, fileUser.Id, 200, fileUser.ToJsonResult(config.ServerUrl, config.IncludeFilename))
+	testRestoreFileCall(t, apiKey.Id, fileAdmin.Id, 401, `{"Result":"error","ErrorMessage":"No permission to restore this file"}`)
 
 	storage.DeleteFileSchedule(fileUser.Id, 1, true)
 	storage.DeleteFileSchedule(fileAdmin.Id, 1, true)
 
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(400 * time.Millisecond)
 	file, ok := database.GetMetaDataById(fileUser.Id)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, file.PendingDeletion != 0, true)
@@ -1238,8 +1238,8 @@ func TestRestoreFile(t *testing.T) {
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, file.PendingDeletion != 0, true)
 
-	testRestoreFileCall(t, apiKey.Id, "smalltestfile1", 200, fileUser.ToJsonResult(config.ServerUrl, config.IncludeFilename))
-	testRestoreFileCall(t, apiKey.Id, "smalltestfile2", 401, `{"Result":"error","ErrorMessage":"No permission to restore this file"}`)
+	testRestoreFileCall(t, apiKey.Id, fileUser.Id, 200, fileUser.ToJsonResult(config.ServerUrl, config.IncludeFilename))
+	testRestoreFileCall(t, apiKey.Id, fileAdmin.Id, 401, `{"Result":"error","ErrorMessage":"No permission to restore this file"}`)
 
 	file, ok = database.GetMetaDataById(fileUser.Id)
 	test.IsEqualBool(t, ok, true)
@@ -1249,7 +1249,6 @@ func TestRestoreFile(t *testing.T) {
 	test.IsEqualBool(t, file.PendingDeletion != 0, true)
 
 	time.Sleep(600 * time.Millisecond)
-
 	file, ok = database.GetMetaDataById(fileUser.Id)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualInt64(t, file.PendingDeletion, 0)

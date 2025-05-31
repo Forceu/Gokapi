@@ -3,6 +3,7 @@ package database
 import (
 	"github.com/alicebob/miniredis/v2"
 	"github.com/forceu/gokapi/internal/configuration/database/dbabstraction"
+	"github.com/forceu/gokapi/internal/configuration/database/dbcache"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/test"
 	"log"
@@ -306,7 +307,10 @@ func TestUsers(t *testing.T) {
 		return len(GetAllUsers())
 	}, 2)
 	test.IsEqual(t, allUsersSqlite, allUsersRedis)
-	runAllTypesNoOutput(t, func() { UpdateUserLastOnline(1) })
+	runAllTypesNoOutput(t, func() {
+		dbcache.Init()
+		UpdateUserLastOnline(1)
+	})
 	runAllTypesCompareTwoOutputs(t, func() (any, any) {
 		retrievedUser, ok := GetUser(1)
 		isUpdated := time.Now().Unix()-retrievedUser.LastOnline < 5 && time.Now().Unix()-retrievedUser.LastOnline > -1

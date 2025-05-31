@@ -164,8 +164,8 @@ func (p DatabaseProvider) init(dbConfig models.DbConnection) (DatabaseProvider, 
 		if err != nil {
 			return DatabaseProvider{}, err
 		}
-		p.sqliteDb.SetMaxOpenConns(10000)
-		p.sqliteDb.SetMaxIdleConns(10000)
+		p.sqliteDb.SetMaxOpenConns(5)
+		p.sqliteDb.SetMaxIdleConns(5)
 
 		if !helper.FileExists(dbConfig.HostUrl) {
 			return p, p.createNewDatabase()

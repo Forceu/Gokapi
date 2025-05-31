@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/forceu/gokapi/internal/configuration/database/dbabstraction"
+	"github.com/forceu/gokapi/internal/configuration/database/dbcache"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"net/url"
@@ -15,6 +16,7 @@ var db dbabstraction.Database
 // Connect establishes a connection to the database and creates the table structure, if necessary
 func Connect(config models.DbConnection) {
 	var err error
+	dbcache.Init()
 	db, err = dbabstraction.GetNew(config)
 	if err != nil {
 		panic(err)
@@ -270,7 +272,10 @@ func SaveUser(user models.User, isNewUser bool) {
 
 // UpdateUserLastOnline writes the last online time to the database
 func UpdateUserLastOnline(id int) {
-	db.UpdateUserLastOnline(id)
+	// To reduce database writes, the entry is only updated if the last timestamp is more than 30 seconds old
+	if dbcache.LastOnlineRequiresSave(id) {
+		db.UpdateUserLastOnline(id)
+	}
 }
 
 // DeleteUser deletes a user with the given ID

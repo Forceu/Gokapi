@@ -193,7 +193,7 @@ function addNewUser() {
 
 function addRowUser(userid, name) {
 
-    userid = sanitizeId(userid);
+    userid = sanitizeUserId(userid);
 
     let table = document.getElementById("usertable");
     let row = table.insertRow(1);
@@ -289,7 +289,7 @@ function addRowUser(userid, name) {
     }, 700);
 }
 
-function sanitizeId(id) {
+function sanitizeUserId(id) {
     const numericId = id.toString().trim();
     if (!/^\d+$/.test(numericId)) {
         throw new Error("Invalid ID: must contain only digits.");
