@@ -22,7 +22,11 @@ func generateUnsafeId(length int) string {
 	log.Println("Warning! Cannot generate securely random ID!")
 	b := make([]rune, length)
 	for i := range b {
-		b[i] = characters[rand.Intn(len(characters))]
+		idx, err := cryptorand.Int(cryptorand.Reader, big.NewInt(int64(len(characters))))
+		if err != nil {
+			panic("Failed to generate random index")
+		}
+		b[i] = characters[idx.Int64()]
 	}
 	return string(b)
 }
@@ -43,7 +47,7 @@ func generateRandomBytes(n int) ([]byte, error) {
 func GenerateRandomString(length int) string {
 	b, err := generateRandomBytes(length + 10)
 	if err != nil {
-		return generateUnsafeId(length)
+		panic("Failed to generate secure random string")
 	}
 	result := cleanRandomString(base64.URLEncoding.EncodeToString(b))
 	if len(result) < length {
