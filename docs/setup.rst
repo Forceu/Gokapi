@@ -79,6 +79,8 @@ Please make sure that ``/app/data`` and ``/app/config`` are mounted as volumes (
 Docker Compose
 """"""""""
 The following is an example Docker-compose configuration:
+
+
 .. code-block:: yaml
 
   services:
