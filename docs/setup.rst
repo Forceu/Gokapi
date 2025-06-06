@@ -80,6 +80,7 @@ Docker Compose
 """"""""""
 The following is an example Docker-compose configuration:
 .. code-block:: yaml
+
   services:
     gokapi:
       image: f0rc3/gokapi:latest
@@ -96,6 +97,8 @@ The following is an example Docker-compose configuration:
   volumes:
     gokapi-data:
     gokapi-config:
+
+
 
 Save this to a ``docker-compose.yaml`` file, and start the container with the command ``docker compose up -d``
 
