@@ -77,7 +77,7 @@ If you do not want the binary to run as the root user in the container, you can 
 Please make sure that ``/app/data`` and ``/app/config`` are mounted as volumes (see example above), otherwise you will lose all your data after rebuilding or updating your container.
 
 Docker Compose
-""""""""""
+""""""""""""""""
 
 To launch Gokapi using Docker Compose, download the ``docker-compose.yaml`` file from the repository. You can adjust the environment variables under the ``environment:`` section according to the explanation above.
 
