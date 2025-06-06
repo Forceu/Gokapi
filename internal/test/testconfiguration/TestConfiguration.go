@@ -64,16 +64,19 @@ func Create(initFiles bool) {
 	database.Close()
 
 	if initFiles {
-		os.MkdirAll(dataDir, 0777)
-		os.WriteFile(dataDir+"/a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd0", []byte("123"), 0777)
-		os.WriteFile(dataDir+"/a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd1", []byte("123"), 0777)
-		os.WriteFile(dataDir+"/c4f9375f9834b4e7f0a528cc65c055702bf5f24a", []byte("456"), 0777)
-		os.WriteFile(dataDir+"/e017693e4a04a59d0b0f400fe98177fe7ee13cf7", []byte("789"), 0777)
-		os.WriteFile(dataDir+"/2341354656543213246465465465432456898794", []byte("abc"), 0777)
-		os.WriteFile(dataDir+"/03cfd743661f07975fa2f1220c5194cbaff48451", []byte("def"), 0777)
-		os.WriteFile(dataDir+"/pendingdeletion", []byte("ghi"), 0777)
-		os.WriteFile(dataDir+"/unlimitedtest", []byte("def"), 0777)
-		os.WriteFile(baseDir+"/fileupload.jpg", []byte("abc"), 0777)
+		_ = os.MkdirAll(dataDir, 0777)
+		_ = os.WriteFile(dataDir+"/a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd0", []byte("123"), 0777)
+		_ = os.WriteFile(dataDir+"/a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd1", []byte("123"), 0777)
+		_ = os.WriteFile(dataDir+"/c4f9375f9834b4e7f0a528cc65c055702bf5f24a", []byte("456"), 0777)
+		_ = os.WriteFile(dataDir+"/e017693e4a04a59d0b0f400fe98177fe7ee13cf7", []byte("789"), 0777)
+		_ = os.WriteFile(dataDir+"/2341354656543213246465465465432456898794", []byte("abc"), 0777)
+		_ = os.WriteFile(dataDir+"/03cfd743661f07975fa2f1220c5194cbaff48451", []byte("def"), 0777)
+		_ = os.WriteFile(dataDir+"/replacetest1", []byte("abc"), 0777)
+		_ = os.WriteFile(dataDir+"/replacetest2", []byte("abc"), 0777)
+		_ = os.WriteFile(dataDir+"/replacetest3", []byte("abc"), 0777)
+		_ = os.WriteFile(dataDir+"/pendingdeletion", []byte("ghi"), 0777)
+		_ = os.WriteFile(dataDir+"/unlimitedtest", []byte("def"), 0777)
+		_ = os.WriteFile(baseDir+"/fileupload.jpg", []byte("abc"), 0777)
 	}
 }
 

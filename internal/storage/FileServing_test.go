@@ -788,3 +788,91 @@ func TestDeleteAllEncrypted(t *testing.T) {
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, data.UnlimitedTime, true)
 }
+
+func TestReplaceFile(t *testing.T) {
+	originalFile := models.File{
+		Id:                 "originalfiletest",
+		Name:               "old.txt",
+		Size:               "1KB",
+		SHA1:               "replacetest1",
+		ContentType:        "text/plain",
+		UnlimitedDownloads: true,
+		UnlimitedTime:      true,
+		AwsBucket:          "",
+		SizeBytes:          1024,
+		Encryption: models.EncryptionInfo{
+			IsEncrypted:         false,
+			IsEndToEndEncrypted: false,
+			DecryptionKey:       nil,
+			Nonce:               nil,
+		},
+	}
+
+	newFile := models.File{
+		Id:                 "newfiletest",
+		Name:               "new.txt",
+		Size:               "2KB",
+		SHA1:               "replacetest2",
+		ContentType:        "text/plain2",
+		UnlimitedDownloads: true,
+		UnlimitedTime:      true,
+		AwsBucket:          "",
+		SizeBytes:          2048,
+		Encryption: models.EncryptionInfo{
+			IsEncrypted:         true,
+			IsEndToEndEncrypted: false,
+			DecryptionKey:       []byte("key"),
+			Nonce:               []byte("nonce"),
+		},
+	}
+
+	e2eFile := models.File{
+		Id:                 "e2eFile",
+		Name:               "e2eFile",
+		Size:               "1KB",
+		UnlimitedDownloads: true,
+		UnlimitedTime:      true,
+		SHA1:               "replacetest3",
+		Encryption: models.EncryptionInfo{
+			IsEncrypted:         true,
+			IsEndToEndEncrypted: true,
+		},
+	}
+	database.SaveMetaData(originalFile)
+	_, ok := database.GetMetaDataById(originalFile.Id)
+	test.IsEqualBool(t, ok, true)
+	_, ok = GetFile(originalFile.Id)
+	test.IsEqualBool(t, ok, true)
+	database.SaveMetaData(newFile)
+	_, ok = database.GetMetaDataById(newFile.Id)
+	test.IsEqualBool(t, ok, true)
+	database.SaveMetaData(e2eFile)
+	_, ok = database.GetMetaDataById(e2eFile.Id)
+	test.IsEqualBool(t, ok, true)
+	_, err := ReplaceFile("invalidfile", originalFile.Id, false)
+	test.IsNotNil(t, err)
+	_, err = ReplaceFile(originalFile.Id, "invalidfile", false)
+	test.IsNotNil(t, err)
+	_, err = ReplaceFile(originalFile.Id, e2eFile.Id, false)
+	test.IsNotNil(t, err)
+
+	_, err = ReplaceFile(originalFile.Id, newFile.Id, false)
+	test.IsNil(t, err)
+	file, ok := GetFile(originalFile.Id)
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualString(t, file.Name, newFile.Name)
+	test.IsEqualString(t, file.SHA1, newFile.SHA1)
+	test.IsEqualString(t, file.ContentType, newFile.ContentType)
+	test.IsEqualString(t, file.AwsBucket, newFile.AwsBucket)
+	test.IsEqualString(t, file.Size, newFile.Size)
+	test.IsEqualInt64(t, file.SizeBytes, newFile.SizeBytes)
+	test.IsEqual(t, file.Encryption, newFile.Encryption)
+	_, ok = GetFile(newFile.Id)
+	test.IsEqualBool(t, ok, true)
+
+	_, err = ReplaceFile(originalFile.Id, newFile.Id, true)
+	_, ok = GetFile(originalFile.Id)
+	test.IsEqualBool(t, ok, true)
+	_, ok = GetFile(newFile.Id)
+	test.IsEqualBool(t, ok, false)
+}

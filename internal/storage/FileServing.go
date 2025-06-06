@@ -364,6 +364,7 @@ const (
 )
 
 // ReplaceFile replaces the file content of fileId with the content of newFileContentId
+// If delete is true, the NEW file will be deleted.
 // Replacing e2e encrypted files is NOT possible
 func ReplaceFile(fileId, newFileContentId string, delete bool) (models.File, error) {
 	file, ok := GetFile(fileId)

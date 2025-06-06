@@ -1613,3 +1613,143 @@ func TestMinorFunctions(t *testing.T) {
 	outputFileJson(nil, models.File{})
 	sendError(nil, 0, "none")
 }
+
+func testReplaceFileCall(t *testing.T, apiKey string, fileTarget, fileOrigin string, deleteFile bool, resultCode int, expectedResponse string) {
+	t.Helper()
+	const apiUrl = "/files/replace"
+	const headerFileIdTarget = "id"
+	const headerFileIdOrigin = "idNewContent"
+	const headerDeleteFile = "deleteNewFile"
+	headers := []test.Header{{}}
+	if fileTarget != "" {
+		headers = append(headers, test.Header{Name: headerFileIdTarget, Value: fileTarget})
+	}
+	if fileOrigin != "" {
+		headers = append(headers, test.Header{Name: headerFileIdOrigin, Value: fileOrigin})
+	}
+	if deleteFile {
+		headers = append(headers, test.Header{Name: headerDeleteFile, Value: "true"})
+	}
+	w, r := getRecorder(apiUrl, apiKey, headers)
+	Process(w, r)
+	test.IsEqualInt(t, w.Code, resultCode)
+	if expectedResponse != "" {
+		test.ResponseBodyContains(t, w, expectedResponse)
+	}
+
+	defer test.ExpectPanic(t)
+	apiRestoreFile(w, &paramAuthCreate{}, models.User{Id: 7})
+}
+
+func TestFileReplace(t *testing.T) {
+	originalFile := models.File{
+		Id:                 "originalfiletest",
+		Name:               "old.txt",
+		Size:               "1KB",
+		SHA1:               "replacetest1",
+		ContentType:        "text/plain",
+		UnlimitedDownloads: true,
+		UnlimitedTime:      true,
+		AwsBucket:          "",
+		SizeBytes:          1024,
+		UserId:             idUser,
+		Encryption: models.EncryptionInfo{
+			IsEncrypted:         false,
+			IsEndToEndEncrypted: false,
+			DecryptionKey:       nil,
+			Nonce:               nil,
+		},
+	}
+
+	newFile := models.File{
+		Id:                 "newfiletest",
+		Name:               "new.txt",
+		Size:               "2KB",
+		SHA1:               "replacetest2",
+		ContentType:        "text/plain2",
+		UnlimitedDownloads: true,
+		UnlimitedTime:      true,
+		UserId:             idUser,
+		AwsBucket:          "",
+		SizeBytes:          2048,
+		Encryption: models.EncryptionInfo{
+			IsEncrypted:         true,
+			IsEndToEndEncrypted: false,
+			DecryptionKey:       []byte("key"),
+			Nonce:               []byte("nonce"),
+		},
+	}
+
+	e2eFile := models.File{
+		Id:                 "e2eFile",
+		Name:               "e2eFile",
+		Size:               "1KB",
+		UnlimitedDownloads: true,
+		UserId:             idUser,
+		UnlimitedTime:      true,
+		SHA1:               "replacetest3",
+		Encryption: models.EncryptionInfo{
+			IsEncrypted:         true,
+			IsEndToEndEncrypted: true,
+		},
+	}
+	adminFile := models.File{
+		Id:                 "adminfile",
+		Name:               "old.txt",
+		Size:               "1KB",
+		SHA1:               "replacetest1",
+		ContentType:        "text/plain",
+		UnlimitedDownloads: true,
+		UnlimitedTime:      true,
+		AwsBucket:          "",
+		SizeBytes:          1024,
+		UserId:             idAdmin,
+		Encryption: models.EncryptionInfo{
+			IsEncrypted:         false,
+			IsEndToEndEncrypted: false,
+			DecryptionKey:       nil,
+			Nonce:               nil,
+		},
+	}
+
+	database.SaveMetaData(originalFile)
+	_, ok := database.GetMetaDataById(originalFile.Id)
+	test.IsEqualBool(t, ok, true)
+	database.SaveMetaData(newFile)
+	_, ok = database.GetMetaDataById(newFile.Id)
+	test.IsEqualBool(t, ok, true)
+	database.SaveMetaData(e2eFile)
+	_, ok = database.GetMetaDataById(e2eFile.Id)
+	test.IsEqualBool(t, ok, true)
+	database.SaveMetaData(adminFile)
+	_, ok = database.GetMetaDataById(adminFile.Id)
+	test.IsEqualBool(t, ok, true)
+
+	apiKey := testAuthorisation(t, "/files/replace", models.ApiPermReplace)
+	testReplaceFileCall(t, apiKey.Id, "", "invalid", false, 400, `{"Result":"error","ErrorMessage":"header id is required"}`)
+	testReplaceFileCall(t, apiKey.Id, "invalid", "", false, 400, `{"Result":"error","ErrorMessage":"header idNewContent is required"}`)
+	testReplaceFileCall(t, apiKey.Id, "invalid", originalFile.Id, false, 404, `{"Result":"error","ErrorMessage":"Invalid id provided."}`)
+	testReplaceFileCall(t, apiKey.Id, originalFile.Id, "invalid", false, 404, `{"Result":"error","ErrorMessage":"Invalid id provided."}`)
+	testReplaceFileCall(t, apiKey.Id, originalFile.Id, adminFile.Id, false, 401, `{"Result":"error","ErrorMessage":"No permission to duplicate this file"}`)
+	testReplaceFileCall(t, apiKey.Id, adminFile.Id, originalFile.Id, false, 401, `{"Result":"error","ErrorMessage":"No permission to replace this file"}`)
+	testReplaceFileCall(t, apiKey.Id, e2eFile.Id, originalFile.Id, false, 400, `{"Result":"error","ErrorMessage":"End-to-End encrypted files cannot be replaced"}`)
+	testReplaceFileCall(t, apiKey.Id, originalFile.Id, newFile.Id, false, 200, "")
+
+	file, ok := database.GetMetaDataById(originalFile.Id)
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualString(t, file.Name, newFile.Name)
+	test.IsEqualString(t, file.SHA1, newFile.SHA1)
+	test.IsEqualString(t, file.ContentType, newFile.ContentType)
+	test.IsEqualString(t, file.AwsBucket, newFile.AwsBucket)
+	test.IsEqualString(t, file.Size, newFile.Size)
+	test.IsEqualInt64(t, file.SizeBytes, newFile.SizeBytes)
+	test.IsEqual(t, file.Encryption, newFile.Encryption)
+	_, ok = storage.GetFile(newFile.Id)
+	test.IsEqualBool(t, ok, true)
+	testReplaceFileCall(t, apiKey.Id, originalFile.Id, newFile.Id, true, 200, "")
+
+	_, ok = storage.GetFile(originalFile.Id)
+	test.IsEqualBool(t, ok, true)
+	_, ok = storage.GetFile(newFile.Id)
+	test.IsEqualBool(t, ok, false)
+}
