@@ -79,24 +79,24 @@ Please make sure that ``/app/data`` and ``/app/config`` are mounted as volumes (
 Docker Compose
 """"""""""
 The following is an example Docker-compose configuration:
-```yaml
-services:
-  gokapi:
-    image: f0rc3/gokapi:latest
-    container_name: gokapi
-    ports:
-      - "53842:53842"
-    environment:
-      - TZ=UTC
-    volumes:
-      - ./gokapi-data:/app/data
-      - ./gokapi-config:/app/config
-    restart: always
+.. code-block:: yaml
+  services:
+    gokapi:
+      image: f0rc3/gokapi:latest
+      container_name: gokapi
+      ports:
+        - "53842:53842"
+      environment:
+        - TZ=UTC
+      volumes:
+        - ./gokapi-data:/app/data
+        - ./gokapi-config:/app/config
+      restart: always
+  
+  volumes:
+    gokapi-data:
+    gokapi-config:
 
-volumes:
-  gokapi-data:
-  gokapi-config:
-```
 Save this to a ``docker-compose.yaml`` file, and start the container with the command ``docker compose up -d``
 
 Native Deployment
