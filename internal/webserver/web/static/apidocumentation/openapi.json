@@ -175,16 +175,71 @@
             "apikey": ["UPLOAD"]
           },
         ],
-        "requestBody": {
-          "content": {
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/chunkingcomplete"
-              }
+         "parameters": [
+          {
+            "name": "uuid",
+            "in": "header",
+            "description": "The unique ID that was used for the uploaded chunks",
+            "required": true,
+            "schema": {
+              "type": "string"
             }
           },
-          "required": true
-        },
+          {
+            "name": "filename",
+            "in": "header",
+            "description": "The filename of the uploaded file. If the filename includes non-ANSI characters, you can encode them with base64, by adding 'base64:' at the beginning, e.g. 'base64:ZmlsZW5hbWU='",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filesize",
+            "in": "header",
+            "description": "The total filesize of the uploaded file in bytes",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "contenttype",
+            "in": "header",
+            "description": "The MIME content type. If empty, application/octet-stream will be used.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "allowedDownloads",
+            "in": "header",
+            "description": "How many downloads are allowed. Default of 1 will be used if empty. Unlimited if 0 is passed.",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "expiryDays",
+            "in": "header",
+            "description": "How many days the file will be stored. Default of 14 will be used if empty. Unlimited if 0 is passed.",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "password",
+            "in": "header",
+            "description": "Password for this file to be set. No password will be used if empty.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Operation successful",

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/base64"
 	"errors"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
@@ -17,6 +18,8 @@ type apiRoute struct {
 	RequestParser requestParser
 	execution     apiFunc
 }
+
+const base64Prefix = "base64:"
 
 func (r apiRoute) Continue(w http.ResponseWriter, request requestParser, user models.User) {
 	r.execution(w, request, user)
@@ -469,6 +472,15 @@ func (p *paramChunkComplete) ProcessParameter(_ *http.Request) error {
 	if p.foundHeaders["expiryDays"] && p.ExpiryDays == 0 {
 		p.UnlimitedTime = true
 	}
+
+	if strings.HasPrefix(p.FileName, base64Prefix) {
+		decoded, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(p.FileName, base64Prefix))
+		if err != nil {
+			return err
+		}
+		p.FileName = string(decoded)
+	}
+
 	p.FileHeader = chunking.FileHeader{
 		Filename:    p.FileName,
 		ContentType: p.ContentType,

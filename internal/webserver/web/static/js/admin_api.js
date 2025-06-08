@@ -114,14 +114,14 @@ async function apiAuthCreate() {
 
 async function apiChunkComplete(uuid, filename, filesize, realsize, contenttype, allowedDownloads, expiryDays, password, isE2E, nonblocking) {
     const apiUrl = './api/chunk/complete';
-
+    
     const requestOptions = {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'apikey': systemKey,
             'uuid': uuid,
-            'filename': filename,
+            'filename': 'base64:'+Base64.encode(filename),
             'filesize': filesize,
             'realsize': realsize,
             'contenttype': contenttype,
