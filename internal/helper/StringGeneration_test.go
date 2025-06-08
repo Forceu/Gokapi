@@ -20,7 +20,3 @@ func TestCleanString(t *testing.T) {
 func TestGenerateRandomString(t *testing.T) {
 	test.IsEqualBool(t, len(GenerateRandomString(100)) == 100, true)
 }
-
-func TestGenerateUnsafeId(t *testing.T) {
-	test.IsEqualBool(t, len(generateUnsafeId(100)) == 100, true)
-}

@@ -8,43 +8,19 @@ import (
 	cryptorand "crypto/rand"
 	"encoding/base64"
 	"fmt"
-	"log"
-	"math/rand"
 	"regexp"
 )
 
-// A rune array to be used for pseudo-random string generation
-var characters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
-
-// Used if unable to generate secure random string. A warning will be output
-// to the CLI window
-func generateUnsafeId(length int) string {
-	log.Println("Warning! Cannot generate securely random ID!")
-	b := make([]rune, length)
-	for i := range b {
-		b[i] = characters[rand.Intn(len(characters))]
-	}
-	return string(b)
-}
-
 // Returns securely generated random bytes.
-// It will return an error if the system's secure random
-// number generator fails to function correctly
-func generateRandomBytes(n int) ([]byte, error) {
+func generateRandomBytes(n int) []byte {
 	b := make([]byte, n)
-	_, err := cryptorand.Read(b)
-	if err != nil {
-		return nil, err
-	}
-	return b, nil
+	_, _ = cryptorand.Read(b)
+	return b
 }
 
 // GenerateRandomString returns a URL-safe, base64 encoded securely generated random string.
 func GenerateRandomString(length int) string {
-	b, err := generateRandomBytes(length + 10)
-	if err != nil {
-		return generateUnsafeId(length)
-	}
+	b := generateRandomBytes(length + 10)
 	result := cleanRandomString(base64.URLEncoding.EncodeToString(b))
 	if len(result) < length {
 		return GenerateRandomString(length)
