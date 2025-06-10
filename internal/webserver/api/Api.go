@@ -501,7 +501,7 @@ func apiDuplicateFile(w http.ResponseWriter, r requestParser, user models.User) 
 		request.UnlimitedTime,
 		request.UnlimitedDownloads,
 		false, // is not being used by storage.DuplicateFile
-		0) // is not being used by storage.DuplicateFile
+		0)     // is not being used by storage.DuplicateFile
 	newFile, err := storage.DuplicateFile(file, request.RequestedChanges, request.FileName, uploadRequest)
 	if err != nil {
 		sendError(w, http.StatusInternalServerError, err.Error())

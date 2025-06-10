@@ -317,7 +317,7 @@ func TestUserCreate(t *testing.T) {
 			StatusCode:   400,
 		},
 		{
-			Value:        "123",
+			Value:        "1",
 			ErrorMessage: `{"Result":"error","ErrorMessage":"Invalid username provided."}`,
 			StatusCode:   400,
 		},
