@@ -18,7 +18,7 @@ import (
 
 const lengthPublicId = 35
 const lengthApiKey = 30
-const minLengthUser = 4
+const minLengthUser = 2
 
 // Process parses the request and executes the API call or returns an error message to the sender
 func Process(w http.ResponseWriter, r *http.Request) {
@@ -501,7 +501,7 @@ func apiDuplicateFile(w http.ResponseWriter, r requestParser, user models.User) 
 		request.UnlimitedTime,
 		request.UnlimitedDownloads,
 		false, // is not being used by storage.DuplicateFile
-		0)     // is not being used by storage.DuplicateFile
+		0) // is not being used by storage.DuplicateFile
 	newFile, err := storage.DuplicateFile(file, request.RequestedChanges, request.FileName, uploadRequest)
 	if err != nil {
 		sendError(w, http.StatusInternalServerError, err.Error())
