@@ -68,8 +68,6 @@ Available environment variables
 +-------------------------------+-------------------------------------------------------------------------------------+-----------------+--------------------------------------+
 | GOKAPI_DATA_DIR               | Sets the directory for the data                                                     | Yes             | data                                 |
 +-------------------------------+-------------------------------------------------------------------------------------+-----------------+--------------------------------------+
-| GOKAPI_DATABASE_URL           | Sets the type and location of the database. See :ref:`Databases`                    | Yes             | sqlite://[data folder]/gokapi.sqlite |
-+-------------------------------+-------------------------------------------------------------------------------------+-----------------+--------------------------------------+
 | GOKAPI_LENGTH_ID              | Sets the length of the download IDs. Value needs to be 5 or more                    | No              | 15                                   |
 +-------------------------------+-------------------------------------------------------------------------------------+-----------------+--------------------------------------+
 | GOKAPI_LENGTH_HOTLINK_ID      | Sets the length of the hotlink IDs. Value needs to be 8 or more                     | No              | 40                                   |
@@ -120,14 +118,6 @@ All values that are described in :ref:`cloudstorage` can be passed as environmen
 | GOKAPI_AWS_KEY_SECRET     | Sets the API key secret                 | abcdefg123                  |
 +---------------------------+-----------------------------------------+-----------------------------+
 | GOKAPI_AWS_ENDPOINT       | Sets the endpoint                       | eu-central-000.provider.com |
-+---------------------------+-----------------------------------------+-----------------------------+
-| GOKAPI_AWS_PROXY_DOWNLOAD | If true, users will not be redirected   | true (default:false)        |
-|                           |                                         |                             |
-|                           | to a pre-signed S3 URL for downloading. |                             |
-|                           |                                         |                             |
-|                           | Instead, Gokapi will download the file  |                             |
-|                           |                                         |                             |
-|                           | and proxy it to the user                |                             |
 +---------------------------+-----------------------------------------+-----------------------------+
 
 

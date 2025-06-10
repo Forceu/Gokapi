@@ -49,12 +49,6 @@ func ParseFlags() MainFlags {
 		Long:  "data",
 		Short: "d",
 	})
-	databaseUrlFlagLong := passedFlags.String("database", "", "Sets the data directory. Same as env variable GOKAPI_DATABASE_URL")
-	databaseUrlFlagShort := passedFlags.String("db", "", "alias")
-	aliases = append(aliases, alias{
-		Long:  "database",
-		Short: "db",
-	})
 	portFlagLong := passedFlags.Int("port", 0, "Sets the port for setup. Same as env variable GOKAPI_PORT")
 	portFlagShort := passedFlags.Int("p", 0, "alias")
 	aliases = append(aliases, alias{
@@ -81,7 +75,6 @@ func ParseFlags() MainFlags {
 		ShowVersion:        *versionFlagShort || *versionFlagLong,
 		Reconfigure:        *reconfigureFlag,
 		CreateSsl:          *createSslFlag,
-		DatabaseUrl:        getAliasedString(databaseUrlFlagLong, databaseUrlFlagShort),
 		ConfigPath:         getAliasedString(configPathFlagLong, configPathFlagShort),
 		ConfigDir:          getAliasedString(configDirFlagLong, configDirFlagShort),
 		DataDir:            getAliasedString(dataDirFlagLong, dataDirFlagShort),

@@ -7,7 +7,6 @@ import (
 	"github.com/forceu/gokapi/internal/helper"
 	"os"
 	"path"
-	"strings"
 )
 
 // DefaultPort for the webserver
@@ -20,7 +19,6 @@ type Environment struct {
 	ConfigFile         string `env:"CONFIG_FILE" envDefault:"config.json"`
 	ConfigPath         string
 	DataDir            string `env:"DATA_DIR" envDefault:"data"`
-	DatabaseUrl        string `env:"DATABASE_URL" envDefault:"sqlite://[data]/gokapi.sqlite"`
 	LengthId           int    `env:"LENGTH_ID" envDefault:"15"`
 	LengthHotlinkId    int    `env:"LENGTH_HOTLINK_ID" envDefault:"40"`
 	MaxFileSize        int    `env:"MAX_FILESIZE" envDefault:"102400"` // 102400==100GB
@@ -35,7 +33,6 @@ type Environment struct {
 	AwsKeyId           string `env:"AWS_KEY"`
 	AwsKeySecret       string `env:"AWS_KEY_SECRET"`
 	AwsEndpoint        string `env:"AWS_ENDPOINT"`
-	AwsProxyDownload   bool   `env:"AWS_PROXY_DOWNLOAD" envDefault:"false"`
 }
 
 // New parses the env variables
@@ -84,12 +81,6 @@ func New() Environment {
 	if result.MaxFileSize < 1 {
 		result.MaxFileSize = 5
 	}
-
-	if flags.IsDatabaseUrlSet {
-		result.DatabaseUrl = flags.DatabaseUrl
-	}
-	result.DatabaseUrl = strings.Replace(result.DatabaseUrl, "[data]", result.DataDir, 1)
-
 	return result
 }
 
