@@ -67,6 +67,12 @@ test-all:
 	go test ./... -parallel 8 --tags=test,awsmock
 	GOKAPI_AWS_BUCKET="gokapi" GOKAPI_AWS_REGION="eu-central-1" GOKAPI_AWS_KEY="keyid" GOKAPI_AWS_KEY_SECRET="secret" go test ./... -parallel 8 --tags=test,awstest
 
+.PHONY: update-changelog
+update-changelog:
+	@echo Updaing changelog
+	@echo
+	go run "./build/go-generate/updateChangelog.go"
+
 .PHONY: clean
 # Deletes binary
 clean:

@@ -180,7 +180,7 @@ func createSsl(passedFlags flagparser.MainFlags) {
 
 func checkIfUserExists() {
 	if len(database.GetAllUsers()) == 0 {
-		fmt.Println("No user found in database. Please run setup first or crate user with --deployment-password")
+		fmt.Println("No user found in database. Please run setup first or create user with --deployment-password")
 		os.Exit(1)
 	}
 }
