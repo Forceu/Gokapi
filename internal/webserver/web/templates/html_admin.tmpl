@@ -226,7 +226,7 @@
 		    </button>
 			<ul class="dropdown-menu dropdown-menu-end" data-bs-theme="dark" >
 	{{ if ne .CurrentFile.UrlHotlink "" }}
-			    <li><a class="dropdown-item copyurl" title="Copy hotlink" onclick="showToast(1000)"
+			    <li style="cursor: pointer;"><a class="dropdown-item copyurl" title="Copy hotlink" onclick="showToast(1000)"
 			    	data-clipboard-text="{{ .CurrentFile.UrlHotlink }}"><i class="bi bi-copy"></i> Hotlink</a></li>
 		{{ else }}
 			    <li><a class="dropdown-item disabled">Hotlink not available</a></li>
@@ -240,8 +240,8 @@
 		    <button type="button" class="btn btn-outline-light btn-sm dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
 		    </button>
 			<ul class="dropdown-menu dropdown-menu-end" data-bs-theme="dark" >
-			    <li><a class="dropdown-item" id="qrcode-{{ .CurrentFile.Id }}" title="Open QR Code" class="btn btn-outline-light btn-sm" onclick="showQrCode('{{ .CurrentFile.UrlDownload }}');"><i class="bi bi-qr-code"></i> QR Code</a></li>
-			    <li><a class="dropdown-item" id="email-{{ .CurrentFile.Id }}" href="mailto:?body={{ .CurrentFile.UrlDownload | urlquery}}"
+			    <li style="cursor: pointer;"><a class="dropdown-item" id="qrcode-{{ .CurrentFile.Id }}" title="Open QR Code" class="btn btn-outline-light btn-sm" onclick="showQrCode('{{ .CurrentFile.UrlDownload }}');"><i class="bi bi-qr-code"></i> QR Code</a></li>
+			    <li style="cursor: pointer;"><a class="dropdown-item" id="email-{{ .CurrentFile.Id }}" href="mailto:?body={{ .CurrentFile.UrlDownload | urlquery}}"
 			       target="_blank" title="Share via email" class="btn btn-outline-light btn-sm"><i class="bi bi-envelope"></i> Email</a></li>
 			</ul>
 {{ end }}

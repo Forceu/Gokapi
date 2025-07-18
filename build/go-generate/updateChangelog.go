@@ -168,6 +168,12 @@ func loadGithubReleases(secret string) []githubRelease {
 		os.Exit(2)
 	}
 
+	if res.StatusCode != 200 {
+		fmt.Println("ERROR: HTTP status code: " + res.Status)
+		fmt.Println("Maybe token is incorrect or has expired?")
+		os.Exit(3)
+	}
+
 	if res.Body != nil {
 		defer res.Body.Close()
 	}
