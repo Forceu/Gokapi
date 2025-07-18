@@ -767,6 +767,7 @@ function createButtonGroup(item) {
     if (item.UrlHotlink !== "") {
         aDr1.className = "dropdown-item copyurl";
         aDr1.title = "Copy hotlink";
+        aDr1.style.cursor = "pointer";
         aDr1.setAttribute("data-clipboard-text", item.UrlHotlink);
         aDr1.onclick = () => showToast(1000);
         aDr1.innerHTML = `<i class="bi bi-copy"></i> Hotlink`;
@@ -804,6 +805,7 @@ function createButtonGroup(item) {
     const qrA = document.createElement("a");
     qrA.className = "dropdown-item";
     qrA.id = `qrcode-${item.Id}`;
+    qrA.style.cursor = "pointer";
     qrA.title = "Open QR Code";
     qrA.onclick = () => showQrCode(item.UrlDownload);
     qrA.innerHTML = `<i class="bi bi-qr-code"></i> QR Code`;
