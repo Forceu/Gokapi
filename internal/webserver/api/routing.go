@@ -36,7 +36,7 @@ var routes = []apiRoute{
 	},
 	{
 		Url:           "/info/config",
-		ApiPerm:       models.ApiPermNone,
+		ApiPerm:       models.ApiPermUpload,
 		execution:     apiConfigInfo,
 		RequestParser: nil,
 	},

@@ -71,8 +71,13 @@
           "info"
         ],
         "summary": "Outputs Gokapi upload parameters",
-        "description": "This API call returns the Gokapi server upload parameters. All filesizes are in unit Megabyte.",
+        "description": "This API call returns the Gokapi server upload parameters. All filesizes are in unit Megabyte. Requires API permission UPLOAD",
         "operationId": "uploadconfig",
+        "security": [
+          {
+            "apikey": ["UPLOAD"]
+          },
+        ],
         "responses": {
           "200": {
             "description": "Operation successful",
@@ -88,7 +93,7 @@
             }
           },
           "401": {
-            "description": "Invalid API key provided for authentication"
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
           }
         }
       }
@@ -184,7 +189,7 @@
           "chunk"
         ],
         "summary": "Uploads a new chunk",
-        "description": "Uploads a file in chunks, in case a reverse proxy does not support upload of larger files. Parallel uploading is supported. Must call /chunk/complete after all chunks have been uploaded. WARNING: Does not support end-to-end encryption! If server is setup to utilise end-to-end encryption, file will be stored in plain-text! Requires API permission UPLOAD",
+        "description": "Uploads a file in chunks, in case a reverse proxy does not support upload of larger files. Parallel uploading is supported. Must call /chunk/complete after all chunks have been uploaded. WARNING: Does not support end-to-end encryption! If server is setup to utilise end-to-end encryption, file will be stored in plain-text! To upload an end-to-end encrypted file, use gokapi-cli. Requires API permission UPLOAD",
         "operationId": "chunkadd",
         "security": [
           {
@@ -362,7 +367,7 @@
           "files"
         ],
         "summary": "Adds a new file without chunking",
-        "description": "Uploads the submitted file to Gokapi. Please note: This method does not use chunking, therefore if you are behind a reverse proxy or have a provider that limits upload filesizes, this might not work for bigger files (e.g. Cloudflare). WARNING: Does not support end-to-end encryption! If server is setup to utilise end-to-end encryption, file will be stored in plain-text! Requires API permission UPLOAD",
+        "description": "Uploads the submitted file to Gokapi. Please note: This method does not use chunking, therefore if you are behind a reverse proxy or have a provider that limits upload filesizes, this might not work for bigger files (e.g. Cloudflare). WARNING: Does not support end-to-end encryption! If server is setup to utilise end-to-end encryption, file will be stored in plain-text! To upload an end-to-end encrypted file, use gokapi-cli. Requires API permission UPLOAD",
         "operationId": "add",
         "security": [
           {

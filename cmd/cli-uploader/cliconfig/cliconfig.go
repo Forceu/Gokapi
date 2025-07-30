@@ -37,11 +37,12 @@ func CreateLogin() {
 		fmt.Println("ERROR: Invalid API key")
 		os.Exit(1)
 	}
-	fmt.Println()
-	fmt.Println("Testing connection...")
+	fmt.Println("")
+	fmt.Print("Testing connection...")
 	cliapi.Init(url, apikey, "")
 	vstr, vint, err := cliapi.GetVersion()
 	if err != nil {
+		fmt.Println()
 		if errors.Is(cliapi.EUnauthorised, err) {
 			fmt.Println("ERROR: Unauthorised API key")
 		} else {
@@ -49,19 +50,25 @@ func CreateLogin() {
 		}
 		os.Exit(1)
 	}
+
 	if vint < minGokapiVersionInt {
-		fmt.Println("ERROR: Gokapi version must be at least " + minGokapiVersionStr)
+		fmt.Println("\nERROR: Gokapi version must be at least " + minGokapiVersionStr)
 		fmt.Println("Your version is " + vstr)
 		os.Exit(1)
 	}
-	fmt.Println("Downloading configuration...")
+	fmt.Print("OK\nDownloading configuration...")
 
 	_, _, isE2E, err := cliapi.GetConfig()
 	if err != nil {
-		fmt.Println("ERROR: Could not get configuration")
-		fmt.Println(err)
+		fmt.Println("FAIL")
+		if errors.Is(cliapi.EUnauthorised, err) {
+			fmt.Println("ERROR: API key does not have the permission to upload new files.")
+		} else {
+			fmt.Println(err)
+		}
 		os.Exit(1)
 	}
+	fmt.Println("OK")
 	var e2ekey = ""
 	if isE2E {
 		fmt.Print("End-to-end encryption key: ")
@@ -93,7 +100,7 @@ func save(url, apikey, e2ekey string) error {
 	return os.WriteFile(filename, jsonData, 0600)
 }
 
-func Load() error {
+func Load() {
 	if !helper.FileExists(filename) {
 		fmt.Println("ERROR: No login information found")
 		fmt.Println("Please run 'gokapi-cli login' to create a login")
@@ -101,17 +108,18 @@ func Load() error {
 	}
 	data, err := os.ReadFile(filename)
 	if err != nil {
-		return err
+		fmt.Println("ERROR: Could not read login information")
+		os.Exit(1)
 	}
 
 	var config configFile
 	err = json.Unmarshal(data, &config)
 	if err != nil {
-		return err
+		fmt.Println("ERROR: Could not read login information")
+		os.Exit(1)
 	}
 
 	cliapi.Init(config.Url, config.Apikey, config.E2ekey)
-	return nil
 }
 
 func Delete() error {
