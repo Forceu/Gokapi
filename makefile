@@ -16,6 +16,14 @@ build :
 	@echo
 	go generate ./...
 	CGO_ENABLED=0 go build $(BUILD_FLAGS) -o ./gokapi $(GOPACKAGE)/cmd/gokapi
+	
+.PHONY: build-cli
+# Build Gokapi-CLI binary
+build-cli : 
+	@echo "Building CLI binary..."
+	@echo
+	go generate ./...
+	CGO_ENABLED=0 go build $(BUILD_FLAGS) -o ./gokapi-cli $(GOPACKAGE)/cmd/cli-uploader
 
 .PHONY: build-debug
 # Build Gokapi binary

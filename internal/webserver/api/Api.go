@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/database"
+	"github.com/forceu/gokapi/internal/encryption"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/logging"
 	"github.com/forceu/gokapi/internal/models"
@@ -419,6 +420,31 @@ func doBlockingPartCompleteChunk(w http.ResponseWriter, request *paramChunkCompl
 	}
 	logging.LogUpload(file, user)
 	outputFileJson(w, file)
+}
+
+func apiVersionInfo(w http.ResponseWriter, _ requestParser, _ models.User) {
+	type versionInfo struct {
+		Version    string
+		VersionInt int
+	}
+	result, err := json.Marshal(versionInfo{versionReadable, versionInt})
+	helper.Check(err)
+	_, _ = w.Write(result)
+}
+func apiConfigInfo(w http.ResponseWriter, _ requestParser, _ models.User) {
+	type configInfo struct {
+		MaxFilesize               int
+		MaxChunksize              int
+		EndToEndEncryptionEnabled bool
+	}
+	config := configuration.Get()
+	result, err := json.Marshal(configInfo{
+		MaxFilesize:               config.MaxFileSizeMB,
+		MaxChunksize:              config.ChunkSize,
+		EndToEndEncryptionEnabled: config.Encryption.Level == encryption.EndToEndEncryption,
+	})
+	helper.Check(err)
+	_, _ = w.Write(result)
 }
 
 func apiList(w http.ResponseWriter, _ requestParser, user models.User) {

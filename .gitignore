@@ -14,3 +14,5 @@ internal/webserver/web/static/js/min/wasm_exec.min.js
 custom/
 .env
 *.secret
+gokapi-cli
+gokapi-cli.json

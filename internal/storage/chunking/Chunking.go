@@ -36,6 +36,7 @@ func ParseChunkInfo(r *http.Request, isApiCall bool) (ChunkInfo, error) {
 		return ChunkInfo{}, err
 	}
 
+	// If these are changed, make sure to edit End2End.go as well
 	formTotalSize := "dztotalfilesize"
 	formOffset := "dzchunkbyteoffset"
 	formUuid := "dzuuid"
