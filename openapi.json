@@ -1381,6 +1381,10 @@
           "VersionInt": {
             "type": "integer",
             "example": 20100
+          },
+          "EndToEndEncryptionEnabled": {
+            "type": "boolean",
+            "example": false
           }
         },
         "description": "VersionInfo is the struct used for returning version numbers",

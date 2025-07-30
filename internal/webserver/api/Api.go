@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/database"
+	"github.com/forceu/gokapi/internal/encryption"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/logging"
 	"github.com/forceu/gokapi/internal/models"
@@ -432,11 +433,16 @@ func apiVersionInfo(w http.ResponseWriter, _ requestParser, _ models.User) {
 }
 func apiConfigInfo(w http.ResponseWriter, _ requestParser, _ models.User) {
 	type configInfo struct {
-		MaxFilesize  int
-		MaxChunksize int
+		MaxFilesize               int
+		MaxChunksize              int
+		EndToEndEncryptionEnabled bool
 	}
 	config := configuration.Get()
-	result, err := json.Marshal(configInfo{config.MaxFileSizeMB, config.ChunkSize})
+	result, err := json.Marshal(configInfo{
+		MaxFilesize:               config.MaxFileSizeMB,
+		MaxChunksize:              config.ChunkSize,
+		EndToEndEncryptionEnabled: config.Encryption.Level != encryption.EndToEndEncryption,
+	})
 	helper.Check(err)
 	_, _ = w.Write(result)
 }
@@ -521,7 +527,7 @@ func apiDuplicateFile(w http.ResponseWriter, r requestParser, user models.User) 
 		request.UnlimitedTime,
 		request.UnlimitedDownloads,
 		false, // is not being used by storage.DuplicateFile
-		0)     // is not being used by storage.DuplicateFile
+		0) // is not being used by storage.DuplicateFile
 	newFile, err := storage.DuplicateFile(file, request.RequestedChanges, request.FileName, uploadRequest)
 	if err != nil {
 		sendError(w, http.StatusInternalServerError, err.Error())

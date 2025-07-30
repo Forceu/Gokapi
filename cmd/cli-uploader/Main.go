@@ -19,16 +19,12 @@ func main() {
 	}
 	switch os.Args[1] {
 	case paramLogin:
-		doLogin()
+		cliconfig.CreateLogin()
 	case paramLogout:
 		doLogout()
 	default:
 	}
 
-}
-
-func doLogin() {
-	cliconfig.Store()
 }
 
 func doLogout() {

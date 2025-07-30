@@ -119,7 +119,8 @@ func insertVersionNumbers(input string) string {
 }
 
 func parseVersionAsInt(version string) string {
-	versionSplit := strings.Split(version, ".")
+	versionNoAppendix := strings.Split(version, "-")[0]
+	versionSplit := strings.Split(versionNoAppendix, ".")
 	versionMajor := versionSplit[0]
 	versionMinor := versionSplit[1]
 	versionPatch := versionSplit[2]
