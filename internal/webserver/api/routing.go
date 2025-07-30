@@ -478,11 +478,20 @@ func (p *paramChunkComplete) ProcessParameter(_ *http.Request) error {
 		}
 	}
 
-	if p.foundHeaders["allowedDownloads"] && p.AllowedDownloads == 0 {
-		p.UnlimitedDownloads = true
+	if p.AllowedDownloads == 0 {
+		if p.foundHeaders["allowedDownloads"] {
+			p.UnlimitedDownloads = true
+		} else {
+			p.AllowedDownloads = 1
+		}
 	}
-	if p.foundHeaders["expiryDays"] && p.ExpiryDays == 0 {
-		p.UnlimitedTime = true
+
+	if p.ExpiryDays == 0 {
+		if p.foundHeaders["expiryDays"] {
+			p.UnlimitedTime = true
+		} else {
+			p.ExpiryDays = 14
+		}
 	}
 
 	if strings.HasPrefix(p.FileName, base64Prefix) {
