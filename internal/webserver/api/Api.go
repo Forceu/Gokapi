@@ -421,6 +421,26 @@ func doBlockingPartCompleteChunk(w http.ResponseWriter, request *paramChunkCompl
 	outputFileJson(w, file)
 }
 
+func apiVersionInfo(w http.ResponseWriter, _ requestParser, _ models.User) {
+	type versionInfo struct {
+		Version    string
+		VersionInt int
+	}
+	result, err := json.Marshal(versionInfo{versionReadable, versionInt})
+	helper.Check(err)
+	_, _ = w.Write(result)
+}
+func apiConfigInfo(w http.ResponseWriter, _ requestParser, _ models.User) {
+	type configInfo struct {
+		MaxFilesize  int
+		MaxChunksize int
+	}
+	config := configuration.Get()
+	result, err := json.Marshal(configInfo{config.MaxFileSizeMB, config.ChunkSize})
+	helper.Check(err)
+	_, _ = w.Write(result)
+}
+
 func apiList(w http.ResponseWriter, _ requestParser, user models.User) {
 	var validFiles []models.FileApiOutput
 	timeNow := time.Now().Unix()

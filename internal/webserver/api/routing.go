@@ -29,6 +29,18 @@ type apiFunc func(w http.ResponseWriter, request requestParser, user models.User
 
 var routes = []apiRoute{
 	{
+		Url:           "/info/version",
+		ApiPerm:       models.ApiPermNone,
+		execution:     apiVersionInfo,
+		RequestParser: nil,
+	},
+	{
+		Url:           "/info/config",
+		ApiPerm:       models.ApiPermNone,
+		execution:     apiConfigInfo,
+		RequestParser: nil,
+	},
+	{
 		Url:           "/files/list",
 		ApiPerm:       models.ApiPermView,
 		execution:     apiList,

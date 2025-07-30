@@ -18,6 +18,9 @@
   ],
   "tags": [
     {
+      "name": "info"
+    },
+    {
       "name": "files"
     },
     {
@@ -34,6 +37,62 @@
     }
   ],
   "paths": {
+    "/info/version": {
+      "get": {
+        "tags": [
+          "info"
+        ],
+        "summary": "Outputs Gokapi version",
+        "description": "This API call returns the Gokapi server version in a readable format and as an integer.",
+        "operationId": "version",
+        "responses": {
+          "200": {
+            "description": "Operation successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/VersionInfo"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid API key provided for authentication"
+          }
+        }
+      }
+    }, 
+    "/info/config": {
+      "get": {
+        "tags": [
+          "info"
+        ],
+        "summary": "Outputs Gokapi upload parameters",
+        "description": "This API call returns the Gokapi server upload parameters. All filesizes are in unit Megabyte.",
+        "operationId": "uploadconfig",
+        "responses": {
+          "200": {
+            "description": "Operation successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ConfigInfo"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid API key provided for authentication"
+          }
+        }
+      }
+    },
     "/files/list": {
       "get": {
         "tags": [
@@ -1312,6 +1371,34 @@
         "description": "NewUser is the struct used for the result after creating a new API key",
         "x-go-package": "Gokapi/internal/models"
       },
+      "VersionInfo": {
+        "type": "object",
+        "properties": {
+          "Version": {
+            "type": "string",
+            "example": "2.1.0"
+          },
+          "VersionInt": {
+            "type": "integer",
+            "example": 20100
+          }
+        },
+        "description": "VersionInfo is the struct used for returning version numbers",
+      },
+      "ConfigInfo": {
+        "type": "object",
+        "properties": {
+          "MaxFilesize": {
+            "type": "integer",
+            "example": "100"
+          },
+          "MaxChunksize": {
+            "type": "integer",
+            "example": 40
+          }
+        },
+        "description": "ConfigInfo is the struct used for returning configuration data",
+      },
       "PasswordReset": {
         "type": "object",
         "properties": {
@@ -1405,41 +1492,6 @@
           "offset": {
             "type": "integer",
             "description": "The chunk's offset starting at the beginning of the file"
-          }
-        }
-    },"chunkingcomplete": {
-        "required": [
-          "uuid","filename","filesize"
-        ],
-        "type": "object",
-        "properties": {
-          "uuid": {
-            "type": "string",
-            "description": "The unique ID that was used for the uploaded chunks"
-          },
-          "filename": {
-            "type": "string",
-            "description": "The filename of the uploaded file"
-          },
-          "filesize": {
-            "type": "integer",
-            "description": "The total filesize of the uploaded file in bytes"
-          },
-          "contenttype": {
-            "type": "string",
-            "description": "The MIME content type. If empty, application/octet-stream will be used."
-          },
-          "allowedDownloads": {
-            "type": "integer",
-            "description": "How many downloads are allowed. Default of 1 will be used if empty. Unlimited if 0 is passed."
-          },
-          "expiryDays": {
-            "type": "integer",
-            "description": "How many days the file will be stored. Default of 14 will be used if empty. Unlimited if 0 is passed."
-          },
-          "password": {
-            "type": "string",
-            "description": "Password for this file to be set. No password will be used if empty"
           }
         }
     }
