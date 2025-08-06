@@ -152,9 +152,7 @@ func SaveEnd2EndInfo(info models.E2EInfoEncrypted, userId int) {
 
 // GetEnd2EndInfo retrieves the encrypted e2e info
 func GetEnd2EndInfo(userId int) models.E2EInfoEncrypted {
-	info := db.GetEnd2EndInfo(userId)
-	info.AvailableFiles = GetAllMetaDataIds()
-	return info
+	return db.GetEnd2EndInfo(userId)
 }
 
 // DeleteEnd2EndInfo resets the encrypted e2e info

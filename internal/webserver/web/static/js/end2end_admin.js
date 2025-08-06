@@ -155,38 +155,49 @@ function setE2eUpload() {
 }
 
 
-function decryptFileEntry(id, filename, cipher) {
+function decryptFileEntries(fileMap) {
     let datatable = $('#maintable').DataTable();
     const rows = datatable.rows().nodes();
 
     for (let i = 0; i < rows.length; i++) {
         const cell = datatable.cell(i, 0).node();
-        if ("cell-name-" + id === $(cell).attr("id")) {
-            let cellNode = datatable.cell(i, 0).node();
-            let urlNode = datatable.cell(i, 5).node();
-            let urlLink = urlNode.querySelector("a");
-            let url = urlLink.getAttribute("href");
-            cellNode.textContent = filename;
-            if (!url.includes(cipher)) {
-                if (IncludeFilename) {
-                    url = url.replace("/Encrypted%20File", "/" + encodeURIComponent(filename));
-                }
-                url = url + "#" + cipher;
-                urlLink.setAttribute("href", url);
+        const idAttr = $(cell).attr("id");
+        if (!idAttr) continue;
+
+
+        const id = idAttr.substring("cell-name-".length);
+        const entry = fileMap[id];
+        if (!entry) continue; // no matching file for this row
+
+        const filename = entry[0];
+        const cipher = entry[1];
+
+        // Column 0: filename
+        cell.textContent = filename;
+
+        // Column 5: update link
+        let urlNode = datatable.cell(i, 5).node();
+        let urlLink = urlNode.querySelector("a");
+        let url = urlLink.getAttribute("href");
+
+        if (!url.includes(cipher)) {
+            if (IncludeFilename) {
+                url = url.replace("/Encrypted%20File", "/" + encodeURIComponent(filename));
             }
-            datatable.cell(i, 5).node(urlNode);
-
-
-            let buttonNode = datatable.cell(i, 6).node();
-            let button = buttonNode.querySelector("button");
-            button.setAttribute("data-clipboard-text", url);
-            document.getElementById("qrcode-" + id).onclick = function() {
-                showQrCode(url);
-            };
-            document.getElementById("email-" + id).href = "mailto:?body=" + encodeURIComponent(url);
-            datatable.cell(i, 6).node(buttonNode);
-            break;
+            url += "#" + cipher;
+            urlLink.setAttribute("href", url);
         }
+
+        // Column 6: update button and QR/email
+        let buttonNode = datatable.cell(i, 6).node();
+        let button = buttonNode.querySelector("button");
+        button.setAttribute("data-clipboard-text", url);
+
+        let qrElem = document.getElementById("qrcode-" + id);
+        if (qrElem) qrElem.onclick = () => showQrCode(url);
+
+        let emailElem = document.getElementById("email-" + id);
+        if (emailElem) emailElem.href = "mailto:?body=" + encodeURIComponent(url);
     }
 }
 

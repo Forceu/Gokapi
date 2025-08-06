@@ -490,7 +490,7 @@ type paramChunkComplete struct {
 	Uuid               string `header:"uuid" required:"true"`
 	FileName           string `header:"filename" required:"true"`
 	FileSize           int64  `header:"filesize" required:"true"`
-	RealSize           int64  `header:"realsize"`
+	RealSize           int64  `header:"realsize"` // not published in API documentation
 	ContentType        string `header:"contenttype"`
 	AllowedDownloads   int    `header:"allowedDownloads"`
 	ExpiryDays         int    `header:"expiryDays"`

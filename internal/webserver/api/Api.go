@@ -448,6 +448,13 @@ func apiConfigInfo(w http.ResponseWriter, _ requestParser, _ models.User) {
 }
 
 func apiList(w http.ResponseWriter, _ requestParser, user models.User) {
+	validFiles := getFilesForUser(user)
+	result, err := json.Marshal(validFiles)
+	helper.Check(err)
+	_, _ = w.Write(result)
+}
+
+func getFilesForUser(user models.User) []models.FileApiOutput {
 	var validFiles []models.FileApiOutput
 	timeNow := time.Now().Unix()
 	config := configuration.Get()
@@ -460,9 +467,7 @@ func apiList(w http.ResponseWriter, _ requestParser, user models.User) {
 			}
 		}
 	}
-	result, err := json.Marshal(validFiles)
-	helper.Check(err)
-	_, _ = w.Write(result)
+	return validFiles
 }
 
 func apiListSingle(w http.ResponseWriter, r requestParser, user models.User) {
@@ -765,7 +770,13 @@ func apiLogsDelete(_ http.ResponseWriter, r requestParser, user models.User) {
 }
 
 func apiE2eGet(w http.ResponseWriter, _ requestParser, user models.User) {
-	info := database.GetEnd2EndInfo(user.Id) // TODO only for the user, not all files
+	info := database.GetEnd2EndInfo(user.Id)
+	files := getFilesForUser(user)
+	ids := make([]string, len(files))
+	for i, file := range files {
+		ids[i] = file.Id
+	}
+	info.AvailableFiles = ids
 	bytesE2e, err := json.Marshal(info)
 	helper.Check(err)
 	_, _ = w.Write(bytesE2e)

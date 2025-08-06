@@ -237,7 +237,6 @@ function dropzoneGetFile(uid) {
 }
 
 function requestFileInfo(fileId, uid) {
-
     apiFilesListById(fileId)
         .then(data => {
             addRow(data);
