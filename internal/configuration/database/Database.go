@@ -189,11 +189,6 @@ func GetAllMetadata() map[string]models.File {
 	return db.GetAllMetadata()
 }
 
-// GetAllMetaDataIds returns all Ids that contain metadata
-func GetAllMetaDataIds() []string {
-	return db.GetAllMetaDataIds()
-}
-
 // GetMetaDataById returns a models.File from the ID passed or false if the id is not valid
 func GetMetaDataById(id string) (models.File, bool) {
 	return db.GetMetaDataById(id)

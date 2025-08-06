@@ -131,7 +131,7 @@ func TestE2E(t *testing.T) {
 	input.AvailableFiles = nil
 	runAllTypesCompareOutput(t, func() any { return GetEnd2EndInfo(3) }, input)
 	runAllTypesNoOutput(t, func() { DeleteEnd2EndInfo(3) })
-	runAllTypesCompareOutput(t, func() any { return GetEnd2EndInfo(3) }, models.E2EInfoEncrypted{AvailableFiles: nil})
+	runAllTypesCompareOutput(t, func() any { return GetEnd2EndInfo(3) }, models.E2EInfoEncrypted{})
 }
 
 func TestSessions(t *testing.T) {
@@ -208,7 +208,6 @@ func TestHotlinks(t *testing.T) {
 }
 
 func TestMetaData(t *testing.T) {
-	runAllTypesCompareOutput(t, func() any { return GetAllMetaDataIds() }, []string{})
 	runAllTypesCompareOutput(t, func() any { return GetAllMetadata() }, map[string]models.File{})
 	runAllTypesCompareTwoOutputs(t, func() (any, any) { return GetMetaDataById("testid") }, models.File{}, false)
 	file := models.File{
@@ -238,10 +237,8 @@ func TestMetaData(t *testing.T) {
 	}
 	runAllTypesNoOutput(t, func() { SaveMetaData(file) })
 	runAllTypesCompareTwoOutputs(t, func() (any, any) { return GetMetaDataById("testid") }, file, true)
-	runAllTypesCompareOutput(t, func() any { return GetAllMetaDataIds() }, []string{"testid"})
 	runAllTypesCompareOutput(t, func() any { return GetAllMetadata() }, map[string]models.File{"testid": file})
 	runAllTypesNoOutput(t, func() { DeleteMetaData("testid") })
-	runAllTypesCompareOutput(t, func() any { return GetAllMetaDataIds() }, []string{})
 	runAllTypesCompareOutput(t, func() any { return GetAllMetadata() }, map[string]models.File{})
 	runAllTypesCompareTwoOutputs(t, func() (any, any) { return GetMetaDataById("testid") }, models.File{}, false)
 

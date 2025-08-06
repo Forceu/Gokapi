@@ -509,19 +509,6 @@ func TestMetaData(t *testing.T) {
 	_ = dbInstance.GetAllMetadata()
 }
 
-func TestGetAllMetaDataIds(t *testing.T) {
-	instance, err := New(config)
-	test.IsNil(t, err)
-
-	ids := instance.GetAllMetaDataIds()
-	test.IsEqualString(t, ids[0], "test2")
-	test.IsEqualString(t, ids[1], "test3")
-
-	instance.Close()
-	defer test.ExpectPanic(t)
-	_ = instance.GetAllMetaDataIds()
-}
-
 func TestUsers(t *testing.T) {
 	instance, err := New(config)
 	test.IsNil(t, err)

@@ -128,20 +128,6 @@ func TestDatabaseProvider_GetType(t *testing.T) {
 	test.IsEqualInt(t, dbInstance.GetType(), 0)
 }
 
-func TestGetAllMetaDataIds(t *testing.T) {
-	instance, err := New(config)
-	test.IsNil(t, err)
-	dbInstance = instance
-
-	ids := dbInstance.GetAllMetaDataIds()
-	test.IsEqualString(t, ids[0], "test2")
-	test.IsEqualString(t, ids[1], "test3")
-
-	dbInstance.Close()
-	defer test.ExpectPanic(t)
-	_ = dbInstance.GetAllMetaDataIds()
-}
-
 func TestHotlink(t *testing.T) {
 	instance, err := New(config)
 	test.IsNil(t, err)
