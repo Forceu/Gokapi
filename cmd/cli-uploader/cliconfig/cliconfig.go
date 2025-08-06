@@ -1,6 +1,7 @@
 package cliconfig
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -18,7 +19,7 @@ const filename = "gokapi-cli.json"
 type configFile struct {
 	Url    string `json:"Url"`
 	Apikey string `json:"Apikey"`
-	E2ekey string `json:"E2Ekey"`
+	E2ekey []byte `json:"E2Ekey"`
 }
 
 func CreateLogin() {
@@ -39,7 +40,7 @@ func CreateLogin() {
 	}
 	fmt.Println("")
 	fmt.Print("Testing connection...")
-	cliapi.Init(url, apikey, "")
+	cliapi.Init(url, apikey, []byte{})
 	vstr, vint, err := cliapi.GetVersion()
 	if err != nil {
 		fmt.Println()
@@ -69,11 +70,27 @@ func CreateLogin() {
 		os.Exit(1)
 	}
 	fmt.Println("OK")
-	var e2ekey = ""
+	var e2ekey []byte
 	if isE2E {
 		fmt.Print("End-to-end encryption key: ")
-		e2ekey = helper.ReadLine()
-		// TODO check if key is invalid or not generated yet
+		e2ekeyString := helper.ReadLine()
+		e2ekey, err = base64.StdEncoding.DecodeString(e2ekeyString)
+		if err != nil {
+			fmt.Println("ERROR: Invalid end-to-end encryption key")
+			os.Exit(1)
+		}
+		cliapi.Init(url, apikey, e2ekey)
+		_, err = cliapi.GetE2eInfo()
+		if err != nil {
+			if errors.Is(cliapi.EE2eKeyIncorrect, err) {
+				fmt.Println("ERROR: Incorrect end-to-end encryption key")
+			} else {
+				fmt.Println(err)
+			}
+			os.Exit(1)
+		}
+		// TODO check if key has not been generated yet
+		// TODO warn user not to upload e2e simultaneously
 	}
 
 	err = save(url, apikey, e2ekey)
@@ -85,7 +102,7 @@ func CreateLogin() {
 	fmt.Println("Login successful")
 }
 
-func save(url, apikey, e2ekey string) error {
+func save(url, apikey string, e2ekey []byte) error {
 	configData := configFile{
 		Url:    url,
 		Apikey: apikey,

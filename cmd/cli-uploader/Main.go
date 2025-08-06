@@ -53,7 +53,6 @@ func processUpload() {
 		os.Exit(3)
 	}
 	fmt.Println(result)
-
 }
 
 func printUsage() {

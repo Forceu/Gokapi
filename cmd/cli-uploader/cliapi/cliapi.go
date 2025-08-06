@@ -5,7 +5,9 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/forceu/gokapi/internal/encryption"
+	"github.com/forceu/gokapi/internal/encryption/end2end"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"io"
@@ -20,7 +22,7 @@ import (
 
 var gokapiUrl string
 var apiKey string
-var e2eKey string
+var e2eKey []byte
 
 const megaByte = 1024 * 1024
 
@@ -31,8 +33,9 @@ type header struct {
 
 var EUnauthorised = errors.New("unauthorised")
 var EFileTooBig = errors.New("file too big")
+var EE2eKeyIncorrect = errors.New("e2e key incorrect")
 
-func Init(url, key, end2endKey string) {
+func Init(url, key string, end2endKey []byte) {
 	gokapiUrl = strings.TrimSuffix(url, "/") + "/api"
 	apiKey = key
 	e2eKey = end2endKey
@@ -105,7 +108,11 @@ func getUrl(url string, headers []header) (string, error) {
 
 func UploadFile(f *os.File) (string, error) {
 	maxSize, chunkSize, isE2e, err := GetConfig()
-	if e2eKey == "" {
+	// TODO check for 401
+	if err != nil {
+		return "", err
+	}
+	if len(e2eKey) == 0 {
 		isE2e = false
 	}
 	fi, err := f.Stat()
@@ -113,13 +120,42 @@ func UploadFile(f *os.File) (string, error) {
 		return "", err
 	}
 	sizeBytes := fi.Size()
+	realSize := fi.Size()
 	if isE2e {
 		sizeBytes = encryption.CalculateEncryptedFilesize(sizeBytes)
 	}
-	if sizeBytes > int64(maxSize*megaByte) {
+	if sizeBytes > int64(maxSize)*megaByte {
 		return "", EFileTooBig
 	}
 	uuid := helper.GenerateRandomString(30)
+
+	if isE2e {
+		cipher, err := encryption.GetRandomCipher()
+		if err != nil {
+			return "", err
+		}
+		stream, err := encryption.GetEncryptReader(cipher, f)
+		if err != nil {
+			return "", err
+		}
+		for i := int64(0); i < sizeBytes; i = i + (int64(chunkSize) * megaByte) {
+			err = uploadChunk(stream, uuid, i, int64(chunkSize)*megaByte, sizeBytes)
+			if err != nil {
+				return "", err
+			}
+		}
+		file, err := completeChunk(uuid, "Encrypted File", sizeBytes, realSize, true)
+		if err != nil {
+			return "", err
+		}
+		err = addE2EFileInfo(models.E2EFile{
+			Uuid:     uuid,
+			Id:       file.Id,
+			Filename: getFileName(f),
+			Cipher:   cipher,
+		})
+		return file.Id, err
+	}
 
 	for i := int64(0); i < sizeBytes; i = i + (int64(chunkSize) * megaByte) {
 		err = uploadChunk(f, uuid, i, int64(chunkSize)*megaByte, sizeBytes)
@@ -127,7 +163,7 @@ func UploadFile(f *os.File) (string, error) {
 			return "", err
 		}
 	}
-	file, err := completeChunk(uuid, nameToBase64(f), sizeBytes)
+	file, err := completeChunk(uuid, nameToBase64(f), sizeBytes, realSize, false)
 	if err != nil {
 		return "", err
 	}
@@ -135,7 +171,11 @@ func UploadFile(f *os.File) (string, error) {
 }
 
 func nameToBase64(f *os.File) string {
-	return "base64:" + base64.StdEncoding.EncodeToString([]byte(filepath.Base(f.Name())))
+	return "base64:" + base64.StdEncoding.EncodeToString([]byte(getFileName(f)))
+}
+
+func getFileName(f *os.File) string {
+	return filepath.Base(f.Name())
 }
 
 func uploadChunk(f io.Reader, uuid string, offset, chunkSize, filesize int64) error {
@@ -197,7 +237,7 @@ func uploadChunk(f io.Reader, uuid string, offset, chunkSize, filesize int64) er
 	return nil
 }
 
-func completeChunk(uid, filename string, filesize int64) (models.File, error) {
+func completeChunk(uid, filename string, filesize, realsize int64, useE2e bool) (models.File, error) {
 	type expectedFormat struct {
 		FileInfo models.File `json:"FileInfo"`
 	}
@@ -205,6 +245,8 @@ func completeChunk(uid, filename string, filesize int64) (models.File, error) {
 		{"uuid", uid},
 		{"filename", filename},
 		{"filesize", strconv.FormatInt(filesize, 10)},
+		{"realsize", strconv.FormatInt(realsize, 10)},
+		{"isE2E", strconv.FormatBool(useE2e)},
 	})
 	if err != nil {
 		return models.File{}, err
@@ -215,4 +257,69 @@ func completeChunk(uid, filename string, filesize int64) (models.File, error) {
 		return models.File{}, err
 	}
 	return parsedResult.FileInfo, nil
+}
+
+func GetE2eInfo() (models.E2EInfoPlainText, error) {
+	var result models.E2EInfoEncrypted
+	var fileInfo models.E2EInfoPlainText
+	resultJson, err := getUrl(gokapiUrl+"/e2e/get", []header{})
+	if err != nil {
+		return models.E2EInfoPlainText{}, err
+	}
+	err = json.Unmarshal([]byte(resultJson), &result)
+	if err != nil {
+		return models.E2EInfoPlainText{}, err
+	}
+	fileInfo, err = end2end.DecryptData(result, e2eKey)
+	if err != nil {
+		return models.E2EInfoPlainText{}, EE2eKeyIncorrect
+	}
+	return fileInfo, nil
+}
+
+func addE2EFileInfo(file models.E2EFile) error {
+	infoPlain, err := GetE2eInfo()
+	if err != nil {
+		return err
+	}
+	infoPlain.Files = append(infoPlain.Files, file)
+	output, err := end2end.EncryptData(infoPlain.Files, e2eKey)
+	if err != nil {
+		return err
+	}
+	return setE2eInfo(output)
+}
+
+func setE2eInfo(input models.E2EInfoEncrypted) error {
+	outputJson, err := json.Marshal(input)
+	if err != nil {
+		return err
+	}
+	content := base64.StdEncoding.EncodeToString(outputJson)
+
+	apiURL := gokapiUrl + "/e2e/set"
+
+	bodyData := map[string]string{
+		"content": content,
+	}
+	bodyBytes, err := json.Marshal(bodyData)
+	if err != nil {
+		return fmt.Errorf("failed to marshal JSON: %w", err)
+	}
+
+	req, err := http.NewRequest(http.MethodPost, apiURL, bytes.NewBuffer(bodyBytes))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("apikey", apiKey)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to send request: %w", err)
+	}
+	_ = resp.Body.Close()
+	return nil
+
 }
