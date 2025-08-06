@@ -1,66 +1,46 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/forceu/gokapi/cmd/cli-uploader/cliapi"
 	"github.com/forceu/gokapi/cmd/cli-uploader/cliconfig"
+	"github.com/forceu/gokapi/cmd/cli-uploader/cliflags"
 	"os"
 )
 
-const (
-	paramLogin  = "login"
-	paramLogout = "logout"
-)
-
 func main() {
-
-	if len(os.Args) < 2 {
-		fmt.Println("Valid options are:")
-		fmt.Println("   gokapi-cli login")
-		fmt.Println("   gokapi-cli logout")
-		fmt.Println("   gokapi-cli upload [file to upload]")
-		os.Exit(1)
-	}
-	switch os.Args[1] {
-	case "login":
+	mode := cliflags.Parse()
+	switch mode {
+	case cliflags.ModeLogin:
 		cliconfig.CreateLogin()
-	case "logout":
+	case cliflags.ModeLogout:
 		doLogout()
-	case "upload":
+	case cliflags.ModeUpload:
 		processUpload()
-	default:
-		printUsage()
+	case cliflags.ModeInvalid:
+		os.Exit(3)
 	}
 }
 
 func processUpload() {
 	cliconfig.Load()
-	if len(os.Args) < 3 {
-		fmt.Println("ERROR: Missing parameter file to upload")
-		printUsage()
-		os.Exit(1)
-	}
-	file, err := os.OpenFile(os.Args[2], os.O_RDONLY, 0664)
-	if err != nil {
-		fmt.Println("ERROR: Could not open file to upload")
-		fmt.Println(err)
-		os.Exit(2)
-	}
-	result, err := cliapi.UploadFile(file)
+	uploadParam := cliflags.GetUploadParameters()
+
+	result, err := cliapi.UploadFile(uploadParam)
 	if err != nil {
 		fmt.Println("ERROR: Could not upload file")
 		fmt.Println(err)
-		os.Exit(3)
+		os.Exit(1)
 	}
-	fmt.Println(result)
-}
-
-func printUsage() {
-	fmt.Println("Valid options are:")
-	fmt.Println("   gokapi-cli login")
-	fmt.Println("   gokapi-cli logout")
-	fmt.Println("   gokapi-cli upload")
-	os.Exit(1)
+	if uploadParam.JsonOutput {
+		jsonStr, _ := json.Marshal(result)
+		fmt.Println(string(jsonStr))
+	} else {
+		fmt.Println("File uploaded successfully")
+		fmt.Println("File ID: " + result.Id)
+		fmt.Println("File Download URL: " + result.UrlDownload)
+	}
 }
 
 func doLogout() {
