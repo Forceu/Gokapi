@@ -20,7 +20,7 @@ import (
 
 var gokapiUrl string
 var apiKey string
-var e2ekey string
+var e2eKey string
 
 const megaByte = 1024 * 1024
 
@@ -32,10 +32,10 @@ type header struct {
 var EUnauthorised = errors.New("unauthorised")
 var EFileTooBig = errors.New("file too big")
 
-func Init(url, key, end2endkey string) {
+func Init(url, key, end2endKey string) {
 	gokapiUrl = strings.TrimSuffix(url, "/") + "/api"
 	apiKey = key
-	e2ekey = end2endkey
+	e2eKey = end2endKey
 
 }
 
@@ -105,7 +105,7 @@ func getUrl(url string, headers []header) (string, error) {
 
 func UploadFile(f *os.File) (string, error) {
 	maxSize, chunkSize, isE2e, err := GetConfig()
-	if e2ekey == "" {
+	if e2eKey == "" {
 		isE2e = false
 	}
 	fi, err := f.Stat()

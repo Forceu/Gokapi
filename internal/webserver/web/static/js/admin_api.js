@@ -114,14 +114,14 @@ async function apiAuthCreate() {
 
 async function apiChunkComplete(uuid, filename, filesize, realsize, contenttype, allowedDownloads, expiryDays, password, isE2E, nonblocking) {
     const apiUrl = './api/chunk/complete';
-    
+
     const requestOptions = {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'apikey': systemKey,
             'uuid': uuid,
-            'filename': 'base64:'+Base64.encode(filename),
+            'filename': 'base64:' + Base64.encode(filename),
             'filesize': filesize,
             'realsize': realsize,
             'contenttype': contenttype,
@@ -135,20 +135,20 @@ async function apiChunkComplete(uuid, filename, filesize, realsize, contenttype,
 
     try {
         const response = await fetch(apiUrl, requestOptions);
-   if (!response.ok) {
-    let errorMessage;
+        if (!response.ok) {
+            let errorMessage;
 
-    // Attempt to parse JSON, fallback to text if parsing fails
-    try {
-      const errorResponse = await response.json();
-      errorMessage = errorResponse.ErrorMessage || `Request failed with status: ${response.status}`;
-    } catch {
-      // Handle non-JSON error
-      const errorText = await response.text();
-      errorMessage = errorText || `Request failed with status: ${response.status}`;
-    }
-    throw new Error(errorMessage);
-  }
+            // Attempt to parse JSON, fallback to text if parsing fails
+            try {
+                const errorResponse = await response.json();
+                errorMessage = errorResponse.ErrorMessage || `Request failed with status: ${response.status}`;
+            } catch {
+                // Handle non-JSON error
+                const errorText = await response.text();
+                errorMessage = errorText || `Request failed with status: ${response.status}`;
+            }
+            throw new Error(errorMessage);
+        }
         const data = await response.json();
         return data;
     } catch (error) {
@@ -314,9 +314,9 @@ async function apiUserCreate(userName) {
     try {
         const response = await fetch(apiUrl, requestOptions);
         if (!response.ok) {
-        	if (response.status==409) {
-        		throw new Error("duplicate");
-        	} 
+            if (response.status == 409) {
+                throw new Error("duplicate");
+            }
             throw new Error(`Request failed with status: ${response.status}`);
         }
         const data = await response.json();
@@ -410,7 +410,7 @@ async function apiUserResetPassword(id, generatePw) {
     const apiUrl = './api/user/resetPassword';
 
     const requestOptions = {
-        method: 'POST', 
+        method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'apikey': systemKey,
@@ -438,7 +438,7 @@ async function apiLogsDelete(timestamp) {
     const apiUrl = './api/logs/delete';
 
     const requestOptions = {
-        method: 'POST', 
+        method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'apikey': systemKey,
@@ -457,4 +457,55 @@ async function apiLogsDelete(timestamp) {
     }
 }
 
+// E2E
 
+
+async function apiE2eGet() {
+    const apiUrl = './api/e2e/get';
+
+    const requestOptions = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'apikey': systemKey
+        },
+    };
+
+    try {
+        const response = await fetch(apiUrl, requestOptions);
+        if (!response.ok) {
+            throw new Error(`Request failed with status: ${response.status}`);
+        }
+        return await response.text();
+        // return await response.json();
+    } catch (error) {
+        console.error("Error in apiE2eGet:", error);
+        throw error;
+    }
+}
+
+
+async function apiE2eStore(content) {
+    const apiUrl = './api/e2e/set';
+
+    const requestOptions = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'apikey': systemKey
+        },
+        body: JSON.stringify({
+            content: content
+        }),
+    };
+
+    try {
+        const response = await fetch(apiUrl, requestOptions);
+        if (!response.ok) {
+            throw new Error(`Request failed with status: ${response.status}`);
+        }
+    } catch (error) {
+        console.error("Error in apiE2eStore:", error);
+        throw error;
+    }
+}

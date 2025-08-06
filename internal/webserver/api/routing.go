@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
@@ -160,6 +161,18 @@ var routes = []apiRoute{
 		ApiPerm:       models.ApiPermManageLogs,
 		execution:     apiLogsDelete,
 		RequestParser: &paramLogsDelete{},
+	},
+	{
+		Url:           "/e2e/get", // not published in API documentation
+		ApiPerm:       models.ApiPermUpload,
+		execution:     apiE2eGet,
+		RequestParser: nil,
+	},
+	{
+		Url:           "/e2e/set", // not published in API documentation
+		ApiPerm:       models.ApiPermUpload,
+		execution:     apiE2eSet,
+		RequestParser: &paramE2eStore{},
 	},
 }
 
@@ -431,6 +444,28 @@ type paramUserResetPw struct {
 
 func (p *paramUserResetPw) ProcessParameter(_ *http.Request) error { return nil }
 
+type paramE2eStore struct {
+	EncryptedInfo models.E2EInfoEncrypted
+	foundHeaders  map[string]bool
+}
+
+func (p *paramE2eStore) ProcessParameter(r *http.Request) error {
+	type expectedInput struct {
+		Content string `json:"content"`
+	}
+	var input expectedInput
+
+	err := json.NewDecoder(r.Body).Decode(&input)
+	if err != nil {
+		return err
+	}
+	content, err := base64.StdEncoding.DecodeString(input.Content)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(content, &p.EncryptedInfo)
+}
+
 type paramLogsDelete struct {
 	Timestamp    int64 `header:"timestamp"`
 	Request      *http.Request
@@ -460,7 +495,7 @@ type paramChunkComplete struct {
 	AllowedDownloads   int    `header:"allowedDownloads"`
 	ExpiryDays         int    `header:"expiryDays"`
 	Password           string `header:"password"`
-	IsE2E              bool   `header:"isE2E"`
+	IsE2E              bool   `header:"isE2E"` // not published in API documentation
 	IsNonBlocking      bool   `header:"nonblocking"`
 	UnlimitedDownloads bool
 	UnlimitedTime      bool

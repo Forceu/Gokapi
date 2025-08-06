@@ -9,7 +9,6 @@ import (
 	"context"
 	"embed"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/NYTimes/gziphandler"
@@ -95,7 +94,6 @@ func Start() {
 	mux.HandleFunc("/changePassword", requireLogin(changePassword, true, true))
 	mux.HandleFunc("/d", showDownload)
 	mux.HandleFunc("/downloadFile", downloadFile)
-	mux.HandleFunc("/e2eInfo", requireLogin(e2eInfo, false, false))
 	mux.HandleFunc("/e2eSetup", requireLogin(showE2ESetup, true, false))
 	mux.HandleFunc("/error", showError)
 	mux.HandleFunc("/error-auth", showErrorAuth)
@@ -543,63 +541,6 @@ func showHotlink(w http.ResponseWriter, r *http.Request) {
 	storage.ServeFile(file, w, r, false)
 }
 
-// Handling of /e2eInfo
-// User needs to be admin. Receives or stores end2end encryption info
-func e2eInfo(w http.ResponseWriter, r *http.Request) {
-	action, ok := r.URL.Query()["action"]
-	if !ok || len(action) < 1 {
-		responseError(w, errors.New("invalid action specified"))
-		return
-	}
-
-	user, err := authentication.GetUserFromRequest(r)
-	if err != nil {
-		responseError(w, err)
-		return
-	}
-	switch action[0] {
-	case "get":
-		getE2eInfo(w, user.Id)
-	case "store":
-		storeE2eInfo(w, r, user.Id)
-	default:
-		responseError(w, errors.New("invalid action specified"))
-	}
-}
-
-func storeE2eInfo(w http.ResponseWriter, r *http.Request, userId int) {
-	err := r.ParseForm()
-	if err != nil {
-		responseError(w, err)
-		return
-	}
-	uploadedInfoBase64 := r.Form.Get("info")
-	if uploadedInfoBase64 == "" {
-		responseError(w, errors.New("empty info sent"))
-		return
-	}
-	uploadedInfo, err := base64.StdEncoding.DecodeString(uploadedInfoBase64)
-	if err != nil {
-		responseError(w, err)
-		return
-	}
-	var info models.E2EInfoEncrypted
-	err = json.Unmarshal(uploadedInfo, &info)
-	if err != nil {
-		responseError(w, err)
-		return
-	}
-	database.SaveEnd2EndInfo(info, userId)
-	_, _ = w.Write([]byte("\"result\":\"OK\""))
-}
-
-func getE2eInfo(w http.ResponseWriter, userId int) {
-	info := database.GetEnd2EndInfo(userId)
-	bytesE2e, err := json.Marshal(info)
-	helper.Check(err)
-	_, _ = w.Write(bytesE2e)
-}
-
 // Checks if a file is associated with the GET parameter from the current URL
 // Stops for 500ms to limit brute forcing if invalid key and redirects to redirectUrl
 func queryUrl(w http.ResponseWriter, r *http.Request, redirectUrl string) string {
@@ -663,6 +604,7 @@ func showE2ESetup(w http.ResponseWriter, r *http.Request) {
 	err = templateFolder.ExecuteTemplate(w, "e2esetup", e2ESetupView{
 		HasBeenSetup:  e2einfo.HasBeenSetUp(),
 		PublicName:    configuration.Get().PublicName,
+		SystemKey:     api.GetSystemKey(user.Id),
 		CustomContent: customStaticInfo})
 	helper.CheckIgnoreTimeout(err)
 }
@@ -690,6 +632,7 @@ type e2ESetupView struct {
 	IsDownloadView bool
 	HasBeenSetup   bool
 	PublicName     string
+	SystemKey      string
 	CustomContent  customStatic
 }
 

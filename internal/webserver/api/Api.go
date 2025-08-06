@@ -764,6 +764,22 @@ func apiLogsDelete(_ http.ResponseWriter, r requestParser, user models.User) {
 	logging.DeleteLogs(user.Name, user.Id, request.Timestamp, request.Request)
 }
 
+func apiE2eGet(w http.ResponseWriter, _ requestParser, user models.User) {
+	info := database.GetEnd2EndInfo(user.Id) // TODO only for the user, not all files
+	bytesE2e, err := json.Marshal(info)
+	helper.Check(err)
+	_, _ = w.Write(bytesE2e)
+}
+
+func apiE2eSet(w http.ResponseWriter, r requestParser, user models.User) {
+	request, ok := r.(*paramE2eStore)
+	if !ok {
+		panic("invalid parameter passed")
+	}
+	database.SaveEnd2EndInfo(request.EncryptedInfo, user.Id)
+	_, _ = w.Write([]byte("\"result\":\"OK\""))
+}
+
 func isAuthorisedForApi(r *http.Request, routing apiRoute) (models.User, bool) {
 	apiKey := r.Header.Get("apikey")
 	user, _, ok := isValidApiKey(apiKey, true, routing.ApiPerm)
