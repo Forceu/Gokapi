@@ -17,9 +17,6 @@ jobs:
     steps:
       - name: checkout code
         uses: actions/checkout@v4
-        with:
-            fetch-depth: 0
-      - run: git checkout tags/${{ github.event.inputs.tagname }}
       - name: install buildx
         id: buildx
         uses: crazy-max/ghaction-docker-buildx@v1
