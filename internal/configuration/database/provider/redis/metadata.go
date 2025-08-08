@@ -63,15 +63,6 @@ func unmarshalEncryptionInfo(f models.File) (models.File, error) {
 	return f, nil
 }
 
-// GetAllMetaDataIds returns all Ids that contain metadata
-func (p DatabaseProvider) GetAllMetaDataIds() []string {
-	result := make([]string, 0)
-	for _, key := range p.getAllKeysWithPrefix(prefixMetaData) {
-		result = append(result, strings.Replace(key, prefixMetaData, "", 1))
-	}
-	return result
-}
-
 // GetMetaDataById returns a models.File from the ID passed or false if the id is not valid
 func (p DatabaseProvider) GetMetaDataById(id string) (models.File, bool) {
 	result, ok := p.getHashMap(prefixMetaData + id)

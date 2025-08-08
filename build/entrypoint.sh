@@ -21,6 +21,21 @@ for target in $targets; do
 	rm $output
 done
 
+
+for target in $targets; do
+	os="$(echo $target | cut -d '/' -f1)"
+	arch="$(echo $target | cut -d '/' -f2)"
+	output="build/gokapi-cli-${os}_${arch}"
+	if [ $os = "windows" ]; then
+		output+='.exe'
+	fi
+
+	echo "----> Building Gokapi CLI for $target"
+	GOOS=$os GOARCH=$arch CGO_ENABLED=0 go build -ldflags="-s -w -X 'github.com/forceu/gokapi/internal/environment.Builder=Github Release Builder' -X 'github.com/forceu/gokapi/internal/environment.BuildTime=$(date)'" -o $output github.com/forceu/gokapi/cmd/cli-uploader
+	zip -j $output.zip $output >/dev/null
+	rm $output
+done
+
 echo "----> Build is complete. List of files at build/:"
 cd build/
 ls -l gokapi-*

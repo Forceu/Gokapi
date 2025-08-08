@@ -636,6 +636,17 @@ func (p *paramUserResetPw) New() requestParser {
 	return &paramUserResetPw{}
 }
 
+// ParseRequest parses the header file. As paramE2eStore has no fields with the
+// tag header, this method does nothing, except calling ProcessParameter()
+func (p *paramE2eStore) ParseRequest(r *http.Request) error {
+	return p.ProcessParameter(r)
+}
+
+// New returns a new instance of paramE2eStore struct
+func (p *paramE2eStore) New() requestParser {
+	return &paramE2eStore{}
+}
+
 // ParseRequest reads r and saves the passed header values in the paramLogsDelete struct
 // In the end, ProcessParameter() is called
 func (p *paramLogsDelete) ParseRequest(r *http.Request) error {

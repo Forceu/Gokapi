@@ -4,6 +4,7 @@
 	<script src="./js/min/end2end_admin.min.{{ template "js_e2eversion"}}.js"></script>
 	<script src="./js/min/streamsaver.min.js"></script>
 	<script src="./js/min/wasm_exec.min.js"></script>
+	<script src="./js/min/admin.min.{{ template "js_admin_version"}}.js"></script>
 	<script>
 		document.title = "Gokapi - E2E Setup";
 	</script>
@@ -73,6 +74,7 @@
 	}
 
 	loadWasm(newKey);
+	var systemKey = "{{.SystemKey}}";
 	
     </script>
     
@@ -121,6 +123,7 @@
 	});
 	
 	
+	var systemKey = "{{.SystemKey}}";
 	
     </script>
 {{ end }}

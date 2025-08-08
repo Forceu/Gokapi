@@ -3,7 +3,10 @@
 // go generate ./...
 
 
-var clipboard = new ClipboardJS('.copyurl');
+try {
+    var clipboard = new ClipboardJS('.copyurl');
+} catch (ignored) {
+}
 
 var toastId;
 

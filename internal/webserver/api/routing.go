@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
@@ -28,6 +29,18 @@ func (r apiRoute) Continue(w http.ResponseWriter, request requestParser, user mo
 type apiFunc func(w http.ResponseWriter, request requestParser, user models.User)
 
 var routes = []apiRoute{
+	{
+		Url:           "/info/version",
+		ApiPerm:       models.ApiPermNone,
+		execution:     apiVersionInfo,
+		RequestParser: nil,
+	},
+	{
+		Url:           "/info/config",
+		ApiPerm:       models.ApiPermUpload,
+		execution:     apiConfigInfo,
+		RequestParser: nil,
+	},
 	{
 		Url:           "/files/list",
 		ApiPerm:       models.ApiPermView,
@@ -148,6 +161,18 @@ var routes = []apiRoute{
 		ApiPerm:       models.ApiPermManageLogs,
 		execution:     apiLogsDelete,
 		RequestParser: &paramLogsDelete{},
+	},
+	{
+		Url:           "/e2e/get", // not published in API documentation
+		ApiPerm:       models.ApiPermUpload,
+		execution:     apiE2eGet,
+		RequestParser: nil,
+	},
+	{
+		Url:           "/e2e/set", // not published in API documentation
+		ApiPerm:       models.ApiPermUpload,
+		execution:     apiE2eSet,
+		RequestParser: &paramE2eStore{},
 	},
 }
 
@@ -419,6 +444,28 @@ type paramUserResetPw struct {
 
 func (p *paramUserResetPw) ProcessParameter(_ *http.Request) error { return nil }
 
+type paramE2eStore struct {
+	EncryptedInfo models.E2EInfoEncrypted
+	foundHeaders  map[string]bool
+}
+
+func (p *paramE2eStore) ProcessParameter(r *http.Request) error {
+	type expectedInput struct {
+		Content string `json:"content"`
+	}
+	var input expectedInput
+
+	err := json.NewDecoder(r.Body).Decode(&input)
+	if err != nil {
+		return err
+	}
+	content, err := base64.StdEncoding.DecodeString(input.Content)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(content, &p.EncryptedInfo)
+}
+
 type paramLogsDelete struct {
 	Timestamp    int64 `header:"timestamp"`
 	Request      *http.Request
@@ -443,12 +490,12 @@ type paramChunkComplete struct {
 	Uuid               string `header:"uuid" required:"true"`
 	FileName           string `header:"filename" required:"true"`
 	FileSize           int64  `header:"filesize" required:"true"`
-	RealSize           int64  `header:"realsize"`
+	RealSize           int64  `header:"realsize"` // not published in API documentation
 	ContentType        string `header:"contenttype"`
 	AllowedDownloads   int    `header:"allowedDownloads"`
 	ExpiryDays         int    `header:"expiryDays"`
 	Password           string `header:"password"`
-	IsE2E              bool   `header:"isE2E"`
+	IsE2E              bool   `header:"isE2E"` // not published in API documentation
 	IsNonBlocking      bool   `header:"nonblocking"`
 	UnlimitedDownloads bool
 	UnlimitedTime      bool
@@ -490,6 +537,9 @@ func (p *paramChunkComplete) ProcessParameter(_ *http.Request) error {
 		p.FileName = string(decoded)
 	}
 
+	if p.ContentType == "" {
+		p.ContentType = "application/octet-stream"
+	}
 	p.FileHeader = chunking.FileHeader{
 		Filename:    p.FileName,
 		ContentType: p.ContentType,

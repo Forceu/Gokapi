@@ -152,9 +152,7 @@ func SaveEnd2EndInfo(info models.E2EInfoEncrypted, userId int) {
 
 // GetEnd2EndInfo retrieves the encrypted e2e info
 func GetEnd2EndInfo(userId int) models.E2EInfoEncrypted {
-	info := db.GetEnd2EndInfo(userId)
-	info.AvailableFiles = GetAllMetaDataIds()
-	return info
+	return db.GetEnd2EndInfo(userId)
 }
 
 // DeleteEnd2EndInfo resets the encrypted e2e info
@@ -189,11 +187,6 @@ func DeleteHotlink(id string) {
 // GetAllMetadata returns a map of all available files
 func GetAllMetadata() map[string]models.File {
 	return db.GetAllMetadata()
-}
-
-// GetAllMetaDataIds returns all Ids that contain metadata
-func GetAllMetaDataIds() []string {
-	return db.GetAllMetaDataIds()
 }
 
 // GetMetaDataById returns a models.File from the ID passed or false if the id is not valid
