@@ -11,6 +11,7 @@ import (
 	"github.com/forceu/gokapi/internal/encryption/end2end"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
+	"github.com/schollz/progressbar/v3"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -44,7 +45,7 @@ func Init(url, key string, end2endKey []byte) {
 }
 
 func GetVersion() (string, int, error) {
-	result, err := getUrl(gokapiUrl+"/info/version", []header{})
+	result, err := getUrl(gokapiUrl+"/info/version", []header{}, false)
 	if err != nil {
 		return "", 0, err
 	}
@@ -61,7 +62,7 @@ func GetVersion() (string, int, error) {
 }
 
 func GetConfig() (int, int, bool, error) {
-	result, err := getUrl(gokapiUrl+"/info/config", []header{})
+	result, err := getUrl(gokapiUrl+"/info/config", []header{}, false)
 	if err != nil {
 		return 0, 0, false, err
 	}
@@ -78,9 +79,13 @@ func GetConfig() (int, int, bool, error) {
 	return parsedResult.MaxFilesize, parsedResult.MaxChunksize, parsedResult.EndToEndEncryptionEnabled, nil
 }
 
-func getUrl(url string, headers []header) (string, error) {
+func getUrl(url string, headers []header, longTimeout bool) (string, error) {
+	timeout := 30 * time.Second
+	if longTimeout {
+		timeout = 30 * time.Minute
+	}
 	client := &http.Client{
-		Timeout: time.Second * 10,
+		Timeout: timeout,
 	}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -108,6 +113,7 @@ func getUrl(url string, headers []header) (string, error) {
 }
 
 func UploadFile(uploadParams cliflags.UploadConfig) (models.FileApiOutput, error) {
+	var progressBar *progressbar.ProgressBar
 	file, err := os.OpenFile(uploadParams.File, os.O_RDONLY, 0664)
 	if err != nil {
 		fmt.Println("ERROR: Could not open file to upload")
@@ -137,6 +143,10 @@ func UploadFile(uploadParams cliflags.UploadConfig) (models.FileApiOutput, error
 	}
 	uuid := helper.GenerateRandomString(30)
 
+	if !uploadParams.JsonOutput {
+		progressBar = progressbar.DefaultBytes(-1, "uploading")
+	}
+
 	if isE2e {
 		cipher, err := encryption.GetRandomCipher()
 		if err != nil {
@@ -147,12 +157,12 @@ func UploadFile(uploadParams cliflags.UploadConfig) (models.FileApiOutput, error
 			return models.FileApiOutput{}, err
 		}
 		for i := int64(0); i < sizeBytes; i = i + (int64(chunkSize) * megaByte) {
-			err = uploadChunk(stream, uuid, i, int64(chunkSize)*megaByte, sizeBytes)
+			err = uploadChunk(stream, uuid, i, int64(chunkSize)*megaByte, sizeBytes, progressBar)
 			if err != nil {
 				return models.FileApiOutput{}, err
 			}
 		}
-		metaData, err := completeChunk(uuid, "Encrypted File", sizeBytes, realSize, true, uploadParams)
+		metaData, err := completeChunk(uuid, "Encrypted File", sizeBytes, realSize, true, uploadParams, progressBar)
 		if err != nil {
 			return models.FileApiOutput{}, err
 		}
@@ -174,12 +184,12 @@ func UploadFile(uploadParams cliflags.UploadConfig) (models.FileApiOutput, error
 	}
 
 	for i := int64(0); i < sizeBytes; i = i + (int64(chunkSize) * megaByte) {
-		err = uploadChunk(file, uuid, i, int64(chunkSize)*megaByte, sizeBytes)
+		err = uploadChunk(file, uuid, i, int64(chunkSize)*megaByte, sizeBytes, progressBar)
 		if err != nil {
 			return models.FileApiOutput{}, err
 		}
 	}
-	metaData, err := completeChunk(uuid, nameToBase64(file), sizeBytes, realSize, false, uploadParams)
+	metaData, err := completeChunk(uuid, nameToBase64(file), sizeBytes, realSize, false, uploadParams, progressBar)
 	if err != nil {
 		return models.FileApiOutput{}, err
 	}
@@ -194,7 +204,7 @@ func getFileName(f *os.File) string {
 	return filepath.Base(f.Name())
 }
 
-func uploadChunk(f io.Reader, uuid string, offset, chunkSize, filesize int64) error {
+func uploadChunk(f io.Reader, uuid string, offset, chunkSize, filesize int64, progressBar *progressbar.ProgressBar) error {
 	body := new(bytes.Buffer)
 	writer := multipart.NewWriter(body)
 	part, err := writer.CreateFormFile("file", "uploadedfile")
@@ -227,7 +237,14 @@ func uploadChunk(f io.Reader, uuid string, offset, chunkSize, filesize int64) er
 		return err
 	}
 
-	r, err := http.NewRequest("POST", gokapiUrl+"/chunk/add", body)
+	var bodyReader io.Reader
+	if progressBar != nil {
+		bodyReader = io.TeeReader(body, progressBar)
+	} else {
+		bodyReader = body
+	}
+
+	r, err := http.NewRequest("POST", gokapiUrl+"/chunk/add", bodyReader)
 	if err != nil {
 		return err
 	}
@@ -253,9 +270,15 @@ func uploadChunk(f io.Reader, uuid string, offset, chunkSize, filesize int64) er
 	return nil
 }
 
-func completeChunk(uid, filename string, filesize, realsize int64, useE2e bool, uploadParams cliflags.UploadConfig) (models.FileApiOutput, error) {
+func completeChunk(uid, filename string, filesize, realsize int64, useE2e bool, uploadParams cliflags.UploadConfig, progressBar *progressbar.ProgressBar) (models.FileApiOutput, error) {
 	type expectedFormat struct {
 		FileInfo models.FileApiOutput `json:"FileInfo"`
+	}
+	if progressBar != nil {
+		_ = progressBar.Finish()
+	}
+	if !uploadParams.JsonOutput {
+		fmt.Println("Finalising...")
 	}
 	result, err := getUrl(gokapiUrl+"/chunk/complete", []header{
 		{"uuid", uid},
@@ -266,8 +289,8 @@ func completeChunk(uid, filename string, filesize, realsize int64, useE2e bool, 
 		{"allowedDownloads", strconv.Itoa(uploadParams.ExpiryDownloads)},
 		{"expiryDays", strconv.Itoa(uploadParams.ExpiryDays)},
 		{"password", uploadParams.Password},
-		{"contenttype", "application/octet-stream"}, // TODO
-	})
+		{"contenttype", "application/octet-stream"},
+	}, true)
 	if err != nil {
 		return models.FileApiOutput{}, err
 	}
@@ -282,7 +305,7 @@ func completeChunk(uid, filename string, filesize, realsize int64, useE2e bool, 
 func GetE2eInfo() (models.E2EInfoPlainText, error) {
 	var result models.E2EInfoEncrypted
 	var fileInfo models.E2EInfoPlainText
-	resultJson, err := getUrl(gokapiUrl+"/e2e/get", []header{})
+	resultJson, err := getUrl(gokapiUrl+"/e2e/get", []header{}, false)
 	if err != nil {
 		return models.E2EInfoPlainText{}, err
 	}

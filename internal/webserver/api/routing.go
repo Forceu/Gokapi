@@ -537,6 +537,9 @@ func (p *paramChunkComplete) ProcessParameter(_ *http.Request) error {
 		p.FileName = string(decoded)
 	}
 
+	if p.ContentType == "" {
+		p.ContentType = "application/octet-stream"
+	}
 	p.FileHeader = chunking.FileHeader{
 		Filename:    p.FileName,
 		ContentType: p.ContentType,
