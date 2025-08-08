@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/forceu/gokapi/cmd/cli-uploader/cliapi"
+	"github.com/forceu/gokapi/cmd/cli-uploader/cliflags"
 	"github.com/forceu/gokapi/internal/helper"
 	"os"
 	"strings"
@@ -13,8 +14,6 @@ import (
 
 const minGokapiVersionInt = 20100
 const minGokapiVersionStr = "2.1.0"
-
-const filename = "gokapi-cli.json"
 
 type configFile struct {
 	Url    string `json:"Url"`
@@ -29,6 +28,8 @@ func CreateLogin() {
 		fmt.Println("ERROR: URL must start with http:// or https://")
 		os.Exit(1)
 	}
+
+	url = strings.TrimSuffix(url, "/admin")
 	if strings.HasPrefix(url, "http://") {
 		fmt.Println("WARNING: This URL uses an insecure connection. All data, including your API key, will be sent in plain text. This is not recommended for production use.")
 	}
@@ -114,16 +115,16 @@ func save(url, apikey string, e2ekey []byte) error {
 		return err
 	}
 
-	return os.WriteFile(filename, jsonData, 0600)
+	return os.WriteFile(cliflags.GetConfigLocation(), jsonData, 0600)
 }
 
 func Load() {
-	if !helper.FileExists(filename) {
+	if !helper.FileExists(cliflags.GetConfigLocation()) {
 		fmt.Println("ERROR: No login information found")
 		fmt.Println("Please run 'gokapi-cli login' to create a login")
 		os.Exit(1)
 	}
-	data, err := os.ReadFile(filename)
+	data, err := os.ReadFile(cliflags.GetConfigLocation())
 	if err != nil {
 		fmt.Println("ERROR: Could not read login information")
 		os.Exit(1)
@@ -140,8 +141,8 @@ func Load() {
 }
 
 func Delete() error {
-	if !helper.FileExists(filename) {
+	if !helper.FileExists(cliflags.GetConfigLocation()) {
 		return nil
 	}
-	return os.Remove(filename)
+	return os.Remove(cliflags.GetConfigLocation())
 }

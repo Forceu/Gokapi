@@ -48,7 +48,7 @@ func GetUploadParameters() UploadConfig {
 			result.JsonOutput = true
 		case "--disable-e2e":
 			result.DisableE2e = true
-		case "--file":
+		case "-f":
 			result.File = getParameter(&i)
 		case "--expiry-days":
 			result.ExpiryDays = requireInt(getParameter(&i))
@@ -59,7 +59,7 @@ func GetUploadParameters() UploadConfig {
 		}
 	}
 	if result.File == "" {
-		fmt.Println("ERROR: Missing parameter --file")
+		fmt.Println("ERROR: Missing parameter -f")
 		os.Exit(2)
 	}
 	if result.ExpiryDownloads < 0 {
@@ -69,6 +69,16 @@ func GetUploadParameters() UploadConfig {
 		result.ExpiryDays = 0
 	}
 	return result
+}
+
+func GetConfigLocation() string {
+	for i := 2; i < len(os.Args); i++ {
+		switch os.Args[i] {
+		case "-c":
+			return getParameter(&i)
+		}
+	}
+	return "gokapi-cli.json"
 }
 
 func getParameter(position *int) string {
@@ -91,14 +101,14 @@ func requireInt(input string) int {
 }
 
 func printUsage() {
-	fmt.Println("Gokapi CLI")
+	fmt.Println("Gokapi CLI v1.0")
 	fmt.Println()
 	fmt.Println("Valid options are:")
-	fmt.Println("   gokapi-cli login")
-	fmt.Println("   gokapi-cli logout")
-	fmt.Println("   gokapi-cli upload --file /file/to/upload [--json] [--disable-e2e]\n" +
+	fmt.Println("   gokapi-cli login [-c /path/to/config]")
+	fmt.Println("   gokapi-cli logout [-c /path/to/config]")
+	fmt.Println("   gokapi-cli upload --f /file/to/upload [--json] [--disable-e2e]\n" +
 		"                     [--expiry-days INT] [--expiry-downloads INT]\n" +
-		"                     [--password STRING] ")
+		"                     [--password STRING] [-c /path/to/config]")
 	fmt.Println()
 	fmt.Println("gokapi-cli upload:")
 	fmt.Println("--json              Outputs the result as JSON only")

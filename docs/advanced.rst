@@ -201,6 +201,54 @@ Migrating Redis (``127.0.0.1:6379, User: test, Password: 1234, Prefix: gokapi_, 
 
  gokapi --migrate "redis://test:1234@127.0.0.1:6379?prefix=gokapi_&ssl=true" sqlite://./data/gokapi.sqlite
 
+
+
+.. _clitool:
+
+
+********************************
+CLI Tool
+********************************
+
+Gokapi also has a CLI tool that allows uploads from the command line. Binaries are avaible on the release page (``gokapi-cli``) for Linux, Windows and MacOs. To compile it yourself, download the repository and run ``make build-cli`` in the top directory.
+
+Login
+=================================
+
+First you need to login with the command ``gokapi-cli login``. You will then be asked for your server URL and a valid API key with upload permission. If end-to-end encryption is enabled, you will also need to enter your encyption key. By default the login data is saved to ``gokapi-cli.json``, but you can define a different location with the ``-c`` parameter.
+
+To logout, either delete the configuration file or run ``gokapi-cli logout``.
+
+.. warning::
+
+   The configuration file contains the login data as plain text.
+
+
+Upload
+=================================
+
+
+To upload a file, simply run ``gokapi-cli upload -f /path/to/file``. By default the files are encrypted (if enabled) and stored without any expiration. These additional parameters are available:
+
++-----------------------------+---------------------------------------------------+
+| --json                      | Only outputs in JSON format, unless upload failed |
++-----------------------------+---------------------------------------------------+
+| --disable-e2e               | Disables end-to-end encryption for this upload    |
++-----------------------------+---------------------------------------------------+
+| --expiry-days [number]      | Sets the expiry date of the file in days          |
++-----------------------------+---------------------------------------------------+
+| --expiry-downloads [number] | Sets the allowed downloads                        |
++-----------------------------+---------------------------------------------------+
+| --password [string]         | Sets a password                                   |
++-----------------------------+---------------------------------------------------+
+| -c [path]                   | Use the configuration file specified              |
++-----------------------------+---------------------------------------------------+
+
+
+.. warning::
+
+   If you are using end-to-end encryption, do not upload other encrypted files simultaneously to avoid race conditions. 
+   
 .. _api:
 
 
