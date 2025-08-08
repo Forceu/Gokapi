@@ -6,14 +6,17 @@ import (
 	"github.com/forceu/gokapi/cmd/cli-uploader/cliapi"
 	"github.com/forceu/gokapi/cmd/cli-uploader/cliconfig"
 	"github.com/forceu/gokapi/cmd/cli-uploader/cliflags"
+	"github.com/forceu/gokapi/internal/environment"
+	"github.com/forceu/gokapi/internal/helper"
 	"os"
 )
 
 func main() {
+	cliflags.Init(cliconfig.DockerFolderConfigFile, cliconfig.DockerFolderUpload)
 	mode := cliflags.Parse()
 	switch mode {
 	case cliflags.ModeLogin:
-		cliconfig.CreateLogin()
+		doLogin()
 	case cliflags.ModeLogout:
 		doLogout()
 	case cliflags.ModeUpload:
@@ -21,6 +24,11 @@ func main() {
 	case cliflags.ModeInvalid:
 		os.Exit(3)
 	}
+}
+
+func doLogin() {
+	checkDockerFolders()
+	cliconfig.CreateLogin()
 }
 
 func processUpload() {
@@ -36,11 +44,12 @@ func processUpload() {
 	if uploadParam.JsonOutput {
 		jsonStr, _ := json.Marshal(result)
 		fmt.Println(string(jsonStr))
-	} else {
-		fmt.Println("File uploaded successfully")
-		fmt.Println("File ID: " + result.Id)
-		fmt.Println("File Download URL: " + result.UrlDownload)
+		return
 	}
+	fmt.Println("Upload successful")
+	fmt.Println("File Name: " + result.Name)
+	fmt.Println("File ID: " + result.Id)
+	fmt.Println("File Download URL: " + result.UrlDownload)
 }
 
 func doLogout() {
@@ -51,4 +60,17 @@ func doLogout() {
 		os.Exit(2)
 	}
 	fmt.Println("Logged out. To login again, run: gokapi-cli login")
+}
+
+func checkDockerFolders() {
+	if !environment.IsDockerInstance() {
+		return
+	}
+	if !helper.FolderExists(cliconfig.DockerFolderConfig) {
+		fmt.Println("Warning: Docker folder does not exist, configuration will be lost when creating a new container")
+		helper.CreateDir(cliconfig.DockerFolderConfig)
+	}
+	if !helper.FolderExists(cliconfig.DockerFolderUpload) {
+		helper.CreateDir(cliconfig.DockerFolderUpload)
+	}
 }

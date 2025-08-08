@@ -2,7 +2,9 @@ package cliflags
 
 import (
 	"fmt"
+	"github.com/forceu/gokapi/internal/environment"
 	"os"
+	"path/filepath"
 	"strconv"
 )
 
@@ -13,6 +15,9 @@ const (
 	ModeInvalid
 )
 
+var dockerConfigFile string
+var dockerUploadFolder string
+
 type UploadConfig struct {
 	File            string
 	JsonOutput      bool
@@ -20,6 +25,11 @@ type UploadConfig struct {
 	ExpiryDays      int
 	ExpiryDownloads int
 	Password        string
+}
+
+func Init(dockerConfigPath, dockerUploadPath string) {
+	dockerConfigFile = dockerConfigPath
+	dockerUploadFolder = dockerUploadPath
 }
 
 func Parse() int {
@@ -59,8 +69,17 @@ func GetUploadParameters() UploadConfig {
 		}
 	}
 	if result.File == "" {
-		fmt.Println("ERROR: Missing parameter -f")
-		os.Exit(2)
+		if environment.IsDockerInstance() {
+			ok, dockerFile := getDockerUpload()
+			if !ok {
+				fmt.Println("ERROR: Missing parameter -f and no file or more than one file found in " + dockerUploadFolder)
+				os.Exit(2)
+			}
+			result.File = dockerFile
+		} else {
+			fmt.Println("ERROR: Missing parameter -f")
+			os.Exit(2)
+		}
 	}
 	if result.ExpiryDownloads < 0 {
 		result.ExpiryDownloads = 0
@@ -71,7 +90,37 @@ func GetUploadParameters() UploadConfig {
 	return result
 }
 
+func getDockerUpload() (bool, string) {
+	if !environment.IsDockerInstance() {
+		return false, ""
+	}
+	entries, err := os.ReadDir(dockerUploadFolder)
+	if err != nil {
+		return false, ""
+	}
+
+	var fileName string
+	var fileFound bool
+	for _, entry := range entries {
+		if entry.Type().IsRegular() {
+			if fileFound {
+				// More than one file exist
+				return false, ""
+			}
+			fileName = entry.Name()
+			fileFound = true
+		}
+	}
+	if !fileFound {
+		return false, ""
+	}
+	return true, filepath.Join(dockerUploadFolder, fileName)
+}
+
 func GetConfigLocation() string {
+	if environment.IsDockerInstance() {
+		return dockerConfigFile
+	}
 	for i := 2; i < len(os.Args); i++ {
 		switch os.Args[i] {
 		case "-c":

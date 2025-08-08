@@ -210,18 +210,36 @@ Migrating Redis (``127.0.0.1:6379, User: test, Password: 1234, Prefix: gokapi_, 
 CLI Tool
 ********************************
 
-Gokapi also has a CLI tool that allows uploads from the command line. Binaries are avaible on the release page (``gokapi-cli``) for Linux, Windows and MacOs. To compile it yourself, download the repository and run ``make build-cli`` in the top directory.
+Gokapi also has a CLI tool that allows uploads from the command line. Binaries are avaible on the `Github release page <https://github.com/Forceu/Gokapi/releases>`_ for Linux, Windows and MacOS. To compile it yourself, download the repository and run ``make build-cli`` in the top directory.
+
+Alternatively you can use the tool with Docker, although it will be slightly less user-friendly.
+
+.. note::
+
+  Gokapi v2.1.0 or newer is required to use the CLI tool.
 
 Login
 =================================
 
 First you need to login with the command ``gokapi-cli login``. You will then be asked for your server URL and a valid API key with upload permission. If end-to-end encryption is enabled, you will also need to enter your encyption key. By default the login data is saved to ``gokapi-cli.json``, but you can define a different location with the ``-c`` parameter.
 
+
 To logout, either delete the configuration file or run ``gokapi-cli logout``.
 
 .. warning::
 
    The configuration file contains the login data as plain text.
+
+
+Docker
+---------------------------------
+
+If you are using Docker, your config will always be saved to ``/app/config/config.json`` and the location cannot be changed. To login, execute the following command:
+
+  docker run -it --rm -v gokapi-cli-config:/app/config docker.io/f0rc3/gokapi-cli:latest login
+
+The volume ``gokapi-cli-config:/app/config`` is not required if you re-use the container, but it is still highly recommended. If the volume is not mounted, you will need to log in again after every new container creation.
+  
 
 
 Upload
@@ -244,10 +262,39 @@ To upload a file, simply run ``gokapi-cli upload -f /path/to/file``. By default 
 | -c [path]                   | Use the configuration file specified              |
 +-----------------------------+---------------------------------------------------+
 
+Example: Uploading the file ``/tmp/example``. It will expire in 10 days, has unlimited downloads and requires the password ``abcd``:
+::
 
+ gokapi-cli upload -f /tmp/example --expiry-days 10 --password abcd
+  
+  
 .. warning::
 
    If you are using end-to-end encryption, do not upload other encrypted files simultaneously to avoid race conditions. 
+   
+   
+   
+Docker
+---------------------------------
+
+As a Docker container cannot access your host files without a volume, you will need to mount the folder that contains your file to upload and then specify the internal file path with ``-f``. If no ``-f`` parameter is supplied and only a single file exists in the container folder ``/upload/``, this file will be uploaded.
+
+Example: Uploading the file ``/tmp/example``. It will expire after 5 downloads, has no time expiry and has no password.
+::
+
+ docker run --rm -v gokapi-cli-config:/app/config -v /tmp/:/upload/ docker.io/f0rc3/gokapi-cli:latest upload -f /upload/example --expiry-downloads 5 
+
+Example: Uploading the file ``/tmp/single/example``. There is no other file in the folder ``/tmp/single/``.
+::
+
+ docker run --rm -v gokapi-cli-config:/app/config -v /tmp/single/:/upload/ docker.io/f0rc3/gokapi-cli:latest upload
+
+Example: Uploading the file ``/tmp/multiple/example``. There are other files in the folder ``/tmp/multiple/``.
+::
+
+ docker run --rm -v gokapi-cli-config:/app/config -v /tmp/multiple/example:/upload/example docker.io/f0rc3/gokapi-cli:latest upload
+   
+
    
 .. _api:
 

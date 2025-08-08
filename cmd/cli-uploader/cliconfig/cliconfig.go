@@ -15,6 +15,10 @@ import (
 const minGokapiVersionInt = 20100
 const minGokapiVersionStr = "2.1.0"
 
+const DockerFolderConfig = "/app/config/"
+const DockerFolderConfigFile = DockerFolderConfig + "config.json"
+const DockerFolderUpload = "/upload/"
+
 type configFile struct {
 	Url    string `json:"Url"`
 	Apikey string `json:"Apikey"`
