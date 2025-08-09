@@ -34,6 +34,8 @@ type header struct {
 }
 
 var EUnauthorised = errors.New("unauthorised")
+var ENotFound = errors.New("404 Not Found")
+var EInvalidRequest = errors.New("400 Bad Request")
 var EFileTooBig = errors.New("file too big")
 var EE2eKeyIncorrect = errors.New("e2e key incorrect")
 
@@ -57,6 +59,9 @@ func GetVersion() (string, int, error) {
 	err = json.Unmarshal([]byte(result), &parsedResult)
 	if err != nil {
 		return "", 0, err
+	}
+	if parsedResult.Version == "" {
+		parsedResult.Version = "unknown"
 	}
 	return parsedResult.Version, parsedResult.VersionInt, nil
 }
@@ -102,9 +107,15 @@ func getUrl(url string, headers []header, longTimeout bool) (string, error) {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode == 401 {
+	switch resp.StatusCode {
+	case 400:
+		return "", EInvalidRequest
+	case 401:
 		return "", EUnauthorised
+	case 404:
+		return "", ENotFound
 	}
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err

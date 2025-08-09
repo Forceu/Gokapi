@@ -248,19 +248,19 @@ Upload
 
 To upload a file, simply run ``gokapi-cli upload -f /path/to/file``. By default the files are encrypted (if enabled) and stored without any expiration. These additional parameters are available:
 
-+-----------------------------+---------------------------------------------------+
-| --json                      | Only outputs in JSON format, unless upload failed |
-+-----------------------------+---------------------------------------------------+
-| --disable-e2e               | Disables end-to-end encryption for this upload    |
-+-----------------------------+---------------------------------------------------+
-| --expiry-days [number]      | Sets the expiry date of the file in days          |
-+-----------------------------+---------------------------------------------------+
-| --expiry-downloads [number] | Sets the allowed downloads                        |
-+-----------------------------+---------------------------------------------------+
-| --password [string]         | Sets a password                                   |
-+-----------------------------+---------------------------------------------------+
-| -c [path]                   | Use the configuration file specified              |
-+-----------------------------+---------------------------------------------------+
++---------------------------------+---------------------------------------------------+
+| --json, -j                      | Only outputs in JSON format, unless upload failed |
++---------------------------------+---------------------------------------------------+
+| --disable-e2e, -n               | Disables end-to-end encryption for this upload    |
++---------------------------------+---------------------------------------------------+
+| --expiry-days, -e [number]      | Sets the expiry date of the file in days          |
++---------------------------------+---------------------------------------------------+
+| --expiry-downloads, -d [number] | Sets the allowed downloads                        |
++---------------------------------+---------------------------------------------------+
+| --password, -p [string]         | Sets a password                                   |
++---------------------------------+---------------------------------------------------+
+| --configuration, -c [path]      | Use the configuration file specified              |
++---------------------------------+---------------------------------------------------+
 
 Example: Uploading the file ``/tmp/example``. It will expire in 10 days, has unlimited downloads and requires the password ``abcd``:
 ::

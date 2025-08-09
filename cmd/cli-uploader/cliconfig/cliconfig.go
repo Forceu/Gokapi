@@ -51,9 +51,19 @@ func CreateLogin() {
 		fmt.Println()
 		if errors.Is(cliapi.EUnauthorised, err) {
 			fmt.Println("ERROR: Unauthorised API key")
-		} else {
-			fmt.Println(err)
+			os.Exit(1)
 		}
+		if errors.Is(cliapi.ENotFound, err) {
+			fmt.Println("ERROR: API not found")
+			fmt.Println("The provided URL does not respond to API calls as expected. You most likely entered an incorrect URL.")
+			os.Exit(1)
+		}
+		if errors.Is(cliapi.EInvalidRequest, err) {
+			fmt.Println("ERROR: API does not support Gokapi CLI")
+			fmt.Println("This is most likely caused by an old Gokapi version. Please make sure that your Gokapi instance is running v2.1.0 or newer.")
+			os.Exit(1)
+		}
+		fmt.Println(err)
 		os.Exit(1)
 	}
 

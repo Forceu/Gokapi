@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/forceu/gokapi/cmd/cli-uploader/cliapi"
 	"github.com/forceu/gokapi/cmd/cli-uploader/cliconfig"
@@ -37,8 +38,13 @@ func processUpload() {
 
 	result, err := cliapi.UploadFile(uploadParam)
 	if err != nil {
-		fmt.Println("ERROR: Could not upload file")
-		fmt.Println(err)
+		fmt.Println()
+		if errors.Is(cliapi.EUnauthorised, err) {
+			fmt.Println("ERROR: Unauthorised API key. Please re-run login.")
+		} else {
+			fmt.Println("ERROR: Could not upload file")
+			fmt.Println(err)
+		}
 		os.Exit(1)
 	}
 	if uploadParam.JsonOutput {
