@@ -34,7 +34,7 @@ func Init(dockerConfigPath, dockerUploadPath string) {
 
 func Parse() int {
 	if len(os.Args) < 2 {
-		printUsage()
+		printUsage(3)
 		return ModeInvalid
 	}
 	switch os.Args[1] {
@@ -44,40 +44,58 @@ func Parse() int {
 		return ModeLogout
 	case "upload":
 		return ModeUpload
+	case "help":
+		printUsage(0)
 	default:
-		printUsage()
-		return ModeInvalid
+		printUsage(3)
 	}
+	return ModeInvalid
 }
 
 func GetUploadParameters() UploadConfig {
 	result := UploadConfig{}
 	for i := 2; i < len(os.Args); i++ {
 		switch os.Args[i] {
+		case "-j":
+			fallthrough
 		case "--json":
 			result.JsonOutput = true
+		case "-n":
+			fallthrough
 		case "--disable-e2e":
 			result.DisableE2e = true
 		case "-f":
+			fallthrough
+		case "--file":
 			result.File = getParameter(&i)
+		case "-e":
+			fallthrough
 		case "--expiry-days":
 			result.ExpiryDays = requireInt(getParameter(&i))
+		case "-d":
+			fallthrough
 		case "--expiry-downloads":
 			result.ExpiryDownloads = requireInt(getParameter(&i))
+		case "-p":
+			fallthrough
 		case "--password":
 			result.Password = getParameter(&i)
+		case "-h":
+			fallthrough
+		case "--help":
+			printUsage(0)
 		}
 	}
 	if result.File == "" {
 		if environment.IsDockerInstance() {
 			ok, dockerFile := getDockerUpload()
 			if !ok {
-				fmt.Println("ERROR: Missing parameter -f and no file or more than one file found in " + dockerUploadFolder)
+				fmt.Println("ERROR: Missing parameter --file and no file or more than one file found in " + dockerUploadFolder)
 				os.Exit(2)
 			}
 			result.File = dockerFile
 		} else {
-			fmt.Println("ERROR: Missing parameter -f")
+			fmt.Println("ERROR: Missing parameter --file")
 			os.Exit(2)
 		}
 	}
@@ -124,6 +142,8 @@ func GetConfigLocation() string {
 	for i := 2; i < len(os.Args); i++ {
 		switch os.Args[i] {
 		case "-c":
+			fallthrough
+		case "--configuration":
 			return getParameter(&i)
 		}
 	}
@@ -134,8 +154,7 @@ func getParameter(position *int) string {
 	newPosition := *position + 1
 	position = &newPosition
 	if newPosition >= len(os.Args) {
-		printUsage()
-		os.Exit(3)
+		printUsage(3)
 	}
 	return os.Args[newPosition]
 }
@@ -149,21 +168,36 @@ func requireInt(input string) int {
 	return result
 }
 
-func printUsage() {
+func printUsage(exitCode int) {
 	fmt.Println("Gokapi CLI v1.0")
 	fmt.Println()
-	fmt.Println("Valid options are:")
-	fmt.Println("   gokapi-cli login [-c /path/to/config]")
-	fmt.Println("   gokapi-cli logout [-c /path/to/config]")
-	fmt.Println("   gokapi-cli upload --f /file/to/upload [--json] [--disable-e2e]\n" +
-		"                     [--expiry-days INT] [--expiry-downloads INT]\n" +
-		"                     [--password STRING] [-c /path/to/config]")
+	fmt.Println("Usage:")
+	fmt.Println("  gokapi-cli [command] [options]")
 	fmt.Println()
-	fmt.Println("gokapi-cli upload:")
-	fmt.Println("--json              Outputs the result as JSON only")
-	fmt.Println("--disable-e2e       Disables end-to-end encryption")
-	fmt.Println("--expiry-days       Sets the expiry date of the file in days, otherwise unlimited")
-	fmt.Println("--expiry-downloads  Sets the allowed downloads, otherwise unlimited")
-	fmt.Println("--password          Sets a password")
-	os.Exit(3)
+
+	fmt.Println("Commands:")
+	fmt.Println("  login       Save login credentials")
+	fmt.Println("  upload      Upload a file to Gokapi instance")
+	fmt.Println("  logout      Delete login credentials")
+	fmt.Println()
+
+	fmt.Println("Options:")
+	fmt.Println("  -f, --file <path>               File to upload")
+	if !environment.IsDockerInstance() {
+		fmt.Println("  -c, --configuration <path>      Path to configuration file (default: gokapi-cli.json)")
+	}
+	fmt.Println("  -j, --json                      Output the result in JSON only")
+	fmt.Println("  -n, --disable-e2e               Disable end-to-end encryption")
+	fmt.Println("  -e, --expiry-days <int>         Set file expiry in days (default: unlimited)")
+	fmt.Println("  -d, --expiry-downloads <int>    Set max allowed downloads (default: unlimited)")
+	fmt.Println("  -p, --password <string>         Set a password for the file")
+	fmt.Println("  -h, --help                      Show this help message")
+	fmt.Println()
+
+	fmt.Println("Examples:")
+	fmt.Println("  gokapi-cli login")
+	fmt.Println("  gokapi-cli logout -c /path/to/config")
+	fmt.Println("  gokapi-cli upload -f /file/to/upload --expiry-days 7 --json")
+	fmt.Println()
+	os.Exit(exitCode)
 }
