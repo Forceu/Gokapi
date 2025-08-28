@@ -13,7 +13,7 @@ import (
 
 const versionJsAdmin = 12
 const versionJsDropzone = 5
-const versionJsE2EAdmin = 7
+const versionJsE2EAdmin = 8
 const versionCssMain = 5
 
 const fileMain = "../../cmd/gokapi/Main.go"
