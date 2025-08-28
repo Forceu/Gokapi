@@ -17,6 +17,7 @@ import (
 	"github.com/forceu/gokapi/internal/webserver/headers"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -133,10 +134,12 @@ func getPresignedUrl(file models.File, forceDownload bool) (string, error) {
 	sess := createSession()
 	s3svc := s3.New(sess)
 
-	contentDisposition := "inline; filename=\"" + file.Name + "\""
+	dispositionType := "inline"
 	if forceDownload {
-		contentDisposition = "Attachment; filename=\"" + file.Name + "\""
+		dispositionType = "Attachment"
 	}
+	// Use RFC 6266 format to support UTF-8 filenames and avoid encoding errors.
+	contentDisposition := fmt.Sprintf("%s; filename*=UTF-8''%s", dispositionType, url.PathEscape(file.Name))
 
 	req, _ := s3svc.GetObjectRequest(&s3.GetObjectInput{
 		Bucket:                     aws.String(file.AwsBucket),
