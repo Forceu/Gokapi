@@ -6,18 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"github.com/forceu/gokapi/cmd/cli-uploader/cliapi"
+	"github.com/forceu/gokapi/cmd/cli-uploader/cliconstants"
 	"github.com/forceu/gokapi/cmd/cli-uploader/cliflags"
 	"github.com/forceu/gokapi/internal/helper"
 	"os"
 	"strings"
 )
-
-const minGokapiVersionInt = 20100
-const minGokapiVersionStr = "2.1.0"
-
-const DockerFolderConfig = "/app/config/"
-const DockerFolderConfigFile = DockerFolderConfig + "config.json"
-const DockerFolderUpload = "/upload/"
 
 type configFile struct {
 	Url    string `json:"Url"`
@@ -25,6 +19,10 @@ type configFile struct {
 	E2ekey []byte `json:"E2Ekey"`
 }
 
+// CreateLogin creates a login for the CLI.
+// It will ask the user for the URL and API key.
+// It will then test the connection and download the configuration.
+// If the configuration is valid, the login information will be saved.
 func CreateLogin() {
 	fmt.Print("Gokapi URL: ")
 	url := helper.ReadLine()
@@ -67,8 +65,8 @@ func CreateLogin() {
 		os.Exit(1)
 	}
 
-	if vint < minGokapiVersionInt {
-		fmt.Println("\nERROR: Gokapi version must be at least " + minGokapiVersionStr)
+	if vint < cliconstants.MinGokapiVersionInt {
+		fmt.Println("\nERROR: Gokapi version must be at least " + cliconstants.MinGokapiVersionStr)
 		fmt.Println("Your version is " + vstr)
 		os.Exit(1)
 	}
@@ -129,16 +127,20 @@ func save(url, apikey string, e2ekey []byte) error {
 		return err
 	}
 
-	return os.WriteFile(cliflags.GetConfigLocation(), jsonData, 0600)
+	configPath, _ := cliflags.GetConfigLocation()
+	return os.WriteFile(configPath, jsonData, 0600)
 }
 
+// Load initialises the configuration by reading login information from a file and setting up CLI API parameters.
+// Verifies the existence of the configuration file and validates its integrity, terminating on errors.
 func Load() {
-	if !helper.FileExists(cliflags.GetConfigLocation()) {
+	configPath, _ := cliflags.GetConfigLocation()
+	if !helper.FileExists(configPath) {
 		fmt.Println("ERROR: No login information found")
 		fmt.Println("Please run 'gokapi-cli login' to create a login")
 		os.Exit(1)
 	}
-	data, err := os.ReadFile(cliflags.GetConfigLocation())
+	data, err := os.ReadFile(configPath)
 	if err != nil {
 		fmt.Println("ERROR: Could not read login information")
 		os.Exit(1)
@@ -154,9 +156,12 @@ func Load() {
 	cliapi.Init(config.Url, config.Apikey, config.E2ekey)
 }
 
+// Delete deletes the login information file.
+// It will return an error if the file exists but could not be deleted.
 func Delete() error {
-	if !helper.FileExists(cliflags.GetConfigLocation()) {
+	configPath, _ := cliflags.GetConfigLocation()
+	if !helper.FileExists(configPath) {
 		return nil
 	}
-	return os.Remove(cliflags.GetConfigLocation())
+	return os.Remove(configPath)
 }

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/forceu/gokapi/cmd/cli-uploader/cliapi"
 	"github.com/forceu/gokapi/cmd/cli-uploader/cliconfig"
+	"github.com/forceu/gokapi/cmd/cli-uploader/cliconstants"
 	"github.com/forceu/gokapi/cmd/cli-uploader/cliflags"
 	"github.com/forceu/gokapi/internal/environment"
 	"github.com/forceu/gokapi/internal/helper"
@@ -13,7 +14,6 @@ import (
 )
 
 func main() {
-	cliflags.Init(cliconfig.DockerFolderConfigFile, cliconfig.DockerFolderUpload)
 	mode := cliflags.Parse()
 	switch mode {
 	case cliflags.ModeLogin:
@@ -72,11 +72,15 @@ func checkDockerFolders() {
 	if !environment.IsDockerInstance() {
 		return
 	}
-	if !helper.FolderExists(cliconfig.DockerFolderConfig) {
-		fmt.Println("Warning: Docker folder does not exist, configuration will be lost when creating a new container")
-		helper.CreateDir(cliconfig.DockerFolderConfig)
+	_, isDefault := cliflags.GetConfigLocation()
+	if !isDefault {
+		return
 	}
-	if !helper.FolderExists(cliconfig.DockerFolderUpload) {
-		helper.CreateDir(cliconfig.DockerFolderUpload)
+	if !helper.FolderExists(cliconstants.DockerFolderConfig) {
+		fmt.Println("Warning: Docker folder does not exist, configuration will be lost when creating a new container")
+		helper.CreateDir(cliconstants.DockerFolderConfig)
+	}
+	if !helper.FolderExists(cliconstants.DockerFolderUpload) {
+		helper.CreateDir(cliconstants.DockerFolderUpload)
 	}
 }

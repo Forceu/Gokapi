@@ -33,12 +33,24 @@ type header struct {
 	Value string
 }
 
-var EUnauthorised = errors.New("unauthorised")
-var ENotFound = errors.New("404 Not Found")
+// EInvalidRequest is returned when the API returns a 400
 var EInvalidRequest = errors.New("400 Bad Request")
+
+// EUnauthorised is returned when the API returns a 401
+var EUnauthorised = errors.New("unauthorised")
+
+// ENotFound is returned when the API returns a 404
+var ENotFound = errors.New("404 Not Found")
+
+// EFileTooBig is returned when the file size exceeds the allowed limit
 var EFileTooBig = errors.New("file too big")
+
+// EE2eKeyIncorrect is returned when the e2e key is incorrect
 var EE2eKeyIncorrect = errors.New("e2e key incorrect")
 
+// Init initialises the API client with the given url and key.
+// The key is used for authentication.
+// The end2endKey is used for end-to-end encryption.
 func Init(url, key string, end2endKey []byte) {
 	gokapiUrl = strings.TrimSuffix(url, "/") + "/api"
 	apiKey = key
@@ -46,6 +58,7 @@ func Init(url, key string, end2endKey []byte) {
 
 }
 
+// GetVersion returns the version of the Gokapi server
 func GetVersion() (string, int, error) {
 	result, err := getUrl(gokapiUrl+"/info/version", []header{}, false)
 	if err != nil {
@@ -66,6 +79,7 @@ func GetVersion() (string, int, error) {
 	return parsedResult.Version, parsedResult.VersionInt, nil
 }
 
+// GetConfig returns the upload configuration of the Gokapi server
 func GetConfig() (int, int, bool, error) {
 	result, err := getUrl(gokapiUrl+"/info/config", []header{}, false)
 	if err != nil {
@@ -123,6 +137,7 @@ func getUrl(url string, headers []header, longTimeout bool) (string, error) {
 	return string(body), nil
 }
 
+// UploadFile uploads a file to the Gokapi server
 func UploadFile(uploadParams cliflags.UploadConfig) (models.FileApiOutput, error) {
 	var progressBar *progressbar.ProgressBar
 	file, err := os.OpenFile(uploadParams.File, os.O_RDONLY, 0664)
@@ -313,6 +328,7 @@ func completeChunk(uid, filename string, filesize, realsize int64, useE2e bool, 
 	return parsedResult.FileInfo, nil
 }
 
+// GetE2eInfo returns the end-to-end encryption information of the Gokapi server for this user
 func GetE2eInfo() (models.E2EInfoPlainText, error) {
 	var result models.E2EInfoEncrypted
 	var fileInfo models.E2EInfoPlainText

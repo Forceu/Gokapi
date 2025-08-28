@@ -2,6 +2,7 @@ package cliflags
 
 import (
 	"fmt"
+	"github.com/forceu/gokapi/cmd/cli-uploader/cliconstants"
 	"github.com/forceu/gokapi/internal/environment"
 	"os"
 	"path/filepath"
@@ -9,15 +10,17 @@ import (
 )
 
 const (
+	// ModeLogin is the mode for the login command
 	ModeLogin = iota
+	// ModeLogout is the mode for the logout command
 	ModeLogout
+	// ModeUpload is the mode for the upload command
 	ModeUpload
+	// ModeInvalid is the mode for an invalid command
 	ModeInvalid
 )
 
-var dockerConfigFile string
-var dockerUploadFolder string
-
+// UploadConfig contains the parameters for the upload command.
 type UploadConfig struct {
 	File            string
 	JsonOutput      bool
@@ -27,11 +30,7 @@ type UploadConfig struct {
 	Password        string
 }
 
-func Init(dockerConfigPath, dockerUploadPath string) {
-	dockerConfigFile = dockerConfigPath
-	dockerUploadFolder = dockerUploadPath
-}
-
+// Parse parses the command line arguments and returns the mode.
 func Parse() int {
 	if len(os.Args) < 2 {
 		printUsage(3)
@@ -52,6 +51,7 @@ func Parse() int {
 	return ModeInvalid
 }
 
+// GetUploadParameters parses the command line arguments and returns the parameters for the upload command.
 func GetUploadParameters() UploadConfig {
 	result := UploadConfig{}
 	for i := 2; i < len(os.Args); i++ {
@@ -90,7 +90,7 @@ func GetUploadParameters() UploadConfig {
 		if environment.IsDockerInstance() {
 			ok, dockerFile := getDockerUpload()
 			if !ok {
-				fmt.Println("ERROR: Missing parameter --file and no file or more than one file found in " + dockerUploadFolder)
+				fmt.Println("ERROR: Missing parameter --file and no file or more than one file found in " + cliconstants.DockerFolderUpload)
 				os.Exit(2)
 			}
 			result.File = dockerFile
@@ -112,7 +112,7 @@ func getDockerUpload() (bool, string) {
 	if !environment.IsDockerInstance() {
 		return false, ""
 	}
-	entries, err := os.ReadDir(dockerUploadFolder)
+	entries, err := os.ReadDir(cliconstants.DockerFolderUpload)
 	if err != nil {
 		return false, ""
 	}
@@ -132,22 +132,23 @@ func getDockerUpload() (bool, string) {
 	if !fileFound {
 		return false, ""
 	}
-	return true, filepath.Join(dockerUploadFolder, fileName)
+	return true, filepath.Join(cliconstants.DockerFolderUpload, fileName)
 }
 
-func GetConfigLocation() string {
-	if environment.IsDockerInstance() {
-		return dockerConfigFile
-	}
+// GetConfigLocation returns the path to the configuration file. Returns true if the default file is used
+func GetConfigLocation() (string, bool) {
 	for i := 2; i < len(os.Args); i++ {
 		switch os.Args[i] {
 		case "-c":
 			fallthrough
 		case "--configuration":
-			return getParameter(&i)
+			return getParameter(&i), false
 		}
 	}
-	return "gokapi-cli.json"
+	if environment.IsDockerInstance() {
+		return cliconstants.DockerFolderConfigFile, true
+	}
+	return cliconstants.DefaultConfigFileName, true
 }
 
 func getParameter(position *int) string {
@@ -183,9 +184,7 @@ func printUsage(exitCode int) {
 
 	fmt.Println("Options:")
 	fmt.Println("  -f, --file <path>               File to upload")
-	if !environment.IsDockerInstance() {
-		fmt.Println("  -c, --configuration <path>      Path to configuration file (default: gokapi-cli.json)")
-	}
+	fmt.Println("  -c, --configuration <path>      Path to configuration file (default: gokapi-cli.json)")
 	fmt.Println("  -j, --json                      Output the result in JSON only")
 	fmt.Println("  -n, --disable-e2e               Disable end-to-end encryption")
 	fmt.Println("  -e, --expiry-days <int>         Set file expiry in days (default: unlimited)")
