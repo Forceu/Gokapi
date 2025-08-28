@@ -2,11 +2,11 @@
 <html lang="en">
 	<head>
 		<title>Gokapi Setup</title>
-		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<link href="./bootstrap/bootstrap.css" rel="stylesheet" />
-		<link href="./src/bootstrap-wizard.css" rel="stylesheet" />
-		<link href="./chosen/chosen.css" rel="stylesheet" />
+		<link href="./bootstrap/bootstrap.css" rel="stylesheet">
+		<link href="./src/bootstrap-wizard.css" rel="stylesheet">
+		<link href="./chosen/chosen.css" rel="stylesheet">
 		<style>
 			.wizard-modal p {
 				margin: 0 0 10px;
@@ -113,7 +113,7 @@
 					
 {{ if not .IsInitialSetup }}
 				<p>
-					<span style="color:red"><b>Warning:</b> When changing database parameters, ensure you first migrate the database to the new location using <code>gokapi --migrate-database</code> before finalising the setup.
+					<span style="color:red"><b>Warning:</b> When changing database parameters, ensure you first migrate the database to the new location using <code>gokapi --migrate-database</code> before finalising the setup.</span>
 				</p><br>
 {{ end }}
 
@@ -178,7 +178,7 @@
 								<option value="1">Yes</option>
 						</select><br>
 						
-							  <label for="showfilename_sel">Include filename in download URL</i></label>
+							  <label for="showfilename_sel">Include filename in download URL</label>
 						<select name="showfilename_sel" id="showfilename_sel" style="width:350px;" class="select form-control">
 								<option value="0" selected>No</option>
 								<option value="1">Yes</option>
@@ -206,7 +206,7 @@
 							
 
 							  <br><label for="url">Public facing URL:</label>
-								<input type="text" class="form-control" id="url" name="url" value="http://127.0.0.1:53842/" onfocusout="extUrlChanged(this)" placeholder="Public URL" data-min="8" required data-validate="validateUrl">
+								<input type="text" class="form-control" id="url" name="url" value="http://127.0.0.1:53842/" placeholder="Public URL" data-min="8" required data-validate="validateUrl">
 							
 							
 
@@ -317,7 +317,7 @@
 							<br>Restrict to:
 								  <div class="oauthscopecontainer">
 								    <div class="oauthscopes">
-								      <input type="hidden" name="oauth_restrict_groups.unchecked" value="false"/>
+								      <input type="hidden" name="oauth_restrict_groups.unchecked" value="false">
 								      <input type="checkbox" id="oauth_restrict_groups" name="oauth_restrict_groups" onchange="handleOauthCheckboxChange(this)"  value="true">
 								      <label id="label_ogroups" for="oauth_restrict_groups" class="checkboxLabel">Groups</label>
 								      <input type="text" id="oauth_scope_groups" name="oauth_scope_groups" class="input-field" placeholder="Scope identifier" data-min="1" data-validate="validateMinLength" disabled>&nbsp;
@@ -325,8 +325,8 @@
 								    </div>
 								    
 								     <div><br>
-								     <input type="hidden" name="oauth_only_registered_users.unchecked" value="false"/>
-								     <input  id="oauth_only_registered_users" name="oauth_only_registered_users" type="checkbox" value="true"/>
+								     <input type="hidden" name="oauth_only_registered_users.unchecked" value="false">
+								     <input  id="oauth_only_registered_users" name="oauth_only_registered_users" type="checkbox" value="true">
 								     <span>&nbsp;Only allow already existing users to log in</span>
 								     </div>
 								  </div>
@@ -367,8 +367,8 @@
 							</p>
 						
 						    <br>
-						     <input type="hidden" name="auth_header_only_registered_users.unchecked" value="false"/>
-						     <input id="auth_header_only_registered_users" name="auth_header_only_registered_users" type="checkbox" value="true"/>
+						     <input type="hidden" name="auth_header_only_registered_users.unchecked" value="false">
+						     <input id="auth_header_only_registered_users" name="auth_header_only_registered_users" type="checkbox" value="true">
 						     <span>&nbsp;Only allow already existing users to log in</span>
 					</div>
 				</div>
@@ -538,7 +538,7 @@ function TestAWS(button, isManual) {
 					
 {{ if not .IsInitialSetup }}
 				<p>
-					<span style="color:red"><b>Warning:</b> Changing the encryption level will delete all existing encrypted files! Other existing files will remain unencrypted.
+					<span style="color:red"><b>Warning:</b> Changing the encryption level will delete all existing encrypted files! Other existing files will remain unencrypted.</span>
 				</p><br>
 {{ end }}
 					
@@ -646,8 +646,8 @@ function TestAWS(button, isManual) {
 							
 {{ if not .IsInitialSetup }}
 				     <div id="e2eclear"><br>
-				     <input type="hidden" name="cleare2e.unchecked" value="false"/>
-				     <input name="cleare2e" type="checkbox" value="true"/>
+				     <input type="hidden" name="cleare2e.unchecked" value="false">
+				     <input name="cleare2e" type="checkbox" value="true">
 				     <span>&nbsp;Reset end-to-end password (you will lose access to already encrypted files)</span>
 				     </div>
 
@@ -742,8 +742,6 @@ function TestAWS(button, isManual) {
 					submitUrl: "./setupResult",
 					backdrop: 'static'
 				});
-				
-				
 				
 				wizard.el.find(".wizard-success .im-done").click(function() {
 					document.getElementById("bt_finishsetup").disabled=true;
@@ -1018,13 +1016,17 @@ function TestAWS(button, isManual) {
 			
 
 				
-			function extUrlChanged(el) {
+			function extUrlChanged() {
+				let el = document.getElementById("url");
 				let lastChar = el.value.substr(-1); 
 				if (lastChar != '/') 
 					el.value = (el.value + '/') 
 					
 				document.getElementById("oauth_redir").value = el.value + "oauth-callback";
 			}
+			
+			
+			document.getElementById("url").addEventListener("focusout", extUrlChanged);
 			
 {{ if .IsInitialSetup }}
 			var previousPort = "53842";
@@ -1088,6 +1090,7 @@ function TestAWS(button, isManual) {
 
 			}
 
+		
 			
 		</script>
 	</body>
