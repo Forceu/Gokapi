@@ -574,10 +574,17 @@ func GetFile(id string) (models.File, bool) {
 	if IsExpiredFile(file, time.Now().Unix()) {
 		return emptyResult, false
 	}
+	if !checkIfValidAws(file) {
+		return emptyResult, false
+	}
 	if !FileExists(file, configuration.Get().DataDir) {
 		return emptyResult, false
 	}
 	return file, true
+}
+
+func checkIfValidAws(file models.File) bool {
+	return file.IsLocalStorage() || aws.IsAvailable()
 }
 
 // GetFileByHotlink gets the file by hotlink id. Returns (empty File, false) if invalid / expired file
@@ -607,6 +614,7 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 		// confirm that the file has been completely downloaded. It expires automatically after 24 hours.
 		statusId := downloadstatus.SetDownload(file)
 		isBlocking, err := aws.ServeFile(w, r, file, forceDownload)
+		// TODO chances are high that an error is returned here, we should consider proper output
 		helper.Check(err)
 		if isBlocking {
 			downloadstatus.SetComplete(statusId)
