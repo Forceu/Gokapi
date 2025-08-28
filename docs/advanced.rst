@@ -234,24 +234,28 @@ To logout, either delete the configuration file or run ``gokapi-cli logout``.
 Docker
 ---------------------------------
 
-If you are using Docker, your config will always be saved to ``/app/config/config.json`` and the location cannot be changed. To login, execute the following command:
+If you are using Docker, your config will be saved to ``/app/config/config.json`` by default, but the location can be changed. To login, execute the following command:
 
   docker run -it --rm -v gokapi-cli-config:/app/config docker.io/f0rc3/gokapi-cli:latest login
 
-The volume ``gokapi-cli-config:/app/config`` is not required if you re-use the container, but it is still highly recommended. If the volume is not mounted, you will need to log in again after every new container creation.
+The volume ``gokapi-cli-config:/app/config`` is not required if you re-use the container, but it is still highly recommended. If a volume is not mounted, you will need to log in again after every new container creation.
   
 
 
-Upload
+.. _clitool-upload-file:
+
+Uploading a file
 =================================
 
 
 To upload a file, simply run ``gokapi-cli upload -f /path/to/file``. By default the files are encrypted (if enabled) and stored without any expiration. These additional parameters are available:
 
 +---------------------------------+---------------------------------------------------+
+| Parameter                       | Effect                                            |
++=================================+===================================================+
 | --json, -j                      | Only outputs in JSON format, unless upload failed |
 +---------------------------------+---------------------------------------------------+
-| --disable-e2e, -n               | Disables end-to-end encryption for this upload    |
+| --disable-e2e, -x               | Disables end-to-end encryption for this upload    |
 +---------------------------------+---------------------------------------------------+
 | --expiry-days, -e [number]      | Sets the expiry date of the file in days          |
 +---------------------------------+---------------------------------------------------+
@@ -259,10 +263,12 @@ To upload a file, simply run ``gokapi-cli upload -f /path/to/file``. By default 
 +---------------------------------+---------------------------------------------------+
 | --password, -p [string]         | Sets a password                                   |
 +---------------------------------+---------------------------------------------------+
+| --name, -n [string]             | Sets a different filename for uploaded file       |
++---------------------------------+---------------------------------------------------+
 | --configuration, -c [path]      | Use the configuration file specified              |
 +---------------------------------+---------------------------------------------------+
 
-Example: Uploading the file ``/tmp/example``. It will expire in 10 days, has unlimited downloads and requires the password ``abcd``:
+**Example:** Uploading the file ``/tmp/example``. It will expire in 10 days, has unlimited downloads and requires the password ``abcd``:
 ::
 
  gokapi-cli upload -f /tmp/example --expiry-days 10 --password abcd
@@ -279,21 +285,66 @@ Docker
 
 As a Docker container cannot access your host files without a volume, you will need to mount the folder that contains your file to upload and then specify the internal file path with ``-f``. If no ``-f`` parameter is supplied and only a single file exists in the container folder ``/upload/``, this file will be uploaded.
 
-Example: Uploading the file ``/tmp/example``. It will expire after 5 downloads, has no time expiry and has no password.
+**Example:** Uploading the file ``/tmp/example``. It will expire after 5 downloads, has no time expiry and has no password.
 ::
 
  docker run --rm -v gokapi-cli-config:/app/config -v /tmp/:/upload/ docker.io/f0rc3/gokapi-cli:latest upload -f /upload/example --expiry-downloads 5 
 
-Example: Uploading the file ``/tmp/single/example``. There is no other file in the folder ``/tmp/single/``.
+**Example:** Uploading the file ``/tmp/single/example``. There is no other file in the folder ``/tmp/single/``.
 ::
 
  docker run --rm -v gokapi-cli-config:/app/config -v /tmp/single/:/upload/ docker.io/f0rc3/gokapi-cli:latest upload
 
-Example: Uploading the file ``/tmp/multiple/example``. There are other files in the folder ``/tmp/multiple/``.
+**Example:** Uploading the file ``/tmp/multiple/example``. There are other files in the folder ``/tmp/multiple/``.
 ::
 
  docker run --rm -v gokapi-cli-config:/app/config -v /tmp/multiple/example:/upload/example docker.io/f0rc3/gokapi-cli:latest upload
    
+
+
+
+Uploading a directory
+=================================
+
+
+By running ``gokapi-cli upload-dir -D /path/to/directory/``, gokapi-cli compresses the given folder as a zip file and then uploads it. By default the foldername is used for the name of the zip file. Also the file is encrypted (if enabled) and stored without any expiration.
+
+In addition to all the options seen in chapter :ref:`clitool-upload-file`, the following optional options are also available:
+
++---------------------------------+---------------------------------------------------+
+| Parameter                       | Effect                                            |
++=================================+===================================================+
+| --tmpfolder, -t                 | Sets the path for temporary files.                |
++---------------------------------+---------------------------------------------------+
+
+
+**Example:** Uploading the folder ``/tmp/example/``. It will expire in 10 days, has unlimited downloads and requires the password ``abcd``:
+::
+
+ gokapi-cli upload-dir -D /tmp/example --expiry-days 10 --password abcd
+  
+  
+.. warning::
+
+   If you are using end-to-end encryption, do not upload other encrypted files simultaneously to avoid race conditions. 
+   
+   
+   
+Docker
+---------------------------------
+
+As a Docker container cannot access your host files without a volume, you will need to mount the folder that contains your file to upload and then specify the internal path with ``-D``. If no ``-D`` parameter is supplied, the folder ``/upload/`` will be uploaded (if it contains any files).
+
+**Example:** Uploading the folder ``/tmp/example/``. It will expire after 5 downloads, has no time expiry and has no password.
+::
+
+ docker run --rm -v gokapi-cli-config:/app/config -v /tmp/example/:/upload/example docker.io/f0rc3/gokapi-cli:latest upload-dir -D /upload/example/ --expiry-downloads 5 
+
+**Example:** Uploading the folder ``/tmp/another/example`` and setting the filename to ``example.zip``
+::
+
+ docker run --rm -v gokapi-cli-config:/app/config -v /tmp/another/example:/upload/ docker.io/f0rc3/gokapi-cli:latest upload-dir -n "example.zip"
+
 
    
 .. _api:

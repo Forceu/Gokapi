@@ -196,7 +196,7 @@ func UploadFile(uploadParams cliflags.UploadConfig) (models.FileApiOutput, error
 		e2eFile := models.E2EFile{
 			Uuid:     uuid,
 			Id:       metaData.Id,
-			Filename: getFileName(file),
+			Filename: getFileName(file, uploadParams),
 			Cipher:   cipher,
 		}
 		err = addE2EFileInfo(e2eFile)
@@ -205,7 +205,7 @@ func UploadFile(uploadParams cliflags.UploadConfig) (models.FileApiOutput, error
 		}
 		hashContent, err := getHashContent(e2eFile)
 		metaData.UrlDownload = metaData.UrlDownload + "#" + hashContent
-		metaData.Name = getFileName(file)
+		metaData.Name = getFileName(file, uploadParams)
 		return metaData, err
 	}
 
@@ -215,18 +215,21 @@ func UploadFile(uploadParams cliflags.UploadConfig) (models.FileApiOutput, error
 			return models.FileApiOutput{}, err
 		}
 	}
-	metaData, err := completeChunk(uuid, nameToBase64(file), sizeBytes, realSize, false, uploadParams, progressBar)
+	metaData, err := completeChunk(uuid, nameToBase64(file, uploadParams), sizeBytes, realSize, false, uploadParams, progressBar)
 	if err != nil {
 		return models.FileApiOutput{}, err
 	}
 	return metaData, nil
 }
 
-func nameToBase64(f *os.File) string {
-	return "base64:" + base64.StdEncoding.EncodeToString([]byte(getFileName(f)))
+func nameToBase64(f *os.File, uploadParams cliflags.UploadConfig) string {
+	return "base64:" + base64.StdEncoding.EncodeToString([]byte(getFileName(f, uploadParams)))
 }
 
-func getFileName(f *os.File) string {
+func getFileName(f *os.File, uploadParams cliflags.UploadConfig) string {
+	if uploadParams.FileName != "" {
+		return uploadParams.FileName
+	}
 	return filepath.Base(f.Name())
 }
 
