@@ -93,48 +93,15 @@ func newPool(config models.DbConnection) *redigo.Pool {
 
 // Upgrade migrates the DB to a new Gokapi version, if required
 func (p DatabaseProvider) Upgrade(currentDbVersion int) {
-	// < v1.9.6
-	if currentDbVersion < 3 {
-		fmt.Println("Please update to v1.9.6 before upgrading to 2.0.0")
+	// < v2.0.0
+	if currentDbVersion < 5 {
+		fmt.Println("Error: Gokapi runs >=v2.0.0, but Database is <v2.0.0")
 		osExit(1)
 		return
-	}
-	// < v2.0.0-beta1
-	if currentDbVersion < 4 {
-		p.DeleteAllSessions()
-		apiKeys := p.GetAllApiKeys()
-		for _, apiKey := range apiKeys {
-			if apiKey.IsSystemKey {
-				p.DeleteApiKey(apiKey.Id)
-			}
-		}
-		legacyE2e := p.getLegacyE2EData()
-		p.SaveEnd2EndInfo(legacyE2e, 0)
-		p.deleteKey("e2einfo")
-	}
-	// < v2.0.0-beta2
-	if currentDbVersion < 5 {
-		keys := p.GetAllApiKeys()
-		for _, key := range keys {
-			if key.IsSystemKey {
-				p.DeleteApiKey(key.Id)
-			}
-		}
 	}
 }
 
 const keyDbVersion = "dbversion"
-
-func (p DatabaseProvider) getLegacyE2EData() models.E2EInfoEncrypted {
-	result := models.E2EInfoEncrypted{}
-	value, ok := p.getHashMap("e2einfo")
-	if !ok {
-		return models.E2EInfoEncrypted{}
-	}
-	err := redigo.ScanStruct(value, &result)
-	helper.Check(err)
-	return result
-}
 
 // GetDbVersion gets the version number of the database
 func (p DatabaseProvider) GetDbVersion() int {
@@ -147,7 +114,7 @@ func (p DatabaseProvider) SetDbVersion(currentVersion int) {
 	p.setKey(keyDbVersion, currentVersion)
 }
 
-// GetSchemaVersion returns the version number, that the database should be if fully upgraded
+// GetSchemaVersion returns the version number that the database should be if fully upgraded
 func (p DatabaseProvider) GetSchemaVersion() int {
 	return DatabaseSchemeVersion
 }
@@ -160,7 +127,7 @@ func (p DatabaseProvider) Close() {
 	}
 }
 
-// RunGarbageCollection runs the databases GC
+// RunGarbageCollection runs the database GC
 func (p DatabaseProvider) RunGarbageCollection() {
 	// No cleanup required
 }

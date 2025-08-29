@@ -24,6 +24,8 @@ const (
 	ModeInvalid
 )
 
+const version = "v1.0.0"
+
 // UploadConfig contains the parameters for the upload command.
 type UploadConfig struct {
 	File            string
@@ -234,7 +236,7 @@ func requireInt(input string) int {
 }
 
 func printUsage(exitCode int) {
-	fmt.Println("Gokapi CLI v1.0")
+	fmt.Println("Gokapi CLI " + version)
 	fmt.Println()
 	fmt.Println("Usage:")
 	fmt.Println("  gokapi-cli [command] [options]")

@@ -1,9 +1,7 @@
 package sqlite
 
 import (
-	"bytes"
 	"database/sql"
-	"encoding/gob"
 	"errors"
 	"fmt"
 	"github.com/forceu/gokapi/internal/helper"
@@ -34,95 +32,12 @@ func (p DatabaseProvider) GetType() int {
 
 // Upgrade migrates the DB to a new Gokapi version, if required
 func (p DatabaseProvider) Upgrade(currentDbVersion int) {
-	// < v1.9.6
-	if currentDbVersion < 6 {
-		fmt.Println("Please update to v1.9.6 before upgrading to 2.0.0")
+	// < v2.0.0
+	if currentDbVersion < 10 {
+		fmt.Println("Error: Gokapi runs >=v2.0.0, but Database is <v2.0.0")
 		osExit(1)
 		return
 	}
-	// < v2.0.0-beta
-	if currentDbVersion < 7 {
-		legacyE2E := getLegacyE2EConfig(p)
-
-		err := p.rawSqlite(`ALTER TABLE "ApiKeys" ADD COLUMN UserId INTEGER NOT NULL DEFAULT 0;
-									 ALTER TABLE "ApiKeys" ADD COLUMN PublicId TEXT NOT NULL DEFAULT '';`)
-		helper.Check(err)
-		err = p.rawSqlite(`DELETE FROM "ApiKeys" WHERE IsSystemKey = 1`)
-		helper.Check(err)
-		err = p.rawSqlite(`ALTER TABLE "E2EConfig" ADD COLUMN UserId INTEGER NOT NULL DEFAULT 0;`)
-		helper.Check(err)
-		err = p.rawSqlite(`ALTER TABLE "FileMetaData" ADD COLUMN UserId INTEGER NOT NULL DEFAULT 0;`)
-		helper.Check(err)
-		err = p.rawSqlite(`DROP TABLE "Sessions"; CREATE TABLE "Sessions" (
-			"Id"	TEXT NOT NULL UNIQUE,
-			"RenewAt"	INTEGER NOT NULL,
-			"ValidUntil"	INTEGER NOT NULL,
-			"UserId"	INTEGER NOT NULL,
-			PRIMARY KEY("Id")
-		) WITHOUT ROWID;
-		CREATE TABLE "Users" (
-			"Id"	INTEGER NOT NULL UNIQUE,
-			"Name"	TEXT NOT NULL UNIQUE,
-			"Password"	TEXT,
-			"Permissions"	INTEGER NOT NULL,
-			"Userlevel"	INTEGER NOT NULL,
-			"LastOnline"	INTEGER NOT NULL DEFAULT 0,
-			"ResetPassword"	INTEGER NOT NULL DEFAULT 0,
-			PRIMARY KEY("Id" AUTOINCREMENT)
-		);
-		DROP TABLE "E2EConfig"; CREATE TABLE "E2EConfig" (
-			"id"	INTEGER NOT NULL UNIQUE,
-			"Config"	BLOB NOT NULL,
-			"UserId" INTEGER NOT NULL UNIQUE ,
-			PRIMARY KEY("id" AUTOINCREMENT)
-		);
-	    DROP TABLE IF EXISTS "UploadConfig";`)
-		helper.Check(err)
-
-		if legacyE2E.Version != 0 {
-			p.SaveEnd2EndInfo(legacyE2E, 0)
-		}
-	}
-	// < v2.0.0-beta2
-	if currentDbVersion < 8 {
-		keys := p.GetAllApiKeys()
-		for _, key := range keys {
-			if key.IsSystemKey {
-				p.DeleteApiKey(key.Id)
-			}
-		}
-	}
-	// < v2.0.0-beta3
-	if currentDbVersion < 9 {
-		err := p.rawSqlite(`ALTER TABLE "FileMetaData" ADD COLUMN UploadDate INTEGER NOT NULL DEFAULT 0;`)
-		helper.Check(err)
-	}
-	// < v2.0.0-beta3
-	if currentDbVersion < 10 {
-		err := p.rawSqlite(`ALTER TABLE "FileMetaData" ADD COLUMN PendingDeletion INTEGER NOT NULL DEFAULT 0;`)
-		helper.Check(err)
-	}
-}
-
-func getLegacyE2EConfig(p DatabaseProvider) models.E2EInfoEncrypted {
-	result := models.E2EInfoEncrypted{}
-	rowResult := schemaE2EConfig{}
-
-	row := p.sqliteDb.QueryRow("SELECT Config FROM E2EConfig WHERE id = 1")
-	err := row.Scan(&rowResult.Config)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return result
-		}
-		helper.Check(err)
-		return result
-	}
-
-	buf := bytes.NewBuffer(rowResult.Config)
-	dec := gob.NewDecoder(buf)
-	err = dec.Decode(&result)
-	helper.Check(err)
-	return result
 }
 
 // GetDbVersion gets the version number of the database

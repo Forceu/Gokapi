@@ -136,33 +136,6 @@ func LogRestore(file models.File, user models.User) {
 	createLogEntry(categoryEdit, fmt.Sprintf("%s, ID %s, restored by %s (user #%d)", file.Name, file.Id, user.Name, user.Id), false)
 }
 
-// UpgradeToV2 adds tags to existing logs
-// deprecated
-func UpgradeToV2() {
-	content, exists := GetAll()
-	mutex.Lock()
-	if !exists {
-		return
-	}
-	var newLogs strings.Builder
-	scanner := bufio.NewScanner(strings.NewReader(content))
-	for scanner.Scan() {
-		line := scanner.Text()
-		if strings.Contains(line, "Gokapi started") {
-			line = strings.Replace(line, "Gokapi started", "["+categoryInfo+"] Gokapi started", 1)
-		}
-		if strings.Contains(line, "Download: Filename") {
-			line = strings.Replace(line, "Download: Filename", "["+categoryDownload+"] Filename", 1)
-		}
-		newLogs.WriteString(line)
-		newLogs.WriteString("\n")
-	}
-	helper.Check(scanner.Err())
-	err := os.WriteFile(logPath, []byte(newLogs.String()), 0600)
-	helper.Check(err)
-	defer mutex.Unlock()
-}
-
 // DeleteLogs removes all logs before the cutoff timestamp and inserts a new log that the user
 // deleted the previous logs
 func DeleteLogs(userName string, userId int, cutoff int64, r *http.Request) {

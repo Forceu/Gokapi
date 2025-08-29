@@ -8,7 +8,6 @@ Main routine
 
 import (
 	"fmt"
-	"github.com/forceu/gokapi/internal/configuration/configupgrade"
 	"github.com/forceu/gokapi/internal/configuration/database/migration"
 	"github.com/forceu/gokapi/internal/helper/systemd"
 	"os"
@@ -34,7 +33,7 @@ import (
 
 // versionGokapi is the current version in readable form.
 // Other version numbers can be modified in /build/go-generate/updateVersionNumbers.go
-const versionGokapi = "2.1.0-dev"
+const versionGokapi = "2.1.0"
 
 // The following calls update the version numbers, update documentation, minify Js/CSS and build the WASM modules
 //go:generate go run "../../build/go-generate/updateVersionNumbers.go"
@@ -57,12 +56,6 @@ func main() {
 	configuration.Load()
 	if !reconfigureServer(passedFlags) {
 		configuration.ConnectDatabase()
-	}
-
-	// Temporary solution to migrate admin user to DB
-	// Will be removed in v2.1.0
-	if configupgrade.RequiresUpgradeV1ToV2 {
-		configuration.MigrateToV2(configupgrade.LegacyPasswordHash, configupgrade.LegacyUsersHeaderOauth)
 	}
 
 	setDeploymentPassword(passedFlags)
