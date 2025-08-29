@@ -235,6 +235,7 @@ Docker
 ---------------------------------
 
 If you are using Docker, your config will be saved to ``/app/config/config.json`` by default, but the location can be changed. To login, execute the following command:
+::
 
   docker run -it --rm -v gokapi-cli-config:/app/config docker.io/f0rc3/gokapi-cli:latest login
 
@@ -250,23 +251,23 @@ Uploading a file
 
 To upload a file, simply run ``gokapi-cli upload -f /path/to/file``. By default the files are encrypted (if enabled) and stored without any expiration. These additional parameters are available:
 
-+---------------------------------+---------------------------------------------------+
-| Parameter                       | Effect                                            |
-+=================================+===================================================+
-| --json, -j                      | Only outputs in JSON format, unless upload failed |
-+---------------------------------+---------------------------------------------------+
-| --disable-e2e, -x               | Disables end-to-end encryption for this upload    |
-+---------------------------------+---------------------------------------------------+
-| --expiry-days, -e [number]      | Sets the expiry date of the file in days          |
-+---------------------------------+---------------------------------------------------+
-| --expiry-downloads, -d [number] | Sets the allowed downloads                        |
-+---------------------------------+---------------------------------------------------+
-| --password, -p [string]         | Sets a password                                   |
-+---------------------------------+---------------------------------------------------+
-| --name, -n [string]             | Sets a different filename for uploaded file       |
-+---------------------------------+---------------------------------------------------+
-| --configuration, -c [path]      | Use the configuration file specified              |
-+---------------------------------+---------------------------------------------------+
++------------------------------------+---------------------------------------------------+
+| Parameter                          | Effect                                            |
++====================================+===================================================+
+|  \-\-json, -j                      | Only outputs in JSON format, unless upload failed |
++------------------------------------+---------------------------------------------------+
+|  \-\-disable-e2e, -x               | Disables end-to-end encryption for this upload    |
++------------------------------------+---------------------------------------------------+
+|  \-\-expiry-days, -e [number]      | Sets the expiry date of the file in days          |
++------------------------------------+---------------------------------------------------+
+|  \-\-expiry-downloads, -d [number] | Sets the allowed downloads                        |
++------------------------------------+---------------------------------------------------+
+|  \-\-password, -p [string]         | Sets a password                                   |
++------------------------------------+---------------------------------------------------+
+|  \-\-name, -n [string]             | Sets a different filename for uploaded file       |
++------------------------------------+---------------------------------------------------+
+|  \-\-configuration, -c [path]      | Use the configuration file specified              |
++------------------------------------+---------------------------------------------------+
 
 **Example:** Uploading the file ``/tmp/example``. It will expire in 10 days, has unlimited downloads and requires the password ``abcd``:
 ::
@@ -311,11 +312,11 @@ By running ``gokapi-cli upload-dir -D /path/to/directory/``, gokapi-cli compress
 
 In addition to all the options seen in chapter :ref:`clitool-upload-file`, the following optional options are also available:
 
-+---------------------------------+---------------------------------------------------+
-| Parameter                       | Effect                                            |
-+=================================+===================================================+
-| --tmpfolder, -t                 | Sets the path for temporary files.                |
-+---------------------------------+---------------------------------------------------+
++------------------------------------+---------------------------------------------------+
+| Parameter                          | Effect                                            |
++====================================+===================================================+
+|  \-\-tmpfolder, -t                 | Sets the path for temporary files.                |
++------------------------------------+---------------------------------------------------+
 
 
 **Example:** Uploading the folder ``/tmp/example/``. It will expire in 10 days, has unlimited downloads and requires the password ``abcd``:
