@@ -56,7 +56,7 @@ func processUpload(isArchive bool) {
 	result, err := cliapi.UploadFile(uploadParam)
 	if err != nil {
 		fmt.Println()
-		if errors.Is(cliapi.EUnauthorised, err) {
+		if errors.Is(cliapi.ErrUnauthorised, err) {
 			fmt.Println("ERROR: Unauthorised API key. Please re-run login.")
 		} else {
 			fmt.Println("ERROR: Could not upload file")

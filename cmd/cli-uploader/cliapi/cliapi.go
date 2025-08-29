@@ -33,20 +33,20 @@ type header struct {
 	Value string
 }
 
-// EInvalidRequest is returned when the API returns a 400
-var EInvalidRequest = errors.New("400 Bad Request")
+// ErrInvalidRequest is returned when the API returns a 400
+var ErrInvalidRequest = errors.New("400 Bad Request")
 
-// EUnauthorised is returned when the API returns a 401
-var EUnauthorised = errors.New("unauthorised")
+// ErrUnauthorised is returned when the API returns a 401
+var ErrUnauthorised = errors.New("unauthorised")
 
-// ENotFound is returned when the API returns a 404
-var ENotFound = errors.New("404 Not Found")
+// ErrNotFound is returned when the API returns a 404
+var ErrNotFound = errors.New("404 Not Found")
 
-// EFileTooBig is returned when the file size exceeds the allowed limit
-var EFileTooBig = errors.New("file too big")
+// ErrFileTooBig is returned when the file size exceeds the allowed limit
+var ErrFileTooBig = errors.New("file too big")
 
-// EE2eKeyIncorrect is returned when the e2e key is incorrect
-var EE2eKeyIncorrect = errors.New("e2e key incorrect")
+// ErrE2eKeyIncorrect is returned when the e2e key is incorrect
+var ErrE2eKeyIncorrect = errors.New("e2e key incorrect")
 
 // Init initialises the API client with the given url and key.
 // The key is used for authentication.
@@ -123,11 +123,11 @@ func getUrl(url string, headers []header, longTimeout bool) (string, error) {
 
 	switch resp.StatusCode {
 	case 400:
-		return "", EInvalidRequest
+		return "", ErrInvalidRequest
 	case 401:
-		return "", EUnauthorised
+		return "", ErrUnauthorised
 	case 404:
-		return "", ENotFound
+		return "", ErrNotFound
 	}
 
 	body, err := io.ReadAll(resp.Body)
@@ -165,7 +165,7 @@ func UploadFile(uploadParams cliflags.UploadConfig) (models.FileApiOutput, error
 		sizeBytes = encryption.CalculateEncryptedFilesize(sizeBytes)
 	}
 	if sizeBytes > int64(maxSize)*megaByte {
-		return models.FileApiOutput{}, EFileTooBig
+		return models.FileApiOutput{}, ErrFileTooBig
 	}
 	uuid := helper.GenerateRandomString(30)
 
@@ -345,7 +345,7 @@ func GetE2eInfo() (models.E2EInfoPlainText, error) {
 	}
 	fileInfo, err = end2end.DecryptData(result, e2eKey)
 	if err != nil {
-		return models.E2EInfoPlainText{}, EE2eKeyIncorrect
+		return models.E2EInfoPlainText{}, ErrE2eKeyIncorrect
 	}
 	return fileInfo, nil
 }
