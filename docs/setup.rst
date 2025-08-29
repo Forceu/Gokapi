@@ -79,11 +79,11 @@ Please make sure that ``/app/data`` and ``/app/config`` are mounted as volumes (
 Docker Compose
 """"""""""""""""
 
-To launch Gokapi using Docker Compose, download the ``docker-compose.yaml`` file from the repository. You can adjust the environment variables under the ``environment:`` section according to the explanation above.
+To launch Gokapi using Docker Compose, download the ``docker-compose.yaml`` and ``.env.dist`` files from the repository. Rename ``.env.dist`` to ``.env`` and modify if required.
 
 The folders ``gokapi-data`` and ``gokapi-config`` will be created automatically in the current directory, if they do not exist yet. You can change the names of these folders to your liking, but make sure to adjust the paths in the ``volumes:`` section accordingly.
 
-By default, the container is set to always automatically (re)start when the system boots up. If you don't want this, you can remove the ``restart: always`` line or change it to ``restart: unless-stopped`` to have it only restart after a crash.
+By default, the container is set to always automatically (re)start when the system boots up. If you do not want this, you can remove the ``restart: always`` line or change it to ``restart: unless-stopped`` to have it only restart after a crash.
 
 Then, start the container with the command ``docker compose up -d``
 
