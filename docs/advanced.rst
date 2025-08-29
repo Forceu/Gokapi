@@ -388,7 +388,7 @@ Example: Deleting a file
 Chunk Sizes / Considerations for servers with limited or high amount of RAM
 *****************************************************************************
 
-By default, Gokapi uploads files in 45MB chunks stored in RAM. Up to 4 chunks are sent in parallel to enhance upload speed, requiring up to 200MB of RAM per file during upload in the standard configuration.
+By default, Gokapi uploads files in 45MB chunks stored in RAM. Up to 3 chunks are sent in parallel to enhance upload speed, requiring up to 150MB of RAM per file during upload in the standard configuration.
 
 Servers with limited RAM
 ================================
@@ -408,13 +408,16 @@ If your server has a lot of available RAM, you can improve upload speed by incre
 
 * Increase the chunk size by setting the ``ChunkSize`` to a larger value
 * Make sure that the ``MaxMemory`` setting is a higher value than your chunk size
-* Consider increasing the amount of parallel uploads by setting ``MaxParallelUploads`` to a higher value
+* Increasing the amount of parallel uploads by setting ``MaxParallelUploads`` to a higher value is possible, but not recommended if using HTTP1.1 (see warning below). 
 
 
 Refer to :ref:`chunk_config` for instructions on changing these values.
 
 .. note::
    Ensure your reverse proxy and CDN (if applicable) support the chosen chunk size. Cloudflare users on the free tier are limited to 100MB file chunks.
+   
+.. warning::
+   Most browsers do not support more than 6 open connections with HTTP1.1 (which is the default connection). There is always one connection per tab used in the background for receiving status updates, therefore increasing the ``MaxParallelUploads`` value is not recommended in that case. If you require more connections, you can consider switching to HTTP2.
 
 
 .. _chunk_config:
@@ -435,7 +438,7 @@ If you have not completed the Gokapi setup yet, you can set all the values menti
 |                                        |                             |                          |         |
 | to store in RAM during upload          |                             |                          |         |
 +----------------------------------------+-----------------------------+--------------------------+---------+
-| Parallel uploads per file              | GOKAPI_MAX_PARALLEL_UPLOADS | MaxParallelUploads       | 4       |
+| Parallel uploads per file              | GOKAPI_MAX_PARALLEL_UPLOADS | MaxParallelUploads       | 3       |
 +----------------------------------------+-----------------------------+--------------------------+---------+
 
 

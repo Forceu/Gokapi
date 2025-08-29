@@ -124,8 +124,8 @@
 	Dropzone.options.uploaddropzone["timeout"] = 1200000;
 	Dropzone.options.uploaddropzone["chunking"] = true;
 	Dropzone.options.uploaddropzone["chunkSize"] = {{ .ChunkSize }} * 1024 * 1024;
-	Dropzone.options.uploaddropzone["parallelUploads"] = {{ .MaxParallelUploads }};
-	Dropzone.options.uploaddropzone["parallelChunkUploads"] = true;
+	Dropzone.options.uploaddropzone["parallelUploads"] = 1;
+	Dropzone.options.uploaddropzone["parallelChunkUploads"] = {{.MaxParallelUploads}};
 	Dropzone.options.uploaddropzone["forceChunking"] = true;
 	Dropzone.options.uploaddropzone["retryChunksLimit"] = 3;
 	Dropzone.options.uploaddropzone["retryChunks"] = true;

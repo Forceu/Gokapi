@@ -23,7 +23,7 @@ type Environment struct {
 	LengthHotlinkId    int    `env:"LENGTH_HOTLINK_ID" envDefault:"40"`
 	MaxFileSize        int    `env:"MAX_FILESIZE" envDefault:"102400"` // 102400==100GB
 	MaxMemory          int    `env:"MAX_MEMORY_UPLOAD" envDefault:"50"`
-	MaxParallelUploads int    `env:"MAX_PARALLEL_UPLOADS" envDefault:"4"`
+	MaxParallelUploads int    `env:"MAX_PARALLEL_UPLOADS" envDefault:"3"`
 	WebserverPort      int    `env:"PORT" envDefault:"53842"`
 	DisableCorsCheck   bool   `env:"DISABLE_CORS_CHECK" envDefault:"false"`
 	LogToStdout        bool   `env:"LOG_STDOUT" envDefault:"false"`
