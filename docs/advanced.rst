@@ -509,6 +509,7 @@ If you want to change the layout (e.g. add your company logo or add/disable cert
 2. To have custom CSS included, create a file in the folder named ``custom.css``. The CSS will be applied to all pages.
 3. To have custom JavaScript included, create the file ``public.js`` for all public pages and/or ``admin.js`` for all admin-related pages. Please note that the ``admin.js`` will be readable to all users.
 4. In order to prevent caching issues, you can version your files by creating the file ``version.txt`` with a version number.
-5. Restart the server. If the folders exist, the server will now add the local files.
+5. To have a custom Favicon, place a 512x512 PNG image named ``favicon.png`` in the folder ``custom``.
+6. Restart the server. If the folders exist, the server will now add the local files.
 
 Optional: If you require further changes or want to embedded the changes permanently, you can clone the source code and then modify the templates in ``internal/webserver/web/templates``. Afterwards run ``make`` to build a new binary with these changes.

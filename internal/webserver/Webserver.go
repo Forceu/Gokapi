@@ -11,6 +11,16 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"html/template"
+	"io"
+	"io/fs"
+	"log"
+	"net/http"
+	"sort"
+	"strings"
+	templatetext "text/template"
+	"time"
+
 	"github.com/NYTimes/gziphandler"
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/database"
@@ -23,21 +33,14 @@ import (
 	"github.com/forceu/gokapi/internal/webserver/authentication"
 	"github.com/forceu/gokapi/internal/webserver/authentication/oauth"
 	"github.com/forceu/gokapi/internal/webserver/authentication/sessionmanager"
+	"github.com/forceu/gokapi/internal/webserver/favicon"
 	"github.com/forceu/gokapi/internal/webserver/fileupload"
 	"github.com/forceu/gokapi/internal/webserver/sse"
 	"github.com/forceu/gokapi/internal/webserver/ssl"
-	"html/template"
-	"io"
-	"io/fs"
-	"log"
-	"net/http"
-	"sort"
-	"strings"
-	templatetext "text/template"
-	"time"
 )
 
 // TODO add 404 handler
+
 // staticFolderEmbedded is the embedded version of the "static" folder
 // This contains JS files, CSS, images etc
 //
@@ -84,10 +87,10 @@ func Start() {
 	var err error
 
 	mux := http.NewServeMux()
-	loadCustomCssJsInfo()
+	loadCustomCssJsInfo(webserverDir)
 	loadExpiryImage()
 
-	mux.Handle("/", http.FileServer(http.FS(webserverDir)))
+	mux.Handle("/", filesystemHandler(webserverDir))
 	mux.HandleFunc("/admin", requireLogin(showAdminMenu, true, false))
 	mux.HandleFunc("/api/", processApi)
 	mux.HandleFunc("/apiKeys", requireLogin(showApiAdmin, true, false))
@@ -151,6 +154,21 @@ func Start() {
 			log.Fatal(err)
 		}
 	}
+}
+
+func filesystemHandler(webserverDir fs.FS) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/favicon") {
+			handleFavicon(w, r)
+			return
+		}
+		http.FileServer(http.FS(webserverDir)).ServeHTTP(w, r)
+	}
+}
+
+func handleFavicon(w http.ResponseWriter, r *http.Request) {
+	icon := favicon.GetFavicon(r.URL.Path)
+	_, _ = w.Write(icon)
 }
 
 func loadExpiryImage() {

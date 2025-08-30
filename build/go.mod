@@ -3,6 +3,7 @@ module github.com/forceu/gokapi
 go 1.24.0
 
 require (
+	github.com/Kodeworks/golang-image-ico v0.0.0-20141118225523-73f0f4cfade9
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/alicebob/miniredis/v2 v2.34.0
 	github.com/aws/aws-sdk-go v1.55.6
@@ -14,6 +15,7 @@ require (
 	github.com/schollz/progressbar/v3 v3.18.0
 	github.com/secure-io/sio-go v0.3.1
 	golang.org/x/crypto v0.35.0
+	golang.org/x/image v0.30.0
 	golang.org/x/oauth2 v0.27.0
 	golang.org/x/sync v0.11.0
 	golang.org/x/term v0.29.0
@@ -33,8 +35,8 @@ require (
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/ryszard/goskiplist v0.0.0-20150312221310-2dfbae5fcf46 // indirect
-	github.com/tdewolff/minify/v2 v2.23.11 // indirect
-	github.com/tdewolff/parse/v2 v2.8.2-0.20250806174018-50048bb39781 // indirect
+	github.com/tdewolff/minify/v2 v2.24.2 // indirect
+	github.com/tdewolff/parse/v2 v2.8.3 // indirect
 	github.com/yuin/gopher-lua v1.1.1 // indirect
 	go.shabbyrobe.org/gocovmerge v0.0.0-20230507111327-fa4f82cfbf4d // indirect
 	golang.org/x/exp v0.0.0-20250218142911-aa4b98e5adaa // indirect
