@@ -237,7 +237,6 @@ function dropzoneGetFile(uid) {
 }
 
 function requestFileInfo(fileId, uid) {
-
     apiFilesListById(fileId)
         .then(data => {
             addRow(data);
@@ -816,6 +815,7 @@ function createButtonGroup(item) {
     const emailA = document.createElement("a");
     emailA.className = "dropdown-item";
     emailA.title = "Share via email";
+    emailA.id = `email-${item.Id}`;
     emailA.target = "_blank";
     emailA.href = `mailto:?body=${encodeURIComponent(item.UrlDownload)}`;
     emailA.innerHTML = `<i class="bi bi-envelope"></i> Email`;

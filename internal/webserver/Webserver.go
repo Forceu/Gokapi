@@ -9,9 +9,18 @@ import (
 	"context"
 	"embed"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"html/template"
+	"io"
+	"io/fs"
+	"log"
+	"net/http"
+	"sort"
+	"strings"
+	templatetext "text/template"
+	"time"
+
 	"github.com/NYTimes/gziphandler"
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/database"
@@ -24,21 +33,14 @@ import (
 	"github.com/forceu/gokapi/internal/webserver/authentication"
 	"github.com/forceu/gokapi/internal/webserver/authentication/oauth"
 	"github.com/forceu/gokapi/internal/webserver/authentication/sessionmanager"
+	"github.com/forceu/gokapi/internal/webserver/favicon"
 	"github.com/forceu/gokapi/internal/webserver/fileupload"
 	"github.com/forceu/gokapi/internal/webserver/sse"
 	"github.com/forceu/gokapi/internal/webserver/ssl"
-	"html/template"
-	"io"
-	"io/fs"
-	"log"
-	"net/http"
-	"sort"
-	"strings"
-	templatetext "text/template"
-	"time"
 )
 
 // TODO add 404 handler
+
 // staticFolderEmbedded is the embedded version of the "static" folder
 // This contains JS files, CSS, images etc
 //
@@ -85,17 +87,16 @@ func Start() {
 	var err error
 
 	mux := http.NewServeMux()
-	loadCustomCssJsInfo()
+	loadCustomCssJsInfo(webserverDir)
 	loadExpiryImage()
 
-	mux.Handle("/", http.FileServer(http.FS(webserverDir)))
+	mux.Handle("/", filesystemHandler(webserverDir))
 	mux.HandleFunc("/admin", requireLogin(showAdminMenu, true, false))
 	mux.HandleFunc("/api/", processApi)
 	mux.HandleFunc("/apiKeys", requireLogin(showApiAdmin, true, false))
 	mux.HandleFunc("/changePassword", requireLogin(changePassword, true, true))
 	mux.HandleFunc("/d", showDownload)
 	mux.HandleFunc("/downloadFile", downloadFile)
-	mux.HandleFunc("/e2eInfo", requireLogin(e2eInfo, false, false))
 	mux.HandleFunc("/e2eSetup", requireLogin(showE2ESetup, true, false))
 	mux.HandleFunc("/error", showError)
 	mux.HandleFunc("/error-auth", showErrorAuth)
@@ -153,6 +154,21 @@ func Start() {
 			log.Fatal(err)
 		}
 	}
+}
+
+func filesystemHandler(webserverDir fs.FS) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/favicon") {
+			handleFavicon(w, r)
+			return
+		}
+		http.FileServer(http.FS(webserverDir)).ServeHTTP(w, r)
+	}
+}
+
+func handleFavicon(w http.ResponseWriter, r *http.Request) {
+	icon := favicon.GetFavicon(r.URL.Path)
+	_, _ = w.Write(icon)
 }
 
 func loadExpiryImage() {
@@ -543,63 +559,6 @@ func showHotlink(w http.ResponseWriter, r *http.Request) {
 	storage.ServeFile(file, w, r, false)
 }
 
-// Handling of /e2eInfo
-// User needs to be admin. Receives or stores end2end encryption info
-func e2eInfo(w http.ResponseWriter, r *http.Request) {
-	action, ok := r.URL.Query()["action"]
-	if !ok || len(action) < 1 {
-		responseError(w, errors.New("invalid action specified"))
-		return
-	}
-
-	user, err := authentication.GetUserFromRequest(r)
-	if err != nil {
-		responseError(w, err)
-		return
-	}
-	switch action[0] {
-	case "get":
-		getE2eInfo(w, user.Id)
-	case "store":
-		storeE2eInfo(w, r, user.Id)
-	default:
-		responseError(w, errors.New("invalid action specified"))
-	}
-}
-
-func storeE2eInfo(w http.ResponseWriter, r *http.Request, userId int) {
-	err := r.ParseForm()
-	if err != nil {
-		responseError(w, err)
-		return
-	}
-	uploadedInfoBase64 := r.Form.Get("info")
-	if uploadedInfoBase64 == "" {
-		responseError(w, errors.New("empty info sent"))
-		return
-	}
-	uploadedInfo, err := base64.StdEncoding.DecodeString(uploadedInfoBase64)
-	if err != nil {
-		responseError(w, err)
-		return
-	}
-	var info models.E2EInfoEncrypted
-	err = json.Unmarshal(uploadedInfo, &info)
-	if err != nil {
-		responseError(w, err)
-		return
-	}
-	database.SaveEnd2EndInfo(info, userId)
-	_, _ = w.Write([]byte("\"result\":\"OK\""))
-}
-
-func getE2eInfo(w http.ResponseWriter, userId int) {
-	info := database.GetEnd2EndInfo(userId)
-	bytesE2e, err := json.Marshal(info)
-	helper.Check(err)
-	_, _ = w.Write(bytesE2e)
-}
-
 // Checks if a file is associated with the GET parameter from the current URL
 // Stops for 500ms to limit brute forcing if invalid key and redirects to redirectUrl
 func queryUrl(w http.ResponseWriter, r *http.Request, redirectUrl string) string {
@@ -663,6 +622,7 @@ func showE2ESetup(w http.ResponseWriter, r *http.Request) {
 	err = templateFolder.ExecuteTemplate(w, "e2esetup", e2ESetupView{
 		HasBeenSetup:  e2einfo.HasBeenSetUp(),
 		PublicName:    configuration.Get().PublicName,
+		SystemKey:     api.GetSystemKey(user.Id),
 		CustomContent: customStaticInfo})
 	helper.CheckIgnoreTimeout(err)
 }
@@ -690,6 +650,7 @@ type e2ESetupView struct {
 	IsDownloadView bool
 	HasBeenSetup   bool
 	PublicName     string
+	SystemKey      string
 	CustomContent  customStatic
 }
 

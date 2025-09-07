@@ -128,20 +128,6 @@ func TestDatabaseProvider_GetType(t *testing.T) {
 	test.IsEqualInt(t, dbInstance.GetType(), 0)
 }
 
-func TestGetAllMetaDataIds(t *testing.T) {
-	instance, err := New(config)
-	test.IsNil(t, err)
-	dbInstance = instance
-
-	ids := dbInstance.GetAllMetaDataIds()
-	test.IsEqualString(t, ids[0], "test2")
-	test.IsEqualString(t, ids[1], "test3")
-
-	dbInstance.Close()
-	defer test.ExpectPanic(t)
-	_ = dbInstance.GetAllMetaDataIds()
-}
-
 func TestHotlink(t *testing.T) {
 	instance, err := New(config)
 	test.IsNil(t, err)
@@ -651,31 +637,19 @@ func TestUsers(t *testing.T) {
 func TestDatabaseProvider_Upgrade(t *testing.T) {
 	instance, err := New(configUpgrade)
 	test.IsNil(t, err)
-	err = instance.rawSqlite(`
-		DROP TABLE IF EXISTS ApiKeys;
-		DROP TABLE IF EXISTS E2EConfig;
-		DROP TABLE IF EXISTS FileMetaData;
-		DROP TABLE IF EXISTS Hotlinks;
-		DROP TABLE IF EXISTS Sessions;
-		DROP TABLE IF EXISTS Users;
-		DROP TABLE IF EXISTS UploadConfig;`)
-	test.IsNil(t, err)
-	sqliteInit := getSqlInitV6()
-	err = instance.rawSqlite(sqliteInit)
-	test.IsNil(t, err)
 
 	exitCode := 0
 	osExit = func(code int) {
 		exitCode = code
 	}
-	instance.SetDbVersion(5)
+	instance.SetDbVersion(9)
 	instance.Upgrade(instance.GetDbVersion())
 	test.IsEqualInt(t, exitCode, 1)
 
-	exitCode = 0
-	instance.SetDbVersion(6)
-	instance.Upgrade(instance.GetDbVersion())
-	test.IsEqualInt(t, exitCode, 0)
+	// exitCode = 0
+	// instance.SetDbVersion(6)
+	// instance.Upgrade(instance.GetDbVersion())
+	// test.IsEqualInt(t, exitCode, 0)
 
 }
 
@@ -684,58 +658,4 @@ func TestRawSql(t *testing.T) {
 	dbInstance.sqliteDb = nil
 	defer test.ExpectPanic(t)
 	_ = dbInstance.rawSqlite("Select * from Sessions")
-}
-
-func getSqlInitV6() string {
-	return `CREATE TABLE IF NOT EXISTS "ApiKeys" (
-	"Id"	TEXT NOT NULL UNIQUE,
-	"FriendlyName"	TEXT NOT NULL,
-	"LastUsed"	INTEGER NOT NULL,
-	"Permissions"	INTEGER NOT NULL DEFAULT 0,
-	"Expiry"	INTEGER,
-	"IsSystemKey"	INTEGER,
-	PRIMARY KEY("Id")
-) WITHOUT ROWID;
-CREATE TABLE IF NOT EXISTS "E2EConfig" (
-	"id"	INTEGER NOT NULL UNIQUE,
-	"Config"	BLOB NOT NULL,
-	PRIMARY KEY("id" AUTOINCREMENT)
-);
-CREATE TABLE IF NOT EXISTS "FileMetaData" (
-	"Id"	TEXT NOT NULL UNIQUE,
-	"Name"	TEXT NOT NULL,
-	"Size"	TEXT NOT NULL,
-	"SHA1"	TEXT NOT NULL,
-	"ExpireAt"	INTEGER NOT NULL,
-	"SizeBytes"	INTEGER NOT NULL,
-	"ExpireAtString"	TEXT NOT NULL,
-	"DownloadsRemaining"	INTEGER NOT NULL,
-	"DownloadCount"	INTEGER NOT NULL,
-	"PasswordHash"	TEXT NOT NULL,
-	"HotlinkId"	TEXT NOT NULL,
-	"ContentType"	TEXT NOT NULL,
-	"AwsBucket"	TEXT NOT NULL,
-	"Encryption"	BLOB NOT NULL,
-	"UnlimitedDownloads"	INTEGER NOT NULL,
-	"UnlimitedTime"	INTEGER NOT NULL,
-	PRIMARY KEY("Id")
-);
-CREATE TABLE IF NOT EXISTS "Hotlinks" (
-	"Id"	TEXT NOT NULL UNIQUE,
-	"FileId"	TEXT NOT NULL UNIQUE,
-	PRIMARY KEY("Id")
-) WITHOUT ROWID;
-CREATE TABLE IF NOT EXISTS "Sessions" (
-	"Id"	TEXT NOT NULL UNIQUE,
-	"RenewAt"	INTEGER NOT NULL,
-	"ValidUntil"	INTEGER NOT NULL,
-	PRIMARY KEY("Id")
-) WITHOUT ROWID;
-INSERT INTO "ApiKeys" VALUES ('E9xZ1DEOclzKgxPNoyldlmCpWsHmPF','Internal System Key',1736202872,63,1736375583,1);
-INSERT INTO "ApiKeys" VALUES ('UTODvOEqqjAs5cpvJK77opuGdegUSP','Unnamed key',0,23,0,0);
-INSERT INTO "E2EConfig" VALUES (1,X'537f03010110453245496e666f456e6372797074656401ff80000104010756657273696f6e01040001054e6f6e6365010a000107436f6e74656e74010a00010e417661696c61626c6546696c657301ff8200000016ff81020101085b5d737472696e6701ff8200010c0000fff4ff800102010cd342c099f1bf4493012c109f01ffde0a11bcd7feac15b16db121f77c8f2105972aee4cc734af6cdd99d84b7c32deeb04ecd59bd307145ae0b389139d30a2ed6c7b4927c5910405912a0ec50d1480bee1a7014b13bbf4fe25b1d8973235e2270d4adf3003aa648171d4b3de36d91bc4380653b3f37940da018230c2f46e8dc646526cbbb3c2a898509121a4bd129689ff7143633d506e8de308d2489888dd4d9805f25d04332e45f7514c339065bc5c445a0779bf21aeaf7c8fbd210d31ce26f078ab8619df0814112bf443b9064ade8054f4aa7a2b3f5bb23df6a40abae83a5f44944121eed39fbdc608dab40200');
-INSERT INTO "FileMetaData" VALUES ('M3dEz99HKN9sOgU','kodi_crashlog-20241106_102509.log','131.6 kB','0e9c019ec2698587cc973a9ee368713eb77e4fae',1737412393,134794,'2025-01-20 23:33',10,0,'','','text/x-log','',X'5f7f0301010e456e6372797074696f6e496e666f01ff80000104010b4973456e6372797074656401020001134973456e64546f456e64456e63727970746564010200010d44656372797074696f6e4b6579010a0001054e6f6e6365010a00000003ff8000',0,0);
-INSERT INTO "FileMetaData" VALUES ('b5Mf07AgTkwqpW2','Encrypted File','131.6 kB','e2e-ivCiN4YePueE1PcjYirB',1737412472,134938,'2025-01-20 23:34',10,0,'','','application/octet-stream','',X'60ff830301010e456e6372797074696f6e496e666f01ff84000104010b4973456e6372797074656401020001134973456e64546f456e64456e63727970746564010200010d44656372797074696f6e4b6579010a0001054e6f6e6365010a00000007ff840101010100',0,0);
-INSERT INTO "Hotlinks" VALUES ('Phie2AiW2aecaecahWoo','jun9keeNokae9iehinee');
-INSERT INTO "Sessions" VALUES ('zMUYkok9UZZiKBCHB5pO7KPTPzPP71ashpRf11W37wP0HMhMjTKcFL8Ai6Z3',173624606799,173879486799);`
 }

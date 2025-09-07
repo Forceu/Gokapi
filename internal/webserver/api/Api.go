@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/database"
+	"github.com/forceu/gokapi/internal/encryption"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/logging"
 	"github.com/forceu/gokapi/internal/models"
@@ -413,7 +414,39 @@ func doBlockingPartCompleteChunk(w http.ResponseWriter, request *paramChunkCompl
 	outputFileJson(w, file)
 }
 
+func apiVersionInfo(w http.ResponseWriter, _ requestParser, _ models.User) {
+	type versionInfo struct {
+		Version    string
+		VersionInt int
+	}
+	result, err := json.Marshal(versionInfo{versionReadable, versionInt})
+	helper.Check(err)
+	_, _ = w.Write(result)
+}
+func apiConfigInfo(w http.ResponseWriter, _ requestParser, _ models.User) {
+	type configInfo struct {
+		MaxFilesize               int
+		MaxChunksize              int
+		EndToEndEncryptionEnabled bool
+	}
+	config := configuration.Get()
+	result, err := json.Marshal(configInfo{
+		MaxFilesize:               config.MaxFileSizeMB,
+		MaxChunksize:              config.ChunkSize,
+		EndToEndEncryptionEnabled: config.Encryption.Level == encryption.EndToEndEncryption,
+	})
+	helper.Check(err)
+	_, _ = w.Write(result)
+}
+
 func apiList(w http.ResponseWriter, _ requestParser, user models.User) {
+	validFiles := getFilesForUser(user)
+	result, err := json.Marshal(validFiles)
+	helper.Check(err)
+	_, _ = w.Write(result)
+}
+
+func getFilesForUser(user models.User) []models.FileApiOutput {
 	var validFiles []models.FileApiOutput
 	timeNow := time.Now().Unix()
 	config := configuration.Get()
@@ -426,9 +459,7 @@ func apiList(w http.ResponseWriter, _ requestParser, user models.User) {
 			}
 		}
 	}
-	result, err := json.Marshal(validFiles)
-	helper.Check(err)
-	_, _ = w.Write(result)
+	return validFiles
 }
 
 func apiListSingle(w http.ResponseWriter, r requestParser, user models.User) {
@@ -728,6 +759,28 @@ func apiLogsDelete(_ http.ResponseWriter, r requestParser, user models.User) {
 		panic("invalid parameter passed")
 	}
 	logging.DeleteLogs(user.Name, user.Id, request.Timestamp, request.Request)
+}
+
+func apiE2eGet(w http.ResponseWriter, _ requestParser, user models.User) {
+	info := database.GetEnd2EndInfo(user.Id)
+	files := getFilesForUser(user)
+	ids := make([]string, len(files))
+	for i, file := range files {
+		ids[i] = file.Id
+	}
+	info.AvailableFiles = ids
+	bytesE2e, err := json.Marshal(info)
+	helper.Check(err)
+	_, _ = w.Write(bytesE2e)
+}
+
+func apiE2eSet(w http.ResponseWriter, r requestParser, user models.User) {
+	request, ok := r.(*paramE2eStore)
+	if !ok {
+		panic("invalid parameter passed")
+	}
+	database.SaveEnd2EndInfo(request.EncryptedInfo, user.Id)
+	_, _ = w.Write([]byte("\"result\":\"OK\""))
 }
 
 func isAuthorisedForApi(r *http.Request, routing apiRoute) (models.User, bool) {

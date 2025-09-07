@@ -201,6 +201,153 @@ Migrating Redis (``127.0.0.1:6379, User: test, Password: 1234, Prefix: gokapi_, 
 
  gokapi --migrate "redis://test:1234@127.0.0.1:6379?prefix=gokapi_&ssl=true" sqlite://./data/gokapi.sqlite
 
+
+
+.. _clitool:
+
+
+********************************
+CLI Tool
+********************************
+
+Gokapi also has a CLI tool that allows uploads from the command line. Binaries are avaible on the `Github release page <https://github.com/Forceu/Gokapi/releases>`_ for Linux, Windows and MacOS. To compile it yourself, download the repository and run ``make build-cli`` in the top directory.
+
+Alternatively you can use the tool with Docker, although it will be slightly less user-friendly.
+
+.. note::
+
+  Gokapi v2.1.0 or newer is required to use the CLI tool.
+
+Login
+=================================
+
+First you need to login with the command ``gokapi-cli login``. You will then be asked for your server URL and a valid API key with upload permission. If end-to-end encryption is enabled, you will also need to enter your encyption key. By default the login data is saved to ``gokapi-cli.json``, but you can define a different location with the ``-c`` parameter.
+
+
+To logout, either delete the configuration file or run ``gokapi-cli logout``.
+
+.. warning::
+
+   The configuration file contains the login data as plain text.
+
+
+Docker
+---------------------------------
+
+If you are using Docker, your config will be saved to ``/app/config/config.json`` by default, but the location can be changed. To login, execute the following command:
+::
+
+  docker run -it --rm -v gokapi-cli-config:/app/config docker.io/f0rc3/gokapi-cli:latest login
+
+The volume ``gokapi-cli-config:/app/config`` is not required if you re-use the container, but it is still highly recommended. If a volume is not mounted, you will need to log in again after every new container creation.
+  
+
+
+.. _clitool-upload-file:
+
+Uploading a file
+=================================
+
+
+To upload a file, simply run ``gokapi-cli upload -f /path/to/file``. By default the files are encrypted (if enabled) and stored without any expiration. These additional parameters are available:
+
++------------------------------------+---------------------------------------------------+
+| Parameter                          | Effect                                            |
++====================================+===================================================+
+|  \-\-json, -j                      | Only outputs in JSON format, unless upload failed |
++------------------------------------+---------------------------------------------------+
+|  \-\-disable-e2e, -x               | Disables end-to-end encryption for this upload    |
++------------------------------------+---------------------------------------------------+
+|  \-\-expiry-days, -e [number]      | Sets the expiry date of the file in days          |
++------------------------------------+---------------------------------------------------+
+|  \-\-expiry-downloads, -d [number] | Sets the allowed downloads                        |
++------------------------------------+---------------------------------------------------+
+|  \-\-password, -p [string]         | Sets a password                                   |
++------------------------------------+---------------------------------------------------+
+|  \-\-name, -n [string]             | Sets a different filename for uploaded file       |
++------------------------------------+---------------------------------------------------+
+|  \-\-configuration, -c [path]      | Use the configuration file specified              |
++------------------------------------+---------------------------------------------------+
+
+**Example:** Uploading the file ``/tmp/example``. It will expire in 10 days, has unlimited downloads and requires the password ``abcd``:
+::
+
+ gokapi-cli upload -f /tmp/example --expiry-days 10 --password abcd
+  
+  
+.. warning::
+
+   If you are using end-to-end encryption, do not upload other encrypted files simultaneously to avoid race conditions. 
+   
+   
+   
+Docker
+---------------------------------
+
+As a Docker container cannot access your host files without a volume, you will need to mount the folder that contains your file to upload and then specify the internal file path with ``-f``. If no ``-f`` parameter is supplied and only a single file exists in the container folder ``/upload/``, this file will be uploaded.
+
+**Example:** Uploading the file ``/tmp/example``. It will expire after 5 downloads, has no time expiry and has no password.
+::
+
+ docker run --rm -v gokapi-cli-config:/app/config -v /tmp/:/upload/ docker.io/f0rc3/gokapi-cli:latest upload -f /upload/example --expiry-downloads 5 
+
+**Example:** Uploading the file ``/tmp/single/example``. There is no other file in the folder ``/tmp/single/``.
+::
+
+ docker run --rm -v gokapi-cli-config:/app/config -v /tmp/single/:/upload/ docker.io/f0rc3/gokapi-cli:latest upload
+
+**Example:** Uploading the file ``/tmp/multiple/example``. There are other files in the folder ``/tmp/multiple/``.
+::
+
+ docker run --rm -v gokapi-cli-config:/app/config -v /tmp/multiple/example:/upload/example docker.io/f0rc3/gokapi-cli:latest upload
+   
+
+
+
+Uploading a directory
+=================================
+
+
+By running ``gokapi-cli upload-dir -D /path/to/directory/``, gokapi-cli compresses the given folder as a zip file and then uploads it. By default the foldername is used for the name of the zip file. Also the file is encrypted (if enabled) and stored without any expiration.
+
+In addition to all the options seen in chapter :ref:`clitool-upload-file`, the following optional options are also available:
+
++------------------------------------+---------------------------------------------------+
+| Parameter                          | Effect                                            |
++====================================+===================================================+
+|  \-\-tmpfolder, -t                 | Sets the path for temporary files.                |
++------------------------------------+---------------------------------------------------+
+
+
+**Example:** Uploading the folder ``/tmp/example/``. It will expire in 10 days, has unlimited downloads and requires the password ``abcd``:
+::
+
+ gokapi-cli upload-dir -D /tmp/example --expiry-days 10 --password abcd
+  
+  
+.. warning::
+
+   If you are using end-to-end encryption, do not upload other encrypted files simultaneously to avoid race conditions. 
+   
+   
+   
+Docker
+---------------------------------
+
+As a Docker container cannot access your host files without a volume, you will need to mount the folder that contains your file to upload and then specify the internal path with ``-D``. If no ``-D`` parameter is supplied, the folder ``/upload/`` will be uploaded (if it contains any files).
+
+**Example:** Uploading the folder ``/tmp/example/``. It will expire after 5 downloads, has no time expiry and has no password.
+::
+
+ docker run --rm -v gokapi-cli-config:/app/config -v /tmp/example/:/upload/example docker.io/f0rc3/gokapi-cli:latest upload-dir -D /upload/example/ --expiry-downloads 5 
+
+**Example:** Uploading the folder ``/tmp/another/example`` and setting the filename to ``example.zip``
+::
+
+ docker run --rm -v gokapi-cli-config:/app/config -v /tmp/another/example:/upload/ docker.io/f0rc3/gokapi-cli:latest upload-dir -n "example.zip"
+
+
+   
 .. _api:
 
 
@@ -242,7 +389,7 @@ Example: Deleting a file
 Chunk Sizes / Considerations for servers with limited or high amount of RAM
 *****************************************************************************
 
-By default, Gokapi uploads files in 45MB chunks stored in RAM. Up to 4 chunks are sent in parallel to enhance upload speed, requiring up to 200MB of RAM per file during upload in the standard configuration.
+By default, Gokapi uploads files in 45MB chunks stored in RAM. Up to 3 chunks are sent in parallel to enhance upload speed, requiring up to 150MB of RAM per file during upload in the standard configuration.
 
 Servers with limited RAM
 ================================
@@ -262,13 +409,16 @@ If your server has a lot of available RAM, you can improve upload speed by incre
 
 * Increase the chunk size by setting the ``ChunkSize`` to a larger value
 * Make sure that the ``MaxMemory`` setting is a higher value than your chunk size
-* Consider increasing the amount of parallel uploads by setting ``MaxParallelUploads`` to a higher value
+* Increasing the amount of parallel uploads by setting ``MaxParallelUploads`` to a higher value is possible, but not recommended if using HTTP1.1 (see warning below). 
 
 
 Refer to :ref:`chunk_config` for instructions on changing these values.
 
 .. note::
    Ensure your reverse proxy and CDN (if applicable) support the chosen chunk size. Cloudflare users on the free tier are limited to 100MB file chunks.
+   
+.. warning::
+   Most browsers do not support more than 6 open connections with HTTP1.1 (which is the default connection). There is always one connection per tab used in the background for receiving status updates, therefore increasing the ``MaxParallelUploads`` value is not recommended in that case. If you require more connections, you can consider switching to HTTP2.
 
 
 .. _chunk_config:
@@ -289,7 +439,7 @@ If you have not completed the Gokapi setup yet, you can set all the values menti
 |                                        |                             |                          |         |
 | to store in RAM during upload          |                             |                          |         |
 +----------------------------------------+-----------------------------+--------------------------+---------+
-| Parallel uploads per file              | GOKAPI_MAX_PARALLEL_UPLOADS | MaxParallelUploads       | 4       |
+| Parallel uploads per file              | GOKAPI_MAX_PARALLEL_UPLOADS | MaxParallelUploads       | 3       |
 +----------------------------------------+-----------------------------+--------------------------+---------+
 
 
@@ -359,6 +509,7 @@ If you want to change the layout (e.g. add your company logo or add/disable cert
 2. To have custom CSS included, create a file in the folder named ``custom.css``. The CSS will be applied to all pages.
 3. To have custom JavaScript included, create the file ``public.js`` for all public pages and/or ``admin.js`` for all admin-related pages. Please note that the ``admin.js`` will be readable to all users.
 4. In order to prevent caching issues, you can version your files by creating the file ``version.txt`` with a version number.
-5. Restart the server. If the folders exist, the server will now add the local files.
+5. To have a custom Favicon, place a 512x512 PNG image named ``favicon.png`` in the folder ``custom``.
+6. Restart the server. If the folders exist, the server will now add the local files.
 
 Optional: If you require further changes or want to embedded the changes permanently, you can clone the source code and then modify the templates in ``internal/webserver/web/templates``. Afterwards run ``make`` to build a new binary with these changes.

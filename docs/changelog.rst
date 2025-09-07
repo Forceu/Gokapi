@@ -8,6 +8,26 @@ Overview of all changes
 -----------------------
 
 
+v2.1.0 (2025-08-29)
+^^^^^^^^^^^^^^^^^^^
+
+Changelog
+"""""""""
+
+* Added a CLI tool that supports e2e encrypted uploads and folder uploads `#280 <https://github.com/Forceu/Gokapi/issues/280>`__, see `documentation <https://gokapi.readthedocs.io/en/stable/advanced.html#cli-tool>`__ for installation and usage
+* Upgraded to Go 1.25 which might result in better performance on some systems
+* Added docker-compose file
+* Fixed crash after uploading an e2e encrypted file, forcing the user to refresh the webpage before uploading a new file `#283 <https://github.com/Forceu/Gokapi/issues/283>`__
+* Fixed a bug where files with non-latin characters were not downloadable from AWS `#302 <https://github.com/Forceu/Gokapi/issues/302>`__ 
+* Fixed a bug where e2e encrypted files with non-latin characters had a corrupted filename after downloading `#300 <https://github.com/Forceu/Gokapi/issues/300>`__
+* Fixed bug where file was deleted after uploading through API if not supplying ``allowedDownloads`` or ``expiryDays`` in ``ChunkComplete`` `#282 <https://github.com/Forceu/Gokapi/issues/282>`__
+* Fixed error message when username was less than 4 characters long `#268 <https://github.com/Forceu/Gokapi/issues/268>`__
+* Fixed incorrect mouse pointer on share menu `#275 <https://github.com/Forceu/Gokapi/issues/275>`__
+* Parallel uploads are now disabled, due to browser limit of 6 connections with HTTP1.1
+
+**Full Changelog**: https://github.com/Forceu/Gokapi/compare/v2.0.1...v2.1.0
+
+
 v2.0.1 (2025-06-08)
 ^^^^^^^^^^^^^^^^^^^
 

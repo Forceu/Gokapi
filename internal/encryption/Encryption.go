@@ -254,9 +254,6 @@ func getStream(cipherKey []byte) *sio.Stream {
 		log.Fatal(err)
 	}
 	stream := sio.NewStream(gcm, sio.BufSize)
-	if err != nil {
-		log.Fatal(err)
-	}
 	return stream
 }
 

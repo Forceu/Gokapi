@@ -81,21 +81,6 @@ func (p DatabaseProvider) GetAllMetadata() map[string]models.File {
 	return result
 }
 
-// GetAllMetaDataIds returns all Ids that contain metadata
-func (p DatabaseProvider) GetAllMetaDataIds() []string {
-	keys := make([]string, 0)
-	rows, err := p.sqliteDb.Query("SELECT Id FROM FileMetaData")
-	helper.Check(err)
-	defer rows.Close()
-	for rows.Next() {
-		rowData := schemaMetaData{}
-		err = rows.Scan(&rowData.Id)
-		helper.Check(err)
-		keys = append(keys, rowData.Id)
-	}
-	return keys
-}
-
 // GetMetaDataById returns a models.File from the ID passed or false if the id is not valid
 func (p DatabaseProvider) GetMetaDataById(id string) (models.File, bool) {
 	result := models.File{}

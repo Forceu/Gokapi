@@ -37,6 +37,11 @@ Stable version
 """""""""""""""""
 `Download the latest release <https://github.com/Forceu/gokapi/releases/latest>`_ and copy the executable into a new folder with write permissions. Select the executable according to your system. If you are using Windows, select ``gokapi-windows_amd64``, for Mac either ``gokapi-darwin_amd64`` or ``gokapi-darwin_arm64`` and for Linux the ``gokapi-linux_`` file matching your system.
 
+
+.. note::
+
+  Make sure to select the correct binary: ``gokapi-XXX`` is the main application, while ``gokapi-cli-XXX`` is only a command-line upload tool.
+
 Unstable version
 """""""""""""""""
 
@@ -79,11 +84,11 @@ Please make sure that ``/app/data`` and ``/app/config`` are mounted as volumes (
 Docker Compose
 """"""""""""""""
 
-To launch Gokapi using Docker Compose, download the ``docker-compose.yaml`` file from the repository. You can adjust the environment variables under the ``environment:`` section according to the explanation above.
+To launch Gokapi using Docker Compose, download the ``docker-compose.yaml`` and ``.env.dist`` files from the repository. Rename ``.env.dist`` to ``.env`` and modify if required.
 
 The folders ``gokapi-data`` and ``gokapi-config`` will be created automatically in the current directory, if they do not exist yet. You can change the names of these folders to your liking, but make sure to adjust the paths in the ``volumes:`` section accordingly.
 
-By default, the container is set to always automatically (re)start when the system boots up. If you don't want this, you can remove the ``restart: always`` line or change it to ``restart: unless-stopped`` to have it only restart after a crash.
+By default, the container is set to always automatically (re)start when the system boots up. If you do not want this, you can remove the ``restart: always`` line or change it to ``restart: unless-stopped`` to have it only restart after a crash.
 
 Then, start the container with the command ``docker compose up -d``
 
@@ -236,7 +241,6 @@ This option disables Gokapis internal authentication completely, except for API 
 - ``/admin``
 - ``/apiKeys``
 - ``/changePassword``
-- ``/e2eInfo``
 - ``/e2eSetup``
 - ``/logs``
 - ``/uploadChunk``

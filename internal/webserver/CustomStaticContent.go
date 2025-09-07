@@ -3,12 +3,15 @@ package webserver
 import (
 	"bufio"
 	"fmt"
-	"github.com/NYTimes/gziphandler"
-	"github.com/forceu/gokapi/internal/helper"
+	"io/fs"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/NYTimes/gziphandler"
+	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/webserver/favicon"
 )
 
 const pathCustomFolder = "custom/"
@@ -16,6 +19,7 @@ const pathCustomCss = pathCustomFolder + "custom.css"
 const pathCustomPublicJs = pathCustomFolder + "public.js"
 const pathCustomAdminJs = pathCustomFolder + "admin.js"
 const pathCustomVersioning = pathCustomFolder + "version.txt"
+const pathCustomFavicon = pathCustomFolder + "favicon.png"
 
 type customStatic struct {
 	Version            string
@@ -25,10 +29,11 @@ type customStatic struct {
 	UseCustomAdminJs   bool
 }
 
-func loadCustomCssJsInfo() {
+func loadCustomCssJsInfo(webserverDir fs.FS) {
 	customStaticInfo = customStatic{}
 	folderExists := helper.FolderExists(pathCustomFolder)
 	customStaticInfo.CustomFolderExists = folderExists
+	favicon.Init(pathCustomFavicon, webserverDir)
 	if !folderExists {
 		return
 	}
@@ -45,7 +50,7 @@ func addMuxForCustomContent(mux *http.ServeMux) {
 	fmt.Println("Serving custom static content")
 	// Serve the user-created "custom" folder to /custom
 	mux.Handle("/custom/", http.StripPrefix("/custom/", http.FileServer(http.Dir(pathCustomFolder))))
-	// Allow versioning to prevent caching old version
+	// Allow versioning to prevent caching old versions
 	if customStaticInfo.UseCustomCss {
 		mux.Handle("/custom/custom.v"+customStaticInfo.Version+".css", gziphandler.GzipHandler(http.HandlerFunc(serveCustomCss)))
 	}

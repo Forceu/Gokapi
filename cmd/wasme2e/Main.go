@@ -1,4 +1,4 @@
-//go:build js && wasm
+//go:build js && wasm && go1.24
 
 package main
 
@@ -204,6 +204,7 @@ func InfoParse(this js.Value, args []js.Value) interface{} {
 }
 
 func DecryptMenu(this js.Value, args []js.Value) interface{} {
+	updates := js.Global().Get("Object").New()
 	for _, file := range fileInfo.Files {
 		cipher := base64.StdEncoding.EncodeToString(file.Cipher)
 		hashContent, err := json.Marshal(models.E2EHashContent{
@@ -214,12 +215,18 @@ func DecryptMenu(this js.Value, args []js.Value) interface{} {
 			return jsError(err.Error())
 		}
 		hashBase64 := base64.StdEncoding.EncodeToString(hashContent)
-		js.Global().Call("decryptFileEntry", file.Id, file.Filename, hashBase64)
+		entry := js.Global().Get("Array").New()
+		entry.Call("push", file.Filename)
+		entry.Call("push", hashBase64)
+		updates.Set(file.Id, entry)
 	}
+	js.Global().Call("decryptFileEntries", updates)
 	return nil
 }
 
 func removeExpiredFiles(encInfo models.E2EInfoEncrypted) []models.E2EFile {
+	fileMutex.Lock()
+	defer fileMutex.Unlock()
 	cleanedFiles := make([]models.E2EFile, 0)
 	for _, id := range encInfo.AvailableFiles {
 		for _, file := range fileInfo.Files {

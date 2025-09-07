@@ -66,8 +66,6 @@ type Database interface {
 
 	// GetAllMetadata returns a map of all available files
 	GetAllMetadata() map[string]models.File
-	// GetAllMetaDataIds returns all Ids that contain metadata
-	GetAllMetaDataIds() []string
 	// GetMetaDataById returns a models.File from the ID passed or false if the id is not valid
 	GetMetaDataById(id string) (models.File, bool)
 	// SaveMetaData stores the metadata of a file to the disk

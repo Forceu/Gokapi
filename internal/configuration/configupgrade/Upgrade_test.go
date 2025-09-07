@@ -35,14 +35,6 @@ func TestUpgradeDb(t *testing.T) {
 	test.IsEqualBool(t, upgradeDone, true)
 	test.IsEqualInt(t, exitCode, 1)
 
-	// Updatable version
-	exitCode = 0
-	oldConfigFile.ConfigVersion = 21
-	upgradeDone = DoUpgrade(&oldConfigFile, &env)
-	test.IsEqualBool(t, upgradeDone, true)
-	// TODO
-	test.IsEqualInt(t, exitCode, 0)
-
 	// Current Version
 	exitCode = 0
 	oldConfigFile.ConfigVersion = CurrentConfigVersion

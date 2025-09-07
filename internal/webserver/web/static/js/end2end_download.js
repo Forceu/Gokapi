@@ -10,7 +10,7 @@ function parseHashValue(id) {
         }
         let info;
         try {
-            let infoJson = atob(hash);
+            let infoJson = b64ToUtf8(hash);
             info = JSON.parse(infoJson)
         } catch (err) {
             redirectToE2EError();
@@ -23,6 +23,11 @@ function parseHashValue(id) {
         sessionStorage.setItem("key-" + id, info.c);
         sessionStorage.setItem("fn-" + id, info.f);
     }
+}
+
+function b64ToUtf8(str) {
+  let bytes = Uint8Array.from(atob(str), c => c.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
 }
 
 function isCorrectJson(input) {
