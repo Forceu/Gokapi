@@ -26,6 +26,7 @@ type Configuration struct {
 	PicturesAlwaysLocal bool                 `json:"PicturesAlwaysLocal"`
 	SaveIp              bool                 `json:"SaveIp"`
 	IncludeFilename     bool                 `json:"IncludeFilename"`
+	MinLengthPassword   int                  `json:"MinLengthPassword"`
 }
 
 // Encryption hold information about the encryption used on this file

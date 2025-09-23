@@ -74,6 +74,8 @@ Available environment variables
 +-------------------------------+-------------------------------------------------------------------------------------+-----------------+--------------------------------------+
 | GOKAPI_MAX_FILESIZE           | Sets the maximum allowed file size in MB                                            | Yes             | 102400 (100GB)                       |
 +-------------------------------+-------------------------------------------------------------------------------------+-----------------+--------------------------------------+
+| GOKAPI_MIN_LENGTH_PASSWORD    | Sets the minium password length.                                                    | Yes             | 8                                    |
++-------------------------------+-------------------------------------------------------------------------------------+-----------------+--------------------------------------+
 | GOKAPI_MAX_MEMORY_UPLOAD      | Sets the amount of RAM in MB that can be allocated for an upload chunk or file      | Yes             | 50                                   |
 |                               |                                                                                     |                 |                                      |
 |                               | Any chunk or file with a size greater than that will be written to a temporary file |                 |                                      |

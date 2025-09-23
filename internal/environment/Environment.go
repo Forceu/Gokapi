@@ -33,6 +33,7 @@ type Environment struct {
 	AwsKeyId           string `env:"AWS_KEY"`
 	AwsKeySecret       string `env:"AWS_KEY_SECRET"`
 	AwsEndpoint        string `env:"AWS_ENDPOINT"`
+	MinLengthPassword  int    `env:"MIN_LENGTH_PASSWORD" envDefault:"8"`
 }
 
 // New parses the env variables

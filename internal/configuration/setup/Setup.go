@@ -244,6 +244,7 @@ func toConfiguration(formObjects *[]jsonFormObject) (models.Configuration, *clou
 		MaxMemory:          parsedEnv.MaxMemory,
 		DataDir:            parsedEnv.DataDir,
 		MaxParallelUploads: parsedEnv.MaxParallelUploads,
+		MinLengthPassword:  parsedEnv.MinLengthPassword,
 		ChunkSize:          parsedEnv.ChunkSizeMB,
 		ConfigVersion:      configupgrade.CurrentConfigVersion,
 		Authentication:     models.AuthenticationConfig{},
@@ -644,8 +645,8 @@ func parseEncryptionAndDelete(result *models.Configuration, formObjects *[]jsonF
 	if encLevel == encryption.LocalEncryptionInput || encLevel == encryption.FullEncryptionInput {
 		result.Encryption.Salt = helper.GenerateRandomString(30)
 		result.Encryption.ChecksumSalt = helper.GenerateRandomString(30)
-		if len(masterPw) < configuration.MinLengthPassword {
-			return configuration.End2EndReconfigParameters{}, errors.New("password is less than " + strconv.Itoa(configuration.MinLengthPassword) + " characters long")
+		if len(masterPw) < configuration.Environment.MinLengthPassword {
+			return configuration.End2EndReconfigParameters{}, errors.New("password is less than " + strconv.Itoa(configuration.Environment.MinLengthPassword) + " characters long")
 		}
 		result.Encryption.Checksum = encryption.PasswordChecksum(masterPw, result.Encryption.ChecksumSalt)
 	}
@@ -705,6 +706,7 @@ type setupView struct {
 	CloudSettings      cloudconfig.CloudConfig
 	DatabaseSettings   models.DbConnection
 	ProtectedUrls      []string
+	MinPasswordLength  int
 }
 
 func (v *setupView) loadFromConfig() {
@@ -717,6 +719,7 @@ func (v *setupView) loadFromConfig() {
 	v.HasAwsFeature = aws.IsIncludedInBuild
 	v.ProtectedUrls = protectedUrls
 	if isInitialSetup {
+		v.MinPasswordLength = environment.New().MinLengthPassword
 		return
 	}
 	configuration.Load()

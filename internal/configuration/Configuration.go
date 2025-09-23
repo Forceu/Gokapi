@@ -24,9 +24,6 @@ import (
 	"strings"
 )
 
-// MinLengthPassword is the required length of admin password in characters
-const MinLengthPassword = 8
-
 // Environment is an object containing the environment variables
 var Environment environment.Environment
 
@@ -90,6 +87,9 @@ func Load() {
 	}
 	if serverSettings.ChunkSize == 0 {
 		serverSettings.ChunkSize = 45
+	}
+	if serverSettings.MinLengthPassword == 0 {
+		serverSettings.MinLengthPassword = 8
 	}
 	serverSettings.LengthId = Environment.LengthId
 	serverSettings.LengthHotlinkId = Environment.LengthHotlinkId
@@ -184,8 +184,8 @@ func deleteAllEncryptedStorage() {
 
 // SetDeploymentPassword sets a new password. This should only be used for non-interactive deployment, but is not enforced
 func SetDeploymentPassword(newPassword string) {
-	if len(newPassword) < MinLengthPassword {
-		fmt.Printf("Password needs to be at least %d characters long\n", MinLengthPassword)
+	if len(newPassword) < serverSettings.MinLengthPassword {
+		fmt.Printf("Password needs to be at least %d characters long\n", serverSettings.MinLengthPassword)
 		os.Exit(1)
 	}
 	serverSettings.Authentication.SaltAdmin = helper.GenerateRandomString(30)
