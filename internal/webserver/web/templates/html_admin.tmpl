@@ -21,7 +21,7 @@
 				<input class="form-check-input" type="checkbox" name="enableDownloadLimit" id="enableDownloadLimit" onchange="checkBoxChanged(this, 'allowedDownloads')" value="" aria-label="Enable Download Limit" checked>
 	     			<label class="control-label small" for="allowedDownloads">Limit Downloads</label>
 				<div class="input-group mb-3">
-					<input type="number" class="form-control admin-input" value="1" name="allowedDownloads" id="allowedDownloads" min="1" style="text-align: right;">
+					<input type="number" class="form-control admin-input" value="1" name="allowedDownloads" id="allowedDownloads" min="1" style="text-align: right;" data-allow-regular-paste>
 	  				<span class="input-group-text">Downloads</span>
 				</div>
 			 </div>
@@ -30,7 +30,7 @@
 				<input class="form-check-input" type="checkbox" name="enableTimeLimit" id="enableTimeLimit" onchange="checkBoxChanged(this, 'expiryDays')" value="" aria-label="Enable Time Limit" checked>
 	     			<label class="control-label  small" for="expiryDays">Expiry</label>
 				<div class="input-group mb-3">
-					<input type="number" class="form-control admin-input" value="14" name="expiryDays" id="expiryDays" min="1" style="text-align: right;">
+					<input type="number" class="form-control admin-input" value="14" name="expiryDays" id="expiryDays" min="1" style="text-align: right;" data-allow-regular-paste>
 	  				<span class="input-group-text">Days</span>
 				</div>
 			 </div>
@@ -38,7 +38,7 @@
 	    		 <div class="form-group col">
 				<input class="form-check-input" type="checkbox" name="enablePassword" id="enablePassword" onchange="checkBoxChanged(this, 'password')" value="" aria-label="Enable Password Protection">
 	     			<label class="control-label  small" for="password">Password</label>
-				<input class="form-control admin-input" value="" name="password" id="password" placeholder="None" disabled>
+				<input class="form-control admin-input" value="" name="password" id="password" placeholder="None" disabled  data-allow-regular-paste>
 			  </div>
 <div id="errordiv" class="alert alert-danger" style="display:none">
   <span id="errormessage" ></span>
@@ -260,21 +260,21 @@
       			<input type="checkbox" id="mc_download"  checked aria-label="Limit downloads" title="Limit downloads"  data-toggle-target="mi_edit_down" onchange="handleEditCheckboxChange(this)">
    		 </div>
 		  <span class="input-group-text" id="edit_down">Limit Downloads</span>
-		  <input type="number" min="1" id="mi_edit_down" class="form-control" aria-label="Downloads Remaining" aria-describedby="edit_down">
+		  <input type="number" min="1" id="mi_edit_down" class="form-control" aria-label="Downloads Remaining" aria-describedby="edit_down" data-allow-regular-paste>
 		</div>
 		<div class="input-group mb-3">
 		  <div class="input-group-text">
-      			<input id="mc_expiry" type="checkbox" checked aria-label="Expire files" title="Expire files"  data-toggle-target="mi_edit_expiry" data-timestamp="" onchange="handleEditCheckboxChange(this)">
+      			<input id="mc_expiry" type="checkbox" checked aria-label="Expire files" title="Expire files"  data-toggle-target="mi_edit_expiry" data-timestamp="" onchange="handleEditCheckboxChange(this)" >
    		 </div>
 		  <span class="input-group-text" id="edit_expdate">Expiry&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
-		  <input type="text" id="mi_edit_expiry" class="form-control" aria-label="Expiry" aria-describedby="edit_expdate">
+		  <input type="text" id="mi_edit_expiry" class="form-control" aria-label="Expiry" aria-describedby="edit_expdate"  data-allow-regular-paste>
 		</div>
 		<div class="input-group mb-3">
 		  <div class="input-group-text">
       			<input type="checkbox" id="mc_password" aria-label="Require password" title="Require password" data-toggle-target="mi_edit_pw" onchange="handleEditCheckboxChange(this)">
    		 </div>
 		  <span class="input-group-text" id="edit_pw">Password&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
-		  <input type="text" id="mi_edit_pw" class="form-control" aria-label="Password" disabled onclick="selectTextForPw(this)" aria-describedby="edit_pw">
+		  <input type="text" id="mi_edit_pw" class="form-control" aria-label="Password" disabled onclick="selectTextForPw(this)" aria-describedby="edit_pw"  data-allow-regular-paste>
 		</div>
 		
 	      <div class="input-group mb-3" id="replaceGroup">
