@@ -11,7 +11,7 @@ if [ "$DOCKER_NONROOT" = "true" ]; then
 	echo "Starting application"
 	exec su-exec gokapi:gokapi /app/gokapi "$@"
 else
-	chown -R root:root /app  # Restore permissions if previously NONROOT was used
+	chown -R "$(id -u):$(id -g)" /app  # Set ownership to current user (id -u) in case of docker's --user flag
 	echo "Starting application"
 	exec /app/gokapi "$@"
 fi
