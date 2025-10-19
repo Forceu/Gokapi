@@ -11,6 +11,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"os"
+	"strings"
+
 	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
 	"github.com/forceu/gokapi/internal/configuration/configupgrade"
 	"github.com/forceu/gokapi/internal/configuration/database"
@@ -19,9 +23,6 @@ import (
 	"github.com/forceu/gokapi/internal/logging"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage/filesystem"
-	"io"
-	"os"
-	"strings"
 )
 
 // Environment is an object containing the environment variables
@@ -88,7 +89,7 @@ func Load() {
 	if serverSettings.ChunkSize == 0 {
 		serverSettings.ChunkSize = 45
 	}
-	if serverSettings.MinLengthPassword == 0 {
+	if serverSettings.MinLengthPassword < 6 {
 		serverSettings.MinLengthPassword = 8
 	}
 	serverSettings.LengthId = Environment.LengthId
