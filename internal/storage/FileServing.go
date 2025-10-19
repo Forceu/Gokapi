@@ -10,6 +10,16 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
+	"log"
+	"mime/multipart"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/encryption"
@@ -25,15 +35,6 @@ import (
 	"github.com/forceu/gokapi/internal/webserver/headers"
 	"github.com/forceu/gokapi/internal/webserver/sse"
 	"github.com/jinzhu/copier"
-	"io"
-	"log"
-	"mime/multipart"
-	"net/http"
-	"os"
-	"path/filepath"
-	"strconv"
-	"strings"
-	"time"
 )
 
 // ErrorFileTooLarge is an error that is called when a file larger than the set maximum is uploaded
@@ -668,7 +669,9 @@ func FileExists(file models.File, dataDir string) bool {
 		}
 		return true
 	}
-	return helper.FileExists(dataDir + "/" + file.SHA1)
+	exists, err := helper.FileExists(dataDir + "/" + file.SHA1)
+	helper.Check(err)
+	return exists
 }
 
 // CleanUp removes expired files from the config and from the filesystem if they are not referenced by other files anymore

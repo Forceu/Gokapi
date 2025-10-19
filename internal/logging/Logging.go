@@ -3,15 +3,16 @@ package logging
 import (
 	"bufio"
 	"fmt"
-	"github.com/forceu/gokapi/internal/environment"
-	"github.com/forceu/gokapi/internal/helper"
-	"github.com/forceu/gokapi/internal/models"
 	"net"
 	"net/http"
 	"os"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/forceu/gokapi/internal/environment"
+	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/models"
 )
 
 var logPath = "config/log.txt"
@@ -35,7 +36,9 @@ func Init(filePath string) {
 
 // GetAll returns all log entries as a single string and if the log file exists
 func GetAll() (string, bool) {
-	if helper.FileExists(logPath) {
+	exists, err := helper.FileExists(logPath)
+	helper.Check(err)
+	if exists {
 		content, err := os.ReadFile(logPath)
 		helper.Check(err)
 		return string(content), true

@@ -38,9 +38,15 @@ func loadCustomCssJsInfo(webserverDir fs.FS) {
 		return
 	}
 	customStaticInfo.Version = strconv.Itoa(readCustomStaticVersion())
-	customStaticInfo.UseCustomCss = helper.FileExists(pathCustomCss)
-	customStaticInfo.UseCustomPublicJs = helper.FileExists(pathCustomPublicJs)
-	customStaticInfo.UseCustomAdminJs = helper.FileExists(pathCustomAdminJs)
+	exists, err := helper.FileExists(pathCustomCss)
+	helper.Check(err)
+	customStaticInfo.UseCustomCss = exists
+	exists, err = helper.FileExists(pathCustomPublicJs)
+	helper.Check(err)
+	customStaticInfo.UseCustomPublicJs = exists
+	exists, err = helper.FileExists(pathCustomAdminJs)
+	helper.Check(err)
+	customStaticInfo.UseCustomAdminJs = exists
 }
 
 func addMuxForCustomContent(mux *http.ServeMux) {
@@ -78,7 +84,9 @@ func serveCustomFile(filePath string, w http.ResponseWriter, r *http.Request) {
 }
 
 func readCustomStaticVersion() int {
-	if !helper.FileExists(pathCustomVersioning) {
+	exists, err := helper.FileExists(pathCustomVersioning)
+	helper.Check(err)
+	if !exists {
 		return 0
 	}
 	file, err := os.Open(pathCustomVersioning)

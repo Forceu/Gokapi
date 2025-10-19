@@ -3,12 +3,13 @@ package database
 import (
 	"errors"
 	"fmt"
+	"net/url"
+	"strings"
+
 	"github.com/forceu/gokapi/internal/configuration/database/dbabstraction"
 	"github.com/forceu/gokapi/internal/configuration/database/dbcache"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
-	"net/url"
-	"strings"
 )
 
 var db dbabstraction.Database
@@ -37,8 +38,14 @@ func ParseUrl(dbUrl string, mustExist bool) (models.DbConnection, error) {
 	case "sqlite":
 		result.Type = dbabstraction.TypeSqlite
 		result.HostUrl = strings.TrimPrefix(dbUrl, "sqlite://")
-		if mustExist && !helper.FileExists(result.HostUrl) {
-			return models.DbConnection{}, fmt.Errorf("file %s does not exist\n", result.HostUrl)
+		if mustExist {
+			exist, errEx := helper.FileExists(result.HostUrl)
+			if errEx != nil {
+				return models.DbConnection{}, errEx
+			}
+			if !exist {
+				return models.DbConnection{}, fmt.Errorf("file %s does not exist\n", result.HostUrl)
+			}
 		}
 	case "redis":
 		result.Type = dbabstraction.TypeRedis

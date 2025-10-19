@@ -11,6 +11,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"os"
+	"strings"
+
 	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
 	"github.com/forceu/gokapi/internal/configuration/configupgrade"
 	"github.com/forceu/gokapi/internal/configuration/database"
@@ -19,9 +23,6 @@ import (
 	"github.com/forceu/gokapi/internal/logging"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage/filesystem"
-	"io"
-	"os"
-	"strings"
 )
 
 // MinLengthPassword is the required length of admin password in characters
@@ -38,7 +39,9 @@ var usesHttps bool
 // Exists returns true if configuration files are present
 func Exists() bool {
 	configPath, _, _, _ := environment.GetConfigPaths()
-	return helper.FileExists(configPath)
+	exists, err := helper.FileExists(configPath)
+	helper.Check(err)
+	return exists
 }
 
 // loadFromFile parses the given file and adds salts, if they are invalid

@@ -10,8 +10,6 @@ import (
 	"encoding/hex"
 	"encoding/pem"
 	"fmt"
-	"github.com/forceu/gokapi/internal/environment"
-	"github.com/forceu/gokapi/internal/helper"
 	"io"
 	"math"
 	"math/big"
@@ -20,13 +18,20 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/forceu/gokapi/internal/environment"
+	"github.com/forceu/gokapi/internal/helper"
 )
 
 var configDir string
 
 func isCertificatePresent() bool {
 	certificate, key := GetCertificateLocations()
-	return helper.FileExists(certificate) && helper.FileExists(key)
+	existsCert, err := helper.FileExists(certificate)
+	helper.Check(err)
+	existsKey, err := helper.FileExists(key)
+	helper.Check(err)
+	return existsCert && existsKey
 }
 
 // GetCertificateLocations returns the filepath of the public certificate and private key
