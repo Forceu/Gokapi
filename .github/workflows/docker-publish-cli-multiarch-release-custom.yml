@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: install buildx
         id: buildx
         uses: crazy-max/ghaction-docker-buildx@v1

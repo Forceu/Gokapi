@@ -8,12 +8,13 @@ Main routine
 
 import (
 	"fmt"
-	"github.com/forceu/gokapi/internal/configuration/database/migration"
-	"github.com/forceu/gokapi/internal/helper/systemd"
 	"os"
 	"os/signal"
 	"runtime/debug"
 	"syscall"
+
+	"github.com/forceu/gokapi/internal/configuration/database/migration"
+	"github.com/forceu/gokapi/internal/helper/systemd"
 
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
@@ -98,7 +99,11 @@ func showVersion(passedFlags flagparser.MainFlags) {
 	} else {
 		fmt.Println("Go Version: unknown")
 	}
-	parseBuildSettings(info.Settings)
+	if info == nil {
+		fmt.Println("Build Settings: unknown")
+	} else {
+		parseBuildSettings(info.Settings)
+	}
 	osExit(0)
 }
 
