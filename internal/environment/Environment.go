@@ -83,6 +83,9 @@ func New() Environment {
 	if result.MaxFileSize < 1 {
 		result.MaxFileSize = 5
 	}
+	if result.MinLengthPassword < 6 {
+		result.MinLengthPassword = 6
+	}
 	return result
 }
 

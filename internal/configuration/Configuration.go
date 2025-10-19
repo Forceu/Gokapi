@@ -89,9 +89,7 @@ func Load() {
 	if serverSettings.ChunkSize == 0 {
 		serverSettings.ChunkSize = 45
 	}
-	if serverSettings.MinLengthPassword < 6 {
-		serverSettings.MinLengthPassword = 8
-	}
+	serverSettings.MinLengthPassword = Environment.MinLengthPassword
 	serverSettings.LengthId = Environment.LengthId
 	serverSettings.LengthHotlinkId = Environment.LengthHotlinkId
 	helper.CreateDir(serverSettings.DataDir)
