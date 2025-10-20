@@ -475,7 +475,8 @@ var configTestFile = []byte(`{
   "UseSsl": false,
   "PicturesAlwaysLocal": false,
   "SaveIp": false,
-  "IncludeFilename": false
+  "IncludeFilename": false,
+  "MinLengthPassword": 8
 }`)
 
 var sslCertValid = []byte(`-----BEGIN CERTIFICATE-----

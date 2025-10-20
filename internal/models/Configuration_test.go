@@ -1,9 +1,10 @@
 package models
 
 import (
-	"github.com/forceu/gokapi/internal/test"
 	"strings"
 	"testing"
+
+	"github.com/forceu/gokapi/internal/test"
 )
 
 var testConfig = Configuration{
@@ -17,18 +18,19 @@ var testConfig = Configuration{
 		OAuthClientId:     "",
 		OAuthClientSecret: "",
 	},
-	Port:            ":12345",
-	ServerUrl:       "https://testserver.com/",
-	RedirectUrl:     "https://test.com",
-	DatabaseUrl:     "sqlite://./test/gokapitest.sqlite",
-	ConfigVersion:   14,
-	LengthId:        5,
-	LengthHotlinkId: 10,
-	DataDir:         "test",
-	MaxMemory:       50,
-	UseSsl:          true,
-	MaxFileSizeMB:   20,
-	PublicName:      "public-name",
+	Port:              ":12345",
+	ServerUrl:         "https://testserver.com/",
+	RedirectUrl:       "https://test.com",
+	DatabaseUrl:       "sqlite://./test/gokapitest.sqlite",
+	ConfigVersion:     14,
+	LengthId:          5,
+	LengthHotlinkId:   10,
+	DataDir:           "test",
+	MaxMemory:         50,
+	UseSsl:            true,
+	MaxFileSizeMB:     20,
+	MinLengthPassword: 8,
+	PublicName:        "public-name",
 	Encryption: Encryption{
 		Level:        1,
 		Cipher:       []byte{0x00},
