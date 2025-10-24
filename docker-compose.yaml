@@ -11,8 +11,3 @@ services:
     restart: always
     env_file:
       - "./.env"
-
-volumes:
-  gokapi-data:
-  gokapi-config:
-
