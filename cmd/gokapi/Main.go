@@ -8,12 +8,13 @@ Main routine
 
 import (
 	"fmt"
-	"github.com/forceu/gokapi/internal/configuration/database/migration"
-	"github.com/forceu/gokapi/internal/helper/systemd"
 	"os"
 	"os/signal"
 	"runtime/debug"
 	"syscall"
+
+	"github.com/forceu/gokapi/internal/configuration/database/migration"
+	"github.com/forceu/gokapi/internal/helper/systemd"
 
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
@@ -66,6 +67,7 @@ func main() {
 	initCloudConfig(passedFlags)
 	go storage.CleanUp(true)
 	logging.LogStartup()
+	showDeprecationWarnings()
 	go webserver.Start()
 
 	c := make(chan os.Signal)
@@ -100,6 +102,17 @@ func showVersion(passedFlags flagparser.MainFlags) {
 	}
 	parseBuildSettings(info.Settings)
 	osExit(0)
+}
+
+func showDeprecationWarnings() {
+	for _, dep := range configuration.Environment.ActiveDeprecations {
+		fmt.Println()
+		fmt.Println("WARNING, deprecated feature: " + dep.Name)
+		fmt.Println(dep.Description)
+		fmt.Println("See " + dep.DocUrl + " for more information.")
+		fmt.Println()
+		logging.LogDeprecation(dep)
+	}
 }
 
 func parseBuildSettings(infos []debug.BuildSetting) {

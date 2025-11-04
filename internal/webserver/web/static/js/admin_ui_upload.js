@@ -966,6 +966,7 @@ function handleUndo(button) {
         });
 }
 
+
 function shareUrl(id) {
     if (!navigator.share) {
         return;
@@ -977,3 +978,13 @@ function shareUrl(id) {
         url: url,
     })
 }
+
+
+function showDeprecationNotice() {
+    let notification = document.getElementById("toastDeprecation");
+    notification.classList.add("show");
+    setTimeout(() => {
+        notification.classList.remove("show");
+    }, 5000);
+}
+

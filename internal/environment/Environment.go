@@ -2,11 +2,13 @@ package environment
 
 import (
 	"fmt"
-	envParser "github.com/caarlos0/env/v6"
-	"github.com/forceu/gokapi/internal/environment/flagparser"
-	"github.com/forceu/gokapi/internal/helper"
 	"os"
 	"path"
+
+	envParser "github.com/caarlos0/env/v6"
+	"github.com/forceu/gokapi/internal/environment/deprecation"
+	"github.com/forceu/gokapi/internal/environment/flagparser"
+	"github.com/forceu/gokapi/internal/helper"
 )
 
 // DefaultPort for the webserver
@@ -33,11 +35,21 @@ type Environment struct {
 	AwsKeyId           string `env:"AWS_KEY"`
 	AwsKeySecret       string `env:"AWS_KEY_SECRET"`
 	AwsEndpoint        string `env:"AWS_ENDPOINT"`
+	ActiveDeprecations []deprecation.Deprecation
 }
 
 // New parses the env variables
 func New() Environment {
 	result := Environment{WebserverPort: DefaultPort}
+
+	result = parseEnvVars(result)
+	result = parseFlags(result)
+	result.ActiveDeprecations = deprecation.GetActive()
+
+	return result
+}
+
+func parseEnvVars(result Environment) Environment {
 	err := envParser.Parse(&result, envParser.Options{
 		Prefix: "GOKAPI_",
 	})
@@ -48,6 +60,23 @@ func New() Environment {
 	}
 	helper.Check(err)
 
+	if result.LengthId < 5 {
+		result.LengthId = 5
+	}
+	if result.LengthHotlinkId < 8 {
+		result.LengthHotlinkId = 8
+	}
+	if result.MaxMemory < 5 {
+		result.MaxMemory = 5
+	}
+	if result.MaxFileSize < 1 {
+		result.MaxFileSize = 5
+	}
+
+	return result
+}
+
+func parseFlags(result Environment) Environment {
 	flags := flagparser.ParseFlags()
 	if flags.IsPortSet {
 		result.WebserverPort = flags.Port
@@ -65,21 +94,10 @@ func New() Environment {
 	if flags.IsConfigPathSet {
 		result.ConfigPath = flags.ConfigPath
 	}
+
 	if IsDockerInstance() && os.Getenv("TMPDIR") == "" {
-		err = os.Setenv("TMPDIR", result.DataDir)
+		err := os.Setenv("TMPDIR", result.DataDir)
 		helper.Check(err)
-	}
-	if result.LengthId < 5 {
-		result.LengthId = 5
-	}
-	if result.LengthHotlinkId < 8 {
-		result.LengthHotlinkId = 8
-	}
-	if result.MaxMemory < 5 {
-		result.MaxMemory = 5
-	}
-	if result.MaxFileSize < 1 {
-		result.MaxFileSize = 5
 	}
 	return result
 }
