@@ -21,6 +21,7 @@ type Configuration struct {
 	MaxParallelUploads  int                  `json:"MaxParallelUploads"`
 	LengthId            int                  `json:"-"`
 	LengthHotlinkId     int                  `json:"-"`
+	MinLengthPassword   int                  `json:"-"`
 	Encryption          Encryption           `json:"Encryption"`
 	UseSsl              bool                 `json:"UseSsl"`
 	PicturesAlwaysLocal bool                 `json:"PicturesAlwaysLocal"`

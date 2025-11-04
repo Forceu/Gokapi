@@ -100,7 +100,11 @@ func showVersion(passedFlags flagparser.MainFlags) {
 	} else {
 		fmt.Println("Go Version: unknown")
 	}
-	parseBuildSettings(info.Settings)
+	if info == nil {
+		fmt.Println("Build Settings: unknown")
+	} else {
+		parseBuildSettings(info.Settings)
+	}
 	osExit(0)
 }
 

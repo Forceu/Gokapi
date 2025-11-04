@@ -310,7 +310,7 @@ func changePassword(w http.ResponseWriter, r *http.Request) {
 	}
 	err = templateFolder.ExecuteTemplate(w, "changepw",
 		genericView{PublicName: configuration.Get().PublicName,
-			MinPasswordLength: configuration.MinLengthPassword,
+			MinPasswordLength: configuration.Environment.MinLengthPassword,
 			ErrorMessage:      errMessage,
 			CustomContent:     customStaticInfo})
 	helper.CheckIgnoreTimeout(err)
@@ -320,7 +320,7 @@ func validateNewPassword(newPassword string, user models.User) (string, string, 
 	if len(newPassword) == 0 {
 		return "", user.Password, false
 	}
-	if len(newPassword) < configuration.MinLengthPassword {
+	if len(newPassword) < configuration.Environment.MinLengthPassword {
 		return "Password is too short", user.Password, false
 	}
 	newPasswordHash := configuration.HashPassword(newPassword, false)
@@ -687,6 +687,7 @@ type AdminView struct {
 	ActiveView            int
 	ChunkSize             int
 	MaxParallelUploads    int
+	MinLengthPassword     int
 	TimeNow               int64
 	CustomContent         customStatic
 }
@@ -781,6 +782,7 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 	u.IsUserTabAvailable = config.Authentication.Method != models.AuthenticationDisabled
 	u.EndToEndEncryption = config.Encryption.Level == encryption.EndToEndEncryption
 	u.MaxParallelUploads = config.MaxParallelUploads
+	u.MinLengthPassword = config.MinLengthPassword
 	u.ChunkSize = config.ChunkSize
 	u.IncludeFilename = config.IncludeFilename
 	u.SystemKey = api.GetSystemKey(user.Id)

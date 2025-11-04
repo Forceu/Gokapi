@@ -16,17 +16,18 @@ const DefaultPort = 53842
 
 // Environment is a struct containing available env variables
 type Environment struct {
-	ChunkSizeMB        int    `env:"CHUNK_SIZE_MB" envDefault:"45"`
 	ConfigDir          string `env:"CONFIG_DIR" envDefault:"config"`
 	ConfigFile         string `env:"CONFIG_FILE" envDefault:"config.json"`
 	ConfigPath         string
 	DataDir            string `env:"DATA_DIR" envDefault:"data"`
+	ChunkSizeMB        int    `env:"CHUNK_SIZE_MB" envDefault:"45"`
 	LengthId           int    `env:"LENGTH_ID" envDefault:"15"`
 	LengthHotlinkId    int    `env:"LENGTH_HOTLINK_ID" envDefault:"40"`
 	MaxFileSize        int    `env:"MAX_FILESIZE" envDefault:"102400"` // 102400==100GB
 	MaxMemory          int    `env:"MAX_MEMORY_UPLOAD" envDefault:"50"`
 	MaxParallelUploads int    `env:"MAX_PARALLEL_UPLOADS" envDefault:"3"`
 	WebserverPort      int    `env:"PORT" envDefault:"53842"`
+	MinLengthPassword  int    `env:"MIN_LENGTH_PASSWORD" envDefault:"8"`
 	DisableCorsCheck   bool   `env:"DISABLE_CORS_CHECK" envDefault:"false"`
 	LogToStdout        bool   `env:"LOG_STDOUT" envDefault:"false"`
 	HotlinkVideos      bool   `env:"ENABLE_HOTLINK_VIDEOS" envDefault:"false"`
@@ -98,6 +99,21 @@ func parseFlags(result Environment) Environment {
 	if IsDockerInstance() && os.Getenv("TMPDIR") == "" {
 		err := os.Setenv("TMPDIR", result.DataDir)
 		helper.Check(err)
+	}
+	if result.LengthId < 5 {
+		result.LengthId = 5
+	}
+	if result.LengthHotlinkId < 8 {
+		result.LengthHotlinkId = 8
+	}
+	if result.MaxMemory < 5 {
+		result.MaxMemory = 5
+	}
+	if result.MaxFileSize < 1 {
+		result.MaxFileSize = 5
+	}
+	if result.MinLengthPassword < 6 {
+		result.MinLengthPassword = 6
 	}
 	return result
 }

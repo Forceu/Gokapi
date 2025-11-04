@@ -4,10 +4,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/forceu/gokapi/internal/helper"
-	"github.com/forceu/gokapi/internal/models"
 	"os"
 	"path/filepath"
+
+	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/models"
 	// Required for sqlite driver
 	_ "modernc.org/sqlite"
 )
@@ -82,7 +83,9 @@ func (p DatabaseProvider) init(dbConfig models.DbConnection) (DatabaseProvider, 
 		p.sqliteDb.SetMaxOpenConns(5)
 		p.sqliteDb.SetMaxIdleConns(5)
 
-		if !helper.FileExists(dbConfig.HostUrl) {
+		exists, err := helper.FileExists(dbConfig.HostUrl)
+		helper.Check(err)
+		if !exists {
 			return p, p.createNewDatabase()
 		}
 		err = p.sqliteDb.Ping()

@@ -37,7 +37,9 @@ func Init(filePath string) {
 
 // GetAll returns all log entries as a single string and if the log file exists
 func GetAll() (string, bool) {
-	if helper.FileExists(logPath) {
+	exists, err := helper.FileExists(logPath)
+	helper.Check(err)
+	if exists {
 		content, err := os.ReadFile(logPath)
 		helper.Check(err)
 		return string(content), true

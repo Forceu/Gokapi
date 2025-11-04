@@ -2,9 +2,10 @@ package helper
 
 import (
 	"errors"
-	"github.com/forceu/gokapi/internal/test"
 	"os"
 	"testing"
+
+	"github.com/forceu/gokapi/internal/test"
 )
 
 func TestIsInArray(t *testing.T) {
@@ -15,16 +16,20 @@ func TestIsInArray(t *testing.T) {
 func TestFolderCreation(t *testing.T) {
 	test.IsEqualBool(t, FolderExists("invalid"), false)
 	test.FileDoesNotExist(t, "invalid/file")
-	test.IsEqualBool(t, FileExists("invalid/file"), false)
+	exists, err := FileExists("invalid/file")
+	test.IsEqualBool(t, exists, false)
+	test.IsNil(t, err)
 	CreateDir("invalid")
 	test.IsEqualBool(t, FolderExists("invalid"), true)
-	err := os.WriteFile("invalid/file", []byte("test"), 0644)
+	err = os.WriteFile("invalid/file", []byte("test"), 0644)
 	if err != nil {
 		t.Error(err)
 	}
 	test.FileExists(t, "invalid/file")
-	test.IsEqualBool(t, FileExists("invalid/file"), true)
-	os.RemoveAll("invalid")
+	exists, err = FileExists("invalid/file")
+	test.IsNil(t, err)
+	test.IsEqualBool(t, exists, true)
+	_ = os.RemoveAll("invalid")
 }
 
 func TestReadLine(t *testing.T) {

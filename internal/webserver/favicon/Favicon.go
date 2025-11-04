@@ -29,7 +29,9 @@ var faviconPng512x512 []byte
 
 func Init(pathCustomIcon string, fsDefault fs.FS) {
 	var imageContent []byte
-	if helper.FileExists(pathCustomIcon) {
+	exists, err := helper.FileExists(pathCustomIcon)
+	helper.Check(err)
+	if exists {
 		content, err := os.ReadFile(pathCustomIcon)
 		helper.Check(err)
 		imageContent = content

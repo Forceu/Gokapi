@@ -2,12 +2,13 @@ package cloudconfig
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
+
 	"github.com/forceu/gokapi/internal/environment"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"gopkg.in/yaml.v3"
-	"io/ioutil"
-	"os"
 )
 
 // CloudConfig contains all configuration values / credentials for cloud storage
@@ -22,7 +23,9 @@ func Load() (CloudConfig, bool) {
 		return loadFromEnv(&env), true
 	}
 	path := env.ConfigDir + "/cloudconfig.yml"
-	if helper.FileExists(path) {
+	exists, err := helper.FileExists(path)
+	helper.Check(err)
+	if exists {
 		return loadFromFile(path)
 	}
 	return CloudConfig{}, false
@@ -49,8 +52,10 @@ func Write(config CloudConfig) error {
 // Delete removes the cloud config file from the set config path
 func Delete() error {
 	_, _, _, awsConfigPath := environment.GetConfigPaths()
-	if helper.FileExists(awsConfigPath) {
-		err := os.Remove(awsConfigPath)
+	exists, err := helper.FileExists(awsConfigPath)
+	helper.Check(err)
+	if exists {
+		err = os.Remove(awsConfigPath)
 		if err != nil {
 			return err
 		}
