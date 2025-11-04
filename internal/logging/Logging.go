@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/forceu/gokapi/internal/environment"
+	"github.com/forceu/gokapi/internal/environment/deprecation"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 )
@@ -137,6 +138,13 @@ func LogDelete(file models.File, user models.User) {
 // LogRestore adds a log entry when the pending deletion of a file was cancelled and the file restored. Non-Blocking
 func LogRestore(file models.File, user models.User) {
 	createLogEntry(categoryEdit, fmt.Sprintf("%s, ID %s, restored by %s (user #%d)", file.Name, file.Id, user.Name, user.Id), false)
+}
+
+// LogDeprecation adds a log entry to indicate that a deprecated feature is being used. Blocking
+func LogDeprecation(dep deprecation.Deprecation) {
+	createLogEntry(categoryWarning, "Deprecated feature: "+dep.Name, true)
+	createLogEntry(categoryWarning, dep.Description, true)
+	createLogEntry(categoryWarning, "See "+dep.DocUrl+" for more information.", true)
 }
 
 // DeleteLogs removes all logs before the cutoff timestamp and inserts a new log that the user

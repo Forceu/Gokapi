@@ -94,7 +94,9 @@ Available environment variables
 |                               |                                                                                     |                 |                                      |
 |                               | unlimited downloads enabled                                                         |                 |                                      |
 +-------------------------------+-------------------------------------------------------------------------------------+-----------------+--------------------------------------+
-| DOCKER_NONROOT                | Docker only: Runs the binary in the container as a non-root user, if set to "true"  | No              | false                                |
+| DOCKER_NONROOT                | DEPRECATED. See :ref:`setupdocker` section for non-root setup                       | No              | false                                |
+|                               |                                                                                     |                 |                                      |
+|                               | Docker only: Runs the binary in the container as a non-root user, if set to "true"  |                 |                                      |
 +-------------------------------+-------------------------------------------------------------------------------------+-----------------+--------------------------------------+
 | TMPDIR                        | Sets the path which contains temporary files                                        | No              | Non-Docker: Default OS path          |
 |                               |                                                                                     |                 |                                      |

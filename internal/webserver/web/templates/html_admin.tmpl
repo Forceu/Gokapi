@@ -111,6 +111,9 @@
 	  File deleted: <span id="toastFilename"></span>
   	   <span id="toastUndoButton" class="toast-undo" onclick="handleUndo(this)">Restore</span>
 	</div>
+	<div id="toastDeprecation" class="toastnotification toastdeprecation">
+	  Warning! This server is using a deprecated feature. Detailed information can be found in the system logs.
+	</div>
 	<div id="qroverlay">
 	  <div id="qrcode"></div>
 	</div>
@@ -155,6 +158,9 @@
 	var canReplaceOwnFiles = {{.ActiveUser.HasPermissionReplace}};
 	setUploadDefaults();
 	
+{{ if .ShowDeprecationNotice }}
+	showDeprecationNotice();
+{{ end }}
 	
 	</script>
 

@@ -581,14 +581,23 @@ func showAdminMenu(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	if configuration.Get().Encryption.Level == encryption.EndToEndEncryption {
+	config := configuration.Get()
+	if config.Encryption.Level == encryption.EndToEndEncryption {
 		e2einfo := database.GetEnd2EndInfo(user.Id)
 		if !e2einfo.HasBeenSetUp() {
 			redirect(w, "e2eSetup")
 			return
 		}
 	}
-	err = templateFolder.ExecuteTemplate(w, "admin", (&AdminView{}).convertGlobalConfig(ViewMain, user))
+
+	view := (&AdminView{}).convertGlobalConfig(ViewMain, user)
+	if len(configuration.Environment.ActiveDeprecations) > 0 {
+		if user.UserLevel == models.UserLevelSuperAdmin {
+			view.ShowDeprecationNotice = true
+		}
+	}
+
+	err = templateFolder.ExecuteTemplate(w, "admin", view)
 	helper.CheckIgnoreTimeout(err)
 }
 
@@ -656,30 +665,31 @@ type e2ESetupView struct {
 
 // AdminView contains parameters for all admin related pages
 type AdminView struct {
-	Items              []models.FileApiOutput
-	ApiKeys            []models.ApiKey
-	Users              []userInfo
-	ActiveUser         models.User
-	UserMap            map[int]*models.User
-	ServerUrl          string
-	Logs               string
-	PublicName         string
-	SystemKey          string
-	IsAdminView        bool
-	IsDownloadView     bool
-	IsApiView          bool
-	IsLogoutAvailable  bool
-	IsUserTabAvailable bool
-	EndToEndEncryption bool
-	IncludeFilename    bool
-	IsInternalAuth     bool
-	MaxFileSize        int
-	ActiveView         int
-	ChunkSize          int
-	MaxParallelUploads int
-	MinLengthPassword  int
-	TimeNow            int64
-	CustomContent      customStatic
+	Items                 []models.FileApiOutput
+	ApiKeys               []models.ApiKey
+	Users                 []userInfo
+	ActiveUser            models.User
+	UserMap               map[int]*models.User
+	ServerUrl             string
+	Logs                  string
+	PublicName            string
+	SystemKey             string
+	IsAdminView           bool
+	IsDownloadView        bool
+	IsApiView             bool
+	IsLogoutAvailable     bool
+	IsUserTabAvailable    bool
+	EndToEndEncryption    bool
+	IncludeFilename       bool
+	IsInternalAuth        bool
+	ShowDeprecationNotice bool
+	MaxFileSize           int
+	ActiveView            int
+	ChunkSize             int
+	MaxParallelUploads    int
+	MinLengthPassword     int
+	TimeNow               int64
+	CustomContent         customStatic
 }
 
 // getUserMap needs to return the map with pointers, otherwise template cannot call

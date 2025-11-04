@@ -66,6 +66,8 @@ Starting Gokapi
 ^^^^^^^^^^^^^^^^
 
 
+.. _setupdocker:
+
 Docker
 """"""""""
 
@@ -77,9 +79,44 @@ With the argument ``-p 127.0.0.1:53842:53842`` the service will only be accessib
 
 Set ``-e TZ=UTC`` to the timezone you are in, e.g. ``-e TZ=Europe/Berlin``.
 
-If you do not want the binary to run as the root user in the container, you can set the environment variable ``DOCKER_NONROOT`` to true.
-
 Please make sure that ``/app/data`` and ``/app/config`` are mounted as volumes (see example above), otherwise you will lose all your data after rebuilding or updating your container.
+
+If you do not want the binary to run as the root user in the container, you can run it with ``--user`` option, like in the following example: ::
+
+  docker run --user "1000:1000" -v ./gokapi-data:/app/data -v ./gokapi-config:/app/config -p 127.0.0.1:53842:53842 -e TZ=UTC f0rc3/gokapi:latest
+
+Where ``1000:1000`` are colon separated desired user ID and group ID. Please note the command uses bind mounts instead of named volumes. Make sure that the user has read / write permissions to the volumes directories. You can change the names of ``./gokapi-data`` and ``./gokapi-config`` directories to your liking.
+
+
+.. _deprecation_nonroot:
+
+Migration from DOCKER_NONROOT to docker --user
+***********************************************
+
+With deprecation of ``DOCKER_NONROOT`` environment variable you may want to consider migration of your existing configuration and data to ``docker --user`` option approach. The steps are as follows:
+
+::
+
+  # Copy configuration and data from the container to your docker host machine.
+  # Make sure ./gokapi-config and ./gokapi-data directories are not present before
+  # the following commands are executed
+  docker cp gokapi:/app/config ./gokapi-config
+  docker cp gokapi:/app/data ./gokapi-data
+
+  # Remove the current container
+  docker rm -f gokapi
+
+  # Start a new container with the current linux session user
+  docker run --user "$(id -u):$(id -g)" -v ./gokapi-data:/app/data -v ./gokapi-config:/app/config -p 127.0.0.1:53842:53842 -e TZ=UTC f0rc3/gokapi:latest
+
+Where:
+  * ``gokapi`` is the container name. For you it can be different.
+  * ``/app/config`` and ``/app/data`` are directories inside container where configuration and data reside. Can be different, depending on your ``GOKAPI_CONFIG_DIR`` and ``GOKAPI_DATA_DIR`` settings.
+  
+  This example uses your current user ID and group ID for starting the container. To use a different IDs, replace ``$(id -u)`` with the actual user ID and ``$(id -g)`` with the actual group ID.
+
+
+
 
 Docker Compose
 """"""""""""""""
@@ -91,6 +128,8 @@ The folders ``gokapi-data`` and ``gokapi-config`` will be created automatically 
 By default, the container is set to always automatically (re)start when the system boots up. If you do not want this, you can remove the ``restart: always`` line or change it to ``restart: unless-stopped`` to have it only restart after a crash.
 
 Then, start the container with the command ``docker compose up -d``
+
+
 
 Native Deployment
 """"""""""""""""""
