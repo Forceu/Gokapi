@@ -7,26 +7,27 @@ import (
 
 // Configuration is a struct that contains the global configuration
 type Configuration struct {
-	Authentication             AuthenticationConfig `json:"Authentication"`
-	Port                       string               `json:"Port"`
-	ServerUrl                  string               `json:"ServerUrl"`
-	RedirectUrl                string               `json:"RedirectUrl"`
-	PublicName                 string               `json:"PublicName"`
-	DataDir                    string               `json:"DataDir"`
-	DatabaseUrl                string               `json:"DatabaseUrl"`
-	ConfigVersion              int                  `json:"ConfigVersion"`
-	MaxFileSizeMB              int                  `json:"MaxFileSizeMB"`
-	MaxMemory                  int                  `json:"MaxMemory"`
-	ChunkSize                  int                  `json:"ChunkSize"`
-	MaxParallelUploads         int                  `json:"MaxParallelUploads"`
-	LengthId                   int                  `json:"-"`
-	LengthHotlinkId            int                  `json:"-"`
-	Encryption                 Encryption           `json:"Encryption"`
-	UseSsl                     bool                 `json:"UseSsl"`
-	PicturesAlwaysLocal        bool                 `json:"PicturesAlwaysLocal"`
-	SaveIp                     bool                 `json:"SaveIp"`
-	IncludeFilename            bool                 `json:"IncludeFilename"`
-	AllowGuestUploadsByDefault bool                 `json:"-"`
+	Authentication      AuthenticationConfig `json:"Authentication"`
+	Port                string               `json:"Port"`
+	ServerUrl           string               `json:"ServerUrl"`
+	RedirectUrl         string               `json:"RedirectUrl"`
+	PublicName          string               `json:"PublicName"`
+	DataDir             string               `json:"DataDir"`
+	DatabaseUrl         string               `json:"DatabaseUrl"`
+	ConfigVersion       int                  `json:"ConfigVersion"`
+	MaxFileSizeMB       int                  `json:"MaxFileSizeMB"`
+	MaxMemory           int                  `json:"MaxMemory"`
+	ChunkSize           int                  `json:"ChunkSize"`
+	MaxParallelUploads  int                  `json:"MaxParallelUploads"`
+	LengthId            int                  `json:"-"`
+	LengthHotlinkId     int                  `json:"-"`
+	MinLengthPassword   int                  `json:"-"`
+	Encryption          Encryption           `json:"Encryption"`
+	UseSsl              bool                 `json:"UseSsl"`
+	PicturesAlwaysLocal bool                 `json:"PicturesAlwaysLocal"`
+	SaveIp              bool                 `json:"SaveIp"`
+	IncludeFilename     bool                 `json:"IncludeFilename"`
+	AllowGuestUploadsByDefault bool          `json:"-"`
 }
 
 // Encryption hold information about the encryption used on this file

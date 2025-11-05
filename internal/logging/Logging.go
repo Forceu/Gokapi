@@ -3,15 +3,17 @@ package logging
 import (
 	"bufio"
 	"fmt"
-	"github.com/forceu/gokapi/internal/environment"
-	"github.com/forceu/gokapi/internal/helper"
-	"github.com/forceu/gokapi/internal/models"
 	"net"
 	"net/http"
 	"os"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/forceu/gokapi/internal/environment"
+	"github.com/forceu/gokapi/internal/environment/deprecation"
+	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/models"
 )
 
 var logPath = "config/log.txt"
@@ -35,7 +37,9 @@ func Init(filePath string) {
 
 // GetAll returns all log entries as a single string and if the log file exists
 func GetAll() (string, bool) {
-	if helper.FileExists(logPath) {
+	exists, err := helper.FileExists(logPath)
+	helper.Check(err)
+	if exists {
 		content, err := os.ReadFile(logPath)
 		helper.Check(err)
 		return string(content), true
@@ -134,6 +138,13 @@ func LogDelete(file models.File, user models.User) {
 // LogRestore adds a log entry when the pending deletion of a file was cancelled and the file restored. Non-Blocking
 func LogRestore(file models.File, user models.User) {
 	createLogEntry(categoryEdit, fmt.Sprintf("%s, ID %s, restored by %s (user #%d)", file.Name, file.Id, user.Name, user.Id), false)
+}
+
+// LogDeprecation adds a log entry to indicate that a deprecated feature is being used. Blocking
+func LogDeprecation(dep deprecation.Deprecation) {
+	createLogEntry(categoryWarning, "Deprecated feature: "+dep.Name, true)
+	createLogEntry(categoryWarning, dep.Description, true)
+	createLogEntry(categoryWarning, "See "+dep.DocUrl+" for more information.", true)
 }
 
 // DeleteLogs removes all logs before the cutoff timestamp and inserts a new log that the user

@@ -527,6 +527,10 @@ func (p *paramChunkComplete) ProcessParameter(_ *http.Request) error {
 		} else {
 			p.ExpiryDays = 14
 		}
+	} else {
+		if p.ExpiryDays > 100000 {
+			p.UnlimitedTime = true
+		}
 	}
 
 	if strings.HasPrefix(p.FileName, base64Prefix) {

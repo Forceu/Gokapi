@@ -2,11 +2,12 @@ package localstorage
 
 import (
 	"errors"
+	"os"
+	"strings"
+
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	fileInterfaces "github.com/forceu/gokapi/internal/storage/filesystem/interfaces"
-	"os"
-	"strings"
 )
 
 // GetDriver returns a driver for the local file system
@@ -95,7 +96,9 @@ type localFile struct {
 
 // Exists returns true if the file exists
 func (f *localFile) Exists() bool {
-	return helper.FileExists(f.Directory + f.Filename)
+	exists, err := helper.FileExists(f.Directory + f.Filename)
+	helper.Check(err)
+	return exists
 }
 
 // GetName returns the name of the file

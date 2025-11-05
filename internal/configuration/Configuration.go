@@ -11,6 +11,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"os"
+	"strings"
+
 	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
 	"github.com/forceu/gokapi/internal/configuration/configupgrade"
 	"github.com/forceu/gokapi/internal/configuration/database"
@@ -19,13 +23,7 @@ import (
 	"github.com/forceu/gokapi/internal/logging"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage/filesystem"
-	"io"
-	"os"
-	"strings"
 )
-
-// MinLengthPassword is the required length of admin password in characters
-const MinLengthPassword = 8
 
 // Environment is an object containing the environment variables
 var Environment environment.Environment
@@ -38,7 +36,9 @@ var usesHttps bool
 // Exists returns true if configuration files are present
 func Exists() bool {
 	configPath, _, _, _ := environment.GetConfigPaths()
-	return helper.FileExists(configPath)
+	exists, err := helper.FileExists(configPath)
+	helper.Check(err)
+	return exists
 }
 
 // loadFromFile parses the given file and adds salts, if they are invalid
@@ -91,6 +91,7 @@ func Load() {
 	if serverSettings.ChunkSize == 0 {
 		serverSettings.ChunkSize = 45
 	}
+	serverSettings.MinLengthPassword = Environment.MinLengthPassword
 	serverSettings.LengthId = Environment.LengthId
 	serverSettings.LengthHotlinkId = Environment.LengthHotlinkId
 	serverSettings.AllowGuestUploadsByDefault = Environment.PermRequestGrantedByDefault
@@ -185,8 +186,8 @@ func deleteAllEncryptedStorage() {
 
 // SetDeploymentPassword sets a new password. This should only be used for non-interactive deployment, but is not enforced
 func SetDeploymentPassword(newPassword string) {
-	if len(newPassword) < MinLengthPassword {
-		fmt.Printf("Password needs to be at least %d characters long\n", MinLengthPassword)
+	if len(newPassword) < serverSettings.MinLengthPassword {
+		fmt.Printf("Password needs to be at least %d characters long\n", serverSettings.MinLengthPassword)
 		os.Exit(1)
 	}
 	serverSettings.Authentication.SaltAdmin = helper.GenerateRandomString(30)

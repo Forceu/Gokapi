@@ -2,8 +2,6 @@ package chunking
 
 import (
 	"errors"
-	"github.com/forceu/gokapi/internal/configuration"
-	"github.com/forceu/gokapi/internal/helper"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -12,6 +10,9 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/forceu/gokapi/internal/configuration"
+	"github.com/forceu/gokapi/internal/helper"
 )
 
 // ChunkInfo contains info about the current chunk
@@ -173,7 +174,9 @@ func GetFileByChunkId(id string) (*os.File, error) {
 
 // FileExists returns true if a file exists for the given chunk ID
 func FileExists(id string) bool {
-	return helper.FileExists(getChunkFilePath(id))
+	exists, err := helper.FileExists(getChunkFilePath(id))
+	helper.Check(err)
+	return exists
 }
 
 // NewChunk allocates the space for the new file and writes the chunk

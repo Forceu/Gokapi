@@ -61,6 +61,12 @@ function initDropzone() {
         if (dropzoneObject.disabled) {
             return;
         }
+        const activeElement = document.activeElement;
+        // disable upload on paste if edit field with data-allow-regular-paste is selected or the calendar view (with placeholder attribute)
+        if (activeElement && (activeElement.hasAttribute('data-allow-regular-paste') ||activeElement.hasAttribute('placeholder'))) {
+	    return;
+        }
+
         var items = (event.clipboardData || event.originalEvent.clipboardData).items;
         for (let index in items) {
             var item = items[index];
@@ -960,6 +966,7 @@ function handleUndo(button) {
         });
 }
 
+
 function shareUrl(id) {
     if (!navigator.share) {
         return;
@@ -971,3 +978,13 @@ function shareUrl(id) {
         url: url,
     })
 }
+
+
+function showDeprecationNotice() {
+    let notification = document.getElementById("toastDeprecation");
+    notification.classList.add("show");
+    setTimeout(() => {
+        notification.classList.remove("show");
+    }, 5000);
+}
+

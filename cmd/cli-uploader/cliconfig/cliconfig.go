@@ -5,12 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"strings"
+
 	"github.com/forceu/gokapi/cmd/cli-uploader/cliapi"
 	"github.com/forceu/gokapi/cmd/cli-uploader/cliconstants"
 	"github.com/forceu/gokapi/cmd/cli-uploader/cliflags"
 	"github.com/forceu/gokapi/internal/helper"
-	"os"
-	"strings"
 )
 
 type configFile struct {
@@ -135,17 +136,16 @@ func save(url, apikey string, e2ekey []byte) error {
 // Verifies the existence of the configuration file and validates its integrity, terminating on errors.
 func Load() {
 	configPath, _ := cliflags.GetConfigLocation()
-	if !helper.FileExists(configPath) {
+	exists, err := helper.FileExists(configPath)
+	helper.Check(err)
+	if !exists {
 		fmt.Println("ERROR: No login information found")
 		fmt.Println("Please run 'gokapi-cli login' to create a login")
 		os.Exit(1)
 	}
 	data, err := os.ReadFile(configPath)
-	if err != nil {
-		fmt.Println("ERROR: Could not read login information")
-		os.Exit(1)
-	}
-
+	helper.Check(err)
+	
 	var config configFile
 	err = json.Unmarshal(data, &config)
 	if err != nil {
@@ -160,7 +160,13 @@ func Load() {
 // It will return an error if the file exists but could not be deleted.
 func Delete() error {
 	configPath, _ := cliflags.GetConfigLocation()
-	if !helper.FileExists(configPath) {
+	exists, err := helper.FileExists(configPath)
+	if err != nil {
+		fmt.Println("ERROR: Could not check if login information exists")
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	if exists {
 		return nil
 	}
 	return os.Remove(configPath)

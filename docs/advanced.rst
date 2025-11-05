@@ -80,6 +80,8 @@ Available environment variables
 +-------------------------------+-------------------------------------------------------------------------------------+-----------------+--------------------------------------+
 | GOKAPI_MAX_PARALLEL_UPLOADS   | Set the amount of chunks that are uploaded in parallel for a single file            | Yes             | 4                                    |
 +-------------------------------+-------------------------------------------------------------------------------------+-----------------+--------------------------------------+
+| GOKAPI_MIN_LENGTH_PASSWORD    | Sets the minium password length - must be at least 6 characters                     | No              | 8                                    |
++-------------------------------+-------------------------------------------------------------------------------------+-----------------+--------------------------------------+
 | GOKAPI_PORT                   | Sets the webserver port                                                             | Yes             | 53842                                |
 +-------------------------------+-------------------------------------------------------------------------------------+-----------------+--------------------------------------+
 | GOKAPI_DISABLE_CORS_CHECK     | Disables the CORS check on startup and during setup, if set to "true"               | No              | false                                |
@@ -92,7 +94,9 @@ Available environment variables
 |                               |                                                                                     |                 |                                      |
 |                               | unlimited downloads enabled                                                         |                 |                                      |
 +-------------------------------+-------------------------------------------------------------------------------------+-----------------+--------------------------------------+
-| DOCKER_NONROOT                | Docker only: Runs the binary in the container as a non-root user, if set to "true"  | No              | false                                |
+| DOCKER_NONROOT                | DEPRECATED. See :ref:`setupdocker` section for non-root setup                       | No              | false                                |
+|                               |                                                                                     |                 |                                      |
+|                               | Docker only: Runs the binary in the container as a non-root user, if set to "true"  |                 |                                      |
 +-------------------------------+-------------------------------------------------------------------------------------+-----------------+--------------------------------------+
 | TMPDIR                        | Sets the path which contains temporary files                                        | No              | Non-Docker: Default OS path          |
 |                               |                                                                                     |                 |                                      |

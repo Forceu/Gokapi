@@ -7,10 +7,11 @@ Simplified OS functions
 import (
 	"bufio"
 	"errors"
-	"golang.org/x/term"
 	"log"
 	"os"
 	"syscall"
+
+	"golang.org/x/term"
 )
 
 // FolderExists returns true if a folder exists
@@ -23,12 +24,15 @@ func FolderExists(folder string) bool {
 }
 
 // FileExists returns true if a file exists
-func FileExists(filename string) bool {
+func FileExists(filename string) (bool, error) {
 	info, err := os.Stat(filename)
 	if os.IsNotExist(err) {
-		return false
+		return false, nil
 	}
-	return !info.IsDir()
+	if err != nil {
+		return false, err
+	}
+	return !info.IsDir(), nil
 }
 
 // CreateDir creates the data folder if it does not exist

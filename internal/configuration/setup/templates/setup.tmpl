@@ -261,10 +261,10 @@
 								<input type="text" class="form-control" id="auth_username" name="auth_username" placeholder="Username" data-min="3" required data-validate="validateMinLength">
 							</div><br><br>
 							<div class="col-sm-8">
-								<input type="password" autocomplete="new-password" class="form-control" id="auth_pw" name="auth_pw" placeholder="Password" data-min="8" required data-validate="validatePassword">
+								<input type="password" autocomplete="new-password" class="form-control" id="auth_pw" name="auth_pw" placeholder="Password" data-min={{ .MinPasswordLength }} required data-validate="validatePassword">
 							</div><br><br>
 							<div class="col-sm-8">
-								<input type="password" autocomplete="new-password" class="form-control" id="auth_pw2" name="auth_pw2" placeholder="Password (repeat)" data-min="8" required>
+								<input type="password" autocomplete="new-password" class="form-control" id="auth_pw2" name="auth_pw2" placeholder="Password (repeat)" data-min={{ .MinPasswordLength }} required>
 						</div>
 					</div>
 
