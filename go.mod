@@ -14,11 +14,11 @@ require (
 	github.com/juju/ratelimit v1.0.2
 	github.com/schollz/progressbar/v3 v3.18.0
 	github.com/secure-io/sio-go v0.3.1
-	golang.org/x/crypto v0.35.0
+	golang.org/x/crypto v0.45.0
 	golang.org/x/image v0.30.0
 	golang.org/x/oauth2 v0.27.0
 	golang.org/x/sync v0.11.0
-	golang.org/x/term v0.29.0
+	golang.org/x/term v0.37.0
 	gopkg.in/yaml.v3 v3.0.1
 	modernc.org/sqlite v1.35.0
 )
@@ -35,8 +35,6 @@ require (
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/ryszard/goskiplist v0.0.0-20150312221310-2dfbae5fcf46 // indirect
-	github.com/tdewolff/minify/v2 v2.24.2 // indirect
-	github.com/tdewolff/parse/v2 v2.8.3 // indirect
 	github.com/yuin/gopher-lua v1.1.1 // indirect
 	go.shabbyrobe.org/gocovmerge v0.0.0-20230507111327-fa4f82cfbf4d // indirect
 	golang.org/x/exp v0.0.0-20250218142911-aa4b98e5adaa // indirect
@@ -49,5 +47,5 @@ require (
 
 require (
 	github.com/coreos/go-oidc/v3 v3.12.0
-	golang.org/x/sys v0.30.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
 )
