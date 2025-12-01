@@ -3,6 +3,7 @@ package redis
 import (
 	"errors"
 	"fmt"
+	"github.com/forceu/gokapi/internal/environment"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	redigo "github.com/gomodule/redigo/redis"
@@ -19,7 +20,7 @@ type DatabaseProvider struct {
 }
 
 // DatabaseSchemeVersion contains the version number to be expected from the current database. If lower, an upgrade will be performed
-const DatabaseSchemeVersion = 5
+const DatabaseSchemeVersion = 6
 
 // New returns an instance
 func New(dbConfig models.DbConnection) (DatabaseProvider, error) {
@@ -98,6 +99,20 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 		fmt.Println("Error: Gokapi runs >=v2.0.0, but Database is <v2.0.0")
 		osExit(1)
 		return
+	}
+	// pre multi-user
+	if currentDbVersion < 6 {
+		if environment.New().PermRequestGrantedByDefault {
+			for _, user := range p.GetAllUsers() {
+				user.GrantPermission(models.UserPermGuestUploads)
+				p.SaveUser(user, false)
+			}
+		}
+		for _, apiKey := range p.GetAllApiKeys() {
+			if apiKey.IsSystemKey {
+				p.DeleteApiKey(apiKey.Id)
+			}
+		}
 	}
 }
 

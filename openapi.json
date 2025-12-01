@@ -989,7 +989,7 @@
             "explode": false,
             "schema": {
               "type": "string",
-              "enum": ["PERM_REPLACE", "PERM_LIST", "PERM_EDIT", "PERM_REPLACE_OTHER", "PERM_DELETE", "PERM_LOGS", "PERM_API", "PERM_USERS"]
+              "enum": ["PERM_REPLACE", "PERM_LIST", "PERM_EDIT", "PERM_REPLACE_OTHER", "PERM_DELETE", "PERM_LOGS", "PERM_API", "PERM_USERS", "PERM_GUEST_UPLOAD"]
             }
           },
           {

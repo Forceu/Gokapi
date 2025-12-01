@@ -422,6 +422,8 @@ func (p *paramUserModify) ProcessParameter(_ *http.Request) error {
 		p.Permission = models.UserPermManageApiKeys
 	case "PERM_USERS":
 		p.Permission = models.UserPermManageUsers
+	case "PERM_GUEST_UPLOAD":
+		p.Permission = models.UserPermGuestUploads
 	default:
 		return errors.New("invalid permission")
 	}
