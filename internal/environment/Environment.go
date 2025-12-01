@@ -16,28 +16,28 @@ const DefaultPort = 53842
 
 // Environment is a struct containing available env variables
 type Environment struct {
-	ConfigDir          string `env:"CONFIG_DIR" envDefault:"config"`
-	ConfigFile         string `env:"CONFIG_FILE" envDefault:"config.json"`
-	ConfigPath         string
-	DataDir            string `env:"DATA_DIR" envDefault:"data"`
-	ChunkSizeMB        int    `env:"CHUNK_SIZE_MB" envDefault:"45"`
-	LengthId           int    `env:"LENGTH_ID" envDefault:"15"`
-	LengthHotlinkId    int    `env:"LENGTH_HOTLINK_ID" envDefault:"40"`
-	MaxFileSize        int    `env:"MAX_FILESIZE" envDefault:"102400"` // 102400==100GB
-	MaxMemory          int    `env:"MAX_MEMORY_UPLOAD" envDefault:"50"`
-	MaxParallelUploads int    `env:"MAX_PARALLEL_UPLOADS" envDefault:"3"`
-	WebserverPort      int    `env:"PORT" envDefault:"53842"`
-	MinLengthPassword  int    `env:"MIN_LENGTH_PASSWORD" envDefault:"8"`
-	DisableCorsCheck   bool   `env:"DISABLE_CORS_CHECK" envDefault:"false"`
-	LogToStdout        bool   `env:"LOG_STDOUT" envDefault:"false"`
-	HotlinkVideos      bool   `env:"ENABLE_HOTLINK_VIDEOS" envDefault:"false"`
+	ConfigDir                   string `env:"CONFIG_DIR" envDefault:"config"`
+	ConfigFile                  string `env:"CONFIG_FILE" envDefault:"config.json"`
+	ConfigPath                  string
+	DataDir                     string `env:"DATA_DIR" envDefault:"data"`
+	ChunkSizeMB                 int    `env:"CHUNK_SIZE_MB" envDefault:"45"`
+	LengthId                    int    `env:"LENGTH_ID" envDefault:"15"`
+	LengthHotlinkId             int    `env:"LENGTH_HOTLINK_ID" envDefault:"40"`
+	MaxFileSize                 int    `env:"MAX_FILESIZE" envDefault:"102400"` // 102400==100GB
+	MaxMemory                   int    `env:"MAX_MEMORY_UPLOAD" envDefault:"50"`
+	MaxParallelUploads          int    `env:"MAX_PARALLEL_UPLOADS" envDefault:"3"`
+	WebserverPort               int    `env:"PORT" envDefault:"53842"`
+	MinLengthPassword           int    `env:"MIN_LENGTH_PASSWORD" envDefault:"8"`
+	DisableCorsCheck            bool   `env:"DISABLE_CORS_CHECK" envDefault:"false"`
+	LogToStdout                 bool   `env:"LOG_STDOUT" envDefault:"false"`
+	HotlinkVideos               bool   `env:"ENABLE_HOTLINK_VIDEOS" envDefault:"false"`
 	PermRequestGrantedByDefault bool   `env:"ALLOW_GUEST_UPLOADS_BY_DEFAULT" envDefault:"false"`
-	AwsBucket          string `env:"AWS_BUCKET"`
-	AwsRegion          string `env:"AWS_REGION"`
-	AwsKeyId           string `env:"AWS_KEY"`
-	AwsKeySecret       string `env:"AWS_KEY_SECRET"`
-	AwsEndpoint        string `env:"AWS_ENDPOINT"`
-	ActiveDeprecations []deprecation.Deprecation
+	AwsBucket                   string `env:"AWS_BUCKET"`
+	AwsRegion                   string `env:"AWS_REGION"`
+	AwsKeyId                    string `env:"AWS_KEY"`
+	AwsKeySecret                string `env:"AWS_KEY_SECRET"`
+	AwsEndpoint                 string `env:"AWS_ENDPOINT"`
+	ActiveDeprecations          []deprecation.Deprecation
 }
 
 // New parses the env variables

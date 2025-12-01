@@ -28,5 +28,9 @@ func Create(name string) (models.User, error) {
 		newUser.GrantPermission(models.UserPermGuestUploads)
 	}
 	database.SaveUser(newUser, true)
+	newUser, ok = database.GetUserByName(name)
+	if !ok {
+		return models.User{}, errors.New("user could not be created")
+	}
 	return newUser, nil
 }
