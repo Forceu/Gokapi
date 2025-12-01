@@ -14,11 +14,11 @@ require (
 	github.com/juju/ratelimit v1.0.2
 	github.com/schollz/progressbar/v3 v3.18.0
 	github.com/secure-io/sio-go v0.3.1
-	golang.org/x/crypto v0.35.0
+	golang.org/x/crypto v0.45.0
 	golang.org/x/image v0.30.0
 	golang.org/x/oauth2 v0.27.0
 	golang.org/x/sync v0.11.0
-	golang.org/x/term v0.29.0
+	golang.org/x/term v0.37.0
 	gopkg.in/yaml.v3 v3.0.1
 	modernc.org/sqlite v1.35.0
 )
@@ -49,5 +49,5 @@ require (
 
 require (
 	github.com/coreos/go-oidc/v3 v3.12.0
-	golang.org/x/sys v0.30.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
 )
