@@ -21,17 +21,19 @@ const (
 	ApiPermManageUsers
 	// ApiPermManageLogs is the permission required for managing the log file
 	ApiPermManageLogs
+	// ApiManageFileRequests is the permission required for creating and managing file requests
+	ApiManageFileRequests
 )
 
 // ApiPermNone means no permission granted
 const ApiPermNone ApiPermission = 0
 
 // ApiPermAll means all permission granted
-const ApiPermAll ApiPermission = 255
+const ApiPermAll ApiPermission = 511
 
 // ApiPermDefault means all permission granted, except ApiPermApiMod, ApiPermManageUsers, ApiPermManageLogs and ApiPermReplace
 // This is the default for new API keys that are created from the UI
-const ApiPermDefault = ApiPermAll - ApiPermApiMod - ApiPermManageUsers - ApiPermReplace - ApiPermManageLogs
+const ApiPermDefault = ApiPermAll - ApiPermApiMod - ApiPermManageUsers - ApiPermReplace - ApiPermManageLogs - ApiManageFileRequests
 
 // ApiKey contains data of a single api key
 type ApiKey struct {
@@ -45,8 +47,8 @@ type ApiKey struct {
 	UserId       int           `json:"UserId" redis:"UserId"`
 }
 
-// ApiPermission contains zero or more permissions as an uint8 format
-type ApiPermission uint8
+// ApiPermission contains zero or more permissions as an uint16 format
+type ApiPermission uint16
 
 // GetReadableDate returns the date as YYYY-MM-DD HH:MM:SS
 func (key *ApiKey) GetReadableDate() string {
@@ -119,7 +121,12 @@ func (key *ApiKey) HasPermissionManageLogs() bool {
 	return key.HasPermission(ApiPermManageLogs)
 }
 
-// ApiKeyOutput is the output that is used after a new key is created
+// HasPermissionManageFileRequests returns true if ApiManageFileRequests is granted
+func (key *ApiKey) HasPermissionManageFileRequests() bool {
+	return key.HasPermission(ApiManageFileRequests)
+}
+
+// ApiKeyOutput is the output used after a new key is created
 type ApiKeyOutput struct {
 	Result   string
 	Id       string

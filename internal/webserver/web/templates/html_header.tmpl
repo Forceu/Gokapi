@@ -83,7 +83,9 @@
             {{ if and .ActiveUser.HasPermissionManageUsers .IsUserTabAvailable }}
             <a class="nav-link {{ if eq .ActiveView 3 }}active{{ end }}" href="./users">Users</a>
             {{ end }}
+            {{ if .ActiveUser.HasPermissionCreateFileRequests }}
             <a class="nav-link {{ if eq .ActiveView 4 }}active{{ end }}" href="./filerequests">File Requests</a>
+            {{ end }}
             <a class="nav-link {{ if eq .ActiveView 2 }}active{{ end }}" href="./apiKeys">API</a>
             {{ if .IsLogoutAvailable }}<a class="nav-link" href="./logout">Logout</a>{{ end }}
           </nav>

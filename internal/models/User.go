@@ -159,7 +159,7 @@ func (u *User) HasPermissionManageUsers() bool {
 	return u.HasPermission(UserPermManageUsers)
 }
 
-// HasPermissionGuestUploads returns true if the user has the permission UserPermGuestUploads
-func (u *User) HasPermissionGuestUploads() bool {
+// HasPermissionCreateFileRequests returns true if the user has the permission UserPermGuestUploads
+func (u *User) HasPermissionCreateFileRequests() bool {
 	return u.HasPermission(UserPermGuestUploads)
 }

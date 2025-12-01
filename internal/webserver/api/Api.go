@@ -214,6 +214,11 @@ func apiModifyApiKey(w http.ResponseWriter, r requestParser, user models.User) {
 			sendError(w, http.StatusUnauthorized, "Insufficient user permission for owner to set this API permission")
 			return
 		}
+	case models.ApiManageFileRequests:
+		if !apiKeyOwner.HasPermissionCreateFileRequests() {
+			sendError(w, http.StatusUnauthorized, "Insufficient user permission for owner to set this API permission")
+			return
+		}
 	default:
 		// do nothing
 	}
@@ -668,6 +673,8 @@ func updateApiKeyPermsOnUserPermChange(userId int, userPerm models.UserPermissio
 		affectedPermission = models.ApiPermReplace
 	case models.UserPermManageLogs:
 		affectedPermission = models.ApiPermManageLogs
+	case models.UserPermGuestUploads:
+		affectedPermission = models.ApiManageFileRequests
 	default:
 		return
 	}

@@ -40,7 +40,7 @@
             			<td class="prevent-select">
             			
             			
-		<i id="perm_guest_upload_{{ .User.Id }}" class="bi bi-box-arrow-in-down {{if not .User.HasPermissionGuestUploads}}perm-notgranted{{else}}perm-granted{{end}} {{if or (eq .User.UserLevel 0) (eq .User.Id $.ActiveUser.Id)}}perm-nochange{{end}}" title="Create file requests" onclick='changeUserPermission("{{ .User.Id }}","PERM_GUEST_UPLOAD", "perm_guest_upload_{{ .User.Id }}");'></i>
+		<i id="perm_guest_upload_{{ .User.Id }}" class="bi bi-box-arrow-in-down {{if not .User.HasPermissionCreateFileRequests}}perm-notgranted{{else}}perm-granted{{end}} {{if or (eq .User.UserLevel 0) (eq .User.Id $.ActiveUser.Id)}}perm-nochange{{end}}" title="Create file requests" onclick='changeUserPermission("{{ .User.Id }}","PERM_GUEST_UPLOAD", "perm_guest_upload_{{ .User.Id }}");'></i>
             			
 		<i id="perm_replace_{{ .User.Id }}" class="bi bi-recycle {{if not .User.HasPermissionReplace}}perm-notgranted{{else}}perm-granted{{end}} {{if or (eq .User.UserLevel 0) (eq .User.Id $.ActiveUser.Id)}}perm-nochange{{end}}" title="Replace own uploads" onclick='changeUserPermission("{{ .User.Id }}","PERM_REPLACE", "perm_replace_{{ .User.Id }}");'></i>
 		

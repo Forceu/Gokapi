@@ -340,6 +340,8 @@ func (p *paramAuthModify) ProcessParameter(_ *http.Request) error {
 		p.Permission = models.ApiPermManageUsers
 	case "PERM_MANAGE_LOGS":
 		p.Permission = models.ApiPermManageLogs
+	case "PERM_MANAGE_FILE_REQUESTS":
+		p.Permission = models.ApiManageFileRequests
 	default:
 		return errors.New("invalid permission")
 	}

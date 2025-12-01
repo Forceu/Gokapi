@@ -220,6 +220,12 @@ function addRowApi(apiKey, publicId) {
             title: 'Delete Uploads'
         },
         {
+            perm: 'PERM_MANAGE_FILE_REQUESTS',
+            icon: 'bi-box-arrow-in-down',
+            granted: false,
+            title: 'Manage File Requests'
+        },
+        {
             perm: 'PERM_REPLACE',
             icon: 'bi-recycle',
             granted: false,
@@ -274,6 +280,11 @@ function addRowApi(apiKey, publicId) {
     }
     if (!canViewSystemLog) {
         let cell = document.getElementById("perm_manage_logs_" + publicId);
+        cell.classList.add("perm-unavailable");
+        cell.classList.add("perm-nochange");
+    }
+    if (!canCreateFileRequest) {
+        let cell = document.getElementById("perm_manage_file_requests_" + publicId);
         cell.classList.add("perm-unavailable");
         cell.classList.add("perm-nochange");
     }
