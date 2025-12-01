@@ -74,8 +74,9 @@
 	var systemKey = "{{.SystemKey}}";
 	var userName = "{{.ActiveUser.Name}}";
         var canViewOtherApiKeys = {{.ActiveUser.HasPermissionManageApi }};
-        var canReplaceFiles = {{.ActiveUser.HasPermissionManageApi }};
-        var canManageUsers = {{.ActiveUser.HasPermissionManageApi }};
+        var canReplaceFiles = {{.ActiveUser.HasPermissionReplace }};
+        var canManageUsers = {{.ActiveUser.HasPermissionManageUsers }};
+        var canViewSystemLog = {{.ActiveUser.HasPermissionManageLogs }};
 </script>
 
         

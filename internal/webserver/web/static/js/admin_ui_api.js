@@ -252,7 +252,7 @@ function addRowApi(apiKey, publicId) {
         title
     }) => {
         const i = document.createElement('i');
-        const id = `perm_${perm.toLowerCase().replace('perm_', '')}_${publicId}`;
+        const id = `${perm.toLowerCase()}_${publicId}`;
         i.id = id;
         i.className = `bi ${icon} ${granted ? 'perm-granted' : 'perm-notgranted'}`;
         i.title = title;
@@ -268,7 +268,12 @@ function addRowApi(apiKey, publicId) {
         cell.classList.add("perm-nochange");
     }
     if (!canManageUsers) {
-        let cell = document.getElementById("perm_users_" + publicId);
+        let cell = document.getElementById("perm_manage_users_" + publicId);
+        cell.classList.add("perm-unavailable");
+        cell.classList.add("perm-nochange");
+    }
+    if (!canViewSystemLog) {
+        let cell = document.getElementById("perm_manage_logs_" + publicId);
         cell.classList.add("perm-unavailable");
         cell.classList.add("perm-nochange");
     }
