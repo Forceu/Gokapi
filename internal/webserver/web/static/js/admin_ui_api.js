@@ -220,16 +220,16 @@ function addRowApi(apiKey, publicId) {
             title: 'Delete Uploads'
         },
         {
-            perm: 'PERM_MANAGE_FILE_REQUESTS',
-            icon: 'bi-box-arrow-in-down',
-            granted: false,
-            title: 'Manage File Requests'
-        },
-        {
             perm: 'PERM_REPLACE',
             icon: 'bi-recycle',
             granted: false,
             title: 'Replace Uploads'
+        },
+        {
+            perm: 'PERM_MANAGE_FILE_REQUESTS',
+            icon: 'bi-box-arrow-in-down',
+            granted: false,
+            title: 'Manage File Requests'
         },
         {
             perm: 'PERM_MANAGE_USERS',

@@ -50,9 +50,10 @@
 						
 						<i id="perm_delete_{{ .PublicId }}" class="bi bi-trash3 {{if not .HasPermissionDelete}}perm-notgranted{{else}}perm-granted{{end}}" title="Delete Uploads" onclick='changeApiPermission("{{ .PublicId }}","PERM_DELETE", "perm_delete_{{ .PublicId }}");'></i>
 						
-						<i id="perm_manage_file_requests_{{ .PublicId }}" class="bi bi-box-arrow-in-down {{if not (index $.UserMap .UserId).HasPermissionCreateFileRequests}}perm-unavailable perm-nochange{{ else }}{{if not .HasPermissionCreateFileRequests}}perm-notgranted{{else}}perm-granted{{end}}{{end}}" title="Manage File Requests" onclick='changeApiPermission("{{ .PublicId }}","PERM_MANAGE_FILE_REQUESTS", "perm_manage_file_request_{{ .PublicId }}");'></i>
 						
 						<i id="perm_replace_{{ .PublicId }}" class="bi bi-recycle {{if not (index $.UserMap .UserId).HasPermissionReplace}}perm-unavailable perm-nochange{{ else }}{{if not .HasPermissionReplace}}perm-notgranted{{else}}perm-granted{{end}}{{end}}" title="Replace Uploads" onclick='changeApiPermission("{{ .PublicId }}","PERM_REPLACE", "perm_replace_{{ .PublicId }}");'></i>
+						
+						<i id="perm_manage_file_requests_{{ .PublicId }}" class="bi bi-box-arrow-in-down {{if not (index $.UserMap .UserId).HasPermissionCreateFileRequests}}perm-unavailable perm-nochange{{ else }}{{if not .HasPermissionManageFileRequests}}perm-notgranted{{else}}perm-granted{{end}}{{end}}" title="Manage File Requests" onclick='changeApiPermission("{{ .PublicId }}","PERM_MANAGE_FILE_REQUESTS", "perm_manage_file_requests_{{ .PublicId }}");'></i>
 						
 						<i id="perm_users_{{ .PublicId }}" class="bi bi-people {{if not (index $.UserMap .UserId).HasPermissionManageUsers}}perm-unavailable perm-nochange{{ else }}{{if not .HasPermissionManageUsers}}perm-notgranted{{else}}perm-granted{{end}}{{end}}" title="Manage Users" onclick='changeApiPermission("{{ .PublicId }}","PERM_MANAGE_USERS", "perm_users_{{ .PublicId }}");'></i>
 						
