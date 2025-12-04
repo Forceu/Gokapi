@@ -144,14 +144,14 @@ To switch to a different database, Gokapi provides a migration tool. By running:
 
 ::
 
- gokapi --migrate [old Database URL] [new Database URL]
+ gokapi migrate-database --source [old Database URL] --destination [new Database URL]
  
 all existing data, except for user sessions, will be transferred to the new database. After the migration, you will need to rerun the setup and specify the new database location. For details on the correct database URL format, refer to the section :ref:`databaseUrl`.
 
 For Docker users, the command is:
 ::
 
- docker run --rm -v gokapi-data:/app/data f0rc3/gokapi:latest /app/run.sh [old Database URL] [new Database URL]
+ docker run --rm -v gokapi-data:/app/data f0rc3/gokapi:latest /app/run.sh migrate-database --source [old Database URL] --destination [new Database URL]
 
 
 .. _databaseUrl:
@@ -190,20 +190,20 @@ Migrating SQLite (``/app/data/gokapi.sqlite``) to Redis (``127.0.0.1:6379``):
 
 ::
 
- gokapi --migrate sqlite:///app/data/gokapi.sqlite redis://127.0.0.1:6379
+ gokapi migrate-database --source sqlite:///app/data/gokapi.sqlite --destination redis://127.0.0.1:6379
 
 Migrating SQLite (``/app/data/gokapi.sqlite``) to SQLite (``./data/gokapi.sqlite``):
 
 ::
 
- gokapi --migrate sqlite:///app/data/gokapi.sqlite sqlite://./data/gokapi.sqlite
+ gokapi migrate-database --source sqlite:///app/data/gokapi.sqlite --destination sqlite://./data/gokapi.sqlite
  
 Migrating Redis (``127.0.0.1:6379, User: test, Password: 1234, Prefix: gokapi_, using SSL``) to SQLite (``./data/gokapi.sqlite``):
 
 
 ::
 
- gokapi --migrate "redis://test:1234@127.0.0.1:6379?prefix=gokapi_&ssl=true" sqlite://./data/gokapi.sqlite
+ gokapi migrate-database --source "redis://test:1234@127.0.0.1:6379?prefix=gokapi_&ssl=true" --destination sqlite://./data/gokapi.sqlite
 
 
 

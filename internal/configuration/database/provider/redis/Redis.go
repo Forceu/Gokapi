@@ -3,14 +3,14 @@ package redis
 import (
 	"errors"
 	"fmt"
-	"github.com/forceu/gokapi/internal/environment"
-	"github.com/forceu/gokapi/internal/helper"
-	"github.com/forceu/gokapi/internal/models"
-	redigo "github.com/gomodule/redigo/redis"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/models"
+	redigo "github.com/gomodule/redigo/redis"
 )
 
 // DatabaseProvider contains the database instance
@@ -47,12 +47,33 @@ func (p DatabaseProvider) init(config models.DbConnection) (DatabaseProvider, er
 	if err != nil {
 		return DatabaseProvider{}, err
 	}
+	isPersistenceEnabled, err := p.isPersistenceEnabled()
+	if err == nil {
+		if !isPersistenceEnabled {
+			fmt.Println("WARNING! Redis persistence is disabled. ALL DATA WILL BE LOST after a database restart.")
+		}
+	} else {
+		fmt.Println("Unable to check if Redis has persistence enabled.")
+	}
+
 	// If DB version is 0, the DB is new and therefore set version to latest one.
 	// Otherwise, Upgrade() would be called after loading
 	if p.GetDbVersion() == 0 {
 		p.SetDbVersion(DatabaseSchemeVersion)
 	}
 	return p, nil
+}
+
+func (p DatabaseProvider) isPersistenceEnabled() (bool, error) {
+	output, err := redigo.Values(p.getConfigRaw("save"))
+	if err != nil {
+		return false, err
+	}
+	if len(output) < 2 {
+		return false, nil
+	}
+	saveVal, _ := redigo.String(output[1], nil)
+	return len(saveVal) > 0, nil
 }
 
 func getDialOptions(config models.DbConnection) []redigo.DialOption {
@@ -211,6 +232,11 @@ func (p DatabaseProvider) getKeyRaw(id string) (any, error) {
 	return conn.Do("GET", p.dbPrefix+id)
 }
 
+func (p DatabaseProvider) getConfigRaw(id string) (any, error) {
+	conn := p.pool.Get()
+	defer conn.Close()
+	return conn.Do("CONFIG", "GET", id)
+}
 func (p DatabaseProvider) getKeyString(id string) (string, bool) {
 	result, err := redigo.String(p.getKeyRaw(id))
 	if result == "" {
