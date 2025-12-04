@@ -173,7 +173,8 @@ function addNewUser() {
         apiUserCreate(editName.value.trim())
             .then(data => {
                 $('#newUserModal').modal('hide');
-                addRowUser(data.id, data.name);
+                addRowUser(data.id, data.name, data.permissions);
+                console.log(data);
             })
             .catch(error => {
                 if (error.message == "duplicate") {
@@ -190,8 +191,87 @@ function addNewUser() {
 
 
 
+const PermissionDefinitions = [
+    {
+        key: "UserPermGuestUploads",
+        bit: 1 << 8,
+        icon: "bi bi-box-arrow-in-down",
+        title: "Create file requests",
+        htmlId: userid => `perm_guest_upload_${userid}`,
+        apiName: "PERM_GUEST_UPLOAD"
+    },
+    {
+        key: "UserPermReplaceUploads",
+        bit: 1 << 0,
+        icon: "bi bi-recycle",
+        title: "Replace own uploads",
+        htmlId: userid => `perm_replace_${userid}`,
+        apiName: "PERM_REPLACE"
+    },
+    {
+        key: "UserPermListOtherUploads",
+        bit: 1 << 1,
+        icon: "bi bi-eye",
+        title: "List other uploads",
+        htmlId: userid => `perm_list_${userid}`,
+        apiName: "PERM_LIST"
+    },
+    {
+        key: "UserPermEditOtherUploads",
+        bit: 1 << 2,
+        icon: "bi bi-pencil",
+        title: "Edit other uploads",
+        htmlId: userid => `perm_edit_${userid}`,
+        apiName: "PERM_EDIT"
+    },
+    {
+        key: "UserPermDeleteOtherUploads",
+        bit: 1 << 4,
+        icon: "bi bi-trash3",
+        title: "Delete other uploads",
+        htmlId: userid => `perm_delete_${userid}`,
+        apiName: "PERM_DELETE"
+    },
+    {
+        key: "UserPermReplaceOtherUploads",
+        bit: 1 << 3,
+        icon: "bi bi-arrow-left-right",
+        title: "Replace other uploads",
+        htmlId: userid => `perm_replace_other_${userid}`,
+        apiName: "PERM_REPLACE_OTHER"
+    },
+    {
+        key: "UserPermManageLogs",
+        bit: 1 << 5,
+        icon: "bi bi-card-list",
+        title: "Manage system logs",
+        htmlId: userid => `perm_logs_${userid}`,
+        apiName: "PERM_LOGS"
+    },
+    {
+        key: "UserPermManageUsers",
+        bit: 1 << 7,
+        icon: "bi bi-people",
+        title: "Manage users",
+        htmlId: userid => `perm_users_${userid}`,
+        apiName: "PERM_USERS"
+    },
+    {
+        key: "UserPermManageApiKeys",
+        bit: 1 << 6,
+        icon: "bi bi-sliders2",
+        title: "Manage API keys",
+        htmlId: userid => `perm_api_${userid}`,
+        apiName: "PERM_API"
+    }
+];
 
-function addRowUser(userid, name) {
+function hasPermission(userPermissions, permissionBit) {
+    return (userPermissions & permissionBit) !== 0;
+}
+
+
+function addRowUser(userid, name, permissions) {
 
     userid = sanitizeUserId(userid);
 
@@ -260,23 +340,20 @@ function addRowUser(userid, name) {
     cellActions.appendChild(btnGroup);
 
     // Permissions
-    cellPermissions.innerHTML = `
-<i id="perm_replace_${userid}" class="bi bi-recycle perm-notgranted " title="Replace own uploads" onclick='changeUserPermission(${userid},"PERM_REPLACE", "perm_replace_${userid}");'></i>
+     cellPermissions.innerHTML = PermissionDefinitions.map(perm => {
+        const granted = hasPermission(permissions, perm.bit)
+            ? "perm-granted"
+            : "perm-notgranted";
 
-<i id="perm_list_${userid}" class="bi bi-eye perm-notgranted " title="List other uploads" onclick='changeUserPermission(${userid},"PERM_LIST", "perm_list_${userid}");'></i>
+        const id = perm.htmlId(userid);
 
-<i id="perm_edit_${userid}" class="bi bi-pencil perm-notgranted " title="Edit other uploads" onclick='changeUserPermission(${userid},"PERM_EDIT", "perm_edit_${userid}");'></i>
-
-<i id="perm_delete_${userid}" class="bi bi-trash3 perm-notgranted " title="Delete other uploads" onclick='changeUserPermission(${userid},"PERM_DELETE", "perm_delete_${userid}");'></i>
-
-<i id="perm_replace_other_${userid}" class="bi bi-arrow-left-right perm-notgranted " title="Replace other uploads" onclick='changeUserPermission(${userid},"PERM_REPLACE_OTHER", "perm_replace_other_${userid}");'></i>
-
-<i id="perm_logs_${userid}" class="bi bi-card-list perm-notgranted " title="Manage system logs" onclick='changeUserPermission(${userid},"PERM_LOGS", "perm_logs_${userid}");'></i>
-
-<i id="perm_users_${userid}" class="bi bi-people perm-notgranted " title="Manage users" onclick='changeUserPermission(${userid},"PERM_USERS", "perm_users_${userid}");'></i>
-
-<i id="perm_api_${userid}" class="bi bi-sliders2 perm-notgranted " title="Manage API keys" onclick='changeUserPermission(${userid},"PERM_API", "perm_api_${userid}");'></i>`;
-
+        return `
+        <i id="${id}"
+           class="${perm.icon} ${granted}"
+           title="${perm.title}"
+           onclick='changeUserPermission(${userid}, "${perm.apiName}", "${id}")'>
+        </i>`;
+    }).join("");
 
     setTimeout(() => {
 

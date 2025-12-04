@@ -94,6 +94,7 @@ func Load() {
 	serverSettings.MinLengthPassword = Environment.MinLengthPassword
 	serverSettings.LengthId = Environment.LengthId
 	serverSettings.LengthHotlinkId = Environment.LengthHotlinkId
+	serverSettings.AllowGuestUploadsByDefault = Environment.PermRequestGrantedByDefault
 	helper.CreateDir(serverSettings.DataDir)
 	filesystem.Init(serverSettings.DataDir)
 	logging.Init(Environment.DataDir)

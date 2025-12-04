@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/forceu/gokapi/internal/environment"
 	"os"
 	"path/filepath"
 
@@ -19,7 +20,7 @@ type DatabaseProvider struct {
 }
 
 // DatabaseSchemeVersion contains the version number to be expected from the current database. If lower, an upgrade will be performed
-const DatabaseSchemeVersion = 10
+const DatabaseSchemeVersion = 11
 
 // New returns an instance
 func New(dbConfig models.DbConnection) (DatabaseProvider, error) {
@@ -38,6 +39,20 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 		fmt.Println("Error: Gokapi runs >=v2.0.0, but Database is <v2.0.0")
 		osExit(1)
 		return
+	}
+	// pre multi-user
+	if currentDbVersion < 11 {
+		if environment.New().PermRequestGrantedByDefault {
+			for _, user := range p.GetAllUsers() {
+				user.GrantPermission(models.UserPermGuestUploads)
+				p.SaveUser(user, false)
+			}
+		}
+		for _, apiKey := range p.GetAllApiKeys() {
+			if apiKey.IsSystemKey {
+				p.DeleteApiKey(apiKey.Id)
+			}
+		}
 	}
 }
 

@@ -10,6 +10,7 @@ import (
 	"github.com/forceu/gokapi/internal/logging"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
+	"github.com/forceu/gokapi/internal/webserver/authentication/users"
 	"github.com/forceu/gokapi/internal/webserver/fileupload"
 	"io"
 	"net/http"
@@ -19,7 +20,6 @@ import (
 
 const lengthPublicId = 35
 const lengthApiKey = 30
-const minLengthUser = 2
 
 // Process parses the request and executes the API call or returns an error message to the sender
 func Process(w http.ResponseWriter, r *http.Request) {
@@ -214,6 +214,11 @@ func apiModifyApiKey(w http.ResponseWriter, r requestParser, user models.User) {
 			sendError(w, http.StatusUnauthorized, "Insufficient user permission for owner to set this API permission")
 			return
 		}
+	case models.ApiManageFileRequests:
+		if !apiKeyOwner.HasPermissionCreateFileRequests() {
+			sendError(w, http.StatusUnauthorized, "Insufficient user permission for owner to set this API permission")
+			return
+		}
 	default:
 		// do nothing
 	}
@@ -269,24 +274,16 @@ func apiCreateUser(w http.ResponseWriter, r requestParser, user models.User) {
 	if !ok {
 		panic("invalid parameter passed")
 	}
-	if len(request.Username) < minLengthUser {
-		sendError(w, http.StatusBadRequest, "Invalid username provided.")
-		return
-	}
-	_, ok = database.GetUserByName(request.Username)
-	if ok {
-		sendError(w, http.StatusConflict, "User already exists.")
-		return
-	}
-	newUser := models.User{
-		Name:      request.Username,
-		UserLevel: models.UserLevelUser,
-	}
-	database.SaveUser(newUser, true)
-	newUser, ok = database.GetUserByName(request.Username)
-	if !ok {
-		sendError(w, http.StatusInternalServerError, "Could not save user")
-		return
+	newUser, err := users.Create(request.Username)
+	if err != nil {
+		switch {
+		case errors.Is(err, users.ErrorNameToShort):
+			sendError(w, http.StatusBadRequest, "Invalid username provided.")
+		case errors.Is(err, users.ErrorUserExists):
+			sendError(w, http.StatusConflict, "User already exists.")
+		default:
+			sendError(w, http.StatusInternalServerError, err.Error())
+		}
 	}
 	logging.LogUserCreation(newUser, user)
 	_, _ = w.Write([]byte(newUser.ToJson()))
@@ -676,6 +673,8 @@ func updateApiKeyPermsOnUserPermChange(userId int, userPerm models.UserPermissio
 		affectedPermission = models.ApiPermReplace
 	case models.UserPermManageLogs:
 		affectedPermission = models.ApiPermManageLogs
+	case models.UserPermGuestUploads:
+		affectedPermission = models.ApiManageFileRequests
 	default:
 		return
 	}
