@@ -1,10 +1,11 @@
 package redis
 
 import (
+	"strings"
+
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	redigo "github.com/gomodule/redigo/redis"
-	"strings"
 )
 
 const (

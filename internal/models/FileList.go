@@ -3,8 +3,9 @@ package models
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/jinzhu/copier"
 	"net/url"
+
+	"github.com/jinzhu/copier"
 )
 
 // File is a struct used for saving information about an uploaded file
@@ -23,8 +24,9 @@ type File struct {
 	SizeBytes               int64          `json:"SizeBytes" redis:"SizeBytes"`                   // Filesize in bytes
 	UploadDate              int64          `json:"UploadDate" redis:"UploadDate"`                 // UTC timestamp of upload time
 	DownloadsRemaining      int            `json:"DownloadsRemaining" redis:"DownloadsRemaining"` // The remaining downloads for this file
-	DownloadCount           int            `json:"DownloadCount" redis:"DownloadCount"`           // The amount of times the file has been downloaded
+	DownloadCount           int            `json:"DownloadCount" redis:"DownloadCount"`           // The number of times the file has been downloaded
 	UserId                  int            `json:"UserId" redis:"UserId"`                         // The user ID of the uploader
+	UploadRequestId         int            `json:"FileRequestId" redis:"FileRequestId"`           // If the file belongs to a file request, this is the ID of the file request
 	Encryption              EncryptionInfo `json:"Encryption" redis:"-"`                          // If the file is encrypted, this stores all info for decrypting
 	UnlimitedDownloads      bool           `json:"UnlimitedDownloads" redis:"UnlimitedDownloads"` // True if the uploader did not limit the downloads
 	UnlimitedTime           bool           `json:"UnlimitedTime" redis:"UnlimitedTime"`           // True if the uploader did not limit the time

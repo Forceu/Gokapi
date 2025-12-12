@@ -102,6 +102,7 @@ func Start() {
 	mux.HandleFunc("/error-auth", showErrorAuth)
 	mux.HandleFunc("/error-header", showErrorHeader)
 	mux.HandleFunc("/error-oauth", showErrorIntOAuth)
+	mux.HandleFunc("/filerequests", requireLogin(showUploadRequest, true, false))
 	mux.HandleFunc("/forgotpw", forgotPassword)
 	mux.HandleFunc("/h/", showHotlink)
 	mux.HandleFunc("/hotlink/", showHotlink) // backward compatibility
@@ -225,7 +226,7 @@ type redirectValues struct {
 	PasswordRequired bool
 }
 
-// Handling of /id/?/? - used when filename shall be displayed, will redirect to regular download URL
+// Handling of /id/?/? - used when filename shall be displayed, will redirect to the regular download URL
 func redirectFromFilename(w http.ResponseWriter, r *http.Request) {
 	addNoCacheHeader(w)
 	id := r.PathValue("id")
@@ -386,8 +387,19 @@ func forgotPassword(w http.ResponseWriter, r *http.Request) {
 	helper.CheckIgnoreTimeout(err)
 }
 
+// Handling of /filerequest
+func showUploadRequest(w http.ResponseWriter, r *http.Request) {
+	userId, err := authentication.GetUserFromRequest(r)
+	if err != nil {
+		panic(err)
+	}
+	view := (&AdminView{}).convertGlobalConfig(ViewFileRequests, userId)
+	err = templateFolder.ExecuteTemplate(w, "uploadreq", view)
+	helper.CheckIgnoreTimeout(err)
+}
+
 // Handling of /api
-// If user is authenticated, this menu lists all uploads and enables uploading new files
+// If the user is authenticated, this menu lists all uploads and enables uploading new files
 func showApiAdmin(w http.ResponseWriter, r *http.Request) {
 	userId, err := authentication.GetUserFromRequest(r)
 	if err != nil {
@@ -668,6 +680,7 @@ type AdminView struct {
 	Items                 []models.FileApiOutput
 	ApiKeys               []models.ApiKey
 	Users                 []userInfo
+	FileRequests          []models.FileRequest
 	ActiveUser            models.User
 	UserMap               map[int]*models.User
 	ServerUrl             string
@@ -712,6 +725,8 @@ const (
 	ViewAPI
 	// ViewUsers is the identifier for the user management menu
 	ViewUsers
+	// ViewFileRequests is the identifier for the file request menu
+	ViewFileRequests
 )
 
 // Converts the globalConfig variable to an AdminView struct to pass the infos to
@@ -738,7 +753,7 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 		metaDataList = sortMetaData(metaDataList)
 	case ViewAPI:
 		for _, apiKey := range database.GetAllApiKeys() {
-			// Double-checking if user of API key exists
+			// Double-checking if the owner of the API key exists
 			// If the user was manually deleted from the database, this could lead to a crash
 			// in the API view
 			_, ok := u.UserMap[apiKey.UserId]
@@ -767,6 +782,14 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 				userWithUploads.User.LastOnline = time.Now().Unix()
 			}
 			u.Users = append(u.Users, userWithUploads)
+		}
+	case ViewFileRequests:
+		for _, element := range database.GetAllFileRequests() {
+			if element.Owner != user.Id && !user.HasPermissionListOtherUploads() {
+				continue
+			}
+			u.FileRequests = append(u.FileRequests, element)
+			//TODO sorting?
 		}
 	}
 

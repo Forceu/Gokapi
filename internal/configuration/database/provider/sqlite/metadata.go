@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/gob"
 	"errors"
+
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 )
@@ -29,6 +30,7 @@ type schemaMetaData struct {
 	UserId             int
 	UploadDate         int64
 	PendingDeletion    int64
+	UploadRequestId    int
 }
 
 func (rowData schemaMetaData) ToFileModel() (models.File, error) {
@@ -52,6 +54,7 @@ func (rowData schemaMetaData) ToFileModel() (models.File, error) {
 		UserId:             rowData.UserId,
 		UploadDate:         rowData.UploadDate,
 		PendingDeletion:    rowData.PendingDeletion,
+		UploadRequestId:    rowData.UploadRequestId,
 	}
 
 	buf := bytes.NewBuffer(rowData.Encryption)
@@ -71,7 +74,7 @@ func (p DatabaseProvider) GetAllMetadata() map[string]models.File {
 		err = rows.Scan(&rowData.Id, &rowData.Name, &rowData.Size, &rowData.SHA1, &rowData.ExpireAt, &rowData.SizeBytes,
 			&rowData.ExpireAtString, &rowData.DownloadsRemaining, &rowData.DownloadCount, &rowData.PasswordHash,
 			&rowData.HotlinkId, &rowData.ContentType, &rowData.AwsBucket, &rowData.Encryption,
-			&rowData.UnlimitedDownloads, &rowData.UnlimitedTime, &rowData.UserId, &rowData.UploadDate, &rowData.PendingDeletion)
+			&rowData.UnlimitedDownloads, &rowData.UnlimitedTime, &rowData.UserId, &rowData.UploadDate, &rowData.PendingDeletion, &rowData.UploadRequestId)
 		helper.Check(err)
 		var metaData models.File
 		metaData, err = rowData.ToFileModel()
@@ -90,7 +93,8 @@ func (p DatabaseProvider) GetMetaDataById(id string) (models.File, bool) {
 	err := row.Scan(&rowData.Id, &rowData.Name, &rowData.Size, &rowData.SHA1, &rowData.ExpireAt, &rowData.SizeBytes,
 		&rowData.ExpireAtString, &rowData.DownloadsRemaining, &rowData.DownloadCount, &rowData.PasswordHash,
 		&rowData.HotlinkId, &rowData.ContentType, &rowData.AwsBucket, &rowData.Encryption,
-		&rowData.UnlimitedDownloads, &rowData.UnlimitedTime, &rowData.UserId, &rowData.UploadDate, &rowData.PendingDeletion)
+		&rowData.UnlimitedDownloads, &rowData.UnlimitedTime, &rowData.UserId, &rowData.UploadDate,
+		&rowData.PendingDeletion, &rowData.UploadRequestId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return result, false
@@ -122,6 +126,7 @@ func (p DatabaseProvider) SaveMetaData(file models.File) {
 		UserId:             file.UserId,
 		UploadDate:         file.UploadDate,
 		PendingDeletion:    file.PendingDeletion,
+		UploadRequestId:    file.UploadRequestId,
 	}
 
 	if file.UnlimitedDownloads {
@@ -139,11 +144,12 @@ func (p DatabaseProvider) SaveMetaData(file models.File) {
 
 	_, err = p.sqliteDb.Exec(`INSERT OR REPLACE INTO FileMetaData (Id, Name, Size, SHA1, ExpireAt, SizeBytes, ExpireAtString, 
                                    DownloadsRemaining, DownloadCount, PasswordHash, HotlinkId, ContentType, AwsBucket, Encryption,
-                                   UnlimitedDownloads, UnlimitedTime, UserId, UploadDate, PendingDeletion)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                                   UnlimitedDownloads, UnlimitedTime, UserId, UploadDate, PendingDeletion, UploadRequestId)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		newData.Id, newData.Name, newData.Size, newData.SHA1, newData.ExpireAt, newData.SizeBytes, newData.ExpireAtString,
 		newData.DownloadsRemaining, newData.DownloadCount, newData.PasswordHash, newData.HotlinkId, newData.ContentType,
-		newData.AwsBucket, newData.Encryption, newData.UnlimitedDownloads, newData.UnlimitedTime, newData.UserId, newData.UploadDate, newData.PendingDeletion)
+		newData.AwsBucket, newData.Encryption, newData.UnlimitedDownloads, newData.UnlimitedTime, newData.UserId, newData.UploadDate,
+		newData.PendingDeletion, newData.UploadRequestId)
 	helper.Check(err)
 }
 

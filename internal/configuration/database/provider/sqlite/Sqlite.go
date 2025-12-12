@@ -4,9 +4,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/forceu/gokapi/internal/environment"
 	"os"
 	"path/filepath"
+
+	"github.com/forceu/gokapi/internal/environment"
 
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
@@ -32,6 +33,8 @@ func (p DatabaseProvider) GetType() int {
 	return 0 // dbabstraction.Sqlite
 }
 
+//TODO sort sqlite and redis
+
 // Upgrade migrates the DB to a new Gokapi version, if required
 func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 	// < v2.0.0
@@ -40,8 +43,21 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 		osExit(1)
 		return
 	}
-	// pre multi-user
+	// pre upload requests
 	if currentDbVersion < 11 {
+
+		err := p.rawSqlite(`ALTER TABLE FileMetaData ADD COLUMN "UploadRequestId" INTEGER NOT NULL DEFAULT 0;
+									 ALTER TABLE ApiKeys ADD COLUMN "UploadRequestId" INTEGER NOT NULL DEFAULT 0;
+									 CREATE TABLE "UploadRequests" (
+										"id"	INTEGER NOT NULL UNIQUE,
+										"name"	TEXT,
+										"owner"	INTEGER NOT NULL,
+										"expiry"	INTEGER NOT NULL,
+										"maxFiles"	INTEGER NOT NULL,
+										"maxSize"	INTEGER NOT NULL,
+										PRIMARY KEY("id" AUTOINCREMENT)
+									 );`)
+		helper.Check(err)
 		if environment.New().PermRequestGrantedByDefault {
 			for _, user := range p.GetAllUsers() {
 				user.GrantPermission(models.UserPermGuestUploads)
@@ -71,7 +87,7 @@ func (p DatabaseProvider) SetDbVersion(newVersion int) {
 	helper.Check(err)
 }
 
-// GetSchemaVersion returns the version number, that the database should be if fully upgraded
+// GetSchemaVersion returns the version number, which the database should be at if fully upgraded
 func (p DatabaseProvider) GetSchemaVersion() int {
 	return DatabaseSchemeVersion
 }
@@ -136,6 +152,7 @@ func (p DatabaseProvider) createNewDatabase() error {
 			"IsSystemKey"	INTEGER,
 			"UserId" INTEGER NOT NULL,
 			"PublicId" TEXT NOT NULL UNIQUE ,
+			"UploadRequestId"	INTEGER NOT NULL,
 			PRIMARY KEY("Id")
 		) WITHOUT ROWID;
 		CREATE TABLE "E2EConfig" (
@@ -164,6 +181,7 @@ func (p DatabaseProvider) createNewDatabase() error {
 			"UserId"	INTEGER NOT NULL,
 			"UploadDate"	INTEGER NOT NULL,
 			"PendingDeletion"	INTEGER NOT NULL,
+			"UploadRequestId"	INTEGER NOT NULL,
 			PRIMARY KEY("Id")
 		);
 		CREATE TABLE "Hotlinks" (
@@ -187,6 +205,15 @@ func (p DatabaseProvider) createNewDatabase() error {
 			"LastOnline"	INTEGER NOT NULL DEFAULT 0,
 			"ResetPassword"	INTEGER NOT NULL DEFAULT 0,
 			PRIMARY KEY("Id" AUTOINCREMENT)
+		);
+		CREATE TABLE "UploadRequests" (
+			"id"	INTEGER NOT NULL UNIQUE,
+			"name"	TEXT,
+			"owner"	INTEGER NOT NULL,
+			"expiry"	INTEGER NOT NULL,
+			"maxFiles"	INTEGER NOT NULL,
+			"maxSize"	INTEGER NOT NULL,
+			PRIMARY KEY("id" AUTOINCREMENT)
 		);
 `
 	err := p.rawSqlite(sqlStmt)

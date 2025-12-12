@@ -1,0 +1,69 @@
+{{ define "uploadreq" }}{{ template "header" . }}
+<div class="row">
+    <div class="col">
+        <div id="container" class="card" style="width: 80%">
+            <div class="card-body">
+		<div class="container">
+		  <div class="row mb-4">
+		    <div class="col">
+		    </div>
+		    <div class="col text-center">
+		      <h3 class="card-title mb-0">File Requests</h3>
+		    </div>
+		    <div class="col text-end">
+		      <button id="button-newapi" class="btn btn-outline-light" onclick="newFileRequest()">
+                    <i class="bi bi-plus-circle-fill"></i>
+                </button>
+		    </div>
+		  </div>
+		</div>
+		
+                <br>
+                <div class="table-responsive">
+                    <table class="table table-dark">
+                        <thead>
+                            <tr>
+                                <th scope="col">Name</th>
+                                <th scope="col">Uploaded Files</th>
+                                <th scope="col">Last Upload</th>
+                                <th scope="col">Expiry</th>
+{{ if .ActiveUser.HasPermissionListOtherUploads }}
+            			<th scope="col">User</th>
+{{ end }}
+                                <th scope="col">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="filerequesttable">
+                        
+{{ range .FileRequests }}
+                            <tr id="row-{{ .Id }}">
+		                    <td>{{ .Name }}</td>
+		                    <td>TODO</td>
+		                    <td>TODO</td>
+		                    <td>TODO</td>
+{{ if $.ActiveUser.HasPermissionListOtherUploads }}
+		                    <td>{{(index $.UserMap .Owner).Name}}</td>
+{{ end }}
+		                    <td>[D] [E] [D] </td>
+                            </tr>
+{{ end }}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+	<div id="toastnotification" class="toastnotification" data-default="API key copied to clipboard">Toast Text</div>
+    </div>
+</div>
+<script src="./js/min/admin.min.{{ template "js_admin_version"}}.js"></script>
+<script>
+	var systemKey = "{{.SystemKey}}";
+	var userName = "{{.ActiveUser.Name}}";
+</script>
+
+        
+{{ template "pagename" "ApiOverview"}}
+{{ template "customjs" .}}
+
+{{ template "footer" true }}
+{{ end }}

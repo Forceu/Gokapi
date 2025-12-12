@@ -87,6 +87,10 @@ func Migrate(configOld, configNew models.DbConnection) {
 			dbNew.SaveHotlink(file)
 		}
 	}
+	requests := dbOld.GetAllFileRequests()
+	for _, request := range requests {
+		dbNew.SaveFileRequest(request)
+	}
 	dbOld.Close()
 	dbNew.Close()
 }
@@ -319,4 +323,26 @@ func EditSuperAdmin(username, passwordHash string) error {
 	}
 	db.SaveUser(user, false)
 	return nil
+}
+
+// File Requests
+
+// GetFileRequest returns the FileRequest or false if not found
+func GetFileRequest(id string) (models.FileRequest, bool) {
+	return db.GetFileRequest(id)
+}
+
+// GetAllFileRequests returns an array with all file requests
+func GetAllFileRequests() []models.FileRequest {
+	return db.GetAllFileRequests()
+}
+
+// SaveFileRequest stores the hotlink associated with the file in the database
+func SaveFileRequest(request models.FileRequest) {
+	db.SaveFileRequest(request)
+}
+
+// DeleteFileRequest deletes a file request with the given ID
+func DeleteFileRequest(id int) {
+	db.DeleteFileRequest(id)
 }

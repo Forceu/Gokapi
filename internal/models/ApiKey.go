@@ -37,14 +37,15 @@ const ApiPermDefault = ApiPermAll - ApiPermApiMod - ApiPermManageUsers - ApiPerm
 
 // ApiKey contains data of a single api key
 type ApiKey struct {
-	Id           string        `json:"Id" redis:"Id"`
-	PublicId     string        `json:"PublicId" redis:"PublicId"`
-	FriendlyName string        `json:"FriendlyName" redis:"FriendlyName"`
-	LastUsed     int64         `json:"LastUsed" redis:"LastUsed"`
-	Permissions  ApiPermission `json:"Permissions" redis:"Permissions"`
-	Expiry       int64         `json:"Expiry" redis:"Expiry"` // Does not expire if 0
-	IsSystemKey  bool          `json:"IsSystemKey" redis:"IsSystemKey"`
-	UserId       int           `json:"UserId" redis:"UserId"`
+	Id              string        `json:"Id" redis:"Id"`
+	PublicId        string        `json:"PublicId" redis:"PublicId"`
+	FriendlyName    string        `json:"FriendlyName" redis:"FriendlyName"`
+	LastUsed        int64         `json:"LastUsed" redis:"LastUsed"`
+	Permissions     ApiPermission `json:"Permissions" redis:"Permissions"`
+	Expiry          int64         `json:"Expiry" redis:"Expiry"` // Does not expire if 0
+	IsSystemKey     bool          `json:"IsSystemKey" redis:"IsSystemKey"`
+	UserId          int           `json:"UserId" redis:"UserId"`
+	UploadRequestId int           `json:"UploadRequestId" redis:"UploadRequestId"`
 }
 
 // ApiPermission contains zero or more permissions as an uint16 format

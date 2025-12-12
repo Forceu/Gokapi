@@ -2,6 +2,7 @@ package dbabstraction
 
 import (
 	"fmt"
+
 	"github.com/forceu/gokapi/internal/configuration/database/provider/redis"
 	"github.com/forceu/gokapi/internal/configuration/database/provider/sqlite"
 	"github.com/forceu/gokapi/internal/models"
@@ -98,6 +99,15 @@ type Database interface {
 	UpdateUserLastOnline(id int)
 	// DeleteUser deletes a user with the given ID
 	DeleteUser(id int)
+
+	// GetFileRequest returns the FileRequest or false if not found
+	GetFileRequest(id string) (models.FileRequest, bool)
+	// GetAllFileRequests returns an array with all file requests
+	GetAllFileRequests() []models.FileRequest
+	// SaveFileRequest stores the hotlink associated with the file in the database
+	SaveFileRequest(request models.FileRequest)
+	// DeleteFileRequest deletes a file request with the given ID
+	DeleteFileRequest(id int)
 }
 
 // GetNew connects to the given database and initialises it

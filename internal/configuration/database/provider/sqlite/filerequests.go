@@ -1,0 +1,96 @@
+package sqlite
+
+import (
+	"database/sql"
+	"errors"
+
+	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/models"
+)
+
+type schemaFileRequests struct {
+	Id       int
+	Name     string
+	Owner    int
+	Expiry   int64
+	MaxFiles int
+	MaxSize  int
+}
+
+// GetFileRequest returns the FileRequest or false if not found
+func (p DatabaseProvider) GetFileRequest(id string) (models.FileRequest, bool) {
+	var rowResult schemaFileRequests
+	row := p.sqliteDb.QueryRow("SELECT * FROM UploadRequests WHERE Id = ?", id)
+	err := row.Scan(&rowResult.Id, &rowResult.Name, &rowResult.Owner, &rowResult.Expiry, &rowResult.MaxFiles, &rowResult.MaxSize)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return models.FileRequest{}, false
+		}
+		helper.Check(err)
+		return models.FileRequest{}, false
+	}
+	result := models.FileRequest{
+		Id:       rowResult.Id,
+		Name:     rowResult.Name,
+		Owner:    rowResult.Owner,
+		MaxFiles: rowResult.MaxFiles,
+		MaxSize:  rowResult.MaxSize,
+		Expiry:   rowResult.Expiry,
+	}
+	return result, true
+}
+
+// GetAllFileRequests returns an array with all file requests
+func (p DatabaseProvider) GetAllFileRequests() []models.FileRequest {
+	result := make([]models.FileRequest, 0)
+	rows, err := p.sqliteDb.Query("SELECT * FROM UploadRequests")
+	helper.Check(err)
+	defer rows.Close()
+	for rows.Next() {
+		rowData := schemaFileRequests{}
+		err = rows.Scan(&rowData.Id, &rowData.Name, &rowData.Owner, &rowData.Expiry, &rowData.MaxFiles, &rowData.MaxSize)
+		helper.Check(err)
+		result = append(result, models.FileRequest{
+			Id:       rowData.Id,
+			Name:     rowData.Name,
+			Owner:    rowData.Owner,
+			MaxFiles: rowData.MaxFiles,
+			MaxSize:  rowData.MaxSize,
+			Expiry:   rowData.Expiry,
+		})
+	}
+	return result
+}
+
+// SaveFileRequest stores the hotlink associated with the file in the database
+func (p DatabaseProvider) SaveFileRequest(request models.FileRequest) {
+	newData := schemaFileRequests{
+		Id:       request.Id,
+		Name:     request.Name,
+		Owner:    request.Owner,
+		MaxFiles: request.MaxFiles,
+		MaxSize:  request.MaxSize,
+		Expiry:   request.Expiry,
+	}
+
+	// If ID is not 0, then an existing file request is being saved and needs to be
+	// replaced in the database
+	if newData.Id == 0 {
+		_, err := p.sqliteDb.Exec("INSERT INTO UploadRequests (name, owner, expiry, maxFiles, maxSize) VALUES  (?, ?, ?, ?, ?)",
+			newData.Name, newData.Owner, newData.Expiry, newData.MaxFiles, newData.MaxSize)
+		helper.Check(err)
+	} else {
+		_, err := p.sqliteDb.Exec("INSERT OR REPLACE INTO UploadRequests (id, name, owner, expiry, maxFiles, maxSize) VALUES  (?, ?, ?, ?, ?, ?)",
+			newData.Id, newData.Name, newData.Owner, newData.Expiry, newData.MaxFiles, newData.MaxSize)
+		helper.Check(err)
+	}
+}
+
+// DeleteFileRequest deletes a file request with the given ID
+func (p DatabaseProvider) DeleteFileRequest(id int) {
+	if id == 0 {
+		return
+	}
+	_, err := p.sqliteDb.Exec("DELETE FROM UploadRequests WHERE Id = ?", id)
+	helper.Check(err)
+}
