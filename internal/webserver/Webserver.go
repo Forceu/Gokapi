@@ -563,7 +563,7 @@ func showHotlink(w http.ResponseWriter, r *http.Request) {
 	hotlinkId = strings.Replace(hotlinkId, "/h/", "", 1)
 	addNoCacheHeader(w)
 	file, ok := storage.GetFileByHotlink(hotlinkId)
-	if !ok {
+	if !ok || file.UploadRequestId != 0 {
 		w.Header().Set("Content-Type", "image/svg+xml")
 		_, _ = w.Write(imageExpiredPicture)
 		return
