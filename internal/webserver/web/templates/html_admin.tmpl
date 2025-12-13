@@ -61,7 +61,7 @@
 				</thead>
 				<tbody id="downloadtable">
 {{ range .Items }}
-	{{ if not .IsPendingDeletion }}	
+	{{ if not (or .IsPendingDeletion .IsFileRequest) }}	
 		{{ if  or (gt .ExpireAt $.TimeNow) (.UnlimitedTime) }}
 			{{ if or (gt .DownloadsRemaining 0) (.UnlimitedDownloads) }}
 					<tr id="row-{{ .Id }}">

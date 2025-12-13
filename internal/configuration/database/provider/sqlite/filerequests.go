@@ -15,13 +15,14 @@ type schemaFileRequests struct {
 	Expiry   int64
 	MaxFiles int
 	MaxSize  int
+	Creation int64
 }
 
 // GetFileRequest returns the FileRequest or false if not found
 func (p DatabaseProvider) GetFileRequest(id string) (models.FileRequest, bool) {
 	var rowResult schemaFileRequests
 	row := p.sqliteDb.QueryRow("SELECT * FROM UploadRequests WHERE Id = ?", id)
-	err := row.Scan(&rowResult.Id, &rowResult.Name, &rowResult.Owner, &rowResult.Expiry, &rowResult.MaxFiles, &rowResult.MaxSize)
+	err := row.Scan(&rowResult.Id, &rowResult.Name, &rowResult.Owner, &rowResult.Expiry, &rowResult.MaxFiles, &rowResult.MaxSize, &rowResult.Creation)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return models.FileRequest{}, false
@@ -30,12 +31,13 @@ func (p DatabaseProvider) GetFileRequest(id string) (models.FileRequest, bool) {
 		return models.FileRequest{}, false
 	}
 	result := models.FileRequest{
-		Id:       rowResult.Id,
-		Name:     rowResult.Name,
-		Owner:    rowResult.Owner,
-		MaxFiles: rowResult.MaxFiles,
-		MaxSize:  rowResult.MaxSize,
-		Expiry:   rowResult.Expiry,
+		Id:           rowResult.Id,
+		Name:         rowResult.Name,
+		Owner:        rowResult.Owner,
+		MaxFiles:     rowResult.MaxFiles,
+		MaxSize:      rowResult.MaxSize,
+		Expiry:       rowResult.Expiry,
+		CreationDate: rowResult.Creation,
 	}
 	return result, true
 }
@@ -43,20 +45,21 @@ func (p DatabaseProvider) GetFileRequest(id string) (models.FileRequest, bool) {
 // GetAllFileRequests returns an array with all file requests
 func (p DatabaseProvider) GetAllFileRequests() []models.FileRequest {
 	result := make([]models.FileRequest, 0)
-	rows, err := p.sqliteDb.Query("SELECT * FROM UploadRequests")
+	rows, err := p.sqliteDb.Query("SELECT * FROM UploadRequests ORDER BY Creation DESC, Name")
 	helper.Check(err)
 	defer rows.Close()
 	for rows.Next() {
 		rowData := schemaFileRequests{}
-		err = rows.Scan(&rowData.Id, &rowData.Name, &rowData.Owner, &rowData.Expiry, &rowData.MaxFiles, &rowData.MaxSize)
+		err = rows.Scan(&rowData.Id, &rowData.Name, &rowData.Owner, &rowData.Expiry, &rowData.MaxFiles, &rowData.MaxSize, &rowData.Creation)
 		helper.Check(err)
 		result = append(result, models.FileRequest{
-			Id:       rowData.Id,
-			Name:     rowData.Name,
-			Owner:    rowData.Owner,
-			MaxFiles: rowData.MaxFiles,
-			MaxSize:  rowData.MaxSize,
-			Expiry:   rowData.Expiry,
+			Id:           rowData.Id,
+			Name:         rowData.Name,
+			Owner:        rowData.Owner,
+			MaxFiles:     rowData.MaxFiles,
+			MaxSize:      rowData.MaxSize,
+			Expiry:       rowData.Expiry,
+			CreationDate: rowData.Creation,
 		})
 	}
 	return result
@@ -71,17 +74,18 @@ func (p DatabaseProvider) SaveFileRequest(request models.FileRequest) {
 		MaxFiles: request.MaxFiles,
 		MaxSize:  request.MaxSize,
 		Expiry:   request.Expiry,
+		Creation: request.CreationDate,
 	}
 
 	// If ID is not 0, then an existing file request is being saved and needs to be
 	// replaced in the database
 	if newData.Id == 0 {
-		_, err := p.sqliteDb.Exec("INSERT INTO UploadRequests (name, owner, expiry, maxFiles, maxSize) VALUES  (?, ?, ?, ?, ?)",
-			newData.Name, newData.Owner, newData.Expiry, newData.MaxFiles, newData.MaxSize)
+		_, err := p.sqliteDb.Exec("INSERT INTO UploadRequests (name, owner, expiry, maxFiles, maxSize, creation) VALUES  (?, ?, ?, ?, ?, ?)",
+			newData.Name, newData.Owner, newData.Expiry, newData.MaxFiles, newData.MaxSize, newData.Creation)
 		helper.Check(err)
 	} else {
-		_, err := p.sqliteDb.Exec("INSERT OR REPLACE INTO UploadRequests (id, name, owner, expiry, maxFiles, maxSize) VALUES  (?, ?, ?, ?, ?, ?)",
-			newData.Id, newData.Name, newData.Owner, newData.Expiry, newData.MaxFiles, newData.MaxSize)
+		_, err := p.sqliteDb.Exec("INSERT OR REPLACE INTO UploadRequests (id, name, owner, expiry, maxFiles, maxSize, creation) VALUES  (?, ?, ?, ?, ?, ?, ?)",
+			newData.Id, newData.Name, newData.Owner, newData.Expiry, newData.MaxFiles, newData.MaxSize, newData.Creation)
 		helper.Check(err)
 	}
 }

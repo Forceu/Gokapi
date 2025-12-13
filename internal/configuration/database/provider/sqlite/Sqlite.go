@@ -33,8 +33,6 @@ func (p DatabaseProvider) GetType() int {
 	return 0 // dbabstraction.Sqlite
 }
 
-//TODO sort sqlite and redis
-
 // Upgrade migrates the DB to a new Gokapi version, if required
 func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 	// < v2.0.0
@@ -50,7 +48,7 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 									 ALTER TABLE ApiKeys ADD COLUMN "UploadRequestId" INTEGER NOT NULL DEFAULT 0;
 									 CREATE TABLE "UploadRequests" (
 										"id"	INTEGER NOT NULL UNIQUE,
-										"name"	TEXT,
+										"name"	TEXT NOT NULL,
 										"owner"	INTEGER NOT NULL,
 										"expiry"	INTEGER NOT NULL,
 										"maxFiles"	INTEGER NOT NULL,
@@ -213,6 +211,7 @@ func (p DatabaseProvider) createNewDatabase() error {
 			"expiry"	INTEGER NOT NULL,
 			"maxFiles"	INTEGER NOT NULL,
 			"maxSize"	INTEGER NOT NULL,
+			"creation"	INTEGER NOT NULL,
 			PRIMARY KEY("id" AUTOINCREMENT)
 		);
 `

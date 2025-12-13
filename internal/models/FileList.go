@@ -56,7 +56,9 @@ type FileApiOutput struct {
 	IsPasswordProtected          bool   `json:"IsPasswordProtected"`          // True if a password has to be entered before downloading the file
 	IsSavedOnLocalStorage        bool   `json:"IsSavedOnLocalStorage"`        // True if the file does not use cloud storage
 	IsPendingDeletion            bool   `json:"IsPendingDeletion"`            // True if the file is about to be deleted
+	IsFileRequest                bool   `json:"IsFileRequest"`                // True if the file belongs to a file request
 	UploaderId                   int    `json:"UploaderId"`                   // The user ID of the uploader
+	FileRequestId                int    `json:"FileRequestId"`                // The ID of the file request
 }
 
 // EncryptionInfo holds information about the encryption used on the file
@@ -95,6 +97,8 @@ func (f *File) ToFileApiOutput(serverUrl string, useFilenameInUrl bool) (FileApi
 	result.UrlDownload = getDownloadUrl(result, serverUrl, useFilenameInUrl)
 	result.UploaderId = f.UserId
 	result.IsPendingDeletion = f.IsPendingForDeletion()
+	result.IsFileRequest = f.UploadRequestId != 0
+	result.FileRequestId = f.UploadRequestId
 
 	return result, nil
 }

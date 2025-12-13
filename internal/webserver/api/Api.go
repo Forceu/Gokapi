@@ -3,6 +3,11 @@ package api
 import (
 	"encoding/json"
 	"errors"
+	"io"
+	"net/http"
+	"strings"
+	"time"
+
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/encryption"
@@ -12,10 +17,6 @@ import (
 	"github.com/forceu/gokapi/internal/storage"
 	"github.com/forceu/gokapi/internal/webserver/authentication/users"
 	"github.com/forceu/gokapi/internal/webserver/fileupload"
-	"io"
-	"net/http"
-	"strings"
-	"time"
 )
 
 const lengthPublicId = 35
@@ -456,6 +457,9 @@ func getFilesForUser(user models.User) []models.FileApiOutput {
 	timeNow := time.Now().Unix()
 	config := configuration.Get()
 	for _, element := range database.GetAllMetadata() {
+		if element.UploadRequestId != 0 {
+			continue
+		}
 		if element.UserId == user.Id || user.HasPermission(models.UserPermListOtherUploads) {
 			if !storage.IsExpiredFile(element, timeNow) {
 				file, err := element.ToFileApiOutput(config.ServerUrl, config.IncludeFilename)

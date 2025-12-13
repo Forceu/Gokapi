@@ -1,6 +1,8 @@
 package redis
 
 import (
+	"cmp"
+	"slices"
 	"strconv"
 
 	"github.com/forceu/gokapi/internal/helper"
@@ -51,7 +53,17 @@ func (p DatabaseProvider) GetAllFileRequests() []models.FileRequest {
 		helper.Check(err)
 		result = append(result, request)
 	}
-	return result
+	return sortFilerequests(result)
+}
+
+func sortFilerequests(users []models.FileRequest) []models.FileRequest {
+	slices.SortFunc(users, func(a, b models.FileRequest) int {
+		return cmp.Or(
+			cmp.Compare(b.CreationDate, a.CreationDate),
+			cmp.Compare(a.Name, b.Name),
+		)
+	})
+	return users
 }
 
 // SaveFileRequest stores the hotlink associated with the file in the database

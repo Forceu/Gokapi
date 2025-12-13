@@ -38,9 +38,9 @@
 {{ range .FileRequests }}
                             <tr id="row-{{ .Id }}">
 		                    <td>{{ .Name }}</td>
-		                    <td>TODO</td>
-		                    <td>TODO</td>
-		                    <td>TODO</td>
+		                    <td>{{ .UploadedFiles }}</td>
+		                    <td>{{ .GetReadableDateLastUpdate }}</td>
+		                    <td>{{ .GetReadableDateExpiry }}</td>
 {{ if $.ActiveUser.HasPermissionListOtherUploads }}
 		                    <td>{{(index $.UserMap .Owner).Name}}</td>
 {{ end }}

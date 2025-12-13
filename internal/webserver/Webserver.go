@@ -501,7 +501,7 @@ func showDownload(w http.ResponseWriter, r *http.Request) {
 	addNoCacheHeader(w)
 	keyId := queryUrl(w, r, "error")
 	file, ok := storage.GetFile(keyId)
-	if !ok {
+	if !ok || file.UploadRequestId != 0 {
 		redirect(w, "error")
 		return
 	}
@@ -784,10 +784,12 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 			u.Users = append(u.Users, userWithUploads)
 		}
 	case ViewFileRequests:
+		allFiles := database.GetAllMetadata()
 		for _, element := range database.GetAllFileRequests() {
 			if element.Owner != user.Id && !user.HasPermissionListOtherUploads() {
 				continue
 			}
+			element.Populate(allFiles)
 			u.FileRequests = append(u.FileRequests, element)
 			//TODO sorting?
 		}
@@ -885,7 +887,7 @@ func downloadFile(w http.ResponseWriter, r *http.Request) {
 func serveFile(id string, isRootUrl bool, w http.ResponseWriter, r *http.Request) {
 	addNoCacheHeader(w)
 	savedFile, ok := storage.GetFile(id)
-	if !ok {
+	if !ok || savedFile.UploadRequestId != 0 {
 		if isRootUrl {
 			redirect(w, "error")
 		} else {
