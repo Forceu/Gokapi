@@ -19,7 +19,7 @@ type schemaFileRequests struct {
 }
 
 // GetFileRequest returns the FileRequest or false if not found
-func (p DatabaseProvider) GetFileRequest(id string) (models.FileRequest, bool) {
+func (p DatabaseProvider) GetFileRequest(id int) (models.FileRequest, bool) {
 	var rowResult schemaFileRequests
 	row := p.sqliteDb.QueryRow("SELECT * FROM UploadRequests WHERE Id = ?", id)
 	err := row.Scan(&rowResult.Id, &rowResult.Name, &rowResult.Owner, &rowResult.Expiry, &rowResult.MaxFiles, &rowResult.MaxSize, &rowResult.Creation)
@@ -91,10 +91,10 @@ func (p DatabaseProvider) SaveFileRequest(request models.FileRequest) {
 }
 
 // DeleteFileRequest deletes a file request with the given ID
-func (p DatabaseProvider) DeleteFileRequest(id int) {
-	if id == 0 {
+func (p DatabaseProvider) DeleteFileRequest(request models.FileRequest) {
+	if request.Id == 0 {
 		return
 	}
-	_, err := p.sqliteDb.Exec("DELETE FROM UploadRequests WHERE Id = ?", id)
+	_, err := p.sqliteDb.Exec("DELETE FROM UploadRequests WHERE Id = ?", request.Id)
 	helper.Check(err)
 }

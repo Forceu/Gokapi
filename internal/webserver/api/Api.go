@@ -215,7 +215,7 @@ func apiModifyApiKey(w http.ResponseWriter, r requestParser, user models.User) {
 			sendError(w, http.StatusUnauthorized, "Insufficient user permission for owner to set this API permission")
 			return
 		}
-	case models.ApiManageFileRequests:
+	case models.ApiPermManageFileRequests:
 		if !apiKeyOwner.HasPermissionCreateFileRequests() {
 			sendError(w, http.StatusUnauthorized, "Insufficient user permission for owner to set this API permission")
 			return
@@ -533,7 +533,7 @@ func apiDuplicateFile(w http.ResponseWriter, r requestParser, user models.User) 
 		request.UnlimitedTime,
 		request.UnlimitedDownloads,
 		false, // is not being used by storage.DuplicateFile
-		0)     // is not being used by storage.DuplicateFile
+		0) // is not being used by storage.DuplicateFile
 	newFile, err := storage.DuplicateFile(file, request.RequestedChanges, request.FileName, uploadRequest)
 	if err != nil {
 		sendError(w, http.StatusInternalServerError, err.Error())
@@ -678,7 +678,7 @@ func updateApiKeyPermsOnUserPermChange(userId int, userPerm models.UserPermissio
 	case models.UserPermManageLogs:
 		affectedPermission = models.ApiPermManageLogs
 	case models.UserPermGuestUploads:
-		affectedPermission = models.ApiManageFileRequests
+		affectedPermission = models.ApiPermManageFileRequests
 	default:
 		return
 	}
@@ -791,7 +791,31 @@ func apiE2eSet(w http.ResponseWriter, r requestParser, user models.User) {
 		panic("invalid parameter passed")
 	}
 	database.SaveEnd2EndInfo(request.EncryptedInfo, user.Id)
-	_, _ = w.Write([]byte("\"result\":\"OK\""))
+	_, _ = w.Write([]byte("{\"result\":\"OK\"}"))
+}
+
+func apiURequestDelete(w http.ResponseWriter, r requestParser, user models.User) {
+	request, ok := r.(*paramURequestDelete)
+	if !ok {
+		panic("invalid parameter passed")
+	}
+
+	uploadRequest, ok := database.GetFileRequest(request.Id)
+	if !ok {
+		sendError(w, http.StatusNotFound, "FileRequest does not exist with the given ID")
+		return
+	}
+	if uploadRequest.Owner != user.Id && !user.HasPermission(models.UserPermListOtherUploads) {
+		sendError(w, http.StatusUnauthorized, "No permission to delete this upload request")
+		return
+	}
+
+	files := database.GetFilesFromFileRequest(uploadRequest)
+	for _, file := range files {
+		database.DeleteMetaData(file.Id)
+	}
+	database.DeleteFileRequest(uploadRequest)
+	_, _ = w.Write([]byte("{\"result\":\"OK\"}"))
 }
 
 func isAuthorisedForApi(r *http.Request, routing apiRoute) (models.User, bool) {

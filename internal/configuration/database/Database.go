@@ -328,7 +328,7 @@ func EditSuperAdmin(username, passwordHash string) error {
 // File Requests
 
 // GetFileRequest returns the FileRequest or false if not found
-func GetFileRequest(id string) (models.FileRequest, bool) {
+func GetFileRequest(id int) (models.FileRequest, bool) {
 	return db.GetFileRequest(id)
 }
 
@@ -343,6 +343,18 @@ func SaveFileRequest(request models.FileRequest) {
 }
 
 // DeleteFileRequest deletes a file request with the given ID
-func DeleteFileRequest(id int) {
-	db.DeleteFileRequest(id)
+func DeleteFileRequest(request models.FileRequest) {
+	db.DeleteFileRequest(request)
+}
+
+// GetFilesFromFileRequest returns a list of all files associated with a file request
+func GetFilesFromFileRequest(request models.FileRequest) []models.File {
+	var result []models.File
+	files := db.GetAllMetadata()
+	for _, file := range files {
+		if file.UploadRequestId == request.Id {
+			result = append(result, file)
+		}
+	}
+	return result
 }

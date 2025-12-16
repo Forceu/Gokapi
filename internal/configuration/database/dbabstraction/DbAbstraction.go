@@ -101,13 +101,13 @@ type Database interface {
 	DeleteUser(id int)
 
 	// GetFileRequest returns the FileRequest or false if not found
-	GetFileRequest(id string) (models.FileRequest, bool)
+	GetFileRequest(id int) (models.FileRequest, bool)
 	// GetAllFileRequests returns an array with all file requests
 	GetAllFileRequests() []models.FileRequest
 	// SaveFileRequest stores the hotlink associated with the file in the database
 	SaveFileRequest(request models.FileRequest)
 	// DeleteFileRequest deletes a file request with the given ID
-	DeleteFileRequest(id int)
+	DeleteFileRequest(request models.FileRequest)
 }
 
 // GetNew connects to the given database and initialises it

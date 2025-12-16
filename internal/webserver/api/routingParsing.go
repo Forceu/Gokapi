@@ -818,3 +818,31 @@ func (p *paramChunkComplete) ParseRequest(r *http.Request) error {
 func (p *paramChunkComplete) New() requestParser {
 	return &paramChunkComplete{}
 }
+
+// ParseRequest reads r and saves the passed header values in the paramURequestDelete struct
+// In the end, ProcessParameter() is called
+func (p *paramURequestDelete) ParseRequest(r *http.Request) error {
+	var err error
+	var exists bool
+	p.foundHeaders = make(map[string]bool)
+
+	// RequestParser header value "id", required: true
+	exists, err = checkHeaderExists(r, "id", true, false)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["id"] = exists
+	if exists {
+		p.Id, err = parseHeaderInt(r, "id")
+		if err != nil {
+			return fmt.Errorf("invalid value in header id supplied")
+		}
+	}
+
+	return p.ProcessParameter(r)
+}
+
+// New returns a new instance of paramURequestDelete struct
+func (p *paramURequestDelete) New() requestParser {
+	return &paramURequestDelete{}
+}

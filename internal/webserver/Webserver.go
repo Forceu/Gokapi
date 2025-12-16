@@ -675,7 +675,7 @@ type e2ESetupView struct {
 	CustomContent  customStatic
 }
 
-// AdminView contains parameters for all admin related pages
+// AdminView contains parameters for all admin-related pages
 type AdminView struct {
 	Items                 []models.FileApiOutput
 	ApiKeys               []models.ApiKey

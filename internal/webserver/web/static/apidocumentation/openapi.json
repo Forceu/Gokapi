@@ -27,6 +27,9 @@
       "name": "auth"
     },
     {
+      "name": "uploadrequest"
+    },
+    {
       "name": "user"
     },
     {
@@ -896,6 +899,45 @@
         }
       }
     },
+    "/uploadrequest/delete": {
+      "delete": {
+        "tags": [
+          "uploadrequest"
+        ],
+        "summary": "Deletes the upload request and all associated files",
+        "description": "This API call deletes the given file requests. If files are associated with the request, they will also be deleted. Requires API permission GUEST_UPLOAD",
+        "operationId": "uploadrequestdelete",
+        "security": [
+          {
+            "apikey": ["PERM_GUEST_UPLOAD"]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "header",
+            "description": "The request to be deleted",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Invalid ID or parameters supplied"
+          },
+          "401": {
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
+          }
+        }
+      }
+    },
     "/user/create": {
       "post": {
         "tags": [
@@ -1081,7 +1123,7 @@
           "user"
         ],
         "summary": "Deletes the selected user",
-        "description": "This API call changes deletes the given user. If files are associated with the user, they will be linked with the user that initiated the deletion. If deleteFiles is \"true\", the files will be deleted instead.  Requires API permission MANAGE_USERS",
+        "description": "This API call deletes the given user. If files are associated with the user, they will be linked with the user that initiated the deletion. If deleteFiles is \"true\", the files will be deleted instead.  Requires API permission MANAGE_USERS",
         "operationId": "userdelete",
         "security": [
           {

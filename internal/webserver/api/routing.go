@@ -4,12 +4,13 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"github.com/forceu/gokapi/internal/models"
-	"github.com/forceu/gokapi/internal/storage"
-	"github.com/forceu/gokapi/internal/storage/chunking"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/storage"
+	"github.com/forceu/gokapi/internal/storage/chunking"
 )
 
 type apiRoute struct {
@@ -155,6 +156,12 @@ var routes = []apiRoute{
 		ApiPerm:       models.ApiPermManageUsers,
 		execution:     apiResetPassword,
 		RequestParser: &paramUserResetPw{},
+	},
+	{
+		Url:           "/uploadrequest/delete", // not published in API documentation
+		ApiPerm:       models.ApiPermManageFileRequests,
+		execution:     apiURequestDelete,
+		RequestParser: &paramURequestDelete{},
 	},
 	{
 		Url:           "/logs/delete",
@@ -341,7 +348,7 @@ func (p *paramAuthModify) ProcessParameter(_ *http.Request) error {
 	case "PERM_MANAGE_LOGS":
 		p.Permission = models.ApiPermManageLogs
 	case "PERM_MANAGE_FILE_REQUESTS":
-		p.Permission = models.ApiManageFileRequests
+		p.Permission = models.ApiPermManageFileRequests
 	default:
 		return errors.New("invalid permission")
 	}
@@ -553,6 +560,15 @@ func (p *paramChunkComplete) ProcessParameter(_ *http.Request) error {
 		ContentType: p.ContentType,
 		Size:        p.FileSize,
 	}
+	return nil
+}
+
+type paramURequestDelete struct {
+	Id           int `header:"id" required:"true"`
+	foundHeaders map[string]bool
+}
+
+func (p *paramURequestDelete) ProcessParameter(_ *http.Request) error {
 	return nil
 }
 

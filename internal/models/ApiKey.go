@@ -21,8 +21,8 @@ const (
 	ApiPermManageUsers
 	// ApiPermManageLogs is the permission required for managing the log file
 	ApiPermManageLogs
-	// ApiManageFileRequests is the permission required for creating and managing file requests
-	ApiManageFileRequests
+	// ApiPermManageFileRequests is the permission required for creating and managing file requests
+	ApiPermManageFileRequests
 )
 
 // ApiPermNone means no permission granted
@@ -33,7 +33,7 @@ const ApiPermAll ApiPermission = 511
 
 // ApiPermDefault means all permission granted, except ApiPermApiMod, ApiPermManageUsers, ApiPermManageLogs and ApiPermReplace
 // This is the default for new API keys that are created from the UI
-const ApiPermDefault = ApiPermAll - ApiPermApiMod - ApiPermManageUsers - ApiPermReplace - ApiPermManageLogs - ApiManageFileRequests
+const ApiPermDefault = ApiPermAll - ApiPermApiMod - ApiPermManageUsers - ApiPermReplace - ApiPermManageLogs - ApiPermManageFileRequests
 
 // ApiKey contains data of a single api key
 type ApiKey struct {
@@ -122,9 +122,9 @@ func (key *ApiKey) HasPermissionManageLogs() bool {
 	return key.HasPermission(ApiPermManageLogs)
 }
 
-// HasPermissionManageFileRequests returns true if ApiManageFileRequests is granted
+// HasPermissionManageFileRequests returns true if ApiPermManageFileRequests is granted
 func (key *ApiKey) HasPermissionManageFileRequests() bool {
-	return key.HasPermission(ApiManageFileRequests)
+	return key.HasPermission(ApiPermManageFileRequests)
 }
 
 // ApiKeyOutput is the output used after a new key is created

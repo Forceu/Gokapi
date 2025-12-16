@@ -15,15 +15,6 @@ const (
 	prefixFileRequestCounter = "frq_max"
 )
 
-type schemaFileRequests struct {
-	Id       int
-	Name     string
-	Owner    int
-	Expiry   int64
-	MaxFiles int
-	MaxSize  int
-}
-
 func dbToFileRequest(input []any) (models.FileRequest, error) {
 	var result models.FileRequest
 	err := redigo.ScanStruct(input, &result)
@@ -34,8 +25,8 @@ func dbToFileRequest(input []any) (models.FileRequest, error) {
 }
 
 // GetFileRequest returns the FileRequest or false if not found
-func (p DatabaseProvider) GetFileRequest(id string) (models.FileRequest, bool) {
-	result, ok := p.getHashMap(prefixFileRequests + id)
+func (p DatabaseProvider) GetFileRequest(id int) (models.FileRequest, bool) {
+	result, ok := p.getHashMap(prefixFileRequests + strconv.Itoa(id))
 	if !ok {
 		return models.FileRequest{}, false
 	}
@@ -81,6 +72,6 @@ func (p DatabaseProvider) SaveFileRequest(request models.FileRequest) {
 }
 
 // DeleteFileRequest deletes a file request with the given ID
-func (p DatabaseProvider) DeleteFileRequest(id int) {
-	p.deleteKey(prefixFileRequests + strconv.Itoa(id))
+func (p DatabaseProvider) DeleteFileRequest(request models.FileRequest) {
+	p.deleteKey(prefixFileRequests + strconv.Itoa(request.Id))
 }
