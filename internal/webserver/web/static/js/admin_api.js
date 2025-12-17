@@ -495,7 +495,7 @@ async function apiE2eStore(content) {
             'apikey': systemKey
         },
         body: JSON.stringify({
-            content: content
+            'content': content
         }),
     };
 
@@ -506,6 +506,29 @@ async function apiE2eStore(content) {
         }
     } catch (error) {
         console.error("Error in apiE2eStore:", error);
+        throw error;
+    }
+}
+
+async function apiURequestDelete(id) {
+    const apiUrl = './api/uploadrequest/delete';
+
+    const requestOptions = {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+            'apikey': systemKey,
+            'id': id
+        },
+    };
+
+    try {
+        const response = await fetch(apiUrl, requestOptions);
+        if (!response.ok) {
+            throw new Error(`Request failed with status: ${response.status}`);
+        }
+    } catch (error) {
+        console.error("Error in apiURequestDelete:", error);
         throw error;
     }
 }

@@ -79,7 +79,7 @@ function changeRank(userId, newRank, buttonId) {
 
 
 
-function showDeleteModal(userId, userEmail) {
+function showDeleteUserModal(userId, userEmail) {
     let checkboxDelete = document.getElementById("checkboxDelete");
     checkboxDelete.checked = false;
     document.getElementById("deleteModalBody").innerText = userEmail;
@@ -331,7 +331,7 @@ function addRowUser(userid, name, permissions) {
     btnDelete.type = "button";
     btnDelete.className = "btn btn-outline-danger btn-sm";
     btnDelete.title = "Delete";
-    btnDelete.onclick = () => showDeleteModal(userid, name);
+    btnDelete.onclick = () => showDeleteUserModal(userid, name);
     btnDelete.innerHTML = `<i class="bi bi-trash3"></i>`;
     btnGroup.appendChild(btnDelete);
 

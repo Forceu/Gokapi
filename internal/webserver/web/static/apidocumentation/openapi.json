@@ -934,6 +934,9 @@
           },
           "401": {
             "description": "Invalid API key provided for authentication or API key does not have the required permission"
+          },
+          "404": {
+            "description": "Upload request not found"
           }
         }
       }

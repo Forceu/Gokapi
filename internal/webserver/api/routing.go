@@ -158,7 +158,7 @@ var routes = []apiRoute{
 		RequestParser: &paramUserResetPw{},
 	},
 	{
-		Url:           "/uploadrequest/delete", // not published in API documentation
+		Url:           "/uploadrequest/delete",
 		ApiPerm:       models.ApiPermManageFileRequests,
 		execution:     apiURequestDelete,
 		RequestParser: &paramURequestDelete{},
