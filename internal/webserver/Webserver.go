@@ -705,7 +705,7 @@ type AdminView struct {
 	CustomContent         customStatic
 }
 
-// getUserMap needs to return the map with pointers, otherwise template cannot call
+// getUserMap needs to return the map with pointers; otherwise template cannot call
 // functions associated with it
 func getUserMap() map[int]*models.User {
 	result := make(map[int]*models.User)
@@ -785,12 +785,19 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 		}
 	case ViewFileRequests:
 		allFiles := database.GetAllMetadata()
-		for _, element := range database.GetAllFileRequests() {
-			if element.Owner != user.Id && !user.HasPermissionListOtherUploads() {
+		for _, fileRequest := range database.GetAllFileRequests() {
+			// Double-checking if the owner of the file request exists
+			// If the user was manually deleted from the database, this could lead to a crash
+			// in the file request view
+			_, ok := u.UserMap[fileRequest.UserId]
+			if !ok {
 				continue
 			}
-			element.Populate(allFiles)
-			u.FileRequests = append(u.FileRequests, element)
+			if fileRequest.UserId != user.Id && !user.HasPermissionListOtherUploads() {
+				continue
+			}
+			fileRequest.Populate(allFiles)
+			u.FileRequests = append(u.FileRequests, fileRequest)
 			//TODO sorting?
 		}
 	}

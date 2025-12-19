@@ -706,6 +706,8 @@ func CleanUp(periodic bool) {
 	}
 	cleanOldTempFiles()
 	cleanHotlinks()
+	cleanInvalidApiKeys()
+	cleanInvalidFileRequests()
 	database.RunGarbageCollection()
 
 	if periodic {
@@ -715,6 +717,42 @@ func CleanUp(periodic bool) {
 				CleanUp(periodic)
 			}
 		}()
+	}
+}
+
+func getUserMap() map[int]models.User {
+	result := make(map[int]models.User)
+	users := database.GetAllUsers()
+	for _, user := range users {
+		result[user.Id] = user
+	}
+	return result
+}
+
+// cleanInvalidApiKeys removes all API keys that are not associated with a user anymore
+// Normally this should not be a problem, but if a user was manually deleted from the database,
+// this could cause issues otherwise.
+func cleanInvalidApiKeys() {
+	users := getUserMap()
+	for _, apiKey := range database.GetAllApiKeys() {
+		_, exists := users[apiKey.UserId]
+		if !exists {
+			database.DeleteApiKey(apiKey.Id)
+		}
+	}
+}
+
+// cleanInvalidFileRequests removes file requests and the associated files from the database if their associated owner is not a valid user.
+// Normally this should not be a problem, but if a user was manually deleted from the database,
+// this could cause issues otherwise.
+func cleanInvalidFileRequests() {
+	users := getUserMap()
+	for _, fileRequest := range database.GetAllFileRequests() {
+		_, exists := users[fileRequest.UserId]
+		if !exists {
+			DeleteFileRequest(fileRequest)
+		}
+
 	}
 }
 
@@ -864,4 +902,25 @@ func CancelPendingFileDeletion(fileId string) (models.File, bool) {
 	file.PendingDeletion = 0
 	database.SaveMetaData(file)
 	return file, true
+}
+
+// DeleteFileRequest deletes all files associated with a file request and the request itself
+func DeleteFileRequest(request models.FileRequest) {
+	files := GetAllFilesFromFileRequest(request)
+	for _, file := range files {
+		DeleteFile(file.Id, true)
+	}
+	database.DeleteFileRequest(request)
+}
+
+// GetAllFilesFromFileRequest returns a list of all files associated with a file request
+func GetAllFilesFromFileRequest(request models.FileRequest) []models.File {
+	var result []models.File
+	files := database.GetAllMetadata()
+	for _, file := range files {
+		if file.UploadRequestId == request.Id {
+			result = append(result, file)
+		}
+	}
+	return result
 }

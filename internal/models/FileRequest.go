@@ -4,17 +4,17 @@ import "time"
 
 type FileRequest struct {
 	Id            int    `json:"id" redis:"id"`                     // The internal ID of the file request
-	Owner         int    `json:"owner" redis:"owner"`               // The user ID of the owner
+	UserId        int    `json:"userid" redis:"userid"`             // The user ID of the owner
 	MaxFiles      int    `json:"maxfiles" redis:"maxfiles"`         // The maximum number of files allowed
 	MaxSize       int    `json:"maxsize" redis:"maxsize"`           // The maximum file size allowed in MB
 	Expiry        int64  `json:"expiry" redis:"expiry"`             // The expiry time of the file request
-	CreationDate  int64  `json:"creationdate" redis:"creationdate"` // The timestamp of the creation of the file request
+	CreationDate  int64  `json:"creationdate" redis:"creationdate"` // The timestamp of the file request creation
 	Name          string `json:"name" redis:"name"`                 // The given name for the file request
 	UploadedFiles int    `json:"uploadedfiles" redis:"-"`           // Contains the number of uploaded files for this request. Needs to be calculated with Populate()
 	LastUpload    int64  `json:"lastupload" redis:"-"`              // Contains the timestamp of the last upload for this request. Needs to be calculated with Populate()
-
 }
 
+// Populate inserts the number of uploaded files and the last upload date
 func (f *FileRequest) Populate(files map[string]File) {
 	for _, file := range files {
 		if file.UploadRequestId == f.Id {

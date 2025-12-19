@@ -49,7 +49,7 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 									 CREATE TABLE "UploadRequests" (
 										"id"	INTEGER NOT NULL UNIQUE,
 										"name"	TEXT NOT NULL,
-										"owner"	INTEGER NOT NULL,
+										"userid"	INTEGER NOT NULL,
 										"expiry"	INTEGER NOT NULL,
 										"maxFiles"	INTEGER NOT NULL,
 										"maxSize"	INTEGER NOT NULL,
@@ -207,7 +207,7 @@ func (p DatabaseProvider) createNewDatabase() error {
 		CREATE TABLE "UploadRequests" (
 			"id"	INTEGER NOT NULL UNIQUE,
 			"name"	TEXT,
-			"owner"	INTEGER NOT NULL,
+			"userid"	INTEGER NOT NULL,
 			"expiry"	INTEGER NOT NULL,
 			"maxFiles"	INTEGER NOT NULL,
 			"maxSize"	INTEGER NOT NULL,

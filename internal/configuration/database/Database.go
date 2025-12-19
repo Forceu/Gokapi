@@ -346,15 +346,3 @@ func SaveFileRequest(request models.FileRequest) {
 func DeleteFileRequest(request models.FileRequest) {
 	db.DeleteFileRequest(request)
 }
-
-// GetFilesFromFileRequest returns a list of all files associated with a file request
-func GetFilesFromFileRequest(request models.FileRequest) []models.File {
-	var result []models.File
-	files := db.GetAllMetadata()
-	for _, file := range files {
-		if file.UploadRequestId == request.Id {
-			result = append(result, file)
-		}
-	}
-	return result
-}

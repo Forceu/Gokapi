@@ -805,16 +805,12 @@ func apiURequestDelete(w http.ResponseWriter, r requestParser, user models.User)
 		sendError(w, http.StatusNotFound, "FileRequest does not exist with the given ID")
 		return
 	}
-	if uploadRequest.Owner != user.Id && !user.HasPermission(models.UserPermListOtherUploads) {
+	if uploadRequest.UserId != user.Id && !user.HasPermission(models.UserPermListOtherUploads) {
 		sendError(w, http.StatusUnauthorized, "No permission to delete this upload request")
 		return
 	}
 
-	files := database.GetFilesFromFileRequest(uploadRequest)
-	for _, file := range files {
-		database.DeleteMetaData(file.Id)
-	}
-	database.DeleteFileRequest(uploadRequest)
+	storage.DeleteFileRequest(uploadRequest)
 	_, _ = w.Write([]byte("{\"result\":\"OK\"}"))
 }
 
