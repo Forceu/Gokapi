@@ -1,15 +1,16 @@
 package database
 
 import (
+	"log"
+	"os"
+	"testing"
+	"time"
+
 	"github.com/alicebob/miniredis/v2"
 	"github.com/forceu/gokapi/internal/configuration/database/dbabstraction"
 	"github.com/forceu/gokapi/internal/configuration/database/dbcache"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/test"
-	"log"
-	"os"
-	"testing"
-	"time"
 )
 
 var configSqlite = models.DbConnection{
@@ -92,32 +93,6 @@ func TestApiKeys(t *testing.T) {
 	runAllTypesCompareTwoOutputs(t, func() (any, any) {
 		return GetApiKeyByPublicKey("publicId")
 	}, "publicTest", true)
-
-	runAllTypesCompareOutput(t, func() any {
-		_, ok := GetSystemKey(6)
-		return ok
-	}, false)
-
-	runAllTypesNoOutput(t, func() {
-		SaveApiKey(models.ApiKey{
-			Id:          "sysKey1",
-			PublicId:    "sysKey1",
-			IsSystemKey: true,
-			Expiry:      time.Now().Add(1 * time.Hour).Unix(),
-			UserId:      6,
-		})
-		SaveApiKey(models.ApiKey{
-			Id:          "sysKey2",
-			PublicId:    "sysKey2",
-			IsSystemKey: true,
-			Expiry:      time.Now().Add(2 * time.Hour).Unix(),
-			UserId:      6,
-		})
-	})
-	runAllTypesCompareTwoOutputs(t, func() (any, any) {
-		key, ok := GetSystemKey(6)
-		return key.Id, ok
-	}, "sysKey2", true)
 }
 
 func TestE2E(t *testing.T) {

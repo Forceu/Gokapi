@@ -139,11 +139,6 @@ func DeleteApiKey(id string) {
 	db.DeleteApiKey(id)
 }
 
-// GetSystemKey returns the latest UI API key
-func GetSystemKey(userId int) (models.ApiKey, bool) {
-	return db.GetSystemKey(userId)
-}
-
 // GetApiKeyByPublicKey returns an API key by using the public key
 func GetApiKeyByPublicKey(publicKey string) (string, bool) {
 	return db.GetApiKeyByPublicKey(publicKey)

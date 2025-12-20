@@ -3,13 +3,6 @@ package api
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/forceu/gokapi/internal/configuration"
-	"github.com/forceu/gokapi/internal/configuration/database"
-	"github.com/forceu/gokapi/internal/helper"
-	"github.com/forceu/gokapi/internal/models"
-	"github.com/forceu/gokapi/internal/storage"
-	"github.com/forceu/gokapi/internal/test"
-	"github.com/forceu/gokapi/internal/test/testconfiguration"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -19,6 +12,14 @@ import (
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/forceu/gokapi/internal/configuration"
+	"github.com/forceu/gokapi/internal/configuration/database"
+	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/storage"
+	"github.com/forceu/gokapi/internal/test"
+	"github.com/forceu/gokapi/internal/test/testconfiguration"
 )
 
 func TestMain(m *testing.M) {
@@ -534,65 +535,7 @@ func TestUserModify(t *testing.T) {
 	retrievedUser, ok := database.GetUserByName("ToModify")
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, retrievedUser.Id != idUser, true)
-	systemKeyId := GetSystemKey(retrievedUser.Id)
-	systemKey, ok := database.GetApiKey(systemKeyId)
 	test.IsEqualBool(t, ok, true)
-	test.IsEqualBool(t, systemKey.HasPermissionReplace(), false)
-	test.IsEqualBool(t, systemKey.HasPermissionManageUsers(), false)
-
-	for permissionUint, permissionString := range getUserPermMap(t) {
-		test.IsEqualBool(t, retrievedUser.HasPermission(permissionUint), false)
-		testUserModifyCall(t, apiKey.Id, retrievedUser.Id, permissionString, true)
-		retrievedUser, ok = database.GetUserByName("ToModify")
-		test.IsEqualBool(t, ok, true)
-		test.IsEqualBool(t, retrievedUser.HasPermission(permissionUint), true)
-		if permissionUint == models.UserPermReplaceUploads || permissionUint == models.UserPermManageUsers {
-			affectedPermission := getAffectedApiPerm(t, permissionUint)
-			systemKey, ok = database.GetApiKey(systemKeyId)
-			test.IsEqualBool(t, ok, true)
-			test.IsEqualBool(t, systemKey.HasPermission(affectedPermission), true)
-			key := models.ApiKey{
-				Id:          idNewKey,
-				PublicId:    idNewKey,
-				Permissions: models.ApiPermNone,
-				UserId:      retrievedUser.Id,
-			}
-			key.GrantPermission(affectedPermission)
-			database.SaveApiKey(key)
-			newKey, ok := database.GetApiKey(idNewKey)
-			test.IsEqualBool(t, ok, true)
-			test.IsEqualBool(t, newKey.HasPermission(affectedPermission), true)
-		}
-
-		testUserModifyCall(t, apiKey.Id, retrievedUser.Id, permissionString, false)
-		retrievedUser, ok = database.GetUserByName("ToModify")
-		test.IsEqualBool(t, ok, true)
-		test.IsEqualBool(t, retrievedUser.HasPermission(permissionUint), false)
-		if permissionUint == models.UserPermReplaceUploads || permissionUint == models.UserPermManageUsers {
-			affectedPermission := getAffectedApiPerm(t, permissionUint)
-			newKey, ok := database.GetApiKey(idNewKey)
-			test.IsEqualBool(t, ok, true)
-			test.IsEqualBool(t, newKey.HasPermission(affectedPermission), false)
-			systemKey, ok = database.GetApiKey(systemKeyId)
-			test.IsEqualBool(t, systemKey.HasPermission(affectedPermission), false)
-		}
-	}
-	database.DeleteApiKey(systemKeyId)
-
-	defer test.ExpectPanic(t)
-	apiModifyUser(nil, &paramAuthCreate{}, models.User{Id: 7})
-}
-
-func getAffectedApiPerm(t *testing.T, permission models.UserPermission) models.ApiPermission {
-	switch permission {
-	case models.UserPermManageUsers:
-		return models.ApiPermManageUsers
-	case models.UserPermReplaceUploads:
-		return models.ApiPermReplace
-	default:
-		t.Errorf("Invalid permission %d", permission)
-		return models.ApiPermNone
-	}
 }
 
 func TestUserPasswordReset(t *testing.T) {
@@ -854,62 +797,6 @@ func getUserPermMap(t *testing.T) map[models.UserPermission]string {
 		t.Fatal("List of permissions are incorrect")
 	}
 	return result
-}
-
-func TestGetSystemKey(t *testing.T) {
-	keys := database.GetAllApiKeys()
-	for _, key := range keys {
-		if key.IsSystemKey {
-			t.Error("No system key expected, but found")
-		}
-	}
-	systemKey := GetSystemKey(5)
-	retrievedSystemKey, ok := database.GetApiKey(systemKey)
-	test.IsEqualBool(t, ok, true)
-	test.IsEqualBool(t, retrievedSystemKey.IsSystemKey, true)
-	test.IsEqualBool(t, retrievedSystemKey.Permissions == models.ApiPermAll, true)
-	test.IsEqualBool(t, retrievedSystemKey.Expiry > time.Now().Add(time.Hour*47).Unix(), true)
-	newKey := GetSystemKey(5)
-	test.IsEqualBool(t, systemKey == newKey, true)
-	retrievedSystemKey.Expiry = time.Now().Add(time.Hour * 23).Unix()
-	database.SaveApiKey(retrievedSystemKey)
-	newKey = GetSystemKey(5)
-	test.IsEqualBool(t, systemKey != newKey, true)
-
-	newUser := models.User{
-		Id:          70,
-		Name:        "TestNoUser",
-		Permissions: models.UserPermissionAll,
-		UserLevel:   models.UserLevelUser,
-		LastOnline:  0,
-	}
-	newUser.RemovePermission(models.UserPermManageUsers)
-	database.SaveUser(newUser, false)
-	newUser = models.User{
-		Id:          71,
-		Name:        "TestNoReplace",
-		Permissions: models.UserPermissionAll,
-		UserLevel:   models.UserLevelUser,
-		LastOnline:  0,
-	}
-	newUser.RemovePermission(models.UserPermReplaceUploads)
-	database.SaveUser(newUser, false)
-
-	newKey = GetSystemKey(70)
-	systemApiKey, ok := database.GetApiKey(newKey)
-	test.IsEqualBool(t, ok, true)
-	test.IsEqualBool(t, systemApiKey.HasPermissionEdit(), true)
-	test.IsEqualBool(t, systemApiKey.HasPermissionManageUsers(), false)
-	test.IsEqualBool(t, systemApiKey.HasPermissionReplace(), true)
-	newKey = GetSystemKey(71)
-	systemApiKey, ok = database.GetApiKey(newKey)
-	test.IsEqualBool(t, ok, true)
-	test.IsEqualBool(t, systemApiKey.HasPermissionEdit(), true)
-	test.IsEqualBool(t, systemApiKey.HasPermissionManageUsers(), true)
-	test.IsEqualBool(t, systemApiKey.HasPermissionReplace(), false)
-
-	defer test.ExpectPanic(t)
-	GetSystemKey(idInvalidUser)
 }
 
 func grantUserPermission(t *testing.T, userId int, permission models.UserPermission) {

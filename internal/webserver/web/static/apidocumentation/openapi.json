@@ -825,7 +825,7 @@
             "explode": false,
             "schema": {
               "type": "string",
-              "enum": ["PERM_VIEW", "PERM_UPLOAD", "PERM_EDIT", "PERM_DELETE", "PERM_REPLACE", "PERM_MANAGE_USERS", "PERM_API_MOD"]
+              "enum": ["PERM_VIEW", "PERM_UPLOAD", "PERM_EDIT", "PERM_DELETE", "PERM_REPLACE", "PERM_MANAGE_LOGS", "PERM_MANAGE_USERS", "PERM_API_MOD"]
             }
           },
           {

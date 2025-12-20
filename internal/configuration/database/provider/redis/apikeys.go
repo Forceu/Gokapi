@@ -1,10 +1,11 @@
 package redis
 
 import (
+	"strings"
+
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	redigo "github.com/gomodule/redigo/redis"
-	"strings"
 )
 
 const (
@@ -39,29 +40,6 @@ func (p DatabaseProvider) GetApiKey(id string) (models.ApiKey, bool) {
 	apikey, err := dbToApiKey(id, result)
 	helper.Check(err)
 	return apikey, true
-}
-
-// GetSystemKey returns the latest UI API key
-func (p DatabaseProvider) GetSystemKey(userId int) (models.ApiKey, bool) {
-	keys := p.GetAllApiKeys()
-	foundKey := ""
-	var latestExpiry int64
-	for _, key := range keys {
-		if !key.IsSystemKey {
-			continue
-		}
-		if key.UserId != userId {
-			continue
-		}
-		if key.Expiry > latestExpiry {
-			foundKey = key.Id
-			latestExpiry = key.Expiry
-		}
-	}
-	if foundKey == "" {
-		return models.ApiKey{}, false
-	}
-	return keys[foundKey], true
 }
 
 // GetApiKeyByPublicKey returns an API key by using the public key
