@@ -959,6 +959,9 @@ function handleUndo(button) {
     apiFilesRestore(button.dataset.fileid)
         .then(data => {
             addRow(data.FileInfo);
+            if (isE2EEnabled) {
+            	GokapiE2EDecryptMenu();
+            }
         })
         .catch(error => {
             alert("Unable to restore file: " + error);
