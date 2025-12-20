@@ -653,7 +653,6 @@ func showE2ESetup(w http.ResponseWriter, r *http.Request) {
 	err = templateFolder.ExecuteTemplate(w, "e2esetup", e2ESetupView{
 		HasBeenSetup:  e2einfo.HasBeenSetUp(),
 		PublicName:    configuration.Get().PublicName,
-		SystemKey:     api.GetSystemKey(user.Id),
 		CustomContent: customStaticInfo})
 	helper.CheckIgnoreTimeout(err)
 }
@@ -681,7 +680,6 @@ type e2ESetupView struct {
 	IsDownloadView bool
 	HasBeenSetup   bool
 	PublicName     string
-	SystemKey      string
 	CustomContent  customStatic
 }
 
@@ -695,7 +693,6 @@ type AdminView struct {
 	ServerUrl             string
 	Logs                  string
 	PublicName            string
-	SystemKey             string
 	IsAdminView           bool
 	IsDownloadView        bool
 	IsApiView             bool
@@ -807,7 +804,6 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 	u.MinLengthPassword = config.MinLengthPassword
 	u.ChunkSize = config.ChunkSize
 	u.IncludeFilename = config.IncludeFilename
-	u.SystemKey = api.GetSystemKey(user.Id)
 	return u
 }
 

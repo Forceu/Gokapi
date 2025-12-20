@@ -290,20 +290,6 @@ This option disables Gokapis internal authentication completely, except for API 
 - ``/uploadChunk``
 - ``/uploadStatus``
 - ``/users``
-- ``/auth/token``
-- ``/changePassword``
-- ``/e2eSetup``
-- ``/logs``
-- ``/uploadChunk``
-- ``/uploadStatus``
-- ``/users``
-- ``/auth/token``
-- ``/changePassword``
-- ``/e2eSetup``
-- ``/logs``
-- ``/uploadChunk``
-- ``/uploadStatus``
-- ``/users``
 
 .. warning::
    This option has potential to be *very* dangerous, only proceed if you know what you are doing!

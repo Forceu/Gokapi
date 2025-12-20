@@ -124,49 +124,6 @@ func generateNewKey(defaultPermissions bool, userId int, friendlyName string) mo
 	return newKey
 }
 
-// newSystemKey generates a new API key that is only used internally for the GUI
-// and will be valid for 48 hours
-func newSystemKey(userId int) string {
-	user, ok := database.GetUser(userId)
-	if !ok {
-		panic("user not found")
-	}
-	tempKey := models.ApiKey{
-		Permissions: models.ApiPermAll,
-	}
-	if !user.HasPermissionReplace() {
-		tempKey.RemovePermission(models.ApiPermReplace)
-	}
-	if !user.HasPermissionManageUsers() {
-		tempKey.RemovePermission(models.ApiPermManageUsers)
-	}
-	if !user.HasPermissionManageLogs() {
-		tempKey.RemovePermission(models.ApiPermManageLogs)
-	}
-
-	newKey := models.ApiKey{
-		Id:           helper.GenerateRandomString(LengthApiKey),
-		PublicId:     helper.GenerateRandomString(LengthPublicId),
-		FriendlyName: "Internal System Key",
-		Permissions:  tempKey.Permissions,
-		Expiry:       time.Now().Add(time.Hour * 48).Unix(),
-		IsSystemKey:  true,
-		UserId:       userId,
-	}
-	database.SaveApiKey(newKey)
-	return newKey.Id
-}
-
-// GetSystemKey returns the latest System API key or generates a new one, if none exists or the current one expires
-// within the next 24 hours
-func GetSystemKey(userId int) string {
-	key, ok := database.GetSystemKey(userId)
-	if !ok || key.Expiry < time.Now().Add(time.Hour*24).Unix() {
-		return newSystemKey(userId)
-	}
-	return key.Id
-}
-
 func apiDeleteKey(w http.ResponseWriter, r requestParser, user models.User) {
 	request, ok := r.(*paramAuthDelete)
 	if !ok {
