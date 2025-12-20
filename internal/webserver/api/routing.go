@@ -4,12 +4,13 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"github.com/forceu/gokapi/internal/models"
-	"github.com/forceu/gokapi/internal/storage"
-	"github.com/forceu/gokapi/internal/storage/chunking"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/storage"
+	"github.com/forceu/gokapi/internal/storage/chunking"
 )
 
 type apiRoute struct {
@@ -323,26 +324,11 @@ type paramAuthModify struct {
 }
 
 func (p *paramAuthModify) ProcessParameter(_ *http.Request) error {
-	switch strings.ToUpper(p.permissionRaw) {
-	case "PERM_VIEW":
-		p.Permission = models.ApiPermView
-	case "PERM_UPLOAD":
-		p.Permission = models.ApiPermUpload
-	case "PERM_DELETE":
-		p.Permission = models.ApiPermDelete
-	case "PERM_API_MOD":
-		p.Permission = models.ApiPermApiMod
-	case "PERM_EDIT":
-		p.Permission = models.ApiPermEdit
-	case "PERM_REPLACE":
-		p.Permission = models.ApiPermReplace
-	case "PERM_MANAGE_USERS":
-		p.Permission = models.ApiPermManageUsers
-	case "PERM_MANAGE_LOGS":
-		p.Permission = models.ApiPermManageLogs
-	default:
-		return errors.New("invalid permission")
+	permission, err := models.ApiPermissionFromString(p.permissionRaw)
+	if err != nil {
+		return err
 	}
+	p.Permission = permission
 	switch strings.ToUpper(p.permissionModifier) {
 	case "GRANT":
 		p.GrantPermission = true

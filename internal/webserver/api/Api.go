@@ -3,6 +3,11 @@ package api
 import (
 	"encoding/json"
 	"errors"
+	"io"
+	"net/http"
+	"strings"
+	"time"
+
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/encryption"
@@ -11,14 +16,10 @@ import (
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
 	"github.com/forceu/gokapi/internal/webserver/fileupload"
-	"io"
-	"net/http"
-	"strings"
-	"time"
 )
 
-const lengthPublicId = 35
-const lengthApiKey = 30
+const LengthPublicId = 35
+const LengthApiKey = 30
 const minLengthUser = 2
 
 // Process parses the request and executes the API call or returns an error message to the sender
@@ -109,8 +110,8 @@ func generateNewKey(defaultPermissions bool, userId int, friendlyName string) mo
 		friendlyName = "Unnamed key"
 	}
 	newKey := models.ApiKey{
-		Id:           helper.GenerateRandomString(lengthApiKey),
-		PublicId:     helper.GenerateRandomString(lengthPublicId),
+		Id:           helper.GenerateRandomString(LengthApiKey),
+		PublicId:     helper.GenerateRandomString(LengthPublicId),
 		FriendlyName: friendlyName,
 		Permissions:  models.ApiPermDefault,
 		IsSystemKey:  false,
@@ -144,8 +145,8 @@ func newSystemKey(userId int) string {
 	}
 
 	newKey := models.ApiKey{
-		Id:           helper.GenerateRandomString(lengthApiKey),
-		PublicId:     helper.GenerateRandomString(lengthPublicId),
+		Id:           helper.GenerateRandomString(LengthApiKey),
+		PublicId:     helper.GenerateRandomString(LengthPublicId),
 		FriendlyName: "Internal System Key",
 		Permissions:  tempKey.Permissions,
 		Expiry:       time.Now().Add(time.Hour * 48).Unix(),
@@ -812,7 +813,7 @@ func sendError(w http.ResponseWriter, errorInt int, errorMessage string) {
 // publicKeyToApiKey tries to convert a (possible) public key to a private key
 // If not a public key or if invalid, the original value is returned
 func publicKeyToApiKey(publicKey string) string {
-	if len(publicKey) == lengthPublicId {
+	if len(publicKey) == LengthPublicId {
 		privateApiKey, ok := database.GetApiKeyByPublicKey(publicKey)
 		if ok {
 			return privateApiKey

@@ -2,6 +2,50 @@
 // All files named admin_*.js will be merged together and minimised by calling
 // go generate ./...
 
+
+const storedTokens = new Map();
+
+async function getToken(permission, forceRenewal) {
+    const apiUrl = './auth/token';
+
+    if (!forceRenewal) {
+        if (!storedTokens.has(permission)) {
+            return getToken(permission, true);
+        }
+        let token = storedTokens.get(permission);
+        if (token.expiry - (Date.now() / 1000) < 60) {
+            return getToken(permission, true);
+        }
+        return token.key;
+    }
+    const requestOptions = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'permission': permission
+
+        },
+    };
+    try {
+        const response = await fetch(apiUrl, requestOptions);
+        if (!response.ok) {
+            throw new Error(`Request failed with status: ${response.status}`);
+        }
+        const data = await response.json();
+        if (!data.hasOwnProperty("key")) {
+            throw new Error(`Invalid response when trying to get token`);
+        }
+        storedTokens.set(permission, {
+            key: data.key,
+            expiry: data.expiry
+        });
+        return data.key;
+    } catch (error) {
+        console.error("Error in getToken:", error);
+        throw error;
+    }
+}
+
 // /auth
 
 async function apiAuthModify(apiKey, permission, modifier) {

@@ -283,6 +283,21 @@ This option disables Gokapis internal authentication completely, except for API 
 
 - ``/admin``
 - ``/apiKeys``
+- ``/auth/token``
+- ``/changePassword``
+- ``/e2eSetup``
+- ``/logs``
+- ``/uploadChunk``
+- ``/uploadStatus``
+- ``/users``
+- ``/auth/token``
+- ``/changePassword``
+- ``/e2eSetup``
+- ``/logs``
+- ``/uploadChunk``
+- ``/uploadStatus``
+- ``/users``
+- ``/auth/token``
 - ``/changePassword``
 - ``/e2eSetup``
 - ``/logs``

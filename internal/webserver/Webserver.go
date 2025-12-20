@@ -17,6 +17,7 @@ import (
 	"log"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 	templatetext "text/template"
 	"time"
@@ -33,6 +34,7 @@ import (
 	"github.com/forceu/gokapi/internal/webserver/authentication"
 	"github.com/forceu/gokapi/internal/webserver/authentication/oauth"
 	"github.com/forceu/gokapi/internal/webserver/authentication/sessionmanager"
+	"github.com/forceu/gokapi/internal/webserver/authentication/tokengeneration"
 	"github.com/forceu/gokapi/internal/webserver/favicon"
 	"github.com/forceu/gokapi/internal/webserver/fileupload"
 	"github.com/forceu/gokapi/internal/webserver/sse"
@@ -91,6 +93,7 @@ func Start() {
 	loadExpiryImage()
 
 	mux.Handle("/", filesystemHandler(webserverDir))
+	mux.HandleFunc("/auth/token", requireLogin(handleGenerateAuthToken, false, false))
 	mux.HandleFunc("/admin", requireLogin(showAdminMenu, true, false))
 	mux.HandleFunc("/api/", processApi)
 	mux.HandleFunc("/apiKeys", requireLogin(showApiAdmin, true, false))
@@ -276,6 +279,25 @@ func showIndex(w http.ResponseWriter, r *http.Request) {
 		PublicName:    configuration.Get().PublicName,
 		CustomContent: customStaticInfo})
 	helper.CheckIgnoreTimeout(err)
+}
+
+func handleGenerateAuthToken(w http.ResponseWriter, r *http.Request) {
+	user, err := authentication.GetUserFromRequest(r)
+	if err != nil {
+		panic(err)
+	}
+	permString := r.Header.Get("permission")
+	permission, err := models.ApiPermissionFromString(permString)
+	if err != nil {
+		http.Error(w, "Invalid permission", http.StatusBadRequest)
+		return
+	}
+	token, expiry, err := tokengeneration.Generate(user, permission)
+	if err != nil {
+		http.Error(w, "Invalid permission", http.StatusBadRequest)
+		return
+	}
+	_, _ = w.Write([]byte("{\"key\":\"" + token + "\",\"expiry\":" + strconv.FormatInt(expiry, 10) + "}"))
 }
 
 // Handling of /changePassword
