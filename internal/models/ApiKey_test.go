@@ -1,9 +1,10 @@
 package models
 
 import (
-	"github.com/forceu/gokapi/internal/test"
 	"os"
 	"testing"
+
+	"github.com/forceu/gokapi/internal/test"
 )
 
 func TestApiKey_GetReadableDate(t *testing.T) {
@@ -120,6 +121,13 @@ func TestHasPermissionManageUsers(t *testing.T) {
 		t.Errorf("expected edit permission to be set")
 	}
 }
+func TestHasPermissionManageLogs(t *testing.T) {
+	key := &ApiKey{}
+	key.GrantPermission(ApiPermManageLogs)
+	if !key.HasPermissionManageLogs() {
+		t.Errorf("expected edit permission to be set")
+	}
+}
 
 func TestApiPermAllNoApiMod(t *testing.T) {
 	key := &ApiKey{}
@@ -141,7 +149,8 @@ func TestApiPermAll(t *testing.T) {
 		!key.HasPermission(ApiPermApiMod) ||
 		!key.HasPermission(ApiPermEdit) ||
 		!key.HasPermission(ApiPermReplace) ||
-		!key.HasPermission(ApiPermManageUsers) {
+		!key.HasPermission(ApiPermManageUsers) ||
+		!key.HasPermission(ApiPermManageLogs) {
 		t.Errorf("expected all permissions to be set")
 	}
 }
@@ -159,6 +168,7 @@ func checkOnlyPermissionSet(t *testing.T, key *ApiKey, perm ApiPermission) {
 		{ApiPermEdit, "ApiPermEdit"},
 		{ApiPermReplace, "ApiPermReplace"},
 		{ApiPermManageUsers, "ApiPermManageUsers"},
+		{ApiPermManageLogs, "ApiPermManageLogs"},
 	}
 
 	for _, p := range allPermissions {
@@ -189,6 +199,7 @@ func TestSetIndividualPermissions(t *testing.T) {
 		{ApiPermEdit, "ApiPermEdit"},
 		{ApiPermReplace, "ApiPermReplace"},
 		{ApiPermManageUsers, "ApiPermManageUsers"},
+		{ApiPermManageLogs, "ApiPermManageLogs"},
 	}
 
 	for _, p := range permissions {
@@ -217,6 +228,7 @@ func TestSetCombinedPermissions(t *testing.T) {
 		ApiPermEdit,
 		ApiPermReplace,
 		ApiPermManageUsers,
+		ApiPermManageLogs,
 	}
 
 	// Test setting permissions in combination
@@ -226,5 +238,81 @@ func TestSetCombinedPermissions(t *testing.T) {
 			key.GrantPermission(allPermissions[j])
 		}
 		checkCombinedPermissions(t, key, allPermissions[:i+1])
+	}
+}
+
+func TestApiPermissionFromString(t *testing.T) {
+	tests := []struct {
+		name      string
+		input     string
+		wantPerm  ApiPermission
+		wantError bool
+	}{
+		{
+			name:     "PERM_VIEW",
+			input:    "PERM_VIEW",
+			wantPerm: ApiPermView,
+		},
+		{
+			name:     "PERM_UPLOAD lowercase",
+			input:    "perm_upload",
+			wantPerm: ApiPermUpload,
+		},
+		{
+			name:     "PERM_DELETE mixed case",
+			input:    "Perm_Delete",
+			wantPerm: ApiPermDelete,
+		},
+		{
+			name:     "PERM_API_MOD",
+			input:    "PERM_API_MOD",
+			wantPerm: ApiPermApiMod,
+		},
+		{
+			name:     "PERM_EDIT",
+			input:    "PERM_EDIT",
+			wantPerm: ApiPermEdit,
+		},
+		{
+			name:     "PERM_REPLACE",
+			input:    "PERM_REPLACE",
+			wantPerm: ApiPermReplace,
+		},
+		{
+			name:     "PERM_MANAGE_USERS",
+			input:    "PERM_MANAGE_USERS",
+			wantPerm: ApiPermManageUsers,
+		},
+		{
+			name:     "PERM_MANAGE_LOGS",
+			input:    "PERM_MANAGE_LOGS",
+			wantPerm: ApiPermManageLogs,
+		},
+		{
+			name:      "invalid permission",
+			input:     "PERM_UNKNOWN",
+			wantError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotPerm, err := ApiPermissionFromString(tt.input)
+
+			if tt.wantError {
+				if err == nil {
+					t.Fatalf("expected error, got nil")
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if gotPerm != tt.wantPerm {
+				t.Fatalf("expected %v, got %v", tt.wantPerm, gotPerm)
+			}
+		})
 	}
 }

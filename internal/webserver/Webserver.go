@@ -17,6 +17,7 @@ import (
 	"log"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 	templatetext "text/template"
 	"time"
@@ -33,6 +34,7 @@ import (
 	"github.com/forceu/gokapi/internal/webserver/authentication"
 	"github.com/forceu/gokapi/internal/webserver/authentication/oauth"
 	"github.com/forceu/gokapi/internal/webserver/authentication/sessionmanager"
+	"github.com/forceu/gokapi/internal/webserver/authentication/tokengeneration"
 	"github.com/forceu/gokapi/internal/webserver/favicon"
 	"github.com/forceu/gokapi/internal/webserver/fileupload"
 	"github.com/forceu/gokapi/internal/webserver/sse"
@@ -91,6 +93,7 @@ func Start() {
 	loadExpiryImage()
 
 	mux.Handle("/", filesystemHandler(webserverDir))
+	mux.HandleFunc("/auth/token", requireLogin(handleGenerateAuthToken, false, false))
 	mux.HandleFunc("/admin", requireLogin(showAdminMenu, true, false))
 	mux.HandleFunc("/api/", processApi)
 	mux.HandleFunc("/apiKeys", requireLogin(showApiAdmin, true, false))
@@ -277,6 +280,25 @@ func showIndex(w http.ResponseWriter, r *http.Request) {
 		PublicName:    configuration.Get().PublicName,
 		CustomContent: customStaticInfo})
 	helper.CheckIgnoreTimeout(err)
+}
+
+func handleGenerateAuthToken(w http.ResponseWriter, r *http.Request) {
+	user, err := authentication.GetUserFromRequest(r)
+	if err != nil {
+		panic(err)
+	}
+	permString := r.Header.Get("permission")
+	permission, err := models.ApiPermissionFromString(permString)
+	if err != nil {
+		http.Error(w, "Invalid permission", http.StatusBadRequest)
+		return
+	}
+	token, expiry, err := tokengeneration.Generate(user, permission)
+	if err != nil {
+		http.Error(w, "Invalid permission", http.StatusBadRequest)
+		return
+	}
+	_, _ = w.Write([]byte("{\"key\":\"" + token + "\",\"expiry\":" + strconv.FormatInt(expiry, 10) + "}"))
 }
 
 // Handling of /changePassword
@@ -643,7 +665,6 @@ func showE2ESetup(w http.ResponseWriter, r *http.Request) {
 	err = templateFolder.ExecuteTemplate(w, "e2esetup", e2ESetupView{
 		HasBeenSetup:  e2einfo.HasBeenSetUp(),
 		PublicName:    configuration.Get().PublicName,
-		SystemKey:     api.GetSystemKey(user.Id),
 		CustomContent: customStaticInfo})
 	helper.CheckIgnoreTimeout(err)
 }
@@ -671,7 +692,6 @@ type e2ESetupView struct {
 	IsDownloadView bool
 	HasBeenSetup   bool
 	PublicName     string
-	SystemKey      string
 	CustomContent  customStatic
 }
 
@@ -686,7 +706,6 @@ type AdminView struct {
 	ServerUrl             string
 	Logs                  string
 	PublicName            string
-	SystemKey             string
 	IsAdminView           bool
 	IsDownloadView        bool
 	IsApiView             bool
@@ -817,7 +836,6 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 	u.MinLengthPassword = config.MinLengthPassword
 	u.ChunkSize = config.ChunkSize
 	u.IncludeFilename = config.IncludeFilename
-	u.SystemKey = api.GetSystemKey(user.Id)
 	return u
 }
 

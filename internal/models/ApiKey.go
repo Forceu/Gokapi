@@ -1,25 +1,27 @@
 package models
 
 import (
+	"errors"
+	"strings"
 	"time"
 )
 
 const (
-	// ApiPermView is the permission for viewing metadata of all uploaded files
+	// ApiPermView is the permission for viewing metadata of all uploaded files PERM_VIEW
 	ApiPermView ApiPermission = 1 << iota
-	// ApiPermUpload is the permission for creating new files
+	// ApiPermUpload is the permission for creating new files PERM_UPLOAD
 	ApiPermUpload
-	// ApiPermDelete is the permission for deleting files
+	// ApiPermDelete is the permission for deleting files PERM_DELETE
 	ApiPermDelete
-	// ApiPermApiMod is the permission for adding / removing API key permissions
+	// ApiPermApiMod is the permission for adding / removing API key permissions PERM_API_MOD
 	ApiPermApiMod
-	// ApiPermEdit is the permission for editing parameters of uploaded files
+	// ApiPermEdit is the permission for editing parameters of uploaded files PERM_EDIT
 	ApiPermEdit
-	// ApiPermReplace is the permission for replacing the content of uploaded files
+	// ApiPermReplace is the permission for replacing the content of uploaded files PERM_REPLACE
 	ApiPermReplace
-	// ApiPermManageUsers is the permission for managing users
+	// ApiPermManageUsers is the permission for managing users PERM_MANAGE_USERS
 	ApiPermManageUsers
-	// ApiPermManageLogs is the permission required for managing the log file
+	// ApiPermManageLogs is the permission required for managing the log file PERM_MANAGE_LOGS
 	ApiPermManageLogs
 	// ApiPermManageFileRequests is the permission required for creating and managing file requests
 	ApiPermManageFileRequests
@@ -50,6 +52,31 @@ type ApiKey struct {
 
 // ApiPermission contains zero or more permissions as an uint16 format
 type ApiPermission uint16
+
+func ApiPermissionFromString(permString string) (ApiPermission, error) {
+	switch strings.ToUpper(permString) {
+	case "PERM_VIEW":
+		return ApiPermView, nil
+	case "PERM_UPLOAD":
+		return ApiPermUpload, nil
+	case "PERM_DELETE":
+		return ApiPermDelete, nil
+	case "PERM_API_MOD":
+		return ApiPermApiMod, nil
+	case "PERM_EDIT":
+		return ApiPermEdit, nil
+	case "PERM_REPLACE":
+		return ApiPermReplace, nil
+	case "PERM_MANAGE_USERS":
+		return ApiPermManageUsers, nil
+	case "PERM_MANAGE_LOGS":
+		return ApiPermManageLogs, nil
+	case "PERM_MANAGE_FILE_REQUESTS":
+		return ApiPermManageFileRequests, nil
+	default:
+		return 0, errors.New("invalid permission")
+	}
+}
 
 // GetReadableDate returns the date as YYYY-MM-DD HH:MM:SS
 func (key *ApiKey) GetReadableDate() string {

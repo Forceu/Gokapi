@@ -82,34 +82,6 @@ func (p DatabaseProvider) GetApiKey(id string) (models.ApiKey, bool) {
 	return result, true
 }
 
-// GetSystemKey returns the latest UI API key
-func (p DatabaseProvider) GetSystemKey(userId int) (models.ApiKey, bool) {
-	var rowResult schemaApiKeys
-	row := p.sqliteDb.QueryRow("SELECT * FROM ApiKeys WHERE IsSystemKey = 1 AND UserId = ? ORDER BY Expiry DESC LIMIT 1", userId)
-	err := row.Scan(&rowResult.Id, &rowResult.FriendlyName, &rowResult.LastUsed, &rowResult.Permissions, &rowResult.Expiry,
-		&rowResult.IsSystemKey, &rowResult.UserId, &rowResult.PublicId, &rowResult.UploadRequestId)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return models.ApiKey{}, false
-		}
-		helper.Check(err)
-		return models.ApiKey{}, false
-	}
-
-	result := models.ApiKey{
-		Id:              rowResult.Id,
-		PublicId:        rowResult.PublicId,
-		FriendlyName:    rowResult.FriendlyName,
-		LastUsed:        rowResult.LastUsed,
-		Permissions:     models.ApiPermission(rowResult.Permissions),
-		Expiry:          rowResult.Expiry,
-		IsSystemKey:     rowResult.IsSystemKey == 1,
-		UserId:          rowResult.UserId,
-		UploadRequestId: rowResult.UploadRequestId,
-	}
-	return result, true
-}
-
 // GetApiKeyByPublicKey returns an API key by using the public key
 func (p DatabaseProvider) GetApiKeyByPublicKey(publicKey string) (string, bool) {
 	var rowResult schemaApiKeys

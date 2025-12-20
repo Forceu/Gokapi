@@ -19,8 +19,8 @@ import (
 	"github.com/forceu/gokapi/internal/webserver/fileupload"
 )
 
-const lengthPublicId = 35
-const lengthApiKey = 30
+const LengthPublicId = 35
+const LengthApiKey = 30
 
 // Process parses the request and executes the API call or returns an error message to the sender
 func Process(w http.ResponseWriter, r *http.Request) {
@@ -110,8 +110,8 @@ func generateNewKey(defaultPermissions bool, userId int, friendlyName string) mo
 		friendlyName = "Unnamed key"
 	}
 	newKey := models.ApiKey{
-		Id:           helper.GenerateRandomString(lengthApiKey),
-		PublicId:     helper.GenerateRandomString(lengthPublicId),
+		Id:           helper.GenerateRandomString(LengthApiKey),
+		PublicId:     helper.GenerateRandomString(LengthPublicId),
 		FriendlyName: friendlyName,
 		Permissions:  models.ApiPermDefault,
 		IsSystemKey:  false,
@@ -122,49 +122,6 @@ func generateNewKey(defaultPermissions bool, userId int, friendlyName string) mo
 	}
 	database.SaveApiKey(newKey)
 	return newKey
-}
-
-// newSystemKey generates a new API key that is only used internally for the GUI
-// and will be valid for 48 hours
-func newSystemKey(userId int) string {
-	user, ok := database.GetUser(userId)
-	if !ok {
-		panic("user not found")
-	}
-	tempKey := models.ApiKey{
-		Permissions: models.ApiPermAll,
-	}
-	if !user.HasPermissionReplace() {
-		tempKey.RemovePermission(models.ApiPermReplace)
-	}
-	if !user.HasPermissionManageUsers() {
-		tempKey.RemovePermission(models.ApiPermManageUsers)
-	}
-	if !user.HasPermissionManageLogs() {
-		tempKey.RemovePermission(models.ApiPermManageLogs)
-	}
-
-	newKey := models.ApiKey{
-		Id:           helper.GenerateRandomString(lengthApiKey),
-		PublicId:     helper.GenerateRandomString(lengthPublicId),
-		FriendlyName: "Internal System Key",
-		Permissions:  tempKey.Permissions,
-		Expiry:       time.Now().Add(time.Hour * 48).Unix(),
-		IsSystemKey:  true,
-		UserId:       userId,
-	}
-	database.SaveApiKey(newKey)
-	return newKey.Id
-}
-
-// GetSystemKey returns the latest System API key or generates a new one, if none exists or the current one expires
-// within the next 24 hours
-func GetSystemKey(userId int) string {
-	key, ok := database.GetSystemKey(userId)
-	if !ok || key.Expiry < time.Now().Add(time.Hour*24).Unix() {
-		return newSystemKey(userId)
-	}
-	return key.Id
 }
 
 func apiDeleteKey(w http.ResponseWriter, r requestParser, user models.User) {
@@ -835,7 +792,7 @@ func sendError(w http.ResponseWriter, errorInt int, errorMessage string) {
 // publicKeyToApiKey tries to convert a (possible) public key to a private key
 // If not a public key or if invalid, the original value is returned
 func publicKeyToApiKey(publicKey string) string {
-	if len(publicKey) == lengthPublicId {
+	if len(publicKey) == LengthPublicId {
 		privateApiKey, ok := database.GetApiKeyByPublicKey(publicKey)
 		if ok {
 			return privateApiKey

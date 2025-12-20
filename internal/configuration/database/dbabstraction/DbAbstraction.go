@@ -44,8 +44,6 @@ type Database interface {
 	UpdateTimeApiKey(apikey models.ApiKey)
 	// DeleteApiKey deletes an API key with the given ID
 	DeleteApiKey(id string)
-	// GetSystemKey returns the latest UI API key
-	GetSystemKey(userId int) (models.ApiKey, bool)
 	// GetApiKeyByPublicKey returns an API key by using the public key
 	GetApiKeyByPublicKey(publicKey string) (string, bool)
 

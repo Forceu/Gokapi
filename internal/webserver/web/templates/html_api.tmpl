@@ -77,7 +77,6 @@
 </div>
 <script src="./js/min/admin.min.{{ template "js_admin_version"}}.js"></script>
 <script>
-	var systemKey = "{{.SystemKey}}";
 	var userName = "{{.ActiveUser.Name}}";
         var canViewOtherApiKeys = {{.ActiveUser.HasPermissionManageApi }};
         var canReplaceFiles = {{.ActiveUser.HasPermissionReplace }};

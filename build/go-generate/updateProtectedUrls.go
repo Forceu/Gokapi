@@ -97,7 +97,7 @@ func writeDocumentationFile(urls []string) {
 	for _, url := range urls {
 		output = output + "- ``" + url + "``\n"
 	}
-	regex := regexp.MustCompile(`proxy:(?:\r?\n)+((?:- ` + "``" + `\/\w+` + "``" + `\r?\n)+)`)
+	regex := regexp.MustCompile("proxy:(?:\\r?\\n)+(?:- ``\\/[^`]+``\\r?\\n)+")
 	matches := regex.FindAllIndex(documentationContent, -1)
 	if len(matches) != 1 {
 		fmt.Println("ERROR: Not one match found exactly for documentation")
