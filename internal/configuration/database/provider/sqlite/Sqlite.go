@@ -53,6 +53,7 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 										"expiry"	INTEGER NOT NULL,
 										"maxFiles"	INTEGER NOT NULL,
 										"maxSize"	INTEGER NOT NULL,
+										"creation"	INTEGER NOT NULL,
 										PRIMARY KEY("id" AUTOINCREMENT)
 									 );`)
 		helper.Check(err)
