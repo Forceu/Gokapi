@@ -42,7 +42,7 @@
 		                    <td>{{ .GetReadableDateLastUpdate }}</td>
 		                    <td>{{ .GetReadableDateExpiry }}</td>
 {{ if $.ActiveUser.HasPermissionListOtherUploads }}
-		                    <td>{{(index $.UserMap .Owner).Name}}</td>
+		                    <td>{{(index $.UserMap .UserId).Name}}</td>
 {{ end }}
 		                    <td>
 		                    	<div class="btn-group" role="group">
@@ -67,7 +67,6 @@
 </div>
 <script src="./js/min/admin.min.{{ template "js_admin_version"}}.js"></script>
 <script>
-	var systemKey = "{{.SystemKey}}";
 	var userName = "{{.ActiveUser.Name}}";
 </script>
 

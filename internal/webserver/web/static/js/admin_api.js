@@ -737,12 +737,22 @@ async function apiE2eStore(content) {
 
 async function apiURequestDelete(id) {
     const apiUrl = './api/uploadrequest/delete';
+    const reqPerm = 'PERM_MANAGE_FILE_REQUESTS';
+    
+    let token;
+
+    try {
+        token = await getToken(reqPerm, false);
+    } catch (error) {
+        console.error("Unable to gain permission token:", error);
+        throw error;
+    }
 
     const requestOptions = {
         method: 'DELETE',
         headers: {
             'Content-Type': 'application/json',
-            'apikey': systemKey,
+            'apikey': token,
             'id': id
         },
     };
