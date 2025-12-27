@@ -702,6 +702,18 @@ func apiDeleteUser(w http.ResponseWriter, r requestParser, user models.User) {
 	}
 	logging.LogUserDeletion(userToDelete, user)
 	database.DeleteUser(userToDelete.Id)
+
+	for _, fRequest := range database.GetAllFileRequests() {
+		if fRequest.UserId == userToDelete.Id {
+			if request.DeleteFiles {
+				storage.DeleteFileRequest(fRequest)
+			} else {
+				fRequest.UserId = user.Id
+				database.SaveFileRequest(fRequest)
+			}
+		}
+	}
+
 	for _, file := range database.GetAllMetadata() {
 		if file.UserId == userToDelete.Id {
 			if request.DeleteFiles {
