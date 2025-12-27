@@ -70,7 +70,19 @@
 	var userName = "{{.ActiveUser.Name}}";
 </script>
 
-<!-- Modal for deletion confirmation -->
+
+{{ template "urequest_modal_confirm" }}
+{{ template "urequest_modal_addedit" }}
+        
+{{ template "pagename" "UploadRequest"}}
+{{ template "customjs" .}}
+
+{{ template "footer" true }}
+{{ end }}
+
+
+
+{{ define "urequest_modal_confirm" }}
 	<div class="modal" tabindex="-1" id="deleteModal">
 	  <div class="modal-dialog gokapi-dialog">
 	    <div class="modal-content gokapi-dialog">
@@ -88,10 +100,53 @@
 	    </div>
 	  </div>
 	</div>
+{{ end }}
 
-        
-{{ template "pagename" "ApiOverview"}}
-{{ template "customjs" .}}
+{{ define "urequest_modal_addedit" }}
 
-{{ template "footer" true }}
+	<div class="modal fade" id="addEditModal" tabindex="-1"  aria-hidden="true">
+	  <div class="modal-dialog  modal-lg gokapi-dialog">
+	    <div class="modal-content gokapi-dialog">
+	      <div class="modal-header">
+		<h1 class="modal-title fs-5" id="m_urequestlabel">Title</h1>
+	      </div>
+	      <div class="modal-body">
+	      
+		<div class="input-group mb-3">
+		  <span class="input-group-text" id="basic-addon1">Title</span>
+		  <input type="text" class="form-control" placeholder="Friendly name" aria-label="Friendly name" aria-describedby="basic-addon1">
+		</div>
+
+		<div class="input-group mb-3">
+		  <div class="input-group-text">
+      			<input type="checkbox" id="mc_download"  checked aria-label="Max files" title="Max files"  data-toggle-target="mi_edit_down" onchange="handleEditCheckboxChange(this)">
+   		 </div>
+		  <span class="input-group-text" id="edit_down">Max Files</span>
+		  <input type="number" min="1" id="mi_edit_down" class="form-control" aria-label="Max Files" aria-describedby="edit_down" data-allow-regular-paste>
+		</div>
+
+		<div class="input-group mb-3">
+		  <div class="input-group-text">
+      			<input type="checkbox" id="mc_download"  checked aria-label="Limit downloads" title="Limit downloads"  data-toggle-target="mi_edit_down" onchange="handleEditCheckboxChange(this)">
+   		 </div>
+		  <span class="input-group-text" id="edit_down">Max Size</span>
+		  <input type="number" min="1" id="mi_edit_down" class="form-control" aria-label="Max Size" aria-describedby="edit_down" data-allow-regular-paste>
+		</div>
+		<div class="input-group mb-3">
+		  <div class="input-group-text">
+      			<input id="mc_expiry" type="checkbox" checked aria-label="Max Size" title="Max Size"  data-toggle-target="mi_edit_expiry" data-timestamp="" onchange="handleEditCheckboxChange(this)" >
+   		 </div>
+		  <span class="input-group-text" id="edit_expdate">Expiry&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+		  <input type="text" id="mi_edit_expiry" class="form-control" aria-label="Expiry" aria-describedby="edit_expdate"  data-allow-regular-paste>
+		</div>
+		
+	      </div>
+	      <div class="modal-footer">
+		<button type="button" class="btn btn-outline-light"  aria-label="Cancel" data-bs-dismiss="modal">Close</button>
+		<button type="button" class="btn btn-primary" data-fileid="" id="mb_save" onclick="editFile();">Save</button>
+	      </div>
+	    </div>
+	  </div>
+	</div>
+
 {{ end }}

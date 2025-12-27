@@ -36,3 +36,13 @@ function showDeleteFRequestModal(requestId, requestName, count) {
         deleteFileRequest(requestId);
     };
 }
+
+
+function newFileRequest() {
+    document.getElementById("m_urequestlabel").innerText = "New File Request";
+    $('#addEditModal').modal('show');
+
+    document.getElementById("buttonDelete").onclick = function() {
+        $('#addEditModal').modal('hide');
+    };
+}
