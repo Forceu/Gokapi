@@ -58,7 +58,8 @@ func sortFilerequests(users []models.FileRequest) []models.FileRequest {
 }
 
 // SaveFileRequest stores the hotlink associated with the file in the database
-func (p DatabaseProvider) SaveFileRequest(request models.FileRequest) {
+// Returns the ID of the new request
+func (p DatabaseProvider) SaveFileRequest(request models.FileRequest) int {
 	if request.Id == 0 {
 		id := p.getIncreasedInt(prefixFileRequestCounter)
 		request.Id = id
@@ -69,6 +70,7 @@ func (p DatabaseProvider) SaveFileRequest(request models.FileRequest) {
 		}
 	}
 	p.setHashMap(p.buildArgs(prefixUsers + strconv.Itoa(request.Id)).AddFlat(request))
+	return request.Id
 }
 
 // DeleteFileRequest deletes a file request with the given ID

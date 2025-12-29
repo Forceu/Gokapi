@@ -11,7 +11,7 @@ import (
 
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
-	// Required for sqlite driver
+	// Required for the sqlite driver
 	_ "modernc.org/sqlite"
 )
 

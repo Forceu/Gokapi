@@ -57,7 +57,7 @@
 		                    	<div class="btn-group" role="group">
                                 <button id="download-{{ .Id }}" type="button" class="btn btn-outline-light btn-sm {{ if eq .UploadedFiles 0 }} disabled {{ end }}"  onclick="" title="Download all"><i class="bi bi-download"></i></button>
                                 
-		                        <button id="edit-{{ .Id }}" type="button" onclick="" title="Edit request" class="btn btn-outline-light btn-sm">
+		                        <button id="edit-{{ .Id }}" type="button" title="Edit request" class="btn btn-outline-light btn-sm" onclick="newFileRequest()">
 		                        	<i class="bi bi-pencil"></i></button>
                                 
                                 

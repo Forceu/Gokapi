@@ -899,13 +899,99 @@
         }
       }
     },
+    "/uploadrequest/save": {
+      "post": {
+        "tags": [
+          "uploadrequest"
+        ],
+        "summary": "Creates a new or saves an existing upload request",
+        "description": "This API call creates a new upload request if the parameter ID is not submitted. If editing a request, only the submitted parameters will be changed. To save a request of a different user, the user requires the user permission EDIT to execute this call. Requires API permission GUEST_UPLOAD",
+        "operationId": "uploadrequestsave",
+        "security": [
+          {
+            "apikey": ["PERM_GUEST_UPLOAD"]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "header",
+            "description": "The request to be saved. If 0, a new request will be created",
+            "required": false,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "name",
+            "in": "header",
+            "description": "The given name for the request",
+            "required": false,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "expiry",
+            "in": "header",
+            "description": "The expiry as a UTC unix timestamp. No expiry if 0",
+            "required": false,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "maxfiles",
+            "in": "header",
+            "description": "The amount of files that can be uploaded. No limit if 0",
+            "required": false,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "maxsize",
+            "in": "header",
+            "description": "The maximum size in Megabytes per file. No limit if 0",
+            "required": false,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "400": {
+            "description": "Invalid ID or parameters supplied"
+          },
+          "401": {
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
+          },
+          "404": {
+            "description": "Upload request not found"
+          }
+        }
+      }
+    },
     "/uploadrequest/delete": {
       "delete": {
         "tags": [
           "uploadrequest"
         ],
         "summary": "Deletes the upload request and all associated files",
-        "description": "This API call deletes the given file requests. If files are associated with the request, they will also be deleted. Requires API permission GUEST_UPLOAD",
+        "description": "This API call deletes the given file requests. If files are associated with the request, they will also be deleted. To delete a request of a different user, the user requires the user permission DELETE to execute this call. Requires API permission GUEST_UPLOAD",
         "operationId": "uploadrequestdelete",
         "security": [
           {
@@ -921,7 +1007,7 @@
             "style": "simple",
             "explode": false,
             "schema": {
-              "type": "string"
+              "type": "integer"
             }
           }
         ],

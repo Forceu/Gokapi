@@ -773,13 +773,62 @@ func apiURequestDelete(w http.ResponseWriter, r requestParser, user models.User)
 		sendError(w, http.StatusNotFound, "FileRequest does not exist with the given ID")
 		return
 	}
-	if uploadRequest.UserId != user.Id && !user.HasPermission(models.UserPermListOtherUploads) {
+	if uploadRequest.UserId != user.Id && !user.HasPermission(models.UserPermDeleteOtherUploads) {
 		sendError(w, http.StatusUnauthorized, "No permission to delete this upload request")
 		return
 	}
 
 	storage.DeleteFileRequest(uploadRequest)
 	_, _ = w.Write([]byte("{\"result\":\"OK\"}"))
+}
+
+func apiURequestSave(w http.ResponseWriter, r requestParser, user models.User) {
+	request, ok := r.(*paramURequestSave)
+	if !ok {
+		panic("invalid parameter passed")
+	}
+	uploadRequest := models.FileRequest{}
+
+	if !request.IsNewRequest {
+		uploadRequest, ok = database.GetFileRequest(request.Id)
+		if !ok {
+			sendError(w, http.StatusNotFound, "FileRequest does not exist with the given ID")
+			return
+		}
+		if uploadRequest.UserId != user.Id && !user.HasPermission(models.UserPermEditOtherUploads) {
+			sendError(w, http.StatusUnauthorized, "No permission to edit this upload request")
+			return
+		}
+	} else {
+		uploadRequest.UserId = user.Id
+	}
+
+	if request.Name == "" {
+		if request.IsNameSet || uploadRequest.Name == "" {
+			uploadRequest.Name = "Unnamed Request"
+		}
+	} else {
+		uploadRequest.Name = request.Name
+	}
+	if request.IsExpirySet {
+		uploadRequest.Expiry = request.Expiry
+	}
+	if request.IsMaxFilesSet {
+		uploadRequest.MaxFiles = request.MaxFiles
+	}
+	if request.IsMaxSizeSet {
+		uploadRequest.MaxSize = request.MaxSize
+	}
+	id := database.SaveFileRequest(uploadRequest)
+	uploadRequest, ok = database.GetFileRequest(id)
+	if !ok {
+		sendError(w, http.StatusInternalServerError, "Could not save file request")
+		return
+	}
+	uploadRequest.Populate(database.GetAllMetadata())
+	result, err := json.Marshal(uploadRequest)
+	helper.Check(err)
+	_, _ = w.Write(result)
 }
 
 func isAuthorisedForApi(r *http.Request, routing apiRoute) (models.User, bool) {

@@ -103,7 +103,8 @@ type Database interface {
 	// GetAllFileRequests returns an array with all file requests
 	GetAllFileRequests() []models.FileRequest
 	// SaveFileRequest stores the hotlink associated with the file in the database
-	SaveFileRequest(request models.FileRequest)
+	// Returns the ID of the new request
+	SaveFileRequest(request models.FileRequest) int
 	// DeleteFileRequest deletes a file request with the given ID
 	DeleteFileRequest(request models.FileRequest)
 }

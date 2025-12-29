@@ -64,23 +64,23 @@ func (u *User) IsSameUser(userId int) bool {
 }
 
 const (
-	// UserPermReplaceUploads allows replacing uploads
+	// UserPermReplaceUploads allows replacing uploads PERM_REPLACE
 	UserPermReplaceUploads UserPermission = 1 << iota
-	// UserPermListOtherUploads allows also listing uploads by other users
+	// UserPermListOtherUploads allows also listing uploads by other users PERM_LIST
 	UserPermListOtherUploads
-	// UserPermEditOtherUploads allows editing of uploads by other users
+	// UserPermEditOtherUploads allows editing of uploads by other users PERM_EDIT
 	UserPermEditOtherUploads
-	// UserPermReplaceOtherUploads allows replacing of uploads by other users
+	// UserPermReplaceOtherUploads allows replacing of uploads by other users PERM_REPLACE_OTHER
 	UserPermReplaceOtherUploads
-	// UserPermDeleteOtherUploads allows deleting uploads by other users
+	// UserPermDeleteOtherUploads allows deleting uploads by other users PERM_DELETE
 	UserPermDeleteOtherUploads
-	// UserPermManageLogs allows viewing and deleting logs
+	// UserPermManageLogs allows viewing and deleting logs PERM_LOGS
 	UserPermManageLogs
-	// UserPermManageApiKeys allows editing and deleting of API keys by other users
+	// UserPermManageApiKeys allows editing and deleting of API keys by other users PERM_API
 	UserPermManageApiKeys
-	// UserPermManageUsers allows creating and editing of users, including granting and revoking permissions
+	// UserPermManageUsers allows creating and editing of users, including granting and revoking permissions PERM_USERS
 	UserPermManageUsers
-	// UserPermGuestUploads allows creating file requests
+	// UserPermGuestUploads allows creating file requests PERM_GUEST_UPLOAD
 	UserPermGuestUploads
 )
 

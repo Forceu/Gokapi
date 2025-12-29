@@ -846,3 +846,80 @@ func (p *paramURequestDelete) ParseRequest(r *http.Request) error {
 func (p *paramURequestDelete) New() requestParser {
 	return &paramURequestDelete{}
 }
+
+// ParseRequest reads r and saves the passed header values in the paramURequestSave struct
+// In the end, ProcessParameter() is called
+func (p *paramURequestSave) ParseRequest(r *http.Request) error {
+	var err error
+	var exists bool
+	p.foundHeaders = make(map[string]bool)
+
+	// RequestParser header value "id", required: false
+	exists, err = checkHeaderExists(r, "id", false, false)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["id"] = exists
+	if exists {
+		p.Id, err = parseHeaderInt(r, "id")
+		if err != nil {
+			return fmt.Errorf("invalid value in header id supplied")
+		}
+	}
+
+	// RequestParser header value "name", required: false
+	exists, err = checkHeaderExists(r, "name", false, true)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["name"] = exists
+	if exists {
+		p.Name = r.Header.Get("name")
+	}
+
+	// RequestParser header value "expiry", required: false
+	exists, err = checkHeaderExists(r, "expiry", false, false)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["expiry"] = exists
+	if exists {
+		p.Expiry, err = parseHeaderInt64(r, "expiry")
+		if err != nil {
+			return fmt.Errorf("invalid value in header expiry supplied")
+		}
+	}
+
+	// RequestParser header value "maxfiles", required: false
+	exists, err = checkHeaderExists(r, "maxfiles", false, false)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["maxfiles"] = exists
+	if exists {
+		p.MaxFiles, err = parseHeaderInt(r, "maxfiles")
+		if err != nil {
+			return fmt.Errorf("invalid value in header maxfiles supplied")
+		}
+	}
+
+	// RequestParser header value "maxsize", required: false
+	exists, err = checkHeaderExists(r, "maxsize", false, false)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["maxsize"] = exists
+	if exists {
+		p.MaxSize, err = parseHeaderInt(r, "maxsize")
+		if err != nil {
+			return fmt.Errorf("invalid value in header maxsize supplied")
+		}
+	}
+
+	return p.ProcessParameter(r)
+}
+
+// New returns a new instance of paramURequestSave struct
+func (p *paramURequestSave) New() requestParser {
+	return &paramURequestSave{}
+}

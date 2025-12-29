@@ -158,6 +158,12 @@ var routes = []apiRoute{
 		RequestParser: &paramUserResetPw{},
 	},
 	{
+		Url:           "/uploadrequest/save",
+		ApiPerm:       models.ApiPermManageFileRequests,
+		execution:     apiURequestSave,
+		RequestParser: &paramURequestSave{},
+	},
+	{
 		Url:           "/uploadrequest/delete",
 		ApiPerm:       models.ApiPermManageFileRequests,
 		execution:     apiURequestDelete,
@@ -552,6 +558,40 @@ type paramURequestDelete struct {
 }
 
 func (p *paramURequestDelete) ProcessParameter(_ *http.Request) error {
+	return nil
+}
+
+type paramURequestSave struct {
+	Id            int    `header:"id"`
+	Name          string `header:"name"`
+	Expiry        int64  `header:"expiry"`
+	MaxFiles      int    `header:"maxfiles"`
+	MaxSize       int    `header:"maxsize"`
+	IsNewRequest  bool
+	IsNameSet     bool
+	IsExpirySet   bool
+	IsMaxFilesSet bool
+	IsMaxSizeSet  bool
+
+	foundHeaders map[string]bool
+}
+
+func (p *paramURequestSave) ProcessParameter(_ *http.Request) error {
+	if !p.foundHeaders["id"] {
+		p.IsNewRequest = true
+	}
+	if p.foundHeaders["name"] {
+		p.IsNameSet = true
+	}
+	if p.foundHeaders["expiry"] {
+		p.IsExpirySet = true
+	}
+	if p.foundHeaders["maxfiles"] {
+		p.IsMaxFilesSet = true
+	}
+	if p.foundHeaders["maxsize"] {
+		p.IsMaxSizeSet = true
+	}
 	return nil
 }
 

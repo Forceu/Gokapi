@@ -333,8 +333,9 @@ func GetAllFileRequests() []models.FileRequest {
 }
 
 // SaveFileRequest stores the hotlink associated with the file in the database
-func SaveFileRequest(request models.FileRequest) {
-	db.SaveFileRequest(request)
+// Returns the ID of the new request
+func SaveFileRequest(request models.FileRequest) int {
+	return db.SaveFileRequest(request)
 }
 
 // DeleteFileRequest deletes a file request with the given ID
