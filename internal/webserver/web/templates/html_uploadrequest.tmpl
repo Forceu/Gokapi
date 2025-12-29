@@ -25,6 +25,7 @@
                             <tr>
                                 <th scope="col">Name</th>
                                 <th scope="col">Uploaded Files</th>
+                                <th scope="col">Total Size</th>
                                 <th scope="col">Last Upload</th>
                                 <th scope="col">Expiry</th>
 {{ if .ActiveUser.HasPermissionListOtherUploads }}
@@ -38,7 +39,12 @@
 {{ range .FileRequests }}
                             <tr id="row-{{ .Id }}">
 		                    <td>{{ .Name }}</td>
+{{ if eq .MaxFiles 0 }}		                   
 		                    <td>{{ .UploadedFiles }}</td>
+{{ else }}
+		                    <td>{{ .UploadedFiles }} / {{ .MaxFiles }}</td>
+{{ end }}
+		                    <td>{{ .GetReadableTotalSize }}</td>
             			    <td><span id="cell-lastupdate-{{ .Id }}"></span></td>
 				       <script>insertDateWithNegative({{ .LastUpload }}, "cell-lastupdate-{{ .Id }}", "None");</script>
             			    <td><span id="cell-expiry-{{ .Id }}"></span></td>

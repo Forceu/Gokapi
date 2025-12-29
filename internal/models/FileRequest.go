@@ -1,10 +1,14 @@
 package models
 
-import "time"
+import (
+	"time"
+
+	"github.com/forceu/gokapi/internal/helper"
+)
 
 type FileRequest struct {
 	Id            int    `json:"id" redis:"id"`                     // The internal ID of the file request
-	UserId int `json:"userid" redis:"userid"` // The user ID of the owner
+	UserId        int    `json:"userid" redis:"userid"`             // The user ID of the owner
 	MaxFiles      int    `json:"maxfiles" redis:"maxfiles"`         // The maximum number of files allowed
 	MaxSize       int    `json:"maxsize" redis:"maxsize"`           // The maximum file size allowed in MB
 	Expiry        int64  `json:"expiry" redis:"expiry"`             // The expiry time of the file request
@@ -12,6 +16,7 @@ type FileRequest struct {
 	Name          string `json:"name" redis:"name"`                 // The given name for the file request
 	UploadedFiles int    `json:"uploadedfiles" redis:"-"`           // Contains the number of uploaded files for this request. Needs to be calculated with Populate()
 	LastUpload    int64  `json:"lastupload" redis:"-"`              // Contains the timestamp of the last upload for this request. Needs to be calculated with Populate()
+	TotalFileSize int64  `json:"totalfilesize" redis:"-"`           // Contains the file size of all uploaded files. Needs to be calculated with Populate()
 }
 
 // Populate inserts the number of uploaded files and the last upload date
@@ -19,6 +24,7 @@ func (f *FileRequest) Populate(files map[string]File) {
 	for _, file := range files {
 		if file.UploadRequestId == f.Id {
 			f.UploadedFiles++
+			f.TotalFileSize = f.TotalFileSize + file.SizeBytes
 			if file.UploadDate > f.LastUpload {
 				f.LastUpload = file.UploadDate
 			}
@@ -32,4 +38,8 @@ func (f *FileRequest) GetReadableDateLastUpdate() string {
 		return "None"
 	}
 	return time.Unix(f.LastUpload, 0).Format("2006-01-02 15:04:05")
+}
+
+func (f *FileRequest) GetReadableTotalSize() string {
+	return helper.ByteCountSI(f.TotalFileSize)
 }
