@@ -7,6 +7,11 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"net/http/httptest"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
@@ -15,10 +20,6 @@ import (
 	"github.com/forceu/gokapi/internal/storage/processingstatus/pstatusdb"
 	"github.com/johannesboyne/gofakes3"
 	"github.com/johannesboyne/gofakes3/backend/s3mem"
-	"net/http/httptest"
-	"os"
-	"strings"
-	"time"
 )
 
 const (
@@ -303,7 +304,6 @@ func writeTestFiles() {
 		Size:               "8 B",
 		SHA1:               "e017693e4a04a59d0b0f400fe98177fe7ee13cf7",
 		ExpireAt:           2147483646,
-		ExpireAtString:     "2021-05-04 15:19",
 		DownloadsRemaining: 1,
 		ContentType:        "text/html",
 		UserId:             5,
@@ -314,7 +314,6 @@ func writeTestFiles() {
 		Size:               "8 B",
 		SHA1:               "e017693e4a04a59d0b0f400fe98177fe7ee13cf7",
 		ExpireAt:           2147483645,
-		ExpireAtString:     "2021-05-04 15:19",
 		DownloadsRemaining: 2,
 		ContentType:        "text/html",
 		UserId:             5,
@@ -325,7 +324,6 @@ func writeTestFiles() {
 		Size:               "8 B",
 		SHA1:               "e017693e4a04a59d0b0f400fe98177fe7ee13cf7",
 		ExpireAt:           2147483645,
-		ExpireAtString:     "2021-05-04 15:19",
 		DownloadsRemaining: 1,
 		ContentType:        "text/html",
 		UserId:             5,
@@ -336,7 +334,6 @@ func writeTestFiles() {
 		Size:               "8 B",
 		SHA1:               "invalid",
 		ExpireAt:           2147483645,
-		ExpireAtString:     "2021-05-04 15:19",
 		DownloadsRemaining: 2,
 		ContentType:        "text/html",
 		UserId:             5,
@@ -347,7 +344,6 @@ func writeTestFiles() {
 		Size:               "7 B",
 		SHA1:               "c4f9375f9834b4e7f0a528cc65c055702bf5f24a",
 		ExpireAt:           2147483646,
-		ExpireAtString:     "2021-05-04 15:18",
 		DownloadsRemaining: 1,
 		ContentType:        "text/html",
 		PasswordHash:       "7b30508aa9b233ab4b8a11b2af5816bdb58ca3e7",
@@ -359,7 +355,6 @@ func writeTestFiles() {
 		Size:               "7 B",
 		SHA1:               "c4f9375f9834b4e7f0a528cc65c055702bf5f24a",
 		ExpireAt:           2147483646,
-		ExpireAtString:     "2021-05-04 15:18",
 		DownloadsRemaining: 1,
 		ContentType:        "text/html",
 		PasswordHash:       "7b30508aa9b233ab4b8a11b2af5816bdb58ca3e7",
@@ -371,7 +366,6 @@ func writeTestFiles() {
 		Size:               "4 B",
 		SHA1:               "a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd0",
 		ExpireAt:           2147483646,
-		ExpireAtString:     "2021-05-04 15:19",
 		DownloadsRemaining: 1,
 		ContentType:        "text/html",
 		HotlinkId:          "PhSs6mFtf8O5YGlLMfNw9rYXx9XRNkzCnJZpQBi7inunv3Z4A.jpg",
@@ -383,7 +377,6 @@ func writeTestFiles() {
 		Size:               "4 B",
 		SHA1:               "a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd1",
 		ExpireAt:           2147483646,
-		ExpireAtString:     "2021-05-04 15:19",
 		DownloadsRemaining: 1,
 		ContentType:        "text/html",
 		HotlinkId:          "wjqlzpq2.jpg",
@@ -395,7 +388,6 @@ func writeTestFiles() {
 		Size:               "4 B",
 		SHA1:               "2341354656543213246465465465432456898794",
 		ExpireAt:           2147483646,
-		ExpireAtString:     "2021-05-04 15:19",
 		DownloadsRemaining: 0,
 		ContentType:        "text/html",
 		UserId:             5,
@@ -406,7 +398,6 @@ func writeTestFiles() {
 		Size:               "20 MB",
 		SHA1:               "x341354656543213246465465465432456898794",
 		ExpireAt:           2147483646,
-		ExpireAtString:     "2021-05-04 15:19",
 		DownloadsRemaining: 4,
 		ContentType:        "application/octet-stream",
 		AwsBucket:          "gokapi-test",
@@ -418,7 +409,6 @@ func writeTestFiles() {
 		Size:               "8 B",
 		SHA1:               "unlimitedtest",
 		ExpireAt:           2147483646,
-		ExpireAtString:     "2021-05-04 15:19",
 		DownloadsRemaining: 0,
 		ContentType:        "text/html",
 		UnlimitedDownloads: true,
@@ -430,7 +420,6 @@ func writeTestFiles() {
 		Size:               "8 B",
 		SHA1:               "unlimitedtest",
 		ExpireAt:           0,
-		ExpireAtString:     "2021-05-04 15:19",
 		DownloadsRemaining: 1,
 		ContentType:        "text/html",
 		UnlimitedTime:      true,

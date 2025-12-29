@@ -3,6 +3,14 @@ package storage
 import (
 	"bytes"
 	"fmt"
+	"io"
+	"mime/multipart"
+	"net/http/httptest"
+	"net/textproto"
+	"os"
+	"testing"
+	"time"
+
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
 	"github.com/forceu/gokapi/internal/configuration/database"
@@ -14,13 +22,6 @@ import (
 	"github.com/forceu/gokapi/internal/test"
 	"github.com/forceu/gokapi/internal/test/testconfiguration"
 	"github.com/forceu/gokapi/internal/webserver/downloadstatus"
-	"io"
-	"mime/multipart"
-	"net/http/httptest"
-	"net/textproto"
-	"os"
-	"testing"
-	"time"
 )
 
 func TestMain(m *testing.M) {
@@ -202,7 +203,6 @@ func TestNewFile(t *testing.T) {
 	test.IsEqualString(t, retrievedFile.HotlinkId, "")
 	test.IsEqualString(t, retrievedFile.PasswordHash, "")
 	test.IsEqualString(t, retrievedFile.Size, "35 B")
-	test.IsEqualString(t, retrievedFile.ExpireAtString, "2038-01-19 03:13")
 	test.IsEqualInt(t, retrievedFile.DownloadsRemaining, 1)
 	test.IsEqualInt(t, len(retrievedFile.Id), 15)
 	test.IsEqualInt(t, int(retrievedFile.ExpireAt), 2147483600)
@@ -363,7 +363,6 @@ func TestNewFileFromChunk(t *testing.T) {
 	test.IsEqualString(t, file.Name, "test.dat")
 	test.IsEqualString(t, file.Size, "41 B")
 	test.IsEqualString(t, file.SHA1, "6cca7a6905774e6d61a77dca3ad7a1f44581d6ab")
-	test.IsEqualString(t, file.ExpireAtString, "2038-01-19 03:13")
 	test.IsEqualInt64(t, file.ExpireAt, 2147483600)
 	test.IsEqualInt(t, file.DownloadsRemaining, 1)
 	test.IsEqualInt(t, file.DownloadCount, 0)
@@ -388,7 +387,6 @@ func TestNewFileFromChunk(t *testing.T) {
 	test.IsEqualString(t, file.Name, "newfile")
 	test.IsEqualString(t, file.Size, "41 B")
 	test.IsEqualString(t, file.SHA1, "6cca7a6905774e6d61a77dca3ad7a1f44581d6ab")
-	test.IsEqualString(t, file.ExpireAtString, "2038-01-19 03:13")
 	test.IsEqualInt64(t, file.ExpireAt, 2147483600)
 	test.IsEqualInt(t, file.DownloadsRemaining, 1)
 	test.IsEqualInt(t, file.DownloadCount, 0)

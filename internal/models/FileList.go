@@ -94,7 +94,7 @@ func (f *File) ToFileApiOutput(serverUrl string, useFilenameInUrl bool) (FileApi
 	result.UrlDownload = getDownloadUrl(result, serverUrl, useFilenameInUrl)
 	result.UploaderId = f.UserId
 	result.IsPendingDeletion = f.IsPendingForDeletion()
-	result.ExpireAtString = time.Unix(f.ExpireAt, 0).UTC().Format("2006-01-02 15:04")
+	result.ExpireAtString = time.Unix(f.ExpireAt, 0).UTC().Format("2006-01-02 15:04:05")
 
 	return result, nil
 }

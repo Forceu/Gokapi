@@ -465,7 +465,6 @@ func TestParallelConnectionsWritingAndReading(t *testing.T) {
 			SHA1:               "1289423794287598237489",
 			ExpireAt:           math.MaxInt,
 			SizeBytes:          10,
-			ExpireAtString:     "Never",
 			DownloadsRemaining: 10,
 			DownloadCount:      10,
 			PasswordHash:       "",
