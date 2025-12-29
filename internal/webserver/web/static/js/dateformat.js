@@ -14,3 +14,23 @@ function formatUnixTimestamp(unixTimestamp) {
 function insertFormattedDate(unixTimestamp, id) {
     document.getElementById(id).innerText = formatUnixTimestamp(unixTimestamp);
 }
+
+function insertLastOnlineDate(unixTimestamp, id) {
+    if (unixTimestamp == 0) {
+        document.getElementById(id).innerText = "Never";
+        return;
+    }
+    if ((Date.now()/1000) - 120 < unixTimestamp) {
+        document.getElementById(id).innerText = "Online";
+        return;
+    }
+    insertFormattedDate(unixTimestamp, id);
+}
+
+function insertLastUsed(unixTimestamp, id) {
+    if (unixTimestamp == 0) {
+        document.getElementById(id).innerText = "Never";
+        return;
+    }
+    insertFormattedDate(unixTimestamp, id);
+}
