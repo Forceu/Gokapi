@@ -788,7 +788,7 @@ func apiURequestSave(w http.ResponseWriter, r requestParser, user models.User) {
 	}
 	uploadRequest := models.FileRequest{}
 
-	if !request.IsNewRequest {
+	if request.Id != 0 {
 		uploadRequest, ok = database.GetFileRequest(request.Id)
 		if !ok {
 			sendError(w, http.StatusNotFound, "FileRequest does not exist with the given ID")

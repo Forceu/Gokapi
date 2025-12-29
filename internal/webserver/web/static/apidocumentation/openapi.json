@@ -1068,7 +1068,7 @@
           {
             "name": "name",
             "in": "header",
-            "description": "The given name for the request",
+            "description": "The given name for the request. If the name includes non-ANSI characters, you can encode them with base64, by adding 'base64:' at the beginning, e.g. 'base64:ZmlsZW5hbWU='",
             "required": false,
             "style": "simple",
             "explode": false,

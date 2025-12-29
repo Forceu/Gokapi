@@ -63,8 +63,8 @@ function initDropzone() {
         }
         const activeElement = document.activeElement;
         // disable upload on paste if edit field with data-allow-regular-paste is selected or the calendar view (with placeholder attribute)
-        if (activeElement && (activeElement.hasAttribute('data-allow-regular-paste') ||activeElement.hasAttribute('placeholder'))) {
-	    return;
+        if (activeElement && (activeElement.hasAttribute('data-allow-regular-paste') || activeElement.hasAttribute('placeholder'))) {
+            return;
         }
 
         var items = (event.clipboardData || event.originalEvent.clipboardData).items;
@@ -919,7 +919,7 @@ function handleUndo(button) {
         .then(data => {
             addRow(data.FileInfo);
             if (isE2EEnabled) {
-            	GokapiE2EDecryptMenu();
+                GokapiE2EDecryptMenu();
             }
         })
         .catch(error => {
@@ -949,4 +949,3 @@ function showDeprecationNotice() {
         notification.classList.remove("show");
     }, 5000);
 }
-

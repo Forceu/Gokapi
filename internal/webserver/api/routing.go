@@ -581,7 +581,6 @@ type paramURequestSave struct {
 	Expiry        int64  `header:"expiry"`
 	MaxFiles      int    `header:"maxfiles"`
 	MaxSize       int    `header:"maxsize"`
-	IsNewRequest  bool
 	IsNameSet     bool
 	IsExpirySet   bool
 	IsMaxFilesSet bool
@@ -591,9 +590,6 @@ type paramURequestSave struct {
 }
 
 func (p *paramURequestSave) ProcessParameter(_ *http.Request) error {
-	if !p.foundHeaders["id"] {
-		p.IsNewRequest = true
-	}
 	if p.foundHeaders["name"] {
 		p.IsNameSet = true
 	}
@@ -605,6 +601,13 @@ func (p *paramURequestSave) ProcessParameter(_ *http.Request) error {
 	}
 	if p.foundHeaders["maxsize"] {
 		p.IsMaxSizeSet = true
+	}
+	if strings.HasPrefix(p.Name, base64Prefix) {
+		decoded, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(p.Name, base64Prefix))
+		if err != nil {
+			return err
+		}
+		p.Name = string(decoded)
 	}
 	return nil
 }
