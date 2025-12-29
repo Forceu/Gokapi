@@ -122,37 +122,39 @@
 	      <div class="modal-body">
 	      
 		<div class="input-group mb-3">
-		  <span class="input-group-text" id="basic-addon1">Title</span>
-		  <input type="text" class="form-control" placeholder="Friendly name" aria-label="Friendly name" aria-describedby="basic-addon1">
+		  <span class="input-group-text" id="mTitle">Title&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+		  <input type="text" id="mFriendlyName" class="form-control" placeholder="Friendly name" aria-label="Friendly name" aria-describedby="mTitle">
 		</div>
 
 		<div class="input-group mb-3">
 		  <div class="input-group-text">
-      			<input type="checkbox" id="mc_download"  checked aria-label="Max files" title="Max files"  data-toggle-target="mi_edit_down" onchange="handleEditCheckboxChange(this)">
+      			<input type="checkbox" id="mc_maxfiles"  aria-label="Max files" title="Max files"  data-toggle-target="mi_maxfiles" onchange="handleEditCheckboxChange(this)">
    		 </div>
-		  <span class="input-group-text" id="edit_down">Max Files</span>
-		  <input type="number" min="1" id="mi_edit_down" class="form-control" aria-label="Max Files" aria-describedby="edit_down" data-allow-regular-paste>
+		  <span class="input-group-text" id="mMaxFiles">Max Files</span>
+		  <input type="number" min="1" id="mi_maxfiles" disabled class="form-control" aria-label="Max Files" aria-describedby="mMaxFiles" data-allow-regular-paste>
 		</div>
 
 		<div class="input-group mb-3">
 		  <div class="input-group-text">
-      			<input type="checkbox" id="mc_download"  checked aria-label="Limit downloads" title="Limit downloads"  data-toggle-target="mi_edit_down" onchange="handleEditCheckboxChange(this)">
+      			<input type="checkbox" id="mc_maxsize"  aria-label="Max Size" title="Max Size" 
+      			 data-toggle-target="mi_maxsize" onchange="handleEditCheckboxChange(this)">
    		 </div>
-		  <span class="input-group-text" id="edit_down">Max Size</span>
-		  <input type="number" min="1" id="mi_edit_down" class="form-control" aria-label="Max Size" aria-describedby="edit_down" data-allow-regular-paste>
+		  <span class="input-group-text" id="tMaxSize">Max Size&nbsp;</span>
+		  <input type="number" min="1" id="mi_maxsize" disabled class="form-control" aria-label="Max Size" aria-describedby="tMaxSize" data-allow-regular-paste>
 		</div>
+		
 		<div class="input-group mb-3">
 		  <div class="input-group-text">
-      			<input id="mc_expiry" type="checkbox" checked aria-label="Max Size" title="Max Size"  data-toggle-target="mi_edit_expiry" data-timestamp="" onchange="handleEditCheckboxChange(this)" >
+      			<input id="mc_expiry" type="checkbox" aria-label="Expiry" title="Expiry"  data-toggle-target="mi_expiry" data-timestamp="" onchange="handleEditCheckboxChange(this)" >
    		 </div>
-		  <span class="input-group-text" id="edit_expdate">Expiry&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
-		  <input type="text" id="mi_edit_expiry" class="form-control" aria-label="Expiry" aria-describedby="edit_expdate"  data-allow-regular-paste>
+		  <span class="input-group-text" id="edit_expdate">Expiry&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+		  <input type="text" id="mi_expiry" disabled class="form-control" aria-label="Expiry" aria-describedby="edit_expdate"  data-allow-regular-paste>
 		</div>
 		
 	      </div>
 	      <div class="modal-footer">
 		<button type="button" class="btn btn-outline-light"  aria-label="Cancel" data-bs-dismiss="modal">Close</button>
-		<button type="button" class="btn btn-primary" data-fileid="" id="mb_save" onclick="editFile();">Save</button>
+		<button type="button" class="btn btn-primary" data-fileid="" id="b_fr_save" onclick="">Save</button>
 	      </div>
 	    </div>
 	  </div>

@@ -5,8 +5,7 @@
 
 try {
     var clipboard = new ClipboardJS('.copyurl');
-} catch (ignored) {
-}
+} catch (ignored) {}
 
 var toastId;
 
@@ -28,3 +27,40 @@ function hideToast() {
     document.getElementById("toastnotification").classList.remove("show");
 }
 
+
+var calendarInstance = null;
+
+function createCalendar(element, timestamp) {
+    const expiryDate = new Date(timestamp * 1000);
+
+    calendarInstance = flatpickr(document.getElementById(element), {
+        enableTime: true,
+        dateFormat: 'U', // Unix timestamp
+        altInput: true,
+        altFormat: 'Y-m-d H:i',
+        allowInput: true,
+        time_24hr: true,
+        defaultDate: expiryDate,
+        minDate: 'today',
+    });
+}
+
+
+function handleEditCheckboxChange(checkbox) {
+    var targetElement = document.getElementById(checkbox.getAttribute("data-toggle-target"));
+    var timestamp = checkbox.getAttribute("data-timestamp");
+
+    if (checkbox.checked) {
+        targetElement.classList.remove("disabled");
+        targetElement.removeAttribute("disabled");
+        if (timestamp != null) {
+            calendarInstance._input.disabled = false;
+        }
+    } else {
+        if (timestamp != null) {
+            calendarInstance._input.disabled = true;
+        }
+        targetElement.classList.add("disabled");
+        targetElement.setAttribute("disabled", true);
+    }
+}

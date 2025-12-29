@@ -374,47 +374,6 @@ function editFile() {
         });
 }
 
-var calendarInstance = null;
-
-function createCalendar(timestamp) {
-    // Convert Unix timestamp to JavaScript Date object
-    const expiryDate = new Date(timestamp * 1000);
-
-    calendarInstance = flatpickr('#mi_edit_expiry', {
-        enableTime: true,
-        dateFormat: 'U', // Unix timestamp
-        altInput: true,
-        altFormat: 'Y-m-d H:i',
-        allowInput: true,
-        time_24hr: true,
-        defaultDate: expiryDate,
-        minDate: 'today',
-    });
-
-}
-
-
-
-function handleEditCheckboxChange(checkbox) {
-    var targetElement = document.getElementById(checkbox.getAttribute("data-toggle-target"));
-    var timestamp = checkbox.getAttribute("data-timestamp");
-
-    if (checkbox.checked) {
-        targetElement.classList.remove("disabled");
-        targetElement.removeAttribute("disabled");
-        if (timestamp != null) {
-            calendarInstance._input.disabled = false;
-        }
-    } else {
-        if (timestamp != null) {
-            calendarInstance._input.disabled = true;
-        }
-        targetElement.classList.add("disabled");
-        targetElement.setAttribute("disabled", true);
-    }
-
-}
-
 function showEditModal(filename, id, downloads, expiry, password, unlimitedown, unlimitedtime, isE2e, canReplace) {
     // Cloning removes any previous values or form validation
     let originalModal = $('#modaledit').clone();
@@ -427,7 +386,7 @@ function showEditModal(filename, id, downloads, expiry, password, unlimitedown, 
     document.getElementById("m_filenamelabel").innerText = filename;
     document.getElementById("mc_expiry").setAttribute("data-timestamp", expiry);
     document.getElementById("mb_save").setAttribute('data-fileid', id);
-    createCalendar(expiry);
+    createCalendar("mi_edit_expiry", expiry);
 
     if (unlimitedown) {
         document.getElementById("mi_edit_down").value = "1";
