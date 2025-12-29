@@ -13,7 +13,12 @@
   ],
   "security": [
     {
-      "apikey": ["VIEW","UPLOAD","DELETE", "API_MANAGE"]
+      "apikey": [
+        "VIEW",
+        "UPLOAD",
+        "DELETE",
+        "API_MANAGE"
+      ]
     }
   ],
   "tags": [
@@ -67,7 +72,7 @@
           }
         }
       }
-    }, 
+    },
     "/info/config": {
       "get": {
         "tags": [
@@ -78,7 +83,9 @@
         "operationId": "uploadconfig",
         "security": [
           {
-            "apikey": ["UPLOAD"]
+            "apikey": [
+              "UPLOAD"
+            ]
           }
         ],
         "responses": {
@@ -111,7 +118,9 @@
         "operationId": "list",
         "security": [
           {
-            "apikey": ["VIEW"]
+            "apikey": [
+              "VIEW"
+            ]
           }
         ],
         "responses": {
@@ -146,21 +155,22 @@
         "summary": "Get metadata by ID",
         "description": "This API call lists all metadata about a file that is not expired. Returns 404 if an invalid/expired ID was passed. Requires API permission VIEW. To view files that were not uploaded by the user, the user needs to have the user permission LIST",
         "operationId": "listbyid",
-       "parameters": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID of file to be requested"
-      }
-    ],
-       
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID of file to be requested"
+          }
+        ],
         "security": [
           {
-            "apikey": ["VIEW"]
+            "apikey": [
+              "VIEW"
+            ]
           }
         ],
         "responses": {
@@ -196,7 +206,9 @@
         "operationId": "chunkadd",
         "security": [
           {
-            "apikey": ["UPLOAD"]
+            "apikey": [
+              "UPLOAD"
+            ]
           }
         ],
         "requestBody": {
@@ -239,10 +251,12 @@
         "operationId": "chunkcomplete",
         "security": [
           {
-            "apikey": ["UPLOAD"]
+            "apikey": [
+              "UPLOAD"
+            ]
           }
         ],
-         "parameters": [
+        "parameters": [
           {
             "name": "uuid",
             "in": "header",
@@ -337,20 +351,22 @@
         "operationId": "logsdelete",
         "security": [
           {
-            "apikey": ["MANAGE_LOGS"]
+            "apikey": [
+              "MANAGE_LOGS"
+            ]
           }
         ],
         "parameters": [
-      {
-        "name": "timestamp",
-        "in": "header",
-        "required": false,
-        "schema": {
-          "type": "integer"
-        },
-        "description": "Unix timestamp of cutoff-date. All entries older than this timestamp will be deleted. To delete all entries, pass 0 or do not pass this parameter at all."
-      }
-    ],
+          {
+            "name": "timestamp",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Unix timestamp of cutoff-date. All entries older than this timestamp will be deleted. To delete all entries, pass 0 or do not pass this parameter at all."
+          }
+        ],
         "responses": {
           "200": {
             "description": "Operation successful"
@@ -374,7 +390,9 @@
         "operationId": "add",
         "security": [
           {
-            "apikey": ["UPLOAD"]
+            "apikey": [
+              "UPLOAD"
+            ]
           }
         ],
         "requestBody": {
@@ -417,7 +435,10 @@
         "operationId": "duplicate",
         "security": [
           {
-            "apikey": ["VIEW","UPLOAD"]
+            "apikey": [
+              "VIEW",
+              "UPLOAD"
+            ]
           }
         ],
         "requestBody": {
@@ -463,56 +484,58 @@
         "operationId": "modifyfile",
         "security": [
           {
-            "apikey": ["EDIT"]
+            "apikey": [
+              "EDIT"
+            ]
           }
         ],
-            "parameters": [
-      {
-        "name": "id",
-        "in": "header",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID of file to be edited"
-      },
-      {
-        "name": "allowedDownloads",
-        "in": "header",
-        "required": false,
-        "schema": {
-          "type": "integer"
-        },
-        "description": "How many remaining downloads are allowed. Unlimited if 0 is passed."
-      },
-      {
-        "name": "expiryTimestamp",
-        "in": "header",
-        "required": false,
-        "schema": {
-          "type": "integer"
-        },
-        "description": "Unix timestamp of the file expiration date. Unlimited if 0 is passed."
-      },
-      {
-        "name": "password",
-        "in": "header",
-        "required": false,
-        "schema": {
-          "type": "string"
-        },
-        "description": "Password for this file to be set. No password will be used if empty."
-      },
-      {
-        "name": "originalPassword",
-        "in": "header",
-        "required": false,
-        "schema": {
-          "type": "boolean"
-        },
-        "description": "Set to true to use the original password. Field \"password\" will be ignored if set."
-      }
-    ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID of file to be edited"
+          },
+          {
+            "name": "allowedDownloads",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "How many remaining downloads are allowed. Unlimited if 0 is passed."
+          },
+          {
+            "name": "expiryTimestamp",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Unix timestamp of the file expiration date. Unlimited if 0 is passed."
+          },
+          {
+            "name": "password",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Password for this file to be set. No password will be used if empty."
+          },
+          {
+            "name": "originalPassword",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Set to true to use the original password. Field \"password\" will be ignored if set."
+          }
+        ],
         "responses": {
           "200": {
             "description": "Operation successful",
@@ -546,37 +569,40 @@
         "operationId": "replacefile",
         "security": [
           {
-            "apikey": ["REPLACE"]
+            "apikey": [
+              "REPLACE"
+            ]
           }
         ],
-            "parameters": [
-      {
-        "name": "id",
-        "in": "header",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID of file to be replaced"
-      },{
-        "name": "idNewContent",
-        "in": "header",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "ID of the file with the new content"
-      },
-      {
-        "name": "deleteNewFile",
-        "in": "header",
-        "required": false,
-        "schema": {
-          "type": "boolean"
-        },
-        "description": "If true, the file with the ID passed in idNewContent will be deleted afterwards"
-      }
-    ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID of file to be replaced"
+          },
+          {
+            "name": "idNewContent",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID of the file with the new content"
+          },
+          {
+            "name": "deleteNewFile",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "If true, the file with the ID passed in idNewContent will be deleted afterwards"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Operation successful",
@@ -610,7 +636,9 @@
         "operationId": "delete",
         "security": [
           {
-            "apikey": ["DELETE"]
+            "apikey": [
+              "DELETE"
+            ]
           }
         ],
         "parameters": [
@@ -656,7 +684,9 @@
         "operationId": "restore",
         "security": [
           {
-            "apikey": ["DELETE"]
+            "apikey": [
+              "DELETE"
+            ]
           }
         ],
         "parameters": [
@@ -700,7 +730,9 @@
         "operationId": "create",
         "security": [
           {
-            "apikey": ["API_MANAGE"]
+            "apikey": [
+              "API_MANAGE"
+            ]
           }
         ],
         "parameters": [
@@ -754,7 +786,9 @@
         "operationId": "friendlyname",
         "security": [
           {
-            "apikey": ["API_MANAGE"]
+            "apikey": [
+              "API_MANAGE"
+            ]
           }
         ],
         "parameters": [
@@ -804,7 +838,9 @@
         "operationId": "modifypermission",
         "security": [
           {
-            "apikey": ["API_MANAGE"]
+            "apikey": [
+              "API_MANAGE"
+            ]
           }
         ],
         "parameters": [
@@ -828,7 +864,17 @@
             "explode": false,
             "schema": {
               "type": "string",
-              "enum": ["PERM_VIEW", "PERM_UPLOAD", "PERM_EDIT", "PERM_DELETE", "PERM_REPLACE", "PERM_MANAGE_FILE_REQUESTS", "PERM_MANAGE_LOGS", "PERM_MANAGE_USERS", "PERM_API_MOD"]
+              "enum": [
+                "PERM_VIEW",
+                "PERM_UPLOAD",
+                "PERM_EDIT",
+                "PERM_DELETE",
+                "PERM_REPLACE",
+                "PERM_MANAGE_FILE_REQUESTS",
+                "PERM_MANAGE_LOGS",
+                "PERM_MANAGE_USERS",
+                "PERM_API_MOD"
+              ]
             }
           },
           {
@@ -840,7 +886,10 @@
             "explode": false,
             "schema": {
               "type": "string",
-              "enum": ["GRANT", "REVOKE"]
+              "enum": [
+                "GRANT",
+                "REVOKE"
+              ]
             }
           }
         ],
@@ -870,7 +919,9 @@
         "operationId": "apidelete",
         "security": [
           {
-            "apikey": ["API_MANAGE"]
+            "apikey": [
+              "API_MANAGE"
+            ]
           }
         ],
         "parameters": [
@@ -909,7 +960,9 @@
         "operationId": "ulist",
         "security": [
           {
-            "apikey": ["PERM_GUEST_UPLOAD"]
+            "apikey": [
+              "PERM_GUEST_UPLOAD"
+            ]
           }
         ],
         "responses": {
@@ -944,21 +997,22 @@
         "summary": "Get file request by ID",
         "description": "This API call lists a specific file request. Returns 404 if an invalid ID was passed. Requires API permission GUEST_UPLOAD. To view file requests from a different user, the user needs to have the user permission LIST",
         "operationId": "ulistbyid",
-       "parameters": [
-	      {
-		"name": "id",
-		"in": "path",
-		"required": true,
-		"schema": {
-		  "type": "string"
-		},
-		"description": "ID of file request"
-	      }
-    	],
-       
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID of file request"
+          }
+        ],
         "security": [
           {
-            "apikey": ["PERM_GUEST_UPLOAD"]
+            "apikey": [
+              "PERM_GUEST_UPLOAD"
+            ]
           }
         ],
         "responses": {
@@ -994,7 +1048,9 @@
         "operationId": "uploadrequestsave",
         "security": [
           {
-            "apikey": ["PERM_GUEST_UPLOAD"]
+            "apikey": [
+              "PERM_GUEST_UPLOAD"
+            ]
           }
         ],
         "parameters": [
@@ -1080,7 +1136,9 @@
         "operationId": "uploadrequestdelete",
         "security": [
           {
-            "apikey": ["PERM_GUEST_UPLOAD"]
+            "apikey": [
+              "PERM_GUEST_UPLOAD"
+            ]
           }
         ],
         "parameters": [
@@ -1122,7 +1180,9 @@
         "operationId": "createuser",
         "security": [
           {
-            "apikey": ["MANAGE_USERS"]
+            "apikey": [
+              "MANAGE_USERS"
+            ]
           }
         ],
         "parameters": [
@@ -1136,7 +1196,8 @@
             "schema": {
               "type": "string"
             }
-          },{
+          },
+          {
             "name": "email",
             "in": "header",
             "description": "Email address of new user. Must be at least 4 characters and include an @ sign",
@@ -1181,7 +1242,9 @@
         "operationId": "usermodify",
         "security": [
           {
-            "apikey": ["MANAGE_USERS"]
+            "apikey": [
+              "MANAGE_USERS"
+            ]
           }
         ],
         "parameters": [
@@ -1205,7 +1268,17 @@
             "explode": false,
             "schema": {
               "type": "string",
-              "enum": ["PERM_REPLACE", "PERM_LIST", "PERM_EDIT", "PERM_REPLACE_OTHER", "PERM_DELETE", "PERM_LOGS", "PERM_API", "PERM_USERS", "PERM_GUEST_UPLOAD"]
+              "enum": [
+                "PERM_REPLACE",
+                "PERM_LIST",
+                "PERM_EDIT",
+                "PERM_REPLACE_OTHER",
+                "PERM_DELETE",
+                "PERM_LOGS",
+                "PERM_API",
+                "PERM_USERS",
+                "PERM_GUEST_UPLOAD"
+              ]
             }
           },
           {
@@ -1217,7 +1290,10 @@
             "explode": false,
             "schema": {
               "type": "string",
-              "enum": ["GRANT", "REVOKE"]
+              "enum": [
+                "GRANT",
+                "REVOKE"
+              ]
             }
           }
         ],
@@ -1247,7 +1323,9 @@
         "operationId": "userchangerank",
         "security": [
           {
-            "apikey": ["MANAGE_USERS"]
+            "apikey": [
+              "MANAGE_USERS"
+            ]
           }
         ],
         "parameters": [
@@ -1271,7 +1349,10 @@
             "explode": false,
             "schema": {
               "type": "string",
-              "enum": ["ADMIN", "USER"]
+              "enum": [
+                "ADMIN",
+                "USER"
+              ]
             }
           }
         ],
@@ -1301,7 +1382,9 @@
         "operationId": "userdelete",
         "security": [
           {
-            "apikey": ["MANAGE_USERS"]
+            "apikey": [
+              "MANAGE_USERS"
+            ]
           }
         ],
         "parameters": [
@@ -1351,7 +1434,9 @@
         "operationId": "userresetpw",
         "security": [
           {
-            "apikey": ["MANAGE_USERS"]
+            "apikey": [
+              "MANAGE_USERS"
+            ]
           }
         ],
         "parameters": [
@@ -1583,7 +1668,7 @@
           "Result": {
             "type": "string",
             "example": "OK"
-            }
+          }
         },
         "description": "Result after uploading a chunk",
         "x-go-package": "Gokapi/internal/models"
@@ -1637,7 +1722,7 @@
             "type": "integer",
             "example": 14
           },
-         "lastOnline": {
+          "lastOnline": {
             "type": "integer",
             "example": 0
           },
@@ -1729,7 +1814,8 @@
             "description": "Password for this file to be set. No password will be used if empty"
           }
         }
-      },"duplicate": {
+      },
+      "duplicate": {
         "required": [
           "id"
         ],
@@ -1760,9 +1846,13 @@
             "description": "Sets a new filename. Filename will be unchanged if empty."
           }
         }
-    },"chunking": {
+      },
+      "chunking": {
         "required": [
-          "file","uuid","filesize","offset"
+          "file",
+          "uuid",
+          "filesize",
+          "offset"
         ],
         "type": "object",
         "properties": {
@@ -1784,7 +1874,7 @@
             "description": "The chunk's offset starting at the beginning of the file"
           }
         }
-    }
+      }
     },
     "securitySchemes": {
       "apikey": {
