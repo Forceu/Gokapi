@@ -72,7 +72,11 @@ function saveFileRequestDefaults() {
 function loadFileRequestDefaults() {
     const defaultMaxFiles = localStorage.getItem("fr_maxfiles");
     const defaultMaxSize = localStorage.getItem("fr_maxsize");
-    const defaultExpiry = localStorage.getItem("fr_expiry");
+    let defaultExpiry = localStorage.getItem("fr_expiry");
+
+    let defaultDate = new Date(Date.now() + Number((defaultExpiry) * 1000));
+    defaultDate.setHours(12, 0, 0, 0);
+    defaultExpiry = Math.floor(defaultDate.getTime() / 1000);
 
     setModalValues(0, "", defaultMaxFiles, defaultMaxSize, defaultExpiry);
 }
@@ -113,12 +117,10 @@ function setModalValues(id, name, maxFiles, maxSize, expiry) {
         document.getElementById("mi_expiry").value = defaultDate;
         createCalendar("mi_expiry", defaultDate);
     } else {
-        let defaultDate = new Date(Date.now() + (expiry * 1000));
-        defaultDate.setHours(12, 0, 0, 0);
-        document.getElementById("mi_expiry").value = defaultDate;
+        document.getElementById("mi_expiry").value = expiry;
         document.getElementById("mi_expiry").disabled = false;
         document.getElementById("mc_expiry").checked = true;
-        createCalendar("mi_expiry", Math.floor(defaultDate.getTime() / 1000));
+        createCalendar("mi_expiry", expiry);
     }
 }
 
@@ -156,11 +158,110 @@ function saveFileRequest() {
     apiURequestSave(id, name, maxFiles, maxSize, expiry)
         .then(data => {
             document.getElementById("b_fr_save").disabled = false;
-            //TODO 
+            insertOrReplaceFileRequest(data);
         })
         .catch(error => {
             alert("Unable to save file request: " + error);
             console.error('Error:', error);
             document.getElementById("b_fr_save").disabled = false;
         });
+}
+
+function insertOrReplaceFileRequest(jsonResult) {
+    const tbody = document.getElementById("filerequesttable");
+    let row = document.getElementById(`row-${jsonResult.id}`);
+
+    if (row) {
+        const user = document.getElementById(`cell-username-${jsonResult.id}`).innerText;
+        row.replaceWith(createFileRequestRow(jsonResult, user));
+    } else {
+        tbody.appendChild(createFileRequestRow(jsonResult, userName));
+    }
+}
+
+
+function createFileRequestRow(jsonResult, user) {
+
+    function tdText(text) {
+        const td = document.createElement("td");
+        td.textContent = text;
+        return td;
+    }
+
+    function icon(classes) {
+        const i = document.createElement("i");
+        i.className = `bi ${classes}`;
+        return i;
+    }
+
+
+    const tr = document.createElement("tr");
+    tr.id = `row-${jsonResult.id}`;
+
+    // Name
+    tr.appendChild(tdText(jsonResult.name));
+    // Uploaded files / Max files
+    if (jsonResult.maxfiles == 0) {
+        tr.appendChild(tdText(jsonResult.uploadedfiles));
+    } else {
+        tr.appendChild(tdText(`${jsonResult.uploadedfiles} / ${jsonResult.maxfiles}`));
+    }
+    // Total size
+    tr.appendChild(tdText(getReadableSize(jsonResult.totalfilesize)));
+    // Last upload
+    tr.appendChild(tdText(formatTimestampWithNegative(jsonResult.lastupload, "None")));
+    // Expiry
+    tr.appendChild(tdText(formatFileRequestExpiry(jsonResult.expiry)));
+    // Optional user column
+    if (canViewOtherRequests) {
+        let userTd = tdText(user);
+        userTd.id = `cell-username-${jsonResult.id}`;
+        tr.appendChild(userTd);
+    }
+    // Buttons
+    const td = document.createElement("td");
+
+    const group = document.createElement("div");
+    group.className = "btn-group";
+    group.role = "group";
+
+    // Download
+    const downloadBtn = document.createElement("button");
+    downloadBtn.id = `download-${jsonResult.id}`;
+    downloadBtn.type = "button";
+    downloadBtn.className = "btn btn-outline-light btn-sm";
+    downloadBtn.title = "Download all";
+
+    if (jsonResult.uploadedfiles == 0) {
+        downloadBtn.classList.add("disabled");
+    }
+
+    downloadBtn.appendChild(icon("bi-download"));
+
+    // Edit
+    const editBtn = document.createElement("button");
+    editBtn.id = `edit-${jsonResult.id}`;
+    editBtn.type = "button";
+    editBtn.className = "btn btn-outline-light btn-sm";
+    editBtn.title = "Edit request";
+    editBtn.onclick = () =>
+        editFileRequest(jsonResult.id, jsonResult.name, jsonResult.maxfiles, jsonResult.maxsize, jsonResult.expiry);
+
+    editBtn.appendChild(icon("bi-pencil"));
+
+    // Delete
+    const deleteBtn = document.createElement("button");
+    deleteBtn.id = `delete-${jsonResult.id}`;
+    deleteBtn.type = "button";
+    deleteBtn.className = "btn btn-outline-danger btn-sm";
+    deleteBtn.title = "Delete";
+    deleteBtn.onclick = () =>
+        deleteOrShowModal(jsonResult.id, jsonResult.name, jsonResult.uploadedfiles);
+
+    deleteBtn.appendChild(icon("bi-trash3"));
+
+    group.append(downloadBtn, editBtn, deleteBtn);
+    td.appendChild(group);
+    tr.appendChild(td);
+    return tr;
 }

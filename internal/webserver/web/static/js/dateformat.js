@@ -11,19 +11,22 @@ function formatUnixTimestamp(unixTimestamp) {
     return `${year}-${month}-${day} ${hours}:${minutes}`;
 }
 
+function formatTimestampWithNegative(unixTimestamp, negative) {
+    if (negative === undefined) {
+        negative = "Never";
+    }
+    if (unixTimestamp == 0) {
+        return negative;
+    }
+    return formatUnixTimestamp(unixTimestamp);
+}
+
 function insertFormattedDate(unixTimestamp, id) {
     document.getElementById(id).innerText = formatUnixTimestamp(unixTimestamp);
 }
 
 function insertDateWithNegative(unixTimestamp, id, negative) {
-    if (negative === undefined) {
-        negative = "Never";
-    }
-    if (unixTimestamp == 0) {
-        document.getElementById(id).innerText = negative;
-        return;
-    }
-    insertFormattedDate(unixTimestamp, id);
+    document.getElementById(id).innerText = formatTimestampWithNegative(unixTimestamp, negative);
 }
 
 function insertLastOnlineDate(unixTimestamp, id) {
@@ -34,14 +37,17 @@ function insertLastOnlineDate(unixTimestamp, id) {
     insertDateWithNegative(unixTimestamp, id);
 }
 
-function insertFileRequestExpiry(unixTimestamp, id) {
+function formatFileRequestExpiry(unixTimestamp) {
     if (unixTimestamp == 0) {
-        document.getElementById(id).innerText = "Never";
-        return;
+        return "Never";
     }
     if ((Date.now() / 1000) > unixTimestamp) {
-        document.getElementById(id).innerText = "Expired";
-        return;
+        return "Expired";
     }
-    insertFormattedDate(unixTimestamp, id);
+    return formatUnixTimestamp(unixTimestamp);
+}
+
+function insertFileRequestExpiry(unixTimestamp, id) {
+    document.getElementById(id).innerText = formatFileRequestExpiry(unixTimestamp);
+
 }

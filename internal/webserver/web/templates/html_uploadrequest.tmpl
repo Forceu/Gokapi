@@ -51,7 +51,7 @@
 				       <script>insertFileRequestExpiry({{ .Expiry }}, "cell-expiry-{{ .Id }}");</script>
 		                    
 {{ if $.ActiveUser.HasPermissionListOtherUploads }}
-		                    <td>{{(index $.UserMap .UserId).Name}}</td>
+		                    <td id="cell-username-{{ .Id }}">{{(index $.UserMap .UserId).Name}}</td>
 {{ end }}
 		                    <td>
 		                    	<div class="btn-group" role="group">
@@ -77,6 +77,7 @@
 <script src="./js/min/admin.min.{{ template "js_admin_version"}}.js"></script>
 <script>
 	var userName = "{{.ActiveUser.Name}}";
+        var canViewOtherRequests = {{.ActiveUser.HasPermissionListOtherUploads }};
 </script>
 
 

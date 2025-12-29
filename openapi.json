@@ -1057,7 +1057,7 @@
           {
             "name": "id",
             "in": "header",
-            "description": "The request to be saved. If 0, a new request will be created",
+            "description": "The request to be saved. If 0 or empty, a new request will be created",
             "required": false,
             "style": "simple",
             "explode": false,
