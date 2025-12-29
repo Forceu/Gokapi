@@ -2,7 +2,6 @@ package models
 
 import (
 	"encoding/json"
-	"time"
 
 	"github.com/forceu/gokapi/internal/helper"
 )
@@ -19,17 +18,6 @@ type User struct {
 	LastOnline    int64          `json:"lastOnline" redis:"LastOnline"`
 	Password      string         `json:"-" redis:"Password"`
 	ResetPassword bool           `json:"resetPassword" redis:"ResetPassword"`
-}
-
-// GetReadableDate returns the date as YYYY-MM-DD HH:MM
-func (u *User) GetReadableDate() string {
-	if u.LastOnline == 0 {
-		return "Never"
-	}
-	if time.Now().Unix()-u.LastOnline < 120 {
-		return "Online"
-	}
-	return time.Unix(u.LastOnline, 0).Format("2006-01-02 15:04")
 }
 
 // GetReadableUserLevel returns the userlevel as a group name

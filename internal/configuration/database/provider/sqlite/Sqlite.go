@@ -41,7 +41,11 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 		osExit(1)
 		return
 	}
-	//TODO <11
+	// pre local DB
+	if currentDbVersion < 11 {
+		err := p.rawSqlite("ALTER TABLE FileMetaData DROP COLUMN ExpireAtString;")
+		helper.Check(err)
+	}
 	// pre upload requests
 	if currentDbVersion < 12 {
 
@@ -168,7 +172,6 @@ func (p DatabaseProvider) createNewDatabase() error {
 			"SHA1"	TEXT NOT NULL,
 			"ExpireAt"	INTEGER NOT NULL,
 			"SizeBytes"	INTEGER NOT NULL,
-			"ExpireAtString"	TEXT NOT NULL,
 			"DownloadsRemaining"	INTEGER NOT NULL,
 			"DownloadCount"	INTEGER NOT NULL,
 			"PasswordHash"	TEXT NOT NULL,

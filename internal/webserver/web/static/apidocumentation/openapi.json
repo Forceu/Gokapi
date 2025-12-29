@@ -1249,7 +1249,7 @@
           },
           "ExpireAtString": {
             "type": "string",
-            "description": "Time expiry in a human readable format in local time",
+            "description": "Time expiry in a human readable format in UTC",
             "example": "2024-02-17 14:08"
           },
           "UrlDownload": {

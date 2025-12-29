@@ -83,7 +83,6 @@ func apiEditFile(w http.ResponseWriter, r requestParser, user models.User) {
 	} else {
 		if request.ExpiryTimestamp != 0 {
 			file.ExpireAt = request.ExpiryTimestamp
-			file.ExpireAtString = storage.FormatTimestamp(request.ExpiryTimestamp)
 			file.UnlimitedTime = false
 		}
 	}

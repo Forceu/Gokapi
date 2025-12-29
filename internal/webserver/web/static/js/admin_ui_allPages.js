@@ -27,3 +27,4 @@ function showToast(timeout, text) {
 function hideToast() {
     document.getElementById("toastnotification").classList.remove("show");
 }
+

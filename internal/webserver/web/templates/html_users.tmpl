@@ -35,7 +35,8 @@
                             <tr id="row-{{ .User.Id }}">
                                 <td>{{ .User.Name }}</td>
                                 <td  id="userlevel_{{ .User.Id }}">{{ .User.GetReadableUserLevel }}</td>
-            			<td>{{ .User.GetReadableDate }}</td>
+            			<td><span id="cell-lastonline-{{ .User.Id }}"></span></td>
+				   <script>insertLastOnlineDate({{ .User.LastOnline }}, "cell-lastonline-{{ .User.Id }}");</script>
                                 <td>{{ .UploadCount }}</td>
             			<td class="prevent-select">
             			

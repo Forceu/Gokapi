@@ -40,7 +40,8 @@
                             <tr id="row-{{ .PublicId }}">
                                 <td id="friendlyname-{{ .PublicId }}" onClick="addFriendlyNameChange('{{ .PublicId }}')">{{ .FriendlyName }}</td>
                                 <td><div class="font-monospace">{{ .GetRedactedId }}</div></td>
-                                <td>{{ .GetReadableDate }}</td>
+            			<td><span id="cell-lastused-{{ .PublicId }}"></span></td>
+				   <script>insertLastUsed({{ .LastUsed }}, "cell-lastused-{{ .PublicId }}");</script>
                                             <td class="prevent-select">
 						<i id="perm_view_{{ .PublicId }}" class="bi bi-eye {{if not .HasPermissionView}}perm-notgranted{{else}}perm-granted{{end}}" title="List Uploads" onclick='changeApiPermission("{{ .PublicId }}","PERM_VIEW", "perm_view_{{ .PublicId }}");'></i>
 						

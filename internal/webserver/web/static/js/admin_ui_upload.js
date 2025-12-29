@@ -690,7 +690,7 @@ function addRow(item) {
     if (item.UnlimitedTime) {
         cellStoredUntil.innerText = "Unlimited";
     } else {
-        cellStoredUntil.innerText = item.ExpireAtString;
+        cellStoredUntil.innerText = formatUnixTimestamp(item.ExpireAt);
     }
     cellDownloadCount.innerText = item.DownloadCount;
 

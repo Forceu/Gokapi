@@ -75,7 +75,8 @@
 				{{ if .UnlimitedTime }}
 						<td>Unlimited</td>
 				{{ else }}
-						<td>{{ .ExpireAtString }}</td>
+						<td><span id="cell-expireatstring-{{ .Id }}"></span></td>
+						 <script>insertFormattedDate({{ .ExpireAt }}, "cell-expireatstring-{{ .Id }}");</script>
 				{{ end }}
 						<td id="cell-downloads-{{ .Id }}">{{ .DownloadCount }}</td>
 						<td><a id="url-href-{{ .Id }}" target="_blank" href="{{ .UrlDownload }}">{{ .Id }}</a>{{ if .IsPasswordProtected }}  <i title="Password protected" class="bi bi-key"></i>{{ end }}</td>
