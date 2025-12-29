@@ -287,11 +287,6 @@ func encryptChunkFile(file *os.File, metadata *models.File) (*os.File, error) {
 	return tempFileEnc, nil
 }
 
-// FormatTimestamp converts a timestamp to a string in the format YYYY-MM-DD HH:MM
-func FormatTimestamp(timestamp int64) string {
-	return time.Unix(timestamp, 0).Format("2006-01-02 15:04")
-}
-
 func createNewMetaData(hash string, fileHeader chunking.FileHeader, userId int, uploadRequest models.UploadRequest) models.File {
 	file := models.File{
 		Id:                 createNewId(),
@@ -301,7 +296,6 @@ func createNewMetaData(hash string, fileHeader chunking.FileHeader, userId int, 
 		SizeBytes:          fileHeader.Size,
 		ContentType:        fileHeader.ContentType,
 		ExpireAt:           uploadRequest.ExpiryTimestamp,
-		ExpireAtString:     FormatTimestamp(uploadRequest.ExpiryTimestamp),
 		UploadDate:         time.Now().Unix(),
 		DownloadsRemaining: uploadRequest.AllowedDownloads,
 		UnlimitedTime:      uploadRequest.UnlimitedTime,
@@ -417,7 +411,6 @@ func DuplicateFile(file models.File, parametersToChange int, newFileName string,
 
 	if changeExpiry {
 		newFile.ExpireAt = fileParameters.ExpiryTimestamp
-		newFile.ExpireAtString = FormatTimestamp(fileParameters.ExpiryTimestamp)
 		newFile.UnlimitedTime = fileParameters.UnlimitedTime
 	}
 	if changeDownloads {

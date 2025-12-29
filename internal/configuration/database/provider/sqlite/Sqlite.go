@@ -19,7 +19,7 @@ type DatabaseProvider struct {
 }
 
 // DatabaseSchemeVersion contains the version number to be expected from the current database. If lower, an upgrade will be performed
-const DatabaseSchemeVersion = 10
+const DatabaseSchemeVersion = 11
 
 // New returns an instance
 func New(dbConfig models.DbConnection) (DatabaseProvider, error) {
@@ -38,6 +38,11 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 		fmt.Println("Error: Gokapi runs >=v2.0.0, but Database is <v2.0.0")
 		osExit(1)
 		return
+	}
+	// pre local DB
+	if currentDbVersion < 11 {
+		err := p.rawSqlite("ALTER TABLE FileMetaData DROP COLUMN ExpireAtString;")
+		helper.Check(err)
 	}
 }
 
@@ -136,7 +141,6 @@ func (p DatabaseProvider) createNewDatabase() error {
 			"SHA1"	TEXT NOT NULL,
 			"ExpireAt"	INTEGER NOT NULL,
 			"SizeBytes"	INTEGER NOT NULL,
-			"ExpireAtString"	TEXT NOT NULL,
 			"DownloadsRemaining"	INTEGER NOT NULL,
 			"DownloadCount"	INTEGER NOT NULL,
 			"PasswordHash"	TEXT NOT NULL,
