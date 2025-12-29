@@ -1386,7 +1386,6 @@ func TestDuplicate(t *testing.T) {
 		test.IsEqualString(t, newFile.Size, originalFile.Size)
 		test.IsEqualString(t, newFile.SHA1, originalFile.SHA1)
 		test.IsEqualBool(t, originalFile.PasswordHash == newFile.PasswordHash, i != 5)
-		test.IsEqualBool(t, originalFile.ExpireAtString == newFile.ExpireAtString, i < 3)
 		test.IsEqualBool(t, originalFile.ExpireAt == newFile.ExpireAt, i < 3)
 		test.IsEqualBool(t, newFile.UnlimitedTime, i == 3)
 		test.IsEqualInt64(t, originalFile.SizeBytes, newFile.SizeBytes)

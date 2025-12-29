@@ -4,12 +4,13 @@ package main
 
 import (
 	"fmt"
-	minify "github.com/tdewolff/minify/v2"
-	"github.com/tdewolff/minify/v2/css"
-	"github.com/tdewolff/minify/v2/js"
 	"os"
 	"path/filepath"
 	"strconv"
+
+	minify "github.com/tdewolff/minify/v2"
+	"github.com/tdewolff/minify/v2/css"
+	"github.com/tdewolff/minify/v2/js"
 )
 
 const pathPrefix = "../../internal/webserver/web/static/"
@@ -69,6 +70,12 @@ func getPaths() []converter {
 		OutputPath: pathPrefix + "js/min/wasm_exec.min.js",
 		Type:       "text/javascript",
 		Name:       "wasm_exec JS",
+	})
+	result = append(result, converter{
+		InputPath:  pathPrefix + "js/dateformat.js",
+		OutputPath: pathPrefix + "js/min/dateformat.min.js",
+		Type:       "text/javascript",
+		Name:       "Dateformat JS",
 	})
 	return result
 }
@@ -137,6 +144,6 @@ func fileExists(filename string) bool {
 // Auto-generated content below, do not modify
 // Version codes can be changed in updateVersionNumbers.go
 
-const jsAdminVersion = 14
+const jsAdminVersion = 15
 const jsE2EVersion = 8
 const cssMainVersion = 5

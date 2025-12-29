@@ -3,8 +3,10 @@ package models
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/jinzhu/copier"
 	"net/url"
+	"time"
+
+	"github.com/jinzhu/copier"
 )
 
 // File is a struct used for saving information about an uploaded file
@@ -17,7 +19,6 @@ type File struct {
 	HotlinkId               string         `json:"HotlinkId" redis:"HotlinkId"`                   // If file is a picture file and can be hotlinked, this is the ID for the hotlink
 	ContentType             string         `json:"ContentType" redis:"ContentType"`               // The MIME type for the file
 	AwsBucket               string         `json:"AwsBucket" redis:"AwsBucket"`                   // If the file is stored in the cloud, this is the bucket that is being used
-	ExpireAtString          string         `json:"ExpireAtString" redis:"ExpireAtString"`         // Time expiry in a human-readable format in local time
 	ExpireAt                int64          `json:"ExpireAt" redis:"ExpireAt"`                     // UTC timestamp of file expiry
 	PendingDeletion         int64          `json:"PendingDeletion" redis:"PendingDeletion"`       // UTC timestamp when the file will be deleted, if pending. Otherwise 0
 	SizeBytes               int64          `json:"SizeBytes" redis:"SizeBytes"`                   // Filesize in bytes
@@ -38,7 +39,7 @@ type FileApiOutput struct {
 	Size                         string `json:"Size"`                         // Filesize in a human-readable format
 	HotlinkId                    string `json:"HotlinkId"`                    // If the file is a picture file and can be hotlinked, this is the ID for the hotlink
 	ContentType                  string `json:"ContentType"`                  // The MIME type for the file
-	ExpireAtString               string `json:"ExpireAtString"`               // Time expiry in a human-readable format in local time
+	ExpireAtString               string `json:"ExpireAtString"`               // Time expiry in a human-readable format in UTC
 	UrlDownload                  string `json:"UrlDownload"`                  // The public download URL for the file
 	UrlHotlink                   string `json:"UrlHotlink"`                   // The public hotlink URL for the file
 	UploadDate                   int64  `json:"UploadDate"`                   // UTC timestamp of upload time
@@ -93,6 +94,7 @@ func (f *File) ToFileApiOutput(serverUrl string, useFilenameInUrl bool) (FileApi
 	result.UrlDownload = getDownloadUrl(result, serverUrl, useFilenameInUrl)
 	result.UploaderId = f.UserId
 	result.IsPendingDeletion = f.IsPendingForDeletion()
+	result.ExpireAtString = time.Unix(f.ExpireAt, 0).UTC().Format("2006-01-02 15:04:05")
 
 	return result, nil
 }

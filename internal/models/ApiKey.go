@@ -3,7 +3,6 @@ package models
 import (
 	"errors"
 	"strings"
-	"time"
 )
 
 const (
@@ -71,14 +70,6 @@ func ApiPermissionFromString(permString string) (ApiPermission, error) {
 	default:
 		return 0, errors.New("invalid permission")
 	}
-}
-
-// GetReadableDate returns the date as YYYY-MM-DD HH:MM:SS
-func (key *ApiKey) GetReadableDate() string {
-	if key.LastUsed == 0 {
-		return "Never"
-	}
-	return time.Unix(key.LastUsed, 0).Format("2006-01-02 15:04:05")
 }
 
 // GetRedactedId returns a redacted version of the API key

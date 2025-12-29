@@ -1,11 +1,12 @@
 package downloadstatus
 
 import (
-	"github.com/forceu/gokapi/internal/models"
-	"github.com/forceu/gokapi/internal/test"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/test"
 )
 
 var testFile models.File
@@ -18,7 +19,6 @@ func TestMain(m *testing.M) {
 		Size:               "3 B",
 		SHA1:               "123456",
 		ExpireAt:           500,
-		ExpireAtString:     "expire",
 		DownloadsRemaining: 1,
 	}
 	exitVal := m.Run()

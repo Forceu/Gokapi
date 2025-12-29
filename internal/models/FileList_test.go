@@ -2,8 +2,9 @@ package models
 
 import (
 	"errors"
-	"github.com/forceu/gokapi/internal/test"
 	"testing"
+
+	"github.com/forceu/gokapi/internal/test"
 )
 
 func TestToJsonResult(t *testing.T) {
@@ -14,7 +15,6 @@ func TestToJsonResult(t *testing.T) {
 		SizeBytes:          10,
 		SHA1:               "sha256",
 		ExpireAt:           1750852108,
-		ExpireAtString:     "Wed Jun 25 2025 11:48:28",
 		DownloadsRemaining: 1,
 		PasswordHash:       "pwhash",
 		HotlinkId:          "hotlinkid",
@@ -32,8 +32,8 @@ func TestToJsonResult(t *testing.T) {
 		UnlimitedTime:      true,
 		PendingDeletion:    100,
 	}
-	test.IsEqualString(t, file.ToJsonResult("serverurl/", false), `{"Result":"OK","FileInfo":{"Id":"testId","Name":"testName","Size":"10 B","HotlinkId":"hotlinkid","ContentType":"text/html","ExpireAtString":"Wed Jun 25 2025 11:48:28","UrlDownload":"serverurl/d?id=testId","UrlHotlink":"","UploadDate":1748180908,"ExpireAt":1750852108,"SizeBytes":10,"DownloadsRemaining":1,"DownloadCount":3,"UnlimitedDownloads":true,"UnlimitedTime":true,"RequiresClientSideDecryption":true,"IsEncrypted":true,"IsEndToEndEncrypted":false,"IsPasswordProtected":true,"IsSavedOnLocalStorage":false,"IsPendingDeletion":true,"UploaderId":2},"IncludeFilename":false}`)
-	test.IsEqualString(t, file.ToJsonResult("serverurl/", true), `{"Result":"OK","FileInfo":{"Id":"testId","Name":"testName","Size":"10 B","HotlinkId":"hotlinkid","ContentType":"text/html","ExpireAtString":"Wed Jun 25 2025 11:48:28","UrlDownload":"serverurl/d/testId/testName","UrlHotlink":"","UploadDate":1748180908,"ExpireAt":1750852108,"SizeBytes":10,"DownloadsRemaining":1,"DownloadCount":3,"UnlimitedDownloads":true,"UnlimitedTime":true,"RequiresClientSideDecryption":true,"IsEncrypted":true,"IsEndToEndEncrypted":false,"IsPasswordProtected":true,"IsSavedOnLocalStorage":false,"IsPendingDeletion":true,"UploaderId":2},"IncludeFilename":true}`)
+	test.IsEqualString(t, file.ToJsonResult("serverurl/", false), `{"Result":"OK","FileInfo":{"Id":"testId","Name":"testName","Size":"10 B","HotlinkId":"hotlinkid","ContentType":"text/html","ExpireAtString":"2025-06-25 11:48:28","UrlDownload":"serverurl/d?id=testId","UrlHotlink":"","UploadDate":1748180908,"ExpireAt":1750852108,"SizeBytes":10,"DownloadsRemaining":1,"DownloadCount":3,"UnlimitedDownloads":true,"UnlimitedTime":true,"RequiresClientSideDecryption":true,"IsEncrypted":true,"IsEndToEndEncrypted":false,"IsPasswordProtected":true,"IsSavedOnLocalStorage":false,"IsPendingDeletion":true,"UploaderId":2},"IncludeFilename":false}`)
+	test.IsEqualString(t, file.ToJsonResult("serverurl/", true), `{"Result":"OK","FileInfo":{"Id":"testId","Name":"testName","Size":"10 B","HotlinkId":"hotlinkid","ContentType":"text/html","ExpireAtString":"2025-06-25 11:48:28","UrlDownload":"serverurl/d/testId/testName","UrlHotlink":"","UploadDate":1748180908,"ExpireAt":1750852108,"SizeBytes":10,"DownloadsRemaining":1,"DownloadCount":3,"UnlimitedDownloads":true,"UnlimitedTime":true,"RequiresClientSideDecryption":true,"IsEncrypted":true,"IsEndToEndEncrypted":false,"IsPasswordProtected":true,"IsSavedOnLocalStorage":false,"IsPendingDeletion":true,"UploaderId":2},"IncludeFilename":true}`)
 }
 
 func TestIsLocalStorage(t *testing.T) {
