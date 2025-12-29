@@ -21,7 +21,7 @@ type DatabaseProvider struct {
 }
 
 // DatabaseSchemeVersion contains the version number to be expected from the current database. If lower, an upgrade will be performed
-const DatabaseSchemeVersion = 11
+const DatabaseSchemeVersion = 12
 
 // New returns an instance
 func New(dbConfig models.DbConnection) (DatabaseProvider, error) {
@@ -41,8 +41,9 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 		osExit(1)
 		return
 	}
+	//TODO <11
 	// pre upload requests
-	if currentDbVersion < 11 {
+	if currentDbVersion < 12 {
 
 		err := p.rawSqlite(`ALTER TABLE FileMetaData ADD COLUMN "UploadRequestId" INTEGER NOT NULL DEFAULT 0;
 									 ALTER TABLE ApiKeys ADD COLUMN "UploadRequestId" INTEGER NOT NULL DEFAULT 0;
