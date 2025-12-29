@@ -15,21 +15,32 @@ function insertFormattedDate(unixTimestamp, id) {
     document.getElementById(id).innerText = formatUnixTimestamp(unixTimestamp);
 }
 
-function insertLastOnlineDate(unixTimestamp, id) {
-    if (unixTimestamp == 0) {
-        document.getElementById(id).innerText = "Never";
-        return;
+function insertDateWithNegative(unixTimestamp, id, negative) {
+    if (negative === undefined) {
+        negative = "Never";
     }
-    if ((Date.now()/1000) - 120 < unixTimestamp) {
-        document.getElementById(id).innerText = "Online";
+    if (unixTimestamp == 0) {
+        document.getElementById(id).innerText = negative;
         return;
     }
     insertFormattedDate(unixTimestamp, id);
 }
 
-function insertLastUsed(unixTimestamp, id) {
+function insertLastOnlineDate(unixTimestamp, id) {
+    if ((Date.now() / 1000) - 120 < unixTimestamp) {
+        document.getElementById(id).innerText = "Online";
+        return;
+    }
+    insertDateWithNegative(unixTimestamp, id);
+}
+
+function insertFileRequestExpiry(unixTimestamp, id) {
     if (unixTimestamp == 0) {
         document.getElementById(id).innerText = "Never";
+        return;
+    }
+    if ((Date.now() / 1000) > unixTimestamp) {
+        document.getElementById(id).innerText = "Expired";
         return;
     }
     insertFormattedDate(unixTimestamp, id);

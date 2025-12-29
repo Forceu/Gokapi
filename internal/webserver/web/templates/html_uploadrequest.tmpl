@@ -39,8 +39,11 @@
                             <tr id="row-{{ .Id }}">
 		                    <td>{{ .Name }}</td>
 		                    <td>{{ .UploadedFiles }}</td>
-		                    <td>{{ .GetReadableDateLastUpdate }}</td>
-		                    <td>{{ .GetReadableDateExpiry }}</td>
+            			    <td><span id="cell-lastupdate-{{ .Id }}"></span></td>
+				       <script>insertDateWithNegative({{ .LastUpload }}, "cell-lastupdate-{{ .Id }}", "None");</script>
+            			    <td><span id="cell-expiry-{{ .Id }}"></span></td>
+				       <script>insertFileRequestExpiry({{ .Expiry }}, "cell-expiry-{{ .Id }}");</script>
+		                    
 {{ if $.ActiveUser.HasPermissionListOtherUploads }}
 		                    <td>{{(index $.UserMap .UserId).Name}}</td>
 {{ end }}

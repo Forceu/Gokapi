@@ -4,7 +4,7 @@ import "time"
 
 type FileRequest struct {
 	Id            int    `json:"id" redis:"id"`                     // The internal ID of the file request
-	UserId        int    `json:"userid" redis:"userid"`             // The user ID of the owner
+	UserId int `json:"userid" redis:"userid"` // The user ID of the owner
 	MaxFiles      int    `json:"maxfiles" redis:"maxfiles"`         // The maximum number of files allowed
 	MaxSize       int    `json:"maxsize" redis:"maxsize"`           // The maximum file size allowed in MB
 	Expiry        int64  `json:"expiry" redis:"expiry"`             // The expiry time of the file request
@@ -24,17 +24,6 @@ func (f *FileRequest) Populate(files map[string]File) {
 			}
 		}
 	}
-}
-
-// GetReadableDateExpiry returns the expiry date as YYYY-MM-DD HH:MM:SS
-func (f *FileRequest) GetReadableDateExpiry() string {
-	if f.Expiry == 0 {
-		return "Never"
-	}
-	if time.Now().Unix() > f.Expiry {
-		return "Expired"
-	}
-	return time.Unix(f.Expiry, 0).Format("2006-01-02 15:04:05")
 }
 
 // GetReadableDateLastUpdate returns the last update date as YYYY-MM-DD HH:MM:SS
