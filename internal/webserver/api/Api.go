@@ -432,8 +432,7 @@ func apiListSingle(w http.ResponseWriter, r requestParser, user models.User) {
 	if !ok {
 		panic("invalid parameter passed")
 	}
-	id := strings.TrimPrefix(request.RequestUrl, "/files/list/")
-	file, ok := storage.GetFile(id)
+	file, ok := storage.GetFile(request.Id)
 	if !ok {
 		sendError(w, http.StatusNotFound, "File not found")
 		return
@@ -831,6 +830,41 @@ func apiURequestSave(w http.ResponseWriter, r requestParser, user models.User) {
 	_, _ = w.Write(result)
 }
 
+func apiUploadRequestList(w http.ResponseWriter, _ requestParser, user models.User) {
+	userRequests := make([]models.FileRequest, 0)
+	files := database.GetAllMetadata()
+	for _, request := range database.GetAllFileRequests() {
+		if request.UserId == user.Id || user.HasPermission(models.UserPermListOtherUploads) {
+			request.Populate(files)
+			userRequests = append(userRequests, request)
+		}
+	}
+	result, err := json.Marshal(userRequests)
+	helper.Check(err)
+	_, _ = w.Write(result)
+}
+
+func apiUploadRequestListSingle(w http.ResponseWriter, r requestParser, user models.User) {
+	request, ok := r.(*paramURequestListSingle)
+	if !ok {
+		panic("invalid parameter passed")
+	}
+
+	uploadRequest, ok := database.GetFileRequest(request.Id)
+	if !ok {
+		sendError(w, http.StatusNotFound, "FileRequest does not exist with the given ID")
+		return
+	}
+	if uploadRequest.UserId != user.Id && !user.HasPermission(models.UserPermDeleteOtherUploads) {
+		sendError(w, http.StatusUnauthorized, "No permission to delete this upload request")
+		return
+	}
+	uploadRequest.Populate(database.GetAllMetadata())
+	result, err := json.Marshal(uploadRequest)
+	helper.Check(err)
+	_, _ = w.Write(result)
+}
+
 func isAuthorisedForApi(r *http.Request, routing apiRoute) (models.User, bool) {
 	apiKey := r.Header.Get("apikey")
 	user, _, ok := isValidApiKey(apiKey, true, routing.ApiPerm)
@@ -840,7 +874,6 @@ func isAuthorisedForApi(r *http.Request, routing apiRoute) (models.User, bool) {
 	return user, true
 }
 
-// Probably from new API permission system
 func sendError(w http.ResponseWriter, errorInt int, errorMessage string) {
 	if w == nil {
 		return

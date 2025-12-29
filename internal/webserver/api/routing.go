@@ -158,6 +158,19 @@ var routes = []apiRoute{
 		RequestParser: &paramUserResetPw{},
 	},
 	{
+		Url:           "/uploadrequest/list",
+		ApiPerm:       models.ApiPermManageFileRequests,
+		execution:     apiUploadRequestList,
+		RequestParser: nil,
+	},
+	{
+		Url:           "/uploadrequest/list/",
+		ApiPerm:       models.ApiPermManageFileRequests,
+		execution:     apiUploadRequestListSingle,
+		HasWildcard:   true,
+		RequestParser: &paramURequestListSingle{},
+	},
+	{
 		Url:           "/uploadrequest/save",
 		ApiPerm:       models.ApiPermManageFileRequests,
 		execution:     apiURequestSave,
@@ -209,11 +222,12 @@ type requestParser interface {
 }
 
 type paramFilesListSingle struct {
-	RequestUrl string
+	Id string
 }
 
 func (p *paramFilesListSingle) ProcessParameter(r *http.Request) error {
-	p.RequestUrl = parseRequestUrl(r)
+	url := parseRequestUrl(r)
+	p.Id = strings.TrimPrefix(url, "/files/list/")
 	return nil
 }
 
@@ -592,6 +606,21 @@ func (p *paramURequestSave) ProcessParameter(_ *http.Request) error {
 	if p.foundHeaders["maxsize"] {
 		p.IsMaxSizeSet = true
 	}
+	return nil
+}
+
+type paramURequestListSingle struct {
+	Id int
+}
+
+func (p *paramURequestListSingle) ProcessParameter(r *http.Request) error {
+	url := parseRequestUrl(r)
+	idString := strings.TrimPrefix(url, "/uploadrequest/list/")
+	id, err := strconv.Atoi(idString)
+	if err != nil {
+		return errors.New("invalid request ID")
+	}
+	p.Id = id
 	return nil
 }
 

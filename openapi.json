@@ -14,7 +14,7 @@
   "security": [
     {
       "apikey": ["VIEW","UPLOAD","DELETE", "API_MANAGE"]
-    },
+    }
   ],
   "tags": [
     {
@@ -79,7 +79,7 @@
         "security": [
           {
             "apikey": ["UPLOAD"]
-          },
+          }
         ],
         "responses": {
           "200": {
@@ -112,7 +112,7 @@
         "security": [
           {
             "apikey": ["VIEW"]
-          },
+          }
         ],
         "responses": {
           "200": {
@@ -161,7 +161,7 @@
         "security": [
           {
             "apikey": ["VIEW"]
-          },
+          }
         ],
         "responses": {
           "200": {
@@ -197,7 +197,7 @@
         "security": [
           {
             "apikey": ["UPLOAD"]
-          },
+          }
         ],
         "requestBody": {
           "content": {
@@ -240,7 +240,7 @@
         "security": [
           {
             "apikey": ["UPLOAD"]
-          },
+          }
         ],
          "parameters": [
           {
@@ -338,7 +338,7 @@
         "security": [
           {
             "apikey": ["MANAGE_LOGS"]
-          },
+          }
         ],
         "parameters": [
       {
@@ -375,7 +375,7 @@
         "security": [
           {
             "apikey": ["UPLOAD"]
-          },
+          }
         ],
         "requestBody": {
           "content": {
@@ -418,7 +418,7 @@
         "security": [
           {
             "apikey": ["VIEW","UPLOAD"]
-          },
+          }
         ],
         "requestBody": {
           "content": {
@@ -464,7 +464,7 @@
         "security": [
           {
             "apikey": ["EDIT"]
-          },
+          }
         ],
             "parameters": [
       {
@@ -547,7 +547,7 @@
         "security": [
           {
             "apikey": ["REPLACE"]
-          },
+          }
         ],
             "parameters": [
       {
@@ -895,6 +895,91 @@
           },
           "404": {
             "description": "Invalid API key provided for authentication or API key does not have the required permission"
+          }
+        }
+      }
+    },
+    "/uploadrequest/list": {
+      "get": {
+        "tags": [
+          "uploadrequest"
+        ],
+        "summary": "Lists all file requests",
+        "description": "This API call lists all file requests. Requires API permission GUEST_UPLOAD. To view file requests created by a different user, the user needs to have the user permission LIST",
+        "operationId": "ulist",
+        "security": [
+          {
+            "apikey": ["PERM_GUEST_UPLOAD"]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "nullable": false,
+                  "items": {
+                    "$ref": "#/components/schemas/FileRequest"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
+          }
+        }
+      }
+    },
+    "/uploadrequest/list/{id}": {
+      "get": {
+        "tags": [
+          "uploadrequest"
+        ],
+        "summary": "Get file request by ID",
+        "description": "This API call lists a specific file request. Returns 404 if an invalid ID was passed. Requires API permission GUEST_UPLOAD. To view file requests from a different user, the user needs to have the user permission LIST",
+        "operationId": "ulistbyid",
+       "parameters": [
+	      {
+		"name": "id",
+		"in": "path",
+		"required": true,
+		"schema": {
+		  "type": "string"
+		},
+		"description": "ID of file request"
+	      }
+    	],
+       
+        "security": [
+          {
+            "apikey": ["PERM_GUEST_UPLOAD"]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileRequest"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
+          },
+          "404": {
+            "description": "Invalid ID provided"
           }
         }
       }
@@ -1301,7 +1386,7 @@
           }
         }
       }
-    },
+    }
   },
   "components": {
     "schemas": {
@@ -1427,6 +1512,71 @@
         "description": "File is a struct used for saving information about an uploaded file",
         "x-go-package": "Gokapi/internal/models"
       },
+      "FileRequest": {
+        "type": "object",
+        "description": "Represents a file upload request and its associated metadata.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32",
+            "description": "The internal ID of the file request",
+            "example": "137"
+          },
+          "userid": {
+            "type": "integer",
+            "format": "int32",
+            "description": "The user ID of the owner",
+            "example": "2"
+          },
+          "maxfiles": {
+            "type": "integer",
+            "format": "int32",
+            "description": "The maximum number of files allowed or 0 if unlimited",
+            "example": "20"
+          },
+          "maxsize": {
+            "type": "integer",
+            "format": "int32",
+            "description": "The maximum file size allowed in MB or 0 if unlimited",
+            "example": "0"
+          },
+          "expiry": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The expiry time of the file request as a Unix timestamp or 0 if no expiry",
+            "example": "1767022842"
+          },
+          "creationdate": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The timestamp when the file request was created",
+            "example": "1767021842"
+          },
+          "name": {
+            "type": "string",
+            "description": "The given name for the file request",
+            "example": "Book list entries"
+          },
+          "uploadedfiles": {
+            "type": "integer",
+            "format": "int32",
+            "description": "The number of uploaded files for this request",
+            "example": "3"
+          },
+          "lastupload": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The timestamp of the last upload",
+            "example": "1767022002"
+          },
+          "totalfilesize": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The total size of all uploaded files in bytes",
+            "example": "544332214"
+          }
+        }
+      },
       "chunkUploadResult": {
         "type": "object",
         "properties": {
@@ -1523,7 +1673,7 @@
             "example": false
           }
         },
-        "description": "VersionInfo is the struct used for returning version numbers",
+        "description": "VersionInfo is the struct used for returning version numbers"
       },
       "ConfigInfo": {
         "type": "object",
@@ -1537,7 +1687,7 @@
             "example": 40
           }
         },
-        "description": "ConfigInfo is the struct used for returning configuration data",
+        "description": "ConfigInfo is the struct used for returning configuration data"
       },
       "PasswordReset": {
         "type": "object",
