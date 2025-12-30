@@ -242,6 +242,7 @@ type paramFilesDownloadSingle struct {
 	Id              string
 	WebRequest      *http.Request
 	IncreaseCounter bool `header:"increaseCounter"`
+	PresignUrl      bool `header:"presignUrl"`
 	foundHeaders    map[string]bool
 }
 

@@ -40,6 +40,19 @@ func (p *paramFilesDownloadSingle) ParseRequest(r *http.Request) error {
 		}
 	}
 
+	// RequestParser header value "presignUrl", required: false
+	exists, err = checkHeaderExists(r, "presignUrl", false, false)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["presignUrl"] = exists
+	if exists {
+		p.PresignUrl, err = parseHeaderBool(r, "presignUrl")
+		if err != nil {
+			return fmt.Errorf("invalid value in header presignUrl supplied")
+		}
+	}
+
 	return p.ProcessParameter(r)
 }
 

@@ -788,10 +788,27 @@ function createButtonGroup(item) {
     dropdown2.appendChild(emailLi);
     group1.appendChild(dropdown2);
 
-    // Button group for Edit/Delete
+    // Button group for Download/Edit/Delete
     const group2 = document.createElement("div");
     group2.className = "btn-group me-2";
     group2.setAttribute("role", "group");
+    
+    
+    // === Button: Download ===
+    const btnDownload = document.createElement('button');
+    btnDownload.type = 'button';
+    btnDownload.className = 'btn btn-outline-light btn-sm';
+    btnDownload.title = 'Download';
+
+    const downloadIcon = document.createElement('i');
+    downloadIcon.className = 'bi bi-download';
+    btnDownload.appendChild(downloadIcon);
+
+    btnDownload.addEventListener('click', () => {
+        downloadFileWithPresign(item.Id, false);
+    });
+
+    group2.appendChild(btnDownload);
 
     // === Button: Edit ===
     const btnEdit = document.createElement('button');

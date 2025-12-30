@@ -114,7 +114,7 @@
           "files"
         ],
         "summary": "Downloads file with optionally increasing the download counter",
-        "description": "This API call downloads a file that is not expired and increasing its download counter is disabled by default. Returns 404 if an invalid/expired ID was passed. Requires API permission DOWNLOAD. To download files that were not uploaded by the user, the user needs to have the user permission LIST",
+        "description": "This API call downloads a file that is not expired and increasing its download counter is disabled by default. Can be set up to return a pre-signed URL instead of the file itself, which is valid for 30 seconds and can be accessed by any registered user. Returns 404 if an invalid/expired ID was passed. Requires API permission DOWNLOAD. To download files that were not uploaded by the user, the user needs to have the user permission LIST",
         "operationId": "downloadsingle",
         "parameters": [
           {
@@ -134,6 +134,15 @@
               "type": "boolean"
             },
             "description": "Increase counter if set to true"
+          },
+          {
+            "name": "presignUrl",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Return a pre-signed URL instead of the actual file. Valid for 30 seconds and can only be used by logged in users"
           }
         ],
         "security": [
@@ -149,8 +158,19 @@
             "content": {
               "application/octet-stream": {
                 "schema": {
-                  "type": "file",
+                  "type": "object",
                   "format": "binary"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "downloadUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  }
                 }
               }
             }

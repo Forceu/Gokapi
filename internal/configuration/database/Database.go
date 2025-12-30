@@ -342,3 +342,20 @@ func SaveFileRequest(request models.FileRequest) int {
 func DeleteFileRequest(request models.FileRequest) {
 	db.DeleteFileRequest(request)
 }
+
+// Presigned URLs
+
+// GetPresignedUrl returns the presigned url with the given ID or false if not a valid ID
+func GetPresignedUrl(id string) (models.Presign, bool) {
+	return db.GetPresignedUrl(id)
+}
+
+// DeletePresignedUrl deletes the presigned url with the given ID
+func DeletePresignedUrl(id string) {
+	db.DeletePresignedUrl(id)
+}
+
+// SavePresignedUrl saves the presigned url
+func SavePresignedUrl(presign models.Presign) {
+	db.SavePresignedUrl(presign)
+}

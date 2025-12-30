@@ -100,6 +100,7 @@ func Start() {
 	mux.HandleFunc("/changePassword", requireLogin(changePassword, true, true))
 	mux.HandleFunc("/d", showDownload)
 	mux.HandleFunc("/downloadFile", downloadFile)
+	mux.HandleFunc("/downloadPresigned", requireLogin(downloadPresigned, false, false))
 	mux.HandleFunc("/e2eSetup", requireLogin(showE2ESetup, true, false))
 	mux.HandleFunc("/error", showError)
 	mux.HandleFunc("/error-auth", showErrorAuth)
@@ -907,6 +908,33 @@ func downloadFileWithNameInUrl(w http.ResponseWriter, r *http.Request) {
 func downloadFile(w http.ResponseWriter, r *http.Request) {
 	id := queryUrl(w, r, "error")
 	serveFile(id, true, w, r)
+}
+
+// Handling of /downloadPresigned
+// Outputs the file to the user and reduces the download remaining count for the file, if requested
+func downloadPresigned(w http.ResponseWriter, r *http.Request) {
+	id, ok := r.URL.Query()["id"]
+	if !ok || len(id[0]) < configuration.Get().LengthId {
+		responseError(w, storage.ErrorFileNotFound)
+		return
+	}
+	presignKey, ok := r.URL.Query()["key"]
+	if !ok {
+		responseError(w, storage.ErrorInvalidPresign)
+		return
+	}
+	presign, ok := database.GetPresignedUrl(presignKey[0])
+	if !ok || presign.Expiry < time.Now().Unix() || presign.FileId != id[0] {
+		responseError(w, storage.ErrorInvalidPresign)
+		return
+	}
+	savedFile, ok := storage.GetFile(presign.FileId)
+	if !ok {
+		responseError(w, storage.ErrorFileNotFound)
+		return
+	}
+	database.DeletePresignedUrl(presign.Id)
+	storage.ServeFile(savedFile, w, r, true, false)
 }
 
 func serveFile(id string, isRootUrl bool, w http.ResponseWriter, r *http.Request) {

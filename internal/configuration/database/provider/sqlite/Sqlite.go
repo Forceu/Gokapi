@@ -60,7 +60,13 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 										"maxSize"	INTEGER NOT NULL,
 										"creation"	INTEGER NOT NULL,
 										PRIMARY KEY("id" AUTOINCREMENT)
-									 );`)
+									 );
+									CREATE TABLE "Presign" (
+										"id"	TEXT NOT NULL UNIQUE,
+										"fileId"	TEXT NOT NULL,
+										"expiry"	INTEGER NOT NULL,
+										PRIMARY KEY("id")
+									);`)
 		helper.Check(err)
 		if environment.New().PermRequestGrantedByDefault {
 			for _, user := range p.GetAllUsers() {
@@ -144,6 +150,7 @@ func (p DatabaseProvider) Close() {
 func (p DatabaseProvider) RunGarbageCollection() {
 	p.cleanExpiredSessions()
 	p.cleanApiKeys()
+	p.cleanPresignedUrls()
 }
 
 func (p DatabaseProvider) createNewDatabase() error {
@@ -218,6 +225,12 @@ func (p DatabaseProvider) createNewDatabase() error {
 			"maxSize"	INTEGER NOT NULL,
 			"creation"	INTEGER NOT NULL,
 			PRIMARY KEY("id" AUTOINCREMENT)
+		);
+		CREATE TABLE "Presign" (
+			"id"	TEXT NOT NULL UNIQUE,
+			"fileId"	TEXT NOT NULL,
+			"expiry"	INTEGER NOT NULL,
+			PRIMARY KEY("id")
 		);
 `
 	err := p.rawSqlite(sqlStmt)

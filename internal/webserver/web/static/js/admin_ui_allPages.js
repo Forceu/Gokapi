@@ -76,3 +76,23 @@ function getReadableSize(bytes) {
     }
     return `${bytes.toFixed(2)} ${units[i]}`;
 }
+
+function downloadFileWithPresign(id, increaseCounter) {
+    apiFilesListDownloadSingle(id, increaseCounter)
+        .then(data => {
+            if (!data.hasOwnProperty("downloadUrl")) {
+                throw new Error("Unable to get presigned key");
+            }
+            const a = document.createElement('a');
+            a.href = data.downloadUrl;
+            a.style.display = 'none';
+
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        })
+        .catch(error => {
+            alert("Unable to download: " + error);
+            console.error('Error:', error);
+        });
+}

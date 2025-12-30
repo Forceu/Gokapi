@@ -309,8 +309,7 @@ async function apiFilesListById(fileId) {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
-            'apikey': token,
-
+            'apikey': token
         },
     };
 
@@ -323,6 +322,43 @@ async function apiFilesListById(fileId) {
         return data;
     } catch (error) {
         console.error("Error in apiFilesListById:", error);
+        throw error;
+    }
+}
+
+
+async function apiFilesListDownloadSingle(fileId, increaseCounter) {
+    const apiUrl = './api/files/download/' + fileId;
+    const reqPerm = 'PERM_DOWNLOAD';
+
+    let token;
+
+    try {
+        token = await getToken(reqPerm, false);
+    } catch (error) {
+        console.error("Unable to gain permission token:", error);
+        throw error;
+    }
+
+    const requestOptions = {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'apikey': token,
+            'increaseCounter': increaseCounter,
+            'presignUrl': true
+        },
+    };
+
+    try {
+        const response = await fetch(apiUrl, requestOptions);
+        if (!response.ok) {
+            throw new Error(`Request failed with status: ${response.status}`);
+        }
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error("Error in apiFilesListDownloadSingle:", error);
         throw error;
     }
 }

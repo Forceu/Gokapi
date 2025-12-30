@@ -463,11 +463,20 @@ func apiDownloadSingle(w http.ResponseWriter, r requestParser, user models.User)
 		sendError(w, http.StatusUnauthorized, "No permission to download file")
 		return
 	}
-	storage.ServeFile(file, w, request.WebRequest, true, request.IncreaseCounter)
-	config := configuration.Get()
-	output, err := file.ToFileApiOutput(config.ServerUrl, config.IncludeFilename)
-	helper.Check(err)
-	result, err := json.Marshal(output)
+	if !request.PresignUrl {
+		storage.ServeFile(file, w, request.WebRequest, true, request.IncreaseCounter)
+		return
+	}
+	presignUrl := models.Presign{
+		Id:     helper.GenerateRandomString(60),
+		FileId: file.Id,
+		Expiry: time.Now().Add(time.Second * 30).Unix(),
+	}
+	database.SavePresignedUrl(presignUrl)
+	response := struct {
+		DownloadUrl string `json:"downloadUrl"`
+	}{configuration.Get().ServerUrl + "downloadPresigned?key=" + presignUrl.Id + "&id=" + file.Id}
+	result, err := json.Marshal(response)
 	helper.Check(err)
 	_, _ = w.Write(result)
 }

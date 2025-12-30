@@ -46,6 +46,9 @@ var ErrorReplaceE2EFile = errors.New("end-to-end encrypted files cannot be repla
 // ErrorFileNotFound is raised when an invalid ID is passed or the file has expired
 var ErrorFileNotFound = errors.New("file not found")
 
+// ErrorInvalidPresign is raised when an invalid presign key has been passed or it has expired
+var ErrorInvalidPresign = errors.New("invalid presign")
+
 // NewFile creates a new file in the system. Called after an upload from the API has been completed. If a file with the same sha1 hash
 // already exists, it is deduplicated. This function gathers information about the file, creates an ID and saves
 // it into the global configuration. It is now only used by the API, the web UI uses NewFileFromChunk

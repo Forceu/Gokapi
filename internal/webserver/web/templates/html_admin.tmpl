@@ -87,6 +87,7 @@
 						     {{ template "admin_button_share" (newAdminButtonContext . $.ActiveUser)}}
 						  </div>
 						  <div class="btn-group me-2" role="group">
+						     {{ template "admin_button_download" (newAdminButtonContext . $.ActiveUser) }}
 						     {{ template "admin_button_edit" (newAdminButtonContext . $.ActiveUser) }}
 						     {{ template "admin_button_delete" (newAdminButtonContext . $.ActiveUser) }}
 						 </div>
@@ -189,6 +190,19 @@
 
 
 {{ template "footer" true}}
+{{ end }}
+
+
+
+{{ define "admin_button_download" }}
+			<button
+			    type="button"
+			    title="Download"
+			    class="btn btn-outline-light btn-sm"
+			    onclick="downloadFileWithPresign('{{.CurrentFile.Id }}', false);">
+		   	    <i class="bi bi-download"></i>
+			</button>
+
 {{ end }}
 
 {{ define "admin_button_edit" }}
