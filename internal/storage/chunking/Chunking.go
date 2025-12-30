@@ -3,13 +3,16 @@ package chunking
 import (
 	"errors"
 	"io"
+	"mime"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/helper"
@@ -140,17 +143,80 @@ func parseContentType(r *http.Request) string {
 
 // ParseMultipartHeader converts a multipart.FileHeader to the internal FileHeader
 func ParseMultipartHeader(header *multipart.FileHeader) (FileHeader, error) {
-	if header.Filename == "" {
+	filename := decodeMultipartFilename(header)
+	if filename == "" {
 		return FileHeader{}, errors.New("empty filename provided")
 	}
 	if header.Header.Get("Content-Type") == "" {
 		return FileHeader{}, errors.New("empty content-type provided")
 	}
 	return FileHeader{
-		Filename:    header.Filename,
+		Filename:    filename,
 		Size:        header.Size,
 		ContentType: header.Header.Get("Content-Type"),
 	}, nil
+}
+
+// decodeMultipartFilename extracts and decodes the filename from a multipart header.
+// Different browsers encode Unicode filenames differently in the Content-Disposition header.
+// This function handles:
+// 1. Standard Go parsing (which already handles RFC 5987 filename*)
+// 2. Percent-encoded filenames (URL encoding)
+// 3. RFC 5987/6266 format (filename*=UTF-8”...)
+// 4. Invalid UTF-8 sanitization
+func decodeMultipartFilename(header *multipart.FileHeader) string {
+	filename := header.Filename
+
+	// If Go's standard parsing returned a valid filename, try to decode it
+	if filename != "" {
+		// Try URL decoding in case the filename is percent-encoded
+		if decoded, err := url.QueryUnescape(filename); err == nil && decoded != filename {
+			// Only use decoded version if it's valid UTF-8
+			if utf8.ValidString(decoded) {
+				filename = decoded
+			}
+		}
+
+		// Ensure the filename is valid UTF-8
+		if utf8.ValidString(filename) {
+			return filename
+		}
+		// If not valid UTF-8, try to sanitize by replacing invalid bytes
+		filename = strings.ToValidUTF8(filename, "")
+		if filename != "" {
+			return filename
+		}
+	}
+
+	// If standard parsing failed, try to extract filename from Content-Disposition header manually
+	contentDisposition := header.Header.Get("Content-Disposition")
+	if contentDisposition == "" {
+		return ""
+	}
+
+	// Try to parse using Go's mime.ParseMediaType (handles RFC 5987)
+	_, params, err := mime.ParseMediaType(contentDisposition)
+	if err == nil {
+		// Check for filename* (RFC 5987) first
+		if fn, ok := params["filename*"]; ok && fn != "" {
+			return fn
+		}
+		// Fall back to filename
+		if fn, ok := params["filename"]; ok && fn != "" {
+			// Try URL decoding
+			if decoded, err := url.QueryUnescape(fn); err == nil {
+				if utf8.ValidString(decoded) {
+					return decoded
+				}
+			}
+			if utf8.ValidString(fn) {
+				return fn
+			}
+			return strings.ToValidUTF8(fn, "")
+		}
+	}
+
+	return ""
 }
 
 func getChunkFilePath(id string) string {

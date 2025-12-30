@@ -257,6 +257,57 @@ func TestParseMultipartHeader(t *testing.T) {
 	test.IsNotNil(t, err)
 }
 
+func TestParseMultipartHeaderUnicode(t *testing.T) {
+	mimeHeader := make(textproto.MIMEHeader)
+	mimeHeader.Set("Content-Type", "application/javascript")
+
+	// Test Unicode filename (e.g., Portuguese "Lousã.js")
+	multipartHeader := multipart.FileHeader{
+		Filename: "Lousã.js",
+		Size:     100,
+		Header:   mimeHeader,
+	}
+	header, err := ParseMultipartHeader(&multipartHeader)
+	test.IsNil(t, err)
+	test.IsEqualString(t, header.Filename, "Lousã.js")
+
+	// Test percent-encoded filename
+	multipartHeader.Filename = "Lous%C3%A3.js"
+	header, err = ParseMultipartHeader(&multipartHeader)
+	test.IsNil(t, err)
+	test.IsEqualString(t, header.Filename, "Lousã.js")
+
+	// Test Chinese characters
+	multipartHeader.Filename = "测试文件.txt"
+	header, err = ParseMultipartHeader(&multipartHeader)
+	test.IsNil(t, err)
+	test.IsEqualString(t, header.Filename, "测试文件.txt")
+
+	// Test percent-encoded Chinese characters
+	multipartHeader.Filename = "%E6%B5%8B%E8%AF%95%E6%96%87%E4%BB%B6.txt"
+	header, err = ParseMultipartHeader(&multipartHeader)
+	test.IsNil(t, err)
+	test.IsEqualString(t, header.Filename, "测试文件.txt")
+
+	// Test Japanese characters
+	multipartHeader.Filename = "テスト.txt"
+	header, err = ParseMultipartHeader(&multipartHeader)
+	test.IsNil(t, err)
+	test.IsEqualString(t, header.Filename, "テスト.txt")
+
+	// Test emoji in filename
+	multipartHeader.Filename = "file🎉.txt"
+	header, err = ParseMultipartHeader(&multipartHeader)
+	test.IsNil(t, err)
+	test.IsEqualString(t, header.Filename, "file🎉.txt")
+
+	// Test mixed encoding (partially encoded)
+	multipartHeader.Filename = "test%20file.txt"
+	header, err = ParseMultipartHeader(&multipartHeader)
+	test.IsNil(t, err)
+	test.IsEqualString(t, header.Filename, "test file.txt")
+}
+
 func TestGetChunkFilePath(t *testing.T) {
 	test.IsEqualString(t, getChunkFilePath("test"), "test/data/chunk-test")
 }
