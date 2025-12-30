@@ -1738,6 +1738,18 @@
             "format": "int64",
             "description": "The total size of all uploaded files in bytes",
             "example": "544332214"
+          },
+          "fileidlist": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "An array of the IDs of all uploaded files",
+            "example": [
+              "cohng2weGh",
+              "see5Ohng9y",
+              "EoYiog4Che"
+            ]
           }
         }
       },
