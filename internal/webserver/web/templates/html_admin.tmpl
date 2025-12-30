@@ -84,6 +84,8 @@
 						<div class="btn-toolbar" role="toolbar" >
 						  <div class="btn-group me-2" role="group">
 						     {{ template "admin_button_copyurl" (newAdminButtonContext . $.ActiveUser)}}
+						  </div>
+						  <div class="btn-group me-2" role="group">
 						     {{ template "admin_button_share" (newAdminButtonContext . $.ActiveUser)}}
 						  </div>
 						  <div class="btn-group me-2" role="group">
@@ -246,9 +248,9 @@
 		    <button type="button" class="btn btn-outline-light btn-sm dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
 		    </button>
 			<ul class="dropdown-menu dropdown-menu-end" data-bs-theme="dark" >
-			    <li style="cursor: pointer;"><a class="dropdown-item" id="qrcode-{{ .CurrentFile.Id }}" title="Open QR Code" class="btn btn-outline-light btn-sm" onclick="showQrCode('{{ .CurrentFile.UrlDownload }}');"><i class="bi bi-qr-code"></i> QR Code</a></li>
+			    <li style="cursor: pointer;"><a class="dropdown-item" id="qrcode-{{ .CurrentFile.Id }}" title="Open QR Code" onclick="showQrCode('{{ .CurrentFile.UrlDownload }}');"><i class="bi bi-qr-code"></i> QR Code</a></li>
 			    <li style="cursor: pointer;"><a class="dropdown-item" id="email-{{ .CurrentFile.Id }}" href="mailto:?body={{ .CurrentFile.UrlDownload | urlquery}}"
-			       target="_blank" title="Share via email" class="btn btn-outline-light btn-sm"><i class="bi bi-envelope"></i> Email</a></li>
+			       target="_blank" title="Share via email"><i class="bi bi-envelope"></i> Email</a></li>
 			</ul>
 {{ end }}
 

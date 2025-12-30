@@ -732,6 +732,7 @@ function createButtonGroup(item) {
     groupContainer.className = "btn-toolbar";
     groupContainer.setAttribute("role", "toolbar");
 
+    // Button group for Copy URL
     const group1 = document.createElement("div");
     group1.className = "btn-group me-2";
     group1.setAttribute("role", "group");
@@ -784,6 +785,11 @@ function createButtonGroup(item) {
     dropdown1.appendChild(liDr1);
     group1.appendChild(dropdown1);
 
+    // Button group for Share
+    const groupShare = document.createElement("div");
+    groupShare.className = "btn-group me-2";
+    groupShare.setAttribute("role", "group");
+
     // Share button
     const btnShare = document.createElement("button");
     btnShare.type = "button";
@@ -791,16 +797,15 @@ function createButtonGroup(item) {
     btnShare.title = "Share";
     btnShare.onclick = () => shareUrl(item.Id);
     btnShare.innerHTML = `<i class="bi bi-share"></i>`;
-    group1.appendChild(btnShare);
+    groupShare.appendChild(btnShare);
 
-
-    // Dropdown toggle 
+    // Dropdown toggle for Share
     const btnDropdown2 = document.createElement("button");
     btnDropdown2.type = "button";
     btnDropdown2.className = "btn btn-outline-light btn-sm dropdown-toggle dropdown-toggle-split";
     btnDropdown2.setAttribute("data-bs-toggle", "dropdown");
     btnDropdown2.setAttribute("aria-expanded", "false");
-    group1.appendChild(btnDropdown2);
+    groupShare.appendChild(btnDropdown2);
 
     const dropdown2 = document.createElement("ul");
     dropdown2.className = "dropdown-menu dropdown-menu-end";
@@ -827,7 +832,7 @@ function createButtonGroup(item) {
     emailA.innerHTML = `<i class="bi bi-envelope"></i> Email`;
     emailLi.appendChild(emailA);
     dropdown2.appendChild(emailLi);
-    group1.appendChild(dropdown2);
+    groupShare.appendChild(dropdown2);
 
     // Button group for Edit/Delete
     const group2 = document.createElement("div");
@@ -877,6 +882,7 @@ function createButtonGroup(item) {
     group2.appendChild(btnDelete);
 
     groupContainer.appendChild(group1);
+    groupContainer.appendChild(groupShare);
     groupContainer.appendChild(group2);
 
     return groupContainer;
