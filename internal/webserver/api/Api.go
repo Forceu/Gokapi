@@ -463,6 +463,10 @@ func apiDownloadSingle(w http.ResponseWriter, r requestParser, user models.User)
 		sendError(w, http.StatusUnauthorized, "No permission to download file")
 		return
 	}
+	if file.Encryption.IsEndToEndEncrypted {
+		sendError(w, http.StatusBadRequest, "End-to-End encrypted files cannot be downloaded")
+		return
+	}
 	if !request.PresignUrl {
 		storage.ServeFile(file, w, request.WebRequest, true, request.IncreaseCounter)
 		return
@@ -474,8 +478,9 @@ func apiDownloadSingle(w http.ResponseWriter, r requestParser, user models.User)
 	}
 	database.SavePresignedUrl(presignUrl)
 	response := struct {
+		Result      string `json:"Result"`
 		DownloadUrl string `json:"downloadUrl"`
-	}{configuration.Get().ServerUrl + "downloadPresigned?key=" + presignUrl.Id + "&id=" + file.Id}
+	}{"OK", configuration.Get().ServerUrl + "downloadPresigned?key=" + presignUrl.Id + "&id=" + file.Id}
 	result, err := json.Marshal(response)
 	helper.Check(err)
 	_, _ = w.Write(result)
@@ -520,7 +525,7 @@ func apiDuplicateFile(w http.ResponseWriter, r requestParser, user models.User) 
 		request.UnlimitedTime,
 		request.UnlimitedDownloads,
 		false, // is not being used by storage.DuplicateFile
-		0)     // is not being used by storage.DuplicateFile
+		0) // is not being used by storage.DuplicateFile
 	newFile, err := storage.DuplicateFile(file, request.RequestedChanges, request.FileName, uploadRequest)
 	if err != nil {
 		sendError(w, http.StatusInternalServerError, err.Error())

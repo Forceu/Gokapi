@@ -799,6 +799,9 @@ function createButtonGroup(item) {
     btnDownload.type = 'button';
     btnDownload.className = 'btn btn-outline-light btn-sm';
     btnDownload.title = 'Download';
+    if (item.IsEndToEndEncrypted) {
+        btnDownload.classList.add("disabled");
+    }
 
     const downloadIcon = document.createElement('i');
     downloadIcon.className = 'bi bi-download';

@@ -198,7 +198,7 @@
 			<button
 			    type="button"
 			    title="Download"
-			    class="btn btn-outline-light btn-sm"
+			    class="btn btn-outline-light btn-sm {{if .CurrentFile.IsEndToEndEncrypted}}disabled{{end}}"
 			    onclick="downloadFileWithPresign('{{.CurrentFile.Id }}', false);">
 		   	    <i class="bi bi-download"></i>
 			</button>

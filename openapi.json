@@ -114,7 +114,7 @@
           "files"
         ],
         "summary": "Downloads file with optionally increasing the download counter",
-        "description": "This API call downloads a file that is not expired and increasing its download counter is disabled by default. Can be set up to return a pre-signed URL instead of the file itself, which is valid for 30 seconds and can be accessed by any registered user. Returns 404 if an invalid/expired ID was passed. Requires API permission DOWNLOAD. To download files that were not uploaded by the user, the user needs to have the user permission LIST",
+        "description": "This API call downloads a file that is not expired and increasing its download counter is disabled by default. Can be set up to return a pre-signed URL instead of the file itself, which is valid for 30 seconds and can be accessed by any registered user. End-to-end encrypted files cannot be downloaded. Returns 404 if an invalid/expired ID was passed. Requires API permission DOWNLOAD. To download files that were not uploaded by the user, the user needs to have the user permission LIST",
         "operationId": "downloadsingle",
         "parameters": [
           {
@@ -142,7 +142,7 @@
             "schema": {
               "type": "boolean"
             },
-            "description": "Return a pre-signed URL instead of the actual file. Valid for 30 seconds and can only be used by logged in users"
+            "description": "Return a pre-signed URL instead of the actual file. Valid for one download within 30 seconds and can only be used by logged in users"
           }
         ],
         "security": [
@@ -176,7 +176,7 @@
             }
           },
           "400": {
-            "description": "Invalid input"
+            "description": "Invalid input or trying to download an end-to-end encrypted file"
           },
           "401": {
             "description": "Invalid API key provided for authentication or API key does not have the required permission"
