@@ -55,7 +55,7 @@
 {{ end }}
 		                    <td>
 		                    	<div class="btn-group" role="group">
-                                <button id="download-{{ .Id }}" type="button" class="btn btn-outline-light btn-sm {{ if eq .UploadedFiles 0 }} disabled {{ end }}"  onclick="" title="Download all"><i class="bi bi-download"></i></button>
+                                <button id="download-{{ .Id }}" type="button" class="btn btn-outline-light btn-sm {{ if eq .UploadedFiles 0 }} disabled {{ end }}"  onclick="{{ if eq .UploadedFiles 1 }}downloadFileWithPresign('{{ (index .FileIdList 0) }}', false);{{else}}{{ end }}" title="Download all"><i class="bi bi-download"></i></button>
                                 
 		                        <button id="edit-{{ .Id }}" type="button" title="Edit request" class="btn btn-outline-light btn-sm" onclick="editFileRequest({{ .Id }}, '{{ .Name }}', {{ .MaxFiles }}, {{ .MaxSize }}, {{ .Expiry }})">
 		                        	<i class="bi bi-pencil"></i></button>

@@ -175,7 +175,14 @@ function insertOrReplaceFileRequest(jsonResult) {
         const user = document.getElementById(`cell-username-${jsonResult.id}`).innerText;
         row.replaceWith(createFileRequestRow(jsonResult, user));
     } else {
-        tbody.appendChild(createFileRequestRow(jsonResult, userName));
+        let tr = createFileRequestRow(jsonResult, userName);
+        tr.querySelectorAll('td').forEach((td) => {
+            td.classList.add("newFileRequest");
+            setTimeout(() => {
+                td.classList.remove("newFileRequest");
+            }, 700);
+        });
+        tbody.prepend(tr);
     }
 }
 

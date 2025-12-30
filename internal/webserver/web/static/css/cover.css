@@ -266,6 +266,10 @@ a:hover {
 }
 
 
+.newFileRequest {
+  animation: subtleHighlightNewJson 0.7s ease-out;
+}
+
 .newApiKey {
   animation: subtleHighlightNewJson 0.7s ease-out;
 }
