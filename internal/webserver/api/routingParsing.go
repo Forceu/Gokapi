@@ -20,6 +20,34 @@ func (p *paramFilesListSingle) New() requestParser {
 	return &paramFilesListSingle{}
 }
 
+// ParseRequest reads r and saves the passed header values in the paramFilesDownloadSingle struct
+// In the end, ProcessParameter() is called
+func (p *paramFilesDownloadSingle) ParseRequest(r *http.Request) error {
+	var err error
+	var exists bool
+	p.foundHeaders = make(map[string]bool)
+
+	// RequestParser header value "increaseCounter", required: false
+	exists, err = checkHeaderExists(r, "increaseCounter", false, false)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["increaseCounter"] = exists
+	if exists {
+		p.IncreaseCounter, err = parseHeaderBool(r, "increaseCounter")
+		if err != nil {
+			return fmt.Errorf("invalid value in header increaseCounter supplied")
+		}
+	}
+
+	return p.ProcessParameter(r)
+}
+
+// New returns a new instance of paramFilesDownloadSingle struct
+func (p *paramFilesDownloadSingle) New() requestParser {
+	return &paramFilesDownloadSingle{}
+}
+
 // ParseRequest parses the header file. As paramFilesAdd has no fields with the
 // tag header, this method does nothing, except calling ProcessParameter()
 func (p *paramFilesAdd) ParseRequest(r *http.Request) error {

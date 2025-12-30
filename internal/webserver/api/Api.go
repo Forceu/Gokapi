@@ -449,6 +449,29 @@ func apiListSingle(w http.ResponseWriter, r requestParser, user models.User) {
 	_, _ = w.Write(result)
 }
 
+func apiDownloadSingle(w http.ResponseWriter, r requestParser, user models.User) {
+	request, ok := r.(*paramFilesDownloadSingle)
+	if !ok {
+		panic("invalid parameter passed")
+	}
+	file, ok := storage.GetFile(request.Id)
+	if !ok {
+		sendError(w, http.StatusNotFound, "File not found")
+		return
+	}
+	if file.UserId != user.Id && !user.HasPermission(models.UserPermListOtherUploads) {
+		sendError(w, http.StatusUnauthorized, "No permission to download file")
+		return
+	}
+	storage.ServeFile(file, w, request.WebRequest, true, request.IncreaseCounter)
+	config := configuration.Get()
+	output, err := file.ToFileApiOutput(config.ServerUrl, config.IncludeFilename)
+	helper.Check(err)
+	result, err := json.Marshal(output)
+	helper.Check(err)
+	_, _ = w.Write(result)
+}
+
 func apiUploadFile(w http.ResponseWriter, r requestParser, user models.User) {
 	request, ok := r.(*paramFilesAdd)
 	if !ok {

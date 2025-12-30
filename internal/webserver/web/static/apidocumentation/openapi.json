@@ -108,6 +108,65 @@
         }
       }
     },
+    "/files/download/{id}": {
+      "get": {
+        "tags": [
+          "files"
+        ],
+        "summary": "Downloads file with optionally increasing the download counter",
+        "description": "This API call downloads a file that is not expired and increasing its download counter is disabled by default. Returns 404 if an invalid/expired ID was passed. Requires API permission DOWNLOAD. To download files that were not uploaded by the user, the user needs to have the user permission LIST",
+        "operationId": "downloadsingle",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID of file to be downloaded"
+          },
+          {
+            "name": "increaseCounter",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Increase counter if set to true"
+          }
+        ],
+        "security": [
+          {
+            "apikey": [
+              "DOWNLOAD"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "file",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
+          },
+          "404": {
+            "description": "Invalid ID provided or file has expired"
+          }
+        }
+      }
+    },
     "/files/list": {
       "get": {
         "tags": [

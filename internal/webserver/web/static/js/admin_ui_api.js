@@ -203,7 +203,7 @@ function addRowApi(apiKey, publicId) {
         },
         {
             perm: 'PERM_UPLOAD',
-            icon: 'bi-file-earmark-arrow-up',
+            icon: 'bi-file-earmark-plus',
             granted: true,
             title: 'Upload'
         },
@@ -226,8 +226,14 @@ function addRowApi(apiKey, publicId) {
             title: 'Replace Uploads'
         },
         {
-            perm: 'PERM_MANAGE_FILE_REQUESTS',
+            perm: 'PERM_DOWNLOAD',
             icon: 'bi-box-arrow-in-down',
+            granted: false,
+            title: 'Download Files'
+        },
+        {
+            perm: 'PERM_MANAGE_FILE_REQUESTS',
+            icon: 'bi-file-earmark-arrow-up',
             granted: false,
             title: 'Manage File Requests'
         },

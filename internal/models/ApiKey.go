@@ -22,19 +22,17 @@ const (
 	ApiPermManageUsers
 	// ApiPermManageLogs is the permission required for managing the log file PERM_MANAGE_LOGS
 	ApiPermManageLogs
-	// ApiPermManageFileRequests is the permission required for creating and managing file requests
+	// ApiPermManageFileRequests is the permission required for creating and managing file requests PERM_MANAGE_FILE_REQUESTS
 	ApiPermManageFileRequests
+	// ApiPermDownload is the permission required for downloading stored files without increasing the counter PERM_DOWNLOAD
+	ApiPermDownload
 )
 
 // ApiPermNone means no permission granted
 const ApiPermNone ApiPermission = 0
 
-// ApiPermAll means all permission granted
-const ApiPermAll ApiPermission = 511
-
-// ApiPermDefault means all permission granted, except ApiPermApiMod, ApiPermManageUsers, ApiPermManageLogs and ApiPermReplace
-// This is the default for new API keys that are created from the UI
-const ApiPermDefault = ApiPermAll - ApiPermApiMod - ApiPermManageUsers - ApiPermReplace - ApiPermManageLogs - ApiPermManageFileRequests
+// ApiPermDefault the default for new API keys that are created from the UI
+const ApiPermDefault = ApiPermView + ApiPermUpload + ApiPermDelete + ApiPermEdit
 
 // ApiKey contains data of a single api key
 type ApiKey struct {
@@ -72,6 +70,8 @@ func ApiPermissionFromString(permString string) (ApiPermission, error) {
 		return ApiPermManageLogs, nil
 	case "PERM_MANAGE_FILE_REQUESTS":
 		return ApiPermManageFileRequests, nil
+	case "PERM_DOWNLOAD":
+		return ApiPermDownload, nil
 	default:
 		return 0, errors.New("invalid permission")
 	}
@@ -143,6 +143,11 @@ func (key *ApiKey) HasPermissionManageLogs() bool {
 // HasPermissionManageFileRequests returns true if ApiPermManageFileRequests is granted
 func (key *ApiKey) HasPermissionManageFileRequests() bool {
 	return key.HasPermission(ApiPermManageFileRequests)
+}
+
+// HasPermissionDownload returns true if ApiPermDownload is granted
+func (key *ApiKey) HasPermissionDownload() bool {
+	return key.HasPermission(ApiPermDownload)
 }
 
 // ApiKeyOutput is the output used after a new key is created

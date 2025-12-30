@@ -596,12 +596,14 @@ func GetFileByHotlink(id string) (models.File, bool) {
 }
 
 // ServeFile subtracts a download allowance and serves the file to the browser
-func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDownload bool) {
-	file.DownloadsRemaining = file.DownloadsRemaining - 1
-	file.DownloadCount = file.DownloadCount + 1
-	database.IncreaseDownloadCount(file.Id, !file.UnlimitedDownloads)
+func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDownload, increaseCounter bool) {
+	if increaseCounter {
+		file.DownloadsRemaining = file.DownloadsRemaining - 1
+		file.DownloadCount = file.DownloadCount + 1
+		database.IncreaseDownloadCount(file.Id, !file.UnlimitedDownloads)
+		go sse.PublishDownloadCount(file)
+	}
 	logging.LogDownload(file, r, configuration.Get().SaveIp)
-	go sse.PublishDownloadCount(file)
 
 	if !file.IsLocalStorage() {
 		// If non-blocking, we are not setting a download complete status as there is no reliable way to

@@ -590,7 +590,7 @@ func showHotlink(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write(imageExpiredPicture)
 		return
 	}
-	storage.ServeFile(file, w, r, false)
+	storage.ServeFile(file, w, r, false, true)
 }
 
 // Checks if a file is associated with the GET parameter from the current URL
@@ -930,7 +930,7 @@ func serveFile(id string, isRootUrl bool, w http.ResponseWriter, r *http.Request
 			return
 		}
 	}
-	storage.ServeFile(savedFile, w, r, true)
+	storage.ServeFile(savedFile, w, r, true, true)
 }
 
 func requireLogin(next http.HandlerFunc, isUiCall, isPwChangeView bool) http.HandlerFunc {

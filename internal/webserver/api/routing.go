@@ -43,6 +43,13 @@ var routes = []apiRoute{
 		RequestParser: nil,
 	},
 	{
+		Url:           "/files/download/",
+		ApiPerm:       models.ApiPermDownload,
+		execution:     apiDownloadSingle,
+		HasWildcard:   true,
+		RequestParser: &paramFilesDownloadSingle{},
+	},
+	{
 		Url:           "/files/list",
 		ApiPerm:       models.ApiPermView,
 		execution:     apiList,
@@ -228,6 +235,20 @@ type paramFilesListSingle struct {
 func (p *paramFilesListSingle) ProcessParameter(r *http.Request) error {
 	url := parseRequestUrl(r)
 	p.Id = strings.TrimPrefix(url, "/files/list/")
+	return nil
+}
+
+type paramFilesDownloadSingle struct {
+	Id              string
+	WebRequest      *http.Request
+	IncreaseCounter bool `header:"increaseCounter"`
+	foundHeaders    map[string]bool
+}
+
+func (p *paramFilesDownloadSingle) ProcessParameter(r *http.Request) error {
+	p.WebRequest = r
+	url := parseRequestUrl(r)
+	p.Id = strings.TrimPrefix(url, "/files/download/")
 	return nil
 }
 
