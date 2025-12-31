@@ -327,7 +327,7 @@ async function apiFilesListById(fileId) {
 }
 
 
-async function apiFilesListDownloadSingle(fileId, increaseCounter) {
+async function apiFilesListDownloadSingle(fileId) {
     const apiUrl = './api/files/download/' + fileId;
     const reqPerm = 'PERM_DOWNLOAD';
 
@@ -345,7 +345,6 @@ async function apiFilesListDownloadSingle(fileId, increaseCounter) {
         headers: {
             'Content-Type': 'application/json',
             'apikey': token,
-            'increaseCounter': increaseCounter,
             'presignUrl': true
         },
     };

@@ -41,7 +41,7 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 		osExit(1)
 		return
 	}
-	// pre local DB
+	// pre local TZ
 	if currentDbVersion < 11 {
 		err := p.rawSqlite("ALTER TABLE FileMetaData DROP COLUMN ExpireAtString;")
 		helper.Check(err)
@@ -63,8 +63,9 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 									 );
 									CREATE TABLE "Presign" (
 										"id"	TEXT NOT NULL UNIQUE,
-										"fileId"	TEXT NOT NULL,
+										"fileIds"	TEXT NOT NULL,
 										"expiry"	INTEGER NOT NULL,
+										"filename"	TEXT NOT NULL,
 										PRIMARY KEY("id")
 									);`)
 		helper.Check(err)
@@ -228,8 +229,9 @@ func (p DatabaseProvider) createNewDatabase() error {
 		);
 		CREATE TABLE "Presign" (
 			"id"	TEXT NOT NULL UNIQUE,
-			"fileId"	TEXT NOT NULL,
+			"fileIds"	TEXT NOT NULL,
 			"expiry"	INTEGER NOT NULL,
+			"filename"	TEXT NOT NULL,
 			PRIMARY KEY("id")
 		);
 `

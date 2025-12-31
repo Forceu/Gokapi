@@ -2,8 +2,10 @@
 package api
 
 import (
+	"encoding/base64"
 	"fmt"
 	"net/http"
+	"strings"
 )
 
 // Do not modify: This is an automatically generated file created by updateApiRouting.go
@@ -59,6 +61,74 @@ func (p *paramFilesDownloadSingle) ParseRequest(r *http.Request) error {
 // New returns a new instance of paramFilesDownloadSingle struct
 func (p *paramFilesDownloadSingle) New() requestParser {
 	return &paramFilesDownloadSingle{}
+}
+
+// ParseRequest reads r and saves the passed header values in the paramFilesDownloadZip struct
+// In the end, ProcessParameter() is called
+func (p *paramFilesDownloadZip) ParseRequest(r *http.Request) error {
+	var err error
+	var exists bool
+	p.foundHeaders = make(map[string]bool)
+
+	// RequestParser header value "ids", required: true
+	exists, err = checkHeaderExists(r, "ids", true, true)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["ids"] = exists
+	if exists {
+		p.FileIds = r.Header.Get("ids")
+	}
+
+	// RequestParser header value "filename", required: false, has base64support
+	exists, err = checkHeaderExists(r, "filename", false, true)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["filename"] = exists
+	if exists {
+		p.Filename = r.Header.Get("filename")
+		if strings.HasPrefix(p.Filename, "base64:") {
+			decoded, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(p.Filename, "base64:"))
+			if err != nil {
+				return err
+			}
+			p.Filename = string(decoded)
+		}
+	}
+
+	// RequestParser header value "increaseCounter", required: false
+	exists, err = checkHeaderExists(r, "increaseCounter", false, false)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["increaseCounter"] = exists
+	if exists {
+		p.IncreaseCounter, err = parseHeaderBool(r, "increaseCounter")
+		if err != nil {
+			return fmt.Errorf("invalid value in header increaseCounter supplied")
+		}
+	}
+
+	// RequestParser header value "presignUrl", required: false
+	exists, err = checkHeaderExists(r, "presignUrl", false, false)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["presignUrl"] = exists
+	if exists {
+		p.PresignUrl, err = parseHeaderBool(r, "presignUrl")
+		if err != nil {
+			return fmt.Errorf("invalid value in header presignUrl supplied")
+		}
+	}
+
+	return p.ProcessParameter(r)
+}
+
+// New returns a new instance of paramFilesDownloadZip struct
+func (p *paramFilesDownloadZip) New() requestParser {
+	return &paramFilesDownloadZip{}
 }
 
 // ParseRequest parses the header file. As paramFilesAdd has no fields with the
@@ -744,7 +814,7 @@ func (p *paramChunkComplete) ParseRequest(r *http.Request) error {
 		p.Uuid = r.Header.Get("uuid")
 	}
 
-	// RequestParser header value "filename", required: true
+	// RequestParser header value "filename", required: true, has base64support
 	exists, err = checkHeaderExists(r, "filename", true, true)
 	if err != nil {
 		return err
@@ -752,6 +822,13 @@ func (p *paramChunkComplete) ParseRequest(r *http.Request) error {
 	p.foundHeaders["filename"] = exists
 	if exists {
 		p.FileName = r.Header.Get("filename")
+		if strings.HasPrefix(p.FileName, "base64:") {
+			decoded, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(p.FileName, "base64:"))
+			if err != nil {
+				return err
+			}
+			p.FileName = string(decoded)
+		}
 	}
 
 	// RequestParser header value "filesize", required: true
@@ -908,7 +985,7 @@ func (p *paramURequestSave) ParseRequest(r *http.Request) error {
 		}
 	}
 
-	// RequestParser header value "name", required: false
+	// RequestParser header value "name", required: false, has base64support
 	exists, err = checkHeaderExists(r, "name", false, true)
 	if err != nil {
 		return err
@@ -916,6 +993,13 @@ func (p *paramURequestSave) ParseRequest(r *http.Request) error {
 	p.foundHeaders["name"] = exists
 	if exists {
 		p.Name = r.Header.Get("name")
+		if strings.HasPrefix(p.Name, "base64:") {
+			decoded, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(p.Name, "base64:"))
+			if err != nil {
+				return err
+			}
+			p.Name = string(decoded)
+		}
 	}
 
 	// RequestParser header value "expiry", required: false

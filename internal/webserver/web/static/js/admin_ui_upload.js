@@ -799,7 +799,7 @@ function createButtonGroup(item) {
     btnDownload.type = 'button';
     btnDownload.className = 'btn btn-outline-light btn-sm';
     btnDownload.title = 'Download';
-    if (item.IsEndToEndEncrypted) {
+    if (item.RequiresClientSideDecryption) {
         btnDownload.classList.add("disabled");
     }
 
@@ -808,7 +808,7 @@ function createButtonGroup(item) {
     btnDownload.appendChild(downloadIcon);
 
     btnDownload.addEventListener('click', () => {
-        downloadFileWithPresign(item.Id, false);
+        downloadFileWithPresign(item.Id);
     });
 
     group2.appendChild(btnDownload);

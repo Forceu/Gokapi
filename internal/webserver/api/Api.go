@@ -454,33 +454,67 @@ func apiDownloadSingle(w http.ResponseWriter, r requestParser, user models.User)
 	if !ok {
 		panic("invalid parameter passed")
 	}
-	file, ok := storage.GetFile(request.Id)
-	if !ok {
-		sendError(w, http.StatusNotFound, "File not found")
-		return
-	}
-	if file.UserId != user.Id && !user.HasPermission(models.UserPermListOtherUploads) {
-		sendError(w, http.StatusUnauthorized, "No permission to download file")
-		return
-	}
-	if file.Encryption.IsEndToEndEncrypted {
-		sendError(w, http.StatusBadRequest, "End-to-End encrypted files cannot be downloaded")
+	file, errCode, errMessage := checkDownloadAllowed(request.Id, user)
+	if errCode != 0 {
+		sendError(w, errCode, errMessage)
 		return
 	}
 	if !request.PresignUrl {
 		storage.ServeFile(file, w, request.WebRequest, true, request.IncreaseCounter)
 		return
 	}
+	createAndOutputPresignedUrl([]string{file.Id}, w, "")
+}
+
+func apiDownloadZip(w http.ResponseWriter, r requestParser, user models.User) {
+	request, ok := r.(*paramFilesDownloadZip)
+	if !ok {
+		panic("invalid parameter passed")
+	}
+	requestedFiles := make([]models.File, 0)
+	requestedFileIds := make([]string, 0)
+	for _, fileId := range request.Ids {
+		file, errCode, errMessage := checkDownloadAllowed(fileId, user)
+		if errCode != 0 {
+			sendError(w, errCode, errMessage)
+			return
+		}
+		requestedFiles = append(requestedFiles, file)
+		requestedFileIds = append(requestedFileIds, file.Id)
+	}
+	if !request.PresignUrl {
+		storage.ServeFilesAsZip(requestedFiles, request.Filename, w, request.WebRequest)
+		return
+	}
+	createAndOutputPresignedUrl(requestedFileIds, w, request.Filename)
+}
+
+func checkDownloadAllowed(fileId string, user models.User) (models.File, int, string) {
+	file, ok := storage.GetFile(fileId)
+	if !ok {
+		return models.File{}, http.StatusNotFound, "file not found"
+	}
+	if file.UserId != user.Id && !user.HasPermission(models.UserPermListOtherUploads) {
+		return models.File{}, http.StatusUnauthorized, "no permission to download file"
+	}
+	if file.RequiresClientDecryption() {
+		return models.File{}, http.StatusBadRequest, "End-to-end encrypted files and encrypted files stored on online storage cannot be downloaded"
+	}
+	return file, 0, ""
+}
+
+func createAndOutputPresignedUrl(ids []string, w http.ResponseWriter, filename string) {
 	presignUrl := models.Presign{
-		Id:     helper.GenerateRandomString(60),
-		FileId: file.Id,
-		Expiry: time.Now().Add(time.Second * 30).Unix(),
+		Id:       helper.GenerateRandomString(60),
+		FileIds:  ids,
+		Expiry:   time.Now().Add(time.Second * 30).Unix(),
+		Filename: filename,
 	}
 	database.SavePresignedUrl(presignUrl)
 	response := struct {
 		Result      string `json:"Result"`
 		DownloadUrl string `json:"downloadUrl"`
-	}{"OK", configuration.Get().ServerUrl + "downloadPresigned?key=" + presignUrl.Id + "&id=" + file.Id}
+	}{"OK", configuration.Get().ServerUrl + "downloadPresigned?key=" + presignUrl.Id}
 	result, err := json.Marshal(response)
 	helper.Check(err)
 	_, _ = w.Write(result)

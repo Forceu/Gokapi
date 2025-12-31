@@ -5,6 +5,7 @@ Serving and processing uploaded files
 */
 
 import (
+	"archive/zip"
 	"bytes"
 	"crypto/sha1"
 	"encoding/hex"
@@ -623,7 +624,7 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 	fileData, size := getFileHandler(file, configuration.Get().DataDir)
 	if file.Encryption.IsEncrypted && !file.RequiresClientDecryption() {
 		if !encryption.IsCorrectKey(file.Encryption, fileData) {
-			w.Write([]byte("Internal error - Error decrypting file, source data might be damaged or an incorrect key has been used"))
+			_, _ = w.Write([]byte("Internal error - Error decrypting file, source data might be damaged or an incorrect key has been used"))
 			return
 		}
 	}
@@ -632,7 +633,7 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 	if file.Encryption.IsEncrypted && !file.RequiresClientDecryption() {
 		err := encryption.DecryptReader(file.Encryption, fileData, w)
 		if err != nil {
-			w.Write([]byte("Error decrypting file"))
+			_, _ = w.Write([]byte("Error decrypting file"))
 			fmt.Println(err)
 			return
 		}
@@ -641,6 +642,87 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 		http.ServeContent(w, r, file.Name, time.Now(), fileData)
 	}
 	downloadstatus.SetComplete(statusId)
+}
+
+// Returns the filename if unique or a new filename in the format "Name (x).ext"
+func makeFilenameUnique(filename string, nameMap *map[string]bool) string {
+	ext := filepath.Ext(filename)
+	base := strings.TrimSuffix(filename, ext)
+	if !(*nameMap)[filename] {
+		(*nameMap)[filename] = true
+		return filename
+	}
+
+	count := 2
+	for {
+		newName := fmt.Sprintf("%s (%d)%s", base, count, ext)
+		if !(*nameMap)[newName] {
+			(*nameMap)[newName] = true
+			return newName
+		}
+		count++
+	}
+}
+
+func ServeFilesAsZip(files []models.File, filename string, w http.ResponseWriter, r *http.Request) {
+	if filename == "" {
+		filename = "Gokapi"
+	}
+	w.Header().Set("Content-Type", "application/zip")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s.zip\"", filename))
+	w.WriteHeader(http.StatusOK)
+
+	saveIp := configuration.Get().SaveIp
+	zipWriter := zip.NewWriter(w)
+	defer zipWriter.Close()
+	filenames := make(map[string]bool)
+	for _, file := range files {
+		file.Name = makeFilenameUnique(file.Name, &filenames)
+		header := &zip.FileHeader{
+			Name:     file.Name,
+			Method:   zip.Store,
+			Modified: time.Unix(file.UploadDate, 0),
+		}
+		entryWriter, err := zipWriter.CreateHeader(header)
+		helper.Check(err)
+		logging.LogDownload(file, r, saveIp)
+		if !file.IsLocalStorage() {
+			// TODO implement decrypting
+			statusId := downloadstatus.SetDownload(file)
+			_, err = aws.Stream(entryWriter, file)
+			helper.Check(err)
+			downloadstatus.SetComplete(statusId)
+			_ = zipWriter.Flush()
+			flushingWriter, ok := w.(http.Flusher)
+			if ok {
+				flushingWriter.Flush()
+			}
+			continue
+		}
+		fileData, _ := getFileHandler(file, configuration.Get().DataDir)
+		statusId := downloadstatus.SetDownload(file)
+		if file.Encryption.IsEncrypted {
+			if !encryption.IsCorrectKey(file.Encryption, fileData) {
+				_, _ = w.Write([]byte("Internal error - Error decrypting file, source data might be damaged or an incorrect key has been used"))
+				return
+			}
+			err = encryption.DecryptReader(file.Encryption, fileData, entryWriter)
+			if err != nil {
+				_, _ = w.Write([]byte("Error decrypting file"))
+				fmt.Println(err)
+				return
+			}
+		} else {
+			_, err = io.Copy(entryWriter, fileData)
+			helper.Check(err)
+		}
+		downloadstatus.SetComplete(statusId)
+		_ = zipWriter.Flush()
+		flushingWriter, ok := w.(http.Flusher)
+		if ok {
+			flushingWriter.Flush()
+		}
+	}
 }
 
 func getFileHandler(file models.File, dataDir string) (*os.File, int64) {

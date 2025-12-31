@@ -913,28 +913,32 @@ func downloadFile(w http.ResponseWriter, r *http.Request) {
 // Handling of /downloadPresigned
 // Outputs the file to the user and reduces the download remaining count for the file, if requested
 func downloadPresigned(w http.ResponseWriter, r *http.Request) {
-	id, ok := r.URL.Query()["id"]
-	if !ok || len(id[0]) < configuration.Get().LengthId {
-		responseError(w, storage.ErrorFileNotFound)
-		return
-	}
 	presignKey, ok := r.URL.Query()["key"]
 	if !ok {
 		responseError(w, storage.ErrorInvalidPresign)
 		return
 	}
 	presign, ok := database.GetPresignedUrl(presignKey[0])
-	if !ok || presign.Expiry < time.Now().Unix() || presign.FileId != id[0] {
+	if !ok || presign.Expiry < time.Now().Unix() {
 		responseError(w, storage.ErrorInvalidPresign)
 		return
 	}
-	savedFile, ok := storage.GetFile(presign.FileId)
-	if !ok {
-		responseError(w, storage.ErrorFileNotFound)
-		return
+	files := make([]models.File, 0)
+	for _, file := range presign.FileIds {
+		storedFile, ok := storage.GetFile(file)
+		if !ok {
+			responseError(w, storage.ErrorFileNotFound)
+			return
+		}
+		files = append(files, storedFile)
 	}
 	database.DeletePresignedUrl(presign.Id)
-	storage.ServeFile(savedFile, w, r, true, false)
+
+	if len(files) == 1 {
+		storage.ServeFile(files[0], w, r, true, false)
+		return
+	}
+	storage.ServeFilesAsZip(files, presign.Filename, w, r)
 }
 
 func serveFile(id string, isRootUrl bool, w http.ResponseWriter, r *http.Request) {

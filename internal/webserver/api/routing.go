@@ -21,8 +21,6 @@ type apiRoute struct {
 	execution     apiFunc
 }
 
-const base64Prefix = "base64:"
-
 func (r apiRoute) Continue(w http.ResponseWriter, request requestParser, user models.User) {
 	r.execution(w, request, user)
 }
@@ -48,6 +46,13 @@ var routes = []apiRoute{
 		execution:     apiDownloadSingle,
 		HasWildcard:   true,
 		RequestParser: &paramFilesDownloadSingle{},
+	},
+	{
+		Url:           "/files/downloadzip",
+		ApiPerm:       models.ApiPermDownload,
+		execution:     apiDownloadZip,
+		HasWildcard:   true,
+		RequestParser: &paramFilesDownloadZip{},
 	},
 	{
 		Url:           "/files/list",
@@ -250,6 +255,22 @@ func (p *paramFilesDownloadSingle) ProcessParameter(r *http.Request) error {
 	p.WebRequest = r
 	url := parseRequestUrl(r)
 	p.Id = strings.TrimPrefix(url, "/files/download/")
+	return nil
+}
+
+type paramFilesDownloadZip struct {
+	Ids             []string
+	WebRequest      *http.Request
+	FileIds         string `header:"ids" required:"true"`
+	Filename        string `header:"filename" supportBase64:"true"`
+	IncreaseCounter bool   `header:"increaseCounter"`
+	PresignUrl      bool   `header:"presignUrl"`
+	foundHeaders    map[string]bool
+}
+
+func (p *paramFilesDownloadZip) ProcessParameter(r *http.Request) error {
+	p.Ids = strings.Split(p.FileIds, ",")
+	p.WebRequest = r
 	return nil
 }
 
@@ -524,7 +545,7 @@ func (p *paramChunkAdd) ProcessParameter(r *http.Request) error {
 
 type paramChunkComplete struct {
 	Uuid               string `header:"uuid" required:"true"`
-	FileName           string `header:"filename" required:"true"`
+	FileName           string `header:"filename" required:"true" supportBase64:"true"`
 	FileSize           int64  `header:"filesize" required:"true"`
 	RealSize           int64  `header:"realsize"` // not published in API documentation
 	ContentType        string `header:"contenttype"`
@@ -569,14 +590,6 @@ func (p *paramChunkComplete) ProcessParameter(_ *http.Request) error {
 		}
 	}
 
-	if strings.HasPrefix(p.FileName, base64Prefix) {
-		decoded, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(p.FileName, base64Prefix))
-		if err != nil {
-			return err
-		}
-		p.FileName = string(decoded)
-	}
-
 	if p.ContentType == "" {
 		p.ContentType = "application/octet-stream"
 	}
@@ -599,7 +612,7 @@ func (p *paramURequestDelete) ProcessParameter(_ *http.Request) error {
 
 type paramURequestSave struct {
 	Id            int    `header:"id"`
-	Name          string `header:"name"`
+	Name          string `header:"name" supportBase64:"true"`
 	Expiry        int64  `header:"expiry"`
 	MaxFiles      int    `header:"maxfiles"`
 	MaxSize       int    `header:"maxsize"`
@@ -623,13 +636,6 @@ func (p *paramURequestSave) ProcessParameter(_ *http.Request) error {
 	}
 	if p.foundHeaders["maxsize"] {
 		p.IsMaxSizeSet = true
-	}
-	if strings.HasPrefix(p.Name, base64Prefix) {
-		decoded, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(p.Name, base64Prefix))
-		if err != nil {
-			return err
-		}
-		p.Name = string(decoded)
 	}
 	return nil
 }

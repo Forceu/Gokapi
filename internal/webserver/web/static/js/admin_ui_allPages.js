@@ -74,11 +74,11 @@ function getReadableSize(bytes) {
         bytes /= 1024;
         i++;
     }
-    return `${bytes.toFixed(2)} ${units[i]}`;
+    return `${bytes.toFixed(1)} ${units[i]}`;
 }
 
-function downloadFileWithPresign(id, increaseCounter) {
-    apiFilesListDownloadSingle(id, increaseCounter)
+function downloadFileWithPresign(id) {
+    apiFilesListDownloadSingle(id)
         .then(data => {
             if (!data.hasOwnProperty("downloadUrl")) {
                 throw new Error("Unable to get presigned key");

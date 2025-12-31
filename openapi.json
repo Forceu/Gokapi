@@ -108,13 +108,106 @@
         }
       }
     },
+    "/files/downloadzip": {
+      "get": {
+        "tags": [
+          "files"
+        ],
+        "summary": "Downloads files as ZIP file with optionally increasing the download counter",
+        "description": "This API call downloads multiple file that are not expired and increasing their download counter is disabled by default. Can be set up to return a pre-signed URL instead of the zip file itself, which is valid for 30 seconds and can be accessed by any registered user. End-to-end encrypted files and encrypted files stored on cloud servers cannot be downloaded. Returns 404 if an invalid/expired ID was passed. Requires API permission DOWNLOAD. To download files that were not uploaded by the user, the user needs to have the user permission LIST",
+        "operationId": "downloadzip",
+        "parameters": [
+          {
+            "name": "ids",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "IDs of files to be downloaded seperated by comma"
+          },
+          {
+            "name": "filename",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The filename for the new Zip file. If the filename includes non-ANSI characters, you can encode them with base64, by adding 'base64:' at the beginning, e.g. 'base64:ZmlsZW5hbWU='"
+          },
+          {
+            "name": "increaseCounter",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Increase counter if set to true"
+          },
+          {
+            "name": "presignUrl",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Return a pre-signed URL instead of the actual file. Valid for one download within 30 seconds and can only be used by logged in users. When this option is set, download counter cannot be increased."
+          }
+        ],
+        "security": [
+          {
+            "apikey": [
+              "DOWNLOAD"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "object",
+                  "format": "binary"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "Result": {
+                      "type": "string",
+                      "example": "OK"
+                    },
+                    "downloadUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "http://gokapi.local:53842/downloadPresigned?key=xieph5ae1leph6Heel0Hoo9uth1eiY9xei8IiboPoothie0ahm6tutufoo2s"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or trying to download an end-to-end encrypted file"
+          },
+          "401": {
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
+          },
+          "404": {
+            "description": "Invalid ID provided or file has expired"
+          }
+        }
+      }
+    },
     "/files/download/{id}": {
       "get": {
         "tags": [
           "files"
         ],
         "summary": "Downloads file with optionally increasing the download counter",
-        "description": "This API call downloads a file that is not expired and increasing its download counter is disabled by default. Can be set up to return a pre-signed URL instead of the file itself, which is valid for 30 seconds and can be accessed by any registered user. End-to-end encrypted files cannot be downloaded. Returns 404 if an invalid/expired ID was passed. Requires API permission DOWNLOAD. To download files that were not uploaded by the user, the user needs to have the user permission LIST",
+        "description": "This API call downloads a file that is not expired and increasing its download counter is disabled by default. Can be set up to return a pre-signed URL instead of the file itself, which is valid for 30 seconds and can be accessed by any registered user. End-to-end encrypted files and encrypted files stored on cloud servers cannot be downloaded. Returns 404 if an invalid/expired ID was passed. Requires API permission DOWNLOAD. To download files that were not uploaded by the user, the user needs to have the user permission LIST",
         "operationId": "downloadsingle",
         "parameters": [
           {
@@ -142,7 +235,7 @@
             "schema": {
               "type": "boolean"
             },
-            "description": "Return a pre-signed URL instead of the actual file. Valid for one download within 30 seconds and can only be used by logged in users"
+            "description": "Return a pre-signed URL instead of the actual file. Valid for one download within 30 seconds and can only be used by logged in users. When this option is set, download counter cannot be increased."
           }
         ],
         "security": [
@@ -166,9 +259,14 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "Result": {
+                      "type": "string",
+                      "example": "OK"
+                    },
                     "downloadUrl": {
                       "type": "string",
-                      "format": "uri"
+                      "format": "uri",
+                      "example": "http://gokapi.local:53842/downloadPresigned?key=xieph5ae1leph6Heel0Hoo9uth1eiY9xei8IiboPoothie0ahm6tutufoo2s"
                     }
                   }
                 }

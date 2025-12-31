@@ -6,6 +6,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"strings"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -15,11 +21,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/webserver/headers"
-	"io"
-	"net/http"
-	"net/url"
-	"strings"
-	"time"
 )
 
 var awsConfig models.AwsConfig
@@ -106,11 +107,10 @@ func Upload(input io.Reader, file models.File) (string, error) {
 	return result.Location, nil
 }
 
-// Download downloads a file from AWS, used for encrypted files and testing
-func Download(writer io.WriterAt, file models.File) (int64, error) {
+// download downloads a file from AWS, used for testing
+func download(writer io.WriterAt, file models.File) (int64, error) {
 	sess := createSession()
 	downloader := s3manager.NewDownloader(sess)
-
 	size, err := downloader.Download(writer, &s3.GetObjectInput{
 		Bucket: aws.String(file.AwsBucket),
 		Key:    aws.String(file.SHA1),
@@ -119,6 +119,21 @@ func Download(writer io.WriterAt, file models.File) (int64, error) {
 		return 0, err
 	}
 	return size, nil
+}
+
+// Stream downloads a file from AWS sequentially, used for saving to a Zip file
+func Stream(writer io.Writer, file models.File) (int64, error) {
+	sess := createSession()
+	s3svc := s3.New(sess)
+	obj, err := s3svc.GetObject(&s3.GetObjectInput{
+		Bucket: aws.String(file.AwsBucket),
+		Key:    aws.String(file.SHA1),
+	})
+	if err != nil {
+		return 0, err
+	}
+	defer obj.Body.Close()
+	return io.Copy(writer, obj.Body)
 }
 
 // ServeFile either redirects the user to a pre-signed download url (default) or downloads the file and serves it as a proxy (depending
