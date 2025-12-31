@@ -96,3 +96,23 @@ function downloadFileWithPresign(id) {
             console.error('Error:', error);
         });
 }
+
+function downloadFilesZipWithPresign(ids, filename) {
+    apiFilesListDownloadZip(ids, filename)
+        .then(data => {
+            if (!data.hasOwnProperty("downloadUrl")) {
+                throw new Error("Unable to get presigned key");
+            }
+            const a = document.createElement('a');
+            a.href = data.downloadUrl;
+            a.style.display = 'none';
+
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        })
+        .catch(error => {
+            alert("Unable to download: " + error);
+            console.error('Error:', error);
+        });
+}

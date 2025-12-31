@@ -55,7 +55,7 @@
 {{ end }}
 		                    <td>
 		                    	<div class="btn-group" role="group">
-                                <button id="download-{{ .Id }}" type="button" class="btn btn-outline-light btn-sm {{ if eq .UploadedFiles 0 }} disabled {{ end }}"  onclick="{{ if eq .UploadedFiles 1 }}downloadFileWithPresign('{{ (index .FileIdList 0) }}');{{else}}{{ end }}" title="Download all"><i class="bi bi-download"></i></button>
+                                {{ template "uRDownloadbutton" . }}
                                 
 		                        <button id="edit-{{ .Id }}" type="button" title="Edit request" class="btn btn-outline-light btn-sm" onclick="editFileRequest({{ .Id }}, '{{ .Name }}', {{ .MaxFiles }}, {{ .MaxSize }}, {{ .Expiry }})">
 		                        	<i class="bi bi-pencil"></i></button>
@@ -79,6 +79,7 @@
 	var userName = "{{.ActiveUser.Name}}";
         var canViewOtherRequests = {{.ActiveUser.HasPermissionListOtherUploads }};
 </script>
+
 
 
 {{ template "urequest_modal_confirm" }}
@@ -162,4 +163,17 @@
 	  </div>
 	</div>
 
+{{ end }}
+
+
+{{ define "uRDownloadbutton" }}
+	{{ if eq .UploadedFiles 0 }}
+		<button id="download-{{ .Id }}" type="button" class="btn btn-outline-light btn-sm disabled" title="Download all"><i class="bi bi-download"></i></button>
+	{{ else }}
+		{{ if eq .UploadedFiles 1 }}
+			<button id="download-{{ .Id }}" type="button" class="btn btn-outline-light btn-sm" onclick="downloadFileWithPresign('{{ (index .FileIdList 0) }}');" title="Download all"><i class="bi bi-download"></i></button>
+		{{ else }}
+			<button id="download-{{ .Id }}" type="button" class="btn btn-outline-light btn-sm" onclick="downloadFilesZipWithPresign('{{ .GetFilesAsString }}', '{{ .Name }}');" title="Download all"><i class="bi bi-download"></i></button>
+	{{ end }}
+	{{ end }}
 {{ end }}

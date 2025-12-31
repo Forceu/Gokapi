@@ -1,6 +1,7 @@
 package models
 
 import (
+	"strings"
 	"time"
 
 	"github.com/forceu/gokapi/internal/helper"
@@ -45,4 +46,8 @@ func (f *FileRequest) GetReadableDateLastUpdate() string {
 
 func (f *FileRequest) GetReadableTotalSize() string {
 	return helper.ByteCountSI(f.TotalFileSize)
+}
+
+func (f *FileRequest) GetFilesAsString() string {
+	return strings.Join(f.FileIdList, ",")
 }

@@ -363,6 +363,44 @@ async function apiFilesListDownloadSingle(fileId) {
 }
 
 
+async function apiFilesListDownloadZip(fileIds, filename) {
+    const apiUrl = './api/files/downloadzip';
+    const reqPerm = 'PERM_DOWNLOAD';
+
+    let token;
+
+    try {
+        token = await getToken(reqPerm, false);
+    } catch (error) {
+        console.error("Unable to gain permission token:", error);
+        throw error;
+    }
+
+    const requestOptions = {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'apikey': token,
+            'ids': fileIds,
+            'filename': 'base64:' + Base64.encode(filename),
+            'presignUrl': true
+        },
+    };
+
+    try {
+        const response = await fetch(apiUrl, requestOptions);
+        if (!response.ok) {
+            throw new Error(`Request failed with status: ${response.status}`);
+        }
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error("Error in apiFilesListDownloadZip:", error);
+        throw error;
+    }
+}
+
+
 async function apiFilesModify(id, allowedDownloads, expiry, password, originalPw) {
     const apiUrl = './api/files/modify';
     const reqPerm = 'PERM_EDIT';
