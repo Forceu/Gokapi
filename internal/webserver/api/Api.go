@@ -847,8 +847,8 @@ func apiURequestDelete(w http.ResponseWriter, r requestParser, user models.User)
 		sendError(w, http.StatusUnauthorized, "No permission to delete this upload request")
 		return
 	}
-
 	storage.DeleteFileRequest(uploadRequest)
+	logging.LogDeleteFileRequest(uploadRequest, user)
 	_, _ = w.Write([]byte("{\"result\":\"OK\"}"))
 }
 
@@ -858,8 +858,9 @@ func apiURequestSave(w http.ResponseWriter, r requestParser, user models.User) {
 		panic("invalid parameter passed")
 	}
 	uploadRequest := models.FileRequest{}
+	isNewRequest := request.Id == 0
 
-	if request.Id != 0 {
+	if !isNewRequest {
 		uploadRequest, ok = database.GetFileRequest(request.Id)
 		if !ok {
 			sendError(w, http.StatusNotFound, "FileRequest does not exist with the given ID")
@@ -896,6 +897,11 @@ func apiURequestSave(w http.ResponseWriter, r requestParser, user models.User) {
 		return
 	}
 	uploadRequest.Populate(database.GetAllMetadata())
+	if isNewRequest {
+		logging.LogCreateFileRequest(uploadRequest, user)
+	} else {
+		logging.LogEditFileRequest(uploadRequest, user)
+	}
 	result, err := json.Marshal(uploadRequest)
 	helper.Check(err)
 	_, _ = w.Write(result)
