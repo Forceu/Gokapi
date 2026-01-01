@@ -119,7 +119,7 @@ func (p DatabaseProvider) init(dbConfig models.DbConnection) (DatabaseProvider, 
 				return DatabaseProvider{}, err
 			}
 		}
-		p.sqliteDb, err = sql.Open("sqlite", cleanPath+"?_pragma=busy_timeout=10000&_pragma=journal_mode=WAL")
+		p.sqliteDb, err = sql.Open("sqlite", cleanPath+"?_pragma=busy_timeout=30000&_pragma=journal_mode=WAL")
 		if err != nil {
 			return DatabaseProvider{}, err
 		}
