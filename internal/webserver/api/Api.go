@@ -872,6 +872,8 @@ func apiURequestSave(w http.ResponseWriter, r requestParser, user models.User) {
 		}
 	} else {
 		uploadRequest.UserId = user.Id
+		apiKey := generateNewKey(false, user.Id, "File Request Public Access")
+		uploadRequest.ApiKey = apiKey.Id
 	}
 
 	if request.Name == "" {
@@ -898,6 +900,13 @@ func apiURequestSave(w http.ResponseWriter, r requestParser, user models.User) {
 	}
 	uploadRequest.Populate(database.GetAllMetadata())
 	if isNewRequest {
+		apiKey, ok := database.GetApiKey(uploadRequest.ApiKey)
+		if !ok {
+			sendError(w, http.StatusInternalServerError, "Could not retrieve API key")
+			return
+		}
+		apiKey.UploadRequestId = uploadRequest.Id
+		database.SaveApiKey(apiKey)
 		logging.LogCreateFileRequest(uploadRequest, user)
 	} else {
 		logging.LogEditFileRequest(uploadRequest, user)
@@ -943,9 +952,13 @@ func apiUploadRequestListSingle(w http.ResponseWriter, r requestParser, user mod
 }
 
 func isAuthorisedForApi(r *http.Request, routing apiRoute) (models.User, bool) {
-	apiKey := r.Header.Get("apikey")
-	user, _, ok := isValidApiKey(apiKey, true, routing.ApiPerm)
+	keyId := r.Header.Get("apikey")
+	user, apiKey, ok := isValidApiKey(keyId, true, routing.ApiPerm)
 	if !ok {
+		return models.User{}, false
+	}
+	// Returns false if a public upload key is used for non-public api call or vice versa
+	if routing.UsesPublicUploadApiKey != apiKey.IsUploadRequestKey() {
 		return models.User{}, false
 	}
 	return user, true

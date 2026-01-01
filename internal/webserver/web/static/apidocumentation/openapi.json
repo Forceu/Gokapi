@@ -1819,6 +1819,11 @@
             "description": "The given name for the file request",
             "example": "Book list entries"
           },
+          "apikey": {
+            "type": "string",
+            "description": "The API key that is used for uploading files for this request",
+            "example": "wrg5L7ldIUiXd27mIH1Fh0gGIyrekC"
+          },
           "uploadedfiles": {
             "type": "integer",
             "format": "int32",

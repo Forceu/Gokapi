@@ -780,7 +780,7 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 			if !ok {
 				continue
 			}
-			if !apiKey.IsSystemKey {
+			if !apiKey.IsSystemKey && !apiKey.IsUploadRequestKey() {
 				if apiKey.UserId == user.Id || user.HasPermissionManageApi() {
 					apiKeyList = append(apiKeyList, apiKey)
 				}

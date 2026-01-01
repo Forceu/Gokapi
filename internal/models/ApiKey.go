@@ -156,3 +156,8 @@ type ApiKeyOutput struct {
 	Id       string
 	PublicId string
 }
+
+// IsUploadRequestKey returns true if it is used for file requests
+func (key *ApiKey) IsUploadRequestKey() bool {
+	return key.UploadRequestId != 0
+}

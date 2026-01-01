@@ -15,6 +15,7 @@ type FileRequest struct {
 	Expiry        int64    `json:"expiry" redis:"expiry"`             // The expiry time of the file request
 	CreationDate  int64    `json:"creationdate" redis:"creationdate"` // The timestamp of the file request creation
 	Name          string   `json:"name" redis:"name"`                 // The given name for the file request
+	ApiKey        string   `json:"apikey" redis:"apikey"`             // The API key related to the filerequest
 	UploadedFiles int      `json:"uploadedfiles" redis:"-"`           // Contains the number of uploaded files for this request. Needs to be calculated with Populate()
 	LastUpload    int64    `json:"lastupload" redis:"-"`              // Contains the timestamp of the last upload for this request. Needs to be calculated with Populate()
 	TotalFileSize int64    `json:"totalfilesize" redis:"-"`           // Contains the file size of all uploaded files. Needs to be calculated with Populate()

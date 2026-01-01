@@ -14,11 +14,12 @@ import (
 )
 
 type apiRoute struct {
-	Url           string
-	HasWildcard   bool
-	ApiPerm       models.ApiPermission
-	RequestParser requestParser
-	execution     apiFunc
+	Url                    string
+	HasWildcard            bool
+	UsesPublicUploadApiKey bool
+	ApiPerm                models.ApiPermission
+	RequestParser          requestParser
+	execution              apiFunc
 }
 
 func (r apiRoute) Continue(w http.ResponseWriter, request requestParser, user models.User) {
