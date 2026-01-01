@@ -818,6 +818,13 @@ func cleanInvalidApiKeys() {
 		_, exists := users[apiKey.UserId]
 		if !exists {
 			database.DeleteApiKey(apiKey.Id)
+			continue
+		}
+		if apiKey.IsUploadRequestKey() {
+			_, exists = database.GetFileRequest(apiKey.UploadRequestId)
+			if !exists {
+				database.DeleteApiKey(apiKey.Id)
+			}
 		}
 	}
 }
@@ -830,7 +837,13 @@ func cleanInvalidFileRequests() {
 	for _, fileRequest := range database.GetAllFileRequests() {
 		_, exists := users[fileRequest.UserId]
 		if !exists {
-			DeleteFileRequest(fileRequest)
+			files := database.GetAllMetadata()
+			for _, file := range files {
+				if file.UploadRequestId == fileRequest.Id {
+				}
+				DeleteFile(file.Id, true)
+			}
+			database.DeleteFileRequest(fileRequest)
 		}
 
 	}
@@ -982,25 +995,4 @@ func CancelPendingFileDeletion(fileId string) (models.File, bool) {
 	file.PendingDeletion = 0
 	database.SaveMetaData(file)
 	return file, true
-}
-
-// DeleteFileRequest deletes all files associated with a file request and the request itself
-func DeleteFileRequest(request models.FileRequest) {
-	files := GetAllFilesFromFileRequest(request)
-	for _, file := range files {
-		DeleteFile(file.Id, true)
-	}
-	database.DeleteFileRequest(request)
-}
-
-// GetAllFilesFromFileRequest returns a list of all files associated with a file request
-func GetAllFilesFromFileRequest(request models.FileRequest) []models.File {
-	var result []models.File
-	files := database.GetAllMetadata()
-	for _, file := range files {
-		if file.UploadRequestId == request.Id {
-			result = append(result, file)
-		}
-	}
-	return result
 }

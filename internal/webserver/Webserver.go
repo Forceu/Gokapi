@@ -30,6 +30,7 @@ import (
 	"github.com/forceu/gokapi/internal/logging"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
+	"github.com/forceu/gokapi/internal/storage/filerequest"
 	"github.com/forceu/gokapi/internal/webserver/api"
 	"github.com/forceu/gokapi/internal/webserver/authentication"
 	"github.com/forceu/gokapi/internal/webserver/authentication/oauth"
@@ -804,8 +805,7 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 			u.Users = append(u.Users, userWithUploads)
 		}
 	case ViewFileRequests:
-		allFiles := database.GetAllMetadata()
-		for _, fileRequest := range database.GetAllFileRequests() {
+		for _, fileRequest := range filerequest.GetAll() {
 			// Double-checking if the owner of the file request exists
 			// If the user was manually deleted from the database, this could lead to a crash
 			// in the file request view
@@ -816,9 +816,7 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 			if fileRequest.UserId != user.Id && !user.HasPermissionListOtherUploads() {
 				continue
 			}
-			fileRequest.Populate(allFiles)
 			u.FileRequests = append(u.FileRequests, fileRequest)
-			//TODO sorting?
 		}
 	}
 

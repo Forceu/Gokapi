@@ -15,6 +15,7 @@ import (
 	"github.com/forceu/gokapi/internal/logging"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
+	"github.com/forceu/gokapi/internal/storage/filerequest"
 	"github.com/forceu/gokapi/internal/webserver/authentication/users"
 	"github.com/forceu/gokapi/internal/webserver/fileupload"
 )
@@ -775,7 +776,7 @@ func apiDeleteUser(w http.ResponseWriter, r requestParser, user models.User) {
 	for _, fRequest := range database.GetAllFileRequests() {
 		if fRequest.UserId == userToDelete.Id {
 			if request.DeleteFiles {
-				storage.DeleteFileRequest(fRequest)
+				filerequest.Delete(fRequest)
 			} else {
 				fRequest.UserId = user.Id
 				database.SaveFileRequest(fRequest)
@@ -847,7 +848,7 @@ func apiURequestDelete(w http.ResponseWriter, r requestParser, user models.User)
 		sendError(w, http.StatusUnauthorized, "No permission to delete this upload request")
 		return
 	}
-	storage.DeleteFileRequest(uploadRequest)
+	filerequest.Delete(uploadRequest)
 	logging.LogDeleteFileRequest(uploadRequest, user)
 	_, _ = w.Write([]byte("{\"result\":\"OK\"}"))
 }
@@ -894,12 +895,11 @@ func apiURequestSave(w http.ResponseWriter, r requestParser, user models.User) {
 		uploadRequest.MaxSize = request.MaxSize
 	}
 	id := database.SaveFileRequest(uploadRequest)
-	uploadRequest, ok = database.GetFileRequest(id)
+	uploadRequest, ok = filerequest.Get(id)
 	if !ok {
 		sendError(w, http.StatusInternalServerError, "Could not save file request")
 		return
 	}
-	uploadRequest.Populate(database.GetAllMetadata())
 	if isNewRequest {
 		apiKey, ok := database.GetApiKey(uploadRequest.ApiKey)
 		if !ok {
@@ -919,10 +919,8 @@ func apiURequestSave(w http.ResponseWriter, r requestParser, user models.User) {
 
 func apiUploadRequestList(w http.ResponseWriter, _ requestParser, user models.User) {
 	userRequests := make([]models.FileRequest, 0)
-	files := database.GetAllMetadata()
-	for _, request := range database.GetAllFileRequests() {
+	for _, request := range filerequest.GetAll() {
 		if request.UserId == user.Id || user.HasPermission(models.UserPermListOtherUploads) {
-			request.Populate(files)
 			userRequests = append(userRequests, request)
 		}
 	}
@@ -937,7 +935,7 @@ func apiUploadRequestListSingle(w http.ResponseWriter, r requestParser, user mod
 		panic("invalid parameter passed")
 	}
 
-	uploadRequest, ok := database.GetFileRequest(request.Id)
+	uploadRequest, ok := filerequest.Get(request.Id)
 	if !ok {
 		sendError(w, http.StatusNotFound, "FileRequest does not exist with the given ID")
 		return
@@ -946,7 +944,6 @@ func apiUploadRequestListSingle(w http.ResponseWriter, r requestParser, user mod
 		sendError(w, http.StatusUnauthorized, "No permission to delete this upload request")
 		return
 	}
-	uploadRequest.Populate(database.GetAllMetadata())
 	result, err := json.Marshal(uploadRequest)
 	helper.Check(err)
 	_, _ = w.Write(result)
