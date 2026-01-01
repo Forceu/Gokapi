@@ -1289,7 +1289,14 @@
         ],
         "responses": {
           "200": {
-            "description": "Operation successful"
+            "description": "Operation successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileRequest"
+                }
+              }
+            }
           },
           "400": {
             "description": "Invalid ID or parameters supplied"

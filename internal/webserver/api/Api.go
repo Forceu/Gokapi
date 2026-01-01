@@ -872,6 +872,7 @@ func apiURequestSave(w http.ResponseWriter, r requestParser, user models.User) {
 		}
 	} else {
 		uploadRequest.UserId = user.Id
+		uploadRequest.CreationDate = time.Now().Unix()
 		apiKey := generateNewKey(false, user.Id, "File Request Public Access")
 		uploadRequest.ApiKey = apiKey.Id
 	}
