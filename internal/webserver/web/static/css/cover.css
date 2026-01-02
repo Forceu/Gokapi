@@ -231,12 +231,10 @@ a:hover {
 
 .perm-granted:not(.perm-nochange):hover {
     color: #ff4d4d;
-    transform: scale(1.15);
 }
 
 .perm-notgranted:not(.perm-nochange):hover {
     color: #4dff4d;
-    transform: scale(1.15);
 }
 
 .perm-granted:not(.perm-nochange),
@@ -254,6 +252,25 @@ a:hover {
     transform: none;
 }
 
+.perm-nowgranted {
+    animation: perm-nowgranted-pulse 0.5s ease forwards;
+}
+
+@keyframes perm-nowgranted-pulse {
+    0%   { transform: scale(1.15); color: #4dff4d; }
+    50%  { transform: scale(1.3); color: #008800; }
+    100% { transform: scale(1.15); color: #0edf00; }
+}
+
+.perm-nownotgranted {
+    animation: perm-nownotgranted-pulse 0.5s ease forwards;
+}
+
+@keyframes perm-nownotgranted-pulse {
+    0%   { transform: scale(1.15); color: #ff4d4d; }
+    50%  { transform: scale(1.3); color: #ff0000; }
+    100% { transform: scale(1.15); color: ##9f9999; } 
+}
 
 .prevent-select {
   -webkit-user-select: none; /* Safari */

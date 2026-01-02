@@ -24,10 +24,16 @@ function changeApiPermission(userId, permission, buttonId) {
         .then(data => {
             if (wasGranted) {
                 indicator.classList.add("perm-notgranted");
+                indicator.classList.add("perm-nownotgranted");
             } else {
                 indicator.classList.add("perm-granted");
+                indicator.classList.add("perm-nowgranted");
             }
             indicator.classList.remove("perm-processing");
+            setTimeout(() => {
+                 indicator.classList.remove("perm-nowgranted");
+                 indicator.classList.remove("perm-nownotgranted");
+            }, 1000);
         })
         .catch(error => {
             if (wasGranted) {
