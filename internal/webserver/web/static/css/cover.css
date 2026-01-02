@@ -221,11 +221,39 @@ a:hover {
 .perm-processing {
     pointer-events: none;
     color: #e5eb00;
+    animation: perm-pulse 1s infinite;
 }
 
 .perm-nochange {
-   cursor: default;
+    cursor: default;
 }
+
+
+.perm-granted:not(.perm-nochange):hover {
+    color: #ff4d4d;
+    transform: scale(1.15);
+}
+
+.perm-notgranted:not(.perm-nochange):hover {
+    color: #4dff4d;
+    transform: scale(1.15);
+}
+
+.perm-granted:not(.perm-nochange),
+.perm-notgranted:not(.perm-nochange) {
+    transition: color 0.15s ease, transform 0.1s ease;
+}
+
+@keyframes perm-pulse {
+    0%   { opacity: 1; }
+    50%  { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+.perm-nochange:hover {
+    transform: none;
+}
+
 
 .prevent-select {
   -webkit-user-select: none; /* Safari */
