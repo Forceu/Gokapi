@@ -525,7 +525,7 @@ func showDownload(w http.ResponseWriter, r *http.Request) {
 	addNoCacheHeader(w)
 	keyId := queryUrl(w, r, "error")
 	file, ok := storage.GetFile(keyId)
-	if !ok || file.UploadRequestId != 0 {
+	if !ok || file.IsFileRequest() {
 		redirect(w, "error")
 		return
 	}
@@ -587,7 +587,7 @@ func showHotlink(w http.ResponseWriter, r *http.Request) {
 	hotlinkId = strings.Replace(hotlinkId, "/h/", "", 1)
 	addNoCacheHeader(w)
 	file, ok := storage.GetFileByHotlink(hotlinkId)
-	if !ok || file.UploadRequestId != 0 {
+	if !ok || file.IsFileRequest() {
 		w.Header().Set("Content-Type", "image/svg+xml")
 		_, _ = w.Write(imageExpiredPicture)
 		return
@@ -942,7 +942,7 @@ func downloadPresigned(w http.ResponseWriter, r *http.Request) {
 func serveFile(id string, isRootUrl bool, w http.ResponseWriter, r *http.Request) {
 	addNoCacheHeader(w)
 	savedFile, ok := storage.GetFile(id)
-	if !ok || savedFile.UploadRequestId != 0 {
+	if !ok || savedFile.IsFileRequest() {
 		if isRootUrl {
 			redirect(w, "error")
 		} else {

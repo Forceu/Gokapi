@@ -59,7 +59,7 @@ var routes = []apiRoute{
 		Url:           "/files/list",
 		ApiPerm:       models.ApiPermView,
 		execution:     apiList,
-		RequestParser: nil,
+		RequestParser: &paramFilesListAll{},
 	},
 	{
 		Url:           "/files/list/",
@@ -232,6 +232,15 @@ type requestParser interface {
 	ProcessParameter(r *http.Request) error
 	// New returns an empty struct of the type
 	New() requestParser
+}
+
+type paramFilesListAll struct {
+	ShowFileRequests bool `header:"showFileRequests"`
+	foundHeaders     map[string]bool
+}
+
+func (p *paramFilesListAll) ProcessParameter(_ *http.Request) error {
+	return nil
 }
 
 type paramFilesListSingle struct {

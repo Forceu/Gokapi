@@ -402,19 +402,23 @@ func apiConfigInfo(w http.ResponseWriter, _ requestParser, _ models.User) {
 	_, _ = w.Write(result)
 }
 
-func apiList(w http.ResponseWriter, _ requestParser, user models.User) {
-	validFiles := getFilesForUser(user)
+func apiList(w http.ResponseWriter, r requestParser, user models.User) {
+	request, ok := r.(*paramFilesListAll)
+	if !ok {
+		panic("invalid parameter passed")
+	}
+	validFiles := getFilesForUser(user, request.ShowFileRequests)
 	result, err := json.Marshal(validFiles)
 	helper.Check(err)
 	_, _ = w.Write(result)
 }
 
-func getFilesForUser(user models.User) []models.FileApiOutput {
+func getFilesForUser(user models.User, includeUploadRequests bool) []models.FileApiOutput {
 	var validFiles []models.FileApiOutput
 	timeNow := time.Now().Unix()
 	config := configuration.Get()
 	for _, element := range database.GetAllMetadata() {
-		if element.UploadRequestId != 0 {
+		if !includeUploadRequests && element.IsFileRequest() {
 			continue
 		}
 		if element.UserId == user.Id || user.HasPermission(models.UserPermListOtherUploads) {
@@ -584,6 +588,10 @@ func apiReplaceFile(w http.ResponseWriter, r requestParser, user models.User) {
 		return
 	}
 
+	if fileOriginal.IsFileRequest() {
+		sendError(w, http.StatusBadRequest, "Cannot replace a file request upload")
+		return
+	}
 	fileNewContent, ok := storage.GetFile(request.IdNewContent)
 	if !ok {
 		sendError(w, http.StatusNotFound, "Invalid id provided.")
@@ -813,7 +821,8 @@ func apiLogsDelete(_ http.ResponseWriter, r requestParser, user models.User) {
 
 func apiE2eGet(w http.ResponseWriter, _ requestParser, user models.User) {
 	info := database.GetEnd2EndInfo(user.Id)
-	files := getFilesForUser(user)
+	// If e2e is supported for upload requests at some point, this needs to be changed
+	files := getFilesForUser(user, false)
 	ids := make([]string, len(files))
 	for i, file := range files {
 		ids[i] = file.Id

@@ -150,6 +150,11 @@ func (f *File) RequiresClientDecryption() bool {
 	}
 	return !f.IsLocalStorage() || f.Encryption.IsEndToEndEncrypted
 }
+
+// IsFileRequest checks if the file is uploaded for an upload request
+func (f *File) IsFileRequest() bool {
+	return f.UploadRequestId != 0
+}
 func errorAsJson(err error) string {
 	fmt.Println(err)
 	return "{\"Result\":\"error\",\"ErrorMessage\":\"" + err.Error() + "\"}"

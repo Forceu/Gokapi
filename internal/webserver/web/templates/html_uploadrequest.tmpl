@@ -20,7 +20,7 @@
 		
                 <br>
                 <div class="table-responsive">
-                    <table class="table table-dark">
+                    <table class="table table-dark ">
                         <thead>
                             <tr>
                                 <th scope="col">Name</th>
@@ -39,11 +39,7 @@
 {{ range .FileRequests }}
                             <tr id="row-{{ .Id }}">
 		                    <td>{{ .Name }}</td>
-{{ if eq .MaxFiles 0 }}		                   
-		                    <td>{{ .UploadedFiles }}</td>
-{{ else }}
-		                    <td>{{ .UploadedFiles }} / {{ .MaxFiles }}</td>
-{{ end }}
+				    {{ template "uRFileCell" . }}
 		                    <td>{{ .GetReadableTotalSize }}</td>
             			    <td><span id="cell-lastupdate-{{ .Id }}"></span></td>
 				       <script>insertDateWithNegative({{ .LastUpload }}, "cell-lastupdate-{{ .Id }}", "None");</script>
@@ -65,6 +61,14 @@
                                 	</div>
                                 </td>
                             </tr>
+			      <tr >
+			  <td colspan="7" class="p-0 filelist-row">                      
+			<div id="collapse-filelist-{{ .Id }}" class="collapse bg-dark filelist-row">
+			  <div class="card card-body filelist-row">
+			   File list placeholder
+			  </div>
+			</div> </td>
+			</tr>
 {{ end }}
                         </tbody>
                     </table>
@@ -176,4 +180,18 @@
 			<button id="download-{{ .Id }}" type="button" class="btn btn-outline-light btn-sm" onclick="downloadFilesZipWithPresign('{{ .GetFilesAsString }}', '{{ .Name }}');" title="Download all"><i class="bi bi-download"></i></button>
 	{{ end }}
 	{{ end }}
+{{ end }}
+
+
+{{ define "uRFileCell" }}
+	<td>
+	{{ if gt .UploadedFiles 0 }}<a
+		href="#"
+		data-bs-toggle="collapse"
+			  data-bs-target="#collapse-filelist-{{ .Id }}"
+			  aria-expanded="false"
+			  aria-controls="collapse-filelist-{{ .Id }}">{{end}}
+	{{ .UploadedFiles }}{{ if ne .MaxFiles 0 }}	/ {{ .MaxFiles }}{{end}}
+	{{ if gt .UploadedFiles 0 }}</a>{{end}}
+	</td> 
 {{ end }}

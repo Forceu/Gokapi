@@ -21,8 +21,9 @@ func GetAll() []models.FileRequest {
 		return result
 	}
 	allFiles := database.GetAllMetadata()
-	for _, request := range result {
+	for i, request := range result {
 		request.Populate(allFiles)
+		result[i] = request
 	}
 	return result
 }

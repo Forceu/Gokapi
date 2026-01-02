@@ -300,6 +300,17 @@
             ]
           }
         ],
+        "parameters": [
+          {
+            "name": "showFileRequests",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Set to true, to include files uploaded through file requests"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Operation successful",

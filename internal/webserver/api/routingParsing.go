@@ -11,6 +11,34 @@ import (
 // Do not modify: This is an automatically generated file created by updateApiRouting.go
 // It contains the code that is used to parse the headers submitted in an API request
 
+// ParseRequest reads r and saves the passed header values in the paramFilesListAll struct
+// In the end, ProcessParameter() is called
+func (p *paramFilesListAll) ParseRequest(r *http.Request) error {
+	var err error
+	var exists bool
+	p.foundHeaders = make(map[string]bool)
+
+	// RequestParser header value "showFileRequests", required: false
+	exists, err = checkHeaderExists(r, "showFileRequests", false, false)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["showFileRequests"] = exists
+	if exists {
+		p.ShowFileRequests, err = parseHeaderBool(r, "showFileRequests")
+		if err != nil {
+			return fmt.Errorf("invalid value in header showFileRequests supplied")
+		}
+	}
+
+	return p.ProcessParameter(r)
+}
+
+// New returns a new instance of paramFilesListAll struct
+func (p *paramFilesListAll) New() requestParser {
+	return &paramFilesListAll{}
+}
+
 // ParseRequest parses the header file. As paramFilesListSingle has no fields with the
 // tag header, this method does nothing, except calling ProcessParameter()
 func (p *paramFilesListSingle) ParseRequest(r *http.Request) error {
