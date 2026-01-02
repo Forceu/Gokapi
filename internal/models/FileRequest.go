@@ -20,16 +20,19 @@ type FileRequest struct {
 	LastUpload    int64    `json:"lastupload" redis:"-"`              // Contains the timestamp of the last upload for this request. Needs to be calculated with Populate()
 	TotalFileSize int64    `json:"totalfilesize" redis:"-"`           // Contains the file size of all uploaded files. Needs to be calculated with Populate()
 	FileIdList    []string `json:"fileidlist" redis:"-"`              // Contains an array of the IDs of all uploaded files. Needs to be calculated with Populate()
+	Files         []File   `json:"-" redis:"-"`                       // Contains an array of the IDs of all uploaded files. Needs to be calculated with Populate()
 }
 
 // Populate inserts the number of uploaded files and the last upload date
 func (f *FileRequest) Populate(files map[string]File) {
 	f.FileIdList = make([]string, 0)
+	f.Files = make([]File, 0)
 	for _, file := range files {
 		if file.UploadRequestId == f.Id {
 			f.UploadedFiles++
 			f.TotalFileSize = f.TotalFileSize + file.SizeBytes
 			f.FileIdList = append(f.FileIdList, file.Id)
+			f.Files = append(f.Files, file)
 			if file.UploadDate > f.LastUpload {
 				f.LastUpload = file.UploadDate
 			}

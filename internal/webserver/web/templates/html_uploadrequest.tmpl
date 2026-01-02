@@ -37,7 +37,7 @@
                         <tbody id="filerequesttable">
                         
 {{ range .FileRequests }}
-                            <tr id="row-{{ .Id }}">
+                            <tr id="row-{{ .Id }}" class="no-bottom-border">
 		                    <td>{{ .Name }}</td>
 				    {{ template "uRFileCell" . }}
 		                    <td>{{ .GetReadableTotalSize }}</td>
@@ -61,12 +61,38 @@
                                 	</div>
                                 </td>
                             </tr>
-			      <tr >
+			      <tr id="filelist-{{ .Id }}">
 			  <td colspan="7" class="p-0 filelist-row">                      
 			<div id="collapse-filelist-{{ .Id }}" class="collapse bg-dark filelist-row">
-			  <div class="card card-body filelist-row">
-			   File list placeholder
-			  </div>
+			   <div class="p-2">
+
+				    <ul class="list-group list-group-flush">
+				      {{ range .Files }}
+				      <li class="list-group-item bg-dark text-light d-flex align-items-center">
+
+					<div class="flex-grow-1 text-truncate">
+					  <i class="bi bi-file-earmark me-2"></i>
+					  <a href="#" class="text-decoration-none text-light" onClick="downloadFileWithPresign('{{ .Id }}');">
+					    {{ .Name }}
+					  </a>
+					</div>
+
+					<div class="small me-3 text-nowrap text-light">
+					  {{ .Size }} · <span id="cell-date-file-{{.Id}}"></span>
+					</div>
+					<script>insertFormattedDate({{ .UploadDate }}, "cell-date-file-{{.Id}}");</script>
+
+					<button class="btn btn-outline-light btn-sm"
+						 onClick="downloadFileWithPresign('{{ .Id }}');"
+						title="Download">
+					  <i class="bi bi-download"></i>
+					</button>
+
+				      </li>
+				      {{ end }}
+				    </ul>
+
+				  </div>
 			</div> </td>
 			</tr>
 {{ end }}

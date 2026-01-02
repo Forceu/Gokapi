@@ -7,9 +7,18 @@ function deleteFileRequest(requestId) {
 
     apiURequestDelete(requestId)
         .then(data => {
-            document.getElementById("row-" + requestId).classList.add("rowDeleting");
+            const mainRow = document.getElementById("row-" + requestId);
+            const fileListRow = document.getElementById("filelist-" + requestId);
+            mainRow.classList.add("rowDeleting");
+            if (fileListRow !== null) {
+                fileListRow.classList.add("rowDeleting");
+            }
+            
             setTimeout(() => {
-                document.getElementById("row-" + requestId).remove();
+                mainRow.remove();
+                if (fileListRow !== null) {
+                    fileListRow.remove();
+                }
             }, 290);
         })
         .catch(error => {

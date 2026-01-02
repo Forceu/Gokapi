@@ -771,7 +771,7 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 			helper.Check(err)
 			metaDataList = append(metaDataList, fileInfo)
 		}
-		metaDataList = sortMetaData(metaDataList)
+		metaDataList = sortMetaDataApi(metaDataList)
 	case ViewAPI:
 		for _, apiKey := range database.GetAllApiKeys() {
 			// Double-checking if the owner of the API key exists
@@ -816,6 +816,7 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 			if fileRequest.UserId != user.Id && !user.HasPermissionListOtherUploads() {
 				continue
 			}
+			fileRequest.Files = sortMetaData(fileRequest.Files)
 			u.FileRequests = append(u.FileRequests, fileRequest)
 		}
 	}
@@ -838,15 +839,27 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 	return u
 }
 
-// sortMetaData arranges the provided array so that Fies are sorted by most recent upload first and if that is equal
+// sortMetaDataApi arranges the provided array so that Fies are sorted by most recent upload first and if that is equal
 // then by most time remaining first. If that is equal, then sort by ID.
-func sortMetaData(input []models.FileApiOutput) []models.FileApiOutput {
+func sortMetaDataApi(input []models.FileApiOutput) []models.FileApiOutput {
 	sort.Slice(input[:], func(i, j int) bool {
 		if input[i].UploadDate != input[j].UploadDate {
 			return input[i].UploadDate > input[j].UploadDate
 		}
 		if input[i].ExpireAt != input[j].ExpireAt {
 			return input[i].ExpireAt > input[j].ExpireAt
+		}
+		return input[i].Id > input[j].Id
+	})
+	return input
+}
+
+// sortMetaData arranges the provided array so that Fies are sorted by most recent upload first then sort by ID.
+// Currently only used for the files of File Requests, all others use sortMetaDataApi
+func sortMetaData(input []models.File) []models.File {
+	sort.Slice(input[:], func(i, j int) bool {
+		if input[i].UploadDate != input[j].UploadDate {
+			return input[i].UploadDate > input[j].UploadDate
 		}
 		return input[i].Id > input[j].Id
 	})

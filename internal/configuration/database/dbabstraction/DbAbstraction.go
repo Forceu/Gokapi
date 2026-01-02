@@ -100,7 +100,7 @@ type Database interface {
 
 	// GetFileRequest returns the FileRequest or false if not found
 	GetFileRequest(id int) (models.FileRequest, bool)
-	// GetAllFileRequests returns an array with all file requests
+	// GetAllFileRequests returns an array with all file requests, ordered by creation date
 	GetAllFileRequests() []models.FileRequest
 	// SaveFileRequest stores the hotlink associated with the file in the database
 	// Returns the ID of the new request

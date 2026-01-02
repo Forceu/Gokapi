@@ -45,7 +45,7 @@ func (p DatabaseProvider) GetFileRequest(id int) (models.FileRequest, bool) {
 	return result, true
 }
 
-// GetAllFileRequests returns an array with all file requests
+// GetAllFileRequests returns an array with all file requests, ordered by creation date
 func (p DatabaseProvider) GetAllFileRequests() []models.FileRequest {
 	result := make([]models.FileRequest, 0)
 	rows, err := p.sqliteDb.Query("SELECT * FROM UploadRequests ORDER BY Creation DESC, Name")

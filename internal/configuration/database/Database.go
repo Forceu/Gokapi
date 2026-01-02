@@ -327,7 +327,7 @@ func GetFileRequest(id int) (models.FileRequest, bool) {
 	return db.GetFileRequest(id)
 }
 
-// GetAllFileRequests returns an array with all file requests
+// GetAllFileRequests returns an array with all file requests, ordered by creation date
 func GetAllFileRequests() []models.FileRequest {
 	return db.GetAllFileRequests()
 }

@@ -312,3 +312,8 @@ a:hover {
 .filelist-row {
   background-color: rgba(255,255,255,0.05);
 }
+
+
+tr.no-bottom-border td {
+  border-bottom: none
+}

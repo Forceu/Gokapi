@@ -35,7 +35,7 @@ func (p DatabaseProvider) GetFileRequest(id int) (models.FileRequest, bool) {
 	return request, true
 }
 
-// GetAllFileRequests returns an array with all file requests
+// GetAllFileRequests returns an array with all file requests, ordered by creation date
 func (p DatabaseProvider) GetAllFileRequests() []models.FileRequest {
 	var result []models.FileRequest
 	maps := p.getAllHashesWithPrefix(prefixFileRequests)
