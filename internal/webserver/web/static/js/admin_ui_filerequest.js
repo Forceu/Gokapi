@@ -13,7 +13,7 @@ function deleteFileRequest(requestId) {
             if (fileListRow !== null) {
                 fileListRow.classList.add("rowDeleting");
             }
-            
+
             setTimeout(() => {
                 mainRow.remove();
                 if (fileListRow !== null) {
@@ -83,9 +83,11 @@ function loadFileRequestDefaults() {
     const defaultMaxSize = localStorage.getItem("fr_maxsize");
     let defaultExpiry = localStorage.getItem("fr_expiry");
 
-    let defaultDate = new Date(Date.now() + Number((defaultExpiry) * 1000));
-    defaultDate.setHours(12, 0, 0, 0);
-    defaultExpiry = Math.floor(defaultDate.getTime() / 1000);
+    if (defaultExpiry !== "0" && defaultExpiry !== null) {
+        let defaultDate = new Date(Date.now() + Number((defaultExpiry) * 1000));
+        defaultDate.setHours(12, 0, 0, 0);
+        defaultExpiry = Math.floor(defaultDate.getTime() / 1000);
+    }
 
     setModalValues(0, "", defaultMaxFiles, defaultMaxSize, defaultExpiry);
 }
