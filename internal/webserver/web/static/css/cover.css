@@ -309,11 +309,19 @@ a:hover {
   border: 1px solid #555; /* Slight border to define the element */
 }
 
-.filelist-row {
-  background-color: rgba(255,255,255,0.05);
+/* Slightly lighter than table-dark */
+.filelist-item {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+/* Optional hover polish */
+.filelist-item:hover {
+  background-color: rgba(255, 255, 255, 0.08);
 }
 
 
 tr.no-bottom-border td {
   border-bottom: none
 }
+
+
