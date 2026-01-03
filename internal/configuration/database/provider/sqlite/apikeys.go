@@ -18,7 +18,7 @@ type schemaApiKeys struct {
 	IsSystemKey     int
 	UserId          int
 	PublicId        string
-	UploadRequestId int
+	UploadRequestId string
 }
 
 // currentTime is used in order to modify the current time for testing purposes in unit tests
@@ -86,6 +86,21 @@ func (p DatabaseProvider) GetApiKey(id string) (models.ApiKey, bool) {
 func (p DatabaseProvider) GetApiKeyByPublicKey(publicKey string) (string, bool) {
 	var rowResult schemaApiKeys
 	row := p.sqliteDb.QueryRow("SELECT Id FROM ApiKeys WHERE PublicId = ? LIMIT 1", publicKey)
+	err := row.Scan(&rowResult.Id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", false
+		}
+		helper.Check(err)
+		return "", false
+	}
+	return rowResult.Id, true
+}
+
+// GetApiKeyByFileRequest returns an API key used for a file request
+func (p DatabaseProvider) GetApiKeyByFileRequest(request models.FileRequest) (string, bool) {
+	var rowResult schemaApiKeys
+	row := p.sqliteDb.QueryRow("SELECT Id FROM ApiKeys WHERE UploadRequestId = ? LIMIT 1", request.Id)
 	err := row.Scan(&rowResult.Id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

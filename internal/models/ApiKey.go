@@ -44,7 +44,7 @@ type ApiKey struct {
 	Expiry          int64         `json:"Expiry" redis:"Expiry"` // Does not expire if 0
 	IsSystemKey     bool          `json:"IsSystemKey" redis:"IsSystemKey"`
 	UserId          int           `json:"UserId" redis:"UserId"`
-	UploadRequestId int           `json:"UploadRequestId" redis:"UploadRequestId"`
+	UploadRequestId string        `json:"UploadRequestId" redis:"UploadRequestId"`
 }
 
 // ApiPermission contains zero or more permissions as an uint16 format
@@ -159,5 +159,5 @@ type ApiKeyOutput struct {
 
 // IsUploadRequestKey returns true if it is used for file requests
 func (key *ApiKey) IsUploadRequestKey() bool {
-	return key.UploadRequestId != 0
+	return key.UploadRequestId != ""
 }

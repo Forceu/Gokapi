@@ -53,11 +53,11 @@
 		                    	<div class="btn-group" role="group">
                                 {{ template "uRDownloadbutton" . }}
                                 
-		                        <button id="edit-{{ .Id }}" type="button" title="Edit request" class="btn btn-outline-light btn-sm" onclick="editFileRequest({{ .Id }}, '{{ .Name }}', {{ .MaxFiles }}, {{ .MaxSize }}, {{ .Expiry }})">
+		                        <button id="edit-{{ .Id }}" type="button" title="Edit request" class="btn btn-outline-light btn-sm" onclick="editFileRequest('{{ .Id }}', '{{ .Name }}', {{ .MaxFiles }}, {{ .MaxSize }}, {{ .Expiry }})">
 		                        	<i class="bi bi-pencil"></i></button>
                                 
                                 
-                                <button id="delete-{{ .Id }}" type="button" class="btn btn-outline-danger btn-sm" onclick="deleteOrShowModal({{ .Id }}, '{{ .Name }}', {{ .UploadedFiles }})" title="Delete"><i class="bi bi-trash3"></i></button>
+                                <button id="delete-{{ .Id }}" type="button" class="btn btn-outline-danger btn-sm" onclick="deleteOrShowModal('{{ .Id }}', '{{ .Name }}', {{ .UploadedFiles }})" title="Delete"><i class="bi bi-trash3"></i></button>
                                 	</div>
                                 </td>
                             </tr>
@@ -71,7 +71,6 @@
 				      <li class="list-group-itemtext-light d-flex align-items-center border-bottom-0  filelist-item ">
 
 					<div class="flex-grow-1 text-truncate">
-					  <i class="bi bi-file-earmark me-2"></i>
 					  <a href="#" class="text-decoration-none text-light" onClick="downloadFileWithPresign('{{ .Id }}');">
 					    {{ .Name }}
 					  </a>
@@ -184,7 +183,7 @@
 		</div>
 		
 	      </div>
-	      <input type="hidden" id="freqId" value="0" />
+	      <input type="hidden" id="freqId" value="" />
 	      <div class="modal-footer">
 		<button type="button" class="btn btn-outline-light"  aria-label="Cancel" data-bs-dismiss="modal">Close</button>
 		<button type="button" class="btn btn-primary" data-fileid="" id="b_fr_save" onclick="">Save</button>

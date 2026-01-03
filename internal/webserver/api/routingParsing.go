@@ -973,16 +973,13 @@ func (p *paramURequestDelete) ParseRequest(r *http.Request) error {
 	p.foundHeaders = make(map[string]bool)
 
 	// RequestParser header value "id", required: true
-	exists, err = checkHeaderExists(r, "id", true, false)
+	exists, err = checkHeaderExists(r, "id", true, true)
 	if err != nil {
 		return err
 	}
 	p.foundHeaders["id"] = exists
 	if exists {
-		p.Id, err = parseHeaderInt(r, "id")
-		if err != nil {
-			return fmt.Errorf("invalid value in header id supplied")
-		}
+		p.Id = r.Header.Get("id")
 	}
 
 	return p.ProcessParameter(r)
@@ -1001,16 +998,13 @@ func (p *paramURequestSave) ParseRequest(r *http.Request) error {
 	p.foundHeaders = make(map[string]bool)
 
 	// RequestParser header value "id", required: false
-	exists, err = checkHeaderExists(r, "id", false, false)
+	exists, err = checkHeaderExists(r, "id", false, true)
 	if err != nil {
 		return err
 	}
 	p.foundHeaders["id"] = exists
 	if exists {
-		p.Id, err = parseHeaderInt(r, "id")
-		if err != nil {
-			return fmt.Errorf("invalid value in header id supplied")
-		}
+		p.Id = r.Header.Get("id")
 	}
 
 	// RequestParser header value "name", required: false, has base64support

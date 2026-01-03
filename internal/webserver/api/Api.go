@@ -105,17 +105,18 @@ func apiEditFile(w http.ResponseWriter, r requestParser, user models.User) {
 }
 
 // generateNewKey generates and saves a new API key
-func generateNewKey(defaultPermissions bool, userId int, friendlyName string) models.ApiKey {
+func generateNewKey(defaultPermissions bool, userId int, friendlyName, filerequstId string) models.ApiKey {
 	if friendlyName == "" {
 		friendlyName = "Unnamed key"
 	}
 	newKey := models.ApiKey{
-		Id:           helper.GenerateRandomString(LengthApiKey),
-		PublicId:     helper.GenerateRandomString(LengthPublicId),
-		FriendlyName: friendlyName,
-		Permissions:  models.ApiPermDefault,
-		IsSystemKey:  false,
-		UserId:       userId,
+		Id:              helper.GenerateRandomString(LengthApiKey),
+		PublicId:        helper.GenerateRandomString(LengthPublicId),
+		FriendlyName:    friendlyName,
+		Permissions:     models.ApiPermDefault,
+		IsSystemKey:     false,
+		UserId:          userId,
+		UploadRequestId: filerequstId,
 	}
 	if !defaultPermissions {
 		newKey.Permissions = models.ApiPermNone
@@ -216,7 +217,7 @@ func apiCreateApiKey(w http.ResponseWriter, r requestParser, user models.User) {
 	if !ok {
 		panic("invalid parameter passed")
 	}
-	key := generateNewKey(request.BasicPermissions, user.Id, request.FriendlyName)
+	key := generateNewKey(request.BasicPermissions, user.Id, request.FriendlyName, "")
 	output := models.ApiKeyOutput{
 		Result:   "OK",
 		Id:       key.Id,
@@ -564,7 +565,7 @@ func apiDuplicateFile(w http.ResponseWriter, r requestParser, user models.User) 
 		request.UnlimitedTime,
 		request.UnlimitedDownloads,
 		false, // is not being used by storage.DuplicateFile
-		0)     // is not being used by storage.DuplicateFile
+		0) // is not being used by storage.DuplicateFile
 	newFile, err := storage.DuplicateFile(file, request.RequestedChanges, request.FileName, uploadRequest)
 	if err != nil {
 		sendError(w, http.StatusInternalServerError, err.Error())
@@ -868,7 +869,7 @@ func apiURequestSave(w http.ResponseWriter, r requestParser, user models.User) {
 		panic("invalid parameter passed")
 	}
 	uploadRequest := models.FileRequest{}
-	isNewRequest := request.Id == 0
+	isNewRequest := request.Id == ""
 
 	if !isNewRequest {
 		uploadRequest, ok = database.GetFileRequest(request.Id)
@@ -881,9 +882,8 @@ func apiURequestSave(w http.ResponseWriter, r requestParser, user models.User) {
 			return
 		}
 	} else {
-		uploadRequest.UserId = user.Id
-		uploadRequest.CreationDate = time.Now().Unix()
-		apiKey := generateNewKey(false, user.Id, "File Request Public Access")
+		uploadRequest = filerequest.New(user)
+		apiKey := generateNewKey(false, user.Id, "File Request Public Access", uploadRequest.Id)
 		uploadRequest.ApiKey = apiKey.Id
 	}
 
@@ -903,20 +903,9 @@ func apiURequestSave(w http.ResponseWriter, r requestParser, user models.User) {
 	if request.IsMaxSizeSet {
 		uploadRequest.MaxSize = request.MaxSize
 	}
-	id := database.SaveFileRequest(uploadRequest)
-	uploadRequest, ok = filerequest.Get(id)
-	if !ok {
-		sendError(w, http.StatusInternalServerError, "Could not save file request")
-		return
-	}
+	database.SaveFileRequest(uploadRequest)
+	uploadRequest, ok = filerequest.Get(uploadRequest.Id)
 	if isNewRequest {
-		apiKey, ok := database.GetApiKey(uploadRequest.ApiKey)
-		if !ok {
-			sendError(w, http.StatusInternalServerError, "Could not retrieve API key")
-			return
-		}
-		apiKey.UploadRequestId = uploadRequest.Id
-		database.SaveApiKey(apiKey)
 		logging.LogCreateFileRequest(uploadRequest, user)
 	} else {
 		logging.LogEditFileRequest(uploadRequest, user)

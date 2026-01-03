@@ -8,7 +8,7 @@ import (
 )
 
 type FileRequest struct {
-	Id            int      `json:"id" redis:"id"`                     // The internal ID of the file request
+	Id            string   `json:"id" redis:"id"`                     // The internal ID of the file request
 	UserId        int      `json:"userid" redis:"userid"`             // The user ID of the owner
 	MaxFiles      int      `json:"maxfiles" redis:"maxfiles"`         // The maximum number of files allowed
 	MaxSize       int      `json:"maxsize" redis:"maxsize"`           // The maximum file size allowed in MB

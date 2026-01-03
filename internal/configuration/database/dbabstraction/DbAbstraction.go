@@ -38,6 +38,8 @@ type Database interface {
 	GetAllApiKeys() map[string]models.ApiKey
 	// GetApiKey returns a models.ApiKey if valid or false if the ID is not valid
 	GetApiKey(id string) (models.ApiKey, bool)
+	// GetApiKeyByFileRequest returns an API key used for a file request
+	GetApiKeyByFileRequest(request models.FileRequest) (string, bool)
 	// SaveApiKey saves the API key to the database
 	SaveApiKey(apikey models.ApiKey)
 	// UpdateTimeApiKey writes the content of LastUsage to the database
@@ -99,12 +101,11 @@ type Database interface {
 	DeleteUser(id int)
 
 	// GetFileRequest returns the FileRequest or false if not found
-	GetFileRequest(id int) (models.FileRequest, bool)
+	GetFileRequest(id string) (models.FileRequest, bool)
 	// GetAllFileRequests returns an array with all file requests, ordered by creation date
 	GetAllFileRequests() []models.FileRequest
-	// SaveFileRequest stores the hotlink associated with the file in the database
-	// Returns the ID of the new request
-	SaveFileRequest(request models.FileRequest) int
+	// SaveFileRequest stores the file request associated with the file in the database
+	SaveFileRequest(request models.FileRequest)
 	// DeleteFileRequest deletes a file request with the given ID
 	DeleteFileRequest(request models.FileRequest)
 

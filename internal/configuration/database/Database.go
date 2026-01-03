@@ -128,6 +128,16 @@ func GetApiKey(id string) (models.ApiKey, bool) {
 	return db.GetApiKey(id)
 }
 
+// GetApiKeyByPublicKey returns an API key by using the public key
+func GetApiKeyByPublicKey(publicKey string) (string, bool) {
+	return db.GetApiKeyByPublicKey(publicKey)
+}
+
+// GetApiKeyByFileRequest returns an API key used for a file request
+func GetApiKeyByFileRequest(request models.FileRequest) (string, bool) {
+	return db.GetApiKeyByFileRequest(request)
+}
+
 // SaveApiKey saves the API key to the database
 func SaveApiKey(apikey models.ApiKey) {
 	db.SaveApiKey(apikey)
@@ -141,11 +151,6 @@ func UpdateTimeApiKey(apikey models.ApiKey) {
 // DeleteApiKey deletes an API key with the given ID
 func DeleteApiKey(id string) {
 	db.DeleteApiKey(id)
-}
-
-// GetApiKeyByPublicKey returns an API key by using the public key
-func GetApiKeyByPublicKey(publicKey string) (string, bool) {
-	return db.GetApiKeyByPublicKey(publicKey)
 }
 
 // E2E Section
@@ -323,7 +328,7 @@ func EditSuperAdmin(username, passwordHash string) error {
 // File Requests
 
 // GetFileRequest returns the FileRequest or false if not found
-func GetFileRequest(id int) (models.FileRequest, bool) {
+func GetFileRequest(id string) (models.FileRequest, bool) {
 	return db.GetFileRequest(id)
 }
 
@@ -332,10 +337,9 @@ func GetAllFileRequests() []models.FileRequest {
 	return db.GetAllFileRequests()
 }
 
-// SaveFileRequest stores the hotlink associated with the file in the database
-// Returns the ID of the new request
-func SaveFileRequest(request models.FileRequest) int {
-	return db.SaveFileRequest(request)
+// SaveFileRequest stores the file request associated with the file in the database
+func SaveFileRequest(request models.FileRequest) {
+	db.SaveFileRequest(request)
 }
 
 // DeleteFileRequest deletes a file request with the given ID

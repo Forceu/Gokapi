@@ -89,7 +89,7 @@ function loadFileRequestDefaults() {
         defaultExpiry = Math.floor(defaultDate.getTime() / 1000);
     }
 
-    setModalValues(0, "", defaultMaxFiles, defaultMaxSize, defaultExpiry);
+    setModalValues("", "", defaultMaxFiles, defaultMaxSize, defaultExpiry);
 }
 
 function setModalValues(id, name, maxFiles, maxSize, expiry) {

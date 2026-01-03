@@ -29,7 +29,7 @@ type schemaMetaData struct {
 	UserId             int
 	UploadDate         int64
 	PendingDeletion    int64
-	UploadRequestId    int
+	UploadRequestId    string
 }
 
 func (rowData schemaMetaData) ToFileModel() (models.File, error) {

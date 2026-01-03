@@ -1245,12 +1245,12 @@
           {
             "name": "id",
             "in": "header",
-            "description": "The request to be saved. If 0 or empty, a new request will be created",
+            "description": "The request to be saved. If empty, a new request will be created",
             "required": false,
             "style": "simple",
             "explode": false,
             "schema": {
-              "type": "integer"
+              "type": "string"
             }
           },
           {
@@ -1345,7 +1345,7 @@
             "style": "simple",
             "explode": false,
             "schema": {
-              "type": "integer"
+              "type": "string"
             }
           }
         ],
@@ -1713,6 +1713,11 @@
             "description": "The public hotlink URL for the file",
             "example": "https://gokapi.server/h/tDMs0U8MvRFwK69PfjagI7F87C13UVeQuOGDvtCG.jpg"
           },
+          "FileRequestId": {
+            "type": "string",
+            "description": "If the file belongs to an upload request, the ID is set in this field",
+            "example": "cnMEWsrMwSx1wyr"
+          },
           "UploadDate": {
             "type": "integer",
             "description": "UTC timestamp of file upload",
@@ -1783,6 +1788,11 @@
             "type": "boolean",
             "example": "false"
           },
+          "IsFileRequest": {
+            "description": "True if the file belongs to an upload request",
+            "type": "boolean",
+            "example": "true"
+          },
           "UploaderId": {
             "description": "The user ID of the uploader",
             "type": "integer",
@@ -1797,8 +1807,7 @@
         "description": "Represents a file upload request and its associated metadata.",
         "properties": {
           "id": {
-            "type": "integer",
-            "format": "int32",
+            "type": "string",
             "description": "The internal ID of the file request",
             "example": "137"
           },

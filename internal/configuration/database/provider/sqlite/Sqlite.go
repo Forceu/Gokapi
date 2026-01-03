@@ -49,10 +49,10 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 	// pre upload requests
 	if currentDbVersion < 12 {
 
-		err := p.rawSqlite(`ALTER TABLE FileMetaData ADD COLUMN "UploadRequestId" INTEGER NOT NULL DEFAULT 0;
-									 ALTER TABLE ApiKeys ADD COLUMN "UploadRequestId" INTEGER NOT NULL DEFAULT 0;
+		err := p.rawSqlite(`ALTER TABLE FileMetaData ADD COLUMN "UploadRequestId" TEXT NOT NULL DEFAULT '';
+									 ALTER TABLE ApiKeys ADD COLUMN "UploadRequestId" TEXT NOT NULL DEFAULT '';
 									 CREATE TABLE "UploadRequests" (
-										"id"	INTEGER NOT NULL UNIQUE,
+										"id"	TEXT NOT NULL UNIQUE,
 										"name"	TEXT NOT NULL,
 										"userid"	INTEGER NOT NULL,
 										"expiry"	INTEGER NOT NULL,
@@ -60,7 +60,7 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 										"maxSize"	INTEGER NOT NULL,
 										"creation"	INTEGER NOT NULL,
 										"apiKey"	TEXT NOT NULL UNIQUE,
-										PRIMARY KEY("id" AUTOINCREMENT)
+										PRIMARY KEY("id")
 									 );
 									CREATE TABLE "Presign" (
 										"id"	TEXT NOT NULL UNIQUE,
@@ -165,7 +165,7 @@ func (p DatabaseProvider) createNewDatabase() error {
 			"IsSystemKey"	INTEGER,
 			"UserId" INTEGER NOT NULL,
 			"PublicId" TEXT NOT NULL UNIQUE ,
-			"UploadRequestId"	INTEGER NOT NULL,
+			"UploadRequestId"	TEXT NOT NULL,
 			PRIMARY KEY("Id")
 		) WITHOUT ROWID;
 		CREATE TABLE "E2EConfig" (
@@ -193,7 +193,7 @@ func (p DatabaseProvider) createNewDatabase() error {
 			"UserId"	INTEGER NOT NULL,
 			"UploadDate"	INTEGER NOT NULL,
 			"PendingDeletion"	INTEGER NOT NULL,
-			"UploadRequestId"	INTEGER NOT NULL,
+			"UploadRequestId"	TEXT NOT NULL,
 			PRIMARY KEY("Id")
 		);
 		CREATE TABLE "Hotlinks" (
@@ -219,7 +219,7 @@ func (p DatabaseProvider) createNewDatabase() error {
 			PRIMARY KEY("Id" AUTOINCREMENT)
 		);
 		CREATE TABLE "UploadRequests" (
-			"id"	INTEGER NOT NULL UNIQUE,
+			"id"	TEXT NOT NULL UNIQUE,
 			"name"	TEXT,
 			"userid"	INTEGER NOT NULL,
 			"expiry"	INTEGER NOT NULL,
@@ -227,7 +227,7 @@ func (p DatabaseProvider) createNewDatabase() error {
 			"maxSize"	INTEGER NOT NULL,
 			"creation"	INTEGER NOT NULL,
 			"apiKey"	TEXT NOT NULL UNIQUE,
-			PRIMARY KEY("id" AUTOINCREMENT)
+			PRIMARY KEY("id")
 		);
 		CREATE TABLE "Presign" (
 			"id"	TEXT NOT NULL UNIQUE,

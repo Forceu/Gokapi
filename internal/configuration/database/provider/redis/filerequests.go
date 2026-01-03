@@ -3,7 +3,6 @@ package redis
 import (
 	"cmp"
 	"slices"
-	"strconv"
 
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
@@ -11,8 +10,7 @@ import (
 )
 
 const (
-	prefixFileRequests       = "frq:"
-	prefixFileRequestCounter = "frq_max"
+	prefixFileRequests = "frq:"
 )
 
 func dbToFileRequest(input []any) (models.FileRequest, error) {
@@ -25,8 +23,8 @@ func dbToFileRequest(input []any) (models.FileRequest, error) {
 }
 
 // GetFileRequest returns the FileRequest or false if not found
-func (p DatabaseProvider) GetFileRequest(id int) (models.FileRequest, bool) {
-	result, ok := p.getHashMap(prefixFileRequests + strconv.Itoa(id))
+func (p DatabaseProvider) GetFileRequest(id string) (models.FileRequest, bool) {
+	result, ok := p.getHashMap(prefixFileRequests + id)
 	if !ok {
 		return models.FileRequest{}, false
 	}
@@ -57,23 +55,12 @@ func sortFilerequests(users []models.FileRequest) []models.FileRequest {
 	return users
 }
 
-// SaveFileRequest stores the hotlink associated with the file in the database
-// Returns the ID of the new request
-func (p DatabaseProvider) SaveFileRequest(request models.FileRequest) int {
-	if request.Id == 0 {
-		id := p.getIncreasedInt(prefixFileRequestCounter)
-		request.Id = id
-	} else {
-		counter, _ := p.getKeyInt(prefixFileRequestCounter)
-		if counter < request.Id {
-			p.setKey(prefixFileRequestCounter, request.Id)
-		}
-	}
-	p.setHashMap(p.buildArgs(prefixUsers + strconv.Itoa(request.Id)).AddFlat(request))
-	return request.Id
+// SaveFileRequest stores the file request associated with the file in the database
+func (p DatabaseProvider) SaveFileRequest(request models.FileRequest) {
+	p.setHashMap(p.buildArgs(prefixUsers + request.Id).AddFlat(request))
 }
 
 // DeleteFileRequest deletes a file request with the given ID
 func (p DatabaseProvider) DeleteFileRequest(request models.FileRequest) {
-	p.deleteKey(prefixFileRequests + strconv.Itoa(request.Id))
+	p.deleteKey(prefixFileRequests + request.Id)
 }

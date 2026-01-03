@@ -612,7 +612,7 @@ func (p *paramChunkComplete) ProcessParameter(_ *http.Request) error {
 }
 
 type paramURequestDelete struct {
-	Id           int `header:"id" required:"true"`
+	Id           string `header:"id" required:"true"`
 	foundHeaders map[string]bool
 }
 
@@ -621,7 +621,7 @@ func (p *paramURequestDelete) ProcessParameter(_ *http.Request) error {
 }
 
 type paramURequestSave struct {
-	Id            int    `header:"id"`
+	Id            string `header:"id"`
 	Name          string `header:"name" supportBase64:"true"`
 	Expiry        int64  `header:"expiry"`
 	MaxFiles      int    `header:"maxfiles"`
@@ -651,17 +651,12 @@ func (p *paramURequestSave) ProcessParameter(_ *http.Request) error {
 }
 
 type paramURequestListSingle struct {
-	Id int
+	Id string
 }
 
 func (p *paramURequestListSingle) ProcessParameter(r *http.Request) error {
 	url := parseRequestUrl(r)
-	idString := strings.TrimPrefix(url, "/uploadrequest/list/")
-	id, err := strconv.Atoi(idString)
-	if err != nil {
-		return errors.New("invalid request ID")
-	}
-	p.Id = id
+	p.Id = strings.TrimPrefix(url, "/uploadrequest/list/")
 	return nil
 }
 

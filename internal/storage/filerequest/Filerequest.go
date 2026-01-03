@@ -1,12 +1,26 @@
 package filerequest
 
 import (
+	"time"
+
 	"github.com/forceu/gokapi/internal/configuration/database"
+	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
 )
 
-func Get(id int) (models.FileRequest, bool) {
+// New creates a new file request object. It is not stored yet,
+// and an API key has to be generated manually
+func New(user models.User) models.FileRequest {
+	return models.FileRequest{
+		Id:           helper.GenerateRandomString(15),
+		UserId:       user.Id,
+		CreationDate: time.Now().Unix(),
+		Name:         "Unnamed file request",
+	}
+}
+
+func Get(id string) (models.FileRequest, bool) {
 	result, ok := database.GetFileRequest(id)
 	if !ok {
 		return models.FileRequest{}, false
