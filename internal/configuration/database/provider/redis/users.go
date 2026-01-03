@@ -2,12 +2,13 @@ package redis
 
 import (
 	"cmp"
-	"github.com/forceu/gokapi/internal/helper"
-	"github.com/forceu/gokapi/internal/models"
-	redigo "github.com/gomodule/redigo/redis"
 	"slices"
 	"strconv"
 	"time"
+
+	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/models"
+	redigo "github.com/gomodule/redigo/redis"
 )
 
 const (
@@ -33,10 +34,10 @@ func (p DatabaseProvider) GetAllUsers() []models.User {
 		helper.Check(err)
 		result = append(result, user)
 	}
-	return orderUsers(result)
+	return sortUsers(result)
 }
 
-func orderUsers(users []models.User) []models.User {
+func sortUsers(users []models.User) []models.User {
 	slices.SortFunc(users, func(a, b models.User) int {
 		return cmp.Or(
 			cmp.Compare(a.UserLevel, b.UserLevel),

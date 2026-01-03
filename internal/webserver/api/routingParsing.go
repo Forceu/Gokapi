@@ -2,12 +2,42 @@
 package api
 
 import (
+	"encoding/base64"
 	"fmt"
 	"net/http"
+	"strings"
 )
 
 // Do not modify: This is an automatically generated file created by updateApiRouting.go
 // It contains the code that is used to parse the headers submitted in an API request
+
+// ParseRequest reads r and saves the passed header values in the paramFilesListAll struct
+// In the end, ProcessParameter() is called
+func (p *paramFilesListAll) ParseRequest(r *http.Request) error {
+	var err error
+	var exists bool
+	p.foundHeaders = make(map[string]bool)
+
+	// RequestParser header value "showFileRequests", required: false
+	exists, err = checkHeaderExists(r, "showFileRequests", false, false)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["showFileRequests"] = exists
+	if exists {
+		p.ShowFileRequests, err = parseHeaderBool(r, "showFileRequests")
+		if err != nil {
+			return fmt.Errorf("invalid value in header showFileRequests supplied")
+		}
+	}
+
+	return p.ProcessParameter(r)
+}
+
+// New returns a new instance of paramFilesListAll struct
+func (p *paramFilesListAll) New() requestParser {
+	return &paramFilesListAll{}
+}
 
 // ParseRequest parses the header file. As paramFilesListSingle has no fields with the
 // tag header, this method does nothing, except calling ProcessParameter()
@@ -18,6 +48,115 @@ func (p *paramFilesListSingle) ParseRequest(r *http.Request) error {
 // New returns a new instance of paramFilesListSingle struct
 func (p *paramFilesListSingle) New() requestParser {
 	return &paramFilesListSingle{}
+}
+
+// ParseRequest reads r and saves the passed header values in the paramFilesDownloadSingle struct
+// In the end, ProcessParameter() is called
+func (p *paramFilesDownloadSingle) ParseRequest(r *http.Request) error {
+	var err error
+	var exists bool
+	p.foundHeaders = make(map[string]bool)
+
+	// RequestParser header value "increaseCounter", required: false
+	exists, err = checkHeaderExists(r, "increaseCounter", false, false)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["increaseCounter"] = exists
+	if exists {
+		p.IncreaseCounter, err = parseHeaderBool(r, "increaseCounter")
+		if err != nil {
+			return fmt.Errorf("invalid value in header increaseCounter supplied")
+		}
+	}
+
+	// RequestParser header value "presignUrl", required: false
+	exists, err = checkHeaderExists(r, "presignUrl", false, false)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["presignUrl"] = exists
+	if exists {
+		p.PresignUrl, err = parseHeaderBool(r, "presignUrl")
+		if err != nil {
+			return fmt.Errorf("invalid value in header presignUrl supplied")
+		}
+	}
+
+	return p.ProcessParameter(r)
+}
+
+// New returns a new instance of paramFilesDownloadSingle struct
+func (p *paramFilesDownloadSingle) New() requestParser {
+	return &paramFilesDownloadSingle{}
+}
+
+// ParseRequest reads r and saves the passed header values in the paramFilesDownloadZip struct
+// In the end, ProcessParameter() is called
+func (p *paramFilesDownloadZip) ParseRequest(r *http.Request) error {
+	var err error
+	var exists bool
+	p.foundHeaders = make(map[string]bool)
+
+	// RequestParser header value "ids", required: true
+	exists, err = checkHeaderExists(r, "ids", true, true)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["ids"] = exists
+	if exists {
+		p.FileIds = r.Header.Get("ids")
+	}
+
+	// RequestParser header value "filename", required: false, has base64support
+	exists, err = checkHeaderExists(r, "filename", false, true)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["filename"] = exists
+	if exists {
+		p.Filename = r.Header.Get("filename")
+		if strings.HasPrefix(p.Filename, "base64:") {
+			decoded, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(p.Filename, "base64:"))
+			if err != nil {
+				return err
+			}
+			p.Filename = string(decoded)
+		}
+	}
+
+	// RequestParser header value "increaseCounter", required: false
+	exists, err = checkHeaderExists(r, "increaseCounter", false, false)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["increaseCounter"] = exists
+	if exists {
+		p.IncreaseCounter, err = parseHeaderBool(r, "increaseCounter")
+		if err != nil {
+			return fmt.Errorf("invalid value in header increaseCounter supplied")
+		}
+	}
+
+	// RequestParser header value "presignUrl", required: false
+	exists, err = checkHeaderExists(r, "presignUrl", false, false)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["presignUrl"] = exists
+	if exists {
+		p.PresignUrl, err = parseHeaderBool(r, "presignUrl")
+		if err != nil {
+			return fmt.Errorf("invalid value in header presignUrl supplied")
+		}
+	}
+
+	return p.ProcessParameter(r)
+}
+
+// New returns a new instance of paramFilesDownloadZip struct
+func (p *paramFilesDownloadZip) New() requestParser {
+	return &paramFilesDownloadZip{}
 }
 
 // ParseRequest parses the header file. As paramFilesAdd has no fields with the
@@ -703,7 +842,7 @@ func (p *paramChunkComplete) ParseRequest(r *http.Request) error {
 		p.Uuid = r.Header.Get("uuid")
 	}
 
-	// RequestParser header value "filename", required: true
+	// RequestParser header value "filename", required: true, has base64support
 	exists, err = checkHeaderExists(r, "filename", true, true)
 	if err != nil {
 		return err
@@ -711,6 +850,13 @@ func (p *paramChunkComplete) ParseRequest(r *http.Request) error {
 	p.foundHeaders["filename"] = exists
 	if exists {
 		p.FileName = r.Header.Get("filename")
+		if strings.HasPrefix(p.FileName, "base64:") {
+			decoded, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(p.FileName, "base64:"))
+			if err != nil {
+				return err
+			}
+			p.FileName = string(decoded)
+		}
 	}
 
 	// RequestParser header value "filesize", required: true
@@ -817,4 +963,121 @@ func (p *paramChunkComplete) ParseRequest(r *http.Request) error {
 // New returns a new instance of paramChunkComplete struct
 func (p *paramChunkComplete) New() requestParser {
 	return &paramChunkComplete{}
+}
+
+// ParseRequest reads r and saves the passed header values in the paramURequestDelete struct
+// In the end, ProcessParameter() is called
+func (p *paramURequestDelete) ParseRequest(r *http.Request) error {
+	var err error
+	var exists bool
+	p.foundHeaders = make(map[string]bool)
+
+	// RequestParser header value "id", required: true
+	exists, err = checkHeaderExists(r, "id", true, true)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["id"] = exists
+	if exists {
+		p.Id = r.Header.Get("id")
+	}
+
+	return p.ProcessParameter(r)
+}
+
+// New returns a new instance of paramURequestDelete struct
+func (p *paramURequestDelete) New() requestParser {
+	return &paramURequestDelete{}
+}
+
+// ParseRequest reads r and saves the passed header values in the paramURequestSave struct
+// In the end, ProcessParameter() is called
+func (p *paramURequestSave) ParseRequest(r *http.Request) error {
+	var err error
+	var exists bool
+	p.foundHeaders = make(map[string]bool)
+
+	// RequestParser header value "id", required: false
+	exists, err = checkHeaderExists(r, "id", false, true)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["id"] = exists
+	if exists {
+		p.Id = r.Header.Get("id")
+	}
+
+	// RequestParser header value "name", required: false, has base64support
+	exists, err = checkHeaderExists(r, "name", false, true)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["name"] = exists
+	if exists {
+		p.Name = r.Header.Get("name")
+		if strings.HasPrefix(p.Name, "base64:") {
+			decoded, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(p.Name, "base64:"))
+			if err != nil {
+				return err
+			}
+			p.Name = string(decoded)
+		}
+	}
+
+	// RequestParser header value "expiry", required: false
+	exists, err = checkHeaderExists(r, "expiry", false, false)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["expiry"] = exists
+	if exists {
+		p.Expiry, err = parseHeaderInt64(r, "expiry")
+		if err != nil {
+			return fmt.Errorf("invalid value in header expiry supplied")
+		}
+	}
+
+	// RequestParser header value "maxfiles", required: false
+	exists, err = checkHeaderExists(r, "maxfiles", false, false)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["maxfiles"] = exists
+	if exists {
+		p.MaxFiles, err = parseHeaderInt(r, "maxfiles")
+		if err != nil {
+			return fmt.Errorf("invalid value in header maxfiles supplied")
+		}
+	}
+
+	// RequestParser header value "maxsize", required: false
+	exists, err = checkHeaderExists(r, "maxsize", false, false)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["maxsize"] = exists
+	if exists {
+		p.MaxSize, err = parseHeaderInt(r, "maxsize")
+		if err != nil {
+			return fmt.Errorf("invalid value in header maxsize supplied")
+		}
+	}
+
+	return p.ProcessParameter(r)
+}
+
+// New returns a new instance of paramURequestSave struct
+func (p *paramURequestSave) New() requestParser {
+	return &paramURequestSave{}
+}
+
+// ParseRequest parses the header file. As paramURequestListSingle has no fields with the
+// tag header, this method does nothing, except calling ProcessParameter()
+func (p *paramURequestListSingle) ParseRequest(r *http.Request) error {
+	return p.ProcessParameter(r)
+}
+
+// New returns a new instance of paramURequestListSingle struct
+func (p *paramURequestListSingle) New() requestParser {
+	return &paramURequestListSingle{}
 }

@@ -6,4 +6,4 @@ package setup
 
 // protectedUrls contains a list of URLs that need to be protected if authentication is disabled.
 // This list will be displayed during the setup
-var protectedUrls = []string{"/admin", "/apiKeys", "/auth/token", "/changePassword", "/e2eSetup", "/logs", "/uploadChunk", "/uploadStatus", "/users"}
+var protectedUrls = []string{"/admin", "/apiKeys", "/auth/token", "/changePassword", "/downloadPresigned", "/e2eSetup", "/filerequests", "/logs", "/uploadChunk", "/uploadStatus", "/users"}

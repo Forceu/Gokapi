@@ -14,14 +14,13 @@ import (
 )
 
 type apiRoute struct {
-	Url           string
-	HasWildcard   bool
-	ApiPerm       models.ApiPermission
-	RequestParser requestParser
-	execution     apiFunc
+	Url                    string
+	HasWildcard            bool
+	UsesPublicUploadApiKey bool
+	ApiPerm                models.ApiPermission
+	RequestParser          requestParser
+	execution              apiFunc
 }
-
-const base64Prefix = "base64:"
 
 func (r apiRoute) Continue(w http.ResponseWriter, request requestParser, user models.User) {
 	r.execution(w, request, user)
@@ -43,10 +42,24 @@ var routes = []apiRoute{
 		RequestParser: nil,
 	},
 	{
+		Url:           "/files/download/",
+		ApiPerm:       models.ApiPermDownload,
+		execution:     apiDownloadSingle,
+		HasWildcard:   true,
+		RequestParser: &paramFilesDownloadSingle{},
+	},
+	{
+		Url:           "/files/downloadzip",
+		ApiPerm:       models.ApiPermDownload,
+		execution:     apiDownloadZip,
+		HasWildcard:   true,
+		RequestParser: &paramFilesDownloadZip{},
+	},
+	{
 		Url:           "/files/list",
 		ApiPerm:       models.ApiPermView,
 		execution:     apiList,
-		RequestParser: nil,
+		RequestParser: &paramFilesListAll{},
 	},
 	{
 		Url:           "/files/list/",
@@ -158,6 +171,31 @@ var routes = []apiRoute{
 		RequestParser: &paramUserResetPw{},
 	},
 	{
+		Url:           "/uploadrequest/list",
+		ApiPerm:       models.ApiPermManageFileRequests,
+		execution:     apiUploadRequestList,
+		RequestParser: nil,
+	},
+	{
+		Url:           "/uploadrequest/list/",
+		ApiPerm:       models.ApiPermManageFileRequests,
+		execution:     apiUploadRequestListSingle,
+		HasWildcard:   true,
+		RequestParser: &paramURequestListSingle{},
+	},
+	{
+		Url:           "/uploadrequest/save",
+		ApiPerm:       models.ApiPermManageFileRequests,
+		execution:     apiURequestSave,
+		RequestParser: &paramURequestSave{},
+	},
+	{
+		Url:           "/uploadrequest/delete",
+		ApiPerm:       models.ApiPermManageFileRequests,
+		execution:     apiURequestDelete,
+		RequestParser: &paramURequestDelete{},
+	},
+	{
 		Url:           "/logs/delete",
 		ApiPerm:       models.ApiPermManageLogs,
 		execution:     apiLogsDelete,
@@ -196,12 +234,53 @@ type requestParser interface {
 	New() requestParser
 }
 
+type paramFilesListAll struct {
+	ShowFileRequests bool `header:"showFileRequests"`
+	foundHeaders     map[string]bool
+}
+
+func (p *paramFilesListAll) ProcessParameter(_ *http.Request) error {
+	return nil
+}
+
 type paramFilesListSingle struct {
-	RequestUrl string
+	Id string
 }
 
 func (p *paramFilesListSingle) ProcessParameter(r *http.Request) error {
-	p.RequestUrl = parseRequestUrl(r)
+	url := parseRequestUrl(r)
+	p.Id = strings.TrimPrefix(url, "/files/list/")
+	return nil
+}
+
+type paramFilesDownloadSingle struct {
+	Id              string
+	WebRequest      *http.Request
+	IncreaseCounter bool `header:"increaseCounter"`
+	PresignUrl      bool `header:"presignUrl"`
+	foundHeaders    map[string]bool
+}
+
+func (p *paramFilesDownloadSingle) ProcessParameter(r *http.Request) error {
+	p.WebRequest = r
+	url := parseRequestUrl(r)
+	p.Id = strings.TrimPrefix(url, "/files/download/")
+	return nil
+}
+
+type paramFilesDownloadZip struct {
+	Ids             []string
+	WebRequest      *http.Request
+	FileIds         string `header:"ids" required:"true"`
+	Filename        string `header:"filename" supportBase64:"true"`
+	IncreaseCounter bool   `header:"increaseCounter"`
+	PresignUrl      bool   `header:"presignUrl"`
+	foundHeaders    map[string]bool
+}
+
+func (p *paramFilesDownloadZip) ProcessParameter(r *http.Request) error {
+	p.Ids = strings.Split(p.FileIds, ",")
+	p.WebRequest = r
 	return nil
 }
 
@@ -408,6 +487,8 @@ func (p *paramUserModify) ProcessParameter(_ *http.Request) error {
 		p.Permission = models.UserPermManageApiKeys
 	case "PERM_USERS":
 		p.Permission = models.UserPermManageUsers
+	case "PERM_GUEST_UPLOAD":
+		p.Permission = models.UserPermGuestUploads
 	default:
 		return errors.New("invalid permission")
 	}
@@ -474,7 +555,7 @@ func (p *paramChunkAdd) ProcessParameter(r *http.Request) error {
 
 type paramChunkComplete struct {
 	Uuid               string `header:"uuid" required:"true"`
-	FileName           string `header:"filename" required:"true"`
+	FileName           string `header:"filename" required:"true" supportBase64:"true"`
 	FileSize           int64  `header:"filesize" required:"true"`
 	RealSize           int64  `header:"realsize"` // not published in API documentation
 	ContentType        string `header:"contenttype"`
@@ -519,14 +600,6 @@ func (p *paramChunkComplete) ProcessParameter(_ *http.Request) error {
 		}
 	}
 
-	if strings.HasPrefix(p.FileName, base64Prefix) {
-		decoded, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(p.FileName, base64Prefix))
-		if err != nil {
-			return err
-		}
-		p.FileName = string(decoded)
-	}
-
 	if p.ContentType == "" {
 		p.ContentType = "application/octet-stream"
 	}
@@ -535,6 +608,55 @@ func (p *paramChunkComplete) ProcessParameter(_ *http.Request) error {
 		ContentType: p.ContentType,
 		Size:        p.FileSize,
 	}
+	return nil
+}
+
+type paramURequestDelete struct {
+	Id           string `header:"id" required:"true"`
+	foundHeaders map[string]bool
+}
+
+func (p *paramURequestDelete) ProcessParameter(_ *http.Request) error {
+	return nil
+}
+
+type paramURequestSave struct {
+	Id            string `header:"id"`
+	Name          string `header:"name" supportBase64:"true"`
+	Expiry        int64  `header:"expiry"`
+	MaxFiles      int    `header:"maxfiles"`
+	MaxSize       int    `header:"maxsize"`
+	IsNameSet     bool
+	IsExpirySet   bool
+	IsMaxFilesSet bool
+	IsMaxSizeSet  bool
+
+	foundHeaders map[string]bool
+}
+
+func (p *paramURequestSave) ProcessParameter(_ *http.Request) error {
+	if p.foundHeaders["name"] {
+		p.IsNameSet = true
+	}
+	if p.foundHeaders["expiry"] {
+		p.IsExpirySet = true
+	}
+	if p.foundHeaders["maxfiles"] {
+		p.IsMaxFilesSet = true
+	}
+	if p.foundHeaders["maxsize"] {
+		p.IsMaxSizeSet = true
+	}
+	return nil
+}
+
+type paramURequestListSingle struct {
+	Id string
+}
+
+func (p *paramURequestListSingle) ProcessParameter(r *http.Request) error {
+	url := parseRequestUrl(r)
+	p.Id = strings.TrimPrefix(url, "/uploadrequest/list/")
 	return nil
 }
 

@@ -3,9 +3,10 @@ package sqlite
 import (
 	"database/sql"
 	"errors"
+	"time"
+
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
-	"time"
 )
 
 type schemaUser struct {
@@ -37,7 +38,7 @@ func (s schemaUser) ToUser() models.User {
 // GetAllUsers returns a map with all users
 func (p DatabaseProvider) GetAllUsers() []models.User {
 	var result []models.User
-	rows, err := p.sqliteDb.Query("SELECT * FROM Users ORDER BY Userlevel ASC, LastOnline DESC, Name ASC")
+	rows, err := p.sqliteDb.Query("SELECT * FROM Users ORDER BY Userlevel , LastOnline DESC, Name ")
 	helper.Check(err)
 	defer rows.Close()
 	for rows.Next() {

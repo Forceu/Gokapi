@@ -63,8 +63,8 @@ function initDropzone() {
         }
         const activeElement = document.activeElement;
         // disable upload on paste if edit field with data-allow-regular-paste is selected or the calendar view (with placeholder attribute)
-        if (activeElement && (activeElement.hasAttribute('data-allow-regular-paste') ||activeElement.hasAttribute('placeholder'))) {
-	    return;
+        if (activeElement && (activeElement.hasAttribute('data-allow-regular-paste') || activeElement.hasAttribute('placeholder'))) {
+            return;
         }
 
         var items = (event.clipboardData || event.originalEvent.clipboardData).items;
@@ -374,47 +374,6 @@ function editFile() {
         });
 }
 
-var calendarInstance = null;
-
-function createCalendar(timestamp) {
-    // Convert Unix timestamp to JavaScript Date object
-    const expiryDate = new Date(timestamp * 1000);
-
-    calendarInstance = flatpickr('#mi_edit_expiry', {
-        enableTime: true,
-        dateFormat: 'U', // Unix timestamp
-        altInput: true,
-        altFormat: 'Y-m-d H:i',
-        allowInput: true,
-        time_24hr: true,
-        defaultDate: expiryDate,
-        minDate: 'today',
-    });
-
-}
-
-
-
-function handleEditCheckboxChange(checkbox) {
-    var targetElement = document.getElementById(checkbox.getAttribute("data-toggle-target"));
-    var timestamp = checkbox.getAttribute("data-timestamp");
-
-    if (checkbox.checked) {
-        targetElement.classList.remove("disabled");
-        targetElement.removeAttribute("disabled");
-        if (timestamp != null) {
-            calendarInstance._input.disabled = false;
-        }
-    } else {
-        if (timestamp != null) {
-            calendarInstance._input.disabled = true;
-        }
-        targetElement.classList.add("disabled");
-        targetElement.setAttribute("disabled", true);
-    }
-
-}
-
 function showEditModal(filename, id, downloads, expiry, password, unlimitedown, unlimitedtime, isE2e, canReplace) {
     // Cloning removes any previous values or form validation
     let originalModal = $('#modaledit').clone();
@@ -427,7 +386,7 @@ function showEditModal(filename, id, downloads, expiry, password, unlimitedown, 
     document.getElementById("m_filenamelabel").innerText = filename;
     document.getElementById("mc_expiry").setAttribute("data-timestamp", expiry);
     document.getElementById("mb_save").setAttribute('data-fileid', id);
-    createCalendar(expiry);
+    createCalendar("mi_edit_expiry", expiry);
 
     if (unlimitedown) {
         document.getElementById("mi_edit_down").value = "1";
@@ -832,10 +791,30 @@ function createButtonGroup(item) {
     dropdown2.appendChild(emailLi);
     group1.appendChild(dropdown2);
 
-    // Button group for Edit/Delete
+    // Button group for Download/Edit/Delete
     const group2 = document.createElement("div");
     group2.className = "btn-group me-2";
     group2.setAttribute("role", "group");
+    
+    
+    // === Button: Download ===
+    const btnDownload = document.createElement('button');
+    btnDownload.type = 'button';
+    btnDownload.className = 'btn btn-outline-light btn-sm';
+    btnDownload.title = 'Download';
+    if (item.RequiresClientSideDecryption) {
+        btnDownload.classList.add("disabled");
+    }
+
+    const downloadIcon = document.createElement('i');
+    downloadIcon.className = 'bi bi-download';
+    btnDownload.appendChild(downloadIcon);
+
+    btnDownload.addEventListener('click', () => {
+        downloadFileWithPresign(item.Id);
+    });
+
+    group2.appendChild(btnDownload);
 
     // === Button: Edit ===
     const btnEdit = document.createElement('button');
@@ -963,7 +942,7 @@ function handleUndo(button) {
         .then(data => {
             addRow(data.FileInfo);
             if (isE2EEnabled) {
-            	GokapiE2EDecryptMenu();
+                GokapiE2EDecryptMenu();
             }
         })
         .catch(error => {
@@ -993,4 +972,3 @@ function showDeprecationNotice() {
         notification.classList.remove("show");
     }, 5000);
 }
-

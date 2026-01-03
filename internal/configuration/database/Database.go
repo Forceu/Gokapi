@@ -87,6 +87,10 @@ func Migrate(configOld, configNew models.DbConnection) {
 			dbNew.SaveHotlink(file)
 		}
 	}
+	requests := dbOld.GetAllFileRequests()
+	for _, request := range requests {
+		dbNew.SaveFileRequest(request)
+	}
 	dbOld.Close()
 	dbNew.Close()
 }
@@ -124,6 +128,16 @@ func GetApiKey(id string) (models.ApiKey, bool) {
 	return db.GetApiKey(id)
 }
 
+// GetApiKeyByPublicKey returns an API key by using the public key
+func GetApiKeyByPublicKey(publicKey string) (string, bool) {
+	return db.GetApiKeyByPublicKey(publicKey)
+}
+
+// GetApiKeyByFileRequest returns an API key used for a file request
+func GetApiKeyByFileRequest(request models.FileRequest) (string, bool) {
+	return db.GetApiKeyByFileRequest(request)
+}
+
 // SaveApiKey saves the API key to the database
 func SaveApiKey(apikey models.ApiKey) {
 	db.SaveApiKey(apikey)
@@ -137,11 +151,6 @@ func UpdateTimeApiKey(apikey models.ApiKey) {
 // DeleteApiKey deletes an API key with the given ID
 func DeleteApiKey(id string) {
 	db.DeleteApiKey(id)
-}
-
-// GetApiKeyByPublicKey returns an API key by using the public key
-func GetApiKeyByPublicKey(publicKey string) (string, bool) {
-	return db.GetApiKeyByPublicKey(publicKey)
 }
 
 // E2E Section
@@ -314,4 +323,43 @@ func EditSuperAdmin(username, passwordHash string) error {
 	}
 	db.SaveUser(user, false)
 	return nil
+}
+
+// File Requests
+
+// GetFileRequest returns the FileRequest or false if not found
+func GetFileRequest(id string) (models.FileRequest, bool) {
+	return db.GetFileRequest(id)
+}
+
+// GetAllFileRequests returns an array with all file requests, ordered by creation date
+func GetAllFileRequests() []models.FileRequest {
+	return db.GetAllFileRequests()
+}
+
+// SaveFileRequest stores the file request associated with the file in the database
+func SaveFileRequest(request models.FileRequest) {
+	db.SaveFileRequest(request)
+}
+
+// DeleteFileRequest deletes a file request with the given ID
+func DeleteFileRequest(request models.FileRequest) {
+	db.DeleteFileRequest(request)
+}
+
+// Presigned URLs
+
+// GetPresignedUrl returns the presigned url with the given ID or false if not a valid ID
+func GetPresignedUrl(id string) (models.Presign, bool) {
+	return db.GetPresignedUrl(id)
+}
+
+// DeletePresignedUrl deletes the presigned url with the given ID
+func DeletePresignedUrl(id string) {
+	db.DeletePresignedUrl(id)
+}
+
+// SavePresignedUrl saves the presigned url
+func SavePresignedUrl(presign models.Presign) {
+	db.SavePresignedUrl(presign)
 }

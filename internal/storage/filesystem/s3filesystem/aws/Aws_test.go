@@ -3,17 +3,18 @@
 package aws
 
 import (
-	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
-	"github.com/forceu/gokapi/internal/models"
-	"github.com/forceu/gokapi/internal/test"
-	"github.com/johannesboyne/gofakes3"
-	"github.com/johannesboyne/gofakes3/backend/s3mem"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
+	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/test"
+	"github.com/johannesboyne/gofakes3"
+	"github.com/johannesboyne/gofakes3/backend/s3mem"
 )
 
 var testFile, invalidFile, invalidBucket, invalidAll models.File
@@ -110,8 +111,8 @@ func testServing(t *testing.T, expectRedirect, forceDownload bool) {
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest("GET", "/download", nil)
 
-	isBlockng, err := ServeFile(w, r, testFile, forceDownload)
-	test.IsEqualBool(t, isBlockng, !expectRedirect)
+	isBlocking, err := ServeFile(w, r, testFile, forceDownload)
+	test.IsEqualBool(t, isBlocking, !expectRedirect)
 	test.IsNil(t, err)
 
 	response, err := io.ReadAll(w.Result().Body)

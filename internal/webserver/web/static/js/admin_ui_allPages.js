@@ -5,8 +5,7 @@
 
 try {
     var clipboard = new ClipboardJS('.copyurl');
-} catch (ignored) {
-}
+} catch (ignored) {}
 
 var toastId;
 
@@ -28,3 +27,92 @@ function hideToast() {
     document.getElementById("toastnotification").classList.remove("show");
 }
 
+
+var calendarInstance = null;
+
+function createCalendar(element, timestamp) {
+    const expiryDate = new Date(timestamp * 1000);
+
+    calendarInstance = flatpickr(document.getElementById(element), {
+        enableTime: true,
+        dateFormat: 'U', // Unix timestamp
+        altInput: true,
+        altFormat: 'Y-m-d H:i',
+        allowInput: true,
+        time_24hr: true,
+        defaultDate: expiryDate,
+        minDate: 'today',
+    });
+}
+
+
+function handleEditCheckboxChange(checkbox) {
+    var targetElement = document.getElementById(checkbox.getAttribute("data-toggle-target"));
+    var timestamp = checkbox.getAttribute("data-timestamp");
+
+    if (checkbox.checked) {
+        targetElement.classList.remove("disabled");
+        targetElement.removeAttribute("disabled");
+        if (timestamp != null) {
+            calendarInstance._input.disabled = false;
+        }
+    } else {
+        if (timestamp != null) {
+            calendarInstance._input.disabled = true;
+        }
+        targetElement.classList.add("disabled");
+        targetElement.setAttribute("disabled", true);
+    }
+}
+
+
+function getReadableSize(bytes) {
+    if (!bytes) return "0 B";
+    const units = ["B", "kB", "MB", "GB", "TB"];
+    let i = 0;
+    while (bytes >= 1024 && i < units.length - 1) {
+        bytes /= 1024;
+        i++;
+    }
+    return `${bytes.toFixed(1)} ${units[i]}`;
+}
+
+function downloadFileWithPresign(id) {
+    apiFilesListDownloadSingle(id)
+        .then(data => {
+            if (!data.hasOwnProperty("downloadUrl")) {
+                throw new Error("Unable to get presigned key");
+            }
+            const a = document.createElement('a');
+            a.href = data.downloadUrl;
+            a.style.display = 'none';
+
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        })
+        .catch(error => {
+            alert("Unable to download: " + error);
+            console.error('Error:', error);
+        });
+}
+
+function downloadFilesZipWithPresign(ids, filename) {
+    apiFilesListDownloadZip(ids, filename)
+        .then(data => {
+            if (!data.hasOwnProperty("downloadUrl")) {
+                throw new Error("Unable to get presigned key");
+            }
+            const a = document.createElement('a');
+            a.href = data.downloadUrl;
+            a.style.display = 'none';
+
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        })
+        .catch(error => {
+            alert("Unable to download: " + error);
+            console.error('Error:', error);
+        });
+}

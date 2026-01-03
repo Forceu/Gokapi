@@ -40,6 +40,9 @@
                                 <td>{{ .UploadCount }}</td>
             			<td class="prevent-select">
             			
+            			
+		<i id="perm_guest_upload_{{ .User.Id }}" class="bi bi-box-arrow-in-down {{if not .User.HasPermissionCreateFileRequests}}perm-notgranted{{else}}perm-granted{{end}} {{if or (eq .User.UserLevel 0) (eq .User.Id $.ActiveUser.Id)}}perm-nochange{{end}}" title="Create file requests" onclick='changeUserPermission("{{ .User.Id }}","PERM_GUEST_UPLOAD", "perm_guest_upload_{{ .User.Id }}");'></i>
+            			
 		<i id="perm_replace_{{ .User.Id }}" class="bi bi-recycle {{if not .User.HasPermissionReplace}}perm-notgranted{{else}}perm-granted{{end}} {{if or (eq .User.UserLevel 0) (eq .User.Id $.ActiveUser.Id)}}perm-nochange{{end}}" title="Replace own uploads" onclick='changeUserPermission("{{ .User.Id }}","PERM_REPLACE", "perm_replace_{{ .User.Id }}");'></i>
 		
 		<i id="perm_list_{{ .User.Id }}" class="bi bi-eye {{if not .User.HasPermissionListOtherUploads}}perm-notgranted{{else}}perm-granted{{end}} {{if or (eq .User.UserLevel 0) (eq .User.Id $.ActiveUser.Id)}}perm-nochange{{end}}" title="List other uploads" onclick='changeUserPermission("{{ .User.Id }}","PERM_LIST", "perm_list_{{ .User.Id }}");'></i>
@@ -55,6 +58,7 @@
 		<i id="perm_users_{{ .User.Id }}" class="bi bi-people {{if not .User.HasPermissionManageUsers}}perm-notgranted{{else}}perm-granted{{end}} {{if or (eq .User.UserLevel 0) (eq .User.Id $.ActiveUser.Id)}}perm-nochange{{end}}" title="Manage users" onclick='changeUserPermission("{{ .User.Id }}","PERM_USERS", "perm_users_{{ .User.Id }}");'></i>
 
 		<i id="perm_api_{{ .User.Id }}" class="bi bi-sliders2 {{if not .User.HasPermissionManageApi}}perm-notgranted{{else}}perm-granted{{end}} {{if or (eq .User.UserLevel 0) (eq .User.Id $.ActiveUser.Id)}}perm-nochange{{end}}" title="Manage API keys" onclick='changeUserPermission("{{ .User.Id }}","PERM_API", "perm_api_{{ .User.Id }}");'></i>
+		
 		
             			</td>
                                 <td>
@@ -72,7 +76,7 @@
                                 {{ end }}
                                 
                                 
-                                <button id="delete-{{ .User.Id }}" type="button" class="btn btn-outline-danger btn-sm" {{if or (eq .User.UserLevel 0) (eq .User.Id $.ActiveUser.Id)}}disabled{{end}} onclick="showDeleteModal('{{ .User.Id }}', '{{ .User.Name }}')" title="Delete"><i class="bi bi-trash3"></i></button>
+                                <button id="delete-{{ .User.Id }}" type="button" class="btn btn-outline-danger btn-sm" {{if or (eq .User.UserLevel 0) (eq .User.Id $.ActiveUser.Id)}}disabled{{end}} onclick="showDeleteUserModal('{{ .User.Id }}', '{{ .User.Name }}')" title="Delete"><i class="bi bi-trash3"></i></button>
                                 </div></td>
                             </tr>
 {{ end }}

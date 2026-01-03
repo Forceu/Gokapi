@@ -41,14 +41,23 @@
                                 <td id="friendlyname-{{ .PublicId }}" onClick="addFriendlyNameChange('{{ .PublicId }}')">{{ .FriendlyName }}</td>
                                 <td><div class="font-monospace">{{ .GetRedactedId }}</div></td>
             			<td><span id="cell-lastused-{{ .PublicId }}"></span></td>
-				   <script>insertLastUsed({{ .LastUsed }}, "cell-lastused-{{ .PublicId }}");</script>
+				   <script>insertDateWithNegative({{ .LastUsed }}, "cell-lastused-{{ .PublicId }}");</script>
                                             <td class="prevent-select">
 						<i id="perm_view_{{ .PublicId }}" class="bi bi-eye {{if not .HasPermissionView}}perm-notgranted{{else}}perm-granted{{end}}" title="List Uploads" onclick='changeApiPermission("{{ .PublicId }}","PERM_VIEW", "perm_view_{{ .PublicId }}");'></i>
-						<i id="perm_upload_{{ .PublicId }}" class="bi bi-file-earmark-arrow-up {{if not .HasPermissionUpload}}perm-notgranted{{else}}perm-granted{{end}}" title="Upload" onclick='changeApiPermission("{{ .PublicId }}","PERM_UPLOAD", "perm_upload_{{ .PublicId }}");'></i>
+						
+						<i id="perm_upload_{{ .PublicId }}" class="bi bi-file-earmark-plus {{if not .HasPermissionUpload}}perm-notgranted{{else}}perm-granted{{end}}" title="Upload" onclick='changeApiPermission("{{ .PublicId }}","PERM_UPLOAD", "perm_upload_{{ .PublicId }}");'></i>
+						
 						<i id="perm_edit_{{ .PublicId }}" class="bi bi-pencil {{if not .HasPermissionEdit}}perm-notgranted{{else}}perm-granted{{end}}" title="Edit Uploads" onclick='changeApiPermission("{{ .PublicId }}","PERM_EDIT", "perm_edit_{{ .PublicId }}");'></i>
+						
 						<i id="perm_delete_{{ .PublicId }}" class="bi bi-trash3 {{if not .HasPermissionDelete}}perm-notgranted{{else}}perm-granted{{end}}" title="Delete Uploads" onclick='changeApiPermission("{{ .PublicId }}","PERM_DELETE", "perm_delete_{{ .PublicId }}");'></i>
 						
+						
 						<i id="perm_replace_{{ .PublicId }}" class="bi bi-recycle {{if not (index $.UserMap .UserId).HasPermissionReplace}}perm-unavailable perm-nochange{{ else }}{{if not .HasPermissionReplace}}perm-notgranted{{else}}perm-granted{{end}}{{end}}" title="Replace Uploads" onclick='changeApiPermission("{{ .PublicId }}","PERM_REPLACE", "perm_replace_{{ .PublicId }}");'></i>
+						
+						<i id="perm_download_{{ .PublicId }}" class="bi bi-box-arrow-in-down {{if not .HasPermissionDownload}}perm-notgranted{{else}}perm-granted{{end}}" title="Download Files" onclick='changeApiPermission("{{ .PublicId }}","PERM_DOWNLOAD", "perm_download_{{ .PublicId }}");'></i>
+			
+						
+						<i id="perm_manage_file_requests_{{ .PublicId }}" class="bi bi-file-earmark-arrow-up {{if not (index $.UserMap .UserId).HasPermissionCreateFileRequests}}perm-unavailable perm-nochange{{ else }}{{if not .HasPermissionManageFileRequests}}perm-notgranted{{else}}perm-granted{{end}}{{end}}" title="Manage File Requests" onclick='changeApiPermission("{{ .PublicId }}","PERM_MANAGE_FILE_REQUESTS", "perm_manage_file_requests_{{ .PublicId }}");'></i>
 						
 						<i id="perm_users_{{ .PublicId }}" class="bi bi-people {{if not (index $.UserMap .UserId).HasPermissionManageUsers}}perm-unavailable perm-nochange{{ else }}{{if not .HasPermissionManageUsers}}perm-notgranted{{else}}perm-granted{{end}}{{end}}" title="Manage Users" onclick='changeApiPermission("{{ .PublicId }}","PERM_MANAGE_USERS", "perm_users_{{ .PublicId }}");'></i>
 						
@@ -77,6 +86,7 @@
         var canReplaceFiles = {{.ActiveUser.HasPermissionReplace }};
         var canManageUsers = {{.ActiveUser.HasPermissionManageUsers }};
         var canViewSystemLog = {{.ActiveUser.HasPermissionManageLogs }};
+        var canCreateFileRequest = {{.ActiveUser.HasPermissionCreateFileRequests }};
 </script>
 
         

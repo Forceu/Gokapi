@@ -8,14 +8,15 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/forceu/gokapi/internal/helper"
-	"github.com/forceu/gokapi/internal/models"
-	"github.com/secure-io/sio-go"
-	"golang.org/x/crypto/scrypt"
 	"io"
 	"log"
 	"os"
 	"time"
+
+	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/models"
+	"github.com/secure-io/sio-go"
+	"golang.org/x/crypto/scrypt"
 )
 
 // NoEncryption means all files are stored in plaintext
@@ -172,7 +173,7 @@ func DecryptReader(encInfo models.EncryptionInfo, input io.Reader, output io.Wri
 	return err
 }
 
-// IsCorrectKey checks if correct key is being used. This does not check for complete file authentication.
+// IsCorrectKey checks if the correct key is being used. This does not check for complete file authentication.
 func IsCorrectKey(encInfo models.EncryptionInfo, input *os.File) bool {
 	_, err := createDecryptReader(encInfo, input)
 	if err != nil {

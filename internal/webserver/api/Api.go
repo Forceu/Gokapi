@@ -15,12 +15,13 @@ import (
 	"github.com/forceu/gokapi/internal/logging"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
+	"github.com/forceu/gokapi/internal/storage/filerequest"
+	"github.com/forceu/gokapi/internal/webserver/authentication/users"
 	"github.com/forceu/gokapi/internal/webserver/fileupload"
 )
 
 const LengthPublicId = 35
 const LengthApiKey = 30
-const minLengthUser = 2
 
 // Process parses the request and executes the API call or returns an error message to the sender
 func Process(w http.ResponseWriter, r *http.Request) {
@@ -104,17 +105,18 @@ func apiEditFile(w http.ResponseWriter, r requestParser, user models.User) {
 }
 
 // generateNewKey generates and saves a new API key
-func generateNewKey(defaultPermissions bool, userId int, friendlyName string) models.ApiKey {
+func generateNewKey(defaultPermissions bool, userId int, friendlyName, filerequstId string) models.ApiKey {
 	if friendlyName == "" {
 		friendlyName = "Unnamed key"
 	}
 	newKey := models.ApiKey{
-		Id:           helper.GenerateRandomString(LengthApiKey),
-		PublicId:     helper.GenerateRandomString(LengthPublicId),
-		FriendlyName: friendlyName,
-		Permissions:  models.ApiPermDefault,
-		IsSystemKey:  false,
-		UserId:       userId,
+		Id:              helper.GenerateRandomString(LengthApiKey),
+		PublicId:        helper.GenerateRandomString(LengthPublicId),
+		FriendlyName:    friendlyName,
+		Permissions:     models.ApiPermDefault,
+		IsSystemKey:     false,
+		UserId:          userId,
+		UploadRequestId: filerequstId,
 	}
 	if !defaultPermissions {
 		newKey.Permissions = models.ApiPermNone
@@ -171,6 +173,11 @@ func apiModifyApiKey(w http.ResponseWriter, r requestParser, user models.User) {
 			sendError(w, http.StatusUnauthorized, "Insufficient user permission for owner to set this API permission")
 			return
 		}
+	case models.ApiPermManageFileRequests:
+		if !apiKeyOwner.HasPermissionCreateFileRequests() {
+			sendError(w, http.StatusUnauthorized, "Insufficient user permission for owner to set this API permission")
+			return
+		}
 	default:
 		// do nothing
 	}
@@ -210,7 +217,7 @@ func apiCreateApiKey(w http.ResponseWriter, r requestParser, user models.User) {
 	if !ok {
 		panic("invalid parameter passed")
 	}
-	key := generateNewKey(request.BasicPermissions, user.Id, request.FriendlyName)
+	key := generateNewKey(request.BasicPermissions, user.Id, request.FriendlyName, "")
 	output := models.ApiKeyOutput{
 		Result:   "OK",
 		Id:       key.Id,
@@ -226,24 +233,16 @@ func apiCreateUser(w http.ResponseWriter, r requestParser, user models.User) {
 	if !ok {
 		panic("invalid parameter passed")
 	}
-	if len(request.Username) < minLengthUser {
-		sendError(w, http.StatusBadRequest, "Invalid username provided.")
-		return
-	}
-	_, ok = database.GetUserByName(request.Username)
-	if ok {
-		sendError(w, http.StatusConflict, "User already exists.")
-		return
-	}
-	newUser := models.User{
-		Name:      request.Username,
-		UserLevel: models.UserLevelUser,
-	}
-	database.SaveUser(newUser, true)
-	newUser, ok = database.GetUserByName(request.Username)
-	if !ok {
-		sendError(w, http.StatusInternalServerError, "Could not save user")
-		return
+	newUser, err := users.Create(request.Username)
+	if err != nil {
+		switch {
+		case errors.Is(err, users.ErrorNameToShort):
+			sendError(w, http.StatusBadRequest, "Invalid username provided.")
+		case errors.Is(err, users.ErrorUserExists):
+			sendError(w, http.StatusConflict, "User already exists.")
+		default:
+			sendError(w, http.StatusInternalServerError, err.Error())
+		}
 	}
 	logging.LogUserCreation(newUser, user)
 	_, _ = w.Write([]byte(newUser.ToJson()))
@@ -404,18 +403,25 @@ func apiConfigInfo(w http.ResponseWriter, _ requestParser, _ models.User) {
 	_, _ = w.Write(result)
 }
 
-func apiList(w http.ResponseWriter, _ requestParser, user models.User) {
-	validFiles := getFilesForUser(user)
+func apiList(w http.ResponseWriter, r requestParser, user models.User) {
+	request, ok := r.(*paramFilesListAll)
+	if !ok {
+		panic("invalid parameter passed")
+	}
+	validFiles := getFilesForUser(user, request.ShowFileRequests)
 	result, err := json.Marshal(validFiles)
 	helper.Check(err)
 	_, _ = w.Write(result)
 }
 
-func getFilesForUser(user models.User) []models.FileApiOutput {
+func getFilesForUser(user models.User, includeUploadRequests bool) []models.FileApiOutput {
 	var validFiles []models.FileApiOutput
 	timeNow := time.Now().Unix()
 	config := configuration.Get()
 	for _, element := range database.GetAllMetadata() {
+		if !includeUploadRequests && element.IsFileRequest() {
+			continue
+		}
 		if element.UserId == user.Id || user.HasPermission(models.UserPermListOtherUploads) {
 			if !storage.IsExpiredFile(element, timeNow) {
 				file, err := element.ToFileApiOutput(config.ServerUrl, config.IncludeFilename)
@@ -432,8 +438,7 @@ func apiListSingle(w http.ResponseWriter, r requestParser, user models.User) {
 	if !ok {
 		panic("invalid parameter passed")
 	}
-	id := strings.TrimPrefix(request.RequestUrl, "/files/list/")
-	file, ok := storage.GetFile(id)
+	file, ok := storage.GetFile(request.Id)
 	if !ok {
 		sendError(w, http.StatusNotFound, "File not found")
 		return
@@ -446,6 +451,77 @@ func apiListSingle(w http.ResponseWriter, r requestParser, user models.User) {
 	output, err := file.ToFileApiOutput(config.ServerUrl, config.IncludeFilename)
 	helper.Check(err)
 	result, err := json.Marshal(output)
+	helper.Check(err)
+	_, _ = w.Write(result)
+}
+
+func apiDownloadSingle(w http.ResponseWriter, r requestParser, user models.User) {
+	request, ok := r.(*paramFilesDownloadSingle)
+	if !ok {
+		panic("invalid parameter passed")
+	}
+	file, errCode, errMessage := checkDownloadAllowed(request.Id, user)
+	if errCode != 0 {
+		sendError(w, errCode, errMessage)
+		return
+	}
+	if !request.PresignUrl {
+		storage.ServeFile(file, w, request.WebRequest, true, request.IncreaseCounter)
+		return
+	}
+	createAndOutputPresignedUrl([]string{file.Id}, w, "")
+}
+
+func apiDownloadZip(w http.ResponseWriter, r requestParser, user models.User) {
+	request, ok := r.(*paramFilesDownloadZip)
+	if !ok {
+		panic("invalid parameter passed")
+	}
+	requestedFiles := make([]models.File, 0)
+	requestedFileIds := make([]string, 0)
+	for _, fileId := range request.Ids {
+		file, errCode, errMessage := checkDownloadAllowed(fileId, user)
+		if errCode != 0 {
+			sendError(w, errCode, errMessage)
+			return
+		}
+		requestedFiles = append(requestedFiles, file)
+		requestedFileIds = append(requestedFileIds, file.Id)
+	}
+	if !request.PresignUrl {
+		storage.ServeFilesAsZip(requestedFiles, request.Filename, w, request.WebRequest)
+		return
+	}
+	createAndOutputPresignedUrl(requestedFileIds, w, request.Filename)
+}
+
+func checkDownloadAllowed(fileId string, user models.User) (models.File, int, string) {
+	file, ok := storage.GetFile(fileId)
+	if !ok {
+		return models.File{}, http.StatusNotFound, "file not found"
+	}
+	if file.UserId != user.Id && !user.HasPermission(models.UserPermListOtherUploads) {
+		return models.File{}, http.StatusUnauthorized, "no permission to download file"
+	}
+	if file.RequiresClientDecryption() {
+		return models.File{}, http.StatusBadRequest, "End-to-end encrypted files and encrypted files stored on online storage cannot be downloaded"
+	}
+	return file, 0, ""
+}
+
+func createAndOutputPresignedUrl(ids []string, w http.ResponseWriter, filename string) {
+	presignUrl := models.Presign{
+		Id:       helper.GenerateRandomString(60),
+		FileIds:  ids,
+		Expiry:   time.Now().Add(time.Second * 30).Unix(),
+		Filename: filename,
+	}
+	database.SavePresignedUrl(presignUrl)
+	response := struct {
+		Result      string `json:"Result"`
+		DownloadUrl string `json:"downloadUrl"`
+	}{"OK", configuration.Get().ServerUrl + "downloadPresigned?key=" + presignUrl.Id}
+	result, err := json.Marshal(response)
 	helper.Check(err)
 	_, _ = w.Write(result)
 }
@@ -489,7 +565,7 @@ func apiDuplicateFile(w http.ResponseWriter, r requestParser, user models.User) 
 		request.UnlimitedTime,
 		request.UnlimitedDownloads,
 		false, // is not being used by storage.DuplicateFile
-		0)     // is not being used by storage.DuplicateFile
+		0) // is not being used by storage.DuplicateFile
 	newFile, err := storage.DuplicateFile(file, request.RequestedChanges, request.FileName, uploadRequest)
 	if err != nil {
 		sendError(w, http.StatusInternalServerError, err.Error())
@@ -513,6 +589,10 @@ func apiReplaceFile(w http.ResponseWriter, r requestParser, user models.User) {
 		return
 	}
 
+	if fileOriginal.IsFileRequest() {
+		sendError(w, http.StatusBadRequest, "Cannot replace a file request upload")
+		return
+	}
 	fileNewContent, ok := storage.GetFile(request.IdNewContent)
 	if !ok {
 		sendError(w, http.StatusNotFound, "Invalid id provided.")
@@ -633,6 +713,8 @@ func updateApiKeyPermsOnUserPermChange(userId int, userPerm models.UserPermissio
 		affectedPermission = models.ApiPermReplace
 	case models.UserPermManageLogs:
 		affectedPermission = models.ApiPermManageLogs
+	case models.UserPermGuestUploads:
+		affectedPermission = models.ApiPermManageFileRequests
 	default:
 		return
 	}
@@ -699,6 +781,18 @@ func apiDeleteUser(w http.ResponseWriter, r requestParser, user models.User) {
 	}
 	logging.LogUserDeletion(userToDelete, user)
 	database.DeleteUser(userToDelete.Id)
+
+	for _, fRequest := range database.GetAllFileRequests() {
+		if fRequest.UserId == userToDelete.Id {
+			if request.DeleteFiles {
+				filerequest.Delete(fRequest)
+			} else {
+				fRequest.UserId = user.Id
+				database.SaveFileRequest(fRequest)
+			}
+		}
+	}
+
 	for _, file := range database.GetAllMetadata() {
 		if file.UserId == userToDelete.Id {
 			if request.DeleteFiles {
@@ -728,7 +822,8 @@ func apiLogsDelete(_ http.ResponseWriter, r requestParser, user models.User) {
 
 func apiE2eGet(w http.ResponseWriter, _ requestParser, user models.User) {
 	info := database.GetEnd2EndInfo(user.Id)
-	files := getFilesForUser(user)
+	// If e2e is supported for upload requests at some point, this needs to be changed
+	files := getFilesForUser(user, false)
 	ids := make([]string, len(files))
 	for i, file := range files {
 		ids[i] = file.Id
@@ -745,19 +840,126 @@ func apiE2eSet(w http.ResponseWriter, r requestParser, user models.User) {
 		panic("invalid parameter passed")
 	}
 	database.SaveEnd2EndInfo(request.EncryptedInfo, user.Id)
-	_, _ = w.Write([]byte("\"result\":\"OK\""))
+	_, _ = w.Write([]byte("{\"result\":\"OK\"}"))
+}
+
+func apiURequestDelete(w http.ResponseWriter, r requestParser, user models.User) {
+	request, ok := r.(*paramURequestDelete)
+	if !ok {
+		panic("invalid parameter passed")
+	}
+
+	uploadRequest, ok := database.GetFileRequest(request.Id)
+	if !ok {
+		sendError(w, http.StatusNotFound, "FileRequest does not exist with the given ID")
+		return
+	}
+	if uploadRequest.UserId != user.Id && !user.HasPermission(models.UserPermDeleteOtherUploads) {
+		sendError(w, http.StatusUnauthorized, "No permission to delete this upload request")
+		return
+	}
+	filerequest.Delete(uploadRequest)
+	logging.LogDeleteFileRequest(uploadRequest, user)
+	_, _ = w.Write([]byte("{\"result\":\"OK\"}"))
+}
+
+func apiURequestSave(w http.ResponseWriter, r requestParser, user models.User) {
+	request, ok := r.(*paramURequestSave)
+	if !ok {
+		panic("invalid parameter passed")
+	}
+	uploadRequest := models.FileRequest{}
+	isNewRequest := request.Id == ""
+
+	if !isNewRequest {
+		uploadRequest, ok = database.GetFileRequest(request.Id)
+		if !ok {
+			sendError(w, http.StatusNotFound, "FileRequest does not exist with the given ID")
+			return
+		}
+		if uploadRequest.UserId != user.Id && !user.HasPermission(models.UserPermEditOtherUploads) {
+			sendError(w, http.StatusUnauthorized, "No permission to edit this upload request")
+			return
+		}
+	} else {
+		uploadRequest = filerequest.New(user)
+		apiKey := generateNewKey(false, user.Id, "File Request Public Access", uploadRequest.Id)
+		uploadRequest.ApiKey = apiKey.Id
+	}
+
+	if request.Name == "" {
+		if request.IsNameSet || uploadRequest.Name == "" {
+			uploadRequest.Name = "Unnamed Request"
+		}
+	} else {
+		uploadRequest.Name = request.Name
+	}
+	if request.IsExpirySet {
+		uploadRequest.Expiry = request.Expiry
+	}
+	if request.IsMaxFilesSet {
+		uploadRequest.MaxFiles = request.MaxFiles
+	}
+	if request.IsMaxSizeSet {
+		uploadRequest.MaxSize = request.MaxSize
+	}
+	database.SaveFileRequest(uploadRequest)
+	uploadRequest, ok = filerequest.Get(uploadRequest.Id)
+	if isNewRequest {
+		logging.LogCreateFileRequest(uploadRequest, user)
+	} else {
+		logging.LogEditFileRequest(uploadRequest, user)
+	}
+	result, err := json.Marshal(uploadRequest)
+	helper.Check(err)
+	_, _ = w.Write(result)
+}
+
+func apiUploadRequestList(w http.ResponseWriter, _ requestParser, user models.User) {
+	userRequests := make([]models.FileRequest, 0)
+	for _, request := range filerequest.GetAll() {
+		if request.UserId == user.Id || user.HasPermission(models.UserPermListOtherUploads) {
+			userRequests = append(userRequests, request)
+		}
+	}
+	result, err := json.Marshal(userRequests)
+	helper.Check(err)
+	_, _ = w.Write(result)
+}
+
+func apiUploadRequestListSingle(w http.ResponseWriter, r requestParser, user models.User) {
+	request, ok := r.(*paramURequestListSingle)
+	if !ok {
+		panic("invalid parameter passed")
+	}
+
+	uploadRequest, ok := filerequest.Get(request.Id)
+	if !ok {
+		sendError(w, http.StatusNotFound, "FileRequest does not exist with the given ID")
+		return
+	}
+	if uploadRequest.UserId != user.Id && !user.HasPermission(models.UserPermDeleteOtherUploads) {
+		sendError(w, http.StatusUnauthorized, "No permission to delete this upload request")
+		return
+	}
+	result, err := json.Marshal(uploadRequest)
+	helper.Check(err)
+	_, _ = w.Write(result)
 }
 
 func isAuthorisedForApi(r *http.Request, routing apiRoute) (models.User, bool) {
-	apiKey := r.Header.Get("apikey")
-	user, _, ok := isValidApiKey(apiKey, true, routing.ApiPerm)
+	keyId := r.Header.Get("apikey")
+	user, apiKey, ok := isValidApiKey(keyId, true, routing.ApiPerm)
 	if !ok {
+		return models.User{}, false
+	}
+	// Returns false if a public upload key is used for non-public api call or vice versa
+	if routing.UsesPublicUploadApiKey != apiKey.IsUploadRequestKey() {
 		return models.User{}, false
 	}
 	return user, true
 }
 
-// Probably from new API permission system
 func sendError(w http.ResponseWriter, errorInt int, errorMessage string) {
 	if w == nil {
 		return

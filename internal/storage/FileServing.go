@@ -5,6 +5,7 @@ Serving and processing uploaded files
 */
 
 import (
+	"archive/zip"
 	"bytes"
 	"crypto/sha1"
 	"encoding/hex"
@@ -45,6 +46,9 @@ var ErrorReplaceE2EFile = errors.New("end-to-end encrypted files cannot be repla
 
 // ErrorFileNotFound is raised when an invalid ID is passed or the file has expired
 var ErrorFileNotFound = errors.New("file not found")
+
+// ErrorInvalidPresign is raised when an invalid presign key has been passed or it has expired
+var ErrorInvalidPresign = errors.New("invalid presign")
 
 // NewFile creates a new file in the system. Called after an upload from the API has been completed. If a file with the same sha1 hash
 // already exists, it is deduplicated. This function gathers information about the file, creates an ID and saves
@@ -596,12 +600,14 @@ func GetFileByHotlink(id string) (models.File, bool) {
 }
 
 // ServeFile subtracts a download allowance and serves the file to the browser
-func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDownload bool) {
-	file.DownloadsRemaining = file.DownloadsRemaining - 1
-	file.DownloadCount = file.DownloadCount + 1
-	database.IncreaseDownloadCount(file.Id, !file.UnlimitedDownloads)
+func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDownload, increaseCounter bool) {
+	if increaseCounter {
+		file.DownloadsRemaining = file.DownloadsRemaining - 1
+		file.DownloadCount = file.DownloadCount + 1
+		database.IncreaseDownloadCount(file.Id, !file.UnlimitedDownloads)
+		go sse.PublishDownloadCount(file)
+	}
 	logging.LogDownload(file, r, configuration.Get().SaveIp)
-	go sse.PublishDownloadCount(file)
 
 	if !file.IsLocalStorage() {
 		// If non-blocking, we are not setting a download complete status as there is no reliable way to
@@ -618,7 +624,7 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 	fileData, size := getFileHandler(file, configuration.Get().DataDir)
 	if file.Encryption.IsEncrypted && !file.RequiresClientDecryption() {
 		if !encryption.IsCorrectKey(file.Encryption, fileData) {
-			w.Write([]byte("Internal error - Error decrypting file, source data might be damaged or an incorrect key has been used"))
+			_, _ = w.Write([]byte("Internal error - Error decrypting file, source data might be damaged or an incorrect key has been used"))
 			return
 		}
 	}
@@ -627,7 +633,7 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 	if file.Encryption.IsEncrypted && !file.RequiresClientDecryption() {
 		err := encryption.DecryptReader(file.Encryption, fileData, w)
 		if err != nil {
-			w.Write([]byte("Error decrypting file"))
+			_, _ = w.Write([]byte("Error decrypting file"))
 			fmt.Println(err)
 			return
 		}
@@ -636,6 +642,87 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 		http.ServeContent(w, r, file.Name, time.Now(), fileData)
 	}
 	downloadstatus.SetComplete(statusId)
+}
+
+// Returns the filename if unique or a new filename in the format "Name (x).ext"
+func makeFilenameUnique(filename string, nameMap *map[string]bool) string {
+	ext := filepath.Ext(filename)
+	base := strings.TrimSuffix(filename, ext)
+	if !(*nameMap)[filename] {
+		(*nameMap)[filename] = true
+		return filename
+	}
+
+	count := 2
+	for {
+		newName := fmt.Sprintf("%s (%d)%s", base, count, ext)
+		if !(*nameMap)[newName] {
+			(*nameMap)[newName] = true
+			return newName
+		}
+		count++
+	}
+}
+
+func ServeFilesAsZip(files []models.File, filename string, w http.ResponseWriter, r *http.Request) {
+	if filename == "" {
+		filename = "Gokapi"
+	}
+	w.Header().Set("Content-Type", "application/zip")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s.zip\"", filename))
+	w.WriteHeader(http.StatusOK)
+
+	saveIp := configuration.Get().SaveIp
+	zipWriter := zip.NewWriter(w)
+	defer zipWriter.Close()
+	filenames := make(map[string]bool)
+	for _, file := range files {
+		file.Name = makeFilenameUnique(file.Name, &filenames)
+		header := &zip.FileHeader{
+			Name:     file.Name,
+			Method:   zip.Store,
+			Modified: time.Unix(file.UploadDate, 0),
+		}
+		entryWriter, err := zipWriter.CreateHeader(header)
+		helper.Check(err)
+		logging.LogDownload(file, r, saveIp)
+		if !file.IsLocalStorage() {
+			// TODO implement decrypting
+			statusId := downloadstatus.SetDownload(file)
+			_, err = aws.Stream(entryWriter, file)
+			helper.Check(err)
+			downloadstatus.SetComplete(statusId)
+			_ = zipWriter.Flush()
+			flushingWriter, ok := w.(http.Flusher)
+			if ok {
+				flushingWriter.Flush()
+			}
+			continue
+		}
+		fileData, _ := getFileHandler(file, configuration.Get().DataDir)
+		statusId := downloadstatus.SetDownload(file)
+		if file.Encryption.IsEncrypted {
+			if !encryption.IsCorrectKey(file.Encryption, fileData) {
+				_, _ = w.Write([]byte("Internal error - Error decrypting file, source data might be damaged or an incorrect key has been used"))
+				return
+			}
+			err = encryption.DecryptReader(file.Encryption, fileData, entryWriter)
+			if err != nil {
+				_, _ = w.Write([]byte("Error decrypting file"))
+				fmt.Println(err)
+				return
+			}
+		} else {
+			_, err = io.Copy(entryWriter, fileData)
+			helper.Check(err)
+		}
+		downloadstatus.SetComplete(statusId)
+		_ = zipWriter.Flush()
+		flushingWriter, ok := w.(http.Flusher)
+		if ok {
+			flushingWriter.Flush()
+		}
+	}
 }
 
 func getFileHandler(file models.File, dataDir string) (*os.File, int64) {
@@ -699,6 +786,8 @@ func CleanUp(periodic bool) {
 	}
 	cleanOldTempFiles()
 	cleanHotlinks()
+	cleanInvalidApiKeys()
+	cleanInvalidFileRequests()
 	database.RunGarbageCollection()
 
 	if periodic {
@@ -708,6 +797,55 @@ func CleanUp(periodic bool) {
 				CleanUp(periodic)
 			}
 		}()
+	}
+}
+
+func getUserMap() map[int]models.User {
+	result := make(map[int]models.User)
+	users := database.GetAllUsers()
+	for _, user := range users {
+		result[user.Id] = user
+	}
+	return result
+}
+
+// cleanInvalidApiKeys removes all API keys that are not associated with a user anymore
+// Normally this should not be a problem, but if a user was manually deleted from the database,
+// this could cause issues otherwise.
+func cleanInvalidApiKeys() {
+	users := getUserMap()
+	for _, apiKey := range database.GetAllApiKeys() {
+		_, exists := users[apiKey.UserId]
+		if !exists {
+			database.DeleteApiKey(apiKey.Id)
+			continue
+		}
+		if apiKey.IsUploadRequestKey() {
+			_, exists = database.GetFileRequest(apiKey.UploadRequestId)
+			if !exists {
+				database.DeleteApiKey(apiKey.Id)
+			}
+		}
+	}
+}
+
+// cleanInvalidFileRequests removes file requests and the associated files from the database if their associated owner is not a valid user.
+// Normally this should not be a problem, but if a user was manually deleted from the database,
+// this could cause issues otherwise.
+func cleanInvalidFileRequests() {
+	users := getUserMap()
+	for _, fileRequest := range database.GetAllFileRequests() {
+		_, exists := users[fileRequest.UserId]
+		if !exists {
+			files := database.GetAllMetadata()
+			for _, file := range files {
+				if file.UploadRequestId == fileRequest.Id {
+				}
+				DeleteFile(file.Id, true)
+			}
+			database.DeleteFileRequest(fileRequest)
+		}
+
 	}
 }
 

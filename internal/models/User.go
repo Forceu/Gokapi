@@ -34,7 +34,7 @@ func (u *User) GetReadableUserLevel() string {
 	}
 }
 
-// ToJson returns the user as a JSon object
+// ToJson returns the user as a JSON object
 func (u *User) ToJson() string {
 	result, err := json.Marshal(u)
 	helper.Check(err)
@@ -50,7 +50,7 @@ const UserLevelAdmin UserRank = 1
 // UserLevelUser indicates that this user has only basic permissions by default
 const UserLevelUser UserRank = 2
 
-// UserRank indicates the rank that is assigned to the user
+// UserRank indicates the rank assigned to the user
 type UserRank uint8
 
 // IsSuperAdmin returns true if the user has the Rank UserLevelSuperAdmin
@@ -64,29 +64,31 @@ func (u *User) IsSameUser(userId int) bool {
 }
 
 const (
-	// UserPermReplaceUploads allows to replace uploads
+	// UserPermReplaceUploads allows replacing uploads PERM_REPLACE
 	UserPermReplaceUploads UserPermission = 1 << iota
-	// UserPermListOtherUploads allows to also list uploads by other users
+	// UserPermListOtherUploads allows also listing uploads by other users PERM_LIST
 	UserPermListOtherUploads
-	// UserPermEditOtherUploads allows editing of uploads by other users
+	// UserPermEditOtherUploads allows editing of uploads by other users PERM_EDIT
 	UserPermEditOtherUploads
-	// UserPermReplaceOtherUploads allows replacing of uploads by other users
+	// UserPermReplaceOtherUploads allows replacing of uploads by other users PERM_REPLACE_OTHER
 	UserPermReplaceOtherUploads
-	// UserPermDeleteOtherUploads allows deleting uploads by other users
+	// UserPermDeleteOtherUploads allows deleting uploads by other users PERM_DELETE
 	UserPermDeleteOtherUploads
-	// UserPermManageLogs allows viewing and deleting logs
+	// UserPermManageLogs allows viewing and deleting logs PERM_LOGS
 	UserPermManageLogs
-	// UserPermManageApiKeys allows editing and deleting of API keys by other users
+	// UserPermManageApiKeys allows editing and deleting of API keys by other users PERM_API
 	UserPermManageApiKeys
-	// UserPermManageUsers allows creating and editing of users, including granting and revoking permissions
+	// UserPermManageUsers allows creating and editing of users, including granting and revoking permissions PERM_USERS
 	UserPermManageUsers
+	// UserPermGuestUploads allows creating file requests PERM_GUEST_UPLOAD
+	UserPermGuestUploads
 )
 
 // UserPermissionNone means that the user has no permissions
 const UserPermissionNone UserPermission = 0
 
 // UserPermissionAll means that the user has all permissions
-const UserPermissionAll UserPermission = 255
+const UserPermissionAll UserPermission = 511
 
 // GrantPermission grants one or more permissions
 func (u *User) GrantPermission(permission UserPermission) {
@@ -144,4 +146,9 @@ func (u *User) HasPermissionManageApi() bool {
 // HasPermissionManageUsers returns true if the user has the permission UserPermManageUsers
 func (u *User) HasPermissionManageUsers() bool {
 	return u.HasPermission(UserPermManageUsers)
+}
+
+// HasPermissionCreateFileRequests returns true if the user has the permission UserPermGuestUploads
+func (u *User) HasPermissionCreateFileRequests() bool {
+	return u.HasPermission(UserPermGuestUploads)
 }

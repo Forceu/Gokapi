@@ -7,10 +7,11 @@
 		    <br>
 		    <p class="card-text">
 			<form method="post" action="./login" id="form" name="form" onSubmit="submitForm()">
-				<input type="text" placeholder="Username" value="{{.User}}" id="username">
+				<input type="text" 
+    autocomplete="username" placeholder="Username" value="{{.User}}" id="username">
 				<input type="hidden" id="uname_hidden" name="username">
 				<br><br>
-				<input type="password"  placeholder="Password" id="password">
+				<input type="password" autocomplete="current-password" placeholder="Password" id="password">
 				<input type="hidden" id="pw_hidden" name="password">
 				<br><br>
 {{ if .IsFailedLogin }}

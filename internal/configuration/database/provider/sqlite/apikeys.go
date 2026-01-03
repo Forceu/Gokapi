@@ -10,14 +10,15 @@ import (
 )
 
 type schemaApiKeys struct {
-	Id           string
-	FriendlyName string
-	LastUsed     int64
-	Permissions  int
-	Expiry       int64
-	IsSystemKey  int
-	UserId       int
-	PublicId     string
+	Id              string
+	FriendlyName    string
+	LastUsed        int64
+	Permissions     int
+	Expiry          int64
+	IsSystemKey     int
+	UserId          int
+	PublicId        string
+	UploadRequestId string
 }
 
 // currentTime is used in order to modify the current time for testing purposes in unit tests
@@ -34,17 +35,19 @@ func (p DatabaseProvider) GetAllApiKeys() map[string]models.ApiKey {
 	defer rows.Close()
 	for rows.Next() {
 		rowData := schemaApiKeys{}
-		err = rows.Scan(&rowData.Id, &rowData.FriendlyName, &rowData.LastUsed, &rowData.Permissions, &rowData.Expiry, &rowData.IsSystemKey, &rowData.UserId, &rowData.PublicId)
+		err = rows.Scan(&rowData.Id, &rowData.FriendlyName, &rowData.LastUsed, &rowData.Permissions, &rowData.Expiry,
+			&rowData.IsSystemKey, &rowData.UserId, &rowData.PublicId, &rowData.UploadRequestId)
 		helper.Check(err)
 		result[rowData.Id] = models.ApiKey{
-			Id:           rowData.Id,
-			PublicId:     rowData.PublicId,
-			FriendlyName: rowData.FriendlyName,
-			LastUsed:     rowData.LastUsed,
-			Permissions:  models.ApiPermission(rowData.Permissions),
-			Expiry:       rowData.Expiry,
-			IsSystemKey:  rowData.IsSystemKey == 1,
-			UserId:       rowData.UserId,
+			Id:              rowData.Id,
+			PublicId:        rowData.PublicId,
+			FriendlyName:    rowData.FriendlyName,
+			LastUsed:        rowData.LastUsed,
+			Permissions:     models.ApiPermission(rowData.Permissions),
+			Expiry:          rowData.Expiry,
+			IsSystemKey:     rowData.IsSystemKey == 1,
+			UserId:          rowData.UserId,
+			UploadRequestId: rowData.UploadRequestId,
 		}
 	}
 	return result
@@ -54,7 +57,8 @@ func (p DatabaseProvider) GetAllApiKeys() map[string]models.ApiKey {
 func (p DatabaseProvider) GetApiKey(id string) (models.ApiKey, bool) {
 	var rowResult schemaApiKeys
 	row := p.sqliteDb.QueryRow("SELECT * FROM ApiKeys WHERE Id = ?", id)
-	err := row.Scan(&rowResult.Id, &rowResult.FriendlyName, &rowResult.LastUsed, &rowResult.Permissions, &rowResult.Expiry, &rowResult.IsSystemKey, &rowResult.UserId, &rowResult.PublicId)
+	err := row.Scan(&rowResult.Id, &rowResult.FriendlyName, &rowResult.LastUsed, &rowResult.Permissions, &rowResult.Expiry,
+		&rowResult.IsSystemKey, &rowResult.UserId, &rowResult.PublicId, &rowResult.UploadRequestId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return models.ApiKey{}, false
@@ -64,14 +68,15 @@ func (p DatabaseProvider) GetApiKey(id string) (models.ApiKey, bool) {
 	}
 
 	result := models.ApiKey{
-		Id:           rowResult.Id,
-		PublicId:     rowResult.PublicId,
-		FriendlyName: rowResult.FriendlyName,
-		LastUsed:     rowResult.LastUsed,
-		Permissions:  models.ApiPermission(rowResult.Permissions),
-		Expiry:       rowResult.Expiry,
-		IsSystemKey:  rowResult.IsSystemKey == 1,
-		UserId:       rowResult.UserId,
+		Id:              rowResult.Id,
+		PublicId:        rowResult.PublicId,
+		FriendlyName:    rowResult.FriendlyName,
+		LastUsed:        rowResult.LastUsed,
+		Permissions:     models.ApiPermission(rowResult.Permissions),
+		Expiry:          rowResult.Expiry,
+		IsSystemKey:     rowResult.IsSystemKey == 1,
+		UserId:          rowResult.UserId,
+		UploadRequestId: rowResult.UploadRequestId,
 	}
 
 	return result, true
@@ -92,14 +97,29 @@ func (p DatabaseProvider) GetApiKeyByPublicKey(publicKey string) (string, bool) 
 	return rowResult.Id, true
 }
 
+// GetApiKeyByFileRequest returns an API key used for a file request
+func (p DatabaseProvider) GetApiKeyByFileRequest(request models.FileRequest) (string, bool) {
+	var rowResult schemaApiKeys
+	row := p.sqliteDb.QueryRow("SELECT Id FROM ApiKeys WHERE UploadRequestId = ? LIMIT 1", request.Id)
+	err := row.Scan(&rowResult.Id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", false
+		}
+		helper.Check(err)
+		return "", false
+	}
+	return rowResult.Id, true
+}
+
 // SaveApiKey saves the API key to the database
 func (p DatabaseProvider) SaveApiKey(apikey models.ApiKey) {
 	isSystemKey := 0
 	if apikey.IsSystemKey {
 		isSystemKey = 1
 	}
-	_, err := p.sqliteDb.Exec("INSERT OR REPLACE INTO ApiKeys (Id, FriendlyName, LastUsed, Permissions, Expiry, IsSystemKey, UserId, PublicId) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-		apikey.Id, apikey.FriendlyName, apikey.LastUsed, apikey.Permissions, apikey.Expiry, isSystemKey, apikey.UserId, apikey.PublicId)
+	_, err := p.sqliteDb.Exec("INSERT OR REPLACE INTO ApiKeys (Id, FriendlyName, LastUsed, Permissions, Expiry, IsSystemKey, UserId, PublicId, UploadRequestId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		apikey.Id, apikey.FriendlyName, apikey.LastUsed, apikey.Permissions, apikey.Expiry, isSystemKey, apikey.UserId, apikey.PublicId, apikey.UploadRequestId)
 	helper.Check(err)
 }
 

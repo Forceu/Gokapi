@@ -81,14 +81,28 @@ func hasRequiredTag(tags []string) bool {
 	return false
 }
 
-func headerExists(headerName string, required, isString bool) string {
+func hasBase64Tag(tags []string) bool {
+	// Check if the tag contains "supportBase64:true"
+	for _, tag := range tags {
+		if strings.HasPrefix(tag, "supportBase64") {
+			return true
+		}
+	}
+	return false
+}
+
+func headerExists(headerName string, required, isString, base64Support bool) string {
+	base64SupportEntry := ""
+	if base64Support {
+		base64SupportEntry = ", has base64support"
+	}
 	return fmt.Sprintf("\n"+`
-							// RequestParser header value %s, required: %v
+							// RequestParser header value %s, required: %v%s
 							exists, err = checkHeaderExists(r, %s, %v, %v)
 							if err != nil {
 								return err
 							}
-							p.foundHeaders[%s] = exists`, headerName, required, headerName, required, isString, headerName)
+							p.foundHeaders[%s] = exists`, headerName, required, base64SupportEntry, headerName, required, isString, headerName)
 }
 
 func generateParseRequestMethod(typeName string, fields []*ast.Field) string {
@@ -122,25 +136,41 @@ func generateParseRequestMethod(typeName string, fields []*ast.Field) string {
 				// Check if the tag has the "header" key and extract its value
 				tagParts := strings.Split(tag, " ")
 				required := hasRequiredTag(tagParts)
+				base64Support := hasBase64Tag(tagParts)
 				for _, part := range tagParts {
 					if strings.HasPrefix(part, "header:") {
-						// Extract header name after 'header:'
+						// Extract the header name after 'header:'
 						headerName := strings.TrimPrefix(part, "header:")
 
 						fieldType := field.Type.(*ast.Ident).Name
 
-						// Use appropriate parsing function based on the field type
+						// Use the appropriate parsing function based on the field type
 						switch fieldType {
 						case "string":
-							method += headerExists(headerName, required, true)
-							method += fmt.Sprintf(`
-							if (exists) {
-								p.%s = r.Header.Get(%s)
+							method += headerExists(headerName, required, true, base64Support)
+							if !base64Support {
+								method += fmt.Sprintf(`
+									if (exists) {
+										p.%s = r.Header.Get(%s)
+									}
+									`, field.Names[0].Name, headerName)
+							} else {
+								method += fmt.Sprintf(`
+									if (exists) {
+										p.%s = r.Header.Get(%s)
+										if strings.HasPrefix(p.%s, "base64:") {
+											decoded, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(p.%s, "base64:"))
+											if err != nil {
+												return err
+											}
+											p.%s = string(decoded)
+										}
+									}
+								`, field.Names[0].Name, headerName, field.Names[0].Name, field.Names[0].Name, field.Names[0].Name)
 							}
-							`, field.Names[0].Name, headerName)
 
 						case "bool":
-							method += headerExists(headerName, required, false)
+							method += headerExists(headerName, required, false, false)
 							method += fmt.Sprintf(`
 							if (exists) {
 								p.%s, err = parseHeaderBool(r, %s)
@@ -151,7 +181,7 @@ func generateParseRequestMethod(typeName string, fields []*ast.Field) string {
 							`, field.Names[0].Name, headerName, strings.Replace(headerName, "\"", "", -1))
 
 						case "int":
-							method += headerExists(headerName, required, false)
+							method += headerExists(headerName, required, false, false)
 							method += fmt.Sprintf(`
 							if (exists) {
 								p.%s, err = parseHeaderInt(r, %s)
@@ -162,7 +192,7 @@ func generateParseRequestMethod(typeName string, fields []*ast.Field) string {
 							`, field.Names[0].Name, headerName, strings.Replace(headerName, "\"", "", -1))
 
 						case "int64":
-							method += headerExists(headerName, required, false)
+							method += headerExists(headerName, required, false, false)
 							method += fmt.Sprintf(`
 							if (exists) {
 								p.%s, err = parseHeaderInt64(r, %s)
@@ -236,8 +266,10 @@ func main() {
 			package api
 			
 			import (
+				"encoding/base64"
 				"fmt"
 				"net/http"
+				"strings"
 			)
 			
 			// Do not modify: This is an automatically generated file created by updateApiRouting.go

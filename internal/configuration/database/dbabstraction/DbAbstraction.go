@@ -38,6 +38,8 @@ type Database interface {
 	GetAllApiKeys() map[string]models.ApiKey
 	// GetApiKey returns a models.ApiKey if valid or false if the ID is not valid
 	GetApiKey(id string) (models.ApiKey, bool)
+	// GetApiKeyByFileRequest returns an API key used for a file request
+	GetApiKeyByFileRequest(request models.FileRequest) (string, bool)
 	// SaveApiKey saves the API key to the database
 	SaveApiKey(apikey models.ApiKey)
 	// UpdateTimeApiKey writes the content of LastUsage to the database
@@ -97,6 +99,22 @@ type Database interface {
 	UpdateUserLastOnline(id int)
 	// DeleteUser deletes a user with the given ID
 	DeleteUser(id int)
+
+	// GetFileRequest returns the FileRequest or false if not found
+	GetFileRequest(id string) (models.FileRequest, bool)
+	// GetAllFileRequests returns an array with all file requests, ordered by creation date
+	GetAllFileRequests() []models.FileRequest
+	// SaveFileRequest stores the file request associated with the file in the database
+	SaveFileRequest(request models.FileRequest)
+	// DeleteFileRequest deletes a file request with the given ID
+	DeleteFileRequest(request models.FileRequest)
+
+	// GetPresignedUrl returns the presigned url with the given ID or false if not a valid ID
+	GetPresignedUrl(id string) (models.Presign, bool)
+	// DeletePresignedUrl deletes the presigned url with the given ID
+	DeletePresignedUrl(id string)
+	// SavePresignedUrl saves the presigned url
+	SavePresignedUrl(presign models.Presign)
 }
 
 // GetNew connects to the given database and initialises it

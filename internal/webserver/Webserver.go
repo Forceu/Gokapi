@@ -30,6 +30,7 @@ import (
 	"github.com/forceu/gokapi/internal/logging"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
+	"github.com/forceu/gokapi/internal/storage/filerequest"
 	"github.com/forceu/gokapi/internal/webserver/api"
 	"github.com/forceu/gokapi/internal/webserver/authentication"
 	"github.com/forceu/gokapi/internal/webserver/authentication/oauth"
@@ -100,11 +101,13 @@ func Start() {
 	mux.HandleFunc("/changePassword", requireLogin(changePassword, true, true))
 	mux.HandleFunc("/d", showDownload)
 	mux.HandleFunc("/downloadFile", downloadFile)
+	mux.HandleFunc("/downloadPresigned", requireLogin(downloadPresigned, false, false))
 	mux.HandleFunc("/e2eSetup", requireLogin(showE2ESetup, true, false))
 	mux.HandleFunc("/error", showError)
 	mux.HandleFunc("/error-auth", showErrorAuth)
 	mux.HandleFunc("/error-header", showErrorHeader)
 	mux.HandleFunc("/error-oauth", showErrorIntOAuth)
+	mux.HandleFunc("/filerequests", requireLogin(showUploadRequest, true, false))
 	mux.HandleFunc("/forgotpw", forgotPassword)
 	mux.HandleFunc("/h/", showHotlink)
 	mux.HandleFunc("/hotlink/", showHotlink) // backward compatibility
@@ -228,7 +231,7 @@ type redirectValues struct {
 	PasswordRequired bool
 }
 
-// Handling of /id/?/? - used when filename shall be displayed, will redirect to regular download URL
+// Handling of /id/?/? - used when filename shall be displayed, will redirect to the regular download URL
 func redirectFromFilename(w http.ResponseWriter, r *http.Request) {
 	addNoCacheHeader(w)
 	id := r.PathValue("id")
@@ -408,8 +411,19 @@ func forgotPassword(w http.ResponseWriter, r *http.Request) {
 	helper.CheckIgnoreTimeout(err)
 }
 
+// Handling of /filerequest
+func showUploadRequest(w http.ResponseWriter, r *http.Request) {
+	userId, err := authentication.GetUserFromRequest(r)
+	if err != nil {
+		panic(err)
+	}
+	view := (&AdminView{}).convertGlobalConfig(ViewFileRequests, userId)
+	err = templateFolder.ExecuteTemplate(w, "uploadreq", view)
+	helper.CheckIgnoreTimeout(err)
+}
+
 // Handling of /api
-// If user is authenticated, this menu lists all uploads and enables uploading new files
+// If the user is authenticated, this menu lists all uploads and enables uploading new files
 func showApiAdmin(w http.ResponseWriter, r *http.Request) {
 	userId, err := authentication.GetUserFromRequest(r)
 	if err != nil {
@@ -511,7 +525,7 @@ func showDownload(w http.ResponseWriter, r *http.Request) {
 	addNoCacheHeader(w)
 	keyId := queryUrl(w, r, "error")
 	file, ok := storage.GetFile(keyId)
-	if !ok {
+	if !ok || file.IsFileRequest() {
 		redirect(w, "error")
 		return
 	}
@@ -573,12 +587,12 @@ func showHotlink(w http.ResponseWriter, r *http.Request) {
 	hotlinkId = strings.Replace(hotlinkId, "/h/", "", 1)
 	addNoCacheHeader(w)
 	file, ok := storage.GetFileByHotlink(hotlinkId)
-	if !ok {
+	if !ok || file.IsFileRequest() {
 		w.Header().Set("Content-Type", "image/svg+xml")
 		_, _ = w.Write(imageExpiredPicture)
 		return
 	}
-	storage.ServeFile(file, w, r, false)
+	storage.ServeFile(file, w, r, false, true)
 }
 
 // Checks if a file is associated with the GET parameter from the current URL
@@ -683,11 +697,12 @@ type e2ESetupView struct {
 	CustomContent  customStatic
 }
 
-// AdminView contains parameters for all admin related pages
+// AdminView contains parameters for all admin-related pages
 type AdminView struct {
 	Items                 []models.FileApiOutput
 	ApiKeys               []models.ApiKey
 	Users                 []userInfo
+	FileRequests          []models.FileRequest
 	ActiveUser            models.User
 	UserMap               map[int]*models.User
 	ServerUrl             string
@@ -711,7 +726,7 @@ type AdminView struct {
 	CustomContent         customStatic
 }
 
-// getUserMap needs to return the map with pointers, otherwise template cannot call
+// getUserMap needs to return the map with pointers; otherwise template cannot call
 // functions associated with it
 func getUserMap() map[int]*models.User {
 	result := make(map[int]*models.User)
@@ -731,6 +746,8 @@ const (
 	ViewAPI
 	// ViewUsers is the identifier for the user management menu
 	ViewUsers
+	// ViewFileRequests is the identifier for the file request menu
+	ViewFileRequests
 )
 
 // Converts the globalConfig variable to an AdminView struct to pass the infos to
@@ -754,17 +771,17 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 			helper.Check(err)
 			metaDataList = append(metaDataList, fileInfo)
 		}
-		metaDataList = sortMetaData(metaDataList)
+		metaDataList = sortMetaDataApi(metaDataList)
 	case ViewAPI:
 		for _, apiKey := range database.GetAllApiKeys() {
-			// Double-checking if user of API key exists
+			// Double-checking if the owner of the API key exists
 			// If the user was manually deleted from the database, this could lead to a crash
 			// in the API view
 			_, ok := u.UserMap[apiKey.UserId]
 			if !ok {
 				continue
 			}
-			if !apiKey.IsSystemKey {
+			if !apiKey.IsSystemKey && !apiKey.IsUploadRequestKey() {
 				if apiKey.UserId == user.Id || user.HasPermissionManageApi() {
 					apiKeyList = append(apiKeyList, apiKey)
 				}
@@ -787,6 +804,21 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 			}
 			u.Users = append(u.Users, userWithUploads)
 		}
+	case ViewFileRequests:
+		for _, fileRequest := range filerequest.GetAll() {
+			// Double-checking if the owner of the file request exists
+			// If the user was manually deleted from the database, this could lead to a crash
+			// in the file request view
+			_, ok := u.UserMap[fileRequest.UserId]
+			if !ok {
+				continue
+			}
+			if fileRequest.UserId != user.Id && !user.HasPermissionListOtherUploads() {
+				continue
+			}
+			fileRequest.Files = sortMetaData(fileRequest.Files)
+			u.FileRequests = append(u.FileRequests, fileRequest)
+		}
 	}
 
 	u.ServerUrl = config.ServerUrl
@@ -807,15 +839,27 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 	return u
 }
 
-// sortMetaData arranges the provided array so that Fies are sorted by most recent upload first and if that is equal
+// sortMetaDataApi arranges the provided array so that Fies are sorted by most recent upload first and if that is equal
 // then by most time remaining first. If that is equal, then sort by ID.
-func sortMetaData(input []models.FileApiOutput) []models.FileApiOutput {
+func sortMetaDataApi(input []models.FileApiOutput) []models.FileApiOutput {
 	sort.Slice(input[:], func(i, j int) bool {
 		if input[i].UploadDate != input[j].UploadDate {
 			return input[i].UploadDate > input[j].UploadDate
 		}
 		if input[i].ExpireAt != input[j].ExpireAt {
 			return input[i].ExpireAt > input[j].ExpireAt
+		}
+		return input[i].Id > input[j].Id
+	})
+	return input
+}
+
+// sortMetaData arranges the provided array so that Fies are sorted by most recent upload first then sort by ID.
+// Currently only used for the files of File Requests, all others use sortMetaDataApi
+func sortMetaData(input []models.File) []models.File {
+	sort.Slice(input[:], func(i, j int) bool {
+		if input[i].UploadDate != input[j].UploadDate {
+			return input[i].UploadDate > input[j].UploadDate
 		}
 		return input[i].Id > input[j].Id
 	})
@@ -877,10 +921,41 @@ func downloadFile(w http.ResponseWriter, r *http.Request) {
 	serveFile(id, true, w, r)
 }
 
+// Handling of /downloadPresigned
+// Outputs the file to the user and reduces the download remaining count for the file, if requested
+func downloadPresigned(w http.ResponseWriter, r *http.Request) {
+	presignKey, ok := r.URL.Query()["key"]
+	if !ok {
+		responseError(w, storage.ErrorInvalidPresign)
+		return
+	}
+	presign, ok := database.GetPresignedUrl(presignKey[0])
+	if !ok || presign.Expiry < time.Now().Unix() {
+		responseError(w, storage.ErrorInvalidPresign)
+		return
+	}
+	files := make([]models.File, 0)
+	for _, file := range presign.FileIds {
+		storedFile, ok := storage.GetFile(file)
+		if !ok {
+			responseError(w, storage.ErrorFileNotFound)
+			return
+		}
+		files = append(files, storedFile)
+	}
+	database.DeletePresignedUrl(presign.Id)
+
+	if len(files) == 1 {
+		storage.ServeFile(files[0], w, r, true, false)
+		return
+	}
+	storage.ServeFilesAsZip(files, presign.Filename, w, r)
+}
+
 func serveFile(id string, isRootUrl bool, w http.ResponseWriter, r *http.Request) {
 	addNoCacheHeader(w)
 	savedFile, ok := storage.GetFile(id)
-	if !ok {
+	if !ok || savedFile.IsFileRequest() {
 		if isRootUrl {
 			redirect(w, "error")
 		} else {
@@ -898,7 +973,7 @@ func serveFile(id string, isRootUrl bool, w http.ResponseWriter, r *http.Request
 			return
 		}
 	}
-	storage.ServeFile(savedFile, w, r, true)
+	storage.ServeFile(savedFile, w, r, true, true)
 }
 
 func requireLogin(next http.HandlerFunc, isUiCall, isPwChangeView bool) http.HandlerFunc {

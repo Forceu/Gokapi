@@ -65,7 +65,7 @@ func main() {
 	authentication.Init(configuration.Get().Authentication)
 	createSsl(passedFlags)
 	initCloudConfig(passedFlags)
-	go storage.CleanUp(true)
+	storage.CleanUp(true)
 	logging.LogStartup()
 	showDeprecationWarnings()
 	go webserver.Start()
