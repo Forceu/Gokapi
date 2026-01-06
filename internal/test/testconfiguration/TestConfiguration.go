@@ -262,14 +262,14 @@ func writeApiKeys() {
 	database.SaveApiKey(models.ApiKey{
 		Id:           "validkey",
 		FriendlyName: "First Key",
-		Permissions:  models.ApiPermNone,
+		Permissions:  models.ApiPermView,
 		UserId:       5,
 		PublicId:     "taiyeo6uLie6nu6eip0ieweiM5mahv",
 	})
 	database.SaveApiKey(models.ApiKey{
 		Id:           "validkeyid7",
 		FriendlyName: "Key for uid 7",
-		Permissions:  models.ApiPermNone,
+		Permissions:  models.ApiPermUpload,
 		UserId:       7,
 		PublicId:     "vu0eemi8eehaisuth3pahDai2eo6ze",
 	})

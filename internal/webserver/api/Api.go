@@ -416,7 +416,7 @@ func apiChunkComplete(w http.ResponseWriter, r requestParser, user models.User) 
 		_, _ = io.WriteString(w, "{\"result\":\"OK\"}")
 		return
 	}
-	go doBlockingPartCompleteChunk(w, request.Uuid, request.FileHeader, user, uploadParams)
+	doBlockingPartCompleteChunk(w, request.Uuid, request.FileHeader, user, uploadParams)
 }
 
 func doBlockingPartCompleteChunk(w http.ResponseWriter, uuid string, fileHeader chunking.FileHeader, user models.User, uploadParameters models.UploadParameters) {
@@ -447,7 +447,7 @@ func apiChunkUploadRequestComplete(w http.ResponseWriter, r requestParser, user 
 		_, _ = io.WriteString(w, "{\"result\":\"OK\"}")
 		return
 	}
-	go doBlockingPartCompleteChunk(w, request.Uuid, request.FileHeader, user, uploadParams)
+	doBlockingPartCompleteChunk(w, request.Uuid, request.FileHeader, user, uploadParams)
 }
 
 func apiVersionInfo(w http.ResponseWriter, _ requestParser, _ models.User) {

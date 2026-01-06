@@ -954,12 +954,18 @@ func TestApikeyModify(t *testing.T) {
 			ErrorMessage: `{"Result":"error","ErrorMessage":"Insufficient user permission for owner to set this API permission"}`,
 			StatusCode:   401,
 		},
+		{
+			Value:        "PERM_MANAGE_FILE_REQUESTS",
+			ErrorMessage: `{"Result":"error","ErrorMessage":"Insufficient user permission for owner to set this API permission"}`,
+			StatusCode:   401,
+		},
 	}
 	testInvalidParameters(t, apiUrl, apiKey.Id, validHeaders, headerPermission, invalidParameter)
 
 	grantUserPermission(t, idUser, models.UserPermReplaceUploads)
 	grantUserPermission(t, idUser, models.UserPermManageUsers)
 	grantUserPermission(t, idUser, models.UserPermManageLogs)
+	grantUserPermission(t, idUser, models.UserPermGuestUploads)
 
 	for permissionUint, permissionString := range getApiPermMap(t) {
 		test.IsEqualBool(t, retrievedApiKey.HasPermission(permissionUint), false)
@@ -975,6 +981,7 @@ func TestApikeyModify(t *testing.T) {
 	removeUserPermission(t, idUser, models.UserPermReplaceUploads)
 	removeUserPermission(t, idUser, models.UserPermManageUsers)
 	removeUserPermission(t, idUser, models.UserPermManageLogs)
+	removeUserPermission(t, idUser, models.UserPermGuestUploads)
 }
 
 func testApiModifyCall(t *testing.T, apiKey, targetKey string, permission string, grant bool) {
@@ -1259,6 +1266,9 @@ func TestListSingle(t *testing.T) {
 }
 
 func TestUpload(t *testing.T) {
+	apiKey := generateNewKey(false, idUser, "", "")
+	apiKey.GrantPermission(models.ApiPermUpload)
+	database.SaveApiKey(apiKey)
 	result, body := uploadNewFile(t)
 	test.IsEqualString(t, result.Result, "OK")
 	test.IsEqualString(t, result.FileInfo.Size, "3 B")
@@ -1268,7 +1278,7 @@ func TestUpload(t *testing.T) {
 	// newFileId := result.FileInfo.Id
 	w, r := test.GetRecorder("POST", "/api/files/add", nil, []test.Header{{
 		Name:  "apikey",
-		Value: "validkey",
+		Value: apiKey.Id,
 	}}, body)
 	Process(w, r)
 	test.ResponseBodyContains(t, w, "Content-Type isn't multipart/form-data")
@@ -1412,6 +1422,9 @@ func TestDuplicate(t *testing.T) {
 }
 
 func TestChunkUpload(t *testing.T) {
+	apiKey := generateNewKey(false, idUser, "", "")
+	apiKey.GrantPermission(models.ApiPermUpload)
+	database.SaveApiKey(apiKey)
 	err := os.WriteFile("test/tmpupload", []byte("chunktestfile"), 0600)
 	test.IsNil(t, err)
 	body, formcontent := test.FileToMultipartFormBody(t, test.HttpTestConfig{
@@ -1430,7 +1443,7 @@ func TestChunkUpload(t *testing.T) {
 	})
 	w, r := test.GetRecorder("POST", "/api/chunk/add", nil, []test.Header{{
 		Name:  "apikey",
-		Value: "validkey",
+		Value: apiKey.Id,
 	}}, body)
 	r.Header.Add("Content-Type", formcontent)
 	Process(w, r)
@@ -1453,7 +1466,7 @@ func TestChunkUpload(t *testing.T) {
 	})
 	w, r = test.GetRecorder("POST", "/api/chunk/add", nil, []test.Header{{
 		Name:  "apikey",
-		Value: "validkey",
+		Value: apiKey.Id,
 	}}, body)
 	r.Header.Add("Content-Type", formcontent)
 	Process(w, r)
@@ -1465,8 +1478,12 @@ func TestChunkUpload(t *testing.T) {
 }
 
 func TestChunkComplete(t *testing.T) {
+	apiKey := generateNewKey(false, idUser, "", "")
+	apiKey.GrantPermission(models.ApiPermUpload)
+	database.SaveApiKey(apiKey)
+
 	w, r := test.GetRecorder("POST", "/api/chunk/complete", nil, []test.Header{
-		{Name: "apikey", Value: "validkey"},
+		{Name: "apikey", Value: apiKey.Id},
 		{Name: "uuid", Value: "tmpupload123"},
 		{Name: "filename", Value: "test.upload"},
 		{Name: "filesize", Value: "13"}},
@@ -1488,7 +1505,7 @@ func TestChunkComplete(t *testing.T) {
 	// data.Set("filesize", "15")
 
 	w, r = test.GetRecorder("POST", "/api/chunk/complete", nil, []test.Header{
-		{Name: "apikey", Value: "validkey"},
+		{Name: "apikey", Value: apiKey.Id},
 		{Name: "uuid", Value: "tmpupload123"},
 		{Name: "filename", Value: "test.upload"},
 		{Name: "filesize", Value: "15"}}, nil)
