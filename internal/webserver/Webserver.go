@@ -900,6 +900,14 @@ func showPublicUpload(w http.ResponseWriter, r *http.Request) {
 		redirect(w, "error?fr")
 		return
 	}
+	if !request.IsUnlimitedTime() && request.Expiry < time.Now().Unix() {
+		redirect(w, "error?fr")
+		return
+	}
+	if !request.IsUnlimitedFiles() && request.UploadedFiles >= request.MaxFiles {
+		redirect(w, "error?fr")
+		return
+	}
 	apiKey := queryUrl(w, r, "key", "error?fr")
 	if subtle.ConstantTimeCompare([]byte(request.ApiKey), []byte(apiKey)) != 1 {
 		redirect(w, "error?fr")

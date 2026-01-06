@@ -59,6 +59,11 @@ func (f *FileRequest) GetFilesAsString() string {
 func (f *FileRequest) IsUnlimitedSize() bool {
 	return f.MaxSize == 0
 }
+
 func (f *FileRequest) IsUnlimitedFiles() bool {
 	return f.MaxFiles == 0
+}
+
+func (f *FileRequest) IsUnlimitedTime() bool {
+	return f.Expiry == 0
 }

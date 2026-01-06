@@ -371,6 +371,12 @@ func checkFileRequestAndApiKey(fileRequestId, apiKey string) (models.FileRequest
 	if fileRequest.ApiKey != apiKey {
 		return models.FileRequest{}, false, http.StatusUnauthorized, "Invalid API key"
 	}
+	if !fileRequest.IsUnlimitedTime() && fileRequest.Expiry < time.Now().Unix() {
+		return models.FileRequest{}, false, http.StatusUnauthorized, "Filerequest has expired"
+	}
+	if !fileRequest.IsUnlimitedFiles() && fileRequest.UploadedFiles >= fileRequest.MaxFiles {
+		return models.FileRequest{}, false, http.StatusUnauthorized, "Max file count has already been reached for this file request"
+	}
 	return fileRequest, true, 0, ""
 }
 
