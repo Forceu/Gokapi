@@ -554,7 +554,7 @@ func TestServeFile(t *testing.T) {
 	test.IsEqualBool(t, result, true)
 	r := httptest.NewRequest("GET", "/", nil)
 	w := httptest.NewRecorder()
-	ServeFile(file, w, r, true)
+	ServeFile(file, w, r, true, true)
 	_, result = GetFile(idNewFile)
 	test.IsEqualBool(t, result, false)
 
@@ -575,7 +575,7 @@ func TestServeFile(t *testing.T) {
 		w = httptest.NewRecorder()
 		file, result = GetFile("awsTest1234567890123")
 		test.IsEqualBool(t, result, true)
-		ServeFile(file, w, r, false)
+		ServeFile(file, w, r, false, true)
 		if aws.IsMockApi {
 			test.ResponseBodyContains(t, w, "https://redirect.url")
 		} else {
@@ -600,7 +600,7 @@ func TestServeFile(t *testing.T) {
 	file.Encryption.Nonce = nonce
 	r = httptest.NewRequest("GET", "/", nil)
 	w = httptest.NewRecorder()
-	ServeFile(file, w, r, true)
+	ServeFile(file, w, r, true, true)
 	test.ResponseBodyContains(t, w, "Error decrypting file")
 }
 

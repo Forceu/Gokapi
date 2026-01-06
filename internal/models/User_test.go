@@ -249,5 +249,5 @@ func TestUser_ToJson(t *testing.T) {
 		Password:      "1234",
 		ResetPassword: true,
 	}
-	test.IsEqualString(t, user.ToJson(), `{"id":4,"name":"Test User","permissions":255,"userLevel":1,"lastOnline":1337,"resetPassword":true}`)
+	test.IsEqualString(t, user.ToJson(), `{"id":4,"name":"Test User","permissions":511,"userLevel":1,"lastOnline":1337,"resetPassword":true}`)
 }

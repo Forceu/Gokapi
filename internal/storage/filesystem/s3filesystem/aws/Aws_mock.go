@@ -5,12 +5,13 @@ package aws
 import (
 	"bytes"
 	"errors"
-	"github.com/forceu/gokapi/internal/models"
 	"io"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/forceu/gokapi/internal/models"
 )
 
 var uploadedFiles []models.File
@@ -198,4 +199,21 @@ func IsCorsCorrectlySet(bucket, gokapiUrl string) (bool, error) {
 // GetDefaultBucketName returns the default bucketname where new files are stored
 func GetDefaultBucketName() string {
 	return bucketName
+}
+
+// Stream downloads a file from AWS sequentially, used for saving to a Zip file
+func Stream(writer io.Writer, file models.File) (int64, error) {
+	if !isValidCredentials() {
+		return 0, errors.New("invalid credentials / invalid bucket / invalid region")
+	}
+
+	if isUploaded(file) {
+		data, err := os.Open("data/" + file.SHA1)
+		if err != nil {
+			return 0, err
+		}
+		defer data.Close()
+		return io.Copy(writer, data)
+	}
+	return 0, errors.New("file not found")
 }

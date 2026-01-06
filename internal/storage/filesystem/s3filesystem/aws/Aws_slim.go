@@ -4,9 +4,10 @@ package aws
 
 import (
 	"errors"
-	"github.com/forceu/gokapi/internal/models"
 	"io"
 	"net/http"
+
+	"github.com/forceu/gokapi/internal/models"
 )
 
 const errorString = "AWS not supported in this build"
@@ -81,4 +82,9 @@ func IsCorsCorrectlySet(bucket, gokapiUrl string) (bool, error) {
 // GetDefaultBucketName returns the default bucketname where new files are stored
 func GetDefaultBucketName() string {
 	return ""
+}
+
+// Stream downloads a file from AWS sequentially, used for saving to a Zip file
+func Stream(writer io.Writer, file models.File) (int64, error) {
+	return 0, errors.New(errorString)
 }

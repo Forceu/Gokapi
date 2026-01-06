@@ -73,14 +73,14 @@ func generateTestData() {
 		Id:           idApiKeyAdmin,
 		PublicId:     idApiKeyAdmin,
 		FriendlyName: "Admin",
-		Permissions:  models.ApiPermAll,
+		Permissions:  models.ApiPermNone,
 		UserId:       idAdmin,
 	})
 	database.SaveApiKey(models.ApiKey{
 		Id:           idApiKeySuperAdmin,
 		PublicId:     idPublicApiKeySuperAdmin,
 		FriendlyName: "SuperAdmin",
-		Permissions:  models.ApiPermAll,
+		Permissions:  models.ApiPermNone,
 		UserId:       idSuperAdmin,
 	})
 	database.SaveMetaData(models.File{
@@ -120,7 +120,6 @@ func getRecorderWithBody(url, apikey, method string, headers []test.Header, body
 }
 
 func testAuthorisation(t *testing.T, url string, requiredPermission models.ApiPermission) models.ApiKey {
-	t.Helper()
 	w, r := getRecorder(url, "", []test.Header{{}})
 	Process(w, r)
 	test.IsEqualBool(t, w.Code != 200, true)
@@ -131,13 +130,13 @@ func testAuthorisation(t *testing.T, url string, requiredPermission models.ApiPe
 	test.IsEqualBool(t, w.Code != 200, true)
 	test.ResponseBodyContains(t, w, `{"Result":"error","ErrorMessage":"Unauthorized"}`)
 
-	newApiKeyUser := generateNewKey(false, idUser, "")
+	newApiKeyUser := generateNewKey(false, idUser, "", "")
 	w, r = getRecorder(url, newApiKeyUser.Id, []test.Header{{}})
 	Process(w, r)
 	test.IsEqualBool(t, w.Code != 200, true)
 	test.ResponseBodyContains(t, w, `{"Result":"error","ErrorMessage":"Unauthorized"}`)
 
-	for _, permission := range getAvailableApiPermissions(t) {
+	for _, permission := range getAvailableApiPermissions() {
 		if permission == requiredPermission {
 			continue
 		}
@@ -148,7 +147,7 @@ func testAuthorisation(t *testing.T, url string, requiredPermission models.ApiPe
 		test.ResponseBodyContains(t, w, `{"Result":"error","ErrorMessage":"Unauthorized"}`)
 		removePermissionApikey(t, newApiKeyUser.Id, permission)
 	}
-	newApiKeyUser.Permissions = models.ApiPermAll
+	newApiKeyUser.Permissions = getPermissionAll()
 	newApiKeyUser.RemovePermission(requiredPermission)
 	database.SaveApiKey(newApiKeyUser)
 	w, r = getRecorder(url, newApiKeyUser.Id, []test.Header{{}})
@@ -432,7 +431,7 @@ func testDeleteUserCall(t *testing.T, apiKey string, mode int) {
 	database.SaveSession("sessionApiDelete", session)
 	_, ok = database.GetSession("sessionApiDelete")
 	test.IsEqualBool(t, ok, true)
-	userApiKey := generateNewKey(false, retrievedUser.Id, "")
+	userApiKey := generateNewKey(false, retrievedUser.Id, "", "")
 	_, ok = database.GetApiKey(userApiKey.Id)
 	test.IsEqualBool(t, ok, true)
 	testFile := models.File{
@@ -699,16 +698,16 @@ func TestIsValidApiKey(t *testing.T) {
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, key.LastUsed == 0, false)
 
-	newApiKey := generateNewKey(false, 5, "")
+	newApiKey := generateNewKey(false, 5, "", "")
 	user, _, isValid = isValidApiKey(newApiKey.Id, true, models.ApiPermNone)
 	test.IsEqualBool(t, isValid, true)
-	for _, permission := range getAvailableApiPermissions(t) {
+	for _, permission := range getAvailableApiPermissions() {
 		_, _, isValid = isValidApiKey(newApiKey.Id, true, permission)
 		test.IsEqualBool(t, isValid, false)
 	}
-	for _, newPermission := range getAvailableApiPermissions(t) {
+	for _, newPermission := range getAvailableApiPermissions() {
 		setPermissionApikey(t, newApiKey.Id, newPermission)
-		for _, permission := range getAvailableApiPermissions(t) {
+		for _, permission := range getAvailableApiPermissions() {
 			_, _, isValid = isValidApiKey(newApiKey.Id, true, permission)
 			test.IsEqualBool(t, isValid, permission == newPermission)
 		}
@@ -717,7 +716,7 @@ func TestIsValidApiKey(t *testing.T) {
 	setPermissionApikey(t, newApiKey.Id, models.ApiPermEdit|models.ApiPermDelete)
 	_, _, isValid = isValidApiKey(newApiKey.Id, true, models.ApiPermEdit)
 	test.IsEqualBool(t, isValid, true)
-	_, _, isValid = isValidApiKey(newApiKey.Id, true, models.ApiPermAll)
+	_, _, isValid = isValidApiKey(newApiKey.Id, true, getPermissionAll())
 	test.IsEqualBool(t, isValid, false)
 	_, _, isValid = isValidApiKey(newApiKey.Id, true, models.ApiPermView)
 	test.IsEqualBool(t, isValid, false)
@@ -736,7 +735,7 @@ func removePermissionApikey(t *testing.T, key string, newPermission models.ApiPe
 	database.SaveApiKey(apiKey)
 }
 
-func getAvailableApiPermissions(t *testing.T) []models.ApiPermission {
+func getAvailableApiPermissions() []models.ApiPermission {
 	result := []models.ApiPermission{
 		models.ApiPermView,
 		models.ApiPermUpload,
@@ -745,15 +744,19 @@ func getAvailableApiPermissions(t *testing.T) []models.ApiPermission {
 		models.ApiPermEdit,
 		models.ApiPermReplace,
 		models.ApiPermManageUsers,
-		models.ApiPermManageLogs}
-	sum := 0
-	for _, perm := range result {
-		sum = sum + int(perm)
-	}
-	if sum != int(models.ApiPermAll) {
-		t.Fatal("List of permissions are incorrect")
+		models.ApiPermManageLogs,
+		models.ApiPermManageFileRequests,
+		models.ApiPermDownload,
 	}
 	return result
+}
+
+func getPermissionAll() models.ApiPermission {
+	allPermissions := models.ApiPermNone
+	for _, permission := range getAvailableApiPermissions() {
+		allPermissions += permission
+	}
+	return allPermissions
 }
 
 func getApiPermMap(t *testing.T) map[models.ApiPermission]string {
@@ -766,12 +769,14 @@ func getApiPermMap(t *testing.T) map[models.ApiPermission]string {
 	result[models.ApiPermReplace] = "PERM_REPLACE"
 	result[models.ApiPermManageUsers] = "PERM_MANAGE_USERS"
 	result[models.ApiPermManageLogs] = "PERM_MANAGE_LOGS"
+	result[models.ApiPermManageFileRequests] = "PERM_MANAGE_FILE_REQUESTS"
+	result[models.ApiPermDownload] = "PERM_DOWNLOAD"
 
 	sum := 0
 	for perm := range result {
 		sum = sum + int(perm)
 	}
-	if sum != int(models.ApiPermAll) {
+	if sum != int(getPermissionAll()) {
 		t.Fatal("List of permissions are incorrect")
 	}
 
@@ -1291,7 +1296,7 @@ func uploadNewFile(t *testing.T) (models.Result, *bytes.Buffer) {
 	test.IsNil(t, err)
 	err = writer.Close()
 	test.IsNil(t, err)
-	newApiKeyUser := generateNewKey(true, idUser, "")
+	newApiKeyUser := generateNewKey(true, idUser, "", "")
 	w, r := test.GetRecorder("POST", "/api/files/add", nil, []test.Header{{
 		Name:  "apikey",
 		Value: newApiKeyUser.Id,

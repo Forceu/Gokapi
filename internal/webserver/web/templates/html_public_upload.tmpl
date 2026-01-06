@@ -14,9 +14,6 @@ const COMPLETE_URL = "./api/chunk/uploadRequestComplete";
 const FILE_REQUEST_ID = "{{ .FileRequestId }}";
 const API_KEY = "{{ .ApiKey }}";
 
-function generateUUID() {
-  return crypto.randomUUID();
-}
 
 async function startUpload() {
   const files = document.getElementById("fileInput").files;
@@ -36,7 +33,7 @@ async function startUpload() {
     const progressBar = fileDiv.querySelector("progress");
     const progressText = fileDiv.querySelector(".progressText");
 
-    const uuid = generateUUID();
+    const uuid = getUuid();
     let offset = 0;
 
     while (offset < file.size) {
@@ -98,6 +95,7 @@ function encodeFilename(name) {
   return "base64:" + btoa(unescape(encodeURIComponent(name)));
 }
 </script>
+        <script src="./js/min/uuid.min.js"></script>
 
 {{ template "pagename" "PublicUpload"}}
 {{ template "customjs" .}}
