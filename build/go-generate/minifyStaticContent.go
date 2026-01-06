@@ -77,6 +77,12 @@ func getPaths() []converter {
 		Type:       "text/javascript",
 		Name:       "Dateformat JS",
 	})
+	result = append(result, converter{
+		InputPath:  pathPrefix + "js/uuid.js",
+		OutputPath: pathPrefix + "js/min/uuid.min.js",
+		Type:       "text/javascript",
+		Name:       "UUID JS",
+	})
 	return result
 }
 
