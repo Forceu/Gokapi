@@ -92,7 +92,7 @@ var routes = []apiRoute{
 		Url:              "/chunk/uploadRequestComplete",
 		ApiPerm:          models.ApiPermNone,
 		IsFileRequestApi: true,
-		execution:        apiChunkAdd,
+		execution:        apiChunkUploadRequestComplete,
 		RequestParser:    &paramChunkUploadRequestComplete{},
 	},
 	{

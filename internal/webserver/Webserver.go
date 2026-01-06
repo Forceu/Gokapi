@@ -7,6 +7,7 @@ Handling of webserver and requests / uploads
 import (
 	"bytes"
 	"context"
+	"crypto/subtle"
 	"embed"
 	"encoding/base64"
 	"errors"
@@ -115,6 +116,7 @@ func Start() {
 	mux.HandleFunc("/login", showLogin)
 	mux.HandleFunc("/logs", requireLogin(showLogs, true, false))
 	mux.HandleFunc("/logout", doLogout)
+	mux.HandleFunc("/publicUpload", showPublicUpload)
 	mux.HandleFunc("/uploadChunk", requireLogin(uploadChunk, false, false))
 	mux.HandleFunc("/uploadStatus", requireLogin(sse.GetStatusSSE, false, false))
 	mux.HandleFunc("/users", requireLogin(showUserAdmin, true, false))
@@ -357,9 +359,12 @@ func validateNewPassword(newPassword string, user models.User) (string, string, 
 
 // Handling of /error
 func showError(w http.ResponseWriter, r *http.Request) {
-	const invalidFile = 0
-	const noCipherSupplied = 1
-	const wrongCipher = 2
+	const (
+		invalidFile = iota
+		noCipherSupplied
+		wrongCipher
+		invalidFileRequest
+	)
 
 	errorReason := invalidFile
 	if r.URL.Query().Has("e2e") {
@@ -367,6 +372,9 @@ func showError(w http.ResponseWriter, r *http.Request) {
 	}
 	if r.URL.Query().Has("key") {
 		errorReason = wrongCipher
+	}
+	if r.URL.Query().Has("fr") {
+		errorReason = invalidFileRequest
 	}
 	err := templateFolder.ExecuteTemplate(w, "error", genericView{
 		ErrorId:       errorReason,
@@ -523,7 +531,7 @@ type LoginView struct {
 // If it exists, a download form is shown, or a password needs to be entered.
 func showDownload(w http.ResponseWriter, r *http.Request) {
 	addNoCacheHeader(w)
-	keyId := queryUrl(w, r, "error")
+	keyId := queryUrl(w, r, "id", "error")
 	file, ok := storage.GetFile(keyId)
 	if !ok || file.IsFileRequest() {
 		redirect(w, "error")
@@ -597,8 +605,8 @@ func showHotlink(w http.ResponseWriter, r *http.Request) {
 
 // Checks if a file is associated with the GET parameter from the current URL
 // Stops for 500ms to limit brute forcing if invalid key and redirects to redirectUrl
-func queryUrl(w http.ResponseWriter, r *http.Request, redirectUrl string) string {
-	keys, ok := r.URL.Query()["id"]
+func queryUrl(w http.ResponseWriter, r *http.Request, keyword string, redirectUrl string) string {
+	keys, ok := r.URL.Query()[keyword]
 	if !ok || len(keys[0]) < configuration.Get().LengthId {
 		select {
 		case <-time.After(500 * time.Millisecond):
@@ -883,6 +891,35 @@ type userInfo struct {
 	User        models.User
 }
 
+// Handling of /publicUpload
+func showPublicUpload(w http.ResponseWriter, r *http.Request) {
+	addNoCacheHeader(w)
+	fileRequestId := queryUrl(w, r, "id", "error?fr")
+	request, ok := filerequest.Get(fileRequestId)
+	if !ok {
+		redirect(w, "error?fr")
+		return
+	}
+	apiKey := queryUrl(w, r, "key", "error?fr")
+	if subtle.ConstantTimeCompare([]byte(request.ApiKey), []byte(apiKey)) != 1 {
+		redirect(w, "error?fr")
+		return
+	}
+
+	config := configuration.Get()
+
+	view := filerequestView{
+		PublicName:    config.PublicName,
+		ApiKey:        apiKey,
+		FileRequestId: fileRequestId,
+		ChunkSize:     configuration.Get().ChunkSize,
+		CustomContent: customStaticInfo,
+	}
+
+	err := templateFolder.ExecuteTemplate(w, "publicUpload", view)
+	helper.CheckIgnoreTimeout(err)
+}
+
 // Handling of /uploadChunk
 // If the user is authenticated, this parses the uploaded chunk and stores it
 func uploadChunk(w http.ResponseWriter, r *http.Request) {
@@ -917,7 +954,7 @@ func downloadFileWithNameInUrl(w http.ResponseWriter, r *http.Request) {
 // Handling of /downloadFile
 // Outputs the file to the user and reduces the download remaining count for the file
 func downloadFile(w http.ResponseWriter, r *http.Request) {
-	id := queryUrl(w, r, "error")
+	id := queryUrl(w, r, "id", "error")
 	serveFile(id, true, w, r)
 }
 
@@ -1064,4 +1101,15 @@ type oauthErrorView struct {
 	ErrorProvidedName    string
 	ErrorProvidedMessage string
 	CustomContent        customStatic
+}
+
+// A view containing parameters for a generic template
+type filerequestView struct {
+	IsAdminView    bool
+	IsDownloadView bool
+	PublicName     string
+	ApiKey         string
+	FileRequestId  string
+	ChunkSize      int
+	CustomContent  customStatic
 }

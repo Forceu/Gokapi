@@ -16,6 +16,9 @@
 {{ if eq .ErrorId 2 }}
 		    This file is encrypted and an incorrect key has been passed.<br><br>If this file is end-to-end encrypted, please contact the uploader to give you the correct link, including the value after the hash.
 {{ end }}
+{{ if eq .ErrorId 3 }}
+		    Unable to upload files.<br><br>Either the request has expired or an invalid request was submitted.
+{{ end }}
 <br>&nbsp;
 		    </p>
 		  </div>

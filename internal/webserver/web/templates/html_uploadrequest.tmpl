@@ -11,7 +11,7 @@
 		      <h3 class="card-title mb-0">File Requests</h3>
 		    </div>
 		    <div class="col text-end">
-		      <button id="button-newapi" class="btn btn-outline-light" onclick="newFileRequest()">
+		      <button id="button-newfr" class="btn btn-outline-light" onclick="newFileRequest()">
                     <i class="bi bi-plus-circle-fill"></i>
                 </button>
 		    </div>
@@ -38,7 +38,7 @@
                         
 {{ range .FileRequests }}
                             <tr id="row-{{ .Id }}" class="no-bottom-border">
-		                    <td>{{ .Name }}</td>
+		                    <td><a href="{{ $.ServerUrl }}publicUpload?id={{ .Id }}&key={{ .ApiKey }}" target="_blank">{{ .Name }}</a></td>
 				    {{ template "uRFileCell" . }}
 		                    <td>{{ .GetReadableTotalSize }}</td>
             			    <td><span id="cell-lastupdate-{{ .Id }}"></span></td>
@@ -52,6 +52,9 @@
 		                    <td>
 		                    	<div class="btn-group" role="group">
                                 {{ template "uRDownloadbutton" . }}
+                                
+                                
+                                <button id="copy-{{ .Id }}" type="button" data-clipboard-text="{{ $.ServerUrl }}publicUpload?id={{ .Id }}&key={{ .ApiKey }}" class="copyurl btn btn-outline-light btn-sm" onclick="showToast(1000);" title="Copy URL"><i class="bi bi-copy"></i></button>
                                 
 		                        <button id="edit-{{ .Id }}" type="button" title="Edit request" class="btn btn-outline-light btn-sm" onclick="editFileRequest('{{ .Id }}', '{{ .Name }}', {{ .MaxFiles }}, {{ .MaxSize }}, {{ .Expiry }})">
 		                        	<i class="bi bi-pencil"></i></button>
@@ -100,7 +103,7 @@
                 </div>
             </div>
         </div>
-	<div id="toastnotification" class="toastnotification" data-default="API key copied to clipboard">Toast Text</div>
+	<div id="toastnotification" class="toastnotification" data-default="URL copied to clipboard">Toast Text</div>
     </div>
 </div>
 <script src="./js/min/admin.min.{{ template "js_admin_version"}}.js"></script>

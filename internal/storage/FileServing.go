@@ -291,7 +291,7 @@ func encryptChunkFile(file *os.File, metadata *models.File) (*os.File, error) {
 	return tempFileEnc, nil
 }
 
-func createNewMetaData(hash string, fileHeader chunking.FileHeader, userId int, uploadRequest models.UploadParameters) models.File {
+func createNewMetaData(hash string, fileHeader chunking.FileHeader, userId int, params models.UploadParameters) models.File {
 	file := models.File{
 		Id:                 createNewId(),
 		Name:               fileHeader.Filename,
@@ -299,17 +299,18 @@ func createNewMetaData(hash string, fileHeader chunking.FileHeader, userId int, 
 		Size:               helper.ByteCountSI(fileHeader.Size),
 		SizeBytes:          fileHeader.Size,
 		ContentType:        fileHeader.ContentType,
-		ExpireAt:           uploadRequest.ExpiryTimestamp,
+		ExpireAt:           params.ExpiryTimestamp,
 		UploadDate:         time.Now().Unix(),
-		DownloadsRemaining: uploadRequest.AllowedDownloads,
-		UnlimitedTime:      uploadRequest.UnlimitedTime,
-		UnlimitedDownloads: uploadRequest.UnlimitedDownload,
-		PasswordHash:       configuration.HashPassword(uploadRequest.Password, true),
+		DownloadsRemaining: params.AllowedDownloads,
+		UnlimitedTime:      params.UnlimitedTime,
+		UnlimitedDownloads: params.UnlimitedDownload,
+		PasswordHash:       configuration.HashPassword(params.Password, true),
 		UserId:             userId,
+		UploadRequestId:    params.FileRequestId,
 	}
-	if uploadRequest.IsEndToEndEncrypted {
+	if params.IsEndToEndEncrypted {
 		file.Encryption = models.EncryptionInfo{IsEndToEndEncrypted: true, IsEncrypted: true}
-		file.Size = helper.ByteCountSI(uploadRequest.RealSize)
+		file.Size = helper.ByteCountSI(params.RealSize)
 	}
 	if isEncryptionRequested() {
 		file.Encryption.IsEncrypted = true

@@ -1,0 +1,106 @@
+{{define "publicUpload"}}{{template "header" .}}
+
+<input type="file" id="fileInput" multiple />
+<br><br>
+<button onclick="startUpload()">Upload</button>
+
+<div id="status"></div>
+
+<script>
+const CHUNK_SIZE = {{ .ChunkSize }} * 1024 * 1024;
+const UPLOAD_URL = "./api/chunk/uploadRequestAdd";
+const COMPLETE_URL = "./api/chunk/uploadRequestComplete";
+
+const FILE_REQUEST_ID = "{{ .FileRequestId }}";
+const API_KEY = "{{ .ApiKey }}";
+
+function generateUUID() {
+  return crypto.randomUUID();
+}
+
+async function startUpload() {
+  const files = document.getElementById("fileInput").files;
+  const status = document.getElementById("status");
+  status.innerHTML = "";
+
+  for (const file of files) {
+    const fileDiv = document.createElement("div");
+    fileDiv.className = "file";
+    fileDiv.innerHTML = `
+      <strong>${file.name}</strong><br>
+      <progress value="0" max="${file.size}"></progress>
+      <span class="progressText">0%</span>
+    `;
+    status.appendChild(fileDiv);
+
+    const progressBar = fileDiv.querySelector("progress");
+    const progressText = fileDiv.querySelector(".progressText");
+
+    const uuid = generateUUID();
+    let offset = 0;
+
+    while (offset < file.size) {
+      const chunk = file.slice(offset, offset + CHUNK_SIZE);
+
+      const formData = new FormData();
+      formData.append("file", chunk);
+      formData.append("uuid", uuid);
+      formData.append("filesize", file.size);
+      formData.append("offset", offset);
+
+      const response = await fetch(UPLOAD_URL, {
+        method: "POST",
+        body: formData,
+        headers: {
+        'apikey': API_KEY,
+        "fileRequestId": FILE_REQUEST_ID
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Chunk upload failed: ${response.status}`);
+      }
+
+      offset += chunk.size;
+      progressBar.value = offset;
+      progressText.textContent = Math.floor((offset / file.size) * 100) + "%";
+    }
+
+    // Finalize upload
+    await finalizeUpload(file, uuid);
+    progressText.textContent = "✔ Completed";
+  }
+}
+
+async function finalizeUpload(file, uuid) {
+  const headers = {
+    "uuid": uuid,
+    "fileRequestId": FILE_REQUEST_ID,
+    "filename": encodeFilename(file.name),
+    "filesize": file.size,
+        'apikey': API_KEY,
+    "contenttype": file.type || "application/octet-stream"
+  };
+
+  const response = await fetch(COMPLETE_URL, {
+    method: "POST",
+    headers: headers
+  });
+
+  if (!response.ok) {
+    throw new Error(`Finalize failed: ${response.status}`);
+  }
+
+  return response;
+}
+
+function encodeFilename(name) {
+  return "base64:" + btoa(unescape(encodeURIComponent(name)));
+}
+</script>
+
+{{ template "pagename" "PublicUpload"}}
+{{ template "customjs" .}}
+        
+{{template "footer"}}    
+{{end}}
