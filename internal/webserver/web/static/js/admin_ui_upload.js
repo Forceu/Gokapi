@@ -23,6 +23,7 @@ function initDropzone() {
         init: function() {
             dropzoneObject = this;
             this.on("addedfile", file => {
+                file.upload.uuid = getUuid();
                 saveUploadDefaults();
                 addFileProgress(file);
             });
