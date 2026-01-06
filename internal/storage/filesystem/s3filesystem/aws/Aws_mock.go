@@ -108,7 +108,7 @@ func Upload(input io.Reader, file models.File) (string, error) {
 }
 
 // Download downloads a file from AWS
-func Download(writer io.WriterAt, file models.File) (int64, error) {
+func download(writer io.WriterAt, file models.File) (int64, error) {
 	if !isValidCredentials() {
 		return 0, errors.New("invalid credentials / invalid bucket / invalid region")
 	}

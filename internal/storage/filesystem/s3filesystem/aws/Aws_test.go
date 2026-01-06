@@ -87,7 +87,7 @@ func TestUploadToAws(t *testing.T) {
 func TestDownloadFromAws(t *testing.T) {
 	test.FileDoesNotExist(t, "test")
 	file, _ := os.Create("test")
-	size, err := Download(file, testFile)
+	size, err := download(file, testFile)
 	test.IsNil(t, err)
 	test.IsEqualBool(t, size == 16, true)
 	test.FileExists(t, "test")
