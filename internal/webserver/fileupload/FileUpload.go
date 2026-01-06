@@ -1,16 +1,17 @@
 package fileupload
 
 import (
+	"io"
+	"net/http"
+	"strconv"
+	"time"
+
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/logging"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
 	"github.com/forceu/gokapi/internal/storage/chunking"
-	"io"
-	"net/http"
-	"strconv"
-	"time"
 )
 
 // ProcessCompleteFile processes a file upload request
@@ -70,33 +71,33 @@ func ProcessNewChunk(w http.ResponseWriter, r *http.Request, isApiCall bool) err
 // ParseFileHeader parses the parameters for CompleteChunk()
 // This is done as two operations, as CompleteChunk can be blocking too long
 // for an HTTP request, by calling this function first, r can be closed afterwards
-func ParseFileHeader(r *http.Request) (string, chunking.FileHeader, models.UploadRequest, error) {
+func ParseFileHeader(r *http.Request) (string, chunking.FileHeader, models.UploadParameters, error) {
 	err := r.ParseForm()
 	if err != nil {
-		return "", chunking.FileHeader{}, models.UploadRequest{}, err
+		return "", chunking.FileHeader{}, models.UploadParameters{}, err
 	}
 	chunkId := r.Form.Get("chunkid")
 	config, err := parseConfig(r.Form)
 	if err != nil {
-		return "", chunking.FileHeader{}, models.UploadRequest{}, err
+		return "", chunking.FileHeader{}, models.UploadParameters{}, err
 	}
 	header, err := chunking.ParseFileHeader(r)
 	if err != nil {
-		return "", chunking.FileHeader{}, models.UploadRequest{}, err
+		return "", chunking.FileHeader{}, models.UploadParameters{}, err
 	}
 	return chunkId, header, config, nil
 }
 
 // CompleteChunk processes a file after all the chunks have been completed
 // The parameters can be generated with  ParseFileHeader()
-func CompleteChunk(chunkId string, header chunking.FileHeader, userId int, config models.UploadRequest) (models.File, error) {
+func CompleteChunk(chunkId string, header chunking.FileHeader, userId int, config models.UploadParameters) (models.File, error) {
 	return storage.NewFileFromChunk(chunkId, header, userId, config)
 }
 
-// CreateUploadConfig populates a new models.UploadRequest struct
-func CreateUploadConfig(allowedDownloads, expiryDays int, password string, unlimitedTime, unlimitedDownload, isEnd2End bool, realSize int64) models.UploadRequest {
+// CreateUploadConfig populates a new models.UploadParameters struct
+func CreateUploadConfig(allowedDownloads, expiryDays int, password string, unlimitedTime, unlimitedDownload, isEnd2End bool, realSize int64, fileRequestId string) models.UploadParameters {
 	settings := configuration.Get()
-	return models.UploadRequest{
+	return models.UploadParameters{
 		AllowedDownloads:    allowedDownloads,
 		Expiry:              expiryDays,
 		ExpiryTimestamp:     time.Now().Add(time.Duration(expiryDays) * time.Hour * 24).Unix(),
@@ -107,10 +108,16 @@ func CreateUploadConfig(allowedDownloads, expiryDays int, password string, unlim
 		UnlimitedDownload:   unlimitedDownload,
 		IsEndToEndEncrypted: isEnd2End,
 		RealSize:            realSize,
+		FileRequestId:       fileRequestId,
 	}
 }
 
-func parseConfig(values formOrHeader) (models.UploadRequest, error) {
+func parseConfig(values formOrHeader) (models.UploadParameters, error) {
+	fileRequestId := values.Get("fileRequestId")
+	if fileRequestId != "" {
+		return CreateUploadConfig(0, 0, "",
+			true, true, false, 0, fileRequestId), nil
+	}
 	allowedDownloads := values.Get("allowedDownloads")
 	expiryDays := values.Get("expiryDays")
 	password := values.Get("password")
@@ -140,10 +147,10 @@ func parseConfig(values formOrHeader) (models.UploadRequest, error) {
 		realSizeStr := values.Get("realSize")
 		realSize, err = strconv.ParseInt(realSizeStr, 10, 64)
 		if err != nil {
-			return models.UploadRequest{}, err
+			return models.UploadParameters{}, err
 		}
 	}
-	return CreateUploadConfig(allowedDownloadsInt, expiryDaysInt, password, unlimitedTime, unlimitedDownload, isEnd2End, realSize), nil
+	return CreateUploadConfig(allowedDownloadsInt, expiryDaysInt, password, unlimitedTime, unlimitedDownload, isEnd2End, realSize, ""), nil
 }
 
 type formOrHeader interface {

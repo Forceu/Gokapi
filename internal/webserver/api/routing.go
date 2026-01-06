@@ -14,12 +14,12 @@ import (
 )
 
 type apiRoute struct {
-	Url                    string
-	HasWildcard            bool
-	UsesPublicUploadApiKey bool
-	ApiPerm                models.ApiPermission
-	RequestParser          requestParser
-	execution              apiFunc
+	Url              string
+	HasWildcard      bool
+	IsFileRequestApi bool
+	ApiPerm          models.ApiPermission
+	RequestParser    requestParser
+	execution        apiFunc
 }
 
 func (r apiRoute) Continue(w http.ResponseWriter, request requestParser, user models.User) {
@@ -79,6 +79,21 @@ var routes = []apiRoute{
 		ApiPerm:       models.ApiPermUpload,
 		execution:     apiChunkComplete,
 		RequestParser: &paramChunkComplete{},
+	},
+	{
+		Url:              "/chunk/uploadRequestAdd",
+		ApiPerm:          models.ApiPermNone,
+		execution:        apiChunkUploadRequestAdd,
+		IsFileRequestApi: true,
+		RequestParser:    &paramChunkUploadRequestAdd{},
+	},
+	{
+		//TODO only add chunks that are authorised
+		Url:              "/chunk/uploadRequestComplete",
+		ApiPerm:          models.ApiPermNone,
+		IsFileRequestApi: true,
+		execution:        apiChunkAdd,
+		RequestParser:    &paramChunkUploadRequestComplete{},
 	},
 	{
 		Url:           "/files/add",
@@ -553,6 +568,25 @@ func (p *paramChunkAdd) ProcessParameter(r *http.Request) error {
 	return nil
 }
 
+func (p *paramChunkAdd) GetRequest() *http.Request {
+	return p.Request
+}
+
+type paramChunkUploadRequestAdd struct {
+	Request       *http.Request
+	FileRequestId string `header:"fileRequestId" required:"true"`
+	ApiKey        string `header:"apikey"` // not published in API documentation
+	foundHeaders  map[string]bool
+}
+
+func (p *paramChunkUploadRequestAdd) ProcessParameter(r *http.Request) error {
+	p.Request = r
+	return nil
+}
+func (p *paramChunkUploadRequestAdd) GetRequest() *http.Request {
+	return p.Request
+}
+
 type paramChunkComplete struct {
 	Uuid               string `header:"uuid" required:"true"`
 	FileName           string `header:"filename" required:"true" supportBase64:"true"`
@@ -600,6 +634,30 @@ func (p *paramChunkComplete) ProcessParameter(_ *http.Request) error {
 		}
 	}
 
+	if p.ContentType == "" {
+		p.ContentType = "application/octet-stream"
+	}
+	p.FileHeader = chunking.FileHeader{
+		Filename:    p.FileName,
+		ContentType: p.ContentType,
+		Size:        p.FileSize,
+	}
+	return nil
+}
+
+type paramChunkUploadRequestComplete struct {
+	Uuid          string `header:"uuid" required:"true"`
+	FileName      string `header:"filename" required:"true" supportBase64:"true"`
+	FileRequestId string `header:"fileRequestId" required:"true"`
+	FileSize      int64  `header:"filesize" required:"true"`
+	ContentType   string `header:"contenttype"`
+	IsNonBlocking bool   `header:"nonblocking"`
+	ApiKey        string `header:"apikey"` // not published in API documentation
+	FileHeader    chunking.FileHeader
+	foundHeaders  map[string]bool
+}
+
+func (p *paramChunkUploadRequestComplete) ProcessParameter(_ *http.Request) error {
 	if p.ContentType == "" {
 		p.ContentType = "application/octet-stream"
 	}

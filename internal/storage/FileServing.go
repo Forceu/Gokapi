@@ -53,7 +53,7 @@ var ErrorInvalidPresign = errors.New("invalid presign")
 // NewFile creates a new file in the system. Called after an upload from the API has been completed. If a file with the same sha1 hash
 // already exists, it is deduplicated. This function gathers information about the file, creates an ID and saves
 // it into the global configuration. It is now only used by the API, the web UI uses NewFileFromChunk
-func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, userId int, uploadRequest models.UploadRequest) (models.File, error) {
+func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, userId int, uploadRequest models.UploadParameters) (models.File, error) {
 	if !isAllowedFileSize(fileHeader.Size) {
 		return models.File{}, ErrorFileTooLarge
 	}
@@ -154,7 +154,7 @@ func GetUploadCounts() map[int]int {
 // NewFileFromChunk creates a new file in the system after a chunk upload has fully completed. If a file with the same sha1 hash
 // already exists, it is deduplicated. This function gathers information about the file, creates an ID and saves
 // it into the global configuration.
-func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, userId int, uploadRequest models.UploadRequest) (models.File, error) {
+func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, userId int, uploadRequest models.UploadParameters) (models.File, error) {
 	file, err := chunking.GetFileByChunkId(chunkId)
 	if err != nil {
 		return models.File{}, err
@@ -291,7 +291,7 @@ func encryptChunkFile(file *os.File, metadata *models.File) (*os.File, error) {
 	return tempFileEnc, nil
 }
 
-func createNewMetaData(hash string, fileHeader chunking.FileHeader, userId int, uploadRequest models.UploadRequest) models.File {
+func createNewMetaData(hash string, fileHeader chunking.FileHeader, userId int, uploadRequest models.UploadParameters) models.File {
 	file := models.File{
 		Id:                 createNewId(),
 		Name:               fileHeader.Filename,
@@ -397,7 +397,7 @@ func isChangeRequested(parametersToChange, parameter int) bool {
 }
 
 // DuplicateFile creates a copy of an existing file with new parameters
-func DuplicateFile(file models.File, parametersToChange int, newFileName string, fileParameters models.UploadRequest) (models.File, error) {
+func DuplicateFile(file models.File, parametersToChange int, newFileName string, fileParameters models.UploadParameters) (models.File, error) {
 
 	// apiDuplicateFile expects fileParameters.IsEndToEndEncrypted and fileParameters.RealSize not to be used,
 	// change in apiDuplicateFile if using in this function!

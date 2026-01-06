@@ -55,3 +55,10 @@ func (f *FileRequest) GetReadableTotalSize() string {
 func (f *FileRequest) GetFilesAsString() string {
 	return strings.Join(f.FileIdList, ",")
 }
+
+func (f *FileRequest) IsUnlimitedSize() bool {
+	return f.MaxSize == 0
+}
+func (f *FileRequest) IsUnlimitedFiles() bool {
+	return f.MaxFiles == 0
+}

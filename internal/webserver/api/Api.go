@@ -15,6 +15,7 @@ import (
 	"github.com/forceu/gokapi/internal/logging"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
+	"github.com/forceu/gokapi/internal/storage/chunking"
 	"github.com/forceu/gokapi/internal/storage/filerequest"
 	"github.com/forceu/gokapi/internal/webserver/authentication/users"
 	"github.com/forceu/gokapi/internal/webserver/fileupload"
@@ -334,18 +335,61 @@ func apiChunkAdd(w http.ResponseWriter, r requestParser, _ models.User) {
 	if !ok {
 		panic("invalid parameter passed")
 	}
-	maxUpload := int64(configuration.Get().MaxFileSizeMB) * 1024 * 1024
-	if request.Request.ContentLength > maxUpload {
-		sendError(w, http.StatusBadRequest, storage.ErrorFileTooLarge.Error())
+	statusCode, errString := processNewChunk(w, request, configuration.Get().MaxFileSizeMB)
+	if statusCode != http.StatusOK {
+		sendError(w, statusCode, errString)
+	}
+}
+
+func apiChunkUploadRequestAdd(w http.ResponseWriter, r requestParser, _ models.User) {
+	request, ok := r.(*paramChunkUploadRequestAdd)
+	if !ok {
+		panic("invalid parameter passed")
+	}
+	fileRequest, ok, status, errorMsg := checkFileRequestAndApiKey(request.FileRequestId, request.ApiKey)
+	if !ok {
+		sendError(w, status, errorMsg)
 		return
+	}
+	maxUpload := configuration.Get().MaxFileSizeMB
+	if !fileRequest.IsUnlimitedSize() {
+		if (fileRequest.MaxSize) < maxUpload {
+			maxUpload = fileRequest.MaxSize
+		}
+	}
+	statusCode, errString := processNewChunk(w, request, maxUpload)
+	if statusCode != http.StatusOK {
+		sendError(w, statusCode, errString)
+	}
+}
+
+func checkFileRequestAndApiKey(fileRequestId, apiKey string) (models.FileRequest, bool, int, string) {
+	fileRequest, ok := filerequest.Get(fileRequestId)
+	if !ok {
+		return models.FileRequest{}, false, http.StatusNotFound, "FileRequest does not exist with the given ID"
+	}
+	if fileRequest.ApiKey != apiKey {
+		return models.FileRequest{}, false, http.StatusUnauthorized, "Invalid API key"
+	}
+	return fileRequest, true, 0, ""
+}
+
+type chunkParams interface {
+	GetRequest() *http.Request
+}
+
+func processNewChunk(w http.ResponseWriter, request chunkParams, maxFileSizeMb int) (int, string) {
+	maxUpload := int64(maxFileSizeMb) * 1024 * 1024
+	if request.GetRequest().ContentLength > maxUpload {
+		return http.StatusBadRequest, storage.ErrorFileTooLarge.Error()
 	}
 
-	request.Request.Body = http.MaxBytesReader(w, request.Request.Body, maxUpload)
-	err := fileupload.ProcessNewChunk(w, request.Request, true)
+	request.GetRequest().Body = http.MaxBytesReader(w, request.GetRequest().Body, maxUpload)
+	err := fileupload.ProcessNewChunk(w, request.GetRequest(), true)
 	if err != nil {
-		sendError(w, http.StatusBadRequest, err.Error())
-		return
+		return http.StatusBadRequest, err.Error()
 	}
+	return http.StatusOK, ""
 }
 
 func apiChunkComplete(w http.ResponseWriter, r requestParser, user models.User) {
@@ -353,29 +397,51 @@ func apiChunkComplete(w http.ResponseWriter, r requestParser, user models.User) 
 	if !ok {
 		panic("invalid parameter passed")
 	}
-	if request.IsNonBlocking {
-		go doBlockingPartCompleteChunk(nil, request, user)
-		_, _ = io.WriteString(w, "{\"result\":\"OK\"}")
-		return
-	}
-	doBlockingPartCompleteChunk(w, request, user)
-}
-
-func doBlockingPartCompleteChunk(w http.ResponseWriter, request *paramChunkComplete, user models.User) {
-	uploadRequest := fileupload.CreateUploadConfig(request.AllowedDownloads,
+	uploadParams := fileupload.CreateUploadConfig(request.AllowedDownloads,
 		request.ExpiryDays,
 		request.Password,
 		request.UnlimitedTime,
 		request.UnlimitedDownloads,
 		request.IsE2E,
-		request.FileSize)
-	file, err := fileupload.CompleteChunk(request.Uuid, request.FileHeader, user.Id, uploadRequest)
+		request.FileSize,
+		"")
+	if request.IsNonBlocking {
+		go doBlockingPartCompleteChunk(nil, request.Uuid, request.FileHeader, user, uploadParams)
+		_, _ = io.WriteString(w, "{\"result\":\"OK\"}")
+		return
+	}
+	go doBlockingPartCompleteChunk(w, request.Uuid, request.FileHeader, user, uploadParams)
+}
+
+func doBlockingPartCompleteChunk(w http.ResponseWriter, uuid string, fileHeader chunking.FileHeader, user models.User, uploadParameters models.UploadParameters) {
+	file, err := fileupload.CompleteChunk(uuid, fileHeader, user.Id, uploadParameters)
 	if err != nil {
 		sendError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	logging.LogUpload(file, user)
 	outputFileJson(w, file)
+}
+
+func apiChunkUploadRequestComplete(w http.ResponseWriter, r requestParser, user models.User) {
+	request, ok := r.(*paramChunkUploadRequestComplete)
+	if !ok {
+		panic("invalid parameter passed")
+	}
+	fileRequest, ok, status, errorMsg := checkFileRequestAndApiKey(request.FileRequestId, request.ApiKey)
+	if !ok {
+		sendError(w, status, errorMsg)
+		return
+	}
+	uploadParams := fileupload.CreateUploadConfig(0,
+		0, "", true, true,
+		false, request.FileSize, fileRequest.Id)
+	if request.IsNonBlocking {
+		go doBlockingPartCompleteChunk(nil, request.Uuid, request.FileHeader, user, uploadParams)
+		_, _ = io.WriteString(w, "{\"result\":\"OK\"}")
+		return
+	}
+	go doBlockingPartCompleteChunk(w, request.Uuid, request.FileHeader, user, uploadParams)
 }
 
 func apiVersionInfo(w http.ResponseWriter, _ requestParser, _ models.User) {
@@ -565,7 +631,8 @@ func apiDuplicateFile(w http.ResponseWriter, r requestParser, user models.User) 
 		request.UnlimitedTime,
 		request.UnlimitedDownloads,
 		false, // is not being used by storage.DuplicateFile
-		0) // is not being used by storage.DuplicateFile
+		0,     // is not being used by storage.DuplicateFile
+		"")
 	newFile, err := storage.DuplicateFile(file, request.RequestedChanges, request.FileName, uploadRequest)
 	if err != nil {
 		sendError(w, http.StatusInternalServerError, err.Error())
@@ -954,7 +1021,7 @@ func isAuthorisedForApi(r *http.Request, routing apiRoute) (models.User, bool) {
 		return models.User{}, false
 	}
 	// Returns false if a public upload key is used for non-public api call or vice versa
-	if routing.UsesPublicUploadApiKey != apiKey.IsUploadRequestKey() {
+	if routing.IsFileRequestApi != apiKey.IsUploadRequestKey() {
 		return models.User{}, false
 	}
 	return user, true

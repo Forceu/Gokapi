@@ -529,6 +529,88 @@
         }
       }
     },
+    "/chunk/uploadRequestComplete": {
+      "post": {
+        "tags": [
+          "chunk"
+        ],
+        "summary": "Finalises uploaded chunks",
+        "description": "Needs to be called after all chunks have been uploaded. Adds the uploaded file to Gokapi. Requires API permission UPLOAD",
+        "operationId": "chunkurcomplete",
+        "security": [
+          {
+            "apikey": [
+              "FileRequest"
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "header",
+            "description": "The unique ID that was used for the uploaded chunks",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fileRequestId",
+            "in": "header",
+            "description": "The file request ID that was used for the uploaded chunks",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filename",
+            "in": "header",
+            "description": "The filename of the uploaded file. If the filename includes non-ANSI characters, you can encode them with base64, by adding 'base64:' at the beginning, e.g. 'base64:ZmlsZW5hbWU='",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filesize",
+            "in": "header",
+            "description": "The total filesize of the uploaded file in bytes",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "contenttype",
+            "in": "header",
+            "description": "The MIME content type. If empty, application/octet-stream will be used.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
+          }
+        }
+      }
+    },
     "/logs/delete": {
       "post": {
         "tags": [
@@ -558,6 +640,51 @@
         "responses": {
           "200": {
             "description": "Operation successful"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
+          }
+        }
+      }
+    },
+    "/chunk/uploadRequestAdd": {
+      "post": {
+        "tags": [
+          "chunk"
+        ],
+        "summary": "Uploads a new chunk for a file request",
+        "description": "Uploads a file in chunks. Parallel uploading is supported. Must call /chunk/uploadRequestComplete after all chunks have been uploaded. WARNING: Does not support end-to-end encryption! If server is setup to utilise end-to-end encryption, file will be stored in plain-text! Requires API key associated with the file request",
+        "operationId": "chunkaddur",
+        "security": [
+          {
+            "apikey": [
+              "FileRequest"
+            ]
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/chunkingUr"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Operation successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/chunkUploadResult"
+                }
+              }
+            }
           },
           "400": {
             "description": "Invalid input"
@@ -2079,7 +2206,7 @@
         "properties": {
           "file": {
             "type": "string",
-            "description": "The file to be uploaded",
+            "description": "The chunk to be uploaded",
             "format": "binary"
           },
           "uuid": {
@@ -2095,8 +2222,25 @@
             "description": "The chunk's offset starting at the beginning of the file"
           }
         }
+      },
+      "chunkingUr": {
+    "allOf": [
+      {
+        "$ref": "#/components/schemas/chunking"
+      },
+      {
+        "type": "object",
+        "required": ["fileRequestId"],
+        "properties": {
+          "fileRequestId": {
+            "type": "string",
+            "description": "The ID of the upload request"
+          }
+        }
       }
-    },
+    ]
+    }
+  },
     "securitySchemes": {
       "apikey": {
         "type": "apiKey",

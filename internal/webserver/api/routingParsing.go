@@ -825,6 +825,41 @@ func (p *paramChunkAdd) New() requestParser {
 	return &paramChunkAdd{}
 }
 
+// ParseRequest reads r and saves the passed header values in the paramChunkUploadRequestAdd struct
+// In the end, ProcessParameter() is called
+func (p *paramChunkUploadRequestAdd) ParseRequest(r *http.Request) error {
+	var err error
+	var exists bool
+	p.foundHeaders = make(map[string]bool)
+
+	// RequestParser header value "fileRequestId", required: true
+	exists, err = checkHeaderExists(r, "fileRequestId", true, true)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["fileRequestId"] = exists
+	if exists {
+		p.FileRequestId = r.Header.Get("fileRequestId")
+	}
+
+	// RequestParser header value "apikey", required: false
+	exists, err = checkHeaderExists(r, "apikey", false, true)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["apikey"] = exists
+	if exists {
+		p.ApiKey = r.Header.Get("apikey")
+	}
+
+	return p.ProcessParameter(r)
+}
+
+// New returns a new instance of paramChunkUploadRequestAdd struct
+func (p *paramChunkUploadRequestAdd) New() requestParser {
+	return &paramChunkUploadRequestAdd{}
+}
+
 // ParseRequest reads r and saves the passed header values in the paramChunkComplete struct
 // In the end, ProcessParameter() is called
 func (p *paramChunkComplete) ParseRequest(r *http.Request) error {
@@ -963,6 +998,104 @@ func (p *paramChunkComplete) ParseRequest(r *http.Request) error {
 // New returns a new instance of paramChunkComplete struct
 func (p *paramChunkComplete) New() requestParser {
 	return &paramChunkComplete{}
+}
+
+// ParseRequest reads r and saves the passed header values in the paramChunkUploadRequestComplete struct
+// In the end, ProcessParameter() is called
+func (p *paramChunkUploadRequestComplete) ParseRequest(r *http.Request) error {
+	var err error
+	var exists bool
+	p.foundHeaders = make(map[string]bool)
+
+	// RequestParser header value "uuid", required: true
+	exists, err = checkHeaderExists(r, "uuid", true, true)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["uuid"] = exists
+	if exists {
+		p.Uuid = r.Header.Get("uuid")
+	}
+
+	// RequestParser header value "filename", required: true, has base64support
+	exists, err = checkHeaderExists(r, "filename", true, true)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["filename"] = exists
+	if exists {
+		p.FileName = r.Header.Get("filename")
+		if strings.HasPrefix(p.FileName, "base64:") {
+			decoded, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(p.FileName, "base64:"))
+			if err != nil {
+				return err
+			}
+			p.FileName = string(decoded)
+		}
+	}
+
+	// RequestParser header value "fileRequestId", required: true
+	exists, err = checkHeaderExists(r, "fileRequestId", true, true)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["fileRequestId"] = exists
+	if exists {
+		p.FileRequestId = r.Header.Get("fileRequestId")
+	}
+
+	// RequestParser header value "filesize", required: true
+	exists, err = checkHeaderExists(r, "filesize", true, false)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["filesize"] = exists
+	if exists {
+		p.FileSize, err = parseHeaderInt64(r, "filesize")
+		if err != nil {
+			return fmt.Errorf("invalid value in header filesize supplied")
+		}
+	}
+
+	// RequestParser header value "contenttype", required: false
+	exists, err = checkHeaderExists(r, "contenttype", false, true)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["contenttype"] = exists
+	if exists {
+		p.ContentType = r.Header.Get("contenttype")
+	}
+
+	// RequestParser header value "nonblocking", required: false
+	exists, err = checkHeaderExists(r, "nonblocking", false, false)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["nonblocking"] = exists
+	if exists {
+		p.IsNonBlocking, err = parseHeaderBool(r, "nonblocking")
+		if err != nil {
+			return fmt.Errorf("invalid value in header nonblocking supplied")
+		}
+	}
+
+	// RequestParser header value "apikey", required: false
+	exists, err = checkHeaderExists(r, "apikey", false, true)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["apikey"] = exists
+	if exists {
+		p.ApiKey = r.Header.Get("apikey")
+	}
+
+	return p.ProcessParameter(r)
+}
+
+// New returns a new instance of paramChunkUploadRequestComplete struct
+func (p *paramChunkUploadRequestComplete) New() requestParser {
+	return &paramChunkUploadRequestComplete{}
 }
 
 // ParseRequest reads r and saves the passed header values in the paramURequestDelete struct

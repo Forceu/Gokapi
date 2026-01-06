@@ -1,7 +1,7 @@
 package models
 
-// UploadRequest is used to set an upload request
-type UploadRequest struct {
+// UploadParameters is used to set parameters for a new upload
+type UploadParameters struct {
 	UserId              int
 	AllowedDownloads    int
 	Expiry              int
@@ -13,4 +13,5 @@ type UploadRequest struct {
 	IsEndToEndEncrypted bool
 	Password            string
 	ExternalUrl         string
+	FileRequestId       string
 }

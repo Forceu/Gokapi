@@ -134,13 +134,13 @@ func TestAddHotlink(t *testing.T) {
 
 type testFile struct {
 	File    models.File
-	Request models.UploadRequest
+	Request models.UploadParameters
 	Header  multipart.FileHeader
 	UserId  int
 	Content []byte
 }
 
-func createRawTestFile(content []byte) (multipart.FileHeader, models.UploadRequest) {
+func createRawTestFile(content []byte) (multipart.FileHeader, models.UploadParameters) {
 	os.Setenv("TZ", "UTC")
 	mimeHeader := make(textproto.MIMEHeader)
 	mimeHeader.Set("Content-Disposition", "form-data; name=\"file\"; filename=\"test.dat\"")
@@ -150,7 +150,7 @@ func createRawTestFile(content []byte) (multipart.FileHeader, models.UploadReque
 		Header:   mimeHeader,
 		Size:     int64(len(content)),
 	}
-	request := models.UploadRequest{
+	request := models.UploadParameters{
 		AllowedDownloads: 1,
 		Expiry:           999,
 		ExpiryTimestamp:  2147483600,
@@ -172,7 +172,7 @@ func createTestFile() (testFile, error) {
 	}, err
 }
 
-func createTestChunk() (string, chunking.FileHeader, models.UploadRequest, error) {
+func createTestChunk() (string, chunking.FileHeader, models.UploadParameters, error) {
 	content := []byte("This is a file for chunk testing purposes")
 	header, request := createRawTestFile(content)
 	chunkId := helper.GenerateRandomString(15)
@@ -183,7 +183,7 @@ func createTestChunk() (string, chunking.FileHeader, models.UploadRequest, error
 	}
 	err := os.WriteFile("test/data/chunk-"+chunkId, content, 0600)
 	if err != nil {
-		return "", chunking.FileHeader{}, models.UploadRequest{}, err
+		return "", chunking.FileHeader{}, models.UploadParameters{}, err
 	}
 	return chunkId, fileheader, request, nil
 }
@@ -241,7 +241,7 @@ func TestNewFile(t *testing.T) {
 		Header:   mimeHeader,
 		Size:     int64(20) * 1024 * 1024,
 	}
-	request = models.UploadRequest{
+	request = models.UploadParameters{
 		AllowedDownloads: 1,
 		Expiry:           999,
 		ExpiryTimestamp:  2147483600,
@@ -274,7 +274,7 @@ func TestNewFile(t *testing.T) {
 		Header:   mimeHeader,
 		Size:     int64(50) * 1024 * 1024,
 	}
-	request = models.UploadRequest{
+	request = models.UploadParameters{
 		AllowedDownloads: 1,
 		Expiry:           999,
 		ExpiryTimestamp:  2147483600,
@@ -332,7 +332,7 @@ func TestNewFile(t *testing.T) {
 			Header:   mimeHeader,
 			Size:     int64(20) * 1024 * 1024,
 		}
-		request = models.UploadRequest{
+		request = models.UploadParameters{
 			AllowedDownloads: 1,
 			Expiry:           999,
 			ExpiryTimestamp:  2147483600,
@@ -445,7 +445,7 @@ func TestDuplicateFile(t *testing.T) {
 	retrievedFile.DownloadCount = 5
 	database.SaveMetaData(retrievedFile)
 
-	newFile, err := DuplicateFile(retrievedFile, 0, "123", models.UploadRequest{})
+	newFile, err := DuplicateFile(retrievedFile, 0, "123", models.UploadParameters{})
 	test.IsNil(t, err)
 	test.IsEqualInt(t, newFile.DownloadCount, 0)
 	test.IsEqualInt(t, newFile.DownloadsRemaining, 1)
@@ -455,7 +455,7 @@ func TestDuplicateFile(t *testing.T) {
 	test.IsEqualBool(t, newFile.UnlimitedTime, false)
 	test.IsEqualString(t, newFile.Name, "test.dat")
 
-	uploadRequest := models.UploadRequest{
+	uploadRequest := models.UploadParameters{
 		AllowedDownloads:  5,
 		Expiry:            5,
 		ExpiryTimestamp:   200000,
