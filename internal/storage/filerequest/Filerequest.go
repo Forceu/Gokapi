@@ -45,9 +45,7 @@ func GetAll() []models.FileRequest {
 // Delete all files associated with a file request and the request itself
 func Delete(request models.FileRequest) {
 	files := GetAllFiles(request)
-	for _, file := range files {
-		storage.DeleteFile(file.Id, true)
-	}
+	storage.DeleteFiles(files, true)
 	database.DeleteFileRequest(request)
 }
 

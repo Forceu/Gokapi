@@ -206,18 +206,29 @@ function createFileRequestRow(jsonResult, user) {
         return td;
     }
 
+    function tdLink(text, href) {
+        const td = document.createElement("td");
+        const a = document.createElement("a");
+        a.textContent = text;
+        a.href = href;
+        a.target = "_blank";
+        td.appendChild(a);
+        return td;
+    }
+
     function icon(classes) {
         const i = document.createElement("i");
         i.className = `bi ${classes}`;
         return i;
     }
 
+    const publicUrl = `${baseUrl}publicUpload?id=${jsonResult.id}&key=${jsonResult.apikey}`;
 
     const tr = document.createElement("tr");
     tr.id = `row-${jsonResult.id}`;
 
     // Name
-    tr.appendChild(tdText(jsonResult.name));
+    tr.appendChild(tdLink(jsonResult.name, publicUrl));
     // Uploaded files / Max files
     if (jsonResult.maxfiles == 0) {
         tr.appendChild(tdText(jsonResult.uploadedfiles));
@@ -256,6 +267,20 @@ function createFileRequestRow(jsonResult, user) {
 
     downloadBtn.appendChild(icon("bi-download"));
 
+
+    // Copy
+    const copyBtn = document.createElement("button");
+    copyBtn.id = `copy-${jsonResult.id}`;
+    copyBtn.type = "button";
+    copyBtn.className = "copyurl btn btn-outline-light btn-sm";
+    copyBtn.title = "Copy URL";
+    copyBtn.setAttribute("data-clipboard-text", publicUrl);
+    copyBtn.onclick = () =>
+        showToast(1000);
+
+    copyBtn.appendChild(icon("bi-copy"));
+
+
     // Edit
     const editBtn = document.createElement("button");
     editBtn.id = `edit-${jsonResult.id}`;
@@ -278,7 +303,7 @@ function createFileRequestRow(jsonResult, user) {
 
     deleteBtn.appendChild(icon("bi-trash3"));
 
-    group.append(downloadBtn, editBtn, deleteBtn);
+    group.append(downloadBtn, copyBtn, editBtn, deleteBtn);
     td.appendChild(group);
     tr.appendChild(td);
     return tr;

@@ -952,6 +952,18 @@ func DeleteFile(fileId string, deleteSource bool) bool {
 	return true
 }
 
+// DeleteFiles deletes multiple files at once. This avoids race conditions when CleanUp is called multiple times
+// deleteSource forces a clean-up and will delete the source if it is not
+// used by a different file
+func DeleteFiles(files []models.File, deleteSource bool) {
+	for _, file := range files {
+		DeleteFile(file.Id, false)
+	}
+	if deleteSource {
+		go CleanUp(false)
+	}
+}
+
 // DeleteFileSchedule schedules a file for deletion after a specified delay and optionally deletes its source.
 // Returns true if scheduling is successful, false otherwise.
 func DeleteFileSchedule(fileId string, delayMs int, deleteSource bool) bool {

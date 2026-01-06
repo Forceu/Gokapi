@@ -109,7 +109,8 @@
 <script src="./js/min/admin.min.{{ template "js_admin_version"}}.js"></script>
 <script>
 	var userName = "{{.ActiveUser.Name}}";
-        var canViewOtherRequests = {{.ActiveUser.HasPermissionListOtherUploads }};
+	var baseUrl = "{{.ServerUrl}}";
+	var canViewOtherRequests = {{.ActiveUser.HasPermissionListOtherUploads }};
 </script>
 
 
