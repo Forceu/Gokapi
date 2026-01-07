@@ -56,7 +56,7 @@
                                 
                                 <button id="copy-{{ .Id }}" type="button" data-clipboard-text="{{ $.ServerUrl }}publicUpload?id={{ .Id }}&key={{ .ApiKey }}" class="copyurl btn btn-outline-light btn-sm" onclick="showToast(1000);" title="Copy URL"><i class="bi bi-copy"></i></button>
                                 
-		                        <button id="edit-{{ .Id }}" type="button" title="Edit request" class="btn btn-outline-light btn-sm" onclick="editFileRequest('{{ .Id }}', '{{ .Name }}', {{ .MaxFiles }}, {{ .MaxSize }}, {{ .Expiry }})">
+		                        <button id="edit-{{ .Id }}" type="button" title="Edit request" class="btn btn-outline-light btn-sm" onclick="editFileRequest('{{ .Id }}', '{{ .Name }}', {{ .MaxFiles }}, {{ .MaxSize }}, {{ .Expiry }}, '{{ .Notes }}')">
 		                        	<i class="bi bi-pencil"></i></button>
                                 
                                 
@@ -186,6 +186,10 @@
 		  <input type="text" id="mi_expiry" disabled class="form-control" aria-label="Expiry" aria-describedby="edit_expdate"  data-allow-regular-paste>
 		</div>
 		
+		<div class="input-group mb-3">
+		  <span class="input-group-text" id="mdNotes">Notes&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+		  <input type="text" id="mNotes" class="form-control" placeholder="Notes about the request" aria-label="Notes" aria-describedby="mdNotes">
+		</div>
 	      </div>
 	      <input type="hidden" id="freqId" value="" />
 	      <div class="modal-footer">

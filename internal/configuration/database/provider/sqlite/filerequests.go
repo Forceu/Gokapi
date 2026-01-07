@@ -17,6 +17,7 @@ type schemaFileRequests struct {
 	MaxSize  int
 	Creation int64
 	ApiKey   string
+	Note     string
 }
 
 // GetFileRequest returns the FileRequest or false if not found
@@ -24,7 +25,7 @@ func (p DatabaseProvider) GetFileRequest(id string) (models.FileRequest, bool) {
 	var rowResult schemaFileRequests
 	row := p.sqliteDb.QueryRow("SELECT * FROM UploadRequests WHERE Id = ?", id)
 	err := row.Scan(&rowResult.Id, &rowResult.Name, &rowResult.UserId, &rowResult.Expiry,
-		&rowResult.MaxFiles, &rowResult.MaxSize, &rowResult.Creation, &rowResult.ApiKey)
+		&rowResult.MaxFiles, &rowResult.MaxSize, &rowResult.Creation, &rowResult.ApiKey, &rowResult.Note)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return models.FileRequest{}, false
@@ -41,6 +42,7 @@ func (p DatabaseProvider) GetFileRequest(id string) (models.FileRequest, bool) {
 		Expiry:       rowResult.Expiry,
 		CreationDate: rowResult.Creation,
 		ApiKey:       rowResult.ApiKey,
+		Notes:        rowResult.Note,
 	}
 	return result, true
 }
@@ -54,7 +56,7 @@ func (p DatabaseProvider) GetAllFileRequests() []models.FileRequest {
 	for rows.Next() {
 		rowData := schemaFileRequests{}
 		err = rows.Scan(&rowData.Id, &rowData.Name, &rowData.UserId, &rowData.Expiry, &rowData.MaxFiles,
-			&rowData.MaxSize, &rowData.Creation, &rowData.ApiKey)
+			&rowData.MaxSize, &rowData.Creation, &rowData.ApiKey, &rowData.Note)
 		helper.Check(err)
 		result = append(result, models.FileRequest{
 			Id:           rowData.Id,
@@ -65,6 +67,7 @@ func (p DatabaseProvider) GetAllFileRequests() []models.FileRequest {
 			Expiry:       rowData.Expiry,
 			CreationDate: rowData.Creation,
 			ApiKey:       rowData.ApiKey,
+			Notes:        rowData.Note,
 		})
 	}
 	return result
@@ -81,10 +84,13 @@ func (p DatabaseProvider) SaveFileRequest(request models.FileRequest) {
 		Expiry:   request.Expiry,
 		Creation: request.CreationDate,
 		ApiKey:   request.ApiKey,
+		Note:     request.Notes,
 	}
 
-	_, err := p.sqliteDb.Exec("INSERT OR REPLACE INTO UploadRequests (id, name, userid, expiry, maxFiles, maxSize, creation, apiKey) VALUES  (?, ?, ?, ?, ?, ?, ?, ?)",
-		newData.Id, newData.Name, newData.UserId, newData.Expiry, newData.MaxFiles, newData.MaxSize, newData.Creation, newData.ApiKey)
+	_, err := p.sqliteDb.Exec(`INSERT OR REPLACE INTO UploadRequests
+   				 (id, name, userid, expiry, maxFiles, maxSize, creation, apiKey, note) 
+         			 VALUES  (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		newData.Id, newData.Name, newData.UserId, newData.Expiry, newData.MaxFiles, newData.MaxSize, newData.Creation, newData.ApiKey, newData.Note)
 	helper.Check(err)
 }
 

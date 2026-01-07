@@ -3,6 +3,7 @@ package filerequest
 import (
 	"time"
 
+	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
@@ -25,7 +26,7 @@ func Get(id string) (models.FileRequest, bool) {
 	if !ok {
 		return models.FileRequest{}, false
 	}
-	result.Populate(database.GetAllMetadata())
+	result.Populate(database.GetAllMetadata(), configuration.Get().MaxFileSizeMB)
 	return result, true
 }
 
@@ -35,8 +36,9 @@ func GetAll() []models.FileRequest {
 		return result
 	}
 	allFiles := database.GetAllMetadata()
+	maxServerSize := configuration.Get().MaxFileSizeMB
 	for i, request := range result {
-		request.Populate(allFiles)
+		request.Populate(allFiles, maxServerSize)
 		result[i] = request
 	}
 	return result

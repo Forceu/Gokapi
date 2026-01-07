@@ -14,6 +14,7 @@
 	<link rel="manifest" href="./site.webmanifest">
         <link href="./css/min/gokapi.min.{{ template "css_main"}}.css" rel="stylesheet">
 	<link href="./assets/dist/icons/bootstrap-icons.min.css" rel="stylesheet">
+	<script src="./js/min/all_public.min.js"></script>
 {{ if .IsAdminView }}
         <title>{{.PublicName}} Admin</title>
 	<script src="./assets/dist/js/dropzone.min.js?v={{ template "js_dropzone_version"}}"></script>
@@ -25,8 +26,6 @@
 	<link  href="./assets/dist/css/datatables.min.css" rel="stylesheet">
 	<link  href="./assets/dist/css/flatpickr.min.css" rel="stylesheet">
 	<link  href="./assets/dist/css/flatpickr.dark.min.css" rel="stylesheet">
-	<script src="./assets/dist/js/base64.min.js"></script>
-	<script src="./js/min/dateformat.min.js"></script>
 	<style>
 		.masthead-brand {
 			float: left;

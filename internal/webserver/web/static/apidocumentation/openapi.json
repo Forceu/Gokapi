@@ -1392,6 +1392,17 @@
             }
           },
           {
+            "name": "notes",
+            "in": "header",
+            "description": "The public notes for the request. If the notes includes non-ANSI characters, you can encode them with base64, by adding 'base64:' at the beginning, e.g. 'base64:ZmlsZW5hbWU='",
+            "required": false,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "expiry",
             "in": "header",
             "description": "The expiry as a UTC unix timestamp. No expiry if 0",
@@ -1936,7 +1947,7 @@
           "id": {
             "type": "string",
             "description": "The internal ID of the file request",
-            "example": "137"
+            "example": "caep3Ooquu6phoo"
           },
           "userid": {
             "type": "integer",
@@ -1972,6 +1983,11 @@
             "type": "string",
             "description": "The given name for the file request",
             "example": "Book list entries"
+          },
+          "notes": {
+            "type": "string",
+            "description": "The public notes for the file request",
+            "example": "Please make sure to upload revision 1 files"
           },
           "apikey": {
             "type": "string",

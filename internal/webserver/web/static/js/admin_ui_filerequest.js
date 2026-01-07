@@ -89,10 +89,10 @@ function loadFileRequestDefaults() {
         defaultExpiry = Math.floor(defaultDate.getTime() / 1000);
     }
 
-    setModalValues("", "", defaultMaxFiles, defaultMaxSize, defaultExpiry);
+    setModalValues("", "", defaultMaxFiles, defaultMaxSize, defaultExpiry, "");
 }
 
-function setModalValues(id, name, maxFiles, maxSize, expiry) {
+function setModalValues(id, name, maxFiles, maxSize, expiry, notes) {
     document.getElementById("freqId").value = id;
 
     if (name === null) {
@@ -133,10 +133,11 @@ function setModalValues(id, name, maxFiles, maxSize, expiry) {
         document.getElementById("mc_expiry").checked = true;
         createCalendar("mi_expiry", expiry);
     }
+        document.getElementById("mNotes").value = notes;
 }
 
-function editFileRequest(id, name, maxFiles, maxSize, expiry) {
-    setModalValues(id, name, maxFiles, maxSize, expiry);
+function editFileRequest(id, name, maxFiles, maxSize, expiry, notes) {
+    setModalValues(id, name, maxFiles, maxSize, expiry, notes);
     document.getElementById("m_urequestlabel").innerText = "Edit File Request";
     $('#addEditModal').modal('show');
 
@@ -151,6 +152,7 @@ function saveFileRequest() {
     const buttonSave = document.getElementById("b_fr_save");
     const id = document.getElementById("freqId").value;
     const name = document.getElementById("mFriendlyName").value;
+    const notes = document.getElementById("mNotes").value;
     let maxFiles = 0;
     let maxSize = 0;
     let expiry = 0;
@@ -166,7 +168,7 @@ function saveFileRequest() {
     }
 
     buttonSave.disabled = true;
-    apiURequestSave(id, name, maxFiles, maxSize, expiry)
+    apiURequestSave(id, name, maxFiles, maxSize, expiry, notes)
         .then(data => {
             document.getElementById("b_fr_save").disabled = false;
             insertOrReplaceFileRequest(data);
@@ -288,7 +290,7 @@ function createFileRequestRow(jsonResult, user) {
     editBtn.className = "btn btn-outline-light btn-sm";
     editBtn.title = "Edit request";
     editBtn.onclick = () =>
-        editFileRequest(jsonResult.id, jsonResult.name, jsonResult.maxfiles, jsonResult.maxsize, jsonResult.expiry);
+        editFileRequest(jsonResult.id, jsonResult.name, jsonResult.maxfiles, jsonResult.maxsize, jsonResult.expiry, jsonResult.notes);
 
     editBtn.appendChild(icon("bi-pencil"));
 

@@ -60,6 +60,7 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 										"maxSize"	INTEGER NOT NULL,
 										"creation"	INTEGER NOT NULL,
 										"apiKey"	TEXT NOT NULL UNIQUE,
+										"note"	TEXT NOT NULL,
 										PRIMARY KEY("id")
 									 );
 									CREATE TABLE "Presign" (
@@ -227,6 +228,7 @@ func (p DatabaseProvider) createNewDatabase() error {
 			"maxSize"	INTEGER NOT NULL,
 			"creation"	INTEGER NOT NULL,
 			"apiKey"	TEXT NOT NULL UNIQUE,
+			"note"	TEXT NOT NULL,
 			PRIMARY KEY("id")
 		);
 		CREATE TABLE "Presign" (

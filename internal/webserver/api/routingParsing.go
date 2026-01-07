@@ -1157,6 +1157,23 @@ func (p *paramURequestSave) ParseRequest(r *http.Request) error {
 		}
 	}
 
+	// RequestParser header value "notes", required: false, has base64support
+	exists, err = checkHeaderExists(r, "notes", false, true)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["notes"] = exists
+	if exists {
+		p.Notes = r.Header.Get("notes")
+		if strings.HasPrefix(p.Notes, "base64:") {
+			decoded, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(p.Notes, "base64:"))
+			if err != nil {
+				return err
+			}
+			p.Notes = string(decoded)
+		}
+	}
+
 	// RequestParser header value "expiry", required: false
 	exists, err = checkHeaderExists(r, "expiry", false, false)
 	if err != nil {

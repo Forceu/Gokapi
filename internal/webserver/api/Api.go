@@ -976,6 +976,9 @@ func apiURequestSave(w http.ResponseWriter, r requestParser, user models.User) {
 	if request.IsMaxSizeSet {
 		uploadRequest.MaxSize = request.MaxSize
 	}
+	if request.IsNotesSet {
+		uploadRequest.Notes = request.Notes
+	}
 	database.SaveFileRequest(uploadRequest)
 	uploadRequest, ok = filerequest.Get(uploadRequest.Id)
 	if isNewRequest {

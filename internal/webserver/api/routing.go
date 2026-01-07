@@ -681,6 +681,7 @@ func (p *paramURequestDelete) ProcessParameter(_ *http.Request) error {
 type paramURequestSave struct {
 	Id            string `header:"id"`
 	Name          string `header:"name" supportBase64:"true"`
+	Notes         string `header:"notes" supportBase64:"true"`
 	Expiry        int64  `header:"expiry"`
 	MaxFiles      int    `header:"maxfiles"`
 	MaxSize       int    `header:"maxsize"`
@@ -688,6 +689,7 @@ type paramURequestSave struct {
 	IsExpirySet   bool
 	IsMaxFilesSet bool
 	IsMaxSizeSet  bool
+	IsNotesSet    bool
 
 	foundHeaders map[string]bool
 }
@@ -704,6 +706,9 @@ func (p *paramURequestSave) ProcessParameter(_ *http.Request) error {
 	}
 	if p.foundHeaders["maxsize"] {
 		p.IsMaxSizeSet = true
+	}
+	if p.foundHeaders["notes"] {
+		p.IsNotesSet = true
 	}
 	return nil
 }

@@ -916,11 +916,11 @@ func showPublicUpload(w http.ResponseWriter, r *http.Request) {
 
 	config := configuration.Get()
 
-	view := filerequestView{
+	view := publicUploadView{
 		PublicName:    config.PublicName,
-		ApiKey:        apiKey,
-		FileRequestId: fileRequestId,
-		ChunkSize:     configuration.Get().ChunkSize,
+		ChunkSize:     config.ChunkSize,
+		MaxServerSize: config.MaxFileSizeMB,
+		FileRequest:   &request,
 		CustomContent: customStaticInfo,
 	}
 
@@ -1111,13 +1111,13 @@ type oauthErrorView struct {
 	CustomContent        customStatic
 }
 
-// A view containing parameters for a generic template
-type filerequestView struct {
+// A view containing parameters for the public upload page
+type publicUploadView struct {
 	IsAdminView    bool
 	IsDownloadView bool
 	PublicName     string
-	ApiKey         string
-	FileRequestId  string
 	ChunkSize      int
+	MaxServerSize  int
 	CustomContent  customStatic
+	FileRequest    *models.FileRequest
 }

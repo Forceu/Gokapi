@@ -1,18 +1,162 @@
 {{define "publicUpload"}}{{template "header" .}}
 
-<input type="file" id="fileInput" multiple />
-<br><br>
-<button onclick="startUpload()">Upload</button>
 
-<div id="status"></div>
+
+<style>
+  .upload-box {
+    border: 2px dashed #6c757d;
+    border-radius: 8px;
+    padding: 2rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+
+  .upload-box:hover {
+    background-color: rgba(255,255,255,0.05);
+  }
+
+  .file-list {
+    margin-top: 1.5rem;
+  }
+
+  .file-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    font-size: 0.95rem;
+  }
+
+  .file-size {
+    opacity: 0.75;
+  }
+
+  .info-box {
+    background-color: rgba(255,255,255,0.05);
+    border-radius: 6px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    text-align: left;
+  }
+
+  .info-box h6 {
+    margin-bottom: 0.5rem;
+  }
+
+  .info-box ul {
+    margin-bottom: 0;
+    padding-left: 1.2rem;
+  }
+</style>
+
+<main style="margin-top: 2rem">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+
+      <div class="card bg-dark text-white">
+        <div class="card-body">
+
+          <h3 class="card-title text-center mb-4">Upload Files</h3>
+
+{{ if ne .FileRequest.Notes "" }}
+          <div class="info-box">
+            <h6>Note</h6>
+            <p class="mb-0">
+              {{.FileRequest.Notes }}
+            </p>
+          </div>
+ {{ end }}
+
+{{ if .FileRequest.HasRestrictions }}
+          <div class="info-box">
+            <h6>Upload restrictions</h6>
+            <ul>
+    {{ if not (.FileRequest.IsUnlimitedTime) }}
+              <li>Upload possible until: <strong><span id="expirydate">{{ .FileRequest.Expiry }}</span></strong></li>
+              <script>insertFormattedDate({{ .FileRequest.Expiry }}, "expirydate");</script>
+    {{ end }}
+    {{ if or  (not (.FileRequest.IsUnlimitedSize)) (lt .FileRequest.CombinedMaxSize 5000) }}
+              <li>Maximum file size: <strong><span id="maxfilesize"></span></strong></li>
+              <script>insertReadableSize({{ .FileRequest.CombinedMaxSize }}, 1024 * 1024, "maxfilesize");</script>
+              
+    {{ end }}
+    {{ if not (.FileRequest.IsUnlimitedFiles) }}
+              <li>Maximum number of files: <strong>{{ .FileRequest.FilesRemaining }}</strong></li>
+    {{ end }}
+            </ul>
+          </div>
+{{ end }}
+
+
+          <label for="fileInput" class="upload-box text-center w-100">
+            <p class="mb-2 fs-5">Drag & drop files here</p>
+            <p class="mb-0 opacity-75">or paste or click to select</p>
+            <input
+              type="file"
+              id="fileInput"
+              class="d-none"
+              multiple
+            >
+          </label>
+
+          <div id="fileList" class="file-list"></div>
+
+          <div class="text-center mt-4">
+            <button class="btn btn-secondary" disabled>
+              Upload (TODO)
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<script>
+  const fileInput = document.getElementById('fileInput');
+  const fileList = document.getElementById('fileList');
+
+  fileInput.addEventListener('change', () => {
+    fileList.innerHTML = '';
+
+    Array.from(fileInput.files).forEach(file => {
+      const item = document.createElement('div');
+      item.className = 'file-item';
+
+      const name = document.createElement('span');
+      name.textContent = file.name;
+
+      const size = document.createElement('span');
+      size.className = 'file-size';
+      size.textContent = formatSize(file.size);
+
+      item.appendChild(name);
+      item.appendChild(size);
+      fileList.appendChild(item);
+    });
+  });
+
+  function formatSize(bytes) {
+    const units = ['B', 'KB', 'MB', 'GB'];
+    let i = 0;
+    while (bytes >= 1024 && i < units.length - 1) {
+      bytes /= 1024;
+      i++;
+    }
+    return bytes.toFixed(1) + ' ' + units[i];
+  }
+</script>
+
 
 <script>
 const CHUNK_SIZE = {{ .ChunkSize }} * 1024 * 1024;
 const UPLOAD_URL = "./api/chunk/uploadRequestAdd";
 const COMPLETE_URL = "./api/chunk/uploadRequestComplete";
 
-const FILE_REQUEST_ID = "{{ .FileRequestId }}";
-const API_KEY = "{{ .ApiKey }}";
+const FILE_REQUEST_ID = "{{ .FileRequest.Id }}";
+const API_KEY = "{{ .FileRequest.ApiKey }}";
 
 
 async function startUpload() {
