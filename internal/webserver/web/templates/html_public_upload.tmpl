@@ -3,50 +3,35 @@
 
 
 <style>
-  .upload-box {
-    border: 2px dashed #6c757d;
-    border-radius: 8px;
-    padding: 2rem;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-  }
-
-  .upload-box:hover {
-    background-color: rgba(255,255,255,0.05);
-  }
+ 
 
   .file-list {
     margin-top: 1.5rem;
   }
 
-  .file-item {
-    display: flex;
-    justify-content: space-between;
-    padding: 0.5rem 0;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-    font-size: 0.95rem;
-  }
+.file-item {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  font-size: 0.95rem;
+}
 
-  .file-size {
+.file-item span:first-child {
+  flex: 1;
+  text-align: left; 
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.file-size {
+  text-align: right;
+  margin-right: 12px;
+  flex-shrink: 0;
     opacity: 0.75;
-  }
+}
 
-  .info-box {
-    background-color: rgba(255,255,255,0.05);
-    border-radius: 6px;
-    padding: 1rem;
-    margin-bottom: 1.5rem;
-    text-align: left;
-  }
-
-  .info-box h6 {
-    margin-bottom: 0.5rem;
-  }
-
-  .info-box ul {
-    margin-bottom: 0;
-    padding-left: 1.2rem;
-  }
 </style>
 
 <main style="margin-top: 2rem">
@@ -131,9 +116,20 @@
       const size = document.createElement('span');
       size.className = 'file-size';
       size.textContent = formatSize(file.size);
+      
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.title = "Remove";
+      removeBtn.className = 'btn btn-sm btn-link text-light p-0 remove-entry-btn';
+      removeBtn.innerHTML = '<i class="bi bi-x-circle"></i>';
+
+      removeBtn.addEventListener('click', () => {
+        item.remove();
+      });
 
       item.appendChild(name);
       item.appendChild(size);
+      item.appendChild(removeBtn);
       fileList.appendChild(item);
     });
   });

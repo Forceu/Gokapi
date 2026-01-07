@@ -390,3 +390,37 @@ tr.no-bottom-border td {
 .collapse-toggle {
   padding: 0.25rem;
 }
+.remove-entry-btn:hover {
+  opacity: 0.8;
+}
+
+
+ .upload-box {
+    border: 2px dashed #6c757d;
+    border-radius: 8px;
+    padding: 2rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+
+  .upload-box:hover {
+    background-color: rgba(255,255,255,0.05);
+  }
+  
+  
+  .info-box {
+    background-color: rgba(255,255,255,0.05);
+    border-radius: 6px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    text-align: left;
+  }
+
+  .info-box h6 {
+    margin-bottom: 0.5rem;
+  }
+
+  .info-box ul {
+    margin-bottom: 0;
+    padding-left: 1.2rem;
+  }
