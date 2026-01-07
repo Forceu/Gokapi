@@ -228,6 +228,7 @@ function createFileRequestRow(jsonResult, user) {
 
     const tr = document.createElement("tr");
     tr.id = `row-${jsonResult.id}`;
+    tr.className = "filerequest-item";
 
     // Name
     tr.appendChild(tdLink(jsonResult.name, publicUrl));

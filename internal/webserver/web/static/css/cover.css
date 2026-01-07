@@ -359,7 +359,6 @@ a:hover {
   background-color: rgba(255, 255, 255, 0.04);
 }
 
-/* Optional hover polish */
 .filelist-item:hover {
   background-color: rgba(255, 255, 255, 0.08);
 }
@@ -369,4 +368,25 @@ tr.no-bottom-border td {
   border-bottom: none
 }
 
+.filerequest-item:hover > td {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+.filerequest-item > td {
+  transition: background-color 0.15s ease-in-out;
+}
 
+.collapse-toggle i {
+  display: inline-block; 
+  transition: transform 0.2s ease;
+}
+
+.collapse-toggle[aria-expanded="true"] i {
+  transform: rotate(180deg);
+}
+
+.collapse-toggle:hover {
+  opacity: 0.8;
+}
+.collapse-toggle {
+  padding: 0.25rem;
+}
