@@ -42,11 +42,11 @@ For Linux / Unix environments, execute the binary in this format:
 Windows
 """"""""
 
-For Windows environments, you need to run ``setx`` first, e.g.:
+For Windows environments, you need to run ``set`` first, e.g.:
 ::
 
-  setx GOKAPI_PORT 12345
-  setx GOKAPI_CHUNK_SIZE_MB 60 database.sqlite
+  set GOKAPI_PORT=12345
+  set GOKAPI_CHUNK_SIZE_MB=60
   [...]
   Gokapi.exe
 
