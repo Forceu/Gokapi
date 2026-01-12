@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"os"
 	"strings"
 
 	"github.com/forceu/gokapi/internal/configuration/database/dbabstraction"
@@ -96,10 +97,17 @@ func RunGarbageCollection() {
 	db.RunGarbageCollection()
 }
 
+var osExit = os.Exit
+
 // Upgrade migrates the DB to a new Gokapi version, if required
 func Upgrade() {
 	dbVersion := db.GetDbVersion()
 	expectedVersion := db.GetSchemaVersion()
+	if dbVersion > expectedVersion {
+		fmt.Println("Error: Database is from a newer Gokapi version. Unable to continue.")
+		osExit(1)
+		return
+	}
 	if dbVersion < expectedVersion {
 		db.Upgrade(dbVersion)
 		db.SetDbVersion(expectedVersion)

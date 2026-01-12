@@ -39,7 +39,7 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 		osExit(1)
 		return
 	}
-	// pre local DB
+	// pre local TZ
 	if currentDbVersion < 11 {
 		err := p.rawSqlite("ALTER TABLE FileMetaData DROP COLUMN ExpireAtString;")
 		helper.Check(err)
