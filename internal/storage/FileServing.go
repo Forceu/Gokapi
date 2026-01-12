@@ -570,6 +570,9 @@ func GetFile(id string) (models.File, bool) {
 	if !ok {
 		return emptyResult, false
 	}
+	if file.IsPendingForDeletion() {
+		return emptyResult, false
+	}
 	if IsExpiredFile(file, time.Now().Unix()) {
 		return emptyResult, false
 	}

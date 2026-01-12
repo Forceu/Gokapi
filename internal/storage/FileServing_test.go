@@ -69,6 +69,25 @@ func TestGetFile(t *testing.T) {
 	_, result = GetFile(file.Id)
 	test.IsEqualBool(t, result, false)
 
+	// Test pending deletion - file should not be retrievable when pending deletion
+	pendingFile := models.File{
+		Id:                 "testpendingdelete",
+		Name:               "testpendingdelete",
+		SHA1:               "e017693e4a04a59d0b0f400fe98177fe7ee13cf7",
+		UnlimitedDownloads: true,
+		UnlimitedTime:      true,
+		PendingDeletion:    time.Now().Add(time.Hour).Unix(),
+	}
+	database.SaveMetaData(pendingFile)
+	_, result = GetFile(pendingFile.Id)
+	test.IsEqualBool(t, result, false)
+	// Clean up - cancel pending deletion to allow normal retrieval
+	pendingFile.PendingDeletion = 0
+	database.SaveMetaData(pendingFile)
+	_, result = GetFile(pendingFile.Id)
+	test.IsEqualBool(t, result, true)
+	// Clean up test data
+	database.DeleteMetaData(pendingFile.Id)
 }
 
 func TestGetEncInfoFromExistingFile(t *testing.T) {
