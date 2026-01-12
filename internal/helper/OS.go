@@ -6,7 +6,6 @@ Simplified OS functions
 
 import (
 	"bufio"
-	"errors"
 	"log"
 	"os"
 	"syscall"
@@ -98,9 +97,3 @@ func GetFileSize(file *os.File) (int64, error) {
 	}
 	return fileInfo.Size(), nil
 }
-
-// ErrPathDoesNotExist is raised if the requested path does not exist
-var ErrPathDoesNotExist = errors.New("path does not exist")
-
-// ErrPathIsNotDir is raised if the requested path is not a directory
-var ErrPathIsNotDir = errors.New("path is not a directory")

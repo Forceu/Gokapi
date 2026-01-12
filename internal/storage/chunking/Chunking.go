@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/forceu/gokapi/internal/configuration"
+	"github.com/forceu/gokapi/internal/environment"
 	"github.com/forceu/gokapi/internal/helper"
 )
 
@@ -157,6 +158,19 @@ func getChunkFilePath(id string) string {
 	return configuration.Get().DataDir + "/chunk-" + id
 }
 
+func isEnoughSpace(filesize int64) (bool, error) {
+	freeSpace, err := helper.GetFreeSpace(configuration.Get().DataDir)
+	if err != nil {
+		return false, err
+	}
+	env := environment.New()
+	minAdditionalSpace := int64(env.MinFreeSpaceMB) * 1024 * 1024
+	if freeSpace < uint64(filesize+minAdditionalSpace) {
+		return false, nil
+	}
+	return true, nil
+}
+
 // GetFileByChunkId returns a handle to the chunk file
 func GetFileByChunkId(id string) (*os.File, error) {
 	if id == "" {
@@ -191,6 +205,13 @@ func NewChunk(chunkContent io.Reader, fileHeader *multipart.FileHeader, info Chu
 func allocateFile(info ChunkInfo) error {
 	if FileExists(info.UUID) {
 		return nil
+	}
+	enoughSpace, err := isEnoughSpace(info.TotalFilesizeBytes)
+	if err != nil {
+		return err
+	}
+	if !enoughSpace {
+		return errors.New("not enough space on server for storing this file - please contact the administrator")
 	}
 	file, err := os.OpenFile(getChunkFilePath(info.UUID), os.O_RDWR|os.O_CREATE, 0600)
 	defer file.Close()

@@ -42,11 +42,11 @@ For Linux / Unix environments, execute the binary in this format:
 Windows
 """"""""
 
-For Windows environments, you need to run ``setx`` first, e.g.:
+For Windows environments, you need to run ``set`` first, e.g.:
 ::
 
-  setx GOKAPI_PORT 12345
-  setx GOKAPI_CHUNK_SIZE_MB 60 database.sqlite
+  set GOKAPI_PORT=12345
+  set GOKAPI_CHUNK_SIZE_MB=60
   [...]
   Gokapi.exe
 
@@ -79,6 +79,8 @@ Available environment variables
 |                               | Any chunk or file with a size greater than that will be written to a temporary file |                 |                                      |
 +-------------------------------+-------------------------------------------------------------------------------------+-----------------+--------------------------------------+
 | GOKAPI_MAX_PARALLEL_UPLOADS   | Set the amount of chunks that are uploaded in parallel for a single file            | Yes             | 4                                    |
++-------------------------------+-------------------------------------------------------------------------------------+-----------------+--------------------------------------+
+| GOKAPI_MIN_FREE_SPACE         | Sets the minium free space on the disk in MB for accepting an upload                | No              | 400                                  |
 +-------------------------------+-------------------------------------------------------------------------------------+-----------------+--------------------------------------+
 | GOKAPI_MIN_LENGTH_PASSWORD    | Sets the minium password length - must be at least 6 characters                     | No              | 8                                    |
 +-------------------------------+-------------------------------------------------------------------------------------+-----------------+--------------------------------------+
