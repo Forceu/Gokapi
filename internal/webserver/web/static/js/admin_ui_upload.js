@@ -36,13 +36,23 @@ function initDropzone() {
 
             // Error handling for chunk upload, especially returning 413 error code (invalid nginx configuration)
             this.on("error", function(file, errorMessage, xhr) {
-                if (xhr && xhr.status === 413) {
-                    showError(file, "File too large to upload. If you are using a reverse proxy, make sure that the allowed body size is at least 70MB.");
+                console.log(errorMessage);
+                if (xhr) {
+                    if (xhr.status === 413) {
+                        showError(file, "File too large to upload. If you are using a reverse proxy, make sure that the allowed body size is at least 70MB.");
+                        return;
+                    }
+                    try {
+                        console.log(xhr);
+                        errInfo = JSON.parse(xhr.responseText);
+                        showError(file, "Error: " + errInfo.ErrorMessage);
+                    } catch (ignored) {
+                        showError(file, "Error: " + xhr.responseText);
+                    }
                 } else {
                     showError(file, "Error: " + errorMessage);
                 }
             });
-
             this.on("uploadprogress", function(file, progress, bytesSent) {
                 updateProgressbar(file, progress, bytesSent);
             });
@@ -64,8 +74,8 @@ function initDropzone() {
         }
         const activeElement = document.activeElement;
         // disable upload on paste if edit field with data-allow-regular-paste is selected or the calendar view (with placeholder attribute)
-        if (activeElement && (activeElement.hasAttribute('data-allow-regular-paste') ||activeElement.hasAttribute('placeholder'))) {
-	    return;
+        if (activeElement && (activeElement.hasAttribute('data-allow-regular-paste') || activeElement.hasAttribute('placeholder'))) {
+            return;
         }
 
         var items = (event.clipboardData || event.originalEvent.clipboardData).items;
@@ -964,7 +974,7 @@ function handleUndo(button) {
         .then(data => {
             addRow(data.FileInfo);
             if (isE2EEnabled) {
-            	GokapiE2EDecryptMenu();
+                GokapiE2EDecryptMenu();
             }
         })
         .catch(error => {
@@ -994,4 +1004,3 @@ function showDeprecationNotice() {
         notification.classList.remove("show");
     }, 5000);
 }
-
