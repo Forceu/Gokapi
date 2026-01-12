@@ -82,6 +82,12 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 				p.DeleteApiKey(apiKey.Id)
 			}
 		}
+		for _, user := range p.GetAllUsers() {
+			if user.UserLevel != models.UserLevelUser {
+				user.GrantPermission(models.UserPermGuestUploads)
+			}
+			p.SaveUser(user, false)
+		}
 	}
 }
 

@@ -87,8 +87,8 @@
           <div id="fileList" class="file-list"></div>
 
           <div class="text-center mt-4">
-            <button class="btn btn-secondary" disabled>
-              Upload (TODO)
+            <button class="btn btn-secondary" onClick="initUpload();" id="uploadbutton">
+              Upload
             </button>
           </div>
 
@@ -101,38 +101,61 @@
 
 <script>
   const fileInput = document.getElementById('fileInput');
-  const fileList = document.getElementById('fileList');
+const fileList = document.getElementById('fileList');
 
-  fileInput.addEventListener('change', () => {
-    fileList.innerHTML = '';
+const filesMap = new Map();
 
-    Array.from(fileInput.files).forEach(file => {
-      const item = document.createElement('div');
-      item.className = 'file-item';
+fileInput.addEventListener('change', () => {
+  Array.from(fileInput.files).forEach(file => {
+    const uuid = getUuid();
 
-      const name = document.createElement('span');
-      name.textContent = file.name;
+    const item = document.createElement('div');
+    item.className = 'file-item';
+    item.dataset.uuid = uuid;
 
-      const size = document.createElement('span');
-      size.className = 'file-size';
-      size.textContent = formatSize(file.size);
-      
-      const removeBtn = document.createElement('button');
-      removeBtn.type = 'button';
-      removeBtn.title = "Remove";
-      removeBtn.className = 'btn btn-sm btn-link text-light p-0 remove-entry-btn';
-      removeBtn.innerHTML = '<i class="bi bi-x-circle"></i>';
+    const name = document.createElement('span');
+    name.textContent = file.name;
 
-      removeBtn.addEventListener('click', () => {
-        item.remove();
-      });
+    const progressText = document.createElement('span');
+    progressText.className = 'file-size';
+    progressText.textContent = '0%';
 
-      item.appendChild(name);
-      item.appendChild(size);
-      item.appendChild(removeBtn);
-      fileList.appendChild(item);
+    const progressBar = document.createElement('progress');
+    progressBar.max = file.size;
+    progressBar.value = 0;
+    progressBar.style.width = '120px';
+    progressBar.style.marginRight = '10px';
+
+    const size = document.createElement('span');
+    size.className = 'file-size';
+    size.textContent = formatSize(file.size);
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.title = 'Remove';
+    removeBtn.className = 'btn btn-sm btn-link text-light p-0';
+    removeBtn.innerHTML = '<i class="bi bi-x-circle"></i>';
+
+    removeBtn.addEventListener('click', () => {
+      filesMap.get(uuid).removed = true;
+      item.remove();
+    });
+
+    item.append(name, progressBar, progressText, size, removeBtn);
+    fileList.appendChild(item);
+
+    filesMap.set(uuid, {
+      uuid,
+      file,
+      removed: false,
+      elements: { progressBar, progressText, removeBtn, item }
     });
   });
+
+  // Allow re-selecting same files
+  fileInput.value = '';
+});
+
 
   function formatSize(bytes) {
     const units = ['B', 'KB', 'MB', 'GB'];
@@ -154,26 +177,24 @@ const COMPLETE_URL = "./api/chunk/uploadRequestComplete";
 const FILE_REQUEST_ID = "{{ .FileRequest.Id }}";
 const API_KEY = "{{ .FileRequest.ApiKey }}";
 
+function initUpload() {
+  const btn = document.getElementById("uploadbutton");
+  btn.disabled = true;
+
+  startUpload()
+    .catch(err => console.error(err))
+    .finally(() => btn.disabled = false);
+}
 
 async function startUpload() {
-  const files = document.getElementById("fileInput").files;
-  const status = document.getElementById("status");
-  status.innerHTML = "";
+  for (const entry of filesMap.values()) {
+    if (entry.removed) continue;
 
-  for (const file of files) {
-    const fileDiv = document.createElement("div");
-    fileDiv.className = "file";
-    fileDiv.innerHTML = `
-      <strong>${file.name}</strong><br>
-      <progress value="0" max="${file.size}"></progress>
-      <span class="progressText">0%</span>
-    `;
-    status.appendChild(fileDiv);
+    const { file, uuid, elements } = entry;
 
-    const progressBar = fileDiv.querySelector("progress");
-    const progressText = fileDiv.querySelector(".progressText");
+    // Disable delete during upload
+    elements.removeBtn.remove();
 
-    const uuid = getUuid();
     let offset = 0;
 
     while (offset < file.size) {
@@ -189,53 +210,52 @@ async function startUpload() {
         method: "POST",
         body: formData,
         headers: {
-        'apikey': API_KEY,
-        "fileRequestId": FILE_REQUEST_ID
+          apikey: API_KEY,
+          fileRequestId: FILE_REQUEST_ID
         }
       });
 
       if (!response.ok) {
+        elements.progressText.textContent = "Error";
         throw new Error(`Chunk upload failed: ${response.status}`);
       }
 
       offset += chunk.size;
-      progressBar.value = offset;
-      progressText.textContent = Math.floor((offset / file.size) * 100) + "%";
+      elements.progressBar.value = offset;
+      elements.progressText.textContent =
+        Math.floor((offset / file.size) * 100) + "%";
     }
 
-    // Finalize upload
     await finalizeUpload(file, uuid);
-    progressText.textContent = "✔ Completed";
+
+    elements.progressText.textContent = "Completed";
+    elements.item.style.opacity = "0.6";
+    filesMap.get(uuid).removed = true;
   }
 }
 
 async function finalizeUpload(file, uuid) {
-  const headers = {
-    "uuid": uuid,
-    "fileRequestId": FILE_REQUEST_ID,
-    "filename": encodeFilename(file.name),
-    "filesize": file.size,
-        'apikey': API_KEY,
-    "contenttype": file.type || "application/octet-stream"
-  };
-
   const response = await fetch(COMPLETE_URL, {
     method: "POST",
-    headers: headers
+    headers: {
+      uuid: uuid,
+      fileRequestId: FILE_REQUEST_ID,
+      filename: encodeFilename(file.name),
+      filesize: file.size,
+      contenttype: file.type || "application/octet-stream",
+      apikey: API_KEY
+    }
   });
 
   if (!response.ok) {
     throw new Error(`Finalize failed: ${response.status}`);
   }
-
-  return response;
 }
 
 function encodeFilename(name) {
-  return "base64:" + btoa(unescape(encodeURIComponent(name)));
+  return "base64:" + Base64.encode(name);
 }
 </script>
-        <script src="./js/min/uuid.min.js"></script>
 
 {{ template "pagename" "PublicUpload"}}
 {{ template "customjs" .}}

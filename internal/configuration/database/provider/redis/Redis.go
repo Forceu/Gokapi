@@ -21,7 +21,7 @@ type DatabaseProvider struct {
 }
 
 // DatabaseSchemeVersion contains the version number to be expected from the current database. If lower, an upgrade will be performed
-const DatabaseSchemeVersion = 6
+const DatabaseSchemeVersion = 7
 
 // New returns an instance
 func New(dbConfig models.DbConnection) (DatabaseProvider, error) {
@@ -129,6 +129,20 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 				user.GrantPermission(models.UserPermGuestUploads)
 				p.SaveUser(user, false)
 			}
+		}
+		for _, apiKey := range p.GetAllApiKeys() {
+			if apiKey.IsSystemKey {
+				p.DeleteApiKey(apiKey.Id)
+			}
+		}
+	}
+	// pre file request
+	if currentDbVersion < 7 {
+		for _, user := range p.GetAllUsers() {
+			if user.UserLevel != models.UserLevelUser {
+				user.GrantPermission(models.UserPermGuestUploads)
+			}
+			p.SaveUser(user, false)
 		}
 		for _, apiKey := range p.GetAllApiKeys() {
 			if apiKey.IsSystemKey {
