@@ -26,8 +26,9 @@ type Environment struct {
 	MaxFileSize                 int    `env:"MAX_FILESIZE" envDefault:"102400"` // 102400==100GB
 	MaxMemory                   int    `env:"MAX_MEMORY_UPLOAD" envDefault:"50"`
 	MaxParallelUploads          int    `env:"MAX_PARALLEL_UPLOADS" envDefault:"3"`
-	WebserverPort               int    `env:"PORT" envDefault:"53842"`
+	MinFreeSpaceMB              int    `env:"MIN_FREE_SPACE" envDefault:"400"`
 	MinLengthPassword           int    `env:"MIN_LENGTH_PASSWORD" envDefault:"8"`
+	WebserverPort               int    `env:"PORT" envDefault:"53842"`
 	DisableCorsCheck            bool   `env:"DISABLE_CORS_CHECK" envDefault:"false"`
 	LogToStdout                 bool   `env:"LOG_STDOUT" envDefault:"false"`
 	HotlinkVideos               bool   `env:"ENABLE_HOTLINK_VIDEOS" envDefault:"false"`
