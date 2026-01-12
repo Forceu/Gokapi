@@ -1,3 +1,5 @@
+//go:build !js && !wasm && windows
+
 package helper
 
 import (
@@ -16,12 +18,12 @@ func GetFreeSpace(path string) (uint64, error) {
 	h := syscall.MustLoadDLL("kernel32.dll")
 	c := h.MustFindProc("GetDiskFreeSpaceExW")
 
-	du := &DiskUsage{}
+	du := &diskUsage{}
 
 	c.Call(
-		uintptr(unsafe.Pointer(syscall.StringToUTF16Ptr(volumePath))),
+		uintptr(unsafe.Pointer(syscall.StringToUTF16Ptr(path))),
 		uintptr(unsafe.Pointer(&du.freeBytes)),
 		uintptr(unsafe.Pointer(&du.totalBytes)),
 		uintptr(unsafe.Pointer(&du.availBytes)))
-	return du.freeBytes, nil
+	return uint64(du.freeBytes), nil
 }
