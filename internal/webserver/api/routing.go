@@ -16,7 +16,7 @@ import (
 type apiRoute struct {
 	Url              string               // The API endpoint
 	HasWildcard      bool                 // True if the endpoint contains the ID as a sub-URL
-	IsFileRequestApi bool                 //True if the endpoint is used for public uploads
+	IsFileRequestApi bool                 // True if the endpoint is used for public uploads
 	AdminOnly        bool                 // True if the endpoint requires admin/superadmin permissions
 	ApiPerm          models.ApiPermission // Required permission to access the endpoint
 	RequestParser    requestParser        // Parser for the supplied parameters
@@ -87,21 +87,6 @@ var routes = []apiRoute{
 		ApiPerm:       models.ApiPermUpload,
 		execution:     apiChunkComplete,
 		RequestParser: &paramChunkComplete{},
-	},
-	{
-		Url:              "/chunk/uploadRequestAdd",
-		ApiPerm:          models.ApiPermNone,
-		execution:        apiChunkUploadRequestAdd,
-		IsFileRequestApi: true,
-		RequestParser:    &paramChunkUploadRequestAdd{},
-	},
-	{
-		//TODO only add chunks that are authorised
-		Url:              "/chunk/uploadRequestComplete",
-		ApiPerm:          models.ApiPermNone,
-		IsFileRequestApi: true,
-		execution:        apiChunkUploadRequestComplete,
-		RequestParser:    &paramChunkUploadRequestComplete{},
 	},
 	{
 		Url:           "/files/add",
@@ -217,6 +202,21 @@ var routes = []apiRoute{
 		ApiPerm:       models.ApiPermManageFileRequests,
 		execution:     apiURequestDelete,
 		RequestParser: &paramURequestDelete{},
+	},
+	{
+		Url:              "/uploadrequest/chunk/add",
+		ApiPerm:          models.ApiPermNone,
+		execution:        apiChunkUploadRequestAdd,
+		IsFileRequestApi: true,
+		RequestParser:    &paramChunkUploadRequestAdd{},
+	},
+	{
+		//TODO only add chunks that are authorised
+		Url:              "/uploadrequest/chunk/commplete",
+		ApiPerm:          models.ApiPermNone,
+		IsFileRequestApi: true,
+		execution:        apiChunkUploadRequestComplete,
+		RequestParser:    &paramChunkUploadRequestComplete{},
 	},
 	{
 		Url:           "/logs/delete",

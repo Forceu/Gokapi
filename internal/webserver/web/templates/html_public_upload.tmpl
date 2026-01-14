@@ -171,8 +171,8 @@ fileInput.addEventListener('change', () => {
 
 <script>
 const CHUNK_SIZE = {{ .ChunkSize }} * 1024 * 1024;
-const UPLOAD_URL = "./api/chunk/uploadRequestAdd";
-const COMPLETE_URL = "./api/chunk/uploadRequestComplete";
+const UPLOAD_URL = "./api/uploadrequest/chunk/add";
+const COMPLETE_URL = "./api/uploadrequest/chunk/commplete";
 
 const FILE_REQUEST_ID = "{{ .FileRequest.Id }}";
 const API_KEY = "{{ .FileRequest.ApiKey }}";

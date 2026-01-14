@@ -529,10 +529,55 @@
         }
       }
     },
-    "/chunk/uploadRequestComplete": {
+    "/uploadrequest/chunk/add": {
       "post": {
         "tags": [
-          "chunk"
+          "uploadrequest"
+        ],
+        "summary": "Uploads a new chunk for a file request",
+        "description": "Uploads a file in chunks. Parallel uploading is supported. Must call /uploadrequest/chunk/commplete after all chunks have been uploaded. WARNING: Does not support end-to-end encryption! If server is setup to utilise end-to-end encryption, file will be stored in plain-text! Requires API key associated with the file request",
+        "operationId": "chunkaddur",
+        "security": [
+          {
+            "apikey": [
+              "FileRequest"
+            ]
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/chunkingUr"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Operation successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/chunkUploadResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
+          }
+        }
+      }
+    },
+    "/uploadrequest/chunk/commplete": {
+      "post": {
+        "tags": [
+          "uploadrequest"
         ],
         "summary": "Finalises uploaded chunks",
         "description": "Needs to be called after all chunks have been uploaded. Adds the uploaded file to Gokapi. Requires API permission UPLOAD",
@@ -640,51 +685,6 @@
         "responses": {
           "200": {
             "description": "Operation successful"
-          },
-          "400": {
-            "description": "Invalid input"
-          },
-          "401": {
-            "description": "Invalid API key provided for authentication or API key does not have the required permission"
-          }
-        }
-      }
-    },
-    "/chunk/uploadRequestAdd": {
-      "post": {
-        "tags": [
-          "chunk"
-        ],
-        "summary": "Uploads a new chunk for a file request",
-        "description": "Uploads a file in chunks. Parallel uploading is supported. Must call /chunk/uploadRequestComplete after all chunks have been uploaded. WARNING: Does not support end-to-end encryption! If server is setup to utilise end-to-end encryption, file will be stored in plain-text! Requires API key associated with the file request",
-        "operationId": "chunkaddur",
-        "security": [
-          {
-            "apikey": [
-              "FileRequest"
-            ]
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/chunkingUr"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Operation successful",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/chunkUploadResult"
-                }
-              }
-            }
           },
           "400": {
             "description": "Invalid input"
