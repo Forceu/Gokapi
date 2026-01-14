@@ -14,12 +14,13 @@ import (
 )
 
 type apiRoute struct {
-	Url              string
-	HasWildcard      bool
-	IsFileRequestApi bool
-	ApiPerm          models.ApiPermission
-	RequestParser    requestParser
-	execution        apiFunc
+	Url              string               // The API endpoint
+	HasWildcard      bool                 // True if the endpoint contains the ID as a sub-URL
+	IsFileRequestApi bool                 //True if the endpoint is used for public uploads
+	AdminOnly        bool                 // True if the endpoint requires admin/superadmin permissions
+	ApiPerm          models.ApiPermission // Required permission to access the endpoint
+	RequestParser    requestParser        // Parser for the supplied parameters
+	execution        apiFunc              // Execution function for the endpoint
 }
 
 func (r apiRoute) Continue(w http.ResponseWriter, request requestParser, user models.User) {
@@ -54,6 +55,13 @@ var routes = []apiRoute{
 		execution:     apiDownloadZip,
 		HasWildcard:   true,
 		RequestParser: &paramFilesDownloadZip{},
+	},
+	{
+		Url:           "/files/changeOwner",
+		ApiPerm:       models.ApiPermEdit,
+		AdminOnly:     true,
+		execution:     apiChangeFileOwner,
+		RequestParser: &paramFilesChangeOwner{},
 	},
 	{
 		Url:           "/files/list",
@@ -213,6 +221,7 @@ var routes = []apiRoute{
 	{
 		Url:           "/logs/delete",
 		ApiPerm:       models.ApiPermManageLogs,
+		AdminOnly:     true,
 		execution:     apiLogsDelete,
 		RequestParser: &paramLogsDelete{},
 	},
@@ -305,6 +314,16 @@ type paramFilesAdd struct {
 
 func (p *paramFilesAdd) ProcessParameter(r *http.Request) error {
 	p.Request = r
+	return nil
+}
+
+type paramFilesChangeOwner struct {
+	Id           string `header:"id" required:"true"`
+	NewOwner     int    `header:"newOwner" required:"true"`
+	foundHeaders map[string]bool
+}
+
+func (p *paramFilesChangeOwner) ProcessParameter(_ *http.Request) error {
 	return nil
 }
 

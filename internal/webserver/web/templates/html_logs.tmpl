@@ -21,6 +21,7 @@
                         <option value="info">Show [info]</option>
                     </select>
 
+{{ if or (eq .ActiveUser.UserLevel 0) (eq .ActiveUser.UserLevel 1) }}
                     <select id="deleteLogs" class="form-select" onchange="deleteLogs(this.value)">
                         <option value="none">Delete Logs...</option>
                         <option value="2">Older than 2 days</option>
@@ -29,6 +30,11 @@
                         <option value="30">Older than 30 days</option>
                         <option value="all">Delete all logs</option>
                     </select>
+{{ else }}
+                    <select id="deleteLogs" disabled class="form-select disabled" onchange="">
+                        <option value="none">Only administrators can delete logs</option>
+                    </select>
+{{ end }}                    
                 </div>
             
             <br>

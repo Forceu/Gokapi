@@ -617,7 +617,7 @@
           "logs"
         ],
         "summary": "Deletes entries from the logfilek",
-        "description": "This API call deletes all lines before older than a cutoff date. Requires API permission MANAGE_LOGS",
+        "description": "This API call deletes all lines before older than a cutoff date. Requires API permission MANAGE_LOGS and user needs to be admin or super-admin.",
         "operationId": "logsdelete",
         "security": [
           {
@@ -809,6 +809,64 @@
             "description": "Sets a new filename. Filename will be unchanged if empty.",
             "schema": {
               "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/File"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
+          },
+          "404": {
+            "description": "Invalid ID provided or file has expired"
+          }
+        }
+      }
+    },
+    "/files/changeOwner": {
+      "put": {
+        "tags": [
+          "files"
+        ],
+        "summary": "Changes the owner of an existing file",
+        "description": "This API call changes the owner of an existing owner to the new owner id. Requires API permission EDIT and the user must be an administrator or super-administrator. The user needs to have the user permission EDIT",
+        "operationId": "changeowner",
+        "security": [
+          {
+            "apikey": [
+              "EDIT"
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "header",
+            "required": true,
+            "description": "ID of file to be edited",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "newOwner",
+            "in": "header",
+            "required": true,
+            "description": "User ID of the new owner",
+            "schema": {
+              "type": "integer"
             }
           }
         ],
