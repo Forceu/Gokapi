@@ -756,16 +756,62 @@
             ]
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/duplicate"
-              }
+        "parameters": [
+          {
+            "name": "id",
+            "in": "header",
+            "required": true,
+            "description": "ID of file to be duplicated",
+            "schema": {
+              "type": "string"
             }
           },
-          "required": true
-        },
+          {
+            "name": "allowed-downloads",
+            "in": "header",
+            "required": false,
+            "description": "How many downloads are allowed. Original value from web interface will be used if empty. Unlimited if 0 is passed.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "expiry-days",
+            "in": "header",
+            "required": false,
+            "description": "How many days the file will be stored. Original value from web interface will be used if empty. Unlimited if 0 is passed.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "password",
+            "in": "header",
+            "required": false,
+            "description": "Password for this file to be set. No password will be used if empty.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "original-password",
+            "in": "header",
+            "required": false,
+            "description": "Set to true to use original password. Field \"password\" will be ignored if set.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "filename",
+            "in": "header",
+            "required": false,
+            "description": "Sets a new filename. Filename will be unchanged if empty.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Operation successful",
@@ -2179,38 +2225,6 @@
           }
         }
       },
-      "duplicate": {
-        "required": [
-          "id"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "ID of file to be duplicated"
-          },
-          "allowedDownloads": {
-            "type": "integer",
-            "description": "How many downloads are allowed. Original value from web interface will be used if empty. Unlimited if 0 is passed."
-          },
-          "expiryDays": {
-            "type": "integer",
-            "description": "How many days the file will be stored. Original value from web interface will be used if empty. Unlimited if 0 is passed."
-          },
-          "password": {
-            "type": "string",
-            "description": "Password for this file to be set. No password will be used if empty."
-          },
-          "originalPassword": {
-            "type": "boolean",
-            "description": "Set to true to use original password. Field \"password\" will be ignored if set."
-          },
-          "filename": {
-            "type": "string",
-            "description": "Sets a new filename. Filename will be unchanged if empty."
-          }
-        }
-      },
       "chunking": {
         "required": [
           "file",
@@ -2240,23 +2254,25 @@
         }
       },
       "chunkingUr": {
-    "allOf": [
-      {
-        "$ref": "#/components/schemas/chunking"
-      },
-      {
-        "type": "object",
-        "required": ["fileRequestId"],
-        "properties": {
-          "fileRequestId": {
-            "type": "string",
-            "description": "The ID of the upload request"
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/chunking"
+          },
+          {
+            "type": "object",
+            "required": [
+              "fileRequestId"
+            ],
+            "properties": {
+              "fileRequestId": {
+                "type": "string",
+                "description": "The ID of the upload request"
+              }
+            }
           }
-        }
+        ]
       }
-    ]
-    }
-  },
+    },
     "securitySchemes": {
       "apikey": {
         "type": "apiKey",

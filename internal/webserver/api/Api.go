@@ -631,7 +631,7 @@ func apiDuplicateFile(w http.ResponseWriter, r requestParser, user models.User) 
 		sendError(w, http.StatusUnauthorized, "No permission to duplicate this file")
 		return
 	}
-	uploadRequest := fileupload.CreateUploadConfig(request.AllowedDownloads,
+	uploadConfig := fileupload.CreateUploadConfig(request.AllowedDownloads,
 		request.ExpiryDays,
 		request.Password,
 		request.UnlimitedTime,
@@ -639,7 +639,8 @@ func apiDuplicateFile(w http.ResponseWriter, r requestParser, user models.User) 
 		false, // is not being used by storage.DuplicateFile
 		0,     // is not being used by storage.DuplicateFile
 		"")
-	newFile, err := storage.DuplicateFile(file, request.RequestedChanges, request.FileName, uploadRequest)
+	uploadConfig.UserId = user.Id
+	newFile, err := storage.DuplicateFile(file, request.RequestedChanges, request.FileName, uploadConfig)
 	if err != nil {
 		sendError(w, http.StatusInternalServerError, err.Error())
 		return
