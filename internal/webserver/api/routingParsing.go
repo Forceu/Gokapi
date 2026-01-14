@@ -31,6 +31,44 @@ func (p *paramFilesAdd) New() requestParser {
 	return &paramFilesAdd{}
 }
 
+// ParseRequest reads r and saves the passed header values in the paramFilesChangeOwner struct
+// In the end, ProcessParameter() is called
+func (p *paramFilesChangeOwner) ParseRequest(r *http.Request) error {
+	var err error
+	var exists bool
+	p.foundHeaders = make(map[string]bool)
+
+	// RequestParser header value "id", required: true
+	exists, err = checkHeaderExists(r, "id", true, true)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["id"] = exists
+	if exists {
+		p.Id = r.Header.Get("id")
+	}
+
+	// RequestParser header value "newOwner", required: true
+	exists, err = checkHeaderExists(r, "newOwner", true, false)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["newOwner"] = exists
+	if exists {
+		p.NewOwner, err = parseHeaderInt(r, "newOwner")
+		if err != nil {
+			return fmt.Errorf("invalid value in header newOwner supplied")
+		}
+	}
+
+	return p.ProcessParameter(r)
+}
+
+// New returns a new instance of paramFilesChangeOwner struct
+func (p *paramFilesChangeOwner) New() requestParser {
+	return &paramFilesChangeOwner{}
+}
+
 // ParseRequest reads r and saves the passed header values in the paramFilesDuplicate struct
 // In the end, ProcessParameter() is called
 func (p *paramFilesDuplicate) ParseRequest(r *http.Request) error {

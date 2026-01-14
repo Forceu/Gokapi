@@ -39,6 +39,10 @@ func Process(w http.ResponseWriter, r *http.Request) {
 		sendError(w, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
+	if routing.AdminOnly && (user.UserLevel != models.UserLevelAdmin && user.UserLevel != models.UserLevelSuperAdmin) {
+		sendError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
 	if routing.RequestParser == nil {
 		routing.Continue(w, nil, user)
 		return
@@ -489,7 +493,7 @@ func apiDuplicateFile(w http.ResponseWriter, r requestParser, user models.User) 
 		request.UnlimitedTime,
 		request.UnlimitedDownloads,
 		false, // is not being used by storage.DuplicateFile
-		0) // is not being used by storage.DuplicateFile
+		0)     // is not being used by storage.DuplicateFile
 	uploadConfig.UserId = user.Id
 	newFile, err := storage.DuplicateFile(file, request.RequestedChanges, request.FileName, uploadConfig)
 	if err != nil {
@@ -497,6 +501,30 @@ func apiDuplicateFile(w http.ResponseWriter, r requestParser, user models.User) 
 		return
 	}
 	outputFileApiInfo(w, newFile)
+}
+
+func apiChangeFileOwner(w http.ResponseWriter, r requestParser, user models.User) {
+	request, ok := r.(*paramFilesChangeOwner)
+	if !ok {
+		panic("invalid parameter passed")
+	}
+	file, ok := storage.GetFile(request.Id)
+	if !ok {
+		sendError(w, http.StatusNotFound, "Invalid id provided.")
+		return
+	}
+	if !user.HasPermission(models.UserPermEditOtherUploads) {
+		sendError(w, http.StatusUnauthorized, "No permission to edit this file")
+		return
+	}
+	_, exists := database.GetUser(request.NewOwner)
+	if !exists {
+		sendError(w, http.StatusBadRequest, "User does not exist")
+		return
+	}
+	file.UserId = request.NewOwner
+	database.SaveMetaData(file)
+	outputFileApiInfo(w, file)
 }
 
 func apiReplaceFile(w http.ResponseWriter, r requestParser, user models.User) {
