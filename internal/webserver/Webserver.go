@@ -937,7 +937,7 @@ func uploadChunk(w http.ResponseWriter, r *http.Request) {
 		responseError(w, storage.ErrorFileTooLarge)
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, maxUpload)
-	err := fileupload.ProcessNewChunk(w, r, false)
+	err := fileupload.ProcessNewChunk(w, r, false, "")
 	responseError(w, err)
 }
 

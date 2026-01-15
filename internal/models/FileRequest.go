@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/storage/chunking/chunkreservation"
 )
 
 type FileRequest struct {
@@ -31,7 +32,6 @@ func (f *FileRequest) Populate(files map[string]File, maxServerSize int) {
 	f.Files = make([]File, 0)
 	for _, file := range files {
 		if file.UploadRequestId == f.Id {
-			f.UploadedFiles++
 			f.TotalFileSize = f.TotalFileSize + file.SizeBytes
 			f.FileIdList = append(f.FileIdList, file.Id)
 			f.Files = append(f.Files, file)
@@ -44,6 +44,7 @@ func (f *FileRequest) Populate(files map[string]File, maxServerSize int) {
 	if f.MaxSize == 0 || f.MaxSize > maxServerSize {
 		f.CombinedMaxSize = maxServerSize
 	}
+	f.UploadedFiles = len(f.FileIdList)
 }
 
 // GetReadableDateLastUpdate returns the last update date as YYYY-MM-DD HH:MM:SS
@@ -83,7 +84,7 @@ func (f *FileRequest) HasRestrictions() bool {
 }
 
 func (f *FileRequest) FilesRemaining() int {
-	result := f.MaxFiles - f.UploadedFiles
+	result := f.MaxFiles - f.UploadedFiles - chunkreservation.GetCount(f.Id)
 	if result < 0 {
 		return 0
 	}

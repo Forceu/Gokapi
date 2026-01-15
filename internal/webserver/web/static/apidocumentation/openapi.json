@@ -529,13 +529,58 @@
         }
       }
     },
+    "/uploadrequest/chunk/reserve": {
+      "post": {
+        "tags": [
+          "uploadrequest"
+        ],
+        "summary": "Requests a UUID for uploading a new file for a file request",
+        "description": "Requests an UUID that can be used for uplading a new file. The chunks for the new file have to use this UUID. The first chunk needs to be uploaded latest 4 minutes after requesting the UUID. Requires API key associated with the file request",
+        "operationId": "chunkreserve",
+        "security": [
+          {
+            "apikey": [
+              "FileRequest"
+            ]
+          }
+        ],
+       "parameters": [
+          {
+            "name": "id",
+            "in": "header",
+            "description": "The file request ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }],        
+        "responses": {
+          "200": {
+            "description": "Operation successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/chunkReserveResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid ID or the file request does not accept any more files"
+          },
+          "401": {
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
+          }
+        }
+      }
+    },
     "/uploadrequest/chunk/add": {
       "post": {
         "tags": [
           "uploadrequest"
         ],
         "summary": "Uploads a new chunk for a file request",
-        "description": "Uploads a file in chunks. Parallel uploading is supported. Must call /uploadrequest/chunk/commplete after all chunks have been uploaded. WARNING: Does not support end-to-end encryption! If server is setup to utilise end-to-end encryption, file will be stored in plain-text! Requires API key associated with the file request",
+        "description": "Uploads a file in chunks. Parallel uploading is supported. Must call /uploadrequest/chunk/reserve to request an UUID first and must call /uploadrequest/chunk/complete after all chunks have been uploaded. WARNING: Does not support end-to-end encryption! If server is setup to utilise end-to-end encryption, file will be stored in plain-text! Requires API key associated with the file request",
         "operationId": "chunkaddur",
         "security": [
           {
@@ -544,11 +589,21 @@
             ]
           }
         ],
+       "parameters": [
+          {
+            "name": "fileRequestId",
+            "in": "header",
+            "description": "The ID of the upload request",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }],
         "requestBody": {
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/chunkingUr"
+                "$ref": "#/components/schemas/chunking"
               }
             }
           },
@@ -574,7 +629,7 @@
         }
       }
     },
-    "/uploadrequest/chunk/commplete": {
+    "/uploadrequest/chunk/complete": {
       "post": {
         "tags": [
           "uploadrequest"
@@ -2141,6 +2196,21 @@
         "description": "Result after uploading a chunk",
         "x-go-package": "Gokapi/internal/models"
       },
+      "chunkReserveResult": {
+        "type": "object",
+        "properties": {
+          "Result": {
+            "type": "string",
+            "example": "OK"
+          },
+          "Uuid": {
+            "type": "string",
+            "example": "naPh9athuyeimie3uu8pingoyi2Sho"
+          }
+        },
+        "description": "Result after uploading a chunk",
+        "x-go-package": "Gokapi/internal/models"
+      },
       "UploadResult": {
         "type": "object",
         "properties": {
@@ -2310,25 +2380,6 @@
             "description": "The chunk's offset starting at the beginning of the file"
           }
         }
-      },
-      "chunkingUr": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/chunking"
-          },
-          {
-            "type": "object",
-            "required": [
-              "fileRequestId"
-            ],
-            "properties": {
-              "fileRequestId": {
-                "type": "string",
-                "description": "The ID of the upload request"
-              }
-            }
-          }
-        ]
       }
     },
     "securitySchemes": {

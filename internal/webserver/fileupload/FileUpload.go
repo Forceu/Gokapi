@@ -1,6 +1,7 @@
 package fileupload
 
 import (
+	"errors"
 	"io"
 	"net/http"
 	"strconv"
@@ -12,6 +13,7 @@ import (
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
 	"github.com/forceu/gokapi/internal/storage/chunking"
+	"github.com/forceu/gokapi/internal/storage/chunking/chunkreservation"
 )
 
 // ProcessCompleteFile processes a file upload request
@@ -44,7 +46,7 @@ func ProcessCompleteFile(w http.ResponseWriter, r *http.Request, userId, maxMemo
 }
 
 // ProcessNewChunk processes a file chunk upload request
-func ProcessNewChunk(w http.ResponseWriter, r *http.Request, isApiCall bool) error {
+func ProcessNewChunk(w http.ResponseWriter, r *http.Request, isApiCall bool, filerequestId string) error {
 	err := r.ParseMultipartForm(int64(configuration.Get().MaxMemory) * 1024 * 1024)
 	if err != nil {
 		return err
@@ -57,6 +59,12 @@ func ProcessNewChunk(w http.ResponseWriter, r *http.Request, isApiCall bool) err
 	file, header, err := r.FormFile("file")
 	if err != nil {
 		return err
+	}
+
+	if filerequestId != "" {
+		if !chunkreservation.SetUploading(filerequestId, chunkInfo.UUID) {
+			return errors.New("chunk reservation has expired or was not requested")
+		}
 	}
 
 	err = chunking.NewChunk(file, header, chunkInfo)

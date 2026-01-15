@@ -171,8 +171,10 @@ fileInput.addEventListener('change', () => {
 
 <script>
 const CHUNK_SIZE = {{ .ChunkSize }} * 1024 * 1024;
-const UPLOAD_URL = "./api/uploadrequest/chunk/add";
-const COMPLETE_URL = "./api/uploadrequest/chunk/commplete";
+const API_BASE = "./api/uploadrequest/chunk/"
+const RESERVE_URL = API_BASE + "reserve";
+const UPLOAD_URL = API_BASE + "add";
+const COMPLETE_URL = API_BASE + "complete";
 
 const FILE_REQUEST_ID = "{{ .FileRequest.Id }}";
 const API_KEY = "{{ .FileRequest.ApiKey }}";
@@ -196,13 +198,16 @@ async function startUpload() {
     elements.removeBtn.remove();
 
     let offset = 0;
+    
+    const serverUuid = await reserveChunk();
+    
 
     while (offset < file.size) {
       const chunk = file.slice(offset, offset + CHUNK_SIZE);
 
       const formData = new FormData();
       formData.append("file", chunk);
-      formData.append("uuid", uuid);
+      formData.append("uuid", serverUuid);
       formData.append("filesize", file.size);
       formData.append("offset", offset);
 
@@ -226,7 +231,7 @@ async function startUpload() {
         Math.floor((offset / file.size) * 100) + "%";
     }
 
-    await finalizeUpload(file, uuid);
+    await finalizeUpload(file, serverUuid);
 
     elements.progressText.textContent = "Completed";
     elements.item.style.opacity = "0.6";
@@ -250,6 +255,28 @@ async function finalizeUpload(file, uuid) {
   if (!response.ok) {
     throw new Error(`Finalize failed: ${response.status}`);
   }
+}
+
+async function reserveChunk() {
+  const response = await fetch(RESERVE_URL, {
+    method: "POST",
+    headers: {
+      id: FILE_REQUEST_ID,
+      apikey: API_KEY
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Reserving failed: ${response.status}`);
+  }
+  
+  const data = await response.json();
+
+  if (typeof data.Uuid !== "string") {
+    throw new Error("Invalid response: Uuid not found");
+  }
+
+  return data.Uuid;
 }
 
 function encodeFilename(name) {

@@ -211,12 +211,18 @@ var routes = []apiRoute{
 		RequestParser:    &paramChunkUploadRequestAdd{},
 	},
 	{
-		//TODO only add chunks that are authorised
-		Url:              "/uploadrequest/chunk/commplete",
+		Url:              "/uploadrequest/chunk/complete",
 		ApiPerm:          models.ApiPermNone,
 		IsFileRequestApi: true,
 		execution:        apiChunkUploadRequestComplete,
 		RequestParser:    &paramChunkUploadRequestComplete{},
+	},
+	{
+		Url:              "/uploadrequest/chunk/reserve",
+		ApiPerm:          models.ApiPermNone,
+		IsFileRequestApi: true,
+		execution:        apiChunkReserve,
+		RequestParser:    &paramChunkReserve{},
 	},
 	{
 		Url:           "/logs/delete",
@@ -661,6 +667,16 @@ func (p *paramChunkComplete) ProcessParameter(_ *http.Request) error {
 		ContentType: p.ContentType,
 		Size:        p.FileSize,
 	}
+	return nil
+}
+
+type paramChunkReserve struct {
+	Id           string `header:"id" required:"true"`
+	ApiKey       string `header:"apikey"` // not published in API documentation
+	foundHeaders map[string]bool
+}
+
+func (p *paramChunkReserve) ProcessParameter(_ *http.Request) error {
 	return nil
 }
 

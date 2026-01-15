@@ -16,6 +16,7 @@ import (
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
 	"github.com/forceu/gokapi/internal/storage/chunking"
+	"github.com/forceu/gokapi/internal/storage/chunking/chunkreservation"
 	"github.com/forceu/gokapi/internal/storage/filerequest"
 	"github.com/forceu/gokapi/internal/webserver/authentication/users"
 	"github.com/forceu/gokapi/internal/webserver/fileupload"
@@ -339,10 +340,34 @@ func apiChunkAdd(w http.ResponseWriter, r requestParser, _ models.User) {
 	if !ok {
 		panic("invalid parameter passed")
 	}
-	statusCode, errString := processNewChunk(w, request, configuration.Get().MaxFileSizeMB)
+	statusCode, errString := processNewChunk(w, request, configuration.Get().MaxFileSizeMB, "")
 	if statusCode != http.StatusOK {
 		sendError(w, statusCode, errString)
 	}
+}
+
+func apiChunkReserve(w http.ResponseWriter, r requestParser, _ models.User) {
+	request, ok := r.(*paramChunkReserve)
+	if !ok {
+		panic("invalid parameter passed")
+	}
+	fileRequest, ok, status, errorMsg := checkFileRequestAndApiKey(request.Id, request.ApiKey)
+	if !ok {
+		sendError(w, status, errorMsg)
+		return
+	}
+	if fileRequest.FilesRemaining() <= 0 && !fileRequest.IsUnlimitedFiles() {
+		sendError(w, http.StatusBadRequest, "No more files can be uploaded for this file request")
+		return
+	}
+	uuid := chunkreservation.New(fileRequest.Id)
+	result, err := json.Marshal(struct {
+		Result string `json:"Result"`
+		Uuid   string `json:"Uuid"`
+	}{"OK", uuid})
+	helper.Check(err)
+	_, _ = w.Write(result)
+
 }
 
 func apiChunkUploadRequestAdd(w http.ResponseWriter, r requestParser, _ models.User) {
@@ -361,7 +386,7 @@ func apiChunkUploadRequestAdd(w http.ResponseWriter, r requestParser, _ models.U
 			maxUpload = fileRequest.MaxSize
 		}
 	}
-	statusCode, errString := processNewChunk(w, request, maxUpload)
+	statusCode, errString := processNewChunk(w, request, maxUpload, fileRequest.Id)
 	if statusCode != http.StatusOK {
 		sendError(w, statusCode, errString)
 	}
@@ -388,14 +413,14 @@ type chunkParams interface {
 	GetRequest() *http.Request
 }
 
-func processNewChunk(w http.ResponseWriter, request chunkParams, maxFileSizeMb int) (int, string) {
+func processNewChunk(w http.ResponseWriter, request chunkParams, maxFileSizeMb int, filerequestId string) (int, string) {
 	maxUpload := int64(maxFileSizeMb) * 1024 * 1024
 	if request.GetRequest().ContentLength > maxUpload {
 		return http.StatusBadRequest, storage.ErrorFileTooLarge.Error()
 	}
 
 	request.GetRequest().Body = http.MaxBytesReader(w, request.GetRequest().Body, maxUpload)
-	err := fileupload.ProcessNewChunk(w, request.GetRequest(), true)
+	err := fileupload.ProcessNewChunk(w, request.GetRequest(), true, filerequestId)
 	if err != nil {
 		return http.StatusBadRequest, err.Error()
 	}
@@ -428,6 +453,9 @@ func doBlockingPartCompleteChunk(w http.ResponseWriter, uuid string, fileHeader 
 	if err != nil {
 		sendError(w, http.StatusBadRequest, err.Error())
 		return
+	}
+	if uploadParameters.FileRequestId != "" {
+		chunkreservation.SetComplete(uploadParameters.FileRequestId, uuid)
 	}
 	logging.LogUpload(file, user)
 	outputFileJson(w, file)
