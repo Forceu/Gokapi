@@ -37,16 +37,16 @@ func (p DatabaseProvider) GetType() int {
 func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 	// < v2.0.0
 	if currentDbVersion < 10 {
-		fmt.Println("Error: Gokapi runs >=v2.0.0, but Database is <v2.0.0")
+		fmt.Println("Error: Gokapi runs >=v2.0.0, but Database is <v2.0.0. Please update to v2.0.0 first.")
 		osExit(1)
 		return
 	}
-	// pre local TZ
+	// < v2.2.0-dev
 	if currentDbVersion < 11 {
 		err := p.rawSqlite("ALTER TABLE FileMetaData DROP COLUMN ExpireAtString;")
 		helper.Check(err)
 	}
-	// pre upload requests
+	// < v2.2.0
 	if currentDbVersion < 12 {
 
 		err := p.rawSqlite(`ALTER TABLE FileMetaData ADD COLUMN "UploadRequestId" TEXT NOT NULL DEFAULT '';

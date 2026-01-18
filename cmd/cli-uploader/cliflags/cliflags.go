@@ -2,13 +2,14 @@ package cliflags
 
 import (
 	"fmt"
-	"github.com/forceu/gokapi/cmd/cli-uploader/cliconstants"
-	"github.com/forceu/gokapi/internal/environment"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/forceu/gokapi/cmd/cli-uploader/cliconstants"
+	"github.com/forceu/gokapi/internal/environment"
 )
 
 const (
@@ -20,20 +21,25 @@ const (
 	ModeUpload
 	// ModeArchive is the mode for the archive command
 	ModeArchive
+	//ModeDownload is the mode for the download command
+	ModeDownload
 	// ModeInvalid is the mode for an invalid command
 	ModeInvalid
 )
 
-const version = "v1.0.0"
+const version = "v1.1.0"
 
-// UploadConfig contains the parameters for the upload command.
-type UploadConfig struct {
+// FlagConfig contains the parameters for the upload command.
+type FlagConfig struct {
 	File            string
 	Directory       string
 	TmpFolder       string
 	FileName        string
+	OutputPath      string
+	DownloadId      string
 	JsonOutput      bool
 	DisableE2e      bool
+	RemoveRemote    bool
 	ExpiryDays      int
 	ExpiryDownloads int
 	Password        string
@@ -54,6 +60,8 @@ func Parse() int {
 		return ModeUpload
 	case "upload-dir":
 		return ModeArchive
+	case "download":
+		return ModeDownload
 	case "help":
 		printUsage(0)
 	default:
@@ -63,8 +71,8 @@ func Parse() int {
 }
 
 // GetUploadParameters parses the command line arguments and returns the parameters for the upload command.
-func GetUploadParameters(isArchive bool) UploadConfig {
-	result := UploadConfig{}
+func GetUploadParameters(mode int) FlagConfig {
+	result := FlagConfig{}
 	for i := 2; i < len(os.Args); i++ {
 		switch os.Args[i] {
 		case "-j":
@@ -103,6 +111,22 @@ func GetUploadParameters(isArchive bool) UploadConfig {
 			fallthrough
 		case "--name":
 			result.FileName = getParameter(&i)
+		case "-i":
+			fallthrough
+		case "--id":
+			result.DownloadId = getParameter(&i)
+		case "-o":
+			fallthrough
+		case "--output":
+			result.FileName = getParameter(&i)
+		case "-k":
+			fallthrough
+		case "--ouput-path":
+			result.OutputPath = getParameter(&i)
+		case "-r":
+			fallthrough
+		case "--remove":
+			result.RemoveRemote = true
 		case "-h":
 			fallthrough
 		case "--help":
@@ -116,14 +140,14 @@ func GetUploadParameters(isArchive bool) UploadConfig {
 		result.ExpiryDays = 0
 	}
 	sanitiseFilename(&result)
-	if !checkRequiredUploadParameter(&result, isArchive) {
+	if !checkRequiredUploadParameter(&result, mode) {
 		os.Exit(2)
 	}
 
 	return result
 }
 
-func sanitiseFilename(config *UploadConfig) {
+func sanitiseFilename(config *FlagConfig) {
 	if config.FileName == "" {
 		return
 	}
@@ -136,26 +160,30 @@ func sanitiseFilename(config *UploadConfig) {
 	config.FileName = illegalChars.ReplaceAllString(config.FileName, "_")
 }
 
-func checkRequiredUploadParameter(config *UploadConfig, isArchive bool) bool {
-	if isArchive && config.Directory != "" {
+func checkRequiredUploadParameter(config *FlagConfig, mode int) bool {
+	if mode == ModeArchive && config.Directory != "" {
 		return true
 	}
-	if !isArchive && config.File != "" {
+	if mode == ModeUpload && config.File != "" {
+		return true
+	}
+	if mode == ModeDownload && config.DownloadId != "" {
 		return true
 	}
 
 	if !environment.IsDockerInstance() {
-		if isArchive {
+		if mode == ModeArchive {
 			fmt.Println("ERROR: Missing parameter --directory")
-		} else {
+		}
+		if mode == ModeUpload {
 			fmt.Println("ERROR: Missing parameter --file")
 		}
 		return false
 	}
 
-	ok, uploadPath := getDockerUpload(isArchive)
+	ok, uploadPath := getDockerUpload(mode == ModeArchive)
 	if !ok {
-		if isArchive {
+		if mode == ModeArchive {
 			fmt.Println("ERROR: Missing parameter --file and no file found in " + cliconstants.DockerFolderUpload)
 		} else {
 			fmt.Println("ERROR: Missing parameter --file and no file or more than one file found in " + cliconstants.DockerFolderUpload)
@@ -163,7 +191,7 @@ func checkRequiredUploadParameter(config *UploadConfig, isArchive bool) bool {
 		return false
 	}
 
-	if isArchive {
+	if mode == ModeArchive {
 		config.File = cliconstants.DockerFolderUpload
 	} else {
 		config.File = uploadPath
@@ -244,6 +272,7 @@ func printUsage(exitCode int) {
 
 	fmt.Println("Commands:")
 	fmt.Println("  login          Save login credentials")
+	fmt.Println("  download       Download a file from the Gokapi instance without increasing its download counter")
 	fmt.Println("  upload         Upload a file to the Gokapi instance")
 	fmt.Println("  upload-dir     Upload a folder as a zip file to the Gokapi instance")
 	fmt.Println("  logout         Delete login credentials")
@@ -252,6 +281,7 @@ func printUsage(exitCode int) {
 	fmt.Println("Options:")
 	fmt.Println("  -f, --file <path>               File to upload (required for \"upload\")")
 	fmt.Println("  -D, --directory <path>          Folder to upload (required for \"upload-dir\")")
+	fmt.Println("  -i, --id <id>                   File ID to download (required for \"download\")")
 	fmt.Println("  -c, --configuration <path>      Path to configuration file (default: gokapi-cli.json)")
 	fmt.Println("  -j, --json                      Output the result in JSON only")
 	fmt.Println("  -x, --disable-e2e               Disable end-to-end encryption")
@@ -259,6 +289,9 @@ func printUsage(exitCode int) {
 	fmt.Println("  -d, --expiry-downloads <int>    Set max allowed downloads (default: unlimited)")
 	fmt.Println("  -p, --password <string>         Set a password for the file")
 	fmt.Println("  -n, --name <string>             Change final filename for uploaded file")
+	fmt.Println("  -o, --output <string>           Change the filename of the file to download")
+	fmt.Println("  -k, --output-path <path>        The folder to download the file to (default: current folder)")
+	fmt.Println("  -r, --remove                    Remove remote file after download")
 	fmt.Println("  -t, --tmpfolder <path>          Folder for temporary Zip file when uploading a directory")
 	fmt.Println("  -h, --help                      Show this help message")
 	fmt.Println()
@@ -268,6 +301,7 @@ func printUsage(exitCode int) {
 	fmt.Println("  gokapi-cli logout -c /path/to/config")
 	fmt.Println("  gokapi-cli upload -f /file/to/upload --expiry-days 7 --json")
 	fmt.Println("  gokapi-cli upload-dir -D /path/to/upload -t /mnt/tmp")
+	fmt.Println("  gokapi-cli download --remove -i chuTheishaipa9o -o myfile.zip")
 	fmt.Println()
 	os.Exit(exitCode)
 }

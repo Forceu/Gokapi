@@ -1,0 +1,61 @@
+package ratelimiter
+
+import (
+	"sync"
+	"time"
+
+	"golang.org/x/time/rate"
+)
+
+var uuidLimiter = newLimiter()
+var chunkLimiter = newLimiter()
+var byteLimiter = newLimiter()
+
+type limiterEntry struct {
+	limiter  *rate.Limiter
+	lastSeen time.Time
+}
+
+type Store struct {
+	mu       sync.Mutex
+	limiters map[string]*limiterEntry
+}
+
+func newLimiter() *Store {
+	return &Store{
+		limiters: make(map[string]*limiterEntry),
+	}
+}
+
+func (s *Store) Get(key string, r rate.Limit, burst int) *rate.Limiter {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	e, ok := s.limiters[key]
+	if !ok {
+		e = &limiterEntry{
+			limiter:  rate.NewLimiter(r, burst),
+			lastSeen: time.Now(),
+		}
+		s.limiters[key] = e
+	}
+
+	e.lastSeen = time.Now()
+	return e.limiter
+}
+
+func (s *Store) StartCleanup(maxIdle time.Duration) {
+	go func() {
+		ticker := time.NewTicker(time.Minute)
+		for range ticker.C {
+			now := time.Now()
+			s.mu.Lock()
+			for k, v := range s.limiters {
+				if now.Sub(v.lastSeen) > maxIdle {
+					delete(s.limiters, k)
+				}
+			}
+			s.mu.Unlock()
+		}
+	}()
+}
