@@ -296,6 +296,17 @@ func DownloadFile(downloadParams cliflags.FlagConfig) error {
 		fmt.Println("ERROR: Could not download file")
 		return err
 	}
+	if downloadParams.RemoveRemote {
+		err = deleteRemoteFile(downloadParams.DownloadId)
+		if err != nil {
+			return err
+		}
+	}
+	if !downloadParams.JsonOutput {
+		fmt.Println("File downloaded successfully")
+	} else {
+		fmt.Println("{\"result\":\"OK\"}")
+	}
 	return nil
 }
 
@@ -311,7 +322,7 @@ func getFileName(f *os.File, uploadParams cliflags.FlagConfig) string {
 }
 
 func getFileInfo(id string) (models.FileApiOutput, error) {
-	result, err := getUrl(gokapiUrl+"/files/list/"+id, []header{}, true)
+	result, err := getUrl(gokapiUrl+"/files/list/"+id, []header{}, false)
 	if err != nil {
 		return models.FileApiOutput{}, err
 	}
@@ -321,6 +332,11 @@ func getFileInfo(id string) (models.FileApiOutput, error) {
 		return models.FileApiOutput{}, err
 	}
 	return parsedResult, nil
+}
+
+func deleteRemoteFile(id string) error {
+	_, err := getUrl(gokapiUrl+"/files/delete", []header{{"id", id}}, false)
+	return err
 }
 
 func uploadChunk(f io.Reader, uuid string, offset, chunkSize, filesize int64, progressBar *progressbar.ProgressBar) error {
