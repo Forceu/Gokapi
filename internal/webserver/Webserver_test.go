@@ -237,17 +237,22 @@ func TestError(t *testing.T) {
 	t.Parallel()
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://localhost:53843/error",
-		RequiredContent: []string{"Sorry, this file cannot be found"},
+		RequiredContent: []string{"The link may have expired or the file has been downloaded too many times"},
 		IsHtml:          true,
 	})
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://localhost:53843/error?e2e",
-		RequiredContent: []string{"This file is encrypted and no key has been passed"},
+		RequiredContent: []string{"This file is encrypted, but no key was provided"},
 		IsHtml:          true,
 	})
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://localhost:53843/error?key",
-		RequiredContent: []string{"This file is encrypted and an incorrect key has been passed"},
+		RequiredContent: []string{"This file is encrypted, but the provided key is incorrect"},
+		IsHtml:          true,
+	})
+	test.HttpPageResult(t, test.HttpTestConfig{
+		Url:             "http://localhost:53843/error?fr",
+		RequiredContent: []string{"The file limit for this upload request has been reached"},
 		IsHtml:          true,
 	})
 }
