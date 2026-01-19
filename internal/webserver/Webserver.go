@@ -367,19 +367,24 @@ func showError(w http.ResponseWriter, r *http.Request) {
 	)
 
 	errorReason := invalidFile
+	cardWidth := 18
 	if r.URL.Query().Has("e2e") {
 		errorReason = noCipherSupplied
+		cardWidth = 25
 	}
 	if r.URL.Query().Has("key") {
 		errorReason = wrongCipher
+		cardWidth = 25
 	}
 	if r.URL.Query().Has("fr") {
 		errorReason = invalidFileRequest
+		cardWidth = 30
 	}
 	err := templateFolder.ExecuteTemplate(w, "error", genericView{
-		ErrorId:       errorReason,
-		PublicName:    configuration.Get().PublicName,
-		CustomContent: customStaticInfo})
+		ErrorId:        errorReason,
+		ErrorCardWidth: cardWidth,
+		PublicName:     configuration.Get().PublicName,
+		CustomContent:  customStaticInfo})
 	helper.CheckIgnoreTimeout(err)
 }
 
@@ -1095,6 +1100,7 @@ type genericView struct {
 	RedirectUrl       string
 	ErrorMessage      string
 	ErrorId           int
+	ErrorCardWidth    int
 	MinPasswordLength int
 	CustomContent     customStatic
 }
