@@ -38,8 +38,11 @@ import (
 	"github.com/jinzhu/copier"
 )
 
-// ErrorFileTooLarge is an error that is called when a file larger than the set maximum is uploaded
+// ErrorFileTooLarge is an error which is raised when a file larger than the set maximum is uploaded
 var ErrorFileTooLarge = errors.New("upload limit exceeded")
+
+// ErrorChunkTooSmall is an error which is raised when a chunk is smaller than 5MB
+var ErrorChunkTooSmall = errors.New("chunk is too small")
 
 // ErrorReplaceE2EFile is caused when an end-to-end encrypted file is replaced
 var ErrorReplaceE2EFile = errors.New("end-to-end encrypted files cannot be replaced")

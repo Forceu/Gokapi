@@ -27,6 +27,10 @@ func newLimiter() *Store {
 	}
 }
 
+func IsAllowedNewUuid(key string) bool {
+	return uuidLimiter.Get(key, 1, 4).Allow()
+}
+
 func (s *Store) Get(key string, r rate.Limit, burst int) *rate.Limiter {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -34,13 +38,12 @@ func (s *Store) Get(key string, r rate.Limit, burst int) *rate.Limiter {
 	e, ok := s.limiters[key]
 	if !ok {
 		e = &limiterEntry{
-			limiter:  rate.NewLimiter(r, burst),
-			lastSeen: time.Now(),
+			limiter: rate.NewLimiter(r, burst),
 		}
-		s.limiters[key] = e
 	}
 
 	e.lastSeen = time.Now()
+	s.limiters[key] = e
 	return e.limiter
 }
 

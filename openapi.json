@@ -390,7 +390,7 @@
           "chunk"
         ],
         "summary": "Uploads a new chunk",
-        "description": "Uploads a file in chunks, in case a reverse proxy does not support upload of larger files. Parallel uploading is supported. Must call /chunk/complete after all chunks have been uploaded. WARNING: Does not support end-to-end encryption! If server is setup to utilise end-to-end encryption, file will be stored in plain-text! To upload an end-to-end encrypted file, use gokapi-cli. Requires API permission UPLOAD",
+        "description": "Uploads a file in chunks, in case a reverse proxy does not support upload of larger files. Parallel uploading is supported. Must call /chunk/complete after all chunks have been uploaded. WARNING: Does not support end-to-end encryption! If server is setup to utilise end-to-end encryption, file will be stored in plain-text! To upload an end-to-end encrypted file, use gokapi-cli. Chunks must be at least 5MB in size, unless last chunk of file. Requires API permission UPLOAD",
         "operationId": "chunkadd",
         "security": [
           {
@@ -570,6 +570,9 @@
           },
           "401": {
             "description": "Invalid API key provided for authentication or API key does not have the required permission"
+          },
+          "429": {
+            "description": "If too many chunks are currently requested, the caller has to wait a couple of seconds and try again. The rate limit is only for file requests that are not limited in file count"
           }
         }
       }
@@ -580,7 +583,7 @@
           "uploadrequest"
         ],
         "summary": "Uploads a new chunk for a file request",
-        "description": "Uploads a file in chunks. Parallel uploading is supported. Must call /uploadrequest/chunk/reserve to request an UUID first and must call /uploadrequest/chunk/complete after all chunks have been uploaded. WARNING: Does not support end-to-end encryption! If server is setup to utilise end-to-end encryption, file will be stored in plain-text! Requires API key associated with the file request",
+        "description": "Uploads a file in chunks. Parallel uploading is supported. Must call /uploadrequest/chunk/reserve to request an UUID first and must call /uploadrequest/chunk/complete after all chunks have been uploaded. WARNING: Does not support end-to-end encryption! If server is setup to utilise end-to-end encryption, file will be stored in plain-text! Chunks must be at least 5MB in size, unless last chunk of file. Requires API key associated with the file request",
         "operationId": "chunkaddur",
         "security": [
           {

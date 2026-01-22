@@ -18,6 +18,7 @@ import (
 	"github.com/forceu/gokapi/internal/storage/chunking"
 	"github.com/forceu/gokapi/internal/storage/chunking/chunkreservation"
 	"github.com/forceu/gokapi/internal/storage/filerequest"
+	"github.com/forceu/gokapi/internal/storage/filerequest/ratelimiter"
 	"github.com/forceu/gokapi/internal/webserver/authentication/users"
 	"github.com/forceu/gokapi/internal/webserver/fileupload"
 )
@@ -360,6 +361,10 @@ func apiChunkReserve(w http.ResponseWriter, r requestParser, _ models.User) {
 		sendError(w, http.StatusBadRequest, "No more files can be uploaded for this file request")
 		return
 	}
+	if fileRequest.IsUnlimitedFiles() && !ratelimiter.IsAllowedNewUuid(fileRequest.Id) {
+		sendError(w, http.StatusTooManyRequests, "Too many reservations for this file request. Please wait a few seconds before reserving a new uuid.")
+		return
+	}
 	uuid := chunkreservation.New(fileRequest.Id)
 	result, err := json.Marshal(struct {
 		Result string `json:"Result"`
@@ -418,7 +423,6 @@ func processNewChunk(w http.ResponseWriter, request chunkParams, maxFileSizeMb i
 	if request.GetRequest().ContentLength > maxUpload {
 		return http.StatusBadRequest, storage.ErrorFileTooLarge.Error()
 	}
-
 	request.GetRequest().Body = http.MaxBytesReader(w, request.GetRequest().Body, maxUpload)
 	err := fileupload.ProcessNewChunk(w, request.GetRequest(), true, filerequestId)
 	if err != nil {

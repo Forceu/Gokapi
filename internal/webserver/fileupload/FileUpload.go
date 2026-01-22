@@ -16,6 +16,9 @@ import (
 	"github.com/forceu/gokapi/internal/storage/chunking/chunkreservation"
 )
 
+const minChunkSize = 5 * 1024 * 1024
+const minChunkSizeLowMaxChunk = 1 * 1024 * 1024
+
 // ProcessCompleteFile processes a file upload request
 // This is only used when a complete file is uploaded through the API with /files/add
 // Normally a file is created from a chunk
@@ -45,6 +48,20 @@ func ProcessCompleteFile(w http.ResponseWriter, r *http.Request, userId, maxMemo
 	return nil
 }
 
+func isChunkMinChunkSize(r *http.Request, offset, fileSize int64) bool {
+	minReqChunkSize := minChunkSize
+	if configuration.Get().ChunkSize < 5 {
+		minReqChunkSize = minChunkSizeLowMaxChunk
+	}
+	if r.ContentLength >= int64(minReqChunkSize) {
+		return true
+	}
+	if r.ContentLength >= (fileSize - offset) {
+		return true
+	}
+	return false
+}
+
 // ProcessNewChunk processes a file chunk upload request
 func ProcessNewChunk(w http.ResponseWriter, r *http.Request, isApiCall bool, filerequestId string) error {
 	err := r.ParseMultipartForm(int64(configuration.Get().MaxMemory) * 1024 * 1024)
@@ -59,6 +76,10 @@ func ProcessNewChunk(w http.ResponseWriter, r *http.Request, isApiCall bool, fil
 	file, header, err := r.FormFile("file")
 	if err != nil {
 		return err
+	}
+
+	if !isChunkMinChunkSize(r, chunkInfo.Offset, chunkInfo.TotalFilesizeBytes) {
+		return storage.ErrorChunkTooSmall
 	}
 
 	if filerequestId != "" {
