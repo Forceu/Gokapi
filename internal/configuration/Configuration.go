@@ -25,8 +25,8 @@ import (
 	"github.com/forceu/gokapi/internal/storage/filesystem"
 )
 
-// Environment is an object containing the environment variables
-var Environment environment.Environment
+// parsedEnvironment is an object containing the environment variables
+var parsedEnvironment environment.Environment
 
 // ServerSettings is an object containing the server configuration
 var serverSettings models.Configuration
@@ -72,14 +72,14 @@ func loadFromFile(path string) (models.Configuration, error) {
 
 // Load loads the configuration or creates the folder structure and a default configuration
 func Load() {
-	Environment = environment.New()
+	parsedEnvironment = environment.New()
 	// No check if file exists, as this was checked earlier
-	settings, err := loadFromFile(Environment.ConfigPath)
+	settings, err := loadFromFile(parsedEnvironment.ConfigPath)
 	helper.Check(err)
 	serverSettings = settings
 	usesHttps = strings.HasPrefix(strings.ToLower(serverSettings.ServerUrl), "https://")
 
-	if configupgrade.DoUpgrade(&serverSettings, &Environment) {
+	if configupgrade.DoUpgrade(&serverSettings, &parsedEnvironment) {
 		save()
 	}
 	if serverSettings.PublicName == "" {
@@ -91,13 +91,9 @@ func Load() {
 	if serverSettings.ChunkSize == 0 {
 		serverSettings.ChunkSize = 45
 	}
-	serverSettings.MinLengthPassword = Environment.MinLengthPassword
-	serverSettings.LengthId = Environment.LengthId
-	serverSettings.LengthHotlinkId = Environment.LengthHotlinkId
-	serverSettings.AllowGuestUploadsByDefault = Environment.PermRequestGrantedByDefault
 	helper.CreateDir(serverSettings.DataDir)
 	filesystem.Init(serverSettings.DataDir)
-	logging.Init(Environment.DataDir)
+	logging.Init(parsedEnvironment.DataDir)
 }
 
 // ConnectDatabase loads the database that is defined in the configuration
@@ -120,7 +116,7 @@ func Get() *models.Configuration {
 
 // Save the configuration as a json file
 func save() {
-	file, err := os.OpenFile(Environment.ConfigPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+	file, err := os.OpenFile(parsedEnvironment.ConfigPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		fmt.Println("Error writing configuration:", err)
 		os.Exit(1)
@@ -137,8 +133,8 @@ func save() {
 // LoadFromSetup creates a new configuration file after a user completed the setup. If cloudConfig is not nil, a new
 // cloud config file is created. If it is nil an existing cloud config file will be deleted.
 func LoadFromSetup(config models.Configuration, cloudConfig *cloudconfig.CloudConfig, e2eConfig End2EndReconfigParameters, passwordHash string) {
-	Environment = environment.New()
-	helper.CreateDir(Environment.ConfigDir)
+	parsedEnvironment = environment.New()
+	helper.CreateDir(parsedEnvironment.ConfigDir)
 
 	serverSettings = config
 	if cloudConfig != nil {
@@ -173,6 +169,13 @@ func LoadFromSetup(config models.Configuration, cloudConfig *cloudconfig.CloudCo
 	}
 }
 
+func GetEnvironment() environment.Environment {
+	if !parsedEnvironment.IsParsed() {
+		panic("Environment is not parsed yet")
+	}
+	return parsedEnvironment
+}
+
 func deleteAllEncryptedStorage() {
 	files := database.GetAllMetadata()
 	for _, file := range files {
@@ -186,8 +189,8 @@ func deleteAllEncryptedStorage() {
 
 // SetDeploymentPassword sets a new password. This should only be used for non-interactive deployment, but is not enforced
 func SetDeploymentPassword(newPassword string) {
-	if len(newPassword) < serverSettings.MinLengthPassword {
-		fmt.Printf("Password needs to be at least %d characters long\n", serverSettings.MinLengthPassword)
+	if len(newPassword) < parsedEnvironment.MinLengthPassword {
+		fmt.Printf("Password needs to be at least %d characters long\n", parsedEnvironment.MinLengthPassword)
 		os.Exit(1)
 	}
 	serverSettings.Authentication.SaltAdmin = helper.GenerateRandomString(30)

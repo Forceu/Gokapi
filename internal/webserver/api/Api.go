@@ -888,7 +888,7 @@ func apiResetPassword(w http.ResponseWriter, r requestParser, user models.User) 
 	userToEdit.ResetPassword = true
 	password := ""
 	if request.NewPassword {
-		password = helper.GenerateRandomString(configuration.Environment.MinLengthPassword + 2)
+		password = helper.GenerateRandomString(configuration.GetEnvironment().MinLengthPassword + 2)
 		userToEdit.Password = configuration.HashPassword(password, false)
 	}
 	database.DeleteAllSessionsByUser(userToEdit.Id)

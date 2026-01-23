@@ -335,9 +335,10 @@ func changePassword(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	config := configuration.Get()
 	err = templateFolder.ExecuteTemplate(w, "changepw",
-		genericView{PublicName: configuration.Get().PublicName,
-			MinPasswordLength: configuration.Environment.MinLengthPassword,
+		genericView{PublicName: config.PublicName,
+			MinPasswordLength: configuration.GetEnvironment().MinLengthPassword,
 			ErrorMessage:      errMessage,
 			CustomContent:     customStaticInfo})
 	helper.CheckIgnoreTimeout(err)
@@ -347,7 +348,7 @@ func validateNewPassword(newPassword string, user models.User) (string, string, 
 	if len(newPassword) == 0 {
 		return "", user.Password, false
 	}
-	if len(newPassword) < configuration.Environment.MinLengthPassword {
+	if len(newPassword) < configuration.GetEnvironment().MinLengthPassword {
 		return "Password is too short", user.Password, false
 	}
 	newPasswordHash := configuration.HashPassword(newPassword, false)
@@ -612,7 +613,7 @@ func showHotlink(w http.ResponseWriter, r *http.Request) {
 // Stops for 500ms to limit brute forcing if invalid key and redirects to redirectUrl
 func queryUrl(w http.ResponseWriter, r *http.Request, keyword string, redirectUrl string) string {
 	keys, ok := r.URL.Query()[keyword]
-	if !ok || len(keys[0]) < configuration.Get().LengthId {
+	if !ok || len(keys[0]) < configuration.GetEnvironment().LengthId {
 		select {
 		case <-time.After(500 * time.Millisecond):
 		}
@@ -640,7 +641,7 @@ func showAdminMenu(w http.ResponseWriter, r *http.Request) {
 	}
 
 	view := (&AdminView{}).convertGlobalConfig(ViewMain, user)
-	if len(configuration.Environment.ActiveDeprecations) > 0 {
+	if len(configuration.GetEnvironment().ActiveDeprecations) > 0 {
 		if user.UserLevel == models.UserLevelSuperAdmin {
 			view.ShowDeprecationNotice = true
 		}
@@ -846,7 +847,6 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 	u.IsUserTabAvailable = config.Authentication.Method != models.AuthenticationDisabled
 	u.EndToEndEncryption = config.Encryption.Level == encryption.EndToEndEncryption
 	u.MaxParallelUploads = config.MaxParallelUploads
-	u.MinLengthPassword = config.MinLengthPassword
 	u.ChunkSize = config.ChunkSize
 	u.IncludeFilename = config.IncludeFilename
 	return u

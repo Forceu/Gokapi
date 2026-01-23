@@ -39,11 +39,19 @@ type Environment struct {
 	AwsKeySecret                string `env:"AWS_KEY_SECRET"`
 	AwsEndpoint                 string `env:"AWS_ENDPOINT"`
 	ActiveDeprecations          []deprecation.Deprecation
+	isSet                       bool
+}
+
+func (e *Environment) IsParsed() bool {
+	return e.isSet
 }
 
 // New parses the env variables
 func New() Environment {
-	result := Environment{WebserverPort: DefaultPort}
+	result := Environment{
+		WebserverPort: DefaultPort,
+		isSet:         true,
+	}
 
 	result = parseEnvVars(result)
 	result = parseFlags(result)

@@ -2,6 +2,7 @@ package users
 
 import (
 	"errors"
+
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/models"
@@ -24,7 +25,7 @@ func Create(name string) (models.User, error) {
 		Name:      name,
 		UserLevel: models.UserLevelUser,
 	}
-	if configuration.Get().AllowGuestUploadsByDefault {
+	if configuration.GetEnvironment().PermRequestGrantedByDefault {
 		newUser.GrantPermission(models.UserPermGuestUploads)
 	}
 	database.SaveUser(newUser, true)

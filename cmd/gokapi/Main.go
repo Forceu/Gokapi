@@ -109,7 +109,7 @@ func showVersion(passedFlags flagparser.MainFlags) {
 }
 
 func showDeprecationWarnings() {
-	for _, dep := range configuration.Environment.ActiveDeprecations {
+	for _, dep := range configuration.GetEnvironment().ActiveDeprecations {
 		fmt.Println()
 		fmt.Println("WARNING, deprecated feature: " + dep.Name)
 		fmt.Println(dep.Description)

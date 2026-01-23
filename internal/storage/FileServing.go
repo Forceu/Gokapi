@@ -329,7 +329,7 @@ func createNewMetaData(hash string, fileHeader chunking.FileHeader, userId int, 
 
 // createNewId returns a random ID
 func createNewId() string {
-	return helper.GenerateRandomString(configuration.Get().LengthId)
+	return helper.GenerateRandomString(configuration.GetEnvironment().LengthId)
 }
 
 func getEncInfoFromExistingFile(hash string) (models.EncryptionInfo, bool) {
@@ -524,7 +524,7 @@ func AddHotlink(file *models.File) {
 	if !IsAbleHotlink(*file) {
 		return
 	}
-	link := helper.GenerateRandomString(configuration.Get().LengthHotlinkId) + getFileExtension(file.Name)
+	link := helper.GenerateRandomString(configuration.GetEnvironment().LengthHotlinkId) + getFileExtension(file.Name)
 	file.HotlinkId = link
 	database.SaveHotlink(*file)
 }

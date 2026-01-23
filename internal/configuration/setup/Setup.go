@@ -241,11 +241,9 @@ func toConfiguration(formObjects *[]jsonFormObject) (models.Configuration, *clou
 
 	result := models.Configuration{
 		MaxFileSizeMB:      parsedEnv.MaxFileSize,
-		LengthId:           parsedEnv.LengthId,
 		MaxMemory:          parsedEnv.MaxMemory,
 		DataDir:            parsedEnv.DataDir,
 		MaxParallelUploads: parsedEnv.MaxParallelUploads,
-		MinLengthPassword:  parsedEnv.MinLengthPassword,
 		ChunkSize:          parsedEnv.ChunkSizeMB,
 		ConfigVersion:      configupgrade.CurrentConfigVersion,
 		Authentication:     models.AuthenticationConfig{},

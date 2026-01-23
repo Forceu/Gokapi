@@ -21,7 +21,7 @@ func TestMain(m *testing.M) {
 func TestLoad(t *testing.T) {
 	test.IsEqualBool(t, Exists(), true)
 	Load()
-	test.IsEqualString(t, Environment.ConfigDir, "test")
+	test.IsEqualString(t, parsedEnvironment.ConfigDir, "test")
 	test.IsEqualString(t, serverSettings.Port, "127.0.0.1:53843")
 	test.IsEqualString(t, serverSettings.Authentication.Username, "test")
 	test.IsEqualString(t, serverSettings.ServerUrl, "http://127.0.0.1:53843/")
@@ -31,8 +31,8 @@ func TestLoad(t *testing.T) {
 	_ = os.Setenv("GOKAPI_LENGTH_ID", "20")
 	_ = os.Setenv("GOKAPI_LENGTH_HOTLINK_ID", "25")
 	Load()
-	test.IsEqualInt(t, serverSettings.LengthId, 20)
-	test.IsEqualInt(t, serverSettings.LengthHotlinkId, 25)
+	test.IsEqualInt(t, parsedEnvironment.LengthId, 20)
+	test.IsEqualInt(t, parsedEnvironment.LengthHotlinkId, 25)
 	_ = os.Unsetenv("GOKAPI_LENGTH_ID")
 	_ = os.Unsetenv("GOKAPI_LENGTH_HOTLINK_ID")
 	test.IsEqualInt(t, serverSettings.ConfigVersion, configupgrade.CurrentConfigVersion)
@@ -60,7 +60,6 @@ func TestLoadFromSetup(t *testing.T) {
 		ServerUrl:      "serverurl",
 		RedirectUrl:    "redirect",
 		ConfigVersion:  configupgrade.CurrentConfigVersion,
-		LengthId:       10,
 		DataDir:        "test",
 		MaxMemory:      10,
 		UseSsl:         true,

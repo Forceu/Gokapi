@@ -19,15 +19,11 @@ type Configuration struct {
 	MaxMemory           int                  `json:"MaxMemory"`
 	ChunkSize           int                  `json:"ChunkSize"`
 	MaxParallelUploads  int                  `json:"MaxParallelUploads"`
-	LengthId            int                  `json:"-"`
-	LengthHotlinkId     int                  `json:"-"`
-	MinLengthPassword   int                  `json:"-"`
 	Encryption          Encryption           `json:"Encryption"`
 	UseSsl              bool                 `json:"UseSsl"`
 	PicturesAlwaysLocal bool                 `json:"PicturesAlwaysLocal"`
 	SaveIp              bool                 `json:"SaveIp"`
 	IncludeFilename     bool                 `json:"IncludeFilename"`
-	AllowGuestUploadsByDefault bool          `json:"-"`
 }
 
 // Encryption hold information about the encryption used on this file
