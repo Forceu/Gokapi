@@ -13,12 +13,12 @@ import (
 
 const fileSetup = "../../internal/webserver/Webserver.go"
 const fileSetupConstants = "../../internal/configuration/setup/ProtectedUrls.go"
-const fileDocumentation = "../../docs/setup.rst"
+const fileDocumentationSetup = "../../docs/setup.rst"
 
 func main() {
 	checkFileExistsUrl(fileSetup)
 	checkFileExistsUrl(fileSetupConstants)
-	checkFileExistsUrl(fileDocumentation)
+	checkFileExistsUrl(fileDocumentationSetup)
 	urls := parseProtectedUrls()
 	writeConstantFile(urls)
 	writeDocumentationFile(urls)
@@ -87,7 +87,7 @@ var protectedUrls = []string{`
 }
 
 func writeDocumentationFile(urls []string) {
-	documentationContent, err := os.ReadFile(fileDocumentation)
+	documentationContent, err := os.ReadFile(fileDocumentationSetup)
 	if err != nil {
 		fmt.Println("ERROR: Cannot read file:")
 		fmt.Println(err)
@@ -104,7 +104,7 @@ func writeDocumentationFile(urls []string) {
 		os.Exit(7)
 	}
 	documentationContent = regex.ReplaceAll(documentationContent, []byte(output))
-	err = os.WriteFile(fileDocumentation, documentationContent, 0664)
+	err = os.WriteFile(fileDocumentationSetup, documentationContent, 0664)
 	if err != nil {
 		fmt.Println("ERROR: Cannot write file:")
 		fmt.Println(err)
