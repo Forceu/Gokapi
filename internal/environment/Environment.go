@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"reflect"
+	"strconv"
 
 	envParser "github.com/caarlos0/env/v6"
 	"github.com/forceu/gokapi/internal/environment/deprecation"
@@ -20,15 +22,17 @@ type Environment struct {
 	ConfigFile                  string `env:"CONFIG_FILE" envDefault:"config.json"`
 	ConfigPath                  string
 	DataDir                     string `env:"DATA_DIR" envDefault:"data"`
-	ChunkSizeMB                 int    `env:"CHUNK_SIZE_MB" envDefault:"45"`
-	LengthId                    int    `env:"LENGTH_ID" envDefault:"15"`
-	LengthHotlinkId             int    `env:"LENGTH_HOTLINK_ID" envDefault:"40"`
-	MaxFileSize                 int    `env:"MAX_FILESIZE" envDefault:"102400"` // 102400==100GB
-	MaxMemory                   int    `env:"MAX_MEMORY_UPLOAD" envDefault:"50"`
-	MaxParallelUploads          int    `env:"MAX_PARALLEL_UPLOADS" envDefault:"3"`
-	MinFreeSpaceMB              int    `env:"MIN_FREE_SPACE" envDefault:"400"`
-	MinLengthPassword           int    `env:"MIN_LENGTH_PASSWORD" envDefault:"8"`
-	WebserverPort               int    `env:"PORT" envDefault:"53842"`
+	ChunkSizeMB                 int    `env:"CHUNK_SIZE_MB" envDefault:"45" onlyPositive:"true"`
+	LengthId                    int    `env:"LENGTH_ID" envDefault:"15" onlyPositive:"true"`
+	LengthHotlinkId             int    `env:"LENGTH_HOTLINK_ID" envDefault:"40" onlyPositive:"true"`
+	MaxFileSize                 int    `env:"MAX_FILESIZE" envDefault:"102400" onlyPositive:"true"` // 102400 = 100GB
+	MaxMemory                   int    `env:"MAX_MEMORY_UPLOAD" envDefault:"50" onlyPositive:"true"`
+	MaxParallelUploads          int    `env:"MAX_PARALLEL_UPLOADS" envDefault:"3" onlyPositive:"true"`
+	MaxFilesGuestUpload         int    `env:"MAX_FILES_GUESTUPLOAD" envDefault:"100" onlyPositive:"true"`
+	MaxSizeGuestUploadMb        int    `env:"MAX_SIZE_GUESTUPLOAD" envDefault:"10240" onlyPositive:"true"` // 10240 = 10GB
+	MinFreeSpaceMB              int    `env:"MIN_FREE_SPACE" envDefault:"400" onlyPositive:"true"`
+	MinLengthPassword           int    `env:"MIN_LENGTH_PASSWORD" envDefault:"8" onlyPositive:"true"`
+	WebserverPort               int    `env:"PORT" envDefault:"53842" onlyPositive:"true"`
 	DisableCorsCheck            bool   `env:"DISABLE_CORS_CHECK" envDefault:"false"`
 	LogToStdout                 bool   `env:"LOG_STDOUT" envDefault:"false"`
 	HotlinkVideos               bool   `env:"ENABLE_HOTLINK_VIDEOS" envDefault:"false"`
@@ -54,6 +58,11 @@ func New() Environment {
 	}
 
 	result = parseEnvVars(result)
+	err := enforceOnlyPositiveDefaults(&result)
+	if err != nil {
+		fmt.Println("Error parsing env variables:", err)
+		osExit(1)
+	}
 	result = parseFlags(result)
 	result.ActiveDeprecations = deprecation.GetActive()
 
@@ -87,9 +96,55 @@ func parseEnvVars(result Environment) Environment {
 	return result
 }
 
+func enforceOnlyPositiveDefaults(result *Environment) error {
+	v := reflect.ValueOf(result)
+	if v.Kind() != reflect.Ptr || v.Elem().Kind() != reflect.Struct {
+		return fmt.Errorf("env must be a pointer to a struct")
+	}
+
+	v = v.Elem()
+	t := v.Type()
+
+	for i := 0; i < v.NumField(); i++ {
+		fieldVal := v.Field(i)
+		fieldType := t.Field(i)
+
+		if fieldType.Tag.Get("onlyPositive") != "true" {
+			continue
+		}
+
+		// Only handle signed integers
+		switch fieldVal.Kind() {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			if fieldVal.Int() >= 0 {
+				continue
+			}
+
+			defaultStr := fieldType.Tag.Get("envDefault")
+			defaultVal, err := strconv.ParseInt(defaultStr, 10, fieldVal.Type().Bits())
+			if err != nil {
+				return fmt.Errorf("invalid envDefault for field %s: %w", fieldType.Name, err)
+			}
+
+			if fieldVal.CanSet() {
+				fieldVal.SetInt(defaultVal)
+			} else {
+				return fmt.Errorf("cannot set fieldval %s", fieldType.Name)
+			}
+		default:
+			continue
+		}
+	}
+
+	return nil
+}
+
 func parseFlags(result Environment) Environment {
 	flags := flagparser.ParseFlags()
 	if flags.IsPortSet {
+		if flags.Port < 1 {
+			flags.Port = DefaultPort
+		}
 		result.WebserverPort = flags.Port
 	}
 	if flags.IsConfigDirSet {

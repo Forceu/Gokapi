@@ -101,6 +101,41 @@ function setModalValues(id, name, maxFiles, maxSize, expiry, notes) {
         document.getElementById("mFriendlyName").value = name;
     }
 
+
+    if (limitMaxFiles != 0) {
+        let checkbox = document.getElementById("mc_maxfiles");
+        if (maxFiles === null || maxFiles == 0) {
+            maxFiles = limitMaxFiles;
+        }
+        checkbox.checked = true;
+        checkbox.disabled = true;
+        checkbox.title = "Only admins can set this to unlimited";
+        checkbox.value = "1";
+        document.getElementById("mi_maxfiles").setAttribute("max", limitMaxFiles);
+    } else {
+        let checkbox = document.getElementById("mc_maxfiles");
+        checkbox.disabled = false;
+        checkbox.title = "";
+        document.getElementById("mi_maxfiles").setAttribute("max", "");
+    }
+
+    if (limitMaxSize != 0) {
+        let checkbox = document.getElementById("mc_maxsize");
+        if (maxSize === null || maxSize == 0) {
+            maxSize = limitMaxSize;
+        }
+        checkbox.checked = true;
+        checkbox.disabled = true;
+        checkbox.title = "Only admins can set this to unlimited";
+        checkbox.value = "1";
+        document.getElementById("mi_maxsize").setAttribute("max", limitMaxSize);
+    } else {
+        let checkbox = document.getElementById("mc_maxsize");
+        checkbox.disabled = false;
+        checkbox.title = "";
+        document.getElementById("mi_maxsize").setAttribute("max", "");
+    }
+
     if (maxFiles === null || maxFiles == 0) {
         document.getElementById("mi_maxfiles").value = "1";
         document.getElementById("mi_maxfiles").disabled = true;
@@ -110,6 +145,7 @@ function setModalValues(id, name, maxFiles, maxSize, expiry, notes) {
         document.getElementById("mi_maxfiles").disabled = false;
         document.getElementById("mc_maxfiles").checked = true;
     }
+
 
     if (maxSize === null || maxSize == 0) {
         document.getElementById("mi_maxsize").value = "10";
@@ -133,7 +169,7 @@ function setModalValues(id, name, maxFiles, maxSize, expiry, notes) {
         document.getElementById("mc_expiry").checked = true;
         createCalendar("mi_expiry", expiry);
     }
-        document.getElementById("mNotes").value = notes;
+    document.getElementById("mNotes").value = notes;
 }
 
 function editFileRequest(id, name, maxFiles, maxSize, expiry, notes) {
@@ -178,6 +214,20 @@ function saveFileRequest() {
             console.error('Error:', error);
             document.getElementById("b_fr_save").disabled = false;
         });
+}
+
+function checkMaxNumber(element) {
+    if (element.value == "") {
+        element.value = "1";
+        return;
+    }
+    let maxVal = element.getAttribute("max");
+    if (maxVal == "") {
+        return;
+    }
+    if (element.value > maxVal) {
+        element.value = maxVal;
+    }
 }
 
 function insertOrReplaceFileRequest(jsonResult) {

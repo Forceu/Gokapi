@@ -58,6 +58,11 @@ func (u *User) IsSuperAdmin() bool {
 	return u.UserLevel == UserLevelSuperAdmin
 }
 
+// IsAdmin returns true if the user has the Rank UserLevelSuperAdmin or UserLevelAdmin
+func (u *User) IsAdmin() bool {
+	return u.UserLevel == UserLevelAdmin || u.UserLevel == UserLevelSuperAdmin
+}
+
 // IsSameUser returns true, if the user has the same ID
 func (u *User) IsSameUser(userId int) bool {
 	return u.Id == userId

@@ -1280,7 +1280,7 @@ func (p *paramURequestSave) ParseRequest(r *http.Request) error {
 	}
 	p.foundHeaders["maxsize"] = exists
 	if exists {
-		p.MaxSize, err = parseHeaderInt(r, "maxsize")
+		p.MaxSizeMb, err = parseHeaderInt(r, "maxsize")
 		if err != nil {
 			return fmt.Errorf("invalid value in header maxsize supplied")
 		}

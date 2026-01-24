@@ -719,7 +719,7 @@ type paramURequestSave struct {
 	Notes         string `header:"notes" supportBase64:"true"`
 	Expiry        int64  `header:"expiry"`
 	MaxFiles      int    `header:"maxfiles"`
-	MaxSize       int    `header:"maxsize"`
+	MaxSizeMb     int    `header:"maxsize"`
 	IsNameSet     bool
 	IsExpirySet   bool
 	IsMaxFilesSet bool

@@ -299,7 +299,7 @@ func DeleteUser(id int) {
 func GetSuperAdmin() (models.User, bool) {
 	users := db.GetAllUsers()
 	for _, user := range users {
-		if user.UserLevel == models.UserLevelSuperAdmin {
+		if user.IsSuperAdmin() {
 			return user, true
 		}
 	}

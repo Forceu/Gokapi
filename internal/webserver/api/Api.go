@@ -43,7 +43,7 @@ func Process(w http.ResponseWriter, r *http.Request) {
 		sendError(w, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
-	if routing.AdminOnly && (user.UserLevel != models.UserLevelAdmin && user.UserLevel != models.UserLevelSuperAdmin) {
+	if routing.AdminOnly && !user.IsAdmin() {
 		sendError(w, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
@@ -375,7 +375,7 @@ func apiChunkReserve(w http.ResponseWriter, r requestParser, _ models.User) {
 
 }
 
-func apiChunkUploadRequestAdd(w http.ResponseWriter, r requestParser, _ models.User) {
+func apiChunkUploadRequestAdd(w http.ResponseWriter, r requestParser, user models.User) {
 	request, ok := r.(*paramChunkUploadRequestAdd)
 	if !ok {
 		panic("invalid parameter passed")
@@ -386,10 +386,11 @@ func apiChunkUploadRequestAdd(w http.ResponseWriter, r requestParser, _ models.U
 		return
 	}
 	maxUpload := configuration.Get().MaxFileSizeMB
+	if !user.IsAdmin() && configuration.GetEnvironment().MaxSizeGuestUploadMb != 0 {
+		maxUpload = min(maxUpload, configuration.GetEnvironment().MaxSizeGuestUploadMb)
+	}
 	if !fileRequest.IsUnlimitedSize() {
-		if (fileRequest.MaxSize) < maxUpload {
-			maxUpload = fileRequest.MaxSize
-		}
+		maxUpload = min(maxUpload, fileRequest.MaxSize)
 	}
 	statusCode, errString := processNewChunk(w, request, maxUpload, fileRequest.Id)
 	if statusCode != http.StatusOK {
@@ -997,6 +998,28 @@ func apiURequestDelete(w http.ResponseWriter, r requestParser, user models.User)
 	_, _ = w.Write([]byte("{\"result\":\"OK\"}"))
 }
 
+func isUserAllowedUnlimited(request *paramURequestSave, isNewRequest bool, user models.User) bool {
+	if user.IsAdmin() {
+		return true
+	}
+	isServerLimitMaxSize := configuration.GetEnvironment().MaxSizeGuestUploadMb != 0
+	isServerLimitMaxFiles := configuration.GetEnvironment().MaxFilesGuestUpload != 0
+	if isServerLimitMaxSize {
+		if (request.IsMaxSizeSet || isNewRequest) &&
+			(request.MaxSizeMb == 0 || request.MaxSizeMb > configuration.GetEnvironment().MaxSizeGuestUploadMb) {
+			return false
+		}
+	}
+	if isServerLimitMaxFiles {
+		if (request.IsMaxFilesSet || isNewRequest) &&
+			(request.MaxFiles == 0 || request.MaxFiles > configuration.GetEnvironment().MaxFilesGuestUpload) {
+			return false
+		}
+	}
+
+	return true
+}
+
 func apiURequestSave(w http.ResponseWriter, r requestParser, user models.User) {
 	request, ok := r.(*paramURequestSave)
 	if !ok {
@@ -1004,6 +1027,12 @@ func apiURequestSave(w http.ResponseWriter, r requestParser, user models.User) {
 	}
 	uploadRequest := models.FileRequest{}
 	isNewRequest := request.Id == ""
+
+	if !isUserAllowedUnlimited(request, isNewRequest, user) {
+		sendError(w, http.StatusBadRequest, "Only admin users can create requests with unlimited size / file count"+
+			" or values larger than the server's max size / file count")
+		return
+	}
 
 	if !isNewRequest {
 		uploadRequest, ok = database.GetFileRequest(request.Id)
@@ -1035,7 +1064,7 @@ func apiURequestSave(w http.ResponseWriter, r requestParser, user models.User) {
 		uploadRequest.MaxFiles = request.MaxFiles
 	}
 	if request.IsMaxSizeSet {
-		uploadRequest.MaxSize = request.MaxSize
+		uploadRequest.MaxSize = request.MaxSizeMb
 	}
 	if request.IsNotesSet {
 		uploadRequest.Notes = request.Notes

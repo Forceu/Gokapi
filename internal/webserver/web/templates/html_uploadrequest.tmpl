@@ -110,7 +110,10 @@
 <script>
 	var userName = "{{.ActiveUser.Name}}";
 	var baseUrl = "{{.ServerUrl}}";
-	var canViewOtherRequests = {{.ActiveUser.HasPermissionListOtherUploads }};
+	var canViewOtherRequests = {{.ActiveUser.HasPermissionListOtherUploads}};
+	var limitMaxSize = {{.FileRequestMaxSize}};
+	var limitMaxFiles = {{.FileRequestMaxFiles}};
+	
 </script>
 
 
@@ -166,7 +169,7 @@
       			<input type="checkbox" id="mc_maxfiles"  aria-label="Max files" title="Max files"  data-toggle-target="mi_maxfiles" onchange="handleEditCheckboxChange(this)">
    		 </div>
 		  <span class="input-group-text" id="mMaxFiles">Max Files</span>
-		  <input type="number" min="1" id="mi_maxfiles" disabled class="form-control" aria-label="Max Files" aria-describedby="mMaxFiles" data-allow-regular-paste>
+		  <input type="number" min="1" id="mi_maxfiles" onChange="checkMaxNumber(this)" disabled class="form-control" aria-label="Max Files" aria-describedby="mMaxFiles" data-allow-regular-paste>
 		</div>
 
 		<div class="input-group mb-3">
@@ -175,7 +178,7 @@
       			 data-toggle-target="mi_maxsize" onchange="handleEditCheckboxChange(this)">
    		 </div>
 		  <span class="input-group-text" id="tMaxSize">Max Size&nbsp;</span>
-		  <input type="number" min="1" id="mi_maxsize" disabled class="form-control" aria-label="Max Size" aria-describedby="tMaxSize" data-allow-regular-paste>
+		  <input type="number" min="1" id="mi_maxsize"  onChange="checkMaxNumber(this)" disabled class="form-control" aria-label="Max Size" aria-describedby="tMaxSize" data-allow-regular-paste>
 		</div>
 		
 		<div class="input-group mb-3">

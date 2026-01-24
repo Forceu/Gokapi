@@ -124,8 +124,9 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 	}
 	// < v2.2.0
 	if currentDbVersion < 6 {
-		if environment.New().PermRequestGrantedByDefault {
-			for _, user := range p.GetAllUsers() {
+		grantUploadPerm := environment.New().PermRequestGrantedByDefault
+		for _, user := range p.GetAllUsers() {
+			if grantUploadPerm || user.IsAdmin() {
 				user.GrantPermission(models.UserPermGuestUploads)
 				p.SaveUser(user, false)
 			}

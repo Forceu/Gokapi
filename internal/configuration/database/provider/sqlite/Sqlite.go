@@ -71,8 +71,9 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 										PRIMARY KEY("id")
 									);`)
 		helper.Check(err)
-		if environment.New().PermRequestGrantedByDefault {
-			for _, user := range p.GetAllUsers() {
+		grantUploadPerm := environment.New().PermRequestGrantedByDefault
+		for _, user := range p.GetAllUsers() {
+			if grantUploadPerm || user.IsAdmin() {
 				user.GrantPermission(models.UserPermGuestUploads)
 				p.SaveUser(user, false)
 			}
@@ -81,12 +82,6 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 			if apiKey.IsSystemKey {
 				p.DeleteApiKey(apiKey.Id)
 			}
-		}
-		for _, user := range p.GetAllUsers() {
-			if user.UserLevel != models.UserLevelUser {
-				user.GrantPermission(models.UserPermGuestUploads)
-			}
-			p.SaveUser(user, false)
 		}
 	}
 }

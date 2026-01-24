@@ -642,7 +642,7 @@ func showAdminMenu(w http.ResponseWriter, r *http.Request) {
 
 	view := (&AdminView{}).convertGlobalConfig(ViewMain, user)
 	if len(configuration.GetEnvironment().ActiveDeprecations) > 0 {
-		if user.UserLevel == models.UserLevelSuperAdmin {
+		if user.IsSuperAdmin() {
 			view.ShowDeprecationNotice = true
 		}
 	}
@@ -736,6 +736,8 @@ type AdminView struct {
 	ChunkSize             int
 	MaxParallelUploads    int
 	MinLengthPassword     int
+	FileRequestMaxFiles   int
+	FileRequestMaxSize    int
 	TimeNow               int64
 	CustomContent         customStatic
 }
@@ -832,6 +834,10 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 			}
 			fileRequest.Files = sortMetaData(fileRequest.Files)
 			u.FileRequests = append(u.FileRequests, fileRequest)
+			if !user.IsAdmin() {
+				u.FileRequestMaxFiles = configuration.GetEnvironment().MaxFilesGuestUpload
+				u.FileRequestMaxSize = configuration.GetEnvironment().MaxSizeGuestUploadMb
+			}
 		}
 	}
 
