@@ -37,10 +37,17 @@ type Environment struct {
 	MaxFileSize int `env:"MAX_FILESIZE" envDefault:"102400" onlyPositive:"true" persistent:"true"`
 	// Sets the amount of RAM in MB that can be allocated for an upload chunk or file
 	// Any chunk or file with a size greater than that will be written to a temporary file
-	MaxMemory                   int  `env:"MAX_MEMORY_UPLOAD" envDefault:"50" onlyPositive:"true" persistent:"true"`
-	MaxFilesGuestUpload         int  `env:"MAX_FILES_GUESTUPLOAD" envDefault:"100" onlyPositive:"true"`
-	MaxSizeGuestUploadMb        int  `env:"MAX_SIZE_GUESTUPLOAD" envDefault:"10240" onlyPositive:"true"` // 10240 = 10GB
-	PermRequestGrantedByDefault bool `env:"ALLOW_GUEST_UPLOADS_BY_DEFAULT" envDefault:"false"`
+	MaxMemory int `env:"MAX_MEMORY_UPLOAD" envDefault:"50" onlyPositive:"true" persistent:"true"`
+	// Sets the maximum number of files that can be uploaded per file requests created by
+	// non-admin users
+	// Set to 0 to allow unlimited file count for all users
+	MaxFilesGuestUpload int `env:"MAX_FILES_GUESTUPLOAD" envDefault:"100" onlyPositive:"true"`
+	// Sets the maximum file size for file requests created by
+	// non-admin users
+	// Set to 0 to allow files with a size of up to a value set with GOKAPI_MAX_FILESIZE
+	// for all users
+	// Default 10240 = 10GB
+	MaxSizeGuestUploadMb int `env:"MAX_SIZE_GUESTUPLOAD" envDefault:"10240" onlyPositive:"true"`
 	// Set the number of chunks that are uploaded in parallel for a single file
 	MaxParallelUploads int `env:"MAX_PARALLEL_UPLOADS" envDefault:"3" onlyPositive:"true" persistent:"true"`
 	// Sets the minium free space on the disk in MB for accepting an upload
@@ -51,6 +58,8 @@ type Environment struct {
 	WebserverPort int `env:"PORT" envDefault:"53842" onlyPositive:"true" persistent:"true"`
 	// Disables the CORS check on startup and during setup, if set to true
 	DisableCorsCheck bool `env:"DISABLE_CORS_CHECK" envDefault:"false"`
+	// Allows all users by default to create file requests, if set to true
+	PermRequestGrantedByDefault bool `env:"GUEST_UPLOAD_BY_DEFAULT" envDefault:"false"`
 	// Also outputs all log file entries to the console output, if set to true
 	LogToStdout bool `env:"LOG_STDOUT" envDefault:"false"`
 	// Allow hotlinking of videos. Note: Due to buffering, playing a video might count as

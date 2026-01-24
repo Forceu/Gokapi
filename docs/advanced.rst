@@ -57,59 +57,73 @@ Available environment variables
 ==================================
 
 
-+------------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| Name                         | Action                                                                              | Persistent [*]_ | Default                     |
-+==============================+=====================================================================================+=================+=============================+
-| GOKAPI_CHUNK_SIZE_MB         | Sets the size of chunks that are uploaded in MB                                     | Yes             | 45                          |
-+------------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| GOKAPI_CONFIG_DIR            | Sets the directory for the config file                                              | No              | config                      |
-+------------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| GOKAPI_CONFIG_FILE           | Sets the name of the config file                                                    | No              | config.json                 |
-+------------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| GOKAPI_DATA_DIR              | Sets the directory for the data                                                     | Yes             | data                        |
-+------------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| GOKAPI_DISABLE_CORS_CHECK    | Disables the CORS check on startup and during setup, if set to true                 | No              | false                       |
-+------------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| GOKAPI_ENABLE_HOTLINK_VIDEOS | Allow hotlinking of videos. Note: Due to buffering, playing a video might count as  | No              | false                       |
-|                              |                                                                                     |                 |                             |
-|                              | multiple downloads. It is only recommended to use video hotlinking for uploads with |                 |                             |
-|                              |                                                                                     |                 |                             |
-|                              | unlimited downloads enabled                                                         |                 |                             |
-+------------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| GOKAPI_LENGTH_HOTLINK_ID     | Sets the length of the hotlink IDs. Value must be 8 or greater                      | No              | 40                          |
-+------------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| GOKAPI_LENGTH_ID             | Sets the length of the download IDs. Value must be 5 or greater                     | No              | 15                          |
-+------------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| GOKAPI_LOG_STDOUT            | Also outputs all log file entries to the console output, if set to true             | No              | false                       |
-+------------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| GOKAPI_MAX_FILESIZE          | Sets the maximum allowed file size in MB                                            | Yes             | 102400                      |
-|                              |                                                                                     |                 |                             |
-|                              | Default 102400 = 100GB                                                              |                 |                             |
-+------------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| GOKAPI_MAX_MEMORY_UPLOAD     | Sets the amount of RAM in MB that can be allocated for an upload chunk or file      | Yes             | 50                          |
-|                              |                                                                                     |                 |                             |
-|                              | Any chunk or file with a size greater than that will be written to a temporary file |                 |                             |
-+------------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| GOKAPI_MAX_PARALLEL_UPLOADS  | Set the number of chunks that are uploaded in parallel for a single file            | Yes             | 3                           |
-+------------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| GOKAPI_MIN_FREE_SPACE        | Sets the minium free space on the disk in MB for accepting an upload                | No              | 400                         |
-+------------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| GOKAPI_MIN_LENGTH_PASSWORD   | Sets the minium password length. Value must be 6 or greater                         | No              | 8                           |
-+------------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| GOKAPI_PORT                  | Sets the webserver port                                                             | Yes             | 53842                       |
-+------------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| DOCKER_NONROOT               | DEPRECATED.                                                                         | No              | false                       |
-|                              |                                                                                     |                 |                             |
-|                              |                                                                                     |                 |                             |
-|                              |                                                                                     |                 |                             |
-|                              | Docker only: Runs the binary in the container as a non-root user, if set to "true"  |                 |                             |
-+------------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| TMPDIR                       | Sets the path which contains temporary files                                        | No              | Non-Docker: Default OS path |
-|                              |                                                                                     |                 |                             |
-|                              |                                                                                     |                 |                             |
-|                              |                                                                                     |                 |                             |
-|                              |                                                                                     |                 | Docker: [DATA_DIR]          |
-+------------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
++--------------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
+| Name                           | Action                                                                              | Persistent [*]_ | Default                     |
++================================+=====================================================================================+=================+=============================+
+| GOKAPI_CHUNK_SIZE_MB           | Sets the size of chunks that are uploaded in MB                                     | Yes             | 45                          |
++--------------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
+| GOKAPI_CONFIG_DIR              | Sets the directory for the config file                                              | No              | config                      |
++--------------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
+| GOKAPI_CONFIG_FILE             | Sets the name of the config file                                                    | No              | config.json                 |
++--------------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
+| GOKAPI_DATA_DIR                | Sets the directory for the data                                                     | Yes             | data                        |
++--------------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
+| GOKAPI_DISABLE_CORS_CHECK      | Disables the CORS check on startup and during setup, if set to true                 | No              | false                       |
++--------------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
+| GOKAPI_ENABLE_HOTLINK_VIDEOS   | Allow hotlinking of videos. Note: Due to buffering, playing a video might count as  | No              | false                       |
+|                                |                                                                                     |                 |                             |
+|                                | multiple downloads. It is only recommended to use video hotlinking for uploads with |                 |                             |
+|                                |                                                                                     |                 |                             |
+|                                | unlimited downloads enabled                                                         |                 |                             |
++--------------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
+| GOKAPI_GUEST_UPLOAD_BY_DEFAULT | Allows all users by default to create file requests, if set to true                 | No              | false                       |
++--------------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
+| GOKAPI_LENGTH_HOTLINK_ID       | Sets the length of the hotlink IDs. Value must be 8 or greater                      | No              | 40                          |
++--------------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
+| GOKAPI_LENGTH_ID               | Sets the length of the download IDs. Value must be 5 or greater                     | No              | 15                          |
++--------------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
+| GOKAPI_LOG_STDOUT              | Also outputs all log file entries to the console output, if set to true             | No              | false                       |
++--------------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
+| GOKAPI_MAX_FILESIZE            | Sets the maximum allowed file size in MB                                            | Yes             | 102400                      |
+|                                |                                                                                     |                 |                             |
+|                                | Default 102400 = 100GB                                                              |                 |                             |
++--------------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
+| GOKAPI_MAX_FILES_GUESTUPLOAD   | Sets the maximum number of files that can be uploaded per file requests created by  | No              | 100                         |
+|                                |                                                                                     |                 |                             |
+|                                | non-admin users                                                                     |                 |                             |
+|                                |                                                                                     |                 |                             |
+|                                | Set to 0 to allow unlimited file count for all users                                |                 |                             |
++--------------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
+| GOKAPI_MAX_MEMORY_UPLOAD       | Sets the amount of RAM in MB that can be allocated for an upload chunk or file      | Yes             | 50                          |
+|                                |                                                                                     |                 |                             |
+|                                | Any chunk or file with a size greater than that will be written to a temporary file |                 |                             |
++--------------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
+| GOKAPI_MAX_PARALLEL_UPLOADS    | Set the number of chunks that are uploaded in parallel for a single file            | Yes             | 3                           |
++--------------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
+| GOKAPI_MAX_SIZE_GUESTUPLOAD    | Sets the maximum file size for file requests created by                             | No              | 10240                       |
+|                                |                                                                                     |                 |                             |
+|                                | non-admin users                                                                     |                 |                             |
+|                                |                                                                                     |                 |                             |
+|                                | Set to 0 to allow files with a size of up to a value set with GOKAPI_MAX_FILESIZE   |                 |                             |
+|                                |                                                                                     |                 |                             |
+|                                | for all users                                                                       |                 |                             |
+|                                |                                                                                     |                 |                             |
+|                                | Default 10240 = 10GB                                                                |                 |                             |
++--------------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
+| GOKAPI_MIN_FREE_SPACE          | Sets the minium free space on the disk in MB for accepting an upload                | No              | 400                         |
++--------------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
+| GOKAPI_MIN_LENGTH_PASSWORD     | Sets the minium password length. Value must be 6 or greater                         | No              | 8                           |
++--------------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
+| GOKAPI_PORT                    | Sets the webserver port                                                             | Yes             | 53842                       |
++--------------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
+| TMPDIR                         | Sets the path which contains temporary files                                        | No              | Non-Docker: Default OS path |
+|                                |                                                                                     |                 |                             |
+|                                |                                                                                     |                 | Docker: [DATA_DIR]          |
++--------------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
+| DOCKER_NONROOT                 | DEPRECATED.                                                                         | No              | false                       |
+|                                |                                                                                     |                 |                             |
+|                                | Docker only: Runs the binary in the container as a non-root user, if set to "true"  |                 |                             |
++--------------------------------+-------------------------------------------------------------------------------------+-----------------+-----------------------------+
 
 .. [*] Variables that are persistent must be submitted during the first start when Gokapi creates a new config file. They can be omitted afterwards. Non-persistent variables need to be set on every start.
 
