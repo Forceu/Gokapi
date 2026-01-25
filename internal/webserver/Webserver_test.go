@@ -592,7 +592,7 @@ func TestProcessApi(t *testing.T) {
 	// Not authorised
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/api/files/list",
-		RequiredContent: []string{"{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}"},
+		RequiredContent: []string{`{"Result":"error","ErrorMessage":"Unauthorized","ErrorCode":2}`},
 		ExcludedContent: []string{"smallfile2"},
 		ResultCode:      401,
 		Cookies: []test.Cookie{{
@@ -602,7 +602,7 @@ func TestProcessApi(t *testing.T) {
 	})
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/api/files/list",
-		RequiredContent: []string{"{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}"},
+		RequiredContent: []string{`{"Result":"error","ErrorMessage":"Unauthorized","ErrorCode":2}`},
 		ExcludedContent: []string{"smallfile2"},
 		ResultCode:      401,
 		Headers:         []test.Header{{"apikey", "invalid"}},
@@ -611,7 +611,7 @@ func TestProcessApi(t *testing.T) {
 	// Valid session does not grant API access
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/api/files/list",
-		RequiredContent: []string{"{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}"},
+		RequiredContent: []string{`{"Result":"error","ErrorMessage":"Unauthorized","ErrorCode":2}`},
 		ExcludedContent: []string{"smallfile2"},
 		ResultCode:      401,
 		Cookies: []test.Cookie{{
