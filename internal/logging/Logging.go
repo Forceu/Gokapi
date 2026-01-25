@@ -115,8 +115,12 @@ func LogDownload(file models.File, r *http.Request, saveIp bool) {
 }
 
 // LogUpload adds a log entry when an upload was created. Non-Blocking
-func LogUpload(file models.File, user models.User) {
-	createLogEntry(categoryUpload, fmt.Sprintf("%s, ID %s, uploaded by %s (user #%d)", file.Name, file.Id, user.Name, user.Id), false)
+func LogUpload(file models.File, user models.User, fr models.FileRequest) {
+	if fr.Id != "" {
+		createLogEntry(categoryUpload, fmt.Sprintf("%s, ID %s, uploaded to file request %s (%s), owned by %s (user #%d) ", file.Name, file.Id, fr.Id, fr.Name, user.Name, user.Id), false)
+	} else {
+		createLogEntry(categoryUpload, fmt.Sprintf("%s, ID %s, uploaded by %s (user #%d)", file.Name, file.Id, user.Name, user.Id), false)
+	}
 }
 
 // LogEdit adds a log entry when an upload was edited. Non-Blocking

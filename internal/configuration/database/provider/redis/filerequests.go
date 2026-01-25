@@ -24,6 +24,9 @@ func dbToFileRequest(input []any) (models.FileRequest, error) {
 
 // GetFileRequest returns the FileRequest or false if not found
 func (p DatabaseProvider) GetFileRequest(id string) (models.FileRequest, bool) {
+	if id == "" {
+		return models.FileRequest{}, false
+	}
 	result, ok := p.getHashMap(prefixFileRequests + id)
 	if !ok {
 		return models.FileRequest{}, false

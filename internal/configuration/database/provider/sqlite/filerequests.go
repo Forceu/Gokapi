@@ -22,6 +22,9 @@ type schemaFileRequests struct {
 
 // GetFileRequest returns the FileRequest or false if not found
 func (p DatabaseProvider) GetFileRequest(id string) (models.FileRequest, bool) {
+	if id == "" {
+		return models.FileRequest{}, false
+	}
 	var rowResult schemaFileRequests
 	row := p.sqliteDb.QueryRow("SELECT * FROM UploadRequests WHERE Id = ?", id)
 	err := row.Scan(&rowResult.Id, &rowResult.Name, &rowResult.UserId, &rowResult.Expiry,

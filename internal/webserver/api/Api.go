@@ -464,7 +464,8 @@ func doBlockingPartCompleteChunk(w http.ResponseWriter, uuid string, fileHeader 
 	if uploadParameters.FileRequestId != "" {
 		chunkreservation.SetComplete(uploadParameters.FileRequestId, uuid)
 	}
-	logging.LogUpload(file, user)
+	fr, _ := filerequest.Get(uploadParameters.FileRequestId)
+	logging.LogUpload(file, user, fr)
 	outputFileJson(w, file)
 }
 
