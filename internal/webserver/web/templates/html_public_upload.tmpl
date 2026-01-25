@@ -94,7 +94,7 @@
           </label>
           <div id="fileList" class="pu-file-list"></div>
           <div class="text-center mt-4">
-            <button class="btn btn-secondary" onClick="initUpload();" id="uploadbutton"> Upload </button>
+            <button class="btn btn-primary" disabled onClick="initUpload();" id="uploadbutton"> Upload </button>
           </div>
         </div>
       </div>
@@ -155,7 +155,7 @@ fileInput.addEventListener('change', () => {
             errorModal.show();
             return;
         }
-
+	document.getElementById('uploadbutton').disabled = false;
         const uuid = getUuid();
 
         const item = document.createElement('div');
@@ -301,7 +301,13 @@ function getQueuedFileCount() {
 function initUpload() {
     const btn = document.getElementById("uploadbutton");
     btn.disabled = true;
-    startUpload().catch(console.error).finally(() => btn.disabled = false);
+    startUpload().catch(console.error).finally(() => {
+        // Check if there are still files pending (failed uploads)
+        // If count > 0, re-enable button. If 0, keep it disabled.
+        if (getQueuedFileCount() > 0) {
+            btn.disabled = false;
+        }
+    });
 }
 
 async function startUpload() {
@@ -316,8 +322,14 @@ async function startUpload() {
             uuid,
             elements
         } = entry;
-        // Disable delete during upload
-        elements.removeBtn.remove();
+	// Remove the delete button only on the first attempt
+        if(elements.removeBtn) {
+            elements.removeBtn.remove();
+        }
+        // Verify the progress bar is visible (in case it was hidden by a previous error)
+        elements.progressBar.style.display = ""; 
+        // Reset text color (in case it was red from a previous error)
+        elements.progressText.style.color = "";
         try {
             elements.progressText.textContent = "Reserving...";
             const serverUuid = await reserveChunk(elements);
