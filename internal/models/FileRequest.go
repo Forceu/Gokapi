@@ -20,6 +20,7 @@ type FileRequest struct {
 	Notes           string   `json:"notes" redis:"notes"`               // The custom note that was set for this file request
 	UploadedFiles   int      `json:"uploadedfiles" redis:"-"`           // Contains the number of uploaded files for this request. Needs to be calculated with Populate()
 	CombinedMaxSize int      `json:"combinedmaxsize" redis:"-"`         // The lesser of MaxSize and the server's max upload size. Needs to be calculated with Populate()
+	ReservedUploads int      `json:"reserveduploads" redis:"-"`         // How many uploads are currently reserved but not finalised. Needs to be calculated with Populate()
 	LastUpload      int64    `json:"lastupload" redis:"-"`              // Contains the timestamp of the last upload for this request. Needs to be calculated with Populate()
 	TotalFileSize   int64    `json:"totalfilesize" redis:"-"`           // Contains the file size of all uploaded files. Needs to be calculated with Populate()
 	FileIdList      []string `json:"fileidlist" redis:"-"`              // Contains an array of the IDs of all uploaded files. Needs to be calculated with Populate()
@@ -45,6 +46,7 @@ func (f *FileRequest) Populate(files map[string]File, maxServerSize int) {
 		f.CombinedMaxSize = maxServerSize
 	}
 	f.UploadedFiles = len(f.FileIdList)
+	f.ReservedUploads = chunkreservation.GetCount(f.Id)
 }
 
 // GetReadableDateLastUpdate returns the last update date as YYYY-MM-DD HH:MM:SS
@@ -84,7 +86,7 @@ func (f *FileRequest) HasRestrictions() bool {
 }
 
 func (f *FileRequest) FilesRemaining() int {
-	result := f.MaxFiles - f.UploadedFiles - chunkreservation.GetCount(f.Id)
+	result := f.MaxFiles - f.UploadedFiles - f.ReservedUploads
 	if result < 0 {
 		return 0
 	}

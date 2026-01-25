@@ -2129,6 +2129,12 @@
             "description": "The maximum file size allowed in MB or 0 if unlimited",
             "example": "0"
           },
+          "CombinedMaxSize": {
+            "type": "integer",
+            "format": "int32",
+            "description": "The lesser of MaxSize and the server's max upload size.",
+            "example": "0"
+          },
           "expiry": {
             "type": "integer",
             "format": "int64",
@@ -2161,6 +2167,12 @@
             "format": "int32",
             "description": "The number of uploaded files for this request",
             "example": "3"
+          },
+          "reserveduploads": {
+            "type": "integer",
+            "format": "int32",
+            "description": "The number of current uploads, which have not been finalised yet",
+            "example": "1"
           },
           "lastupload": {
             "type": "integer",

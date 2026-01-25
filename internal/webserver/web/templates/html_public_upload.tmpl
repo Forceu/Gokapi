@@ -1,6 +1,9 @@
 {{define "publicUpload"}}{{template "header" .}}
-<style>
-  .pu-file-list {
+
+ 
+ <style>
+ 
+.pu-file-list {
     margin-top: 1.5rem;
   }
 
@@ -12,21 +15,37 @@
     font-size: 0.95rem;
   }
 
-  .pu-file-item span:first-child {
+  .pu-file-item .file-name {
     flex: 1;
     text-align: left;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
+    margin-right: 1rem;
   }
 
-  .file-size {
+
+  .pu-file-item .upload-status {
+    width: 300px; 
+    text-align: right;
+    margin-right: 1rem;
+    flex-shrink: 0;
+    opacity: 0.75;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .pu-file-item .file-size {
+    width: 80px;
     text-align: right;
     margin-right: 12px;
     flex-shrink: 0;
     opacity: 0.75;
   }
+
 </style>
+
 <main style="margin-top: 2rem">
   <div class="row justify-content-center">
     <div class="col-lg-8">
@@ -81,8 +100,6 @@
       </div>
     </div>
   </div>
-  <!-- Button trigger modal -->
-  <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#errorModal"> Launch demo modal </button>
 </main>
 
 
@@ -131,22 +148,42 @@ const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
 
 fileInput.addEventListener('change', () => {
     Array.from(fileInput.files).forEach(file => {
+
+        if (file.size > MAX_FILE_SIZE) {
+            document.getElementById('span-modal-error').innerText =
+                `The file "${file.name}" exceeds the maximum allowed size of ${formatSize(MAX_FILE_SIZE)}.`;
+            errorModal.show();
+            return;
+        }
+
         const uuid = getUuid();
+
         const item = document.createElement('div');
         item.className = 'pu-file-item';
         item.dataset.uuid = uuid;
+
         const name = document.createElement('span');
         name.textContent = file.name;
+        name.className = 'file-name';
+
         const progressText = document.createElement('span');
-        progressText.className = 'file-size';
+        progressText.className = 'upload-status';
+        progressText.textContent = 'Ready';
+
         const progressBar = document.createElement('progress');
-        progressBar.max = file.size;
+        progressBar.className = 'upload-progress';
+        
+        if (file.size == 0) {
+            progressBar.max = 1;
+        } else {
+            progressBar.max = file.size;
+        }
         progressBar.value = 0;
-        progressBar.style.width = '120px';
-        progressBar.style.marginRight = '10px';
+
         const size = document.createElement('span');
         size.className = 'file-size';
         size.textContent = formatSize(file.size);
+
         const removeBtn = document.createElement('button');
         removeBtn.type = 'button';
         removeBtn.title = 'Remove';
@@ -156,8 +193,10 @@ fileInput.addEventListener('change', () => {
             filesMap.get(uuid).removed = true;
             item.remove();
         };
-        item.append(name, progressBar, progressText, size, removeBtn);
+
+        item.append(name, progressText, progressBar, size, removeBtn);
         fileList.appendChild(item);
+
         filesMap.set(uuid, {
             uuid,
             file,
@@ -177,20 +216,29 @@ fileInput.addEventListener('change', () => {
 function showModal(modalCode) {
     let message = "";
     switch (modalCode) {
+    
         case "alluploaded":
             new bootstrap.Modal(document.getElementById('allUploadedModal'), {
                 keyboard: false,
                 backdrop: "static"
             }).show();
             return;
+            
         case "maxfiles":
             if (maxFilesRemaining == 1) {
                 message = "Too many files are selected for upload. Please only select 1 file.";
             } else {
                 message = "Too many files are selected for upload. Please only select " + maxFilesRemaining + " files or fewer.";
             }
+            break;
+            
         case "maxfilesdynamic":
             message = "Some files could not be uploaded because the server rejected the request. This likely occurred because another user was uploading files at the same time and the maximum file limit was reached.";
+            break;
+            
+        case "expired":
+            message = "The upload request exceeded the permitted time limit, and uploading additional files is no longer possible.";
+            break;
     }
     document.getElementById('span-modal-error').innerText = message;
     errorModal.show();
@@ -206,13 +254,16 @@ function formatSize(bytes) {
     return bytes.toFixed(1) + ' ' + units[i];
 }
 
-const CHUNK_SIZE = {{.ChunkSize}}* 1024 * 1024;
+const CHUNK_SIZE = {{.ChunkSize}} * 1024 * 1024;
 const API_BASE = "./api/uploadrequest/chunk/";
 const RESERVE_URL = API_BASE + "reserve";
 const UPLOAD_URL = API_BASE + "add";
 const COMPLETE_URL = API_BASE + "complete";
 const FILE_REQUEST_ID = "{{ .FileRequest.Id }}";
 const API_KEY = "{{ .FileRequest.ApiKey }}";
+const MAX_FILE_SIZE = {{.FileRequest.CombinedMaxSize}} * 1024 * 1024;
+const IS_UNLIMITED_FILES = {{ .FileRequest.IsUnlimitedFiles }};
+const IS_UNLIMITED_TIME = {{ .FileRequest.IsUnlimitedTime }};
 var maxFilesRemaining = {{.FileRequest.FilesRemaining}};
 
 
@@ -254,7 +305,7 @@ function initUpload() {
 }
 
 async function startUpload() {
-    if (getQueuedFileCount() > maxFilesRemaining) {
+    if (!IS_UNLIMITED_FILES && getQueuedFileCount() > maxFilesRemaining) {
         showModal("maxfiles");
         return;
     }
@@ -272,7 +323,8 @@ async function startUpload() {
             const serverUuid = await reserveChunk(elements);
             elements.progressText.textContent = "Uploading...";
             let offset = 0;
-            while (offset < file.size) {
+            // do-while so that add chunk is run for 0byte files as well
+            do {
                 const chunk = file.slice(offset, offset + CHUNK_SIZE);
                 await withRetry(async () => {
                     const formData = new FormData();
@@ -297,10 +349,16 @@ async function startUpload() {
                     }
                 });
                 offset += chunk.size;
-                elements.progressBar.value = offset;
-                elements.progressText.textContent = Math.floor((offset / file.size) * 100) + "%";
-            }
-            await finalizeUpload(file, serverUuid, elements);
+                if (file.size == 0) {
+                    elements.progressBar.value = 1;
+                    elements.progressText.textContent = "100%";
+                } else {
+                    elements.progressBar.value = offset;
+                    elements.progressText.textContent = Math.floor((offset / file.size) * 100) + "%";
+                }
+            } while (offset < file.size);
+
+            await finaliseUpload(file, serverUuid, elements);
             elements.progressText.textContent = "Completed";
             elements.item.style.opacity = "0.6";
             filesMap.get(uuid).removed = true;
@@ -329,6 +387,10 @@ async function parseErrorResponse(response) {
         switch (data.ErrorCode) {
             case 9:
                 message = "File size limit exceeded";
+                break;
+            case 14:
+                message = "Upload request has expired";
+                showModal("expired");
                 break;
             case 15:
                 message = "Maximum file count reached";
@@ -374,7 +436,7 @@ async function reserveChunk(elements) {
     });
 }
 
-async function finalizeUpload(file, uuid, elements) {
+async function finaliseUpload(file, uuid, elements) {
     await withRetry(async () => {
         const response = await fetch(COMPLETE_URL, {
             method: "POST",

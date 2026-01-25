@@ -227,7 +227,7 @@
 
 {{ define "uRFileCell" }}
 	<td>
-	{{ .UploadedFiles }}{{ if ne .MaxFiles 0 }}	/ {{ .MaxFiles }}{{end}}
+	<span title="Uploaded files">{{ .UploadedFiles }}</span>{{ if ne .ReservedUploads 0 }}<span title="Active uploads">+{{.ReservedUploads}}</span>{{end}}{{ if ne .MaxFiles 0 }} / <span title="File limit">{{ .MaxFiles }}</span>{{end}}
 	{{ if gt .UploadedFiles 0 }}
 	 <button
 		  class="btn btn-sm btn-link text-light p-0 collapse-toggle"
