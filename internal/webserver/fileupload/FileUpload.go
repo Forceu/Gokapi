@@ -14,6 +14,7 @@ import (
 	"github.com/forceu/gokapi/internal/storage"
 	"github.com/forceu/gokapi/internal/storage/chunking"
 	"github.com/forceu/gokapi/internal/storage/chunking/chunkreservation"
+	"github.com/forceu/gokapi/internal/webserver/api/errorcodes"
 )
 
 const minChunkSize = 5 * 1024 * 1024
@@ -63,38 +64,38 @@ func isChunkMinChunkSize(r *http.Request, offset, fileSize int64) bool {
 }
 
 // ProcessNewChunk processes a file chunk upload request
-func ProcessNewChunk(w http.ResponseWriter, r *http.Request, isApiCall bool, filerequestId string) error {
+func ProcessNewChunk(w http.ResponseWriter, r *http.Request, isApiCall bool, filerequestId string) (error, int) {
 	err := r.ParseMultipartForm(int64(configuration.Get().MaxMemory) * 1024 * 1024)
 	if err != nil {
-		return err
+		return err, errorcodes.CannotParse
 	}
 	defer r.MultipartForm.RemoveAll()
 	chunkInfo, err := chunking.ParseChunkInfo(r, isApiCall)
 	if err != nil {
-		return err
+		return err, errorcodes.InvalidUserInput
 	}
 	file, header, err := r.FormFile("file")
 	if err != nil {
-		return err
+		return err, errorcodes.InvalidUserInput
 	}
 
 	if !isChunkMinChunkSize(r, chunkInfo.Offset, chunkInfo.TotalFilesizeBytes) {
-		return storage.ErrorChunkTooSmall
+		return storage.ErrorChunkTooSmall, errorcodes.ChunkTooSmall
 	}
 
 	if filerequestId != "" {
 		if !chunkreservation.SetUploading(filerequestId, chunkInfo.UUID) {
-			return errors.New("chunk reservation has expired or was not requested")
+			return errors.New("chunk reservation has expired or was not requested"), errorcodes.InvalidChunkReservation
 		}
 	}
 
 	err = chunking.NewChunk(file, header, chunkInfo)
 	defer file.Close()
 	if err != nil {
-		return err
+		return err, errorcodes.CannotAllocateFile
 	}
 	_, _ = io.WriteString(w, "{\"result\":\"OK\"}")
-	return nil
+	return nil, 0
 }
 
 // ParseFileHeader parses the parameters for CompleteChunk()

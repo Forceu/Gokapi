@@ -19,6 +19,7 @@ import (
 	"github.com/forceu/gokapi/internal/storage/chunking/chunkreservation"
 	"github.com/forceu/gokapi/internal/storage/filerequest"
 	"github.com/forceu/gokapi/internal/storage/filerequest/ratelimiter"
+	"github.com/forceu/gokapi/internal/webserver/api/errorcodes"
 	"github.com/forceu/gokapi/internal/webserver/authentication/users"
 	"github.com/forceu/gokapi/internal/webserver/fileupload"
 )
@@ -34,17 +35,17 @@ func Process(w http.ResponseWriter, r *http.Request) {
 
 	routing, ok := getRouting(requestUrl)
 	if !ok {
-		sendError(w, http.StatusBadRequest, "Invalid request")
+		sendError(w, http.StatusBadRequest, errorcodes.InvalidUrl, "Invalid request")
 		return
 	}
 	var user models.User
 	user, ok = isAuthorisedForApi(r, routing)
 	if !ok {
-		sendError(w, http.StatusUnauthorized, "Unauthorized")
+		sendError(w, http.StatusUnauthorized, errorcodes.InvalidApiKey, "Unauthorized")
 		return
 	}
 	if routing.AdminOnly && !user.IsAdmin() {
-		sendError(w, http.StatusUnauthorized, "Unauthorized")
+		sendError(w, http.StatusUnauthorized, errorcodes.AdminOnly, "Unauthorized")
 		return
 	}
 	if routing.RequestParser == nil {
@@ -54,7 +55,7 @@ func Process(w http.ResponseWriter, r *http.Request) {
 	parser := routing.RequestParser.New()
 	err := parser.ParseRequest(r)
 	if err != nil {
-		sendError(w, http.StatusBadRequest, err.Error())
+		sendError(w, http.StatusBadRequest, errorcodes.CannotParse, err.Error())
 		return
 	}
 	routing.Continue(w, parser, user)
@@ -71,11 +72,11 @@ func apiEditFile(w http.ResponseWriter, r requestParser, user models.User) {
 	}
 	file, ok := database.GetMetaDataById(request.Id)
 	if !ok {
-		sendError(w, http.StatusNotFound, "Invalid file ID provided.")
+		sendError(w, http.StatusNotFound, errorcodes.NotFound, "Invalid file ID provided.")
 		return
 	}
 	if file.UserId != user.Id && !user.HasPermission(models.UserPermEditOtherUploads) {
-		sendError(w, http.StatusUnauthorized, "No permission to edit file.")
+		sendError(w, http.StatusUnauthorized, errorcodes.NoPermission, "No permission to edit file.")
 		return
 	}
 	if request.UnlimitedDownloads {
@@ -139,11 +140,11 @@ func apiDeleteKey(w http.ResponseWriter, r requestParser, user models.User) {
 	}
 	apiKeyOwner, apiKey, ok := isValidKeyForEditing(request.KeyId)
 	if !ok {
-		sendError(w, http.StatusNotFound, "Invalid key ID provided.")
+		sendError(w, http.StatusNotFound, errorcodes.NotFound, "Invalid key ID provided.")
 		return
 	}
 	if apiKeyOwner.Id != user.Id && !user.HasPermission(models.UserPermManageApiKeys) {
-		sendError(w, http.StatusUnauthorized, "No permission to delete this API key")
+		sendError(w, http.StatusUnauthorized, errorcodes.NoPermission, "No permission to delete this API key")
 		return
 	}
 	database.DeleteApiKey(apiKey.Id)
@@ -156,33 +157,33 @@ func apiModifyApiKey(w http.ResponseWriter, r requestParser, user models.User) {
 	}
 	apiKeyOwner, apiKey, ok := isValidKeyForEditing(request.KeyId)
 	if !ok {
-		sendError(w, http.StatusNotFound, "Invalid key ID provided.")
+		sendError(w, http.StatusNotFound, errorcodes.NotFound, "Invalid key ID provided.")
 		return
 	}
 	if apiKeyOwner.Id != user.Id && !user.HasPermission(models.UserPermManageApiKeys) {
-		sendError(w, http.StatusUnauthorized, "No permission to delete this API key")
+		sendError(w, http.StatusUnauthorized, errorcodes.NoPermission, "No permission to delete this API key")
 		return
 	}
 
 	switch request.Permission {
 	case models.ApiPermReplace:
 		if !apiKeyOwner.HasPermissionReplace() {
-			sendError(w, http.StatusUnauthorized, "Insufficient user permission for owner to set this API permission")
+			sendError(w, http.StatusUnauthorized, errorcodes.NoPermission, "Insufficient user permission for owner to set this API permission")
 			return
 		}
 	case models.ApiPermManageUsers:
 		if !apiKeyOwner.HasPermissionManageUsers() {
-			sendError(w, http.StatusUnauthorized, "Insufficient user permission for owner to set this API permission")
+			sendError(w, http.StatusUnauthorized, errorcodes.NoPermission, "Insufficient user permission for owner to set this API permission")
 			return
 		}
 	case models.ApiPermManageLogs:
 		if !apiKeyOwner.HasPermissionManageLogs() {
-			sendError(w, http.StatusUnauthorized, "Insufficient user permission for owner to set this API permission")
+			sendError(w, http.StatusUnauthorized, errorcodes.NoPermission, "Insufficient user permission for owner to set this API permission")
 			return
 		}
 	case models.ApiPermManageFileRequests:
 		if !apiKeyOwner.HasPermissionCreateFileRequests() {
-			sendError(w, http.StatusUnauthorized, "Insufficient user permission for owner to set this API permission")
+			sendError(w, http.StatusUnauthorized, errorcodes.NoPermission, "Insufficient user permission for owner to set this API permission")
 			return
 		}
 	default:
@@ -213,7 +214,7 @@ func isValidKeyForEditing(apiKey string) (models.User, models.ApiKey, bool) {
 func isValidUserForEditing(w http.ResponseWriter, userId int) (models.User, bool) {
 	user, ok := database.GetUser(userId)
 	if !ok {
-		sendError(w, http.StatusNotFound, "Invalid user id provided.")
+		sendError(w, http.StatusNotFound, errorcodes.NotFound, "Invalid user id provided.")
 		return models.User{}, false
 	}
 	return user, true
@@ -244,12 +245,13 @@ func apiCreateUser(w http.ResponseWriter, r requestParser, user models.User) {
 	if err != nil {
 		switch {
 		case errors.Is(err, users.ErrorNameToShort):
-			sendError(w, http.StatusBadRequest, "Invalid username provided.")
+			sendError(w, http.StatusBadRequest, errorcodes.NoPermission, "Invalid username provided.")
 		case errors.Is(err, users.ErrorUserExists):
-			sendError(w, http.StatusConflict, "User already exists.")
+			sendError(w, http.StatusConflict, errorcodes.AlreadyExists, "User already exists.")
 		default:
-			sendError(w, http.StatusInternalServerError, err.Error())
+			sendError(w, http.StatusInternalServerError, errorcodes.InternalServer, err.Error())
 		}
+		return
 	}
 	logging.LogUserCreation(newUser, user)
 	_, _ = w.Write([]byte(newUser.ToJson()))
@@ -262,16 +264,16 @@ func apiChangeFriendlyName(w http.ResponseWriter, r requestParser, user models.U
 	}
 	ownerApiKey, apiKey, ok := isValidKeyForEditing(request.KeyId)
 	if !ok {
-		sendError(w, http.StatusNotFound, "Invalid key ID provided.")
+		sendError(w, http.StatusNotFound, errorcodes.NotFound, "Invalid key ID provided.")
 		return
 	}
 	if ownerApiKey.Id != user.Id && !user.HasPermission(models.UserPermManageApiKeys) {
-		sendError(w, http.StatusUnauthorized, "No permission to edit this key")
+		sendError(w, http.StatusUnauthorized, errorcodes.NoPermission, "No permission to edit this API key")
 		return
 	}
 	err := renameApiKeyFriendlyName(apiKey.Id, request.FriendlyName)
 	if err != nil {
-		sendError(w, http.StatusInternalServerError, err.Error())
+		sendError(w, http.StatusInternalServerError, errorcodes.InternalServer, err.Error())
 		return
 	}
 }
@@ -298,11 +300,11 @@ func apiDeleteFile(w http.ResponseWriter, r requestParser, user models.User) {
 	}
 	file, ok := database.GetMetaDataById(request.Id)
 	if !ok {
-		sendError(w, http.StatusNotFound, "Invalid file ID provided.")
+		sendError(w, http.StatusNotFound, errorcodes.NotFound, "Invalid file ID provided.")
 		return
 	}
 	if file.UserId != user.Id && !user.HasPermission(models.UserPermDeleteOtherUploads) {
-		sendError(w, http.StatusUnauthorized, "No permission to delete this file")
+		sendError(w, http.StatusUnauthorized, errorcodes.NoPermission, "No permission to delete this file")
 		return
 	}
 	logging.LogDelete(file, user)
@@ -320,16 +322,16 @@ func apiRestoreFile(w http.ResponseWriter, r requestParser, user models.User) {
 	}
 	file, ok := database.GetMetaDataById(request.Id)
 	if !ok {
-		sendError(w, http.StatusNotFound, "Invalid file ID provided or file has already been deleted.")
+		sendError(w, http.StatusNotFound, errorcodes.NotFound, "Invalid file ID provided or file has already been deleted.")
 		return
 	}
 	if file.UserId != user.Id && !user.HasPermission(models.UserPermDeleteOtherUploads) {
-		sendError(w, http.StatusUnauthorized, "No permission to restore this file")
+		sendError(w, http.StatusUnauthorized, errorcodes.NoPermission, "No permission to restore this file")
 		return
 	}
 	file, ok = storage.CancelPendingFileDeletion(file.Id)
 	if !ok {
-		sendError(w, http.StatusNotFound, "Invalid file ID provided or file has already been deleted.")
+		sendError(w, http.StatusNotFound, errorcodes.NotFound, "Invalid file ID provided or file has already been deleted.")
 		return
 	}
 	logging.LogRestore(file, user)
@@ -341,9 +343,9 @@ func apiChunkAdd(w http.ResponseWriter, r requestParser, _ models.User) {
 	if !ok {
 		panic("invalid parameter passed")
 	}
-	statusCode, errString := processNewChunk(w, request, configuration.Get().MaxFileSizeMB, "")
+	statusCode, errCode, errString := processNewChunk(w, request, configuration.Get().MaxFileSizeMB, "")
 	if statusCode != http.StatusOK {
-		sendError(w, statusCode, errString)
+		sendError(w, statusCode, errCode, errString)
 	}
 }
 
@@ -352,17 +354,17 @@ func apiChunkReserve(w http.ResponseWriter, r requestParser, _ models.User) {
 	if !ok {
 		panic("invalid parameter passed")
 	}
-	fileRequest, ok, status, errorMsg := checkFileRequestAndApiKey(request.Id, request.ApiKey)
+	fileRequest, ok, status, errorCode, errorMsg := checkFileRequestAndApiKey(request.Id, request.ApiKey)
 	if !ok {
-		sendError(w, status, errorMsg)
+		sendError(w, status, errorCode, errorMsg)
 		return
 	}
 	if fileRequest.FilesRemaining() <= 0 && !fileRequest.IsUnlimitedFiles() {
-		sendError(w, http.StatusBadRequest, "No more files can be uploaded for this file request")
+		sendError(w, http.StatusBadRequest, errorcodes.CannotUploadMoreFiles, "No more files can be uploaded for this file request")
 		return
 	}
 	if fileRequest.IsUnlimitedFiles() && !ratelimiter.IsAllowedNewUuid(fileRequest.Id) {
-		sendError(w, http.StatusTooManyRequests, "Too many reservations for this file request. Please wait a few seconds before reserving a new uuid.")
+		sendError(w, http.StatusTooManyRequests, errorcodes.RateLimited, "Too many reservations for this file request. Please wait a few seconds before reserving a new uuid.")
 		return
 	}
 	uuid := chunkreservation.New(fileRequest.Id)
@@ -380,9 +382,9 @@ func apiChunkUploadRequestAdd(w http.ResponseWriter, r requestParser, user model
 	if !ok {
 		panic("invalid parameter passed")
 	}
-	fileRequest, ok, status, errorMsg := checkFileRequestAndApiKey(request.FileRequestId, request.ApiKey)
+	fileRequest, ok, status, errorCode, errorMsg := checkFileRequestAndApiKey(request.FileRequestId, request.ApiKey)
 	if !ok {
-		sendError(w, status, errorMsg)
+		sendError(w, status, errorCode, errorMsg)
 		return
 	}
 	maxUpload := configuration.Get().MaxFileSizeMB
@@ -392,44 +394,44 @@ func apiChunkUploadRequestAdd(w http.ResponseWriter, r requestParser, user model
 	if !fileRequest.IsUnlimitedSize() {
 		maxUpload = min(maxUpload, fileRequest.MaxSize)
 	}
-	statusCode, errString := processNewChunk(w, request, maxUpload, fileRequest.Id)
+	statusCode, errorCode, errString := processNewChunk(w, request, maxUpload, fileRequest.Id)
 	if statusCode != http.StatusOK {
-		sendError(w, statusCode, errString)
+		sendError(w, statusCode, errorCode, errString)
 	}
 }
 
-func checkFileRequestAndApiKey(fileRequestId, apiKey string) (models.FileRequest, bool, int, string) {
+func checkFileRequestAndApiKey(fileRequestId, apiKey string) (models.FileRequest, bool, int, int, string) {
 	fileRequest, ok := filerequest.Get(fileRequestId)
 	if !ok {
-		return models.FileRequest{}, false, http.StatusNotFound, "FileRequest does not exist with the given ID"
+		return models.FileRequest{}, false, http.StatusNotFound, errorcodes.NotFound, "FileRequest does not exist with the given ID"
 	}
 	if fileRequest.ApiKey != apiKey {
-		return models.FileRequest{}, false, http.StatusUnauthorized, "Invalid API key"
+		return models.FileRequest{}, false, http.StatusUnauthorized, errorcodes.InvalidApiKey, "Invalid API key"
 	}
 	if !fileRequest.IsUnlimitedTime() && fileRequest.Expiry < time.Now().Unix() {
-		return models.FileRequest{}, false, http.StatusUnauthorized, "Filerequest has expired"
+		return models.FileRequest{}, false, http.StatusUnauthorized, errorcodes.RequestExpired, "Filerequest has expired"
 	}
 	if !fileRequest.IsUnlimitedFiles() && fileRequest.UploadedFiles >= fileRequest.MaxFiles {
-		return models.FileRequest{}, false, http.StatusUnauthorized, "Max file count has already been reached for this file request"
+		return models.FileRequest{}, false, http.StatusUnauthorized, errorcodes.CannotUploadMoreFiles, "Max file count has already been reached for this file request"
 	}
-	return fileRequest, true, 0, ""
+	return fileRequest, true, 0, 0, ""
 }
 
 type chunkParams interface {
 	GetRequest() *http.Request
 }
 
-func processNewChunk(w http.ResponseWriter, request chunkParams, maxFileSizeMb int, filerequestId string) (int, string) {
+func processNewChunk(w http.ResponseWriter, request chunkParams, maxFileSizeMb int, filerequestId string) (int, int, string) {
 	maxUpload := int64(maxFileSizeMb) * 1024 * 1024
 	if request.GetRequest().ContentLength > maxUpload {
-		return http.StatusBadRequest, storage.ErrorFileTooLarge.Error()
+		return http.StatusBadRequest, errorcodes.FileTooLarge, storage.ErrorFileTooLarge.Error()
 	}
 	request.GetRequest().Body = http.MaxBytesReader(w, request.GetRequest().Body, maxUpload)
-	err := fileupload.ProcessNewChunk(w, request.GetRequest(), true, filerequestId)
+	err, errCode := fileupload.ProcessNewChunk(w, request.GetRequest(), true, filerequestId)
 	if err != nil {
-		return http.StatusBadRequest, err.Error()
+		return http.StatusBadRequest, errCode, err.Error()
 	}
-	return http.StatusOK, ""
+	return http.StatusOK, 0, ""
 }
 
 func apiChunkComplete(w http.ResponseWriter, r requestParser, user models.User) {
@@ -456,7 +458,7 @@ func apiChunkComplete(w http.ResponseWriter, r requestParser, user models.User) 
 func doBlockingPartCompleteChunk(w http.ResponseWriter, uuid string, fileHeader chunking.FileHeader, user models.User, uploadParameters models.UploadParameters) {
 	file, err := fileupload.CompleteChunk(uuid, fileHeader, user.Id, uploadParameters)
 	if err != nil {
-		sendError(w, http.StatusBadRequest, err.Error())
+		sendError(w, http.StatusBadRequest, errorcodes.UnspecifiedError, err.Error())
 		return
 	}
 	if uploadParameters.FileRequestId != "" {
@@ -471,9 +473,9 @@ func apiChunkUploadRequestComplete(w http.ResponseWriter, r requestParser, user 
 	if !ok {
 		panic("invalid parameter passed")
 	}
-	fileRequest, ok, status, errorMsg := checkFileRequestAndApiKey(request.FileRequestId, request.ApiKey)
+	fileRequest, ok, status, errorCode, errorMsg := checkFileRequestAndApiKey(request.FileRequestId, request.ApiKey)
 	if !ok {
-		sendError(w, status, errorMsg)
+		sendError(w, status, errorCode, errorMsg)
 		return
 	}
 	uploadParams := fileupload.CreateUploadConfig(0,
@@ -549,11 +551,11 @@ func apiListSingle(w http.ResponseWriter, r requestParser, user models.User) {
 	}
 	file, ok := storage.GetFile(request.Id)
 	if !ok {
-		sendError(w, http.StatusNotFound, "File not found")
+		sendError(w, http.StatusNotFound, errorcodes.NotFound, "File not found")
 		return
 	}
 	if file.UserId != user.Id && !user.HasPermission(models.UserPermListOtherUploads) {
-		sendError(w, http.StatusUnauthorized, "No permission to view file")
+		sendError(w, http.StatusUnauthorized, errorcodes.NoPermission, "No permission to view file")
 		return
 	}
 	config := configuration.Get()
@@ -569,9 +571,9 @@ func apiDownloadSingle(w http.ResponseWriter, r requestParser, user models.User)
 	if !ok {
 		panic("invalid parameter passed")
 	}
-	file, errCode, errMessage := checkDownloadAllowed(request.Id, user)
-	if errCode != 0 {
-		sendError(w, errCode, errMessage)
+	file, statusCode, errCode, errMessage := checkDownloadAllowed(request.Id, user)
+	if statusCode != 0 {
+		sendError(w, statusCode, errCode, errMessage)
 		return
 	}
 	if !request.PresignUrl {
@@ -589,9 +591,9 @@ func apiDownloadZip(w http.ResponseWriter, r requestParser, user models.User) {
 	requestedFiles := make([]models.File, 0)
 	requestedFileIds := make([]string, 0)
 	for _, fileId := range request.Ids {
-		file, errCode, errMessage := checkDownloadAllowed(fileId, user)
-		if errCode != 0 {
-			sendError(w, errCode, errMessage)
+		file, statusCode, errCode, errMessage := checkDownloadAllowed(fileId, user)
+		if statusCode != 0 {
+			sendError(w, statusCode, errCode, errMessage)
 			return
 		}
 		requestedFiles = append(requestedFiles, file)
@@ -604,18 +606,18 @@ func apiDownloadZip(w http.ResponseWriter, r requestParser, user models.User) {
 	createAndOutputPresignedUrl(requestedFileIds, w, request.Filename)
 }
 
-func checkDownloadAllowed(fileId string, user models.User) (models.File, int, string) {
+func checkDownloadAllowed(fileId string, user models.User) (models.File, int, int, string) {
 	file, ok := storage.GetFile(fileId)
 	if !ok {
-		return models.File{}, http.StatusNotFound, "file not found"
+		return models.File{}, http.StatusNotFound, errorcodes.NotFound, "file not found"
 	}
 	if file.UserId != user.Id && !user.HasPermission(models.UserPermListOtherUploads) {
-		return models.File{}, http.StatusUnauthorized, "no permission to download file"
+		return models.File{}, http.StatusUnauthorized, errorcodes.NoPermission, "no permission to download file"
 	}
 	if file.RequiresClientDecryption() {
-		return models.File{}, http.StatusBadRequest, "End-to-end encrypted files and encrypted files stored on online storage cannot be downloaded"
+		return models.File{}, http.StatusBadRequest, errorcodes.EndToEndNotSupported, "End-to-end encrypted files and encrypted files stored on online storage cannot be downloaded"
 	}
-	return file, 0, ""
+	return file, 0, 0, ""
 }
 
 func createAndOutputPresignedUrl(ids []string, w http.ResponseWriter, filename string) {
@@ -642,14 +644,14 @@ func apiUploadFile(w http.ResponseWriter, r requestParser, user models.User) {
 	}
 	maxUpload := int64(configuration.Get().MaxFileSizeMB) * 1024 * 1024
 	if request.Request.ContentLength > maxUpload {
-		sendError(w, http.StatusBadRequest, storage.ErrorFileTooLarge.Error())
+		sendError(w, http.StatusBadRequest, errorcodes.FileTooLarge, storage.ErrorFileTooLarge.Error())
 		return
 	}
 
 	request.Request.Body = http.MaxBytesReader(w, request.Request.Body, maxUpload)
 	err := fileupload.ProcessCompleteFile(w, request.Request, user.Id, configuration.Get().MaxMemory)
 	if err != nil {
-		sendError(w, http.StatusBadRequest, err.Error())
+		sendError(w, http.StatusBadRequest, errorcodes.UnspecifiedError, err.Error())
 		return
 	}
 }
@@ -661,11 +663,11 @@ func apiDuplicateFile(w http.ResponseWriter, r requestParser, user models.User) 
 	}
 	file, ok := storage.GetFile(request.Id)
 	if !ok {
-		sendError(w, http.StatusNotFound, "Invalid id provided.")
+		sendError(w, http.StatusNotFound, errorcodes.NotFound, "Invalid id provided.")
 		return
 	}
 	if file.UserId != user.Id && !user.HasPermission(models.UserPermListOtherUploads) {
-		sendError(w, http.StatusUnauthorized, "No permission to duplicate this file")
+		sendError(w, http.StatusUnauthorized, errorcodes.NoPermission, "No permission to duplicate this file")
 		return
 	}
 	uploadConfig := fileupload.CreateUploadConfig(request.AllowedDownloads,
@@ -679,7 +681,7 @@ func apiDuplicateFile(w http.ResponseWriter, r requestParser, user models.User) 
 	uploadConfig.UserId = user.Id
 	newFile, err := storage.DuplicateFile(file, request.RequestedChanges, request.FileName, uploadConfig)
 	if err != nil {
-		sendError(w, http.StatusInternalServerError, err.Error())
+		sendError(w, http.StatusInternalServerError, errorcodes.InternalServer, err.Error())
 		return
 	}
 	outputFileApiInfo(w, newFile)
@@ -692,16 +694,16 @@ func apiChangeFileOwner(w http.ResponseWriter, r requestParser, user models.User
 	}
 	file, ok := storage.GetFile(request.Id)
 	if !ok {
-		sendError(w, http.StatusNotFound, "Invalid id provided.")
+		sendError(w, http.StatusNotFound, errorcodes.NotFound, "Invalid id provided.")
 		return
 	}
 	if !user.HasPermission(models.UserPermEditOtherUploads) {
-		sendError(w, http.StatusUnauthorized, "No permission to edit this file")
+		sendError(w, http.StatusUnauthorized, errorcodes.NoPermission, "No permission to edit this file")
 		return
 	}
 	_, exists := database.GetUser(request.NewOwner)
 	if !exists {
-		sendError(w, http.StatusBadRequest, "User does not exist")
+		sendError(w, http.StatusBadRequest, errorcodes.NotFound, "User does not exist")
 		return
 	}
 	file.UserId = request.NewOwner
@@ -716,25 +718,25 @@ func apiReplaceFile(w http.ResponseWriter, r requestParser, user models.User) {
 	}
 	fileOriginal, ok := storage.GetFile(request.Id)
 	if !ok {
-		sendError(w, http.StatusNotFound, "Invalid id provided.")
+		sendError(w, http.StatusNotFound, errorcodes.NotFound, "Invalid id provided.")
 		return
 	}
 	if fileOriginal.UserId != user.Id && !user.HasPermission(models.UserPermReplaceOtherUploads) {
-		sendError(w, http.StatusUnauthorized, "No permission to replace this file")
+		sendError(w, http.StatusUnauthorized, errorcodes.NoPermission, "No permission to replace this file")
 		return
 	}
 
 	if fileOriginal.IsFileRequest() {
-		sendError(w, http.StatusBadRequest, "Cannot replace a file request upload")
+		sendError(w, http.StatusBadRequest, errorcodes.UnsupportedFile, "Cannot replace a file request upload")
 		return
 	}
 	fileNewContent, ok := storage.GetFile(request.IdNewContent)
 	if !ok {
-		sendError(w, http.StatusNotFound, "Invalid id provided.")
+		sendError(w, http.StatusNotFound, errorcodes.NotFound, "Invalid id provided.")
 		return
 	}
 	if fileNewContent.UserId != user.Id && !user.HasPermission(models.UserPermListOtherUploads) {
-		sendError(w, http.StatusUnauthorized, "No permission to duplicate this file")
+		sendError(w, http.StatusUnauthorized, errorcodes.NoPermission, "No permission to duplicate this file")
 		return
 	}
 
@@ -742,11 +744,11 @@ func apiReplaceFile(w http.ResponseWriter, r requestParser, user models.User) {
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrorReplaceE2EFile):
-			sendError(w, http.StatusBadRequest, "End-to-End encrypted files cannot be replaced")
+			sendError(w, http.StatusBadRequest, errorcodes.EndToEndNotSupported, "End-to-End encrypted files cannot be replaced")
 		case errors.Is(err, storage.ErrorFileNotFound):
-			sendError(w, http.StatusNotFound, "A file with such an ID could not be found")
+			sendError(w, http.StatusNotFound, errorcodes.NotFound, "A file with such an ID could not be found")
 		default:
-			sendError(w, http.StatusBadRequest, err.Error())
+			sendError(w, http.StatusBadRequest, errorcodes.InvalidUserInput, err.Error())
 		}
 		return
 	}
@@ -781,11 +783,11 @@ func apiModifyUser(w http.ResponseWriter, r requestParser, user models.User) {
 		return
 	}
 	if userEdit.IsSuperAdmin() {
-		sendError(w, http.StatusBadRequest, "Cannot modify super admin")
+		sendError(w, http.StatusBadRequest, errorcodes.ResourceCanNotBeEdited, "Cannot modify super admin")
 		return
 	}
 	if userEdit.IsSameUser(user.Id) {
-		sendError(w, http.StatusBadRequest, "Cannot modify yourself")
+		sendError(w, http.StatusBadRequest, errorcodes.ResourceCanNotBeEdited, "Cannot modify yourself")
 		return
 	}
 	logging.LogUserEdit(userEdit, user)
@@ -814,11 +816,11 @@ func apiChangeUserRank(w http.ResponseWriter, r requestParser, user models.User)
 		return
 	}
 	if userEdit.IsSameUser(user.Id) {
-		sendError(w, http.StatusBadRequest, "Cannot modify yourself")
+		sendError(w, http.StatusBadRequest, errorcodes.ResourceCanNotBeEdited, "Cannot modify yourself")
 		return
 	}
 	if userEdit.IsSuperAdmin() {
-		sendError(w, http.StatusBadRequest, "Cannot modify super admin")
+		sendError(w, http.StatusBadRequest, errorcodes.ResourceCanNotBeEdited, "Cannot modify super admin")
 		return
 	}
 	userEdit.UserLevel = request.NewRank
@@ -832,7 +834,7 @@ func apiChangeUserRank(w http.ResponseWriter, r requestParser, user models.User)
 		updateApiKeyPermsOnUserPermChange(userEdit.Id, models.UserPermReplaceUploads, false)
 		updateApiKeyPermsOnUserPermChange(userEdit.Id, models.UserPermManageUsers, false)
 	default:
-		sendError(w, http.StatusBadRequest, "invalid rank sent")
+		sendError(w, http.StatusBadRequest, errorcodes.InvalidUserInput, "invalid rank sent")
 		return
 	}
 	logging.LogUserEdit(userEdit, user)
@@ -879,11 +881,11 @@ func apiResetPassword(w http.ResponseWriter, r requestParser, user models.User) 
 		return
 	}
 	if userToEdit.IsSuperAdmin() {
-		sendError(w, http.StatusBadRequest, "Cannot reset pw of super admin")
+		sendError(w, http.StatusBadRequest, errorcodes.ResourceCanNotBeEdited, "Cannot reset password of super admin")
 		return
 	}
 	if userToEdit.IsSameUser(user.Id) {
-		sendError(w, http.StatusBadRequest, "Cannot reset password of yourself")
+		sendError(w, http.StatusBadRequest, errorcodes.ResourceCanNotBeEdited, "Cannot reset password of yourself")
 		return
 	}
 	userToEdit.ResetPassword = true
@@ -907,11 +909,11 @@ func apiDeleteUser(w http.ResponseWriter, r requestParser, user models.User) {
 		return
 	}
 	if userToDelete.IsSuperAdmin() {
-		sendError(w, http.StatusBadRequest, "Cannot delete super admin")
+		sendError(w, http.StatusBadRequest, errorcodes.ResourceCanNotBeEdited, "Cannot delete super admin")
 		return
 	}
 	if userToDelete.IsSameUser(user.Id) {
-		sendError(w, http.StatusBadRequest, "Cannot delete yourself")
+		sendError(w, http.StatusBadRequest, errorcodes.ResourceCanNotBeEdited, "Cannot delete yourself")
 		return
 	}
 	logging.LogUserDeletion(userToDelete, user)
@@ -986,11 +988,11 @@ func apiURequestDelete(w http.ResponseWriter, r requestParser, user models.User)
 
 	uploadRequest, ok := database.GetFileRequest(request.Id)
 	if !ok {
-		sendError(w, http.StatusNotFound, "FileRequest does not exist with the given ID")
+		sendError(w, http.StatusNotFound, errorcodes.NotFound, "FileRequest does not exist with the given ID")
 		return
 	}
 	if uploadRequest.UserId != user.Id && !user.HasPermission(models.UserPermDeleteOtherUploads) {
-		sendError(w, http.StatusUnauthorized, "No permission to delete this upload request")
+		sendError(w, http.StatusUnauthorized, errorcodes.NoPermission, "No permission to delete this upload request")
 		return
 	}
 	filerequest.Delete(uploadRequest)
@@ -1029,7 +1031,7 @@ func apiURequestSave(w http.ResponseWriter, r requestParser, user models.User) {
 	isNewRequest := request.Id == ""
 
 	if !isUserAllowedUnlimited(request, isNewRequest, user) {
-		sendError(w, http.StatusBadRequest, "Only admin users can create requests with unlimited size / file count"+
+		sendError(w, http.StatusBadRequest, errorcodes.AdminOnly, "Only admin users can create requests with unlimited size / file count"+
 			" or values larger than the server's max size / file count")
 		return
 	}
@@ -1037,11 +1039,11 @@ func apiURequestSave(w http.ResponseWriter, r requestParser, user models.User) {
 	if !isNewRequest {
 		uploadRequest, ok = database.GetFileRequest(request.Id)
 		if !ok {
-			sendError(w, http.StatusNotFound, "FileRequest does not exist with the given ID")
+			sendError(w, http.StatusNotFound, errorcodes.NotFound, "FileRequest does not exist with the given ID")
 			return
 		}
 		if uploadRequest.UserId != user.Id && !user.HasPermission(models.UserPermEditOtherUploads) {
-			sendError(w, http.StatusUnauthorized, "No permission to edit this upload request")
+			sendError(w, http.StatusUnauthorized, errorcodes.NoPermission, "No permission to edit this upload request")
 			return
 		}
 	} else {
@@ -1101,11 +1103,11 @@ func apiUploadRequestListSingle(w http.ResponseWriter, r requestParser, user mod
 
 	uploadRequest, ok := filerequest.Get(request.Id)
 	if !ok {
-		sendError(w, http.StatusNotFound, "FileRequest does not exist with the given ID")
+		sendError(w, http.StatusNotFound, errorcodes.NotFound, "FileRequest does not exist with the given ID")
 		return
 	}
 	if uploadRequest.UserId != user.Id && !user.HasPermission(models.UserPermDeleteOtherUploads) {
-		sendError(w, http.StatusUnauthorized, "No permission to delete this upload request")
+		sendError(w, http.StatusUnauthorized, errorcodes.NoPermission, "No permission to delete this upload request")
 		return
 	}
 	result, err := json.Marshal(uploadRequest)
@@ -1126,12 +1128,19 @@ func isAuthorisedForApi(r *http.Request, routing apiRoute) (models.User, bool) {
 	return user, true
 }
 
-func sendError(w http.ResponseWriter, errorInt int, errorMessage string) {
+func sendError(w http.ResponseWriter, statusCode, errorCode int, errorMessage string) {
 	if w == nil {
 		return
 	}
-	w.WriteHeader(errorInt)
-	_, _ = w.Write([]byte("{\"Result\":\"error\",\"ErrorMessage\":\"" + errorMessage + "\"}"))
+	w.WriteHeader(statusCode)
+	output := struct {
+		Result  string `json:"Result"`
+		Message string `json:"ErrorMessage"`
+		Code    int    `json:"ErrorCode"`
+	}{Result: "error", Message: errorMessage, Code: errorCode}
+	outputBytes, err := json.Marshal(output)
+	helper.Check(err)
+	_, _ = w.Write(outputBytes)
 }
 
 // publicKeyToApiKey tries to convert a (possible) public key to a private key

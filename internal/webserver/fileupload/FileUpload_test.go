@@ -99,17 +99,17 @@ func TestProcess(t *testing.T) {
 
 func TestProcessNewChunk(t *testing.T) {
 	w, r := test.GetRecorder("POST", "/uploadChunk", nil, nil, strings.NewReader("invalid§$%&%§"))
-	err := ProcessNewChunk(w, r, false, "")
+	err, _ := ProcessNewChunk(w, r, false, "")
 	test.IsNotNil(t, err)
 
 	w = httptest.NewRecorder()
 	r = getFileUploadRecorder(false)
-	err = ProcessNewChunk(w, r, false, "")
+	err, _ = ProcessNewChunk(w, r, false, "")
 	test.IsNotNil(t, err)
 
 	w = httptest.NewRecorder()
 	r = getFileUploadRecorder(true)
-	err = ProcessNewChunk(w, r, false, "")
+	err, _ = ProcessNewChunk(w, r, false, "")
 	test.IsNil(t, err)
 	response, err := io.ReadAll(w.Result().Body)
 	test.IsNil(t, err)

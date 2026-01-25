@@ -858,7 +858,7 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 	return u
 }
 
-// sortMetaDataApi arranges the provided array so that Fies are sorted by most recent upload first and if that is equal
+// sortMetaDataApi arranges the provided array so that Fies are sorted by the most recent upload first and if that is equal,
 // then by most time remaining first. If that is equal, then sort by ID.
 func sortMetaDataApi(input []models.FileApiOutput) []models.FileApiOutput {
 	sort.Slice(input[:], func(i, j int) bool {
@@ -873,7 +873,7 @@ func sortMetaDataApi(input []models.FileApiOutput) []models.FileApiOutput {
 	return input
 }
 
-// sortMetaData arranges the provided array so that Fies are sorted by most recent upload first then sort by ID.
+// sortMetaData arranges the provided array so that Fies are sorted by the most recent upload first then sort by ID.
 // Currently only used for the files of File Requests, all others use sortMetaDataApi
 func sortMetaData(input []models.File) []models.File {
 	sort.Slice(input[:], func(i, j int) bool {
@@ -948,7 +948,7 @@ func uploadChunk(w http.ResponseWriter, r *http.Request) {
 		responseError(w, storage.ErrorFileTooLarge)
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, maxUpload)
-	err := fileupload.ProcessNewChunk(w, r, false, "")
+	err, _ := fileupload.ProcessNewChunk(w, r, false, "")
 	responseError(w, err)
 }
 

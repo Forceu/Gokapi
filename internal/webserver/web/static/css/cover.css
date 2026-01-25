@@ -424,3 +424,24 @@ tr.no-bottom-border td {
     margin-bottom: 0;
     padding-left: 1.2rem;
   }
+  
+.callout {
+  padding: 20px;
+  margin: 10px 20px;
+  border: 1px solid #eee;
+  border-left-width: 5px;
+  border-radius: 3px;
+  h4 {
+    margin-top: 0;
+    margin-bottom: 5px;
+  }
+  p:last-child {
+    margin-bottom: 0;
+  }
+  code {
+    border-radius: 3px;
+  }
+  & + .bs-callout {
+    margin-top: -5px;
+  }
+}

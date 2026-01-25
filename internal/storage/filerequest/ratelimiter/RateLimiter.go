@@ -8,7 +8,8 @@ import (
 )
 
 var uuidLimiter = newLimiter()
-var chunkLimiter = newLimiter()
+
+// Currently unused
 var byteLimiter = newLimiter()
 
 type limiterEntry struct {
@@ -17,8 +18,9 @@ type limiterEntry struct {
 }
 
 type Store struct {
-	mu       sync.Mutex
-	limiters map[string]*limiterEntry
+	mu             sync.Mutex
+	limiters       map[string]*limiterEntry
+	cleanupStarted bool
 }
 
 func newLimiter() *Store {
@@ -44,12 +46,17 @@ func (s *Store) Get(key string, r rate.Limit, burst int) *rate.Limiter {
 
 	e.lastSeen = time.Now()
 	s.limiters[key] = e
+	s.StartCleanup(12 * time.Hour)
 	return e.limiter
 }
 
 func (s *Store) StartCleanup(maxIdle time.Duration) {
+	if s.cleanupStarted {
+		return
+	}
+	s.cleanupStarted = true
 	go func() {
-		ticker := time.NewTicker(time.Minute)
+		ticker := time.NewTicker(30 * time.Minute)
 		for range ticker.C {
 			now := time.Now()
 			s.mu.Lock()

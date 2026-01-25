@@ -179,6 +179,7 @@
    		 </div>
 		  <span class="input-group-text" id="tMaxSize">Max Size&nbsp;</span>
 		  <input type="number" min="1" id="mi_maxsize"  onChange="checkMaxNumber(this)" disabled class="form-control" aria-label="Max Size" aria-describedby="tMaxSize" data-allow-regular-paste>
+		  <span class="input-group-text">MB</span>
 		</div>
 		
 		<div class="input-group mb-3">
@@ -195,6 +196,11 @@
 		</div>
 	      </div>
 	      <input type="hidden" id="freqId" value="" />
+{{ if .EndToEndEncryption }}
+<div class="callout callout-info">
+  Uploaded files are not end-to-end encrypted and will be stored in plain text on the server
+</div>
+{{ end }}
 	      <div class="modal-footer">
 		<button type="button" class="btn btn-outline-light"  aria-label="Cancel" data-bs-dismiss="modal">Close</button>
 		<button type="button" class="btn btn-primary" data-fileid="" id="b_fr_save" onclick="">Save</button>
