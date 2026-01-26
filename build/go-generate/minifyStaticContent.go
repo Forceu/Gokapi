@@ -77,6 +77,12 @@ func getPaths() []converter {
 		Type:       "text/javascript",
 		Name:       "Public functions JS",
 	})
+	result = append(result, converter{
+		InputPath:  pathPrefix + "js/public_upload.js",
+		OutputPath: pathPrefix + "js/min/public_upload.min.js",
+		Type:       "text/javascript",
+		Name:       "Public upload JS",
+	})
 	return result
 }
 
