@@ -586,6 +586,60 @@
         }
       }
     },
+    "/uploadrequest/chunk/unreserve": {
+      "post": {
+        "tags": [
+          "uploadrequest"
+        ],
+        "summary": "Frees a reserved UUID if upload was cancelled",
+        "description": "This call frees a reserved UUID, so that it does not count towards the quota anymore. Used if an upload was cancelled or failed. Requires API key associated with the file request",
+        "operationId": "chunkunreserve",
+        "security": [
+          {
+            "apikey": [
+              "FileRequest"
+            ]
+          }
+        ],
+       "parameters": [
+          {
+            "name": "id",
+            "in": "header",
+            "description": "The file request ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },{
+            "name": "uuid",
+            "in": "header",
+            "description": "The reserved UUID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],        
+        "responses": {
+          "200": {
+            "description": "Operation successful",
+            "content": {
+              "application/json": {
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid ID or the file request does not accept any more files"
+          },
+          "401": {
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
+          },
+          "429": {
+            "description": "If too many chunks are currently requested, the caller has to wait a couple of seconds and try again. The rate limit is only for file requests that are not limited in file count"
+          }
+        }
+      }
+    },
     "/uploadrequest/chunk/add": {
       "post": {
         "tags": [

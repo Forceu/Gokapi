@@ -225,6 +225,13 @@ var routes = []apiRoute{
 		RequestParser:    &paramChunkReserve{},
 	},
 	{
+		Url:              "/uploadrequest/chunk/unreserve",
+		ApiPerm:          models.ApiPermNone,
+		IsFileRequestApi: true,
+		execution:        apiChunkUnreserve,
+		RequestParser:    &paramChunkUnreserve{},
+	},
+	{
 		Url:           "/logs/delete",
 		ApiPerm:       models.ApiPermManageLogs,
 		AdminOnly:     true,
@@ -677,6 +684,17 @@ type paramChunkReserve struct {
 }
 
 func (p *paramChunkReserve) ProcessParameter(_ *http.Request) error {
+	return nil
+}
+
+type paramChunkUnreserve struct {
+	Id           string `header:"id" required:"true"`
+	Uuid         string `header:"uuid" required:"true"`
+	ApiKey       string `header:"apikey"` // not published in API documentation
+	foundHeaders map[string]bool
+}
+
+func (p *paramChunkUnreserve) ProcessParameter(_ *http.Request) error {
 	return nil
 }
 

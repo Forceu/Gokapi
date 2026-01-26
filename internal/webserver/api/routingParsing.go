@@ -1073,6 +1073,51 @@ func (p *paramChunkReserve) New() requestParser {
 	return &paramChunkReserve{}
 }
 
+// ParseRequest reads r and saves the passed header values in the paramChunkUnreserve struct
+// In the end, ProcessParameter() is called
+func (p *paramChunkUnreserve) ParseRequest(r *http.Request) error {
+	var err error
+	var exists bool
+	p.foundHeaders = make(map[string]bool)
+
+	// RequestParser header value "id", required: true
+	exists, err = checkHeaderExists(r, "id", true, true)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["id"] = exists
+	if exists {
+		p.Id = r.Header.Get("id")
+	}
+
+	// RequestParser header value "uuid", required: true
+	exists, err = checkHeaderExists(r, "uuid", true, true)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["uuid"] = exists
+	if exists {
+		p.Uuid = r.Header.Get("uuid")
+	}
+
+	// RequestParser header value "apikey", required: false
+	exists, err = checkHeaderExists(r, "apikey", false, true)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["apikey"] = exists
+	if exists {
+		p.ApiKey = r.Header.Get("apikey")
+	}
+
+	return p.ProcessParameter(r)
+}
+
+// New returns a new instance of paramChunkUnreserve struct
+func (p *paramChunkUnreserve) New() requestParser {
+	return &paramChunkUnreserve{}
+}
+
 // ParseRequest reads r and saves the passed header values in the paramChunkUploadRequestComplete struct
 // In the end, ProcessParameter() is called
 func (p *paramChunkUploadRequestComplete) ParseRequest(r *http.Request) error {

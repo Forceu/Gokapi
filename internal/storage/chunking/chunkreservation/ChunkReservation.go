@@ -46,6 +46,12 @@ func New(id string) string {
 	return uuid
 }
 
+func SetComplete(id, uuid string) {
+	reservationMutex.Lock()
+	delete(reservedChunks[id], uuid)
+	reservationMutex.Unlock()
+}
+
 func SetUploading(id string, uuid string) bool {
 	reservationMutex.Lock()
 	defer reservationMutex.Unlock()
@@ -63,12 +69,6 @@ func SetUploading(id string, uuid string) bool {
 	chunk.Expiry = time.Now().Unix() + timeReservationWithUpload
 	reservedChunks[id][uuid] = chunk
 	return true
-}
-
-func SetComplete(id string, uuid string) {
-	reservationMutex.Lock()
-	delete(reservedChunks[id], uuid)
-	reservationMutex.Unlock()
 }
 
 func cleanUp(isPeriodic bool) {

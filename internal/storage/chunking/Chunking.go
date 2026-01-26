@@ -186,6 +186,14 @@ func GetFileByChunkId(id string) (*os.File, error) {
 	return file, nil
 }
 
+// DeleteChunk deletes the chunk file
+func DeleteChunk(id string) error {
+	if id == "" {
+		return errors.New("empty chunk id provided")
+	}
+	return os.Remove(getChunkFilePath(sanitiseUuid(id)))
+}
+
 // FileExists returns true if a file exists for the given chunk ID
 func FileExists(id string) bool {
 	exists, err := helper.FileExists(getChunkFilePath(id))

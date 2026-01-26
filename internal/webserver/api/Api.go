@@ -374,7 +374,21 @@ func apiChunkReserve(w http.ResponseWriter, r requestParser, _ models.User) {
 	}{"OK", uuid})
 	helper.Check(err)
 	_, _ = w.Write(result)
+}
 
+func apiChunkUnreserve(w http.ResponseWriter, r requestParser, _ models.User) {
+	request, ok := r.(*paramChunkUnreserve)
+	if !ok {
+		panic("invalid parameter passed")
+	}
+	fileRequest, ok, status, errorCode, errorMsg := checkFileRequestAndApiKey(request.Id, request.ApiKey)
+	if !ok {
+		sendError(w, status, errorCode, errorMsg)
+		return
+	}
+	chunkreservation.SetComplete(fileRequest.Id, request.Uuid)
+	_ = chunking.DeleteChunk(request.Uuid)
+	_, _ = w.Write([]byte(`{"Result":"OK"}`))
 }
 
 func apiChunkUploadRequestAdd(w http.ResponseWriter, r requestParser, user models.User) {

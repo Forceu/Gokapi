@@ -26,7 +26,7 @@
 
 
   .pu-file-item .upload-status {
-    width: 300px; 
+    width: 350px; 
     text-align: right;
     margin-right: 1rem;
     flex-shrink: 0;
@@ -201,6 +201,8 @@ fileInput.addEventListener('change', () => {
             uuid,
             file,
             removed: false,
+            controller: new AbortController(),
+            lastSpeed: "",
             elements: {
                 progressBar,
                 progressText,
@@ -257,6 +259,7 @@ function formatSize(bytes) {
 const CHUNK_SIZE = {{.ChunkSize}} * 1024 * 1024;
 const API_BASE = "./api/uploadrequest/chunk/";
 const RESERVE_URL = API_BASE + "reserve";
+const UNRESERVE_URL = API_BASE + "unreserve";
 const UPLOAD_URL = API_BASE + "add";
 const COMPLETE_URL = API_BASE + "complete";
 const FILE_REQUEST_ID = "{{ .FileRequest.Id }}";
@@ -270,14 +273,19 @@ var maxFilesRemaining = {{.FileRequest.FilesRemaining}};
 async function withRetry(fn, {
     retries = 3,
     retryDelay = 5000,
-    onRetry
-} = {}) {
+    onRetry,
+    signal} = {}) {
     let lastError;
     for (let attempt = 1; attempt <= retries; attempt++) {
+        // Exit if cancelled
+        if (signal && signal.aborted) throw new Error("Cancelled");
+
         try {
             return await fn();
         } catch (err) {
             lastError = err;
+            if (err.message === "Cancelled" || (signal && signal.aborted)) throw err; // Don't retry cancellations
+            
             if (onRetry && attempt < retries) {
                 onRetry(attempt, err);
             }
@@ -315,6 +323,7 @@ async function startUpload() {
         showModal("maxfiles");
         return;
     }
+
     for (const entry of filesMap.values()) {
         if (entry.removed) continue;
         const {
@@ -322,66 +331,123 @@ async function startUpload() {
             uuid,
             elements
         } = entry;
-	// Remove the delete button only on the first attempt
-        if(elements.removeBtn) {
-            elements.removeBtn.remove();
-        }
-        // Verify the progress bar is visible (in case it was hidden by a previous error)
-        elements.progressBar.style.display = ""; 
-        // Reset text color (in case it was red from a previous error)
+
+        // Reset UI state for (re)attempt
+        elements.progressBar.style.display = "";
         elements.progressText.style.color = "";
+        let lastSpeedText = "";
+
         try {
             elements.progressText.textContent = "Reserving...";
             const serverUuid = await reserveChunk(elements);
-            elements.progressText.textContent = "Uploading...";
+            entry.serverUuid = serverUuid;
+
+            // Change button to "Cancel" once we have a reservation
+            elements.removeBtn.innerHTML = '<i class="bi bi-stop-circle text-danger"></i>';
+            elements.removeBtn.title = "Cancel Upload";
+            elements.removeBtn.onclick = async () => {
+                entry.controller.abort(); // Triggers the abort signal
+                await unreserve(serverUuid);
+                entry.removed = true;
+                elements.item.remove();
+            };
+
             let offset = 0;
             // do-while so that add chunk is run for 0byte files as well
             do {
+                if (entry.controller.signal.aborted) return;
                 const chunk = file.slice(offset, offset + CHUNK_SIZE);
+
                 await withRetry(async () => {
-                    const formData = new FormData();
-                    formData.append("file", chunk);
-                    formData.append("uuid", serverUuid);
-                    formData.append("filesize", file.size);
-                    formData.append("offset", offset);
-                    const response = await fetch(UPLOAD_URL, {
-                        method: "POST",
-                        body: formData,
-                        headers: {
-                            apikey: API_KEY,
-                            fileRequestId: FILE_REQUEST_ID
-                        }
+                    return new Promise((resolve, reject) => {
+                        const formData = new FormData();
+                        formData.append("file", chunk);
+                        formData.append("uuid", serverUuid);
+                        formData.append("filesize", file.size);
+                        formData.append("offset", offset);
+
+                        const xhr = new XMLHttpRequest();
+                        entry.xhr = xhr;
+                        xhr.open("POST", UPLOAD_URL);
+                        xhr.setRequestHeader("apikey", API_KEY);
+                        xhr.setRequestHeader("fileRequestId", FILE_REQUEST_ID);
+
+                        const startTime = Date.now();
+
+                        // Listen for the cancel signal
+                        const abortHandler = () => {
+                            xhr.abort();
+                            reject(new Error("Cancelled"));
+                        };
+                        entry.controller.signal.addEventListener('abort', abortHandler);
+
+                        xhr.upload.onprogress = (event) => {
+                            if (event.lengthComputable) {
+                                const chunkOffset = offset + event.loaded;
+                                const totalSize = file.size === 0 ? 1 : file.size;
+                                const percent = Math.floor((chunkOffset / totalSize) * 100);
+
+                                const duration = (Date.now() - startTime) / 1000;
+                                if (duration > 0) {
+                                    // Update the persistent lastSpeedText
+                                    lastSpeedText = ` (${formatSize(event.loaded / duration)}/s)`;
+                                }
+
+                                elements.progressBar.value = chunkOffset;
+                                elements.progressText.textContent = percent + "%" + lastSpeedText;
+                            }
+                        };
+
+                        xhr.onload = async () => {
+                            entry.controller.signal.removeEventListener('abort', abortHandler);
+                            if (xhr.status >= 200 && xhr.status < 300) resolve();
+                            else reject(await parseXhrError(xhr));
+                        };
+
+                        xhr.onerror = () => {
+                            entry.controller.signal.removeEventListener('abort', abortHandler);
+                            reject(new Error("Network Error"));
+                        };
+
+                        xhr.send(formData);
                     });
-                    if (!response.ok) {
-                        throw await parseErrorResponse(response);
-                    }
                 }, {
+                    signal: entry.controller.signal,
                     onRetry: (a, e) => {
-                        elements.progressText.textContent = `Retry ${a}/3: ${e.message}`;
+                        // Keep the speed text visible during retries
+                        elements.progressText.textContent = `Retry ${a}/3: ${e.message}${lastSpeedText}`;
                     }
                 });
+
                 offset += chunk.size;
-                if (file.size == 0) {
-                    elements.progressBar.value = 1;
-                    elements.progressText.textContent = "100%";
-                } else {
-                    elements.progressBar.value = offset;
-                    elements.progressText.textContent = Math.floor((offset / file.size) * 100) + "%";
-                }
             } while (offset < file.size);
 
             await finaliseUpload(file, serverUuid, elements);
+
             elements.progressText.textContent = "Completed";
             elements.item.style.opacity = "0.6";
+            elements.removeBtn.remove(); // Remove button only on success
+
             filesMap.get(uuid).removed = true;
-            maxFilesRemaining = maxFilesRemaining - 1;
-            if (maxFilesRemaining == 0) {
-                showModal("alluploaded");
-            }
+            maxFilesRemaining--;
+
+            if (maxFilesRemaining === 0) showModal("alluploaded");
+
         } catch (err) {
+            if (err.message === "Cancelled" || entry.controller.signal.aborted) return;
+
             elements.progressText.textContent = err.message || "Upload failed";
             elements.progressText.style.color = "#ff6b6b";
             elements.progressBar.style.display = "none";
+
+            // Change button to "Trash" for failed uploads to allow removal
+            elements.removeBtn.innerHTML = '<i class="bi bi-trash"></i>';
+            elements.removeBtn.title = "Remove from list";
+            elements.removeBtn.onclick = async () => {
+                if (entry.serverUuid) await unreserve(entry.serverUuid);
+                entry.removed = true;
+                elements.item.remove();
+            };
         }
     }
 }
@@ -476,8 +542,43 @@ function encodeFilename(name) {
     return "base64:" + Base64.encode(name);
 }
   
-</script>
 
+
+async function unreserve(uuid) {
+    if (!uuid) return;
+    try {
+        await fetch(UNRESERVE_URL, {
+            method: "POST",
+            headers: { 
+                uuid: uuid,
+                apikey: API_KEY,
+                id: FILE_REQUEST_ID 
+            },
+            keepalive: true // Crucial for calls during page unload
+        });
+    } catch (e) { console.error("Unreserve failed", e); }
+}
+
+// Confirm before closing tab
+window.addEventListener('beforeunload', (e) => {
+    const uploading = Array.from(filesMap.values()).some(f => !f.removed);
+    if (uploading) {
+        // Standard way to trigger a "Are you sure?" browser dialog
+        e.preventDefault();
+        e.returnValue = ''; 
+    }
+});
+
+// Attempt unreserve on actual exit
+window.addEventListener('unload', () => {
+    for (const entry of filesMap.values()) {
+        if (!entry.removed && entry.serverUuid) {
+            unreserve(entry.serverUuid);
+        }
+    }
+});
+
+</script>
 
 {{ template "pagename" "PublicUpload"}}
 {{ template "customjs" .}}
