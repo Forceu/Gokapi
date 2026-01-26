@@ -49,6 +49,7 @@ func Delete(request models.FileRequest) {
 	files := GetAllFiles(request)
 	storage.DeleteFiles(files, true)
 	database.DeleteFileRequest(request)
+	database.DeleteApiKey(request.ApiKey)
 }
 
 // GetAllFiles returns a list of all files associated with a file request
