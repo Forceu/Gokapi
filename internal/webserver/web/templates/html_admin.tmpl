@@ -61,7 +61,7 @@
 				</thead>
 				<tbody id="downloadtable">
 {{ range .Items }}
-	{{ if not .IsPendingDeletion }}	
+	{{ if not (or .IsPendingDeletion .IsFileRequest) }}	
 		{{ if  or (gt .ExpireAt $.TimeNow) (.UnlimitedTime) }}
 			{{ if or (gt .DownloadsRemaining 0) (.UnlimitedDownloads) }}
 					<tr id="row-{{ .Id }}">
@@ -87,6 +87,7 @@
 						     {{ template "admin_button_share" (newAdminButtonContext . $.ActiveUser)}}
 						  </div>
 						  <div class="btn-group me-2" role="group">
+						     {{ template "admin_button_download" (newAdminButtonContext . $.ActiveUser) }}
 						     {{ template "admin_button_edit" (newAdminButtonContext . $.ActiveUser) }}
 						     {{ template "admin_button_delete" (newAdminButtonContext . $.ActiveUser) }}
 						 </div>
@@ -185,11 +186,24 @@
 {{ end }}
         
         
-{{ template "pagename" "UploadMenu"}}
+{{ template "pagename" "FileRequest"}}
 {{ template "customjs" .}}
 
 
 {{ template "footer" true}}
+{{ end }}
+
+
+
+{{ define "admin_button_download" }}
+			<button
+			    type="button"
+			    title="Download"
+			    class="btn btn-outline-light btn-sm {{if .CurrentFile.RequiresClientSideDecryption}}disabled{{end}}"
+			    onclick="downloadFileWithPresign('{{.CurrentFile.Id }}');">
+		   	    <i class="bi bi-download"></i>
+			</button>
+
 {{ end }}
 
 {{ define "admin_button_edit" }}

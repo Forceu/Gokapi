@@ -3,10 +3,6 @@ package fileupload
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/forceu/gokapi/internal/configuration"
-	"github.com/forceu/gokapi/internal/models"
-	"github.com/forceu/gokapi/internal/test"
-	"github.com/forceu/gokapi/internal/test/testconfiguration"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -16,6 +12,11 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/forceu/gokapi/internal/configuration"
+	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/test"
+	"github.com/forceu/gokapi/internal/test/testconfiguration"
 )
 
 func TestMain(m *testing.M) {
@@ -98,17 +99,17 @@ func TestProcess(t *testing.T) {
 
 func TestProcessNewChunk(t *testing.T) {
 	w, r := test.GetRecorder("POST", "/uploadChunk", nil, nil, strings.NewReader("invalid§$%&%§"))
-	err := ProcessNewChunk(w, r, false)
+	err, _ := ProcessNewChunk(w, r, false, "")
 	test.IsNotNil(t, err)
 
 	w = httptest.NewRecorder()
 	r = getFileUploadRecorder(false)
-	err = ProcessNewChunk(w, r, false)
+	err, _ = ProcessNewChunk(w, r, false, "")
 	test.IsNotNil(t, err)
 
 	w = httptest.NewRecorder()
 	r = getFileUploadRecorder(true)
-	err = ProcessNewChunk(w, r, false)
+	err, _ = ProcessNewChunk(w, r, false, "")
 	test.IsNil(t, err)
 	response, err := io.ReadAll(w.Result().Body)
 	test.IsNil(t, err)

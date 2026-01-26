@@ -209,7 +209,7 @@ function addRowApi(apiKey, publicId) {
         },
         {
             perm: 'PERM_UPLOAD',
-            icon: 'bi-file-earmark-arrow-up',
+            icon: 'bi-file-earmark-plus',
             granted: true,
             title: 'Upload'
         },
@@ -230,6 +230,18 @@ function addRowApi(apiKey, publicId) {
             icon: 'bi-recycle',
             granted: false,
             title: 'Replace Uploads'
+        },
+        {
+            perm: 'PERM_DOWNLOAD',
+            icon: 'bi-box-arrow-in-down',
+            granted: false,
+            title: 'Download Files'
+        },
+        {
+            perm: 'PERM_MANAGE_FILE_REQUESTS',
+            icon: 'bi-file-earmark-arrow-up',
+            granted: false,
+            title: 'Manage File Requests'
         },
         {
             perm: 'PERM_MANAGE_USERS',
@@ -280,6 +292,11 @@ function addRowApi(apiKey, publicId) {
     }
     if (!canViewSystemLog) {
         let cell = document.getElementById("perm_manage_logs_" + publicId);
+        cell.classList.add("perm-unavailable");
+        cell.classList.add("perm-nochange");
+    }
+    if (!canCreateFileRequest) {
+        let cell = document.getElementById("perm_manage_file_requests_" + publicId);
         cell.classList.add("perm-unavailable");
         cell.classList.add("perm-nochange");
     }

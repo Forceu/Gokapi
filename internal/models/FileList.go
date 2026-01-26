@@ -19,12 +19,13 @@ type File struct {
 	HotlinkId               string         `json:"HotlinkId" redis:"HotlinkId"`                   // If file is a picture file and can be hotlinked, this is the ID for the hotlink
 	ContentType             string         `json:"ContentType" redis:"ContentType"`               // The MIME type for the file
 	AwsBucket               string         `json:"AwsBucket" redis:"AwsBucket"`                   // If the file is stored in the cloud, this is the bucket that is being used
+	UploadRequestId         string         `json:"FileRequestId" redis:"FileRequestId"`           // If the file belongs to a file request, this is the ID of the file request
 	ExpireAt                int64          `json:"ExpireAt" redis:"ExpireAt"`                     // UTC timestamp of file expiry
 	PendingDeletion         int64          `json:"PendingDeletion" redis:"PendingDeletion"`       // UTC timestamp when the file will be deleted, if pending. Otherwise 0
 	SizeBytes               int64          `json:"SizeBytes" redis:"SizeBytes"`                   // Filesize in bytes
 	UploadDate              int64          `json:"UploadDate" redis:"UploadDate"`                 // UTC timestamp of upload time
 	DownloadsRemaining      int            `json:"DownloadsRemaining" redis:"DownloadsRemaining"` // The remaining downloads for this file
-	DownloadCount           int            `json:"DownloadCount" redis:"DownloadCount"`           // The amount of times the file has been downloaded
+	DownloadCount           int            `json:"DownloadCount" redis:"DownloadCount"`           // The number of times the file has been downloaded
 	UserId                  int            `json:"UserId" redis:"UserId"`                         // The user ID of the uploader
 	Encryption              EncryptionInfo `json:"Encryption" redis:"-"`                          // If the file is encrypted, this stores all info for decrypting
 	UnlimitedDownloads      bool           `json:"UnlimitedDownloads" redis:"UnlimitedDownloads"` // True if the uploader did not limit the downloads
@@ -42,6 +43,7 @@ type FileApiOutput struct {
 	ExpireAtString               string `json:"ExpireAtString"`               // Time expiry in a human-readable format in UTC
 	UrlDownload                  string `json:"UrlDownload"`                  // The public download URL for the file
 	UrlHotlink                   string `json:"UrlHotlink"`                   // The public hotlink URL for the file
+	FileRequestId                string `json:"FileRequestId"`                // The ID of the file request
 	UploadDate                   int64  `json:"UploadDate"`                   // UTC timestamp of upload time
 	ExpireAt                     int64  `json:"ExpireAt"`                     // UTC timestamp of file expiry
 	SizeBytes                    int64  `json:"SizeBytes"`                    // Filesize in bytes
@@ -55,6 +57,7 @@ type FileApiOutput struct {
 	IsPasswordProtected          bool   `json:"IsPasswordProtected"`          // True if a password has to be entered before downloading the file
 	IsSavedOnLocalStorage        bool   `json:"IsSavedOnLocalStorage"`        // True if the file does not use cloud storage
 	IsPendingDeletion            bool   `json:"IsPendingDeletion"`            // True if the file is about to be deleted
+	IsFileRequest                bool   `json:"IsFileRequest"`                // True if the file belongs to a file request
 	UploaderId                   int    `json:"UploaderId"`                   // The user ID of the uploader
 }
 
@@ -83,6 +86,7 @@ func (f *File) ToFileApiOutput(serverUrl string, useFilenameInUrl bool) (FileApi
 	if err != nil {
 		return FileApiOutput{}, err
 	}
+	result.IsFileRequest = f.UploadRequestId != ""
 	result.IsPasswordProtected = f.PasswordHash != ""
 	result.IsEncrypted = f.Encryption.IsEncrypted
 	result.IsSavedOnLocalStorage = f.AwsBucket == ""
@@ -90,10 +94,13 @@ func (f *File) ToFileApiOutput(serverUrl string, useFilenameInUrl bool) (FileApi
 		result.RequiresClientSideDecryption = true
 	}
 	result.IsEndToEndEncrypted = f.Encryption.IsEndToEndEncrypted
-	result.UrlHotlink = getHotlinkUrl(result, serverUrl, useFilenameInUrl)
-	result.UrlDownload = getDownloadUrl(result, serverUrl, useFilenameInUrl)
-	result.UploaderId = f.UserId
+	if !f.IsFileRequest() {
+		result.UrlHotlink = getHotlinkUrl(result, serverUrl, useFilenameInUrl)
+		result.UrlDownload = getDownloadUrl(result, serverUrl, useFilenameInUrl)
+		result.UploaderId = f.UserId
+	}
 	result.IsPendingDeletion = f.IsPendingForDeletion()
+	result.FileRequestId = f.UploadRequestId
 	result.ExpireAtString = time.Unix(f.ExpireAt, 0).UTC().Format("2006-01-02 15:04:05")
 
 	return result, nil
@@ -144,6 +151,11 @@ func (f *File) RequiresClientDecryption() bool {
 		return false
 	}
 	return !f.IsLocalStorage() || f.Encryption.IsEndToEndEncrypted
+}
+
+// IsFileRequest checks if the file is uploaded for an upload request
+func (f *File) IsFileRequest() bool {
+	return f.UploadRequestId != ""
 }
 func errorAsJson(err error) string {
 	fmt.Println(err)

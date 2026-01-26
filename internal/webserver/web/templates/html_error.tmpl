@@ -1,27 +1,52 @@
 {{define "error"}}{{template "header" .}}
  
-      <div class="row">
-        <div class="col">
-		<div class="card" style="width: 18rem;">
-		  <div class="card-body">
-		    <h2 class="card-title">Error</h2>
-		    <p class="card-text">
-		    <br>
+     <div class="row justify-content-center mt-5">
+  <div class="col-md-6">
+    <div class="card shadow-sm" style="width: {{ .ErrorCardWidth }}rem;">
+      <div class="card-body text-center">
 {{ if eq .ErrorId 0 }}
-		    Sorry, this file cannot be found.<br><br>Either the link has expired or it has been downloaded too many times.
+        <h2 class="card-title">
+          File not found
+        </h2>
+        <br>
+          The link may have expired or the file has been downloaded too many times.
 {{ end }}
+
 {{ if eq .ErrorId 1 }}
-		    This file is encrypted and no key has been passed.<br><br>Please contact the uploader to give you the correct link, including the value after the hash.
+        <h2 class="card-title">
+          Missing decryption key
+        </h2>
+        <br>
+          This file is encrypted, but no key was provided.<br>
+          Please contact the uploader and ensure the full link (including the value after the hash) is used.
 {{ end }}
+
 {{ if eq .ErrorId 2 }}
-		    This file is encrypted and an incorrect key has been passed.<br><br>If this file is end-to-end encrypted, please contact the uploader to give you the correct link, including the value after the hash.
+        <h2 class="card-title">
+          Invalid decryption key
+        </h2>
+        <br>
+          This file is encrypted, but the provided key is incorrect.<br>
+          If this file is end-to-end encrypted, please request the correct link from the uploader.
 {{ end }}
-<br>&nbsp;
-		    </p>
-		  </div>
-		</div>
-	    </div>
+
+{{ if eq .ErrorId 3 }}
+        <h2 class="card-title">
+          Unable to upload files
+        </h2>
+        <br>
+          This can happen for one of the following reasons:
+          <i><ul class="list-unstyled mt-2">
+            <li>- The upload request has expired (time limit reached)</li>
+            <li>- The file limit for this upload request has been reached</li>
+            <li>- An invalid upload URL was submitted</li>
+          </ul></i>
+{{ end }}
+        </p>
+      </div>
     </div>
+  </div>
+</div>
 {{ template "pagename" "PublicError"}}
 {{ template "customjs" .}}
 {{template "footer"}}    

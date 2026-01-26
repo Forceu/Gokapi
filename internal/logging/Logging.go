@@ -115,13 +115,32 @@ func LogDownload(file models.File, r *http.Request, saveIp bool) {
 }
 
 // LogUpload adds a log entry when an upload was created. Non-Blocking
-func LogUpload(file models.File, user models.User) {
-	createLogEntry(categoryUpload, fmt.Sprintf("%s, ID %s, uploaded by %s (user #%d)", file.Name, file.Id, user.Name, user.Id), false)
+func LogUpload(file models.File, user models.User, fr models.FileRequest) {
+	if fr.Id != "" {
+		createLogEntry(categoryUpload, fmt.Sprintf("%s, ID %s, uploaded to file request %s (%s), owned by %s (user #%d) ", file.Name, file.Id, fr.Id, fr.Name, user.Name, user.Id), false)
+	} else {
+		createLogEntry(categoryUpload, fmt.Sprintf("%s, ID %s, uploaded by %s (user #%d)", file.Name, file.Id, user.Name, user.Id), false)
+	}
 }
 
 // LogEdit adds a log entry when an upload was edited. Non-Blocking
 func LogEdit(file models.File, user models.User) {
 	createLogEntry(categoryEdit, fmt.Sprintf("%s, ID %s, edited by %s (user #%d)", file.Name, file.Id, user.Name, user.Id), false)
+}
+
+// LogCreateFileRequest adds a log entry when a file request was added. Non-Blocking
+func LogCreateFileRequest(fr models.FileRequest, user models.User) {
+	createLogEntry(categoryEdit, fmt.Sprintf("File request %s (%s) created by %s (user #%d)", fr.Id, fr.Name, user.Name, user.Id), false)
+}
+
+// LogEditFileRequest adds a log entry when a file request was edited. Non-Blocking
+func LogEditFileRequest(fr models.FileRequest, user models.User) {
+	createLogEntry(categoryEdit, fmt.Sprintf("File request %s (%s) created by %s (user #%d)", fr.Id, fr.Name, user.Name, user.Id), false)
+}
+
+// LogDeleteFileRequest adds a log entry when a file request was deleted. Non-Blocking
+func LogDeleteFileRequest(fr models.FileRequest, user models.User) {
+	createLogEntry(categoryEdit, fmt.Sprintf("File request %s (%s) and associated files deleted by %s (user #%d)", fr.Id, fr.Name, user.Name, user.Id), false)
 }
 
 // LogReplace adds a log entry when an upload was replaced. Non-Blocking

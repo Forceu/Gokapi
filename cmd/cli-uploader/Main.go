@@ -5,6 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+
 	"github.com/forceu/gokapi/cmd/cli-uploader/cliapi"
 	"github.com/forceu/gokapi/cmd/cli-uploader/cliconfig"
 	"github.com/forceu/gokapi/cmd/cli-uploader/cliconstants"
@@ -12,9 +16,6 @@ import (
 	"github.com/forceu/gokapi/internal/environment"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/schollz/progressbar/v3"
-	"io"
-	"os"
-	"path/filepath"
 )
 
 func main() {
@@ -25,9 +26,11 @@ func main() {
 	case cliflags.ModeLogout:
 		doLogout()
 	case cliflags.ModeUpload:
-		processUpload(false)
+		processUpload(cliflags.ModeUpload)
 	case cliflags.ModeArchive:
-		processUpload(true)
+		processUpload(cliflags.ModeArchive)
+	case cliflags.ModeDownload:
+		processDownload()
 	case cliflags.ModeInvalid:
 		os.Exit(3)
 	}
@@ -38,11 +41,11 @@ func doLogin() {
 	cliconfig.CreateLogin()
 }
 
-func processUpload(isArchive bool) {
+func processUpload(mode int) {
 	cliconfig.Load()
-	uploadParam := cliflags.GetUploadParameters(isArchive)
+	uploadParam := cliflags.GetUploadParameters(mode)
 
-	if isArchive {
+	if mode == cliflags.ModeArchive {
 		zipPath, err := zipFolder(uploadParam.Directory, uploadParam.TmpFolder, !uploadParam.JsonOutput)
 		if err != nil {
 			fmt.Println(err)
@@ -57,7 +60,7 @@ func processUpload(isArchive bool) {
 	if err != nil {
 		fmt.Println()
 		if errors.Is(cliapi.ErrUnauthorised, err) {
-			fmt.Println("ERROR: Unauthorised API key. Please re-run login.")
+			fmt.Println("ERROR: Unauthorised API key. Please re-run login or make sure that the API key has the permission to upload files.")
 		} else {
 			fmt.Println("ERROR: Could not upload file")
 			fmt.Println(err)
@@ -75,6 +78,24 @@ func processUpload(isArchive bool) {
 	fmt.Println("File Name: " + result.Name)
 	fmt.Println("File ID: " + result.Id)
 	fmt.Println("File Download URL: " + result.UrlDownload)
+}
+
+func processDownload() {
+	cliconfig.Load()
+	uploadParam := cliflags.GetUploadParameters(cliflags.ModeDownload)
+
+	// Perform the download
+	err := cliapi.DownloadFile(uploadParam)
+	if err != nil {
+		fmt.Println()
+		if errors.Is(cliapi.ErrUnauthorised, err) {
+			fmt.Println("ERROR: Unauthorised API key. Please re-run login or make sure that the API key has the permission to download files.")
+		} else {
+			fmt.Println("ERROR: Could not download file")
+			fmt.Println(err)
+		}
+		os.Exit(1)
+	}
 }
 
 func doLogout() {

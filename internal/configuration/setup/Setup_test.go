@@ -147,7 +147,6 @@ var config = models.Configuration{
 	ServerUrl:      "",
 	RedirectUrl:    "",
 	ConfigVersion:  0,
-	LengthId:       0,
 	DataDir:        "",
 	MaxMemory:      0,
 	UseSsl:         false,

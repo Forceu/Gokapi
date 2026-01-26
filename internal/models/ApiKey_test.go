@@ -127,21 +127,6 @@ func TestApiPermAllNoApiMod(t *testing.T) {
 	}
 }
 
-func TestApiPermAll(t *testing.T) {
-	key := &ApiKey{}
-	key.GrantPermission(ApiPermAll)
-	if !key.HasPermission(ApiPermView) ||
-		!key.HasPermission(ApiPermUpload) ||
-		!key.HasPermission(ApiPermDelete) ||
-		!key.HasPermission(ApiPermApiMod) ||
-		!key.HasPermission(ApiPermEdit) ||
-		!key.HasPermission(ApiPermReplace) ||
-		!key.HasPermission(ApiPermManageUsers) ||
-		!key.HasPermission(ApiPermManageLogs) {
-		t.Errorf("expected all permissions to be set")
-	}
-}
-
 // Helper function to check only one permission is set
 func checkOnlyPermissionSet(t *testing.T, key *ApiKey, perm ApiPermission) {
 	allPermissions := []struct {

@@ -125,14 +125,14 @@ func extractEnvVars() ([]envVar, error) {
 
 	result = append(result,
 		envVar{
-			Name:    "DOCKER_NONROOT",
-			Action:  "DEPRECATED.\n\nDocker only: Runs the binary in the container as a non-root user, if set to \"true\"",
-			Default: "false",
-		},
-		envVar{
 			Name:    "TMPDIR",
 			Action:  "Sets the path which contains temporary files",
-			Default: "Non-Docker: Default OS path\n\nDocker: [DATA_DIR]",
+			Default: "Non-Docker: Default OS path\nDocker: [DATA_DIR]",
+		},
+		envVar{
+			Name:    "DOCKER_NONROOT",
+			Action:  "DEPRECATED.\nDocker only: Runs the binary in the container as a non-root user, if set to \"true\"",
+			Default: "false",
 		},
 	)
 

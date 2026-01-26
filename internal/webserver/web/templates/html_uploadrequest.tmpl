@@ -1,0 +1,243 @@
+{{ define "uploadreq" }}{{ template "header" . }}
+<div class="row">
+    <div class="col">
+        <div id="container" class="card" style="width: 80%">
+            <div class="card-body">
+		<div class="container">
+		  <div class="row mb-4">
+		    <div class="col">
+		    </div>
+		    <div class="col text-center">
+		      <h3 class="card-title mb-0">File Requests</h3>
+		    </div>
+		    <div class="col text-end">
+		      <button id="button-newfr" class="btn btn-outline-light" onclick="newFileRequest()">
+                    <i class="bi bi-plus-circle-fill"></i>
+                </button>
+		    </div>
+		  </div>
+		</div>
+		
+                <br>
+                <div class="table-responsive">
+                    <table class="table table-dark ">
+                        <thead>
+                            <tr>
+                                <th scope="col">Name</th>
+                                <th scope="col">Uploaded Files</th>
+                                <th scope="col">Total Size</th>
+                                <th scope="col">Last Upload</th>
+                                <th scope="col">Expiry</th>
+{{ if .ActiveUser.HasPermissionListOtherUploads }}
+            			<th scope="col">User</th>
+{{ end }}
+                                <th scope="col">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="filerequesttable">
+                        
+{{ range .FileRequests }}
+                            <tr id="row-{{ .Id }}" class="no-bottom-border filerequest-item">
+		                    <td><a href="{{ $.ServerUrl }}publicUpload?id={{ .Id }}&key={{ .ApiKey }}" target="_blank">{{ .Name }}</a></td>
+				    {{ template "uRFileCell" . }}
+		                    <td>{{ .GetReadableTotalSize }}</td>
+            			    <td><span id="cell-lastupdate-{{ .Id }}"></span></td>
+				       <script>insertDateWithNegative({{ .LastUpload }}, "cell-lastupdate-{{ .Id }}", "None");</script>
+            			    <td><span id="cell-expiry-{{ .Id }}"></span></td>
+				       <script>insertFileRequestExpiry({{ .Expiry }}, "cell-expiry-{{ .Id }}");</script>
+		                    
+{{ if $.ActiveUser.HasPermissionListOtherUploads }}
+		                    <td id="cell-username-{{ .Id }}">{{(index $.UserMap .UserId).Name}}</td>
+{{ end }}
+		                    <td>
+		                    	<div class="btn-group" role="group">
+                                {{ template "uRDownloadbutton" . }}
+                                
+                                
+                                <button id="copy-{{ .Id }}" type="button" data-clipboard-text="{{ $.ServerUrl }}publicUpload?id={{ .Id }}&key={{ .ApiKey }}" class="copyurl btn btn-outline-light btn-sm" onclick="showToast(1000);" title="Copy URL"><i class="bi bi-copy"></i></button>
+                                
+		                        <button id="edit-{{ .Id }}" type="button" title="Edit request" class="btn btn-outline-light btn-sm" onclick="editFileRequest('{{ .Id }}', '{{ .Name }}', {{ .MaxFiles }}, {{ .MaxSize }}, {{ .Expiry }}, '{{ .Notes }}')">
+		                        	<i class="bi bi-pencil"></i></button>
+                                
+                                
+                                <button id="delete-{{ .Id }}" type="button" class="btn btn-outline-danger btn-sm" onclick="deleteOrShowModal('{{ .Id }}', '{{ .Name }}', {{ .UploadedFiles }})" title="Delete"><i class="bi bi-trash3"></i></button>
+                                	</div>
+                                </td>
+                            </tr>
+			      <tr id="filelist-{{ .Id }}">
+			  <td colspan="7" class="p-0">                      
+			<div id="collapse-filelist-{{ .Id }}" class="collapse bg-dark">
+			   <div class="p-2">
+
+				    <ul class="list-group list-group-flush">
+				      {{ range .Files }}
+				      <li class="list-group-itemtext-light d-flex align-items-center border-bottom-0  filelist-item ">
+
+					<div class="flex-grow-1 text-truncate">
+					  <a href="#" class="text-decoration-none text-light" onClick="downloadFileWithPresign('{{ .Id }}');">
+					    {{ .Name }}
+					  </a>
+					</div>
+
+					<div class="small me-3 text-nowrap text-light">
+					  {{ .Size }} · <span id="cell-date-file-{{.Id}}"></span>
+					</div>
+					<script>insertFormattedDate({{ .UploadDate }}, "cell-date-file-{{.Id}}");</script>
+
+					<button class="btn btn-outline-light btn-sm"
+						 onClick="downloadFileWithPresign('{{ .Id }}');"
+						title="Download">
+					  <i class="bi bi-download"></i>
+					</button>
+
+				      </li>
+				      {{ end }}
+				    </ul>
+
+				  </div>
+			</div> </td>
+			</tr>
+{{ end }}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+	<div id="toastnotification" class="toastnotification" data-default="URL copied to clipboard">Toast Text</div>
+    </div>
+</div>
+<script src="./js/min/admin.min.{{ template "js_admin_version"}}.js"></script>
+<script>
+	var userName = "{{.ActiveUser.Name}}";
+	var baseUrl = "{{.ServerUrl}}";
+	var canViewOtherRequests = {{.ActiveUser.HasPermissionListOtherUploads}};
+	var limitMaxSize = {{.FileRequestMaxSize}};
+	var limitMaxFiles = {{.FileRequestMaxFiles}};
+	
+</script>
+
+
+
+{{ template "urequest_modal_confirm" }}
+{{ template "urequest_modal_addedit" }}
+        
+{{ template "pagename" "UploadRequest"}}
+{{ template "customjs" .}}
+
+{{ template "footer" true }}
+{{ end }}
+
+
+
+{{ define "urequest_modal_confirm" }}
+	<div class="modal" tabindex="-1" id="deleteModal">
+	  <div class="modal-dialog gokapi-dialog">
+	    <div class="modal-content gokapi-dialog">
+	      <div class="modal-header">
+		<h5 class="modal-title">Delete File Request</h5>
+	      </div>
+	      <div class="modal-body">
+		<p>Are you sure you want to delete the filerequest &quot;<span id="deleteModalBodyName" class="fw-bold"></span>&quot;?<br><br>
+		This also permanently deletes <span id="deleteModalBodyCount" class="fw-bold"></span> associated file(s) and cannot be undone.</p>
+		</div>
+	      <div class="modal-footer">
+		<button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
+		<button type="button" id="buttonDelete" class="btn btn-danger">Delete</button>
+	      </div>
+	    </div>
+	  </div>
+	</div>
+{{ end }}
+
+{{ define "urequest_modal_addedit" }}
+
+	<div class="modal fade" id="addEditModal" tabindex="-1"  aria-hidden="true">
+	  <div class="modal-dialog  modal-lg gokapi-dialog">
+	    <div class="modal-content gokapi-dialog">
+	      <div class="modal-header">
+		<h1 class="modal-title fs-5" id="m_urequestlabel">Title</h1>
+	      </div>
+	      <div class="modal-body">
+	      
+		<div class="input-group mb-3">
+		  <span class="input-group-text" id="mTitle">Title&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+		  <input type="text" id="mFriendlyName" class="form-control" placeholder="Friendly name" aria-label="Friendly name" aria-describedby="mTitle">
+		</div>
+
+		<div class="input-group mb-3">
+		  <div class="input-group-text">
+      			<input type="checkbox" id="mc_maxfiles"  aria-label="Max files" title="Max files"  data-toggle-target="mi_maxfiles" onchange="handleEditCheckboxChange(this)">
+   		 </div>
+		  <span class="input-group-text" id="mMaxFiles">Max Files</span>
+		  <input type="number" min="1" id="mi_maxfiles" onChange="checkMaxNumber(this)" disabled class="form-control" aria-label="Max Files" aria-describedby="mMaxFiles" data-allow-regular-paste>
+		</div>
+
+		<div class="input-group mb-3">
+		  <div class="input-group-text">
+      			<input type="checkbox" id="mc_maxsize"  aria-label="Max Size" title="Max Size" 
+      			 data-toggle-target="mi_maxsize" onchange="handleEditCheckboxChange(this)">
+   		 </div>
+		  <span class="input-group-text" id="tMaxSize">Max Size&nbsp;</span>
+		  <input type="number" min="1" id="mi_maxsize"  onChange="checkMaxNumber(this)" disabled class="form-control" aria-label="Max Size" aria-describedby="tMaxSize" data-allow-regular-paste>
+		  <span class="input-group-text">MB</span>
+		</div>
+		
+		<div class="input-group mb-3">
+		  <div class="input-group-text">
+      			<input id="mc_expiry" type="checkbox" aria-label="Expiry" title="Expiry"  data-toggle-target="mi_expiry" data-timestamp="" onchange="handleEditCheckboxChange(this)" >
+   		 </div>
+		  <span class="input-group-text" id="edit_expdate">Expiry&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+		  <input type="text" id="mi_expiry" disabled class="form-control" aria-label="Expiry" aria-describedby="edit_expdate"  data-allow-regular-paste>
+		</div>
+		
+		<div class="input-group mb-3">
+		  <span class="input-group-text" id="mdNotes">Notes&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+		  <input type="text" id="mNotes" class="form-control" placeholder="Notes about the request" aria-label="Notes" aria-describedby="mdNotes">
+		</div>
+	      </div>
+	      <input type="hidden" id="freqId" value="" />
+{{ if .EndToEndEncryption }}
+<div class="callout callout-info">
+  Uploaded files are not end-to-end encrypted and will be stored in plain text on the server
+</div>
+{{ end }}
+	      <div class="modal-footer">
+		<button type="button" class="btn btn-outline-light"  aria-label="Cancel" data-bs-dismiss="modal">Close</button>
+		<button type="button" class="btn btn-primary" data-fileid="" id="b_fr_save" onclick="">Save</button>
+	      </div>
+	    </div>
+	  </div>
+	</div>
+
+{{ end }}
+
+
+{{ define "uRDownloadbutton" }}
+	{{ if eq .UploadedFiles 0 }}
+		<button id="download-{{ .Id }}" type="button" class="btn btn-outline-light btn-sm disabled" title="Download all"><i class="bi bi-download"></i></button>
+	{{ else }}
+		{{ if eq .UploadedFiles 1 }}
+			<button id="download-{{ .Id }}" type="button" class="btn btn-outline-light btn-sm" onclick="downloadFileWithPresign('{{ (index .FileIdList 0) }}');" title="Download all"><i class="bi bi-download"></i></button>
+		{{ else }}
+			<button id="download-{{ .Id }}" type="button" class="btn btn-outline-light btn-sm" onclick="downloadFilesZipWithPresign('{{ .GetFilesAsString }}', '{{ .Name }}');" title="Download all"><i class="bi bi-download"></i></button>
+	{{ end }}
+	{{ end }}
+{{ end }}
+
+
+{{ define "uRFileCell" }}
+	<td>
+	<span title="Uploaded files">{{ .UploadedFiles }}</span>{{ if ne .ReservedUploads 0 }}<span title="Active uploads">+{{.ReservedUploads}}</span>{{end}}{{ if ne .MaxFiles 0 }} / <span title="File limit">{{ .MaxFiles }}</span>{{end}}
+	{{ if gt .UploadedFiles 0 }}
+	 <button
+		  class="btn btn-sm btn-link text-light p-0 collapse-toggle"
+		  data-bs-toggle="collapse"
+		  data-bs-target="#collapse-filelist-{{ .Id }}"
+		  aria-expanded="false"
+		  title = "Expand / Collapse"
+		  aria-controls="collapse-filelist-{{ .Id }}">
+		  <i class="bi bi-chevron-down"></i>
+		</button>
+	{{end}}
+	</td> 
+{{ end }}

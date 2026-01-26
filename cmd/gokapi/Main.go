@@ -34,7 +34,7 @@ import (
 
 // versionGokapi is the current version in readable form.
 // Other version numbers can be modified in /build/go-generate/updateVersionNumbers.go
-const versionGokapi = "2.1.0"
+const versionGokapi = "2.2.0-dev"
 
 // The following calls update the version numbers, update documentation, minify Js/CSS and build the WASM modules
 //go:generate go run "../../build/go-generate/updateVersionNumbers.go"
@@ -66,7 +66,7 @@ func main() {
 	authentication.Init(configuration.Get().Authentication)
 	createSsl(passedFlags)
 	initCloudConfig(passedFlags)
-	go storage.CleanUp(true)
+	storage.CleanUp(true)
 	logging.LogStartup()
 	showDeprecationWarnings()
 	go webserver.Start()
@@ -110,7 +110,7 @@ func showVersion(passedFlags flagparser.MainFlags) {
 }
 
 func showDeprecationWarnings() {
-	for _, dep := range configuration.Environment.ActiveDeprecations {
+	for _, dep := range configuration.GetEnvironment().ActiveDeprecations {
 		fmt.Println()
 		fmt.Println("WARNING, deprecated feature: " + dep.Name)
 		fmt.Println(dep.Description)

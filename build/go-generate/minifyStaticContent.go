@@ -72,16 +72,16 @@ func getPaths() []converter {
 		Name:       "wasm_exec JS",
 	})
 	result = append(result, converter{
-		InputPath:  pathPrefix + "js/dateformat.js",
-		OutputPath: pathPrefix + "js/min/dateformat.min.js",
+		InputPath:  pathPrefix + "js/all_public.js",
+		OutputPath: pathPrefix + "js/min/all_public.min.js",
 		Type:       "text/javascript",
-		Name:       "Dateformat JS",
+		Name:       "Public functions JS",
 	})
 	result = append(result, converter{
-		InputPath:  pathPrefix + "js/uuid.js",
-		OutputPath: pathPrefix + "js/min/uuid.min.js",
+		InputPath:  pathPrefix + "js/public_upload.js",
+		OutputPath: pathPrefix + "js/min/public_upload.min.js",
 		Type:       "text/javascript",
-		Name:       "UUID JS",
+		Name:       "Public upload JS",
 	})
 	return result
 }

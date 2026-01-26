@@ -4,9 +4,10 @@ package aws
 
 import (
 	"errors"
-	"github.com/forceu/gokapi/internal/models"
 	"io"
 	"net/http"
+
+	"github.com/forceu/gokapi/internal/models"
 )
 
 const errorString = "AWS not supported in this build"
@@ -43,7 +44,7 @@ func Upload(input io.Reader, file models.File) (string, error) {
 }
 
 // Download downloads a file from AWS
-func Download(writer io.WriterAt, file models.File) (int64, error) {
+func download(writer io.WriterAt, file models.File) (int64, error) {
 	return 0, errors.New(errorString)
 }
 
@@ -59,7 +60,7 @@ func RedirectToDownload(w http.ResponseWriter, r *http.Request, file models.File
 
 // ServeFile either redirects the user to a pre-signed download url (default) or downloads the file and serves it as a proxy (depending
 // on configuration). Returns true if blocking operation (in order to set download status) or false if non-blocking.
-func ServeFile(w http.ResponseWriter, r *http.Request, file models.File, forceDownload bool) (bool, error) {
+func ServeFile(w http.ResponseWriter, r *http.Request, file models.File, forceDownload bool, forceDecryption bool) (bool, error) {
 	return false, errors.New(errorString)
 }
 
@@ -81,4 +82,9 @@ func IsCorsCorrectlySet(bucket, gokapiUrl string) (bool, error) {
 // GetDefaultBucketName returns the default bucketname where new files are stored
 func GetDefaultBucketName() string {
 	return ""
+}
+
+// Stream downloads a file from AWS sequentially, used for saving to a Zip file
+func Stream(writer io.Writer, file models.File) error {
+	return errors.New(errorString)
 }

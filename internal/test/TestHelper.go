@@ -37,12 +37,37 @@ func IsEqualString(t MockT, got, want string) {
 	}
 }
 
-// ResponseBodyContains fails test if http response does contain string
+// ResponseBodyContains fails test if http response does not contain the string
 func ResponseBodyContains(t MockT, got *httptest.ResponseRecorder, want string) {
 	t.Helper()
 	result, err := io.ReadAll(got.Result().Body)
 	IsNil(t, err)
 	if !strings.Contains(string(result), want) {
+		t.Errorf("Assertion failed, got: %v \n want: %s.\n\n", got, want)
+	}
+}
+
+// ResponseBodyIs fails test if http response is not the exact string
+func ResponseBodyIs(t MockT, got *httptest.ResponseRecorder, want string) {
+	t.Helper()
+	result, err := io.ReadAll(got.Result().Body)
+	IsNil(t, err)
+	IsEqualString(t, string(result), want)
+}
+
+// ResponseBodyIsWithAlternate fails test if http response is not the exact string of one of the supplied string
+func ResponseBodyIsWithAlternate(t MockT, got *httptest.ResponseRecorder, want []string) {
+	t.Helper()
+	result, err := io.ReadAll(got.Result().Body)
+	IsNil(t, err)
+	found := false
+	for _, wantedString := range want {
+		if string(result) == wantedString {
+			found = true
+			break
+		}
+	}
+	if !found {
 		t.Errorf("Assertion failed, got: %v \n want: %s.\n\n", got, want)
 	}
 }

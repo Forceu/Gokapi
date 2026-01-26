@@ -5,12 +5,13 @@ package aws
 import (
 	"bytes"
 	"errors"
-	"github.com/forceu/gokapi/internal/models"
 	"io"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/forceu/gokapi/internal/models"
 )
 
 var uploadedFiles []models.File
@@ -107,7 +108,7 @@ func Upload(input io.Reader, file models.File) (string, error) {
 }
 
 // Download downloads a file from AWS
-func Download(writer io.WriterAt, file models.File) (int64, error) {
+func download(writer io.WriterAt, file models.File) (int64, error) {
 	if !isValidCredentials() {
 		return 0, errors.New("invalid credentials / invalid bucket / invalid region")
 	}
@@ -129,7 +130,7 @@ func isUploaded(file models.File) bool {
 
 // ServeFile either redirects the user to a pre-signed download url (default) or downloads the file and serves it as a proxy (depending
 // on configuration). Returns true if blocking operation (in order to set download status) or false if non-blocking.
-func ServeFile(w http.ResponseWriter, r *http.Request, file models.File, forceDownload bool) (bool, error) {
+func ServeFile(w http.ResponseWriter, r *http.Request, file models.File, forceDownload bool, forceDecryption bool) (bool, error) {
 	// TODO implement proxy as well
 	return false, RedirectToDownload(w, r, file, forceDownload)
 }
@@ -198,4 +199,22 @@ func IsCorsCorrectlySet(bucket, gokapiUrl string) (bool, error) {
 // GetDefaultBucketName returns the default bucketname where new files are stored
 func GetDefaultBucketName() string {
 	return bucketName
+}
+
+// Stream downloads a file from AWS sequentially, used for saving to a Zip file
+func Stream(writer io.Writer, file models.File) error {
+	if !isValidCredentials() {
+		return errors.New("invalid credentials / invalid bucket / invalid region")
+	}
+
+	if isUploaded(file) {
+		data, err := os.Open("data/" + file.SHA1)
+		if err != nil {
+			return err
+		}
+		defer data.Close()
+		_, err = io.Copy(writer, data)
+		return err
+	}
+	return errors.New("file not found")
 }

@@ -7,9 +7,11 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/forceu/gokapi/internal/environment"
+
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
-	// Required for sqlite driver
+	// Required for the sqlite driver
 	_ "modernc.org/sqlite"
 )
 
@@ -19,7 +21,7 @@ type DatabaseProvider struct {
 }
 
 // DatabaseSchemeVersion contains the version number to be expected from the current database. If lower, an upgrade will be performed
-const DatabaseSchemeVersion = 11
+const DatabaseSchemeVersion = 12
 
 // New returns an instance
 func New(dbConfig models.DbConnection) (DatabaseProvider, error) {
@@ -35,14 +37,52 @@ func (p DatabaseProvider) GetType() int {
 func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 	// < v2.0.0
 	if currentDbVersion < 10 {
-		fmt.Println("Error: Gokapi runs >=v2.0.0, but Database is <v2.0.0")
+		fmt.Println("Error: Gokapi runs >=v2.0.0, but Database is <v2.0.0. Please update to v2.0.0 first.")
 		osExit(1)
 		return
 	}
-	// pre local TZ
+	// < v2.2.0-dev
 	if currentDbVersion < 11 {
 		err := p.rawSqlite("ALTER TABLE FileMetaData DROP COLUMN ExpireAtString;")
 		helper.Check(err)
+	}
+	// < v2.2.0
+	if currentDbVersion < 12 {
+
+		err := p.rawSqlite(`ALTER TABLE FileMetaData ADD COLUMN "UploadRequestId" TEXT NOT NULL DEFAULT '';
+									 ALTER TABLE ApiKeys ADD COLUMN "UploadRequestId" TEXT NOT NULL DEFAULT '';
+									 CREATE TABLE "UploadRequests" (
+										"id"	TEXT NOT NULL UNIQUE,
+										"name"	TEXT NOT NULL,
+										"userid"	INTEGER NOT NULL,
+										"expiry"	INTEGER NOT NULL,
+										"maxFiles"	INTEGER NOT NULL,
+										"maxSize"	INTEGER NOT NULL,
+										"creation"	INTEGER NOT NULL,
+										"apiKey"	TEXT NOT NULL UNIQUE,
+										"note"	TEXT NOT NULL,
+										PRIMARY KEY("id")
+									 );
+									CREATE TABLE "Presign" (
+										"id"	TEXT NOT NULL UNIQUE,
+										"fileIds"	TEXT NOT NULL,
+										"expiry"	INTEGER NOT NULL,
+										"filename"	TEXT NOT NULL,
+										PRIMARY KEY("id")
+									);`)
+		helper.Check(err)
+		grantUploadPerm := environment.New().PermRequestGrantedByDefault
+		for _, user := range p.GetAllUsers() {
+			if grantUploadPerm || user.IsAdmin() {
+				user.GrantPermission(models.UserPermGuestUploads)
+				p.SaveUser(user, false)
+			}
+		}
+		for _, apiKey := range p.GetAllApiKeys() {
+			if apiKey.IsSystemKey {
+				p.DeleteApiKey(apiKey.Id)
+			}
+		}
 	}
 }
 
@@ -61,7 +101,7 @@ func (p DatabaseProvider) SetDbVersion(newVersion int) {
 	helper.Check(err)
 }
 
-// GetSchemaVersion returns the version number, that the database should be if fully upgraded
+// GetSchemaVersion returns the version number, which the database should be at if fully upgraded
 func (p DatabaseProvider) GetSchemaVersion() int {
 	return DatabaseSchemeVersion
 }
@@ -114,6 +154,7 @@ func (p DatabaseProvider) Close() {
 func (p DatabaseProvider) RunGarbageCollection() {
 	p.cleanExpiredSessions()
 	p.cleanApiKeys()
+	p.cleanPresignedUrls()
 }
 
 func (p DatabaseProvider) createNewDatabase() error {
@@ -126,6 +167,7 @@ func (p DatabaseProvider) createNewDatabase() error {
 			"IsSystemKey"	INTEGER,
 			"UserId" INTEGER NOT NULL,
 			"PublicId" TEXT NOT NULL UNIQUE ,
+			"UploadRequestId"	TEXT NOT NULL,
 			PRIMARY KEY("Id")
 		) WITHOUT ROWID;
 		CREATE TABLE "E2EConfig" (
@@ -153,6 +195,7 @@ func (p DatabaseProvider) createNewDatabase() error {
 			"UserId"	INTEGER NOT NULL,
 			"UploadDate"	INTEGER NOT NULL,
 			"PendingDeletion"	INTEGER NOT NULL,
+			"UploadRequestId"	TEXT NOT NULL,
 			PRIMARY KEY("Id")
 		);
 		CREATE TABLE "Hotlinks" (
@@ -176,6 +219,25 @@ func (p DatabaseProvider) createNewDatabase() error {
 			"LastOnline"	INTEGER NOT NULL DEFAULT 0,
 			"ResetPassword"	INTEGER NOT NULL DEFAULT 0,
 			PRIMARY KEY("Id" AUTOINCREMENT)
+		);
+		CREATE TABLE "UploadRequests" (
+			"id"	TEXT NOT NULL UNIQUE,
+			"name"	TEXT,
+			"userid"	INTEGER NOT NULL,
+			"expiry"	INTEGER NOT NULL,
+			"maxFiles"	INTEGER NOT NULL,
+			"maxSize"	INTEGER NOT NULL,
+			"creation"	INTEGER NOT NULL,
+			"apiKey"	TEXT NOT NULL UNIQUE,
+			"note"	TEXT NOT NULL,
+			PRIMARY KEY("id")
+		);
+		CREATE TABLE "Presign" (
+			"id"	TEXT NOT NULL UNIQUE,
+			"fileIds"	TEXT NOT NULL,
+			"expiry"	INTEGER NOT NULL,
+			"filename"	TEXT NOT NULL,
+			PRIMARY KEY("id")
 		);
 `
 	err := p.rawSqlite(sqlStmt)

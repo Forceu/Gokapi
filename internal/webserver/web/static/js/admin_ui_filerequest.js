@@ -1,0 +1,363 @@
+// This file contains JS code for the API view
+// All files named admin_*.js will be merged together and minimised by calling
+// go generate ./...
+
+function deleteFileRequest(requestId) {
+    document.getElementById("delete-" + requestId).disabled = true;
+
+    apiURequestDelete(requestId)
+        .then(data => {
+            const mainRow = document.getElementById("row-" + requestId);
+            const fileListRow = document.getElementById("filelist-" + requestId);
+            mainRow.classList.add("rowDeleting");
+            if (fileListRow !== null) {
+                fileListRow.classList.add("rowDeleting");
+            }
+
+            setTimeout(() => {
+                mainRow.remove();
+                if (fileListRow !== null) {
+                    fileListRow.remove();
+                }
+            }, 290);
+        })
+        .catch(error => {
+            alert("Unable to delete file request: " + error);
+            console.error('Error:', error);
+        });
+}
+
+function deleteOrShowModal(requestId, requestName, count) {
+    if (count === 0) {
+        deleteFileRequest(requestId);
+    } else {
+        showDeleteFRequestModal(requestId, requestName, count);
+    }
+}
+
+function showDeleteFRequestModal(requestId, requestName, count) {
+    document.getElementById("deleteModalBodyName").innerText = requestName;
+    document.getElementById("deleteModalBodyCount").innerText = count;
+    $('#deleteModal').modal('show');
+
+    document.getElementById("buttonDelete").onclick = function() {
+        $('#deleteModal').modal('hide');
+        deleteFileRequest(requestId);
+    };
+}
+
+
+function newFileRequest() {
+    loadFileRequestDefaults();
+    document.getElementById("m_urequestlabel").innerText = "New File Request";
+    $('#addEditModal').modal('show');
+
+    document.getElementById("b_fr_save").onclick = function() {
+        saveFileRequestDefaults();
+        saveFileRequest();
+        $('#addEditModal').modal('hide');
+    };
+}
+
+function saveFileRequestDefaults() {
+    if (document.getElementById("mc_maxfiles").checked) {
+        localStorage.setItem("fr_maxfiles", document.getElementById("mi_maxfiles").value);
+    } else {
+        localStorage.setItem("fr_maxfiles", 0);
+    }
+    if (document.getElementById("mc_maxsize").checked) {
+        localStorage.setItem("fr_maxsize", document.getElementById("mi_maxsize").value);
+    } else {
+        localStorage.setItem("fr_maxsize", 0);
+    }
+    if (document.getElementById("mc_expiry").checked) {
+        let diff = document.getElementById("mi_expiry").value - Math.round(Date.now() / 1000);
+        localStorage.setItem("fr_expiry", diff);
+    } else {
+        localStorage.setItem("fr_expiry", 0);
+    }
+}
+
+function loadFileRequestDefaults() {
+    const defaultMaxFiles = localStorage.getItem("fr_maxfiles");
+    const defaultMaxSize = localStorage.getItem("fr_maxsize");
+    let defaultExpiry = localStorage.getItem("fr_expiry");
+
+    if (defaultExpiry !== "0" && defaultExpiry !== null) {
+        let defaultDate = new Date(Date.now() + Number((defaultExpiry) * 1000));
+        defaultDate.setHours(12, 0, 0, 0);
+        defaultExpiry = Math.floor(defaultDate.getTime() / 1000);
+    }
+
+    setModalValues("", "", defaultMaxFiles, defaultMaxSize, defaultExpiry, "");
+}
+
+function setModalValues(id, name, maxFiles, maxSize, expiry, notes) {
+    document.getElementById("freqId").value = id;
+
+    if (name === null) {
+        document.getElementById("mFriendlyName").value = "";
+    } else {
+        document.getElementById("mFriendlyName").value = name;
+    }
+
+
+    if (limitMaxFiles != 0) {
+        let checkbox = document.getElementById("mc_maxfiles");
+        if (maxFiles === null || maxFiles == 0) {
+            maxFiles = limitMaxFiles;
+        }
+        checkbox.checked = true;
+        checkbox.disabled = true;
+        checkbox.title = "Only admins can set this to unlimited";
+        checkbox.value = "1";
+        document.getElementById("mi_maxfiles").setAttribute("max", limitMaxFiles);
+    } else {
+        let checkbox = document.getElementById("mc_maxfiles");
+        checkbox.disabled = false;
+        checkbox.title = "";
+        document.getElementById("mi_maxfiles").setAttribute("max", "");
+    }
+
+    if (limitMaxSize != 0) {
+        let checkbox = document.getElementById("mc_maxsize");
+        if (maxSize === null || maxSize == 0) {
+            maxSize = limitMaxSize;
+        }
+        checkbox.checked = true;
+        checkbox.disabled = true;
+        checkbox.title = "Only admins can set this to unlimited";
+        checkbox.value = "1";
+        document.getElementById("mi_maxsize").setAttribute("max", limitMaxSize);
+    } else {
+        let checkbox = document.getElementById("mc_maxsize");
+        checkbox.disabled = false;
+        checkbox.title = "";
+        document.getElementById("mi_maxsize").setAttribute("max", "");
+    }
+
+    if (maxFiles === null || maxFiles == 0) {
+        document.getElementById("mi_maxfiles").value = "1";
+        document.getElementById("mi_maxfiles").disabled = true;
+        document.getElementById("mc_maxfiles").checked = false;
+    } else {
+        document.getElementById("mi_maxfiles").value = maxFiles;
+        document.getElementById("mi_maxfiles").disabled = false;
+        document.getElementById("mc_maxfiles").checked = true;
+    }
+
+
+    if (maxSize === null || maxSize == 0) {
+        document.getElementById("mi_maxsize").value = "10";
+        document.getElementById("mi_maxsize").disabled = true;
+        document.getElementById("mc_maxsize").checked = false;
+    } else {
+        document.getElementById("mi_maxsize").value = maxSize;
+        document.getElementById("mi_maxsize").disabled = false;
+        document.getElementById("mc_maxsize").checked = true;
+    }
+
+    if (expiry === null || expiry == 0) {
+        const defaultDate = Math.floor(new Date(Date.now() + (14 * 24 * 60 * 60 * 1000)).getTime() / 1000);
+        document.getElementById("mi_expiry").disabled = true;
+        document.getElementById("mc_expiry").checked = false;
+        document.getElementById("mi_expiry").value = defaultDate;
+        createCalendar("mi_expiry", defaultDate);
+    } else {
+        document.getElementById("mi_expiry").value = expiry;
+        document.getElementById("mi_expiry").disabled = false;
+        document.getElementById("mc_expiry").checked = true;
+        createCalendar("mi_expiry", expiry);
+    }
+    document.getElementById("mNotes").value = notes;
+}
+
+function editFileRequest(id, name, maxFiles, maxSize, expiry, notes) {
+    setModalValues(id, name, maxFiles, maxSize, expiry, notes);
+    document.getElementById("m_urequestlabel").innerText = "Edit File Request";
+    $('#addEditModal').modal('show');
+
+    document.getElementById("b_fr_save").onclick = function() {
+        saveFileRequest();
+        $('#addEditModal').modal('hide');
+    };
+}
+
+
+function saveFileRequest() {
+    const buttonSave = document.getElementById("b_fr_save");
+    const id = document.getElementById("freqId").value;
+    const name = document.getElementById("mFriendlyName").value;
+    const notes = document.getElementById("mNotes").value;
+    let maxFiles = 0;
+    let maxSize = 0;
+    let expiry = 0;
+
+    if (document.getElementById("mc_maxfiles").checked) {
+        maxFiles = document.getElementById("mi_maxfiles").value;
+    }
+    if (document.getElementById("mc_maxsize").checked) {
+        maxSize = document.getElementById("mi_maxsize").value;
+    }
+    if (document.getElementById("mc_expiry").checked) {
+        expiry = document.getElementById("mi_expiry").value;
+    }
+
+    buttonSave.disabled = true;
+    apiURequestSave(id, name, maxFiles, maxSize, expiry, notes)
+        .then(data => {
+            document.getElementById("b_fr_save").disabled = false;
+            insertOrReplaceFileRequest(data);
+        })
+        .catch(error => {
+            alert("Unable to save file request: " + error);
+            console.error('Error:', error);
+            document.getElementById("b_fr_save").disabled = false;
+        });
+}
+
+function checkMaxNumber(element) {
+    if (element.value == "") {
+        element.value = "1";
+        return;
+    }
+    let maxVal = element.getAttribute("max");
+    if (maxVal == "") {
+        return;
+    }
+    if (element.value > maxVal) {
+        element.value = maxVal;
+    }
+}
+
+function insertOrReplaceFileRequest(jsonResult) {
+    const tbody = document.getElementById("filerequesttable");
+    let row = document.getElementById(`row-${jsonResult.id}`);
+
+    if (row) {
+        const user = document.getElementById(`cell-username-${jsonResult.id}`).innerText;
+        row.replaceWith(createFileRequestRow(jsonResult, user));
+    } else {
+        let tr = createFileRequestRow(jsonResult, userName);
+        tr.querySelectorAll('td').forEach((td) => {
+            td.classList.add("newFileRequest");
+            setTimeout(() => {
+                td.classList.remove("newFileRequest");
+            }, 700);
+        });
+        tbody.prepend(tr);
+    }
+}
+
+
+function createFileRequestRow(jsonResult, user) {
+
+    function tdText(text) {
+        const td = document.createElement("td");
+        td.textContent = text;
+        return td;
+    }
+
+    function tdLink(text, href) {
+        const td = document.createElement("td");
+        const a = document.createElement("a");
+        a.textContent = text;
+        a.href = href;
+        a.target = "_blank";
+        td.appendChild(a);
+        return td;
+    }
+
+    function icon(classes) {
+        const i = document.createElement("i");
+        i.className = `bi ${classes}`;
+        return i;
+    }
+
+    const publicUrl = `${baseUrl}publicUpload?id=${jsonResult.id}&key=${jsonResult.apikey}`;
+
+    const tr = document.createElement("tr");
+    tr.id = `row-${jsonResult.id}`;
+    tr.className = "filerequest-item";
+
+    // Name
+    tr.appendChild(tdLink(jsonResult.name, publicUrl));
+    // Uploaded files / Max files
+    if (jsonResult.maxfiles == 0) {
+        tr.appendChild(tdText(jsonResult.uploadedfiles));
+    } else {
+        tr.appendChild(tdText(`${jsonResult.uploadedfiles} / ${jsonResult.maxfiles}`));
+    }
+    // Total size
+    tr.appendChild(tdText(getReadableSize(jsonResult.totalfilesize)));
+    // Last upload
+    tr.appendChild(tdText(formatTimestampWithNegative(jsonResult.lastupload, "None")));
+    // Expiry
+    tr.appendChild(tdText(formatFileRequestExpiry(jsonResult.expiry)));
+    // Optional user column
+    if (canViewOtherRequests) {
+        let userTd = tdText(user);
+        userTd.id = `cell-username-${jsonResult.id}`;
+        tr.appendChild(userTd);
+    }
+    // Buttons
+    const td = document.createElement("td");
+
+    const group = document.createElement("div");
+    group.className = "btn-group";
+    group.role = "group";
+
+    // Download
+    const downloadBtn = document.createElement("button");
+    downloadBtn.id = `download-${jsonResult.id}`;
+    downloadBtn.type = "button";
+    downloadBtn.className = "btn btn-outline-light btn-sm";
+    downloadBtn.title = "Download all";
+
+    if (jsonResult.uploadedfiles == 0) {
+        downloadBtn.classList.add("disabled");
+    }
+
+    downloadBtn.appendChild(icon("bi-download"));
+
+
+    // Copy
+    const copyBtn = document.createElement("button");
+    copyBtn.id = `copy-${jsonResult.id}`;
+    copyBtn.type = "button";
+    copyBtn.className = "copyurl btn btn-outline-light btn-sm";
+    copyBtn.title = "Copy URL";
+    copyBtn.setAttribute("data-clipboard-text", publicUrl);
+    copyBtn.onclick = () =>
+        showToast(1000);
+
+    copyBtn.appendChild(icon("bi-copy"));
+
+
+    // Edit
+    const editBtn = document.createElement("button");
+    editBtn.id = `edit-${jsonResult.id}`;
+    editBtn.type = "button";
+    editBtn.className = "btn btn-outline-light btn-sm";
+    editBtn.title = "Edit request";
+    editBtn.onclick = () =>
+        editFileRequest(jsonResult.id, jsonResult.name, jsonResult.maxfiles, jsonResult.maxsize, jsonResult.expiry, jsonResult.notes);
+
+    editBtn.appendChild(icon("bi-pencil"));
+
+    // Delete
+    const deleteBtn = document.createElement("button");
+    deleteBtn.id = `delete-${jsonResult.id}`;
+    deleteBtn.type = "button";
+    deleteBtn.className = "btn btn-outline-danger btn-sm";
+    deleteBtn.title = "Delete";
+    deleteBtn.onclick = () =>
+        deleteOrShowModal(jsonResult.id, jsonResult.name, jsonResult.uploadedfiles);
+
+    deleteBtn.appendChild(icon("bi-trash3"));
+
+    group.append(downloadBtn, copyBtn, editBtn, deleteBtn);
+    td.appendChild(group);
+    tr.appendChild(td);
+    return tr;
+}

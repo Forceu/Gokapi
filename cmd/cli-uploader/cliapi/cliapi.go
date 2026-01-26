@@ -6,12 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/forceu/gokapi/cmd/cli-uploader/cliflags"
-	"github.com/forceu/gokapi/internal/encryption"
-	"github.com/forceu/gokapi/internal/encryption/end2end"
-	"github.com/forceu/gokapi/internal/helper"
-	"github.com/forceu/gokapi/internal/models"
-	"github.com/schollz/progressbar/v3"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -20,6 +14,13 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/forceu/gokapi/cmd/cli-uploader/cliflags"
+	"github.com/forceu/gokapi/internal/encryption"
+	"github.com/forceu/gokapi/internal/encryption/end2end"
+	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/models"
+	"github.com/schollz/progressbar/v3"
 )
 
 var gokapiUrl string
@@ -138,7 +139,7 @@ func getUrl(url string, headers []header, longTimeout bool) (string, error) {
 }
 
 // UploadFile uploads a file to the Gokapi server
-func UploadFile(uploadParams cliflags.UploadConfig) (models.FileApiOutput, error) {
+func UploadFile(uploadParams cliflags.FlagConfig) (models.FileApiOutput, error) {
 	var progressBar *progressbar.ProgressBar
 	file, err := os.OpenFile(uploadParams.File, os.O_RDONLY, 0664)
 	if err != nil {
@@ -146,6 +147,7 @@ func UploadFile(uploadParams cliflags.UploadConfig) (models.FileApiOutput, error
 		fmt.Println(err)
 		os.Exit(4)
 	}
+	defer file.Close()
 	maxSize, chunkSize, isE2e, err := GetConfig()
 	if err != nil {
 		return models.FileApiOutput{}, err
@@ -222,15 +224,119 @@ func UploadFile(uploadParams cliflags.UploadConfig) (models.FileApiOutput, error
 	return metaData, nil
 }
 
-func nameToBase64(f *os.File, uploadParams cliflags.UploadConfig) string {
+// DownloadFile downloads a file from the Gokapi server
+func DownloadFile(downloadParams cliflags.FlagConfig) error {
+	var progressBar *progressbar.ProgressBar
+
+	info, err := getFileInfo(downloadParams.DownloadId)
+	if err != nil {
+		fmt.Println("ERROR: Could not get file info or file does not exist")
+		return err
+	}
+	if downloadParams.OutputPath == "" {
+		downloadParams.OutputPath = "."
+	}
+	if downloadParams.FileName == "" {
+		downloadParams.FileName = info.Name
+	}
+	filename := downloadParams.OutputPath + "/" + downloadParams.FileName
+	exists, err := helper.FileExists(filename)
+	if err != nil {
+		fmt.Println("ERROR: Could not check if file already exists")
+		return err
+	}
+	if exists {
+		fmt.Println("ERROR: File already exists, please specify a different filename")
+		os.Exit(1)
+	}
+	if !helper.FolderExists(downloadParams.OutputPath) {
+		err = os.Mkdir(downloadParams.OutputPath, 0770)
+		if err != nil {
+			fmt.Println("ERROR: Could not create output directory")
+			return err
+		}
+	}
+	helper.CreateDir(downloadParams.OutputPath)
+	file, err := os.Create(downloadParams.OutputPath + "/" + downloadParams.FileName)
+	defer file.Close()
+	if err != nil {
+		fmt.Println("ERROR: Could not create new file")
+		return err
+	}
+
+	if !downloadParams.JsonOutput {
+		progressBar = progressbar.DefaultBytes(info.SizeBytes, "Downloading")
+	}
+
+	req, err := http.NewRequest("GET", gokapiUrl+"/files/download/"+downloadParams.DownloadId, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Add("apikey", apiKey)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		fmt.Println("ERROR: Could not download file: Status code " + strconv.Itoa(resp.StatusCode))
+		os.Exit(4)
+	}
+
+	if !downloadParams.JsonOutput {
+		_, err = io.Copy(file, io.TeeReader(resp.Body, progressBar))
+	} else {
+		_, err = io.Copy(file, resp.Body)
+	}
+
+	if err != nil {
+		fmt.Println("ERROR: Could not download file")
+		return err
+	}
+	if downloadParams.RemoveRemote {
+		err = deleteRemoteFile(downloadParams.DownloadId)
+		if err != nil {
+			return err
+		}
+	}
+	if !downloadParams.JsonOutput {
+		fmt.Println("File downloaded successfully")
+	} else {
+		fmt.Println("{\"result\":\"OK\"}")
+	}
+	return nil
+}
+
+func nameToBase64(f *os.File, uploadParams cliflags.FlagConfig) string {
 	return "base64:" + base64.StdEncoding.EncodeToString([]byte(getFileName(f, uploadParams)))
 }
 
-func getFileName(f *os.File, uploadParams cliflags.UploadConfig) string {
+func getFileName(f *os.File, uploadParams cliflags.FlagConfig) string {
 	if uploadParams.FileName != "" {
 		return uploadParams.FileName
 	}
 	return filepath.Base(f.Name())
+}
+
+func getFileInfo(id string) (models.FileApiOutput, error) {
+	result, err := getUrl(gokapiUrl+"/files/list/"+id, []header{}, false)
+	if err != nil {
+		return models.FileApiOutput{}, err
+	}
+	var parsedResult models.FileApiOutput
+	err = json.Unmarshal([]byte(result), &parsedResult)
+	if err != nil {
+		return models.FileApiOutput{}, err
+	}
+	return parsedResult, nil
+}
+
+func deleteRemoteFile(id string) error {
+	_, err := getUrl(gokapiUrl+"/files/delete", []header{{"id", id}}, false)
+	return err
 }
 
 func uploadChunk(f io.Reader, uuid string, offset, chunkSize, filesize int64, progressBar *progressbar.ProgressBar) error {
@@ -299,7 +405,7 @@ func uploadChunk(f io.Reader, uuid string, offset, chunkSize, filesize int64, pr
 	return nil
 }
 
-func completeChunk(uid, filename string, filesize, realsize int64, useE2e bool, uploadParams cliflags.UploadConfig, progressBar *progressbar.ProgressBar) (models.FileApiOutput, error) {
+func completeChunk(uid, filename string, filesize, realsize int64, useE2e bool, uploadParams cliflags.FlagConfig, progressBar *progressbar.ProgressBar) (models.FileApiOutput, error) {
 	type expectedFormat struct {
 		FileInfo models.FileApiOutput `json:"FileInfo"`
 	}

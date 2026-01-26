@@ -51,7 +51,7 @@ async function getToken(permission, forceRenewal) {
 async function apiAuthModify(apiKey, permission, modifier) {
     const apiUrl = './api/auth/modify';
     const reqPerm = 'PERM_API_MOD';
-    
+
     let token;
 
     try {
@@ -88,7 +88,7 @@ async function apiAuthModify(apiKey, permission, modifier) {
 async function apiAuthFriendlyName(apiKey, newName) {
     const apiUrl = './api/auth/friendlyname';
     const reqPerm = 'PERM_API_MOD';
-    
+
     let token;
 
     try {
@@ -124,7 +124,7 @@ async function apiAuthFriendlyName(apiKey, newName) {
 async function apiAuthDelete(apiKey) {
     const apiUrl = './api/auth/delete';
     const reqPerm = 'PERM_API_MOD';
-    
+
     let token;
 
     try {
@@ -158,7 +158,7 @@ async function apiAuthDelete(apiKey) {
 async function apiAuthCreate() {
     const apiUrl = './api/auth/create';
     const reqPerm = 'PERM_API_MOD';
-    
+
     let token;
 
     try {
@@ -199,7 +199,7 @@ async function apiAuthCreate() {
 async function apiChunkComplete(uuid, filename, filesize, realsize, contenttype, allowedDownloads, expiryDays, password, isE2E, nonblocking) {
     const apiUrl = './api/chunk/complete';
     const reqPerm = 'PERM_UPLOAD';
-    
+
     let token;
 
     try {
@@ -258,7 +258,7 @@ async function apiChunkComplete(uuid, filename, filesize, realsize, contenttype,
 async function apiFilesReplace(id, newId) {
     const apiUrl = './api/files/replace';
     const reqPerm = 'PERM_REPLACE';
-    
+
     let token;
 
     try {
@@ -295,7 +295,7 @@ async function apiFilesReplace(id, newId) {
 async function apiFilesListById(fileId) {
     const apiUrl = './api/files/list/' + fileId;
     const reqPerm = 'PERM_VIEW';
-    
+
     let token;
 
     try {
@@ -304,13 +304,12 @@ async function apiFilesListById(fileId) {
         console.error("Unable to gain permission token:", error);
         throw error;
     }
-    
+
     const requestOptions = {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
-            'apikey': token,
-
+            'apikey': token
         },
     };
 
@@ -328,10 +327,84 @@ async function apiFilesListById(fileId) {
 }
 
 
+async function apiFilesListDownloadSingle(fileId) {
+    const apiUrl = './api/files/download/' + fileId;
+    const reqPerm = 'PERM_DOWNLOAD';
+
+    let token;
+
+    try {
+        token = await getToken(reqPerm, false);
+    } catch (error) {
+        console.error("Unable to gain permission token:", error);
+        throw error;
+    }
+
+    const requestOptions = {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'apikey': token,
+            'presignUrl': true
+        },
+    };
+
+    try {
+        const response = await fetch(apiUrl, requestOptions);
+        if (!response.ok) {
+            throw new Error(`Request failed with status: ${response.status}`);
+        }
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error("Error in apiFilesListDownloadSingle:", error);
+        throw error;
+    }
+}
+
+
+async function apiFilesListDownloadZip(fileIds, filename) {
+    const apiUrl = './api/files/downloadzip';
+    const reqPerm = 'PERM_DOWNLOAD';
+
+    let token;
+
+    try {
+        token = await getToken(reqPerm, false);
+    } catch (error) {
+        console.error("Unable to gain permission token:", error);
+        throw error;
+    }
+
+    const requestOptions = {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'apikey': token,
+            'ids': fileIds,
+            'filename': 'base64:' + Base64.encode(filename),
+            'presignUrl': true
+        },
+    };
+
+    try {
+        const response = await fetch(apiUrl, requestOptions);
+        if (!response.ok) {
+            throw new Error(`Request failed with status: ${response.status}`);
+        }
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error("Error in apiFilesListDownloadZip:", error);
+        throw error;
+    }
+}
+
+
 async function apiFilesModify(id, allowedDownloads, expiry, password, originalPw) {
     const apiUrl = './api/files/modify';
     const reqPerm = 'PERM_EDIT';
-    
+
     let token;
 
     try {
@@ -371,7 +444,7 @@ async function apiFilesModify(id, allowedDownloads, expiry, password, originalPw
 async function apiFilesDelete(id, delay) {
     const apiUrl = './api/files/delete';
     const reqPerm = 'PERM_DELETE';
-    
+
     let token;
 
     try {
@@ -406,7 +479,7 @@ async function apiFilesDelete(id, delay) {
 async function apiFilesRestore(id) {
     const apiUrl = './api/files/restore';
     const reqPerm = 'PERM_DELETE';
-    
+
     let token;
 
     try {
@@ -446,7 +519,7 @@ async function apiFilesRestore(id) {
 async function apiUserCreate(userName) {
     const apiUrl = './api/user/create';
     const reqPerm = 'PERM_MANAGE_USERS';
-    
+
     let token;
 
     try {
@@ -486,7 +559,7 @@ async function apiUserCreate(userName) {
 async function apiUserModify(userId, permission, modifier) {
     const apiUrl = './api/user/modify';
     const reqPerm = 'PERM_MANAGE_USERS';
-    
+
     let token;
 
     try {
@@ -523,7 +596,7 @@ async function apiUserModify(userId, permission, modifier) {
 async function apiUserChangeRank(userId, newRank) {
     const apiUrl = './api/user/changeRank';
     const reqPerm = 'PERM_MANAGE_USERS';
-    
+
     let token;
 
     try {
@@ -558,7 +631,7 @@ async function apiUserChangeRank(userId, newRank) {
 async function apiUserDelete(id, deleteFiles) {
     const apiUrl = './api/user/delete';
     const reqPerm = 'PERM_MANAGE_USERS';
-    
+
     let token;
 
     try {
@@ -594,7 +667,7 @@ async function apiUserDelete(id, deleteFiles) {
 async function apiUserResetPassword(id, generatePw) {
     const apiUrl = './api/user/resetPassword';
     const reqPerm = 'PERM_MANAGE_USERS';
-    
+
     let token;
 
     try {
@@ -632,7 +705,7 @@ async function apiUserResetPassword(id, generatePw) {
 async function apiLogsDelete(timestamp) {
     const apiUrl = './api/logs/delete';
     const reqPerm = 'PERM_MANAGE_LOGS';
-    
+
     let token;
 
     try {
@@ -668,7 +741,7 @@ async function apiLogsDelete(timestamp) {
 async function apiE2eGet() {
     const apiUrl = './api/e2e/get';
     const reqPerm = 'PERM_UPLOAD';
-    
+
     let token;
 
     try {
@@ -703,7 +776,7 @@ async function apiE2eGet() {
 async function apiE2eStore(content) {
     const apiUrl = './api/e2e/set';
     const reqPerm = 'PERM_UPLOAD';
-    
+
     let token;
 
     try {
@@ -720,7 +793,7 @@ async function apiE2eStore(content) {
             'apikey': token
         },
         body: JSON.stringify({
-            content: content
+            'content': content
         }),
     };
 
@@ -731,6 +804,84 @@ async function apiE2eStore(content) {
         }
     } catch (error) {
         console.error("Error in apiE2eStore:", error);
+        throw error;
+    }
+}
+
+
+// Upload Requests
+
+async function apiURequestDelete(id) {
+    const apiUrl = './api/uploadrequest/delete';
+    const reqPerm = 'PERM_MANAGE_FILE_REQUESTS';
+
+    let token;
+
+    try {
+        token = await getToken(reqPerm, false);
+    } catch (error) {
+        console.error("Unable to gain permission token:", error);
+        throw error;
+    }
+
+    const requestOptions = {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+            'apikey': token,
+            'id': id
+        },
+    };
+
+    try {
+        const response = await fetch(apiUrl, requestOptions);
+        if (!response.ok) {
+            throw new Error(`Request failed with status: ${response.status}`);
+        }
+    } catch (error) {
+        console.error("Error in apiURequestDelete:", error);
+        throw error;
+    }
+}
+
+
+
+async function apiURequestSave(id, name, maxfiles, maxsize, expiry, notes) {
+    const apiUrl = './api/uploadrequest/save';
+    const reqPerm = 'PERM_MANAGE_FILE_REQUESTS';
+
+    let token;
+
+    try {
+        token = await getToken(reqPerm, false);
+    } catch (error) {
+        console.error("Unable to gain permission token:", error);
+        throw error;
+    }
+
+    const requestOptions = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'apikey': token,
+            'id': id,
+            'name': 'base64:' + Base64.encode(name),
+            'expiry': expiry,
+            'maxfiles': maxfiles,
+            'maxsize': maxsize,
+            'notes': 'base64:' + Base64.encode(notes),
+        },
+    };
+
+    try {
+        const response = await fetch(apiUrl, requestOptions);
+        if (!response.ok) {
+            throw new Error(`Request failed with status: ${response.status}`);
+        }
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error("Error in apiURequestDelete:", error);
         throw error;
     }
 }

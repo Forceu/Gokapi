@@ -6,6 +6,13 @@ import (
 	"bufio"
 	"encoding/json"
 	"errors"
+	"html/template"
+	"net/http"
+	"os"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/models"
@@ -13,12 +20,6 @@ import (
 	"github.com/forceu/gokapi/internal/test"
 	"github.com/forceu/gokapi/internal/test/testconfiguration"
 	"github.com/forceu/gokapi/internal/webserver/authentication"
-	"html/template"
-	"net/http"
-	"os"
-	"strings"
-	"testing"
-	"time"
 )
 
 func TestMain(m *testing.M) {
@@ -236,17 +237,22 @@ func TestError(t *testing.T) {
 	t.Parallel()
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://localhost:53843/error",
-		RequiredContent: []string{"Sorry, this file cannot be found"},
+		RequiredContent: []string{"The link may have expired or the file has been downloaded too many times"},
 		IsHtml:          true,
 	})
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://localhost:53843/error?e2e",
-		RequiredContent: []string{"This file is encrypted and no key has been passed"},
+		RequiredContent: []string{"This file is encrypted, but no key was provided"},
 		IsHtml:          true,
 	})
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://localhost:53843/error?key",
-		RequiredContent: []string{"This file is encrypted and an incorrect key has been passed"},
+		RequiredContent: []string{"This file is encrypted, but the provided key is incorrect"},
+		IsHtml:          true,
+	})
+	test.HttpPageResult(t, test.HttpTestConfig{
+		Url:             "http://localhost:53843/error?fr",
+		RequiredContent: []string{"The file limit for this upload request has been reached"},
 		IsHtml:          true,
 	})
 }
@@ -586,7 +592,7 @@ func TestProcessApi(t *testing.T) {
 	// Not authorised
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/api/files/list",
-		RequiredContent: []string{"{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}"},
+		RequiredContent: []string{`{"Result":"error","ErrorMessage":"Unauthorized","ErrorCode":2}`},
 		ExcludedContent: []string{"smallfile2"},
 		ResultCode:      401,
 		Cookies: []test.Cookie{{
@@ -596,7 +602,7 @@ func TestProcessApi(t *testing.T) {
 	})
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/api/files/list",
-		RequiredContent: []string{"{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}"},
+		RequiredContent: []string{`{"Result":"error","ErrorMessage":"Unauthorized","ErrorCode":2}`},
 		ExcludedContent: []string{"smallfile2"},
 		ResultCode:      401,
 		Headers:         []test.Header{{"apikey", "invalid"}},
@@ -605,7 +611,7 @@ func TestProcessApi(t *testing.T) {
 	// Valid session does not grant API access
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/api/files/list",
-		RequiredContent: []string{"{\"Result\":\"error\",\"ErrorMessage\":\"Unauthorized\"}"},
+		RequiredContent: []string{`{"Result":"error","ErrorMessage":"Unauthorized","ErrorCode":2}`},
 		ExcludedContent: []string{"smallfile2"},
 		ResultCode:      401,
 		Cookies: []test.Cookie{{

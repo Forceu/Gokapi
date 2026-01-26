@@ -14,15 +14,14 @@ import (
 )
 
 type apiRoute struct {
-	Url           string               // The API endpoint
-	HasWildcard   bool                 // True if the endpoint contains the ID as a sub-URL
-	AdminOnly     bool                 // True if the endpoint requires admin/superadmin permissions
-	ApiPerm       models.ApiPermission // Required permission to access the endpoint
-	RequestParser requestParser        // Parser for the supplied parameters
-	execution     apiFunc              // Execution function for the endpoint
+	Url              string               // The API endpoint
+	HasWildcard      bool                 // True if the endpoint contains the ID as a sub-URL
+	IsFileRequestApi bool                 // True if the endpoint is used for public uploads
+	AdminOnly        bool                 // True if the endpoint requires admin/superadmin permissions
+	ApiPerm          models.ApiPermission // Required permission to access the endpoint
+	RequestParser    requestParser        // Parser for the supplied parameters
+	execution        apiFunc              // Execution function for the endpoint
 }
-
-const base64Prefix = "base64:"
 
 func (r apiRoute) Continue(w http.ResponseWriter, request requestParser, user models.User) {
 	r.execution(w, request, user)
@@ -44,6 +43,20 @@ var routes = []apiRoute{
 		RequestParser: nil,
 	},
 	{
+		Url:           "/files/download/",
+		ApiPerm:       models.ApiPermDownload,
+		execution:     apiDownloadSingle,
+		HasWildcard:   true,
+		RequestParser: &paramFilesDownloadSingle{},
+	},
+	{
+		Url:           "/files/downloadzip",
+		ApiPerm:       models.ApiPermDownload,
+		execution:     apiDownloadZip,
+		HasWildcard:   true,
+		RequestParser: &paramFilesDownloadZip{},
+	},
+	{
 		Url:           "/files/changeOwner",
 		ApiPerm:       models.ApiPermEdit,
 		AdminOnly:     true,
@@ -54,7 +67,7 @@ var routes = []apiRoute{
 		Url:           "/files/list",
 		ApiPerm:       models.ApiPermView,
 		execution:     apiList,
-		RequestParser: nil,
+		RequestParser: &paramFilesListAll{},
 	},
 	{
 		Url:           "/files/list/",
@@ -166,6 +179,59 @@ var routes = []apiRoute{
 		RequestParser: &paramUserResetPw{},
 	},
 	{
+		Url:           "/uploadrequest/list",
+		ApiPerm:       models.ApiPermManageFileRequests,
+		execution:     apiUploadRequestList,
+		RequestParser: nil,
+	},
+	{
+		Url:           "/uploadrequest/list/",
+		ApiPerm:       models.ApiPermManageFileRequests,
+		execution:     apiUploadRequestListSingle,
+		HasWildcard:   true,
+		RequestParser: &paramURequestListSingle{},
+	},
+	{
+		Url:           "/uploadrequest/save",
+		ApiPerm:       models.ApiPermManageFileRequests,
+		execution:     apiURequestSave,
+		RequestParser: &paramURequestSave{},
+	},
+	{
+		Url:           "/uploadrequest/delete",
+		ApiPerm:       models.ApiPermManageFileRequests,
+		execution:     apiURequestDelete,
+		RequestParser: &paramURequestDelete{},
+	},
+	{
+		Url:              "/uploadrequest/chunk/add",
+		ApiPerm:          models.ApiPermNone,
+		execution:        apiChunkUploadRequestAdd,
+		IsFileRequestApi: true,
+		RequestParser:    &paramChunkUploadRequestAdd{},
+	},
+	{
+		Url:              "/uploadrequest/chunk/complete",
+		ApiPerm:          models.ApiPermNone,
+		IsFileRequestApi: true,
+		execution:        apiChunkUploadRequestComplete,
+		RequestParser:    &paramChunkUploadRequestComplete{},
+	},
+	{
+		Url:              "/uploadrequest/chunk/reserve",
+		ApiPerm:          models.ApiPermNone,
+		IsFileRequestApi: true,
+		execution:        apiChunkReserve,
+		RequestParser:    &paramChunkReserve{},
+	},
+	{
+		Url:              "/uploadrequest/chunk/unreserve",
+		ApiPerm:          models.ApiPermNone,
+		IsFileRequestApi: true,
+		execution:        apiChunkUnreserve,
+		RequestParser:    &paramChunkUnreserve{},
+	},
+	{
 		Url:           "/logs/delete",
 		ApiPerm:       models.ApiPermManageLogs,
 		AdminOnly:     true,
@@ -205,12 +271,53 @@ type requestParser interface {
 	New() requestParser
 }
 
+type paramFilesListAll struct {
+	ShowFileRequests bool `header:"showFileRequests"`
+	foundHeaders     map[string]bool
+}
+
+func (p *paramFilesListAll) ProcessParameter(_ *http.Request) error {
+	return nil
+}
+
 type paramFilesListSingle struct {
-	RequestUrl string
+	Id string
 }
 
 func (p *paramFilesListSingle) ProcessParameter(r *http.Request) error {
-	p.RequestUrl = parseRequestUrl(r)
+	url := parseRequestUrl(r)
+	p.Id = strings.TrimPrefix(url, "/files/list/")
+	return nil
+}
+
+type paramFilesDownloadSingle struct {
+	Id              string
+	WebRequest      *http.Request
+	IncreaseCounter bool `header:"increaseCounter"`
+	PresignUrl      bool `header:"presignUrl"`
+	foundHeaders    map[string]bool
+}
+
+func (p *paramFilesDownloadSingle) ProcessParameter(r *http.Request) error {
+	p.WebRequest = r
+	url := parseRequestUrl(r)
+	p.Id = strings.TrimPrefix(url, "/files/download/")
+	return nil
+}
+
+type paramFilesDownloadZip struct {
+	Ids             []string
+	WebRequest      *http.Request
+	FileIds         string `header:"ids" required:"true"`
+	Filename        string `header:"filename" supportBase64:"true"`
+	IncreaseCounter bool   `header:"increaseCounter"`
+	PresignUrl      bool   `header:"presignUrl"`
+	foundHeaders    map[string]bool
+}
+
+func (p *paramFilesDownloadZip) ProcessParameter(r *http.Request) error {
+	p.Ids = strings.Split(p.FileIds, ",")
+	p.WebRequest = r
 	return nil
 }
 
@@ -427,6 +534,8 @@ func (p *paramUserModify) ProcessParameter(_ *http.Request) error {
 		p.Permission = models.UserPermManageApiKeys
 	case "PERM_USERS":
 		p.Permission = models.UserPermManageUsers
+	case "PERM_GUEST_UPLOAD":
+		p.Permission = models.UserPermGuestUploads
 	default:
 		return errors.New("invalid permission")
 	}
@@ -491,9 +600,28 @@ func (p *paramChunkAdd) ProcessParameter(r *http.Request) error {
 	return nil
 }
 
+func (p *paramChunkAdd) GetRequest() *http.Request {
+	return p.Request
+}
+
+type paramChunkUploadRequestAdd struct {
+	Request       *http.Request
+	FileRequestId string `header:"fileRequestId" required:"true"`
+	ApiKey        string `header:"apikey"` // not published in API documentation
+	foundHeaders  map[string]bool
+}
+
+func (p *paramChunkUploadRequestAdd) ProcessParameter(r *http.Request) error {
+	p.Request = r
+	return nil
+}
+func (p *paramChunkUploadRequestAdd) GetRequest() *http.Request {
+	return p.Request
+}
+
 type paramChunkComplete struct {
 	Uuid               string `header:"uuid" required:"true"`
-	FileName           string `header:"filename" required:"true"`
+	FileName           string `header:"filename" required:"true" supportBase64:"true"`
 	FileSize           int64  `header:"filesize" required:"true"`
 	RealSize           int64  `header:"realsize"` // not published in API documentation
 	ContentType        string `header:"contenttype"`
@@ -538,14 +666,6 @@ func (p *paramChunkComplete) ProcessParameter(_ *http.Request) error {
 		}
 	}
 
-	if strings.HasPrefix(p.FileName, base64Prefix) {
-		decoded, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(p.FileName, base64Prefix))
-		if err != nil {
-			return err
-		}
-		p.FileName = string(decoded)
-	}
-
 	if p.ContentType == "" {
 		p.ContentType = "application/octet-stream"
 	}
@@ -554,6 +674,105 @@ func (p *paramChunkComplete) ProcessParameter(_ *http.Request) error {
 		ContentType: p.ContentType,
 		Size:        p.FileSize,
 	}
+	return nil
+}
+
+type paramChunkReserve struct {
+	Id           string `header:"id" required:"true"`
+	ApiKey       string `header:"apikey"` // not published in API documentation
+	foundHeaders map[string]bool
+}
+
+func (p *paramChunkReserve) ProcessParameter(_ *http.Request) error {
+	return nil
+}
+
+type paramChunkUnreserve struct {
+	Id           string `header:"id" required:"true"`
+	Uuid         string `header:"uuid" required:"true"`
+	ApiKey       string `header:"apikey"` // not published in API documentation
+	foundHeaders map[string]bool
+}
+
+func (p *paramChunkUnreserve) ProcessParameter(_ *http.Request) error {
+	return nil
+}
+
+type paramChunkUploadRequestComplete struct {
+	Uuid          string `header:"uuid" required:"true"`
+	FileName      string `header:"filename" required:"true" supportBase64:"true"`
+	FileRequestId string `header:"fileRequestId" required:"true"`
+	FileSize      int64  `header:"filesize" required:"true"`
+	ContentType   string `header:"contenttype"`
+	IsNonBlocking bool   `header:"nonblocking"`
+	ApiKey        string `header:"apikey"` // not published in API documentation
+	FileHeader    chunking.FileHeader
+	foundHeaders  map[string]bool
+}
+
+func (p *paramChunkUploadRequestComplete) ProcessParameter(_ *http.Request) error {
+	if p.ContentType == "" {
+		p.ContentType = "application/octet-stream"
+	}
+	p.FileHeader = chunking.FileHeader{
+		Filename:    p.FileName,
+		ContentType: p.ContentType,
+		Size:        p.FileSize,
+	}
+	return nil
+}
+
+type paramURequestDelete struct {
+	Id           string `header:"id" required:"true"`
+	foundHeaders map[string]bool
+}
+
+func (p *paramURequestDelete) ProcessParameter(_ *http.Request) error {
+	return nil
+}
+
+type paramURequestSave struct {
+	Id            string `header:"id"`
+	Name          string `header:"name" supportBase64:"true"`
+	Notes         string `header:"notes" supportBase64:"true"`
+	Expiry        int64  `header:"expiry"`
+	MaxFiles      int    `header:"maxfiles"`
+	MaxSizeMb     int    `header:"maxsize"`
+	IsNameSet     bool
+	IsExpirySet   bool
+	IsMaxFilesSet bool
+	IsMaxSizeSet  bool
+	IsNotesSet    bool
+
+	foundHeaders map[string]bool
+}
+
+func (p *paramURequestSave) ProcessParameter(_ *http.Request) error {
+	if p.foundHeaders["name"] {
+		p.IsNameSet = true
+	}
+	if p.foundHeaders["expiry"] {
+		p.IsExpirySet = true
+	}
+	if p.foundHeaders["maxfiles"] {
+		p.IsMaxFilesSet = true
+	}
+	if p.foundHeaders["maxsize"] {
+		p.IsMaxSizeSet = true
+	}
+	if p.foundHeaders["notes"] {
+		p.IsNotesSet = true
+	}
+	return nil
+}
+
+type paramURequestListSingle struct {
+	Id string
+}
+
+func (p *paramURequestListSingle) ProcessParameter(r *http.Request) error {
+	url := parseRequestUrl(r)
+	p.Id = strings.TrimPrefix(url, "/uploadrequest/list/")
 	return nil
 }
 

@@ -1,0 +1,127 @@
+{{define "publicUpload"}}{{template "header" .}}
+
+
+<main style="margin-top: 2rem">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card bg-dark text-white">
+        <div class="card-body">
+          <h3 class="card-title text-center mb-4">Upload Files</h3>
+{{ if ne .FileRequest.Notes "" }}
+          <div class="info-box">
+            <h6>Note</h6>
+            <p class="mb-0">{{.FileRequest.Notes}}</p>
+          </div>
+{{ end }}
+{{ if .FileRequest.HasRestrictions }}
+          <div class="info-box">
+            <h6>Upload restrictions</h6>
+            <ul>
+    {{ if not (.FileRequest.IsUnlimitedTime) }}
+              <li>Upload possible until: <strong>
+                  <span id="expirydate">{{ .FileRequest.Expiry }}</span>
+                </strong>
+              </li>
+              <script>
+                insertFormattedDate({{.FileRequest.Expiry}}, "expirydate");
+              </script>
+   {{ end }}
+   {{ if or (not (.FileRequest.IsUnlimitedSize)) (lt .FileRequest.CombinedMaxSize 5000) }}
+              <li>Maximum file size: <strong>
+                  <span id="maxfilesize"></span>
+                </strong>
+              </li>
+              <script>
+                insertReadableSize({{.FileRequest.CombinedMaxSize}}, 1024 * 1024, "maxfilesize");
+              </script>
+   {{ end }}
+       {{ if not (.FileRequest.IsUnlimitedFiles) }}
+              <li>Maximum number of files: <strong>{{ .FileRequest.FilesRemaining }}</strong>
+              </li>
+       {{ end }}
+            </ul>
+          </div>
+{{ end }}
+          <label for="fileInput" id="uploadBox" class="upload-box text-center w-100">
+            <p class="mb-2 fs-5">Drag & drop files here</p>
+            <p class="mb-0 opacity-75">or paste or click to select</p>
+            <input type="file" id="fileInput" class="d-none" multiple>
+          </label>
+          <div id="fileList" class="pu-file-list"></div>
+          <div class="text-center mt-4">
+            <button class="btn btn-primary" disabled onClick="initUpload();" id="uploadbutton"> Upload </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+
+<!-- Error Modal -->
+<div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
+  <div class="modal-dialog gokapi-dialog">
+    <div class="modal-content gokapi-dialog">
+      <div class="modal-header">
+        <h2 class="modal-title fs-5" id="errorModalLabel">Unable to upload</h2>
+      </div>
+      <div class="modal-body">
+        <span id="span-modal-error"></span>
+      </div>
+      <div class="modal-footer">
+        <button type="button" data-bs-dismiss="modal" data-bs-target="#errorModal" class="btn btn-primary">Continue</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- All Uploaded Modal -->
+<div class="modal fade" id="allUploadedModal" tabindex="-1" aria-labelledby="allUModalLabel" aria-hidden="true">
+  <div class="modal-dialog gokapi-dialog">
+    <div class="modal-content gokapi-dialog">
+      <div class="modal-header">
+        <h2 class="modal-title fs-5" id="allUModalLabel">Success</h2>
+      </div>
+      <div class="modal-body">
+        All files have been successfully uploaded. No further files can be uploaded anymore. You can close this page now.
+      </div>
+      <div class="modal-footer">
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script src="./js/min/public_upload.min.js"></script>
+
+<script>
+
+const fileInput = document.getElementById('fileInput');
+const fileList = document.getElementById('fileList');
+const filesMap = new Map();
+const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
+const uploadBox = document.getElementById('uploadBox');
+
+
+const CHUNK_SIZE = {{.ChunkSize}} * 1024 * 1024;
+const API_BASE = "./api/uploadrequest/chunk/";
+const RESERVE_URL = API_BASE + "reserve";
+const UNRESERVE_URL = API_BASE + "unreserve";
+const UPLOAD_URL = API_BASE + "add";
+const COMPLETE_URL = API_BASE + "complete";
+const FILE_REQUEST_ID = "{{ .FileRequest.Id }}";
+const API_KEY = "{{ .FileRequest.ApiKey }}";
+const MAX_FILE_SIZE = {{.FileRequest.CombinedMaxSize}} * 1024 * 1024;
+const IS_UNLIMITED_FILES = {{ .FileRequest.IsUnlimitedFiles }};
+const IS_UNLIMITED_TIME = {{ .FileRequest.IsUnlimitedTime }};
+var maxFilesRemaining = {{.FileRequest.FilesRemaining}};
+
+createUploadBox();
+setUnload();
+
+</script>
+
+{{ template "pagename" "PublicUpload"}}
+{{ template "customjs" .}}
+{{ template "footer"}}
+{{end}}
