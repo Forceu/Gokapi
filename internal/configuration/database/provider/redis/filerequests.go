@@ -60,7 +60,7 @@ func sortFilerequests(users []models.FileRequest) []models.FileRequest {
 
 // SaveFileRequest stores the file request associated with the file in the database
 func (p DatabaseProvider) SaveFileRequest(request models.FileRequest) {
-	p.setHashMap(p.buildArgs(prefixUsers + request.Id).AddFlat(request))
+	p.setHashMap(p.buildArgs(prefixFileRequests + request.Id).AddFlat(request))
 }
 
 // DeleteFileRequest deletes a file request with the given ID

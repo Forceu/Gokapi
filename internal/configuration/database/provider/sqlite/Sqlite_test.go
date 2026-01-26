@@ -327,6 +327,80 @@ func TestSession(t *testing.T) {
 	test.IsEqualBool(t, ok, true)
 }
 
+func TestFileRequest(t *testing.T) {
+	// Create first file request
+	req1 := models.FileRequest{
+		Id:           "req1",
+		Name:         "New file request",
+		UserId:       45564,
+		ApiKey:       "123",
+		CreationDate: time.Now().Unix(),
+	}
+	dbInstance.SaveFileRequest(req1)
+
+	// Get existing file request
+	request, ok := dbInstance.GetFileRequest("req1")
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualString(t, request.Id, "req1")
+	test.IsEqualString(t, request.Name, "New file request")
+
+	// Get invalid file request
+	_, ok = dbInstance.GetFileRequest("invalid")
+	test.IsEqualBool(t, ok, false)
+
+	// Empty ID should return false
+	_, ok = dbInstance.GetFileRequest("")
+	test.IsEqualBool(t, ok, false)
+
+	// Delete invalid request (should not panic or affect data)
+	dbInstance.DeleteFileRequest(models.FileRequest{Id: "invalid"})
+	_, ok = dbInstance.GetFileRequest("req1")
+	test.IsEqualBool(t, ok, true)
+
+	// Delete valid request
+	dbInstance.DeleteFileRequest(req1)
+	_, ok = dbInstance.GetFileRequest("req1")
+	test.IsEqualBool(t, ok, false)
+
+	// Create multiple file requests to test GetAllFileRequests
+	req2 := models.FileRequest{
+		Id:           "req2",
+		UserId:       45564,
+		Name:         "file2.txt",
+		ApiKey:       "456",
+		CreationDate: time.Now().Add(-time.Minute).Unix(),
+	}
+	req3 := models.FileRequest{
+		Id:           "req3",
+		Name:         "file3.txt",
+		UserId:       45564,
+		ApiKey:       "789",
+		CreationDate: time.Now().Add(-2 * time.Minute).Unix(),
+	}
+
+	dbInstance.SaveFileRequest(req1)
+	dbInstance.SaveFileRequest(req2)
+	dbInstance.SaveFileRequest(req3)
+
+	requests := dbInstance.GetAllFileRequests()
+	test.IsEqualInt(t, len(requests), 3)
+
+	ids := []string{
+		requests[0].Id,
+		requests[1].Id,
+		requests[2].Id,
+	}
+
+	test.IsEqualBool(t, slices.Contains(ids, "req1"), true)
+	test.IsEqualBool(t, slices.Contains(ids, "req2"), true)
+	test.IsEqualBool(t, slices.Contains(ids, "req3"), true)
+
+	// Ensure sorting by CreationDate DESC
+	test.IsEqualBool(t, requests[0].CreationDate >= requests[1].CreationDate, true)
+	test.IsEqualBool(t, requests[1].CreationDate >= requests[2].CreationDate, true)
+
+}
+
 func TestGarbageCollectionSessions(t *testing.T) {
 	dbInstance.SaveSession("todelete1", models.Session{
 		RenewAt:    time.Now().Add(-10 * time.Second).Unix(),
