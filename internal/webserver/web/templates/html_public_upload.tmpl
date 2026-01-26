@@ -3,6 +3,20 @@
  
  <style>
  
+ .upload-box {
+    border: 2px dashed rgba(255, 255, 255, 0.2);
+    padding: 2rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    display: block;
+  }
+
+  .upload-box.highlight {
+    border-color: #0d6efd;
+    background-color: rgba(13, 110, 253, 0.05);
+  }
+ 
+ 
 .pu-file-list {
     margin-top: 1.5rem;
   }
@@ -214,6 +228,69 @@ fileInput.addEventListener('change', () => {
     // Allow re-selecting same files
     fileInput.value = '';
 });
+
+
+const uploadBox = document.querySelector('.upload-box');
+
+// --- Drag and Drop Functionality ---
+
+// Prevent default behaviors for drag events
+['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    uploadBox.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+    }, false);
+});
+
+// Highlight box when dragging over
+['dragenter', 'dragover'].forEach(eventName => {
+    uploadBox.addEventListener(eventName, () => uploadBox.classList.add('highlight'), false);
+});
+
+['dragleave', 'drop'].forEach(eventName => {
+    uploadBox.addEventListener(eventName, () => uploadBox.classList.remove('highlight'), false);
+});
+
+// Handle dropped files
+uploadBox.addEventListener('drop', (e) => {
+    const dt = e.dataTransfer;
+    const files = dt.files;
+    handleFiles(files);
+});
+
+// --- Paste Functionality ---
+
+window.addEventListener('paste', (e) => {
+    const items = e.clipboardData.items;
+    const files = [];
+
+    for (let i = 0; i < items.length; i++) {
+        // Handle Files (Images, etc)
+        if (items[i].kind === 'file') {
+            files.push(items[i].getAsFile());
+        } 
+        // Handle Text pastes (converts text to a .txt file)
+        else if (items[i].kind === 'string' && items[i].type === 'text/plain') {
+            items[i].getAsString((text) => {
+                const blob = new Blob([text], { type: 'text/plain' });
+                const file = new File([blob], "pasted-text.txt", { type: 'text/plain' });
+                handleFiles([file]);
+            });
+        }
+    }
+
+    if (files.length > 0) {
+        handleFiles(files);
+    }
+});
+
+function handleFiles(files) {
+    const dataTransfer = new DataTransfer();
+    Array.from(files).forEach(file => dataTransfer.items.add(file));
+    fileInput.files = dataTransfer.files;
+    fileInput.dispatchEvent(new Event('change'));
+}
+
 
 function showModal(modalCode) {
     let message = "";
