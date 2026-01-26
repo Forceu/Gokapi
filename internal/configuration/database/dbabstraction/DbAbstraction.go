@@ -108,13 +108,6 @@ type Database interface {
 	SaveFileRequest(request models.FileRequest)
 	// DeleteFileRequest deletes a file request with the given ID
 	DeleteFileRequest(request models.FileRequest)
-
-	// GetPresignedUrl returns the presigned url with the given ID or false if not a valid ID
-	GetPresignedUrl(id string) (models.Presign, bool)
-	// DeletePresignedUrl deletes the presigned url with the given ID
-	DeletePresignedUrl(id string)
-	// SavePresignedUrl saves the presigned url
-	SavePresignedUrl(presign models.Presign)
 }
 
 // GetNew connects to the given database and initialises it

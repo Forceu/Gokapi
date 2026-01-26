@@ -19,6 +19,7 @@ import (
 	"github.com/forceu/gokapi/internal/storage/chunking/chunkreservation"
 	"github.com/forceu/gokapi/internal/storage/filerequest"
 	"github.com/forceu/gokapi/internal/storage/filerequest/ratelimiter"
+	"github.com/forceu/gokapi/internal/storage/presign"
 	"github.com/forceu/gokapi/internal/webserver/api/errorcodes"
 	"github.com/forceu/gokapi/internal/webserver/authentication/users"
 	"github.com/forceu/gokapi/internal/webserver/fileupload"
@@ -642,7 +643,7 @@ func createAndOutputPresignedUrl(ids []string, w http.ResponseWriter, filename s
 		Expiry:   time.Now().Add(time.Second * 30).Unix(),
 		Filename: filename,
 	}
-	database.SavePresignedUrl(presignUrl)
+	presign.Save(presignUrl)
 	response := struct {
 		Result      string `json:"Result"`
 		DownloadUrl string `json:"downloadUrl"`

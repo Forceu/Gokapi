@@ -62,14 +62,7 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 										"apiKey"	TEXT NOT NULL UNIQUE,
 										"note"	TEXT NOT NULL,
 										PRIMARY KEY("id")
-									 );
-									CREATE TABLE "Presign" (
-										"id"	TEXT NOT NULL UNIQUE,
-										"fileIds"	TEXT NOT NULL,
-										"expiry"	INTEGER NOT NULL,
-										"filename"	TEXT NOT NULL,
-										PRIMARY KEY("id")
-									);`)
+									 );`)
 		helper.Check(err)
 		grantUploadPerm := environment.New().PermRequestGrantedByDefault
 		for _, user := range p.GetAllUsers() {
@@ -154,7 +147,6 @@ func (p DatabaseProvider) Close() {
 func (p DatabaseProvider) RunGarbageCollection() {
 	p.cleanExpiredSessions()
 	p.cleanApiKeys()
-	p.cleanPresignedUrls()
 }
 
 func (p DatabaseProvider) createNewDatabase() error {
@@ -231,15 +223,7 @@ func (p DatabaseProvider) createNewDatabase() error {
 			"apiKey"	TEXT NOT NULL UNIQUE,
 			"note"	TEXT NOT NULL,
 			PRIMARY KEY("id")
-		);
-		CREATE TABLE "Presign" (
-			"id"	TEXT NOT NULL UNIQUE,
-			"fileIds"	TEXT NOT NULL,
-			"expiry"	INTEGER NOT NULL,
-			"filename"	TEXT NOT NULL,
-			PRIMARY KEY("id")
-		);
-`
+		);`
 	err := p.rawSqlite(sqlStmt)
 	if err != nil {
 		return err

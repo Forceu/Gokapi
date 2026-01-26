@@ -16,7 +16,8 @@ func TestUserPermAll(t *testing.T) {
 		!user.HasPermission(UserPermReplaceOtherUploads) ||
 		!user.HasPermission(UserPermManageLogs) ||
 		!user.HasPermission(UserPermManageApiKeys) ||
-		!user.HasPermission(UserPermManageUsers) {
+		!user.HasPermission(UserPermManageUsers) ||
+		!user.HasPermission(UserPermGuestUploads) {
 		t.Errorf("expected all permissions to be set")
 	}
 }
@@ -35,6 +36,7 @@ func checkOnlyUserPermissionSet(t *testing.T, user *User, perm UserPermission) {
 		{UserPermManageLogs, "UserPermManageLogs"},
 		{UserPermManageApiKeys, "UserPermManageApiKeys"},
 		{UserPermManageUsers, "UserPermManageUsers"},
+		{UserPermGuestUploads, "UserPermGuestUploads"},
 	}
 
 	for _, p := range allPermissions {
@@ -66,6 +68,7 @@ func TestSetIndividualUserPermissions(t *testing.T) {
 		{UserPermManageLogs, "UserPermManageLogs"},
 		{UserPermManageApiKeys, "UserPermManageApiKeys"},
 		{UserPermManageUsers, "UserPermManageUsers"},
+		{UserPermGuestUploads, "UserPermGuestUploads"},
 	}
 
 	for _, p := range permissions {
@@ -95,6 +98,7 @@ func TestSetCombinedUserPermissions(t *testing.T) {
 		UserPermManageLogs,
 		UserPermManageApiKeys,
 		UserPermManageUsers,
+		UserPermGuestUploads,
 	}
 
 	// Test setting permissions in combination
@@ -131,6 +135,19 @@ func TestUser_IsSuperAdmin(t *testing.T) {
 	test.IsEqualBool(t, user.IsSuperAdmin(), false)
 	user.UserLevel = 4
 	test.IsEqualBool(t, user.IsSuperAdmin(), false)
+}
+
+func TestUser_IsAdmin(t *testing.T) {
+	user := &User{
+		UserLevel: UserLevelSuperAdmin,
+	}
+	test.IsEqualBool(t, user.IsAdmin(), true)
+	user.UserLevel = UserLevelAdmin
+	test.IsEqualBool(t, user.IsAdmin(), true)
+	user.UserLevel = UserLevelUser
+	test.IsEqualBool(t, user.IsAdmin(), false)
+	user.UserLevel = 4
+	test.IsEqualBool(t, user.IsAdmin(), false)
 }
 
 func TestUser_IsSameUser(t *testing.T) {
@@ -237,6 +254,13 @@ func TestUser_HasPermissionManageUsers(t *testing.T) {
 	test.IsEqualBool(t, user.HasPermissionManageUsers(), false)
 	user.GrantPermission(UserPermManageUsers)
 	test.IsEqualBool(t, user.HasPermissionManageUsers(), true)
+}
+
+func TestUser_HasPermissionManageGuestUploads(t *testing.T) {
+	user := &User{}
+	test.IsEqualBool(t, user.HasPermissionCreateFileRequests(), false)
+	user.GrantPermission(UserPermGuestUploads)
+	test.IsEqualBool(t, user.HasPermissionCreateFileRequests(), true)
 }
 
 func TestUser_ToJson(t *testing.T) {

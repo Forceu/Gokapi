@@ -279,7 +279,7 @@ func TestUsers(t *testing.T) {
 	}, 2)
 	test.IsEqual(t, allUsersSqlite, allUsersRedis)
 	runAllTypesNoOutput(t, func() {
-		dbcache.Init()
+		dbcache.ResetAll()
 		UpdateUserLastOnline(1)
 	})
 	runAllTypesCompareTwoOutputs(t, func() (any, any) {

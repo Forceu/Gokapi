@@ -5,13 +5,8 @@ import (
 	"time"
 )
 
-var lastOnlineTimeUpdate map[int]int64
+var lastOnlineTimeUpdate = make(map[int]int64)
 var lastOnlineTimeMutex sync.Mutex
-
-// Init starts the DB Cache
-func Init() {
-	lastOnlineTimeUpdate = make(map[int]int64)
-}
 
 // LastOnlineRequiresSave returns true if the last update time of the user is older than 60 seconds.
 func LastOnlineRequiresSave(userId int) bool {
@@ -23,4 +18,11 @@ func LastOnlineRequiresSave(userId int) bool {
 		return true
 	}
 	return false
+}
+
+// ResetAll is only used for testing purposes
+func ResetAll() {
+	lastOnlineTimeMutex.Lock()
+	lastOnlineTimeUpdate = make(map[int]int64)
+	lastOnlineTimeMutex.Unlock()
 }

@@ -32,6 +32,7 @@ import (
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
 	"github.com/forceu/gokapi/internal/storage/filerequest"
+	"github.com/forceu/gokapi/internal/storage/presign"
 	"github.com/forceu/gokapi/internal/webserver/api"
 	"github.com/forceu/gokapi/internal/webserver/authentication"
 	"github.com/forceu/gokapi/internal/webserver/authentication/oauth"
@@ -986,13 +987,13 @@ func downloadPresigned(w http.ResponseWriter, r *http.Request) {
 		responseError(w, storage.ErrorInvalidPresign)
 		return
 	}
-	presign, ok := database.GetPresignedUrl(presignKey[0])
-	if !ok || presign.Expiry < time.Now().Unix() {
+	presignedUrl, ok := presign.Get(presignKey[0])
+	if !ok {
 		responseError(w, storage.ErrorInvalidPresign)
 		return
 	}
 	files := make([]models.File, 0)
-	for _, file := range presign.FileIds {
+	for _, file := range presignedUrl.FileIds {
 		storedFile, ok := storage.GetFile(file)
 		if !ok {
 			responseError(w, storage.ErrorFileNotFound)
@@ -1000,13 +1001,13 @@ func downloadPresigned(w http.ResponseWriter, r *http.Request) {
 		}
 		files = append(files, storedFile)
 	}
-	database.DeletePresignedUrl(presign.Id)
+	presign.Delete(presignedUrl.Id)
 
 	if len(files) == 1 {
 		storage.ServeFile(files[0], w, r, true, false, true)
 		return
 	}
-	storage.ServeFilesAsZip(files, presign.Filename, w, r)
+	storage.ServeFilesAsZip(files, presignedUrl.Filename, w, r)
 }
 
 func serveFile(id string, isRootUrl bool, w http.ResponseWriter, r *http.Request) {

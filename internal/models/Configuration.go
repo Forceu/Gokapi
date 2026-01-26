@@ -2,7 +2,6 @@ package models
 
 import (
 	"encoding/json"
-	"log"
 )
 
 // Configuration is a struct that contains the global configuration
@@ -26,7 +25,7 @@ type Configuration struct {
 	IncludeFilename     bool                 `json:"IncludeFilename"`
 }
 
-// Encryption hold information about the encryption used on this file
+// Encryption holds information about the encryption used on this file
 type Encryption struct {
 	Level        int
 	Cipher       []byte
@@ -35,20 +34,22 @@ type Encryption struct {
 	ChecksumSalt string
 }
 
-// ToJson returns an idented JSon representation
+// ToJson returns an indented Json representation
 func (c Configuration) ToJson() []byte {
 	result, err := json.MarshalIndent(c, "", "  ")
-	if err != nil {
-		log.Fatal("Error encoding configuration:", err)
-	}
+	checkError(err)
 	return result
 }
 
-// ToString returns the object as an unidented Json string used for test units
+// ToString returns the object as an unindented JSON string used for test units
 func (c Configuration) ToString() string {
 	result, err := json.Marshal(c)
-	if err != nil {
-		log.Fatal(err)
-	}
+	checkError(err)
 	return string(result)
+}
+
+func checkError(err error) {
+	if err != nil {
+		panic(err)
+	}
 }

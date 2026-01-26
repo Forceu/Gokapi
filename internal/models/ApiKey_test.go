@@ -13,25 +13,18 @@ func TestApiKey_GetRedactedId(t *testing.T) {
 
 func TestSetPermission(t *testing.T) {
 	key := &ApiKey{}
+	test.IsEqualBool(t, key.HasPermission(ApiPermView), false)
 	key.GrantPermission(ApiPermView)
-	if !key.HasPermission(ApiPermView) {
-		t.Errorf("expected permission %d to be set", ApiPermView)
-	}
-	if key.HasPermission(ApiPermEdit) {
-		t.Errorf("expected permission %d to be not set", ApiPermEdit)
-	}
+	test.IsEqualBool(t, key.HasPermission(ApiPermView), true)
+	test.IsEqualBool(t, key.HasPermission(ApiPermEdit), false)
 }
 
 func TestRemovePermission(t *testing.T) {
 	key := &ApiKey{}
 	key.GrantPermission(ApiPermView)
-	if !key.HasPermission(ApiPermView) {
-		t.Errorf("expected permission %d to be set", ApiPermView)
-	}
+	test.IsEqualBool(t, key.HasPermission(ApiPermView), true)
 	key.RemovePermission(ApiPermView)
-	if key.HasPermission(ApiPermView) {
-		t.Errorf("expected permission %d to be removed", ApiPermView)
-	}
+	test.IsEqualBool(t, key.HasPermission(ApiPermView), false)
 }
 
 func TestHasPermission(t *testing.T) {
@@ -53,9 +46,7 @@ func TestHasPermission(t *testing.T) {
 
 func TestHasPermissionView(t *testing.T) {
 	key := &ApiKey{}
-	if key.HasPermissionView() {
-		t.Errorf("expected view permission to be not set")
-	}
+	test.IsEqualBool(t, key.HasPermissionManageFileRequests(), false)
 	key.GrantPermission(ApiPermView)
 	if !key.HasPermissionView() {
 		t.Errorf("expected view permission to be set")
@@ -64,6 +55,7 @@ func TestHasPermissionView(t *testing.T) {
 
 func TestHasPermissionUpload(t *testing.T) {
 	key := &ApiKey{}
+	test.IsEqualBool(t, key.HasPermissionManageFileRequests(), false)
 	key.GrantPermission(ApiPermUpload)
 	if !key.HasPermissionUpload() {
 		t.Errorf("expected upload permission to be set")
@@ -72,6 +64,7 @@ func TestHasPermissionUpload(t *testing.T) {
 
 func TestHasPermissionDelete(t *testing.T) {
 	key := &ApiKey{}
+	test.IsEqualBool(t, key.HasPermissionManageFileRequests(), false)
 	key.GrantPermission(ApiPermDelete)
 	if !key.HasPermissionDelete() {
 		t.Errorf("expected delete permission to be set")
@@ -80,6 +73,7 @@ func TestHasPermissionDelete(t *testing.T) {
 
 func TestHasPermissionApiMod(t *testing.T) {
 	key := &ApiKey{}
+	test.IsEqualBool(t, key.HasPermissionManageFileRequests(), false)
 	key.GrantPermission(ApiPermApiMod)
 	if !key.HasPermissionApiMod() {
 		t.Errorf("expected ApiMod permission to be set")
@@ -88,6 +82,7 @@ func TestHasPermissionApiMod(t *testing.T) {
 
 func TestHasPermissionEdit(t *testing.T) {
 	key := &ApiKey{}
+	test.IsEqualBool(t, key.HasPermissionManageFileRequests(), false)
 	key.GrantPermission(ApiPermEdit)
 	if !key.HasPermissionEdit() {
 		t.Errorf("expected edit permission to be set")
@@ -96,6 +91,7 @@ func TestHasPermissionEdit(t *testing.T) {
 
 func TestHasPermissionReplace(t *testing.T) {
 	key := &ApiKey{}
+	test.IsEqualBool(t, key.HasPermissionManageFileRequests(), false)
 	key.GrantPermission(ApiPermReplace)
 	if !key.HasPermissionReplace() {
 		t.Errorf("expected edit permission to be set")
@@ -103,6 +99,7 @@ func TestHasPermissionReplace(t *testing.T) {
 }
 func TestHasPermissionManageUsers(t *testing.T) {
 	key := &ApiKey{}
+	test.IsEqualBool(t, key.HasPermissionManageFileRequests(), false)
 	key.GrantPermission(ApiPermManageUsers)
 	if !key.HasPermissionManageUsers() {
 		t.Errorf("expected edit permission to be set")
@@ -110,10 +107,24 @@ func TestHasPermissionManageUsers(t *testing.T) {
 }
 func TestHasPermissionManageLogs(t *testing.T) {
 	key := &ApiKey{}
+	test.IsEqualBool(t, key.HasPermissionManageFileRequests(), false)
 	key.GrantPermission(ApiPermManageLogs)
 	if !key.HasPermissionManageLogs() {
 		t.Errorf("expected edit permission to be set")
 	}
+}
+
+func TestHasPermissionManageFileRequests(t *testing.T) {
+	key := &ApiKey{}
+	test.IsEqualBool(t, key.HasPermissionManageFileRequests(), false)
+	key.GrantPermission(ApiPermManageFileRequests)
+	test.IsEqualBool(t, key.HasPermissionManageFileRequests(), true)
+}
+func TestHasPPermissionDownload(t *testing.T) {
+	key := &ApiKey{}
+	test.IsEqualBool(t, key.HasPermissionDownload(), false)
+	key.GrantPermission(ApiPermDownload)
+	test.IsEqualBool(t, key.HasPermissionDownload(), true)
 }
 
 func TestApiPermAllNoApiMod(t *testing.T) {
@@ -141,6 +152,8 @@ func checkOnlyPermissionSet(t *testing.T, key *ApiKey, perm ApiPermission) {
 		{ApiPermReplace, "ApiPermReplace"},
 		{ApiPermManageUsers, "ApiPermManageUsers"},
 		{ApiPermManageLogs, "ApiPermManageLogs"},
+		{ApiPermManageFileRequests, "ApiPermManageFileRequests"},
+		{ApiPermDownload, "ApiPermDownload"},
 	}
 
 	for _, p := range allPermissions {
@@ -172,6 +185,8 @@ func TestSetIndividualPermissions(t *testing.T) {
 		{ApiPermReplace, "ApiPermReplace"},
 		{ApiPermManageUsers, "ApiPermManageUsers"},
 		{ApiPermManageLogs, "ApiPermManageLogs"},
+		{ApiPermManageFileRequests, "ApiPermManageFileRequests"},
+		{ApiPermDownload, "ApiPermDownload"},
 	}
 
 	for _, p := range permissions {
@@ -201,6 +216,8 @@ func TestSetCombinedPermissions(t *testing.T) {
 		ApiPermReplace,
 		ApiPermManageUsers,
 		ApiPermManageLogs,
+		ApiPermManageFileRequests,
+		ApiPermDownload,
 	}
 
 	// Test setting permissions in combination
@@ -211,6 +228,13 @@ func TestSetCombinedPermissions(t *testing.T) {
 		}
 		checkCombinedPermissions(t, key, allPermissions[:i+1])
 	}
+}
+
+func TestApiKey_IsUploadRequestKey(t *testing.T) {
+	key := &ApiKey{Permissions: ApiPermManageFileRequests, UploadRequestId: "test"}
+	test.IsEqualBool(t, key.IsUploadRequestKey(), true)
+	key.UploadRequestId = ""
+	test.IsEqualBool(t, key.IsUploadRequestKey(), false)
 }
 
 func TestApiPermissionFromString(t *testing.T) {
@@ -259,6 +283,16 @@ func TestApiPermissionFromString(t *testing.T) {
 			name:     "PERM_MANAGE_LOGS",
 			input:    "PERM_MANAGE_LOGS",
 			wantPerm: ApiPermManageLogs,
+		},
+		{
+			name:     "PERM_MANAGE_FILE_REQUESTS",
+			input:    "PERM_MANAGE_FILE_REQUESTS",
+			wantPerm: ApiPermManageFileRequests,
+		},
+		{
+			name:     "PERM_DOWNLOAD",
+			input:    "PERM_DOWNLOAD",
+			wantPerm: ApiPermDownload,
 		},
 		{
 			name:      "invalid permission",
