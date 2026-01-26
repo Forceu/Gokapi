@@ -17,7 +17,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -608,7 +607,7 @@ func GetFileByHotlink(id string) (models.File, bool) {
 }
 
 // ServeFile subtracts a download allowance and serves the file to the browser
-func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDownload, increaseCounter bool) {
+func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDownload, increaseCounter, forceDecryption bool) {
 	if increaseCounter {
 		file.DownloadsRemaining = file.DownloadsRemaining - 1
 		file.DownloadCount = file.DownloadCount + 1
@@ -621,7 +620,7 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 		// If non-blocking, we are not setting a download complete status as there is no reliable way to
 		// confirm that the file has been completely downloaded. It expires automatically after 24 hours.
 		statusId := downloadstatus.SetDownload(file)
-		isBlocking, err := aws.ServeFile(w, r, file, forceDownload)
+		isBlocking, err := aws.ServeFile(w, r, file, forceDownload, forceDecryption)
 		// TODO chances are high that an error is returned here, we should consider proper output
 		helper.Check(err)
 		if isBlocking {
@@ -629,7 +628,7 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 		}
 		return
 	}
-	fileData, size := getFileHandler(file, configuration.Get().DataDir)
+	fileData, _ := getFileHandler(file, configuration.Get().DataDir)
 	if file.Encryption.IsEncrypted && !file.RequiresClientDecryption() {
 		if !encryption.IsCorrectKey(file.Encryption, fileData) {
 			_, _ = w.Write([]byte("Internal error - Error decrypting file, source data might be damaged or an incorrect key has been used"))
@@ -637,7 +636,7 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 		}
 	}
 	statusId := downloadstatus.SetDownload(file)
-	headers.Write(file, w, forceDownload)
+	headers.Write(file, w, forceDownload, false)
 	if file.Encryption.IsEncrypted && !file.RequiresClientDecryption() {
 		err := encryption.DecryptReader(file.Encryption, fileData, w)
 		if err != nil {
@@ -646,7 +645,6 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 			return
 		}
 	} else {
-		w.Header().Set("Content-Length", strconv.FormatInt(size, 10))
 		http.ServeContent(w, r, file.Name, time.Now(), fileData)
 	}
 	downloadstatus.SetComplete(statusId)
@@ -695,9 +693,8 @@ func ServeFilesAsZip(files []models.File, filename string, w http.ResponseWriter
 		helper.Check(err)
 		logging.LogDownload(file, r, saveIp)
 		if !file.IsLocalStorage() {
-			// TODO implement decrypting
 			statusId := downloadstatus.SetDownload(file)
-			_, err = aws.Stream(entryWriter, file)
+			err = aws.Stream(entryWriter, file)
 			helper.Check(err)
 			downloadstatus.SetComplete(statusId)
 			_ = zipWriter.Flush()

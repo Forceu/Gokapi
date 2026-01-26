@@ -578,7 +578,7 @@ func apiDownloadSingle(w http.ResponseWriter, r requestParser, user models.User)
 		return
 	}
 	if !request.PresignUrl {
-		storage.ServeFile(file, w, request.WebRequest, true, request.IncreaseCounter)
+		storage.ServeFile(file, w, request.WebRequest, true, request.IncreaseCounter, true)
 		return
 	}
 	createAndOutputPresignedUrl([]string{file.Id}, w, "")
@@ -615,8 +615,8 @@ func checkDownloadAllowed(fileId string, user models.User) (models.File, int, in
 	if file.UserId != user.Id && !user.HasPermission(models.UserPermListOtherUploads) {
 		return models.File{}, http.StatusUnauthorized, errorcodes.NoPermission, "no permission to download file"
 	}
-	if file.RequiresClientDecryption() {
-		return models.File{}, http.StatusBadRequest, errorcodes.EndToEndNotSupported, "End-to-end encrypted files and encrypted files stored on online storage cannot be downloaded"
+	if file.Encryption.IsEndToEndEncrypted {
+		return models.File{}, http.StatusBadRequest, errorcodes.EndToEndNotSupported, "End-to-end encrypted files cannot be downloaded"
 	}
 	return file, 0, 0, ""
 }

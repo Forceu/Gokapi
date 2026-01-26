@@ -19,6 +19,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/forceu/gokapi/internal/encryption"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/webserver/headers"
 )
@@ -122,27 +123,38 @@ func download(writer io.WriterAt, file models.File) (int64, error) {
 }
 
 // Stream downloads a file from AWS sequentially, used for saving to a Zip file
-func Stream(writer io.Writer, file models.File) (int64, error) {
+func Stream(writer io.Writer, file models.File) error {
 	sess := createSession()
 	s3svc := s3.New(sess)
+
 	obj, err := s3svc.GetObject(&s3.GetObjectInput{
 		Bucket: aws.String(file.AwsBucket),
 		Key:    aws.String(file.SHA1),
 	})
 	if err != nil {
-		return 0, err
+		return err
 	}
 	defer obj.Body.Close()
-	return io.Copy(writer, obj.Body)
+
+	var reader io.Reader = obj.Body
+
+	if file.Encryption.IsEncrypted {
+		return encryption.DecryptReader(file.Encryption, obj.Body, writer)
+	}
+	_, err = io.Copy(writer, reader)
+	return err
 }
 
 // ServeFile either redirects the user to a pre-signed download url (default) or downloads the file and serves it as a proxy (depending
-// on configuration). Returns true if blocking operation (in order to set download status) or false if non-blocking.
-func ServeFile(w http.ResponseWriter, r *http.Request, file models.File, forceDownload bool) (bool, error) {
-	if !awsConfig.ProxyDownload {
-		return false, redirectToDownload(w, r, file, forceDownload)
+// on configuration). Returns true if blocking operation (to set download status) or false if non-blocking.
+func ServeFile(w http.ResponseWriter, r *http.Request, file models.File, forceDownload, forceDecryption bool) (bool, error) {
+	if forceDecryption {
+		return true, serveDecryptedFile(w, file)
 	}
-	return true, proxyDownload(w, file, forceDownload)
+	if awsConfig.ProxyDownload {
+		return true, proxyDownload(w, file, forceDownload)
+	}
+	return false, redirectToDownload(w, r, file, forceDownload)
 }
 
 func getPresignedUrl(file models.File, forceDownload bool) (string, error) {
@@ -191,9 +203,27 @@ func proxyDownload(w http.ResponseWriter, file models.File, forceDownload bool) 
 		return err
 	}
 	defer resp.Body.Close()
-	headers.Write(file, w, forceDownload)
+	headers.Write(file, w, forceDownload, false)
 	_, _ = io.Copy(w, resp.Body)
 	return nil
+}
+
+func serveDecryptedFile(w http.ResponseWriter, file models.File) error {
+	sess := createSession()
+	s3svc := s3.New(sess)
+
+	// 1. Get the object from S3
+	obj, err := s3svc.GetObject(&s3.GetObjectInput{
+		Bucket: aws.String(file.AwsBucket),
+		Key:    aws.String(file.SHA1),
+	})
+	if err != nil {
+		return err
+	}
+	defer obj.Body.Close()
+
+	headers.Write(file, w, true, true)
+	return encryption.DecryptReader(file.Encryption, obj.Body, w)
 }
 
 func getTimeoutContext() (context.Context, context.CancelFunc) {

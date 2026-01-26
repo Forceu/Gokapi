@@ -111,7 +111,7 @@ func testServing(t *testing.T, expectRedirect, forceDownload bool) {
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest("GET", "/download", nil)
 
-	isBlocking, err := ServeFile(w, r, testFile, forceDownload)
+	isBlocking, err := ServeFile(w, r, testFile, forceDownload, false)
 	test.IsEqualBool(t, isBlocking, !expectRedirect)
 	test.IsNil(t, err)
 

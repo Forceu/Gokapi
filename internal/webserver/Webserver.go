@@ -606,7 +606,7 @@ func showHotlink(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write(imageExpiredPicture)
 		return
 	}
-	storage.ServeFile(file, w, r, false, true)
+	storage.ServeFile(file, w, r, false, true, false)
 }
 
 // Checks if a file is associated with the GET parameter from the current URL
@@ -980,6 +980,7 @@ func downloadFile(w http.ResponseWriter, r *http.Request) {
 // Handling of /downloadPresigned
 // Outputs the file to the user and reduces the download remaining count for the file, if requested
 func downloadPresigned(w http.ResponseWriter, r *http.Request) {
+	addNoCacheHeader(w)
 	presignKey, ok := r.URL.Query()["key"]
 	if !ok {
 		responseError(w, storage.ErrorInvalidPresign)
@@ -1002,7 +1003,7 @@ func downloadPresigned(w http.ResponseWriter, r *http.Request) {
 	database.DeletePresignedUrl(presign.Id)
 
 	if len(files) == 1 {
-		storage.ServeFile(files[0], w, r, true, false)
+		storage.ServeFile(files[0], w, r, true, false, true)
 		return
 	}
 	storage.ServeFilesAsZip(files, presign.Filename, w, r)
@@ -1029,7 +1030,7 @@ func serveFile(id string, isRootUrl bool, w http.ResponseWriter, r *http.Request
 			return
 		}
 	}
-	storage.ServeFile(savedFile, w, r, true, true)
+	storage.ServeFile(savedFile, w, r, true, true, false)
 }
 
 func requireLogin(next http.HandlerFunc, isUiCall, isPwChangeView bool) http.HandlerFunc {

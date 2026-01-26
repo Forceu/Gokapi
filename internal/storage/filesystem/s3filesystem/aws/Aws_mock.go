@@ -130,7 +130,7 @@ func isUploaded(file models.File) bool {
 
 // ServeFile either redirects the user to a pre-signed download url (default) or downloads the file and serves it as a proxy (depending
 // on configuration). Returns true if blocking operation (in order to set download status) or false if non-blocking.
-func ServeFile(w http.ResponseWriter, r *http.Request, file models.File, forceDownload bool) (bool, error) {
+func ServeFile(w http.ResponseWriter, r *http.Request, file models.File, forceDownload bool, forceDecryption bool) (bool, error) {
 	// TODO implement proxy as well
 	return false, RedirectToDownload(w, r, file, forceDownload)
 }
@@ -202,18 +202,19 @@ func GetDefaultBucketName() string {
 }
 
 // Stream downloads a file from AWS sequentially, used for saving to a Zip file
-func Stream(writer io.Writer, file models.File) (int64, error) {
+func Stream(writer io.Writer, file models.File) error {
 	if !isValidCredentials() {
-		return 0, errors.New("invalid credentials / invalid bucket / invalid region")
+		return errors.New("invalid credentials / invalid bucket / invalid region")
 	}
 
 	if isUploaded(file) {
 		data, err := os.Open("data/" + file.SHA1)
 		if err != nil {
-			return 0, err
+			return err
 		}
 		defer data.Close()
-		return io.Copy(writer, data)
+		_, err = io.Copy(writer, data)
+		return err
 	}
-	return 0, errors.New("file not found")
+	return errors.New("file not found")
 }
