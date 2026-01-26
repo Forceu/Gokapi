@@ -457,6 +457,7 @@ async function finaliseUpload(file, uuid, elements) {
                 fileRequestId: FILE_REQUEST_ID,
                 filename: encodeFilename(file.name),
                 filesize: file.size,
+                nonblocking: true,
                 contenttype: file.type || "application/octet-stream",
                 apikey: API_KEY
             }

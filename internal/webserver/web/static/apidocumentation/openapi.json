@@ -507,6 +507,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "nonblocking",
+            "in": "header",
+            "description": "If set to true, the call returns without waiting for the file processing to finish.",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -601,7 +610,17 @@
             "schema": {
               "type": "string"
             }
-          }],
+          },
+          {
+            "name": "nonblocking",
+            "in": "header",
+            "description": "If set to true, the call returns without waiting for the file processing to finish.",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "multipart/form-data": {
