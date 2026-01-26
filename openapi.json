@@ -792,7 +792,7 @@
         "tags": [
           "logs"
         ],
-        "summary": "Deletes entries from the logfilek",
+        "summary": "Deletes entries from the logfile",
         "description": "This API call deletes all lines before older than a cutoff date. Requires API permission MANAGE_LOGS and user needs to be admin or super-admin.",
         "operationId": "logsdelete",
         "security": [
