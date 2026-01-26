@@ -52,6 +52,8 @@ For Windows environments, you need to run ``set`` first, e.g.:
 
 
 
+.. _availenvvar:
+
 
 Available environment variables
 ==================================

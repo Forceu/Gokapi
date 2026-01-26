@@ -64,7 +64,7 @@ The File Requests page allows you to create secure, invitation-only upload links
 .. note::
    **Security Note:** If End-to-End Encryption is enabled globally, please note that **File Requests bypass this**. All files uploaded through the upload request page will be in plain text. This does only affect servers with end-to-end encryption, regular file encryption is still in place.
 
-Overview of the Dashboard
+Dashboard
 ---------------------------
 
 The main dashboard provides a summary of all active and expired file requests.
@@ -121,6 +121,12 @@ To create a new request, click the *Plus* icon at the top right. To modify an ex
    * - **Notes**
      - Public notes that are shown on the upload page
 
+
+.. note::
+   By default, non-admin users are limited to requesting up to 100 files, with a maximum size of 10 GB per file. To modify these limits or disable them entirely, set the environment variables ``GOKAPI_MAX_FILES_GUESTUPLOAD`` and ``GOKAPI_MAX_SIZE_GUESTUPLOAD`` to your desired values. See :ref:`availenvvar` for details.
+
+
+
 Sharing and Deletion
 --------------------
 
@@ -145,7 +151,7 @@ User Management
 
 The **Users** page provides administrators with tools to create accounts, manage permissions, and oversee user activity. This interface ensures you can delegate responsibilities while maintaining system security.
 
-Overview of the Dashboard
+General
 ----------------------------
 
 The user table displays a high-level summary of all accounts on the server:
@@ -189,16 +195,17 @@ Permissions are granular and can be toggled by clicking the icons in the **Permi
    Permissions for the Super Admin and your own account cannot be modified from this screen to prevent accidental lockouts.
 
 User Account Actions
-====================
+---------------------
 
 Adding a New User
------------------
+^^^^^^^^^^^^^^^^^^
+
 1. Click the *Plus (+)* icon at the top right of the Users card.
 2. Enter a unique username.
 3. The user will be created with default permissions and will need a password assigned or reset.
 
 Resetting Passwords
--------------------
+^^^^^^^^^^^^^^^^^^^^
 If using internal authentication, click the *Key* icon:
 
 * **Force Reset**: The user must choose a new password the next time they log in.
@@ -210,13 +217,13 @@ User Ranks
 There are three different user ranks:
 
 * **Super Admin**: A single person with all access which cannot be modified by other users.
-* **Admin**: Has all rights by default. Is able to delete system logs and can change file owners.
+* **Admin**: Has all rights by default. Is able to delete system logs and can change file owners. Can create upload requests with unlimited files and file size.
 * **User**: Has less rights by default.
 
 
 
 Changing User Rank
-------------------
+^^^^^^^^^^^^^^^^^^^
 Use the *Chevron Up/Down* icons to change a user's group:
 
 * **Promote**: Upgrades a standard User to an Admin.
@@ -241,12 +248,16 @@ Click the **Trash** icon to remove an account.
 API Menu
 ===============
 
+General
+--------------
+
+
 The API Keys page allows you to generate and manage credentials for programmatic access to the server. These keys are used to authenticate scripts, third-party applications, or CLI tools.
 
 .. note::
    For technical implementation details and endpoint definitions, please refer to the integrated API Documentation and the section :ref:`api`
    
-Overview of API Keys
+API Keys
 ---------------------
 
 The API table provides a summary of all active credentials:
