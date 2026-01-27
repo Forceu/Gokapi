@@ -7,18 +7,31 @@
 		    <br>
 		    <p class="card-text"> A password change has been requested.<br>Please enter a new password.<br><br>
 			<form method="post" action="./changePassword" id="form" name="form" onSubmit="return submitForm()">
-				<input type="password" required minlength="{{.MinPasswordLength}}" placeholder="New Password" id="newpw" name="newpw" autocomplete="new-password">
-				<br><br>
-				<input type="password" required minlength="{{.MinPasswordLength}}" placeholder="Confirm New Password" id="newpw_c" name="newpw_c" onchange="checkSame()" autocomplete="new-password">
-				      
-{{ if ne .ErrorMessage "" }}
-				<p id="errormessage" style="color:red; margin-top:1em">{{.ErrorMessage}}</p>
-{{ end }}				      
-				      <div id="pwnotsame" class="text-warning" style="display: none; margin-top:1em">
-					Passwords do not match
-				      </div>
+			    <div class="mb-3">
+				<input type="password" class="form-control mx-auto" style="max-width: 300px;" 
+				       required minlength="{{.MinPasswordLength}}" placeholder="New Password" 
+				       id="newpw" name="newpw" autocomplete="new-password">
+			    </div>
 
-				<button style="margin-top:2em" type="submit" id="submitbutton" class="btn btn-light">Change Password</button>
+			    <div class="mb-3">
+				<input type="password" class="form-control mx-auto" style="max-width: 300px;" 
+				       required minlength="{{.MinPasswordLength}}" placeholder="Confirm New Password" 
+				       id="newpw_c" name="newpw_c" onchange="checkSame()" autocomplete="new-password">
+			    </div>
+
+{{ if ne .ErrorMessage "" }}
+			    <p id="errormessage" class="text-danger" style="margin-top:1em">{{.ErrorMessage}}</p>
+{{ end }}
+
+			    <div id="pwnotsame" class="text-warning" style="display: none; margin-top:1em">
+				Passwords do not match
+			    </div>
+
+			    <div class="mt-4">
+				<button type="submit" id="submitbutton" class="btn btn-primary w-100 mx-auto" style="max-width: 300px;">
+				    Change Password
+				</button>
+			    </div>
 			</form>
 			<br>
 		  </div>

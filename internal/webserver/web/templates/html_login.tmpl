@@ -7,17 +7,29 @@
 		    <br>
 		    <p class="card-text">
 			<form method="post" action="./login" id="form" name="form" onSubmit="submitForm()">
-				<input type="text" 
-    autocomplete="username" placeholder="Username" value="{{.User}}" id="username">
+			    <div class="mb-3">
+				<input type="text" class="form-control mx-auto" style="max-width: 300px;" 
+				       autocomplete="username" placeholder="Username" value="{{.User}}" id="username">
 				<input type="hidden" id="uname_hidden" name="username">
-				<br><br>
-				<input type="password" autocomplete="current-password" placeholder="Password" id="password">
+			    </div>
+
+			    <div class="mb-3">
+				<input type="password" class="form-control mx-auto" style="max-width: 300px;" 
+				       autocomplete="current-password" placeholder="Password" id="password">
 				<input type="hidden" id="pw_hidden" name="password">
-				<br><br>
+			    </div>
+
 {{ if .IsFailedLogin }}
-				<span style="color:red"> Incorrect username or password!</span><br><br>
+			    <div class="mb-3">
+				<span class="text-danger">Incorrect username or password!</span>
+			    </div>
 {{ end }}
-				<button type="submit"  id="submitbutton" class="btn btn-light">Login</button>
+
+			    <div class="mt-4">
+				<button type="submit" id="submitbutton" class="btn btn-primary w-100 mx-auto" style="max-width: 300px;">
+				    Login
+				</button>
+			    </div>
 			</form>
 			<br><br>
 			<a href="./forgotpw">Forgot password</a></p>
