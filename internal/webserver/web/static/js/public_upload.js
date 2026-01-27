@@ -9,7 +9,6 @@ function createUploadBox() {
                 errorModal.show();
                 return;
             }
-            document.getElementById('uploadbutton').disabled = false;
             const uuid = getUuid();
 
             const item = document.createElement('div');
@@ -44,21 +43,24 @@ function createUploadBox() {
             removeBtn.className = 'btn btn-sm btn-link text-light p-0';
             removeBtn.innerHTML = '<i class="bi bi-x-circle"></i>';
             removeBtn.onclick = async () => {
+                filesMap.get(uuid).removed = true;
+                filesMap.get(uuid).status = 'removed';
                 const entry = filesMap.get(uuid);
 
-                // 1. If currently uploading, abort it
+                // If currently uploading, abort
                 if (entry.controller) {
                     entry.controller.abort();
                 }
-
-                // 2. If it has a server reservation, clean it up
-                if (entry.serverUuid) {
-                    await unreserve(entry.serverUuid);
-                }
-
-                entry.removed = true;
                 item.remove();
                 updateUploadButtonState();
+
+                if (entry.serverUuid) {
+                    try {
+                        await unreserve(entry.serverUuid);
+                    } catch (e) {
+                        console.error("Unreserve failed", e);
+                    }
+                }
             };
 
             item.append(name, progressText, progressBar, size, removeBtn);
@@ -68,6 +70,7 @@ function createUploadBox() {
                 uuid,
                 file,
                 removed: false,
+                status: 'pending',
                 controller: new AbortController(),
                 lastSpeed: "",
                 elements: {
@@ -77,6 +80,7 @@ function createUploadBox() {
                     item
                 }
             });
+            updateUploadButtonState();
         });
         // Allow re-selecting same files
         fileInput.value = '';
@@ -144,12 +148,10 @@ function createUploadBox() {
 
 
 function setUnload() {
-
     // Confirm before closing tab
     window.addEventListener('beforeunload', (e) => {
         const uploading = Array.from(filesMap.values()).some(f => !f.removed);
         if (uploading) {
-            // Standard way to trigger a "Are you sure?" browser dialog
             e.preventDefault();
             e.returnValue = '';
         }
@@ -175,9 +177,10 @@ function handleFiles(files) {
 function updateUploadButtonState() {
     const btn = document.getElementById("uploadbutton");
     const pendingFiles = Array.from(filesMap.values()).filter(entry =>
-        !entry.removed && entry.elements.progressText.textContent !== "Completed"
+        !entry.removed && entry.status === 'pending'
     );
-    btn.disabled = pendingFiles.length === 0;
+
+    btn.disabled = isUploadInProgress || pendingFiles.length === 0;
 }
 
 
@@ -281,12 +284,19 @@ function getQueuedFileCount() {
     return count;
 }
 
-function initUpload() {
+async function initUpload() {
     const btn = document.getElementById("uploadbutton");
+    isUploadInProgress = true;
     btn.disabled = true;
-    startUpload().catch(console.error).finally(() => {
+
+    try {
+        await startUpload();
+    } catch (e) {
+        console.error(e);
+    } finally {
+        isUploadInProgress = false;
         updateUploadButtonState();
-    });
+    }
 }
 
 async function startUpload() {
@@ -296,12 +306,16 @@ async function startUpload() {
     }
 
     for (const entry of filesMap.values()) {
-        if (entry.removed) continue;
+        if (entry.removed || entry.status !== 'pending') {
+            continue;
+        }
         const {
             file,
             uuid,
             elements
         } = entry;
+
+        entry.status = 'uploading';
 
         // Reset UI state for (re)attempt
         elements.progressBar.style.display = "";
@@ -391,6 +405,7 @@ async function startUpload() {
 
             await finaliseUpload(file, serverUuid, elements);
 
+            entry.status = 'completed';
             elements.progressText.textContent = "Completed";
             elements.item.style.opacity = "0.6";
             elements.removeBtn.remove(); // Remove button only on success
@@ -401,8 +416,12 @@ async function startUpload() {
             if (maxFilesRemaining === 0) showModal("alluploaded");
 
         } catch (err) {
-            if (err.message === "Cancelled" || entry.controller.signal.aborted) return;
+            if (err.message === "Cancelled" || entry.controller.signal.aborted) {
+                entry.status = 'pending';
+                return;
+            }
 
+            entry.status = 'error';
             elements.progressText.textContent = err.message || "Upload failed";
             elements.progressText.style.color = "#ff6b6b";
             elements.progressBar.style.display = "none";
@@ -411,6 +430,17 @@ async function startUpload() {
             elements.removeBtn.title = "Remove from list";
         }
     }
+}
+
+async function parseXhrError(xhr) {
+    // Wrap the XHR data into a format that parseErrorResponse expects
+    const mockResponse = {
+        ok: false,
+        status: xhr.status,
+        text: async () => xhr.responseText || `HTTP ${xhr.status}`
+    };
+
+    return await parseErrorResponse(mockResponse);
 }
 
 async function parseErrorResponse(response) {
