@@ -108,6 +108,11 @@ type Database interface {
 	SaveFileRequest(request models.FileRequest)
 	// DeleteFileRequest deletes a file request with the given ID
 	DeleteFileRequest(request models.FileRequest)
+
+	// GetStatTraffic returns the total traffic from statistics
+	GetStatTraffic() uint64
+	// SaveStatTraffic stores the total traffic
+	SaveStatTraffic(totalTraffic uint64)
 }
 
 // GetNew connects to the given database and initialises it

@@ -57,6 +57,11 @@ a:hover {
     filter: brightness(80%);
 }
 
+
+.text-muted {
+    color: #adb5bd !important; 
+}
+
 .dropzone {
     background: rgb(47, 52, 58) !important;
     color: #ffffff;
@@ -647,3 +652,4 @@ tr.no-bottom-border td {
     cursor: not-allowed;
     opacity: 1;
 }
+

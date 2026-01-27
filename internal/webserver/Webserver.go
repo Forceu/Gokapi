@@ -29,6 +29,7 @@ import (
 	"github.com/forceu/gokapi/internal/encryption"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/logging"
+	"github.com/forceu/gokapi/internal/logging/serverStats"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
 	"github.com/forceu/gokapi/internal/storage/filerequest"
@@ -739,8 +740,17 @@ type AdminView struct {
 	MinLengthPassword     int
 	FileRequestMaxFiles   int
 	FileRequestMaxSize    int
+	CpuLoad               int
+	MemoryUsage           int
+	MemoryTotal           int
+	DiskUsage             int
+	TotalFiles            int
+	DataServed            int64
+	Uptime                int64
 	TimeNow               int64
-	CustomContent         customStatic
+	TotalTraffic          uint64
+
+	CustomContent customStatic
 }
 
 // getUserMap needs to return the map with pointers; otherwise template cannot call
@@ -807,6 +817,9 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 		apiKeyList = sortApiKeys(apiKeyList)
 	case ViewLogs:
 		u.Logs, _ = logging.GetAll()
+		u.TotalFiles = serverStats.GetTotalFiles()
+		u.Uptime = serverStats.GetUptime()
+		u.TotalTraffic = serverStats.GetCurrentTraffic()
 	case ViewUsers:
 		uploadCounts := storage.GetUploadCounts()
 		u.Users = make([]userInfo, 0)

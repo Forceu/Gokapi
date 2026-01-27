@@ -21,7 +21,7 @@ type DatabaseProvider struct {
 }
 
 // DatabaseSchemeVersion contains the version number to be expected from the current database. If lower, an upgrade will be performed
-const DatabaseSchemeVersion = 12
+const DatabaseSchemeVersion = 13
 
 // New returns an instance
 func New(dbConfig models.DbConnection) (DatabaseProvider, error) {
@@ -46,23 +46,23 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 		err := p.rawSqlite("ALTER TABLE FileMetaData DROP COLUMN ExpireAtString;")
 		helper.Check(err)
 	}
-	// < v2.2.0
+	// < v2.2.0-rc1
 	if currentDbVersion < 12 {
 
 		err := p.rawSqlite(`ALTER TABLE FileMetaData ADD COLUMN "UploadRequestId" TEXT NOT NULL DEFAULT '';
-									 ALTER TABLE ApiKeys ADD COLUMN "UploadRequestId" TEXT NOT NULL DEFAULT '';
-									 CREATE TABLE "UploadRequests" (
-										"id"	TEXT NOT NULL UNIQUE,
-										"name"	TEXT NOT NULL,
-										"userid"	INTEGER NOT NULL,
-										"expiry"	INTEGER NOT NULL,
-										"maxFiles"	INTEGER NOT NULL,
-										"maxSize"	INTEGER NOT NULL,
-										"creation"	INTEGER NOT NULL,
-										"apiKey"	TEXT NOT NULL UNIQUE,
-										"note"	TEXT NOT NULL,
-										PRIMARY KEY("id")
-									 );`)
+		ALTER TABLE ApiKeys ADD COLUMN "UploadRequestId" TEXT NOT NULL DEFAULT '';
+		CREATE TABLE "UploadRequests" (
+			"id"	TEXT NOT NULL UNIQUE,
+			"name"	TEXT NOT NULL,
+			"userid"	INTEGER NOT NULL,
+			"expiry"	INTEGER NOT NULL,
+			"maxFiles"	INTEGER NOT NULL,
+			"maxSize"	INTEGER NOT NULL,
+			"creation"	INTEGER NOT NULL,
+			"apiKey"	TEXT NOT NULL UNIQUE,
+			"note"	TEXT NOT NULL,
+			PRIMARY KEY("id")
+		);`)
 		helper.Check(err)
 		grantUploadPerm := environment.New().PermRequestGrantedByDefault
 		for _, user := range p.GetAllUsers() {
@@ -76,6 +76,16 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 				p.DeleteApiKey(apiKey.Id)
 			}
 		}
+	}
+	// < v2.2.0-rc2
+	if currentDbVersion < 13 {
+		err := p.rawSqlite(`CREATE TABLE "Statistics" (
+				"id"	INTEGER NOT NULL,
+				"type"	INTEGER NOT NULL UNIQUE,
+				"value"	INTEGER,
+				PRIMARY KEY("id" AUTOINCREMENT)
+			);`)
+		helper.Check(err)
 	}
 }
 
@@ -223,7 +233,13 @@ func (p DatabaseProvider) createNewDatabase() error {
 			"apiKey"	TEXT NOT NULL UNIQUE,
 			"note"	TEXT NOT NULL,
 			PRIMARY KEY("id")
-		);`
+		);
+		CREATE TABLE "Statistics" (
+				"id"	INTEGER NOT NULL,
+				"type"	INTEGER NOT NULL UNIQUE,
+				"value"	INTEGER,
+				PRIMARY KEY("id" AUTOINCREMENT)
+			);`
 	err := p.rawSqlite(sqlStmt)
 	if err != nil {
 		return err

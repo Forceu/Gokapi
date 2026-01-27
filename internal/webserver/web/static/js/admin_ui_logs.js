@@ -11,8 +11,13 @@ function filterLogs(tag) {
     textarea.scrollTop = textarea.scrollHeight;
 }
 
-function deleteLogs(cutoff) {
-    if (cutoff == "none") {
+function deleteLogs() {
+    const delSelector = document.getElementById("deleteLogsSel");
+    if (!delSelector) {
+    	return;
+    }
+    const cutoff = delSelector.value;
+    if (cutoff == "none" || cutoff == "") {
         return;
     }
     if (!confirm("Do you want to delete the selected logs?")) {
@@ -36,6 +41,7 @@ function deleteLogs(cutoff) {
         case "30":
             timestamp = timestamp - 30 * 24 * 60 * 60;
             break;
+        default: return;
     }
     apiLogsDelete(timestamp)
         .then(data => {

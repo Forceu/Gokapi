@@ -257,6 +257,16 @@ func (p DatabaseProvider) getKeyInt(id string) (int, bool) {
 	helper.Check(err2)
 	return resultInt, true
 }
+
+func (p DatabaseProvider) getKeyUInt64(id string) (uint64, bool) {
+	result, err := p.getKeyRaw(id)
+	if result == nil {
+		return 0, false
+	}
+	resultInt, err2 := redigo.Uint64(result, err)
+	helper.Check(err2)
+	return resultInt, true
+}
 func (p DatabaseProvider) getKeyBytes(id string) ([]byte, bool) {
 	result, err := p.getKeyRaw(id)
 	if result == nil {

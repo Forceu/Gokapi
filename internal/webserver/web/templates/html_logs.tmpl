@@ -1,54 +1,181 @@
 {{ define "logs" }}{{ template "header" . }}
-<div class="row">
-    <div class="col">
-        <div id="container" class="card" style="width: 80%">
-            <div class="card-body">
-                <h3 class="card-title">Log File</h3>
-                <br>
-                
-    <textarea class="form-control" id="logviewer" rows="20" readonly>
-{{ .Logs }}</textarea>
-            
-            <br>
-                 <div class="d-flex gap-3">
-                    <select id="logFilter" class="form-select" onchange="filterLogs(this.value)">
-                        <option value="all">Show all logs</option>
-                        <option value="warning">Show [warning]</option>
-                        <option value="auth">Show [auth]</option>
-                        <option value="download">Show [download]</option>
-                        <option value="upload">Show [upload]</option>
-                        <option value="edit">Show [edit]</option>
-                        <option value="info">Show [info]</option>
-                    </select>
 
+<style>
+    .stat-card {
+        background: #1a1d20;
+        border: 1px solid #2d3238;
+        border-radius: 12px;
+        overflow: hidden;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.3) !important;
+        border-color: #0d6efd;
+    }
+    .stat-icon {
+        opacity: 0.6;
+        font-size: 1.2rem;
+    }
+    .progress-stat {
+        height: 4px;
+        background-color: #2b3035;
+    }
+    
+    .log-dark-input {
+        background-color: #2b3035 !important;
+        border-color: #444b52 !important;
+        color: #e9ecef !important;
+    }
+    .log-dark-input:focus {
+        background-color: #32383e !important;
+        border-color: #0d6efd !important;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+    .input-group-text-dark {
+        background-color: #1a1d20 !important;
+        border-color: #444b52 !important;
+        color: #adb5bd !important;
+    }
+    #logviewer::-webkit-scrollbar { width: 8px; }
+    #logviewer::-webkit-scrollbar-track { background: #000; }
+    #logviewer::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+</style>
+
+<div class="container-fluid py-4" style="max-width: 1200px;">
+    
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-2">
+            <div class="card stat-card border-0 shadow-sm h-100">
+                <div class="card-body p-3">
+                    <div class="text-muted small text-uppercase fw-bold mb-1">Uptime</div>
+                    <div class="h5 mb-0 text-light">24d 12h</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-lg-2">
+            <div class="card stat-card border-0 shadow-sm h-100">
+                <div class="card-body p-3">
+                    <div class="text-muted small text-uppercase fw-bold mb-1">CPU Load</div>
+                    <div class="h5 mb-2 text-light">12%</div>
+                    <div class="progress progress-stat">
+                        <div class="progress-bar bg-info" style="width: 12%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-lg-2">
+            <div class="card stat-card border-0 shadow-sm h-100">
+                <div class="card-body p-3">
+                    <div class="text-muted small text-uppercase fw-bold mb-1">Memory</div>
+                    <div class="h5 mb-2 text-light text-nowrap">142 / 512<span class="small opacity-50">MB</span></div>
+                    <div class="progress progress-stat">
+                        <div class="progress-bar bg-success" style="width: 27%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-lg-2">
+            <div class="card stat-card border-0 shadow-sm h-100">
+                <div class="card-body p-3">
+                    <div class="text-muted small text-uppercase fw-bold mb-1">Disk Space</div>
+                    <div class="h5 mb-2 text-light">68%</div>
+                    <div class="progress progress-stat">
+                        <div class="progress-bar bg-warning" style="width: 68%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-lg-2">
+            <div class="card stat-card border-0 shadow-sm h-100">
+                <div class="card-body p-3">
+                    <div class="text-muted small text-uppercase fw-bold mb-1">Data Served</div>
+                    <div class="h5 mb-0 text-light">1.24 <span class="small opacity-50">TB</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-lg-2">
+            <div class="card stat-card border-0 shadow-sm h-100">
+                <div class="card-body p-3">
+                    <div class="text-muted small text-uppercase fw-bold mb-1">Active Files</div>
+                    <div class="h5 mb-0 text-light">{{ .TotalFiles }} <span class="small opacity-50">Total</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-lg bg-dark overflow-hidden">
+        <div class="card-header bg-dark border-bottom border-secondary py-3 d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center">
+                <h6 class="mb-0 fw-bold text-light me-3">System Logs</h6>
+            </div>
+            <div class="text-muted small font-monospace">gokapi_v1.x.x</div>
+        </div>
+        
+        <div class="card-body p-0 bg-black">
+            <textarea 
+                class="form-control bg-black text-info font-monospace border-0 p-4" 
+                id="logviewer" 
+                rows="20" 
+                readonly 
+                style="resize: none; font-size: 0.85rem; line-height: 1.5; outline: none; border-radius: 0;"
+            >{{ .Logs }}</textarea>
+        </div>
+
+        <div class="card-footer bg-dark border-top border-secondary p-3">
+            <div class="row g-2 align-items-center">
+                <div class="col-md-5">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text input-group-text-dark">Filter</span>
+                        <select id="logFilter" class="form-select log-dark-input" onchange="filterLogs(this.value)">
+                            <option value="all">All Events</option>
+                            <option value="warning">Warnings</option>
+                            <option value="auth">Security</option>
+                            <option value="download">Downloads</option>
+                            <option value="upload">Uploads</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="col-md-2"></div>
+
+                <div class="col-md-5">
+                    <div class="d-flex gap-2 justify-content-md-end">
 {{ if or (eq .ActiveUser.UserLevel 0) (eq .ActiveUser.UserLevel 1) }}
-                    <select id="deleteLogs" class="form-select" onchange="deleteLogs(this.value)">
-                        <option value="none">Delete Logs...</option>
-                        <option value="2">Older than 2 days</option>
-                        <option value="7">Older than 7 days</option>
-                        <option value="14">Older than 14 days</option>
-                        <option value="30">Older than 30 days</option>
-                        <option value="all">Delete all logs</option>
-                    </select>
+                        <select id="deleteLogsSel" class="form-select form-select-sm log-dark-input w-auto">
+                            <option value="none">Delete Logs...</option>
+                            <option value="30">Older than 30 days</option>
+                            <option value="14">Older than 14 days</option>
+                            <option value="7">Older than 7 days</option>
+                            <option value="2">Older than 2 days</option>
+                            <option value="all">Delete all logs</option>
+                        </select>
+                        <button class="btn btn-sm btn-outline-light px-3" onclick="deleteLogs()">Execute</button>
 {{ else }}
-                    <select id="deleteLogs" disabled class="form-select disabled" onchange="">
+                    <select id="deleteLogsSel" disabled class="form-select form-select-sm log-dark-input w-auto disabled">
                         <option value="none">Only administrators can delete logs</option>
                     </select>
-{{ end }}                    
+                        <button class="btn btn-sm btn-outline-light px-3" disabled onclick="">Execute</button>
+{{ end }}
+                    </div>
                 </div>
-            
-            <br>
-            
             </div>
         </div>
     </div>
 </div>
+
 <script src="./js/min/admin.min.{{ template "js_admin_version"}}.js"></script>
-	<script>
-		let textarea = document.getElementById('logviewer');
-   		textarea.scrollTop = textarea.scrollHeight;
-		var logContent = textarea.value;
-	</script>
+<script>
+    const textarea = document.getElementById('logviewer');
+    var logContent = textarea.value;
+    textarea.scrollTop = textarea.scrollHeight;
+</script>
+
 {{ template "pagename" "LogOverview"}}
 {{ template "customjs" .}}
 {{ template "footer" true}}
