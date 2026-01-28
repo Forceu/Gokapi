@@ -1,159 +1,185 @@
 {{define "download"}}{{template "header" .}}
- 
-      <div class="row">
-        <div class="col">
-		<div class="card" style="width: 18rem;">
-		  <div class="card-body">
-{{ if .EndToEndEncryption }}
-		    <h4 id="filename" class="card-title">Decrypting...</h4>
-{{ else }}
-		    <h4 id="filename" class="card-title">{{ .Name }}</h4>
-{{ end }}
-		    <p class="card-text">Filesize: {{ .Size }}</p><br>
-			<div id="buttondiv">
-{{ if .ClientSideDecryption }}
-			   <button id="downloadbutton" class="btn btn-light" type="button" disabled onclick="Download(this);">
-			  	<span id="wasmspinner" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-			  	Loading...
-			  </button>
-{{  else }}
-			   <button class="btn btn-light" type="button" onclick="Download(this);">
-			  	Download
-			  </button>
-{{ end }}
-			</div>
-			<div id="errordiv" style="display:none">
-				<span id="errormessage" style="color:red"></span>
-			</div>
-		  </div>
-		</div>
-	    </div>
+
+<div class="container-fluid download-wrapper p-4">
+    <div class="file-card card">
+        <div class="card-body p-5 text-center">
+            
+            <div class="icon-container">
+                {{ if .EndToEndEncryption }}
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-lock-fill" viewBox="0 0 16 16">
+                        <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
+                    </svg>
+                {{ else }}
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-file-earmark-code-fill" viewBox="0 0 16 16">
+                        <path d="M9.293 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.707A1 1 0 0 0 13.707 4L10 .293A1 1 0 0 0 9.293 0zM9.5 3.5v-2l3 3h-2a1 1 0 0 1-1-1z"/>
+                    </svg>
+                {{ end }}
+            </div>
+
+            {{ if .EndToEndEncryption }}
+                <h4 id="filename" class="card-title filename-text mb-2">Decrypting...</h4>
+                <div class="mb-4">
+                    <span class="badge rounded-pill bg-info text-dark">Encrypted</span>
+                </div>
+            {{ else }}
+                <h4 id="filename" class="card-title filename-text mb-4">{{ .Name }}</h4>
+            {{ end }}
+
+            <ul class="list-group mb-4">
+                <li class="list-group-item d-flex justify-content-between align-items-center dark-list-item">
+                    <span>Size</span>
+                    <span class="text-white fw-bold">{{ .Size }}</span>
+                </li>
+            </ul>
+
+            <div id="buttondiv" class="d-grid gap-2">
+                {{ if .ClientSideDecryption }}
+                    <button id="downloadbutton" class="btn btn-primary btn-lg" type="button" disabled onclick="Download(this);">
+                        <span id="wasmspinner" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        Loading...
+                    </button>
+                {{ else }}
+                    <button class="btn btn-primary btn-lg" type="button" onclick="Download(this);">
+                        Download
+                    </button>
+                {{ end }}
+            </div>
+
+            <div id="errordiv" class="mt-3" style="display:none">
+                <div class="alert alert-danger bg-danger text-white border-0" role="alert">
+                    <div id="errormessage" class="small"></div>
+                </div>
+            </div>
+
+        </div>
     </div>
-
+</div>
 
 {{ if .ClientSideDecryption }}
-		<script src="./js/min/polyfill.min.js"></script>
-		<script src="./js/min/streamsaver.min.js"></script>
-		<script src="./js/min/wasm_exec.min.js"></script>
-		
-		
-		<script>
-{{ if .EndToEndEncryption }}
-		parseHashValue({{.Id}});
-{{ end }}
-		
-		const go = new Go(); // Defined in wasm_exec.js
-		const WASM_URL = 'main.wasm?v=1';
+        <script src="./js/min/polyfill.min.js"></script>
+        <script src="./js/min/streamsaver.min.js"></script>
+        <script src="./js/min/wasm_exec.min.js"></script>
+        
+        <script>
+        {{ if .EndToEndEncryption }}
+        parseHashValue({{.Id}});
+        {{ end }}
+        
+        const go = new Go(); // Defined in wasm_exec.js
+        const WASM_URL = 'main.wasm?v=1';
 
-		var wasm;
+        var wasm;
 
-		try {
-		    if ('instantiateStreaming' in WebAssembly) {
-			WebAssembly.instantiateStreaming(fetch(WASM_URL), go.importObject).then(function(obj) {
-			    wasm = obj.instance;
-			    go.run(wasm);
-			    document.getElementById("wasmspinner").style.display = "none";
-			    document.getElementById("downloadbutton").disabled = false;
-			    document.getElementById("downloadbutton").innerHTML = "Download";
-			})
-		    } else {
-			fetch(WASM_URL).then(resp =>
-			    resp.arrayBuffer()
-			).then(bytes =>
-			    WebAssembly.instantiate(bytes, go.importObject).then(function(obj) {
-				wasm = obj.instance;
-				go.run(wasm);
-				document.getElementById("wasmspinner").style.display = "none";
-				document.getElementById("downloadbutton").disabled = false;
-				document.getElementById("downloadbutton").innerHTML = "Download";
-			    })
-			)
-		    }
-		} catch (err) {
-		    displayError(err);
-		}
+        try {
+            if ('instantiateStreaming' in WebAssembly) {
+            WebAssembly.instantiateStreaming(fetch(WASM_URL), go.importObject).then(function(obj) {
+                wasm = obj.instance;
+                go.run(wasm);
+                document.getElementById("wasmspinner").style.display = "none";
+                document.getElementById("downloadbutton").disabled = false;
+                document.getElementById("downloadbutton").innerHTML = "Download File";
+            })
+            } else {
+            fetch(WASM_URL).then(resp =>
+                resp.arrayBuffer()
+            ).then(bytes =>
+                WebAssembly.instantiate(bytes, go.importObject).then(function(obj) {
+                wasm = obj.instance;
+                go.run(wasm);
+                document.getElementById("wasmspinner").style.display = "none";
+                document.getElementById("downloadbutton").disabled = false;
+                document.getElementById("downloadbutton").innerHTML = "Download File";
+                })
+            )
+            }
+        } catch (err) {
+            displayError(err);
+        }
 
 
-		async function DownloadEncrypted() {
-		    try {
-{{ if .EndToEndEncryption }}
-			let key = sessionStorage.getItem("key-{{ .Id }}");
-			sessionStorage.removeItem("key-{{ .Id }}"); 
-			let filename = sessionStorage.getItem("fn-{{ .Id }}");
-			sessionStorage.removeItem("fn-{{ .Id }}"); 
+        async function DownloadEncrypted() {
+            try {
+                {{ if .EndToEndEncryption }}
+                let key = sessionStorage.getItem("key-{{ .Id }}");
+                sessionStorage.removeItem("key-{{ .Id }}"); 
+                let filename = sessionStorage.getItem("fn-{{ .Id }}");
+                sessionStorage.removeItem("fn-{{ .Id }}"); 
+                {{ else }}
+                let key = "{{ .Cipher }}";
+                {{ end }}
+                const response  = await GokapiDecrypt(key, "./downloadFile?id={{ .Id }}");
+                if (response instanceof Error) {
+                    throw response;
+                }
+                
+                const readableStream = response.body;
+                const reader = response.body.getReader();
+                {{ if .UsesHttps }}
+                streamSaver.mitm = './serviceworker/index.html';
+                {{ else }}
+                console.log("Gokapi is not being accessed through https, therefore an external serviceworker will be used");
+                streamSaver.mitm = 'https://forceu.github.io/Gokapi/internal/webserver/web/static/serviceworker/index.html';
+                {{ end }}
+                {{ if .EndToEndEncryption }}
+                const fileStream = streamSaver.createWriteStream(filename);
+                {{ else }}
+                const fileStream = streamSaver.createWriteStream({{.Name }});
+                {{ end }}
+                         
+                window.writer = fileStream.getWriter();
+
+                const pump = () => reader.read()
+                    .then(res => res.done ?
+                    writer.close() :
+                    writer.write(res.value).then(pump))
+
+                pump();
+            } catch (err) {
+                if (err.message.includes("Failed to fetch")) {
+                    console.log(err);
+                displayError("Unable to download file. Please contact the uploader. Possible problem: Incorrect CORS rules, if using remote storage");
+                    
+                } else {
+                displayError(err);
+                }
+            }
+        }
+
+        function displayError(err) {
+            document.getElementById("buttondiv").style.display = "none";
+            document.getElementById("errordiv").style.display = "block";
+            document.getElementById("errormessage").innerHTML = "<b>Error: </b> " + err.toString().replace(/^Error:/gi, "");
+            console.error('Caught exception', err)
+        }
+
+
+        function Download(button) {
+            button.disabled = true;
+            
+            DownloadEncrypted().catch(err => {
+                console.error('Error during download:', err);
+                displayError(err);
+            });
+        }
+        
+        </script>
 {{ else }}
-			let key = "{{ .Cipher }}";
-{{ end }}
-			const response  = await GokapiDecrypt(key, "./downloadFile?id={{ .Id }}");
-			if (response instanceof Error) {
-			    throw response;
-			}
-			
-			const readableStream = response.body;
-			const reader = response.body.getReader();
-{{ if .UsesHttps }}
-			streamSaver.mitm = './serviceworker/index.html';
-{{  else }}
-			console.log("Gokapi is not being accessed through https, therefore an external serviceworker will be used");
-			streamSaver.mitm = 'https://forceu.github.io/Gokapi/internal/webserver/web/static/serviceworker/index.html';
-{{  end }}
-{{ if .EndToEndEncryption }}
-			const fileStream = streamSaver.createWriteStream(filename);
-{{ else }}
-			const fileStream = streamSaver.createWriteStream({{.Name }});
-{{ end }}
-					     
-			window.writer = fileStream.getWriter();
 
-			const pump = () => reader.read()
-			    .then(res => res.done ?
-				writer.close() :
-				writer.write(res.value).then(pump))
-
-			pump();
-		    } catch (err) {
-		        if (err.message.includes("Failed to fetch")) {
-		        	console.log(err);
-				displayError("Unable to download file. Please contact the uploader. Possible problem: Incorrect CORS rules, if using remote storage");
-		        	
-		        } else {
-				displayError(err);
-		        }
-		    }
-		}
-
-		function displayError(err) {
-		    document.getElementById("buttondiv").style.display = "none";
-		    document.getElementById("errordiv").style.display = "block";
-		    document.getElementById("errormessage").innerHTML = "<b>Error: </b> " + err.toString().replace(/^Error:/gi, "");
-		    console.error('Caught exception', err)
-		}
-
-
-		function Download(button) {
-		    button.disabled = true;
-		    DownloadEncrypted().catch(err => {
-			    console.error('Error during download:', err);
-			    displayError(err);
-			});
-		}
-		
-		</script>
-{{ else }}
-
-		<script> 
-		   function Download(button) {
-		     button.disabled = true;
-		     location.href = "./downloadFile?id={{ .Id }}";
-		   }   
-		</script>
+        <script> 
+           function Download(button) {
+             button.disabled = true;
+             location.href = "./downloadFile?id={{ .Id }}";
+           }
+        </script>
 {{ end }}
 {{ if .EndToEndEncryption }}
-		<script> 
-			let filename = sessionStorage.getItem("fn-{{ .Id }}");
-			document.getElementById("filename").innerText = filename;
-			document.title = "{{.PublicName}}: "+ filename;
-		</script>
+        <script> 
+            let filename = sessionStorage.getItem("fn-{{ .Id }}");
+            if(filename) {
+                document.getElementById("filename").innerText = filename;
+                document.title = "{{.PublicName}}: "+ filename;
+            }
+        </script>
 {{ end }}
         
 {{ template "pagename" "PublicDownload"}}

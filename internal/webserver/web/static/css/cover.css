@@ -693,4 +693,43 @@ tr.no-bottom-border td {
     #logviewer::-webkit-scrollbar { width: 8px; }
     #logviewer::-webkit-scrollbar-track { background: #000; }
     #logviewer::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+    
+    
+       .download-wrapper {
+        min-height: 70vh; 
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .file-card {
+        border: 1px solid #333;
+        border-radius: 1rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        /* Removed the transform/hover effect */
+        max-width: 450px;
+        width: 100%;
+        background: #1e1e1e; 
+        color: #e0e0e0;
+    }
+    .icon-container {
+        width: 70px;
+        height: 70px;
+        background-color: #2d2d2d;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem auto;
+        color: #0d6efd;
+    }
+    .filename-text {
+        word-wrap: break-word;
+        color: #ffffff;
+        font-weight: 600;
+    }
+    .dark-list-item {
+        background-color: #252525 !important;
+        border-color: #333 !important;
+        color: #b0b0b0 !important;
+    }
 
