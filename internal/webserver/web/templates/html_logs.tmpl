@@ -60,7 +60,7 @@
                     <div class="text-muted small text-uppercase fw-bold mb-1">CPU Load</div>
                     <div class="h5 mb-2 text-light">{{ .CpuLoad}}%</div>
                     <div class="progress progress-stat">
-                        <div class="progress-bar bg-info" style="width: 12%"></div>
+                        <div class="progress-bar" id="barCpu" style="width: {{ .CpuLoad}}%"></div>
                     </div>
                 </div>
             </div>
@@ -70,9 +70,9 @@
             <div class="card stat-card border-0 shadow-sm h-100">
                 <div class="card-body p-3">
                     <div class="text-muted small text-uppercase fw-bold mb-1">Memory</div>
-                    <div class="h5 mb-2 text-light text-nowrap"><span id="usedMemory">142</span> / <span id="totalMemory">512</span> <span id="memoryUnit" class="small opacity-50">MB</span></div>
+                    <div class="h5 mb-2 text-light text-nowrap"><span id="usedMemory"></span> / <span id="totalMemory"></span> <span id="memoryUnit" class="small opacity-50"></span></div>
                     <div class="progress progress-stat">
-                        <div class="progress-bar bg-success" style="width: 27%"></div>
+                        <div class="progress-bar" id="barMemory" style="width: {{.MemoryUsagePercent}}%"></div>
                     </div>
                 </div>
             </div>
@@ -82,9 +82,9 @@
             <div class="card stat-card border-0 shadow-sm h-100">
                 <div class="card-body p-3">
                     <div class="text-muted small text-uppercase fw-bold mb-1">Disk Space</div>
-                    <div class="h5 mb-2 text-light">68%</div>
+                    <div class="h5 mb-2 text-light text-nowrap"><span id="usedDisk"></span> / <span id="totalDisk"></span> <span id="diskUnit" class="small opacity-50"></span></div>
                     <div class="progress progress-stat">
-                        <div class="progress-bar bg-warning" style="width: 68%"></div>
+                        <div class="progress-bar" id="barDisk" style="width: {{.DiskUsagePercent}}%"></div>
                     </div>
                 </div>
             </div>
@@ -183,32 +183,83 @@
     	let unit = document.getElementById('memoryUnit').innerText;
     	insertReadableSizeForcedUnit(used, 'usedMemory', unit);
     }
+    function setDiskUsage(used, total) {
+    	insertReadableSizeTwoOutputs(total, 'totalDisk', 'diskUnit');
+    	let unit = document.getElementById('diskUnit').innerText;
+    	insertReadableSizeForcedUnit(used, 'usedDisk', unit);
+    }
     
-    function formatDuration(seconds) {
-  	const units = [
-	    { label: "d", value: 86400 },
-	    { label: "h", value: 3600 },
-	    { label: "m", value: 60 },
-	    { label: "s", value: 1 },
-	  ];
+function formatDuration(seconds) {
+  const units = [
+    { label: "y", value: 31536000 },
+    { label: "d", value: 86400 },
+    { label: "h", value: 3600 },
+    { label: "m", value: 60 },
+    { label: "s", value: 1 },
+  ];
 
-	  const parts = [];
+  let startIndex = units.findIndex(unit => seconds >= unit.value);
 
-	  for (const unit of units) {
-	    if (seconds >= unit.value) {
-	      const amount = Math.floor(seconds / unit.value);
-	      seconds %= unit.value;
-	      parts.push(`${amount}${unit.label}`);
-	    }
+  // If everything is below 1 minute, force start at minutes
+  if (startIndex === -1 || units[startIndex].label === "s") {
+    startIndex = units.findIndex(u => u.label === "m");
+  }
 
-	    if (parts.length === 2) break;
-	  }
+  const first = units[startIndex];
+  const second = units[startIndex + 1];
 
-  return parts.length ? parts.join(" ") : "0s";
+  const firstAmount = Math.floor(seconds / first.value);
+  const remainder = seconds % first.value;
+  const secondAmount = Math.floor(remainder / second.value);
+
+  return `${firstAmount}${first.label} ${secondAmount}${second.label}`;
+}
+
+function addUptime() {
+    let addedSeconds = 1;
+    if (currentUptime > 3600) {
+        addedSeconds = 60;
+    }
+    setTimeout(() => {
+        currentUptime = currentUptime + addedSeconds;
+        document.getElementById('uptime').innerText = formatDuration(currentUptime);
+        addUptime();
+    }, addedSeconds * 1000);
+}
+
+function setPercentageBar(id, num1, num2) {
+    let percentage = num1;
+    if (num2 !== undefined) {
+        percentage = ((num1 / num2) * 100);
+    }
+
+    const bar = document.getElementById(id);
+
+    bar.classList.remove("bg-success");
+    bar.classList.remove("bg-warning");
+    bar.classList.remove("bg-danger");
+
+    if (percentage < 70) {
+        bar.classList.add("bg-success");
+    }
+    if (percentage >= 70 && percentage < 90) {
+        bar.classList.add("bg-warning");
+    }
+    if (percentage >= 90) {
+        bar.classList.add("bg-danger");
+    }
+    bar.style.width = percentage + '%';
 }
     
+    var currentUptime = {{.Uptime}};
+    setPercentageBar("barCpu", {{ .CpuLoad}});
+    setPercentageBar("barDisk", {{ .DiskUsage}}, {{.DiskTotal}});
+    setPercentageBar("barMemory", {{.MemoryUsage}}, {{.MemoryTotal}});
     setMemoryUsage({{.MemoryUsage}}, {{.MemoryTotal}});
-    document.getElementById('uptime').innerText = formatDuration({{.Uptime}});;
+    setDiskUsage({{.DiskUsage}}, {{.DiskTotal}});
+    document.getElementById('uptime').innerText = formatDuration(currentUptime);
+    addUptime();
+    
     
 </script>
 

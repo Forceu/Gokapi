@@ -6,8 +6,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/shirou/gopsutil/v4/cpu"
+	"github.com/shirou/gopsutil/v4/disk"
 	"github.com/shirou/gopsutil/v4/mem"
 )
 
@@ -33,7 +35,9 @@ func monitorCpuUsage() {
 	go func() {
 		_ = GetCpuUsage()
 		select {
-		case <-time.After(time.Second * 30):
+		// run every minute, as GetCpuUsage only reports the
+		// percentage since the last call
+		case <-time.After(time.Minute * 1):
 			monitorCpuUsage()
 		}
 	}()
@@ -68,6 +72,15 @@ func GetMemoryInfo() (uint64, uint64, uint64) {
 		return 0, 0, 0
 	}
 	return memInfo.Free, memInfo.Used, memInfo.Total
+}
+
+func GetDiskInfo() (uint64, uint64, uint64) {
+	diskInfo, err := disk.Usage(configuration.Get().DataDir)
+	if err != nil {
+		fmt.Println(err)
+		return 0, 0, 0
+	}
+	return diskInfo.Free, diskInfo.Used, diskInfo.Total
 }
 
 func GetCpuUsage() int {
