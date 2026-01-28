@@ -353,3 +353,15 @@ func SaveFileRequest(request models.FileRequest) {
 func DeleteFileRequest(request models.FileRequest) {
 	db.DeleteFileRequest(request)
 }
+
+// Statistics
+
+// GetStatTraffic returns the total traffic from statistics
+func GetStatTraffic() uint64 {
+	return db.GetStatTraffic()
+}
+
+// SaveStatTraffic stores the total traffic
+func SaveStatTraffic(totalTraffic uint64) {
+	db.SaveStatTraffic(totalTraffic)
+}

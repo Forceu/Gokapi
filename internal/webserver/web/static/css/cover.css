@@ -57,6 +57,11 @@ a:hover {
     filter: brightness(80%);
 }
 
+
+.text-muted {
+    color: #adb5bd !important; 
+}
+
 .dropzone {
     background: rgb(47, 52, 58) !important;
     color: #ffffff;
@@ -647,3 +652,45 @@ tr.no-bottom-border td {
     cursor: not-allowed;
     opacity: 1;
 }
+
+
+    .stat-card {
+        background: #1a1d20;
+        border: 1px solid #2d3238;
+        border-radius: 12px;
+        overflow: hidden;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.3) !important;
+        border-color: #0d6efd;
+    }
+    .stat-icon {
+        opacity: 0.6;
+        font-size: 1.2rem;
+    }
+    .progress-stat {
+        height: 4px;
+        background-color: #2b3035;
+    }
+    
+    .log-dark-input {
+        background-color: #2b3035 !important;
+        border-color: #444b52 !important;
+        color: #e9ecef !important;
+    }
+    .log-dark-input:focus {
+        background-color: #32383e !important;
+        border-color: #0d6efd !important;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+    .input-group-text-dark {
+        background-color: #1a1d20 !important;
+        border-color: #444b52 !important;
+        color: #adb5bd !important;
+    }
+    #logviewer::-webkit-scrollbar { width: 8px; }
+    #logviewer::-webkit-scrollbar-track { background: #000; }
+    #logviewer::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+

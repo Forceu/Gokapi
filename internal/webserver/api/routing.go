@@ -239,6 +239,18 @@ var routes = []apiRoute{
 		RequestParser: &paramLogsDelete{},
 	},
 	{
+		Url:           "/logs/systemStatus",
+		ApiPerm:       models.ApiPermManageLogs,
+		execution:     apiLogSystemStatus,
+		RequestParser: nil,
+	},
+	{
+		Url:           "/logs/get",
+		ApiPerm:       models.ApiPermManageLogs,
+		execution:     apiLogsGet,
+		RequestParser: &paramLogsGet{},
+	},
+	{
 		Url:           "/e2e/get", // not published in API documentation
 		ApiPerm:       models.ApiPermUpload,
 		execution:     apiE2eGet,
@@ -588,6 +600,15 @@ type paramLogsDelete struct {
 
 func (p *paramLogsDelete) ProcessParameter(r *http.Request) error {
 	p.Request = r
+	return nil
+}
+
+type paramLogsGet struct {
+	Timestamp    int64 `header:"timestamp"`
+	foundHeaders map[string]bool
+}
+
+func (p *paramLogsGet) ProcessParameter(_ *http.Request) error {
 	return nil
 }
 

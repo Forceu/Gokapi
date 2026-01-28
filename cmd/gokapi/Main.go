@@ -15,6 +15,7 @@ import (
 
 	"github.com/forceu/gokapi/internal/configuration/database/migration"
 	"github.com/forceu/gokapi/internal/helper/systemd"
+	"github.com/forceu/gokapi/internal/logging/serverStats"
 
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
@@ -69,6 +70,7 @@ func main() {
 	storage.CleanUp(true)
 	logging.LogStartup()
 	showDeprecationWarnings()
+	serverStats.Init()
 	go webserver.Start()
 
 	c := make(chan os.Signal)
@@ -81,6 +83,7 @@ func main() {
 func shutdown() {
 	fmt.Println("Shutting down...")
 	webserver.Shutdown()
+	serverStats.Shutdown()
 	logging.LogShutdown()
 	database.Close()
 }

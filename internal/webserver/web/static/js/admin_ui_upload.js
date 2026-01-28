@@ -303,7 +303,7 @@ function parseProgressStatus(eventData) {
             text = "Processing file...";
             break;
         case 1:
-            text = "Uploading file...";
+            text = "Saving file...";
             break;
         case 2:
             text = "Finalising...";

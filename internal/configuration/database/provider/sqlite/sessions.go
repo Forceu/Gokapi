@@ -3,9 +3,10 @@ package sqlite
 import (
 	"database/sql"
 	"errors"
+	"time"
+
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
-	"time"
 )
 
 type schemaSessions struct {

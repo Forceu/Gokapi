@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -13,6 +14,7 @@ import (
 	"github.com/forceu/gokapi/internal/encryption"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/logging"
+	"github.com/forceu/gokapi/internal/logging/serverStats"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
 	"github.com/forceu/gokapi/internal/storage/chunking"
@@ -971,6 +973,54 @@ func apiLogsDelete(_ http.ResponseWriter, r requestParser, user models.User) {
 		panic("invalid parameter passed")
 	}
 	logging.DeleteLogs(user.Name, user.Id, request.Timestamp, request.Request)
+}
+func apiLogsGet(w http.ResponseWriter, r requestParser, _ models.User) {
+	request, ok := r.(*paramLogsGet)
+	if !ok {
+		panic("invalid parameter passed")
+	}
+	result := struct {
+		LogEntries string `json:"logEntries"`
+		Timestamp  int64  `json:"timestamp"`
+	}{}
+	if request.Timestamp == 0 {
+		result.LogEntries, _ = logging.GetAll()
+	} else {
+		result.LogEntries = logging.GetSince(request.Timestamp)
+	}
+	result.Timestamp = time.Now().Unix()
+	resultJson, err := json.Marshal(result)
+	helper.Check(err)
+	_, _ = w.Write(resultJson)
+}
+
+func apiLogSystemStatus(w http.ResponseWriter, _ requestParser, _ models.User) {
+	result := struct {
+		Uptime                int64  `json:"uptime"`
+		CpuLoad               int    `json:"cpuLoad"`
+		MemoryUsagePercentage int    `json:"memoryUsagePercentage"`
+		DiskUsagePercentage   int    `json:"diskUsagePercentage"`
+		ActiveFiles           int    `json:"activeFiles"`
+		MemoryUsed            uint64 `json:"memoryUsed"`
+		MemoryTotal           uint64 `json:"memoryTotal"`
+		DiskUsed              uint64 `json:"diskUsed"`
+		DiskTotal             uint64 `json:"diskTotal"`
+		DataServed            uint64 `json:"dataServed"`
+	}{
+		Uptime:      serverStats.GetUptime(),
+		CpuLoad:     serverStats.GetCpuUsage(),
+		DataServed:  serverStats.GetCurrentTraffic(),
+		ActiveFiles: serverStats.GetTotalFiles(),
+	}
+	_, result.MemoryUsed, result.MemoryTotal, result.MemoryUsagePercentage = serverStats.GetMemoryInfo()
+	_, result.DiskUsed, result.DiskTotal, result.DiskUsagePercentage = serverStats.GetDiskInfo()
+	resultJson, err := json.Marshal(result)
+	if err != nil {
+		fmt.Println(err)
+		sendError(w, http.StatusInternalServerError, errorcodes.InternalServer, err.Error())
+		return
+	}
+	_, _ = w.Write(resultJson)
 }
 
 func apiE2eGet(w http.ResponseWriter, _ requestParser, user models.User) {

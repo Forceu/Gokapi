@@ -553,7 +553,7 @@
             ]
           }
         ],
-       "parameters": [
+        "parameters": [
           {
             "name": "id",
             "in": "header",
@@ -562,7 +562,8 @@
             "schema": {
               "type": "string"
             }
-          }],        
+          }
+        ],
         "responses": {
           "200": {
             "description": "Operation successful",
@@ -601,7 +602,7 @@
             ]
           }
         ],
-       "parameters": [
+        "parameters": [
           {
             "name": "id",
             "in": "header",
@@ -610,7 +611,8 @@
             "schema": {
               "type": "string"
             }
-          },{
+          },
+          {
             "name": "uuid",
             "in": "header",
             "description": "The reserved UUID",
@@ -619,13 +621,12 @@
               "type": "string"
             }
           }
-        ],        
+        ],
         "responses": {
           "200": {
             "description": "Operation successful",
             "content": {
-              "application/json": {
-              }
+              "application/json": {}
             }
           },
           "400": {
@@ -655,7 +656,7 @@
             ]
           }
         ],
-       "parameters": [
+        "parameters": [
           {
             "name": "fileRequestId",
             "in": "header",
@@ -783,6 +784,96 @@
           },
           "401": {
             "description": "Invalid API key provided for authentication or API key does not have the required permission"
+          }
+        }
+      }
+    },
+    "/logs/systemStatus": {
+      "get": {
+        "tags": [
+          "logs"
+        ],
+        "summary": "Outputs server status information",
+        "description": "This API call returns information about the Gokapi server status. Requires API permission MANAGE_LOGS",
+        "operationId": "logsSystemStatus",
+        "security": [
+          {
+            "apikey": [
+              "MANAGE_LOGS"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ServerStatus"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid API key provided for authentication"
+          }
+        }
+      }
+    },
+    "/logs/get": {
+      "get": {
+        "tags": [
+          "logs"
+        ],
+        "summary": "Outputs server logs",
+        "description": "This API call returns the server logs with an optional cutoff timestamp to only send the newest logs. Requires API permission MANAGE_LOGS",
+        "operationId": "logsGet",
+        "security": [
+          {
+            "apikey": [
+              "MANAGE_LOGS"
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "timestamp",
+            "in": "header",
+            "description": "Optional cutoff timestamp (Unix epoch in seconds) to filter logs",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "logEntries": {
+                      "type": "string",
+                      "description": "The server logs as a string"
+                    },
+                    "timestamp": {
+                      "type": "integer",
+                      "format": "int64",
+                      "description": "Timestamp of current time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid API key provided for authentication"
           }
         }
       }
@@ -2174,6 +2265,77 @@
         },
         "description": "File is a struct used for saving information about an uploaded file",
         "x-go-package": "Gokapi/internal/models"
+      },
+      "ServerStatus": {
+        "type": "object",
+        "properties": {
+          "uptime": {
+            "description": "Time in seconds since Gokapi started",
+            "example": "3600",
+            "type": "integer",
+            "format": "int64"
+          },
+          "cpuLoad": {
+            "description": "CPU load in percent",
+            "example": "6",
+            "type": "integer",
+            "format": "int32"
+          },
+          "memoryUsagePercentage": {
+            "description": "Usage of virtual memory in percent",
+            "example": "34",
+            "type": "integer",
+            "format": "int32"
+          },
+          "diskUsagePercentage": {
+            "description": "Usage of disk space in percent",
+            "example": "76",
+            "type": "integer",
+            "format": "int32"
+          },
+          "activeFiles": {
+            "description": "Count of all downloadable files on the server",
+            "example": "670",
+            "type": "integer",
+            "format": "int32"
+          },
+          "memoryUsed": {
+            "description": "Usage of virtual memory in bytes",
+            "example": "22964649984",
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "memoryTotal": {
+            "description": "Total virtual memory in bytes",
+            "example": "67314262016",
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "diskUsed": {
+            "description": "Usage of disk space in bytes",
+            "example": "5292891832320",
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "diskTotal": {
+            "description": "Total disk space in bytes",
+            "example": "6913048707072",
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "dataServed": {
+            "description": "Total outgoing traffic in bytes, persistent between sessions",
+            "example": "22830562614826",
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        },
+        "description": "ServerStats is a struct used for passing server status information"
       },
       "FileRequest": {
         "type": "object",

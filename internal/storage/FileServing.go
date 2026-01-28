@@ -26,6 +26,7 @@ import (
 	"github.com/forceu/gokapi/internal/environment"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/logging"
+	"github.com/forceu/gokapi/internal/logging/serverStats"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage/chunking"
 	"github.com/forceu/gokapi/internal/storage/filesystem"
@@ -615,6 +616,7 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 		go sse.PublishDownloadCount(file)
 	}
 	logging.LogDownload(file, r, configuration.Get().SaveIp)
+	go serverStats.AddTraffic(uint64(file.SizeBytes))
 
 	if !file.IsLocalStorage() {
 		// If non-blocking, we are not setting a download complete status as there is no reliable way to
@@ -692,6 +694,7 @@ func ServeFilesAsZip(files []models.File, filename string, w http.ResponseWriter
 		entryWriter, err := zipWriter.CreateHeader(header)
 		helper.Check(err)
 		logging.LogDownload(file, r, saveIp)
+		go serverStats.AddTraffic(uint64(file.SizeBytes))
 		if !file.IsLocalStorage() {
 			statusId := downloadstatus.SetDownload(file)
 			err = aws.Stream(entryWriter, file)

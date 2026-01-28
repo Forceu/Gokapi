@@ -28,7 +28,7 @@ import (
 	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/encryption"
 	"github.com/forceu/gokapi/internal/helper"
-	"github.com/forceu/gokapi/internal/logging"
+	"github.com/forceu/gokapi/internal/logging/serverStats"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
 	"github.com/forceu/gokapi/internal/storage/filerequest"
@@ -721,7 +721,6 @@ type AdminView struct {
 	ActiveUser            models.User
 	UserMap               map[int]*models.User
 	ServerUrl             string
-	Logs                  string
 	PublicName            string
 	IsAdminView           bool
 	IsDownloadView        bool
@@ -739,8 +738,20 @@ type AdminView struct {
 	MinLengthPassword     int
 	FileRequestMaxFiles   int
 	FileRequestMaxSize    int
+	TotalFiles            int
+	CpuLoad               int
+	MemoryUsagePercent    int
+	DiskUsagePercent      int
+	DataServed            int64
+	Uptime                int64
 	TimeNow               int64
-	CustomContent         customStatic
+	MemoryUsage           uint64
+	MemoryTotal           uint64
+	DiskUsage             uint64
+	DiskTotal             uint64
+	TotalTraffic          uint64
+
+	CustomContent customStatic
 }
 
 // getUserMap needs to return the map with pointers; otherwise template cannot call
@@ -806,7 +817,12 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 		}
 		apiKeyList = sortApiKeys(apiKeyList)
 	case ViewLogs:
-		u.Logs, _ = logging.GetAll()
+		u.TotalFiles = serverStats.GetTotalFiles()
+		u.Uptime = serverStats.GetUptime()
+		u.TotalTraffic = serverStats.GetCurrentTraffic()
+		_, u.MemoryUsage, u.MemoryTotal, u.MemoryUsagePercent = serverStats.GetMemoryInfo()
+		_, u.DiskUsage, u.DiskTotal, u.DiskUsagePercent = serverStats.GetDiskInfo()
+		u.CpuLoad = serverStats.GetCpuUsage()
 	case ViewUsers:
 		uploadCounts := storage.GetUploadCounts()
 		u.Users = make([]userInfo, 0)

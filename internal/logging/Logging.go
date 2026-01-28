@@ -47,6 +47,107 @@ func GetAll() (string, bool) {
 	return fmt.Sprintf("[%s] No log file found!", categoryWarning), false
 }
 
+func GetSince(timestamp int64) string {
+	exists, err := helper.FileExists(logPath)
+	helper.Check(err)
+	if !exists {
+		return fmt.Sprintf("[%s] No log file found!", categoryWarning)
+	}
+	var (
+		lines  []string
+		output strings.Builder
+	)
+
+	err = readLinesReverse(logPath, timestamp, func(line string) (error, bool) {
+		ts, err := parseTimeLogEntry(line)
+		if err != nil {
+			return nil, false // skip malformed lines
+		}
+
+		if ts.Unix() < timestamp {
+			return nil, true
+		}
+
+		lines = append(lines, line)
+		return nil, false
+	})
+
+	helper.Check(err)
+
+	for i := len(lines) - 1; i >= 0; i-- {
+		output.WriteString(lines[i])
+		output.WriteByte('\n')
+	}
+
+	return output.String()
+}
+
+func readLinesReverse(path string, maxTime int64, handleLine func(string) (error, bool)) error {
+	file, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	const chunkSize = 4096
+	var buffer []byte
+
+	info, err := file.Stat()
+	if err != nil {
+		return err
+	}
+	if info.ModTime().Unix() < maxTime {
+		return nil
+	}
+
+	offset := info.Size()
+
+	for offset > 0 {
+		readSize := int64(chunkSize)
+		if offset < readSize {
+			readSize = offset
+		}
+		offset -= readSize
+
+		_, err = file.Seek(offset, 0)
+		if err != nil {
+			return err
+		}
+
+		chunk := make([]byte, readSize)
+		_, err = file.Read(chunk)
+		if err != nil {
+			return err
+		}
+
+		buffer = append(chunk, buffer...)
+		for {
+			idx := len(buffer) - 1
+			for idx >= 0 && buffer[idx] != '\n' {
+				idx--
+			}
+			if idx < 0 {
+				break
+			}
+			line := string(buffer[idx+1:])
+			buffer = buffer[:idx]
+			err, endOfLine := handleLine(line)
+			if err != nil || endOfLine {
+				return err
+			}
+		}
+	}
+
+	// Handle the first line (start of file)
+	if len(buffer) > 0 {
+		err, endOfLine := handleLine(string(buffer))
+		if err != nil || endOfLine {
+			return err
+		}
+	}
+	return nil
+}
+
 // createLogEntry adds a line to the logfile including the current date. Also outputs to Stdout if set.
 func createLogEntry(category, text string, blocking bool) {
 	output := createLogFormat(category, text)
