@@ -171,6 +171,7 @@ func filesystemHandler(webserverDir fs.FS) http.HandlerFunc {
 			handleFavicon(w, r)
 			return
 		}
+		addCacheHeader(w)
 		http.FileServer(http.FS(webserverDir)).ServeHTTP(w, r)
 	}
 }
@@ -1114,6 +1115,12 @@ func addNoCacheHeader(w http.ResponseWriter) {
 	w.Header().Set("Cloudflare-CDN-Cache-Control", "no-store, no-cache")
 	w.Header().Set("cache-control", "no-store, no-cache")
 	w.Header().Set("Pragma", "no-cache")
+}
+
+func addCacheHeader(w http.ResponseWriter) {
+	w.Header().Set("cdn-cache-control", "public, max-age=36000")
+	w.Header().Set("Cloudflare-CDN-Cache-Control", "public, max-age=36000")
+	w.Header().Set("cache-control", "public, max-age=36000")
 }
 
 // A view containing parameters for a generic template
