@@ -8,7 +8,7 @@ Overview of all changes
 -----------------------
 
 
-v2.2.0 (not yet released)
+v2.2.0 (2026-01-29)
 ^^^^^^^^^^^^^^^^^^^
 
 Changelog
