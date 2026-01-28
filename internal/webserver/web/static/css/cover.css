@@ -62,17 +62,6 @@ a:hover {
     color: #adb5bd !important; 
 }
 
-.dropzone {
-    background: rgb(47, 52, 58) !important;
-    color: #ffffff;
-    border-radius: 5px;
-}
-
-.dropzone:hover {
-    background: rgb(51, 57, 63) !important;
-    color: #ffffff;
-    border-radius: 5px;
-}
 
 .card {
     margin: 0 auto;
@@ -461,17 +450,6 @@ tr.no-bottom-border td {
 }
 
 
-.upload-box {
-    border: 2px dashed #6c757d;
-    border-radius: 8px;
-    padding: 2rem;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-}
-
-.upload-box:hover {
-    background-color: rgba(255, 255, 255, 0.05);
-}
 
 
 .info-box {
@@ -517,21 +495,31 @@ tr.no-bottom-border td {
 }
 
 .upload-box {
-    border: 2px dashed rgba(255, 255, 255, 0.2);
-    padding: 2rem;
-    transition: all 0.2s ease;
-    cursor: pointer;
-    display: block;
+    background: #212529;
+    border: 2px dashed rgba(255, 255, 255, 0.2); 
+    border-radius: 8px ; 
+    padding: 2rem; 
+    transition: all 0.2s ease; 
+    cursor: pointer; 
+    display: block; 
+    transition: background-color 0.2s ease; 
 }
 
-.upload-box.highlight {
-    border-color: #0d6efd;
-    background-color: rgba(13, 110, 253, 0.05);
+.upload-box.highlight, .upload-box.dz-drag-hover{
+    border-color: #0d6efd; 
+    background-color: rgba(13, 110, 253, 0.05); 
+}
+
+
+
+.upload-box:hover {
+    background-color: rgba(255, 255, 255, 0.05); 
 }
 
 
 .pu-file-list {
     margin-top: 1.5rem;
+    padding: 0 1rem;
 }
 .pu-file-item {
     display: grid;
@@ -555,6 +543,7 @@ tr.no-bottom-border td {
     text-overflow: ellipsis;
     font-weight: 500;
     min-width: 0; 
+    text-align: left;
 }
 
 .pu-file-item .upload-status {

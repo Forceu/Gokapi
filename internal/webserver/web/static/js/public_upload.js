@@ -228,9 +228,9 @@ function formatSize(bytes) {
 
 async function withRetry(fn, {
     retries = 3,
-    retryDelay = 5000,
+    retryDelay = 3000,
     onRetry,
-    onWait, // New callback for 429s
+    onWait,
     signal
 } = {}) {
     let lastError;
