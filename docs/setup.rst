@@ -45,7 +45,7 @@ Stable version
 Unstable version
 """""""""""""""""
 
-Only recommended if you have experience with the command line. Go 1.20+ needs to be installed.
+Only recommended if you have experience with the command line. Go 1.25+ needs to be installed.
 
 Create a new folder and in this folder execute 
 ::

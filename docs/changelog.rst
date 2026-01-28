@@ -8,13 +8,44 @@ Overview of all changes
 -----------------------
 
 
+v2.2.0 (not yet released)
+^^^^^^^^^^^^^^^^^^^
+
+Changelog
+"""""""""
+
+* File Requests has been added, where you can request a file upload from other people
+* Log Viewer has gotten a big overhaul and displays many other stats now
+* It is now possible to use a custom favicon 
+* Short-lived tokens are used instead of user API keys to improve security
+* Browser timezone is used instead of server timezone for UI
+* Added env variable to set a minium password length @masterbender 
+* Downloads can be made from the UI without increasing the download counter
+* gokapi-cli now supports downloads
+* Add deprecation alerts @spaghetti-coder
+* A lot of UI improvements
+* Many small fixes and improvements
+
+
+Breaking Changes
+""""""""""""""""
+
+* ``DOCKER_NONROOT`` has been deprecated in favour of ``docker --user``. See `documentation <https://gokapi.readthedocs.io/en/latest/setup.html#migration-from-docker-nonroot-to-docker-user>`__ on how to migrate
+* API output for FileList has slightly changed
+* Chunks must be at least 5MB in size, except the last chunk
+* To delete logs, the user has to be an admin now
+
+
+**Full Changelog**: https://github.com/Forceu/Gokapi/compare/v2.1.0...v2.2.0
+
+
 v2.1.0 (2025-08-29)
 ^^^^^^^^^^^^^^^^^^^
 
 Changelog
 """""""""
 
-* Added a CLI tool that supports e2e encrypted uploads and folder uploads `#280 <https://github.com/Forceu/Gokapi/issues/280>`__, see `documentation <https://gokapi.readthedocs.io/en/stable/advanced.html#cli-tool>`__ for installation and usage
+* Added a CLI tool that supports e2e encrypted uploads and folder uploads, see `documentation <https://gokapi.readthedocs.io/en/stable/advanced.html#cli-tool>`__ for installation and usage `#280 <https://github.com/Forceu/Gokapi/issues/280>`__
 * Upgraded to Go 1.25 which might result in better performance on some systems
 * Added docker-compose file
 * Fixed crash after uploading an e2e encrypted file, forcing the user to refresh the webpage before uploading a new file `#283 <https://github.com/Forceu/Gokapi/issues/283>`__
@@ -670,5 +701,30 @@ Changelog
 * Added support for env variables, major refactoring
 * Configurations like length of the ID or salts can be changed with env variables now
 * Fixed minor bugs, minor enhancements 
+
+
+v1.1.0 (2021-03-18)
+^^^^^^^^^^^^^^^^^^^
+
+Changelog
+"""""""""
+
+* Added option to password protect uploads
+* Added ability to paste images into admin upload
+
+
+v1.0.1 (2021-03-12)
+^^^^^^^^^^^^^^^^^^^
+
+Changelog
+"""""""""
+
+* Increased security of generated download IDs
+
+
+v1.0 (2021-03-12)
+^^^^^^^^^^^^^^^^^
+
+Initial release
 
 

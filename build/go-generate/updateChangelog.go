@@ -146,7 +146,7 @@ func getSecret() string {
 }
 
 func loadGithubReleases(secret string) []githubRelease {
-	const url = "https://api.github.com/repos/Forceu/Gokapi/releases"
+	const url = "https://api.github.com/repos/Forceu/Gokapi/releases?per_page=1000"
 
 	spaceClient := http.Client{
 		Timeout: time.Second * 20,
