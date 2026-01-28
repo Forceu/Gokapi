@@ -58,7 +58,7 @@
             <div class="card stat-card border-0 shadow-sm h-100">
                 <div class="card-body p-3">
                     <div class="text-muted small text-uppercase fw-bold mb-1">CPU Load</div>
-                    <div class="h5 mb-2 text-light">{{ .CpuLoad}}%</div>
+                    <div class="h5 mb-2 text-light" id="labelCpu">{{ .CpuLoad}}%</div>
                     <div class="progress progress-stat">
                         <div class="progress-bar" id="barCpu" style="width: {{ .CpuLoad}}%"></div>
                     </div>
@@ -95,9 +95,6 @@
                 <div class="card-body p-3">
                     <div class="text-muted small text-uppercase fw-bold mb-1">Data Served</div>
                     <div class="h5 mb-0 text-light"><span id="totalTraffic"></span> <span id="totalTrafficUnit" class="small opacity-50"></span></div>
-                    <script>
-                    	insertReadableSizeTwoOutputs({{.TotalTraffic}}, 'totalTraffic', 'totalTrafficUnit');
-                    </script>
                 </div>
             </div>
         </div>
@@ -105,8 +102,8 @@
         <div class="col-6 col-lg-2">
             <div class="card stat-card border-0 shadow-sm h-100">
                 <div class="card-body p-3">
-                    <div class="text-muted small text-uppercase fw-bold mb-1">Active Files</div>
-                    <div class="h5 mb-0 text-light">{{ .TotalFiles }} <span class="small opacity-50">Total</span></div>
+                    <div class="text-muted small text-uppercase fw-bold mb-1">Uploaded Files</div>
+                    <div class="h5 mb-0 text-light"><span id="labelActiveFiles"> {{ .TotalFiles }}</span> <span class="small opacity-50">Total</span></div>
                 </div>
             </div>
         </div>
@@ -125,8 +122,9 @@
                 id="logviewer" 
                 rows="20" 
                 readonly 
-                style="resize: none; font-size: 0.85rem; line-height: 1.5; outline: none; border-radius: 0;"
-            >{{ .Logs }}</textarea>
+                style="resize: none; font-size: 0.85rem; line-height: 1.5; outline: none; border-radius: 0;">
+                	Loading...
+            </textarea>
         </div>
 
         <div class="card-footer bg-dark border-top border-secondary p-3">
@@ -138,8 +136,10 @@
                             <option value="all">All Events</option>
                             <option value="warning">Warnings</option>
                             <option value="auth">Security</option>
-                            <option value="download">Downloads</option>
                             <option value="upload">Uploads</option>
+                            <option value="edit">Modifications</option>
+                            <option value="download">Downloads</option>
+                            <option value="info">Info</option>
                         </select>
                     </div>
                 </div>
@@ -174,8 +174,7 @@
 <script src="./js/min/admin.min.{{ template "js_admin_version"}}.js"></script>
 <script>
     const textarea = document.getElementById('logviewer');
-    var logContent = textarea.value;
-    textarea.scrollTop = textarea.scrollHeight;
+    var logContent = '';
     
     
     function setMemoryUsage(used, total) {
@@ -216,15 +215,14 @@ function formatDuration(seconds) {
 }
 
 function addUptime() {
-    let addedSeconds = 1;
     if (currentUptime > 3600) {
-        addedSeconds = 60;
+        return;
     }
     setTimeout(() => {
-        currentUptime = currentUptime + addedSeconds;
+        currentUptime = currentUptime + 1;
         document.getElementById('uptime').innerText = formatDuration(currentUptime);
         addUptime();
-    }, addedSeconds * 1000);
+    }, 1000);
 }
 
 function setPercentageBar(id, num1, num2) {
@@ -250,7 +248,76 @@ function setPercentageBar(id, num1, num2) {
     }
     bar.style.width = percentage + '%';
 }
+
+var lastLogUpdate = 0;
+
+async function loadLogs(timestamp) {
+    const textarea = document.getElementById('logviewer');
+
+    try {
+        const data = await apiLogGet(timestamp);
+        lastLogUpdate = data.timestamp;
+        let doScroll = true;
+        if (timestamp != 0) {
+            if (data.logEntries == "") {
+                return;
+            }
+            doScroll = allowScroll();
+            logContent = logContent + data.logEntries;
+        } else {
+            logContent = data.logEntries;
+        }
+        filterLogs(document.getElementById('logFilter').value);
+        if (doScroll) {
+            textarea.scrollTop = textarea.scrollHeight;
+        }
+    } catch (error) {
+        lastLogUpdate = 0;
+        console.error("Failed to load logs:", error);
+        textarea.value = "Error loading logs. See console for details.";
+    }
+}
+
+
+async function loadStatus() {
+    try {
+        const data = await apiLogSystemStatus();
+        
+    currentUptime = data.uptime;
+    document.getElementById('labelCpu').innerText = data.cpuLoad+'%';
+    document.getElementById('labelActiveFiles').innerText = data.activeFiles;
+    setPercentageBar("barCpu", data.cpuLoad);
+    setPercentageBar("barDisk", data.diskUsagePercentage);
+    setPercentageBar("barMemory", data.memoryUsagePercentage);
+    setMemoryUsage(data.memoryUsed, data.memoryTotal);
+    setDiskUsage(data.diskUsed, data.diskTotal);
+    insertReadableSizeTwoOutputs(data.dataServed, 'totalTraffic', 'totalTrafficUnit');
+    } catch (error) {
+        console.error("Failed to server status:", error);
+    }
+}
+
+async function pollInfo() {
+firstStart=true;
+    while (true) {
+        await loadLogs(lastLogUpdate);
+        if (firstStart) {
+        	firstStart= false;
+        } else {
+        	await loadStatus();
+        }
+        await new Promise(r => setTimeout(r, POLL_INTERVAL_S * 1000));
+    }
+}
+
+function allowScroll() {
+	const textarea = document.getElementById('logviewer');
+	return textarea.scrollTop + textarea.clientHeight >= textarea.scrollHeight - 5;
+}
+
+
     
+    const POLL_INTERVAL_S = 10;
     var currentUptime = {{.Uptime}};
     setPercentageBar("barCpu", {{ .CpuLoad}});
     setPercentageBar("barDisk", {{ .DiskUsage}}, {{.DiskTotal}});
@@ -258,7 +325,12 @@ function setPercentageBar(id, num1, num2) {
     setMemoryUsage({{.MemoryUsage}}, {{.MemoryTotal}});
     setDiskUsage({{.DiskUsage}}, {{.DiskTotal}});
     document.getElementById('uptime').innerText = formatDuration(currentUptime);
+    insertReadableSizeTwoOutputs({{.TotalTraffic}}, 'totalTraffic', 'totalTrafficUnit');
     addUptime();
+    pollInfo();
+    
+
+    
     
     
 </script>

@@ -701,6 +701,78 @@ async function apiUserResetPassword(id, generatePw) {
 }
 
 
+// Logs
+
+
+async function apiLogSystemStatus() {
+    const apiUrl = './api/logs/systemStatus';
+    const reqPerm = 'PERM_MANAGE_LOGS';
+
+    let token;
+
+    try {
+        token = await getToken(reqPerm, false);
+    } catch (error) {
+        console.error("Unable to gain permission token:", error);
+        throw error;
+    }
+
+    const requestOptions = {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'apikey': token
+        },
+    };
+
+    try {
+        const response = await fetch(apiUrl, requestOptions);
+        if (!response.ok) {
+            throw new Error(`Request failed with status: ${response.status}`);
+        }
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error("Error in apiLogSystemStatus:", error);
+        throw error;
+    }
+}
+
+async function apiLogGet(timestamp) {
+    const apiUrl = './api/logs/get';
+    const reqPerm = 'PERM_MANAGE_LOGS';
+
+    let token;
+
+    try {
+        token = await getToken(reqPerm, false);
+    } catch (error) {
+        console.error("Unable to gain permission token:", error);
+        throw error;
+    }
+
+    const requestOptions = {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'apikey': token,
+            'timestamp': timestamp
+        },
+    };
+
+    try {
+        const response = await fetch(apiUrl, requestOptions);
+        if (!response.ok) {
+            throw new Error(`Request failed with status: ${response.status}`);
+        }
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error("Error in apiLogGet:", error);
+        throw error;
+    }
+}
+
 
 async function apiLogsDelete(timestamp) {
     const apiUrl = './api/logs/delete';

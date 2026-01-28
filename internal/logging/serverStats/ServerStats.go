@@ -16,6 +16,7 @@ import (
 const trafficSaveInterval = 5 * time.Minute
 
 var startTime time.Time
+var lastCpuCheck time.Time
 var currentTraffic trafficInfo
 
 type trafficInfo struct {
@@ -32,11 +33,14 @@ func Init() {
 }
 
 func monitorCpuUsage() {
+	// continuously run, as GetCpuUsage only reports the
+	// percentage since the last call
 	go func() {
-		_ = GetCpuUsage()
+		if time.Since(lastCpuCheck) > 2*time.Minute {
+			_ = GetCpuUsage()
+			lastCpuCheck = time.Now()
+		}
 		select {
-		// run every minute, as GetCpuUsage only reports the
-		// percentage since the last call
 		case <-time.After(time.Minute * 1):
 			monitorCpuUsage()
 		}
@@ -65,22 +69,22 @@ func GetCurrentTraffic() uint64 {
 	return currentTraffic.Total
 }
 
-func GetMemoryInfo() (uint64, uint64, uint64) {
+func GetMemoryInfo() (uint64, uint64, uint64, int) {
 	memInfo, err := mem.VirtualMemory()
 	if err != nil {
 		fmt.Println(err)
-		return 0, 0, 0
+		return 0, 0, 0, 0
 	}
-	return memInfo.Free, memInfo.Used, memInfo.Total
+	return memInfo.Free, memInfo.Used, memInfo.Total, int((float64(memInfo.Used) / float64(memInfo.Total)) * 100)
 }
 
-func GetDiskInfo() (uint64, uint64, uint64) {
+func GetDiskInfo() (uint64, uint64, uint64, int) {
 	diskInfo, err := disk.Usage(configuration.Get().DataDir)
 	if err != nil {
 		fmt.Println(err)
-		return 0, 0, 0
+		return 0, 0, 0, 0
 	}
-	return diskInfo.Free, diskInfo.Used, diskInfo.Total
+	return diskInfo.Free, diskInfo.Used, diskInfo.Total, int((float64(diskInfo.Used) / float64(diskInfo.Total)) * 100)
 }
 
 func GetCpuUsage() int {

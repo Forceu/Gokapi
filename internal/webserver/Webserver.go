@@ -28,7 +28,6 @@ import (
 	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/encryption"
 	"github.com/forceu/gokapi/internal/helper"
-	"github.com/forceu/gokapi/internal/logging"
 	"github.com/forceu/gokapi/internal/logging/serverStats"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
@@ -722,7 +721,6 @@ type AdminView struct {
 	ActiveUser            models.User
 	UserMap               map[int]*models.User
 	ServerUrl             string
-	Logs                  string
 	PublicName            string
 	IsAdminView           bool
 	IsDownloadView        bool
@@ -819,14 +817,11 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 		}
 		apiKeyList = sortApiKeys(apiKeyList)
 	case ViewLogs:
-		u.Logs, _ = logging.GetAll()
 		u.TotalFiles = serverStats.GetTotalFiles()
 		u.Uptime = serverStats.GetUptime()
 		u.TotalTraffic = serverStats.GetCurrentTraffic()
-		_, u.MemoryUsage, u.MemoryTotal = serverStats.GetMemoryInfo()
-		u.MemoryUsagePercent = int((float64(u.MemoryUsage) / float64(u.MemoryTotal)) * 100)
-		_, u.DiskUsage, u.DiskTotal = serverStats.GetDiskInfo()
-		u.DiskUsagePercent = int(float64(u.DiskUsage) / (float64(u.DiskTotal)) * 100)
+		_, u.MemoryUsage, u.MemoryTotal, u.MemoryUsagePercent = serverStats.GetMemoryInfo()
+		_, u.DiskUsage, u.DiskTotal, u.DiskUsagePercent = serverStats.GetDiskInfo()
 		u.CpuLoad = serverStats.GetCpuUsage()
 	case ViewUsers:
 		uploadCounts := storage.GetUploadCounts()
