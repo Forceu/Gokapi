@@ -1,47 +1,5 @@
 {{ define "logs" }}{{ template "header" . }}
 
-<style>
-    .stat-card {
-        background: #1a1d20;
-        border: 1px solid #2d3238;
-        border-radius: 12px;
-        overflow: hidden;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .stat-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.3) !important;
-        border-color: #0d6efd;
-    }
-    .stat-icon {
-        opacity: 0.6;
-        font-size: 1.2rem;
-    }
-    .progress-stat {
-        height: 4px;
-        background-color: #2b3035;
-    }
-    
-    .log-dark-input {
-        background-color: #2b3035 !important;
-        border-color: #444b52 !important;
-        color: #e9ecef !important;
-    }
-    .log-dark-input:focus {
-        background-color: #32383e !important;
-        border-color: #0d6efd !important;
-        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-    }
-    .input-group-text-dark {
-        background-color: #1a1d20 !important;
-        border-color: #444b52 !important;
-        color: #adb5bd !important;
-    }
-    #logviewer::-webkit-scrollbar { width: 8px; }
-    #logviewer::-webkit-scrollbar-track { background: #000; }
-    #logviewer::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
-</style>
-
 <div class="container-fluid py-4" style="max-width: 1200px;">
     
     <div class="row g-3 mb-4">
@@ -173,152 +131,14 @@
 
 <script src="./js/min/admin.min.{{ template "js_admin_version"}}.js"></script>
 <script>
-    const textarea = document.getElementById('logviewer');
-    var logContent = '';
-    
-    
-    function setMemoryUsage(used, total) {
-    	insertReadableSizeTwoOutputs(total, 'totalMemory', 'memoryUnit');
-    	let unit = document.getElementById('memoryUnit').innerText;
-    	insertReadableSizeForcedUnit(used, 'usedMemory', unit);
-    }
-    function setDiskUsage(used, total) {
-    	insertReadableSizeTwoOutputs(total, 'totalDisk', 'diskUnit');
-    	let unit = document.getElementById('diskUnit').innerText;
-    	insertReadableSizeForcedUnit(used, 'usedDisk', unit);
-    }
-    
-function formatDuration(seconds) {
-  const units = [
-    { label: "y", value: 31536000 },
-    { label: "d", value: 86400 },
-    { label: "h", value: 3600 },
-    { label: "m", value: 60 },
-    { label: "s", value: 1 },
-  ];
 
-  let startIndex = units.findIndex(unit => seconds >= unit.value);
-
-  // If everything is below 1 minute, force start at minutes
-  if (startIndex === -1 || units[startIndex].label === "s") {
-    startIndex = units.findIndex(u => u.label === "m");
-  }
-
-  const first = units[startIndex];
-  const second = units[startIndex + 1];
-
-  const firstAmount = Math.floor(seconds / first.value);
-  const remainder = seconds % first.value;
-  const secondAmount = Math.floor(remainder / second.value);
-
-  return `${firstAmount}${first.label} ${secondAmount}${second.label}`;
-}
-
-function addUptime() {
-    if (currentUptime > 3600) {
-        return;
-    }
-    setTimeout(() => {
-        currentUptime = currentUptime + 1;
-        document.getElementById('uptime').innerText = formatDuration(currentUptime);
-        addUptime();
-    }, 1000);
-}
-
-function setPercentageBar(id, num1, num2) {
-    let percentage = num1;
-    if (num2 !== undefined) {
-        percentage = ((num1 / num2) * 100);
-    }
-
-    const bar = document.getElementById(id);
-
-    bar.classList.remove("bg-success");
-    bar.classList.remove("bg-warning");
-    bar.classList.remove("bg-danger");
-
-    if (percentage < 70) {
-        bar.classList.add("bg-success");
-    }
-    if (percentage >= 70 && percentage < 90) {
-        bar.classList.add("bg-warning");
-    }
-    if (percentage >= 90) {
-        bar.classList.add("bg-danger");
-    }
-    bar.style.width = percentage + '%';
-}
-
-var lastLogUpdate = 0;
-
-async function loadLogs(timestamp) {
-    const textarea = document.getElementById('logviewer');
-
-    try {
-        const data = await apiLogGet(timestamp);
-        lastLogUpdate = data.timestamp;
-        let doScroll = true;
-        if (timestamp != 0) {
-            if (data.logEntries == "") {
-                return;
-            }
-            doScroll = allowScroll();
-            logContent = logContent + data.logEntries;
-        } else {
-            logContent = data.logEntries;
-        }
-        filterLogs(document.getElementById('logFilter').value);
-        if (doScroll) {
-            textarea.scrollTop = textarea.scrollHeight;
-        }
-    } catch (error) {
-        lastLogUpdate = 0;
-        console.error("Failed to load logs:", error);
-        textarea.value = "Error loading logs. See console for details.";
-    }
-}
-
-
-async function loadStatus() {
-    try {
-        const data = await apiLogSystemStatus();
-        
-    currentUptime = data.uptime;
-    document.getElementById('labelCpu').innerText = data.cpuLoad+'%';
-    document.getElementById('labelActiveFiles').innerText = data.activeFiles;
-    setPercentageBar("barCpu", data.cpuLoad);
-    setPercentageBar("barDisk", data.diskUsagePercentage);
-    setPercentageBar("barMemory", data.memoryUsagePercentage);
-    setMemoryUsage(data.memoryUsed, data.memoryTotal);
-    setDiskUsage(data.diskUsed, data.diskTotal);
-    insertReadableSizeTwoOutputs(data.dataServed, 'totalTraffic', 'totalTrafficUnit');
-    } catch (error) {
-        console.error("Failed to server status:", error);
-    }
-}
-
-async function pollInfo() {
-firstStart=true;
-    while (true) {
-        await loadLogs(lastLogUpdate);
-        if (firstStart) {
-        	firstStart= false;
-        } else {
-        	await loadStatus();
-        }
-        await new Promise(r => setTimeout(r, POLL_INTERVAL_S * 1000));
-    }
-}
-
-function allowScroll() {
-	const textarea = document.getElementById('logviewer');
-	return textarea.scrollTop + textarea.clientHeight >= textarea.scrollHeight - 5;
-}
-
-
-    
+  
     const POLL_INTERVAL_S = 10;
+    
+    var logContent = '';
+    var lastLogUpdate = 0;
     var currentUptime = {{.Uptime}};
+    
     setPercentageBar("barCpu", {{ .CpuLoad}});
     setPercentageBar("barDisk", {{ .DiskUsage}}, {{.DiskTotal}});
     setPercentageBar("barMemory", {{.MemoryUsage}}, {{.MemoryTotal}});
@@ -326,12 +146,9 @@ function allowScroll() {
     setDiskUsage({{.DiskUsage}}, {{.DiskTotal}});
     document.getElementById('uptime').innerText = formatDuration(currentUptime);
     insertReadableSizeTwoOutputs({{.TotalTraffic}}, 'totalTraffic', 'totalTrafficUnit');
+    
     addUptime();
     pollInfo();
-    
-
-    
-    
     
 </script>
 
