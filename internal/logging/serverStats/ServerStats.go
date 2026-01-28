@@ -55,6 +55,11 @@ func saveTraffic() {
 	database.SaveStatTraffic(GetCurrentTraffic())
 }
 
+func ClearTraffic() {
+	currentTraffic = trafficInfo{LastUpdate: startTime}
+	database.SaveStatTraffic(GetCurrentTraffic())
+}
+
 func GetUptime() int64 {
 	return time.Since(startTime).Milliseconds() / 1000
 }
