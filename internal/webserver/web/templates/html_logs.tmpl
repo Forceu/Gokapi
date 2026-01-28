@@ -49,7 +49,7 @@
             <div class="card stat-card border-0 shadow-sm h-100">
                 <div class="card-body p-3">
                     <div class="text-muted small text-uppercase fw-bold mb-1">Uptime</div>
-                    <div class="h5 mb-0 text-light">24d 12h</div>
+                    <div class="h5 mb-0 text-light"><span id="uptime"></span></div>
                 </div>
             </div>
         </div>
@@ -58,7 +58,7 @@
             <div class="card stat-card border-0 shadow-sm h-100">
                 <div class="card-body p-3">
                     <div class="text-muted small text-uppercase fw-bold mb-1">CPU Load</div>
-                    <div class="h5 mb-2 text-light">12%</div>
+                    <div class="h5 mb-2 text-light">{{ .CpuLoad}}%</div>
                     <div class="progress progress-stat">
                         <div class="progress-bar bg-info" style="width: 12%"></div>
                     </div>
@@ -70,7 +70,7 @@
             <div class="card stat-card border-0 shadow-sm h-100">
                 <div class="card-body p-3">
                     <div class="text-muted small text-uppercase fw-bold mb-1">Memory</div>
-                    <div class="h5 mb-2 text-light text-nowrap">142 / 512<span class="small opacity-50">MB</span></div>
+                    <div class="h5 mb-2 text-light text-nowrap"><span id="usedMemory">142</span> / <span id="totalMemory">512</span> <span id="memoryUnit" class="small opacity-50">MB</span></div>
                     <div class="progress progress-stat">
                         <div class="progress-bar bg-success" style="width: 27%"></div>
                     </div>
@@ -94,7 +94,10 @@
             <div class="card stat-card border-0 shadow-sm h-100">
                 <div class="card-body p-3">
                     <div class="text-muted small text-uppercase fw-bold mb-1">Data Served</div>
-                    <div class="h5 mb-0 text-light">1.24 <span class="small opacity-50">TB</span></div>
+                    <div class="h5 mb-0 text-light"><span id="totalTraffic"></span> <span id="totalTrafficUnit" class="small opacity-50"></span></div>
+                    <script>
+                    	insertReadableSizeTwoOutputs({{.TotalTraffic}}, 'totalTraffic', 'totalTrafficUnit');
+                    </script>
                 </div>
             </div>
         </div>
@@ -114,7 +117,6 @@
             <div class="d-flex align-items-center">
                 <h6 class="mb-0 fw-bold text-light me-3">System Logs</h6>
             </div>
-            <div class="text-muted small font-monospace">gokapi_v1.x.x</div>
         </div>
         
         <div class="card-body p-0 bg-black">
@@ -174,6 +176,40 @@
     const textarea = document.getElementById('logviewer');
     var logContent = textarea.value;
     textarea.scrollTop = textarea.scrollHeight;
+    
+    
+    function setMemoryUsage(used, total) {
+    	insertReadableSizeTwoOutputs(total, 'totalMemory', 'memoryUnit');
+    	let unit = document.getElementById('memoryUnit').innerText;
+    	insertReadableSizeForcedUnit(used, 'usedMemory', unit);
+    }
+    
+    function formatDuration(seconds) {
+  	const units = [
+	    { label: "d", value: 86400 },
+	    { label: "h", value: 3600 },
+	    { label: "m", value: 60 },
+	    { label: "s", value: 1 },
+	  ];
+
+	  const parts = [];
+
+	  for (const unit of units) {
+	    if (seconds >= unit.value) {
+	      const amount = Math.floor(seconds / unit.value);
+	      seconds %= unit.value;
+	      parts.push(`${amount}${unit.label}`);
+	    }
+
+	    if (parts.length === 2) break;
+	  }
+
+  return parts.length ? parts.join(" ") : "0s";
+}
+    
+    setMemoryUsage({{.MemoryUsage}}, {{.MemoryTotal}});
+    document.getElementById('uptime').innerText = formatDuration({{.Uptime}});;
+    
 </script>
 
 {{ template "pagename" "LogOverview"}}

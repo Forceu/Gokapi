@@ -741,13 +741,13 @@ type AdminView struct {
 	FileRequestMaxFiles   int
 	FileRequestMaxSize    int
 	CpuLoad               int
-	MemoryUsage           int
-	MemoryTotal           int
 	DiskUsage             int
 	TotalFiles            int
 	DataServed            int64
 	Uptime                int64
 	TimeNow               int64
+	MemoryUsage           uint64
+	MemoryTotal           uint64
 	TotalTraffic          uint64
 
 	CustomContent customStatic
@@ -820,6 +820,8 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 		u.TotalFiles = serverStats.GetTotalFiles()
 		u.Uptime = serverStats.GetUptime()
 		u.TotalTraffic = serverStats.GetCurrentTraffic()
+		_, u.MemoryUsage, u.MemoryTotal = serverStats.GetMemoryInfo()
+		u.CpuLoad = serverStats.GetCpuUsage()
 	case ViewUsers:
 		uploadCounts := storage.GetUploadCounts()
 		u.Users = make([]userInfo, 0)

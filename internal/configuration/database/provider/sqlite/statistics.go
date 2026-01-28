@@ -26,6 +26,7 @@ func (p DatabaseProvider) GetStatTraffic() uint64 {
 
 // SaveStatTraffic stores the total traffic
 func (p DatabaseProvider) SaveStatTraffic(totalTraffic uint64) {
-	_, err := p.sqliteDb.Exec("INSERT OR REPLACE INTO Statistics (type, value) VALUES (?, ?)", statIdTraffic, totalTraffic)
+	_, err := p.sqliteDb.Exec(`INSERT INTO Statistics (type, value) VALUES (?, ?)
+					ON CONFLICT(type) DO UPDATE SET value = ?`, statIdTraffic, totalTraffic, totalTraffic)
 	helper.Check(err)
 }

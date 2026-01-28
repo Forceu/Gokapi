@@ -1,11 +1,14 @@
 package serverStats
 
 import (
+	"fmt"
+	"math"
 	"sync"
 	"time"
 
 	"github.com/forceu/gokapi/internal/configuration/database"
-	"github.com/forceu/gokapi/internal/models"
+	"github.com/shirou/gopsutil/v4/cpu"
+	"github.com/shirou/gopsutil/v4/mem"
 )
 
 const trafficSaveInterval = 5 * time.Minute
@@ -21,6 +24,19 @@ type trafficInfo struct {
 
 func Init() {
 	startTime = time.Now()
+	currentTraffic = trafficInfo{LastUpdate: startTime}
+	AddTraffic(database.GetStatTraffic())
+	monitorCpuUsage()
+}
+
+func monitorCpuUsage() {
+	go func() {
+		_ = GetCpuUsage()
+		select {
+		case <-time.After(time.Second * 30):
+			monitorCpuUsage()
+		}
+	}()
 }
 
 func Shutdown() {
@@ -28,9 +44,7 @@ func Shutdown() {
 }
 
 func saveTraffic() {
-	currentTraffic.Mutex.RLock()
-	database.SaveStatTraffic(currentTraffic.Total)
-	currentTraffic.Mutex.RUnlock()
+	database.SaveStatTraffic(GetCurrentTraffic())
 }
 
 func GetUptime() int64 {
@@ -47,9 +61,27 @@ func GetCurrentTraffic() uint64 {
 	return currentTraffic.Total
 }
 
-func AddTraffic(file models.File) {
+func GetMemoryInfo() (uint64, uint64, uint64) {
+	memInfo, err := mem.VirtualMemory()
+	if err != nil {
+		fmt.Println(err)
+		return 0, 0, 0
+	}
+	return memInfo.Free, memInfo.Used, memInfo.Total
+}
+
+func GetCpuUsage() int {
+	usage, err := cpu.Percent(0, false)
+	if err != nil {
+		fmt.Println(err)
+		return 0
+	}
+	return int(math.Round(usage[0]))
+}
+
+func AddTraffic(bytes uint64) {
 	currentTraffic.Mutex.Lock()
-	currentTraffic.Total = currentTraffic.Total + uint64(file.SizeBytes)
+	currentTraffic.Total = currentTraffic.Total + bytes
 	requireSave := time.Since(currentTraffic.LastUpdate) > trafficSaveInterval
 	currentTraffic.LastUpdate = time.Now()
 	currentTraffic.Mutex.Unlock()
