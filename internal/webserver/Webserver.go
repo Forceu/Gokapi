@@ -964,6 +964,7 @@ func uploadChunk(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	if r.ContentLength > maxUpload {
 		responseError(w, storage.ErrorFileTooLarge)
+		return
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, maxUpload)
 	err, _ := fileupload.ProcessNewChunk(w, r, false, "")

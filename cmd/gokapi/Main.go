@@ -35,7 +35,7 @@ import (
 
 // versionGokapi is the current version in readable form.
 // Other version numbers can be modified in /build/go-generate/updateVersionNumbers.go
-const versionGokapi = "2.2.0-dev"
+const versionGokapi = "2.2.0"
 
 // The following calls update the version numbers, update documentation, minify Js/CSS and build the WASM modules
 //go:generate go run "../../build/go-generate/updateVersionNumbers.go"
