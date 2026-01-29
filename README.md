@@ -25,6 +25,24 @@
 - **Customizable UI:** Adjust look and feel with custom CSS and JavaScript
 
 
+
+## Getting Started
+
+You can deploy Gokapi in seconds using Docker or directly on your system.
+
+[Installation Guide](https://gokapi.readthedocs.io/en/latest/setup.html)  
+[Usage Instructions](https://gokapi.readthedocs.io/en/latest/usage.html)
+
+**Want to give it a try?**
+
+Start Gokapi instantly with Docker:
+
+```bash
+docker run -v gokapi-data:/app/data -v gokapi-config:/app/config -p 127.0.0.1:53842:53842 -e TZ=UTC f0rc3/gokapi:latest
+```
+
+
+
 ## Screenshots
 **Main Menu**
 
@@ -73,21 +91,6 @@
 
 
 
-
-## Getting Started
-
-You can deploy Gokapi in seconds using Docker or directly on your system.
-
-[Installation Guide](https://gokapi.readthedocs.io/en/latest/setup.html)  
-[Usage Instructions](https://gokapi.readthedocs.io/en/latest/usage.html)
-
-**Want to give it a try?**
-
-Start Gokapi instantly with Docker:
-
-```bash
-docker run -v gokapi-data:/app/data -v gokapi-config:/app/config -p 127.0.0.1:53842:53842 -e TZ=UTC f0rc3/gokapi:latest
-```
 
 
 ## License
