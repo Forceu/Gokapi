@@ -18,6 +18,7 @@ var db dbabstraction.Database
 // Connect establishes a connection to the database and creates the table structure, if necessary
 func Connect(config models.DbConnection) {
 	var err error
+	dbcache.Init()
 	db, err = dbabstraction.GetNew(config)
 	if err != nil {
 		panic(err)
@@ -140,11 +141,6 @@ func GetApiKeyByPublicKey(publicKey string) (string, bool) {
 	return db.GetApiKeyByPublicKey(publicKey)
 }
 
-// GetApiKeyByFileRequest returns an API key used for a file request
-func GetApiKeyByFileRequest(request models.FileRequest) (string, bool) {
-	return db.GetApiKeyByFileRequest(request)
-}
-
 // SaveApiKey saves the API key to the database
 func SaveApiKey(apikey models.ApiKey) {
 	db.SaveApiKey(apikey)
@@ -152,7 +148,10 @@ func SaveApiKey(apikey models.ApiKey) {
 
 // UpdateTimeApiKey writes the content of LastUsage to the database
 func UpdateTimeApiKey(apikey models.ApiKey) {
-	db.UpdateTimeApiKey(apikey)
+	// To reduce database writes, the entry is only updated if the last timestamp is more than 30 seconds old
+	if dbcache.RequireSaveApiKeyUsage(apikey.Id) {
+		db.UpdateTimeApiKey(apikey)
+	}
 }
 
 // DeleteApiKey deletes an API key with the given ID
@@ -284,7 +283,7 @@ func SaveUser(user models.User, isNewUser bool) {
 // UpdateUserLastOnline writes the last online time to the database
 func UpdateUserLastOnline(id int) {
 	// To reduce database writes, the entry is only updated if the last timestamp is more than 30 seconds old
-	if dbcache.LastOnlineRequiresSave(id) {
+	if dbcache.RequireSaveUserOnline(id) {
 		db.UpdateUserLastOnline(id)
 	}
 }

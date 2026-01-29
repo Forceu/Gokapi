@@ -65,7 +65,10 @@ func TestApiKeys(t *testing.T) {
 		return GetApiKey("test")
 	}, newApiKey, true)
 	newApiKey.LastUsed = 2000
-	runAllTypesNoOutput(t, func() { UpdateTimeApiKey(newApiKey) })
+	runAllTypesNoOutput(t, func() {
+		dbcache.Init()
+		UpdateTimeApiKey(newApiKey)
+	})
 	runAllTypesCompareOutput(t, func() any { return GetAllApiKeys() }, map[string]models.ApiKey{"test": newApiKey})
 	runAllTypesNoOutput(t, func() { DeleteApiKey("test") })
 	runAllTypesCompareTwoOutputs(t, func() (any, any) {
@@ -279,7 +282,7 @@ func TestUsers(t *testing.T) {
 	}, 2)
 	test.IsEqual(t, allUsersSqlite, allUsersRedis)
 	runAllTypesNoOutput(t, func() {
-		dbcache.ResetAll()
+		dbcache.Init()
 		UpdateUserLastOnline(1)
 	})
 	runAllTypesCompareTwoOutputs(t, func() (any, any) {

@@ -38,8 +38,6 @@ type Database interface {
 	GetAllApiKeys() map[string]models.ApiKey
 	// GetApiKey returns a models.ApiKey if valid or false if the ID is not valid
 	GetApiKey(id string) (models.ApiKey, bool)
-	// GetApiKeyByFileRequest returns an API key used for a file request
-	GetApiKeyByFileRequest(request models.FileRequest) (string, bool)
 	// SaveApiKey saves the API key to the database
 	SaveApiKey(apikey models.ApiKey)
 	// UpdateTimeApiKey writes the content of LastUsage to the database

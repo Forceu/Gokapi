@@ -53,17 +53,6 @@ func (p DatabaseProvider) GetApiKeyByPublicKey(publicKey string) (string, bool) 
 	return "", false
 }
 
-// GetApiKeyByFileRequest returns an API key used for a file request
-func (p DatabaseProvider) GetApiKeyByFileRequest(request models.FileRequest) (string, bool) {
-	keys := p.GetAllApiKeys()
-	for _, key := range keys {
-		if key.UploadRequestId == request.Id {
-			return key.Id, true
-		}
-	}
-	return "", false
-}
-
 // SaveApiKey saves the API key to the database
 func (p DatabaseProvider) SaveApiKey(apikey models.ApiKey) {
 	p.setHashMap(p.buildArgs(prefixApiKeys + apikey.Id).AddFlat(apikey))

@@ -97,21 +97,6 @@ func (p DatabaseProvider) GetApiKeyByPublicKey(publicKey string) (string, bool) 
 	return rowResult.Id, true
 }
 
-// GetApiKeyByFileRequest returns an API key used for a file request
-func (p DatabaseProvider) GetApiKeyByFileRequest(request models.FileRequest) (string, bool) {
-	var rowResult schemaApiKeys
-	row := p.sqliteDb.QueryRow("SELECT Id FROM ApiKeys WHERE UploadRequestId = ? LIMIT 1", request.Id)
-	err := row.Scan(&rowResult.Id)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return "", false
-		}
-		helper.Check(err)
-		return "", false
-	}
-	return rowResult.Id, true
-}
-
 // SaveApiKey saves the API key to the database
 func (p DatabaseProvider) SaveApiKey(apikey models.ApiKey) {
 	isSystemKey := 0
