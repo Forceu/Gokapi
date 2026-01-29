@@ -48,14 +48,17 @@
             </div>
         </div>
 
-        <div class="col-6 col-lg-2">
-            <div class="card stat-card border-0 shadow-sm h-100">
-                <div class="card-body p-3">
-                    <div class="text-muted small text-uppercase fw-bold mb-1">Data Served</div>
-                    <div class="h5 mb-0 text-light"><span id="totalTraffic"></span> <span id="totalTrafficUnit" class="small opacity-50"></span></div>
-                </div>
-            </div>
-        </div>
+	<div class="col-6 col-lg-2">
+		    <div class="card stat-card border-0 shadow-sm h-100">
+		        <div class="card-body p-3" id="cardTraffic">
+		            <div class="text-muted small text-uppercase fw-bold mb-1">Data Served</div>
+		            <div class="h5 mb-0 text-light" >
+		                <span id="totalTraffic"></span> 
+		                <span id="totalTrafficUnit" class="small opacity-50"></span>
+		            </div>
+		        </div>
+		    </div>
+		</div>
 
         <div class="col-6 col-lg-2">
             <div class="card stat-card border-0 shadow-sm h-100">
@@ -107,6 +110,13 @@
                 <div class="col-md-5">
                     <div class="d-flex gap-2 justify-content-md-end">
 {{ if or (eq .ActiveUser.UserLevel 0) (eq .ActiveUser.UserLevel 1) }}
+			    <button class="btn btn-sm btn-outline-light text-nowrap" title="Reset the traffic statistic" onclick="resetTrafficStat()">
+                                Reset Traffic
+                            </button>
+                            
+                            <div class="vr bg-secondary mx-2 opacity-50"></div>
+
+
                         <select id="deleteLogsSel" class="form-select form-select-sm log-dark-input w-auto">
                             <option value="none">Delete Logs...</option>
                             <option value="30">Older than 30 days</option>
@@ -116,11 +126,6 @@
                             <option value="all">Delete all logs</option>
                         </select>
                         <button class="btn btn-sm btn-outline-light px-3" onclick="deleteLogs()">Execute</button>
-{{ else }}
-                    <select id="deleteLogsSel" disabled class="form-select form-select-sm log-dark-input w-auto disabled">
-                        <option value="none">Only administrators can delete logs</option>
-                    </select>
-                        <button class="btn btn-sm btn-outline-light px-3" disabled onclick="">Execute</button>
 {{ end }}
                     </div>
                 </div>
@@ -144,8 +149,8 @@
     setPercentageBar("barMemory", {{.MemoryUsage}}, {{.MemoryTotal}});
     setMemoryUsage({{.MemoryUsage}}, {{.MemoryTotal}});
     setDiskUsage({{.DiskUsage}}, {{.DiskTotal}});
+    setTrafficInfo({{.TotalTraffic}}, {{.TrafficSince}});
     document.getElementById('uptime').innerText = formatDuration(currentUptime);
-    insertReadableSizeTwoOutputs({{.TotalTraffic}}, 'totalTraffic', 'totalTrafficUnit');
     
     addUptime();
     pollInfo();

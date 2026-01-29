@@ -788,41 +788,6 @@
         }
       }
     },
-    "/logs/systemStatus": {
-      "get": {
-        "tags": [
-          "logs"
-        ],
-        "summary": "Outputs server status information",
-        "description": "This API call returns information about the Gokapi server status. Requires API permission MANAGE_LOGS",
-        "operationId": "logsSystemStatus",
-        "security": [
-          {
-            "apikey": [
-              "MANAGE_LOGS"
-            ]
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Operation successful",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ServerStatus"
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid API key provided for authentication"
-          }
-        }
-      }
-    },
     "/logs/get": {
       "get": {
         "tags": [
@@ -878,8 +843,43 @@
         }
       }
     },
+    "/logs/systemStatus": {
+      "get": {
+        "tags": [
+          "logs"
+        ],
+        "summary": "Outputs server status information",
+        "description": "This API call returns information about the Gokapi server status. Requires API permission MANAGE_LOGS",
+        "operationId": "logsSystemStatus",
+        "security": [
+          {
+            "apikey": [
+              "MANAGE_LOGS"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ServerStatus"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid API key provided for authentication"
+          }
+        }
+      }
+    },
     "/logs/delete": {
-      "post": {
+      "delete": {
         "tags": [
           "logs"
         ],
@@ -912,6 +912,31 @@
             "description": "Invalid input"
           },
           "401": {
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
+          }
+        }
+      }
+    },
+    "/logs/resetTraffic": {
+      "delete": {
+        "tags": [
+          "logs"
+        ],
+        "summary": "Reset traffic statistic",
+        "description": "This API call resets the statistic that counts outgoing traffic. Requires API permission MANAGE_LOGS and user needs to be admin or super-admin.",
+        "operationId": "logsresettraffic",
+        "security": [
+          {
+            "apikey": [
+              "MANAGE_LOGS"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful"
+          },
+          "404": {
             "description": "Invalid API key provided for authentication or API key does not have the required permission"
           }
         }
@@ -2031,6 +2056,54 @@
         }
       }
     },
+    "/user/resetPassword": {
+      "put": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Resets the password of the current user",
+        "description": "This API call forces a passwrd change once the given user logs in the next time. If generateNewPassword is \"true\", the current password will be replaced with a generated one.  Requires API permission MANAGE_USERS",
+        "operationId": "userresetpw",
+        "security": [
+          {
+            "apikey": [
+              "MANAGE_USERS"
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "generateNewPassword",
+            "in": "header",
+            "description": "Generate a new password",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasswordReset"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid ID or parameters supplied"
+          },
+          "401": {
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
+          }
+        }
+      }
+    },
     "/user/delete": {
       "delete": {
         "tags": [
@@ -2073,54 +2146,6 @@
         "responses": {
           "200": {
             "description": "Operation successful"
-          },
-          "400": {
-            "description": "Invalid ID or parameters supplied"
-          },
-          "401": {
-            "description": "Invalid API key provided for authentication or API key does not have the required permission"
-          }
-        }
-      }
-    },
-    "/user/resetPassword": {
-      "put": {
-        "tags": [
-          "user"
-        ],
-        "summary": "Resets the password of the current user",
-        "description": "This API call forces a passwrd change once the given user logs in the next time. If generateNewPassword is \"true\", the current password will be replaced with a generated one.  Requires API permission MANAGE_USERS",
-        "operationId": "userresetpw",
-        "security": [
-          {
-            "apikey": [
-              "MANAGE_USERS"
-            ]
-          }
-        ],
-        "parameters": [
-          {
-            "name": "generateNewPassword",
-            "in": "header",
-            "description": "Generate a new password",
-            "required": true,
-            "style": "simple",
-            "explode": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Operation successful",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PasswordReset"
-                }
-              }
-            }
           },
           "400": {
             "description": "Invalid ID or parameters supplied"
@@ -2333,6 +2358,12 @@
             "type": "integer",
             "format": "int64",
             "minimum": 0
+          },
+          "trafficRecordingSince": {
+            "description": "Timestamp since when traffic recording started",
+            "example": "1769706097",
+            "type": "integer",
+            "format": "int64"
           }
         },
         "description": "ServerStats is a struct used for passing server status information"

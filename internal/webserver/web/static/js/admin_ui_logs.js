@@ -12,6 +12,11 @@ function filterLogs(tag) {
     textarea.scrollTop = textarea.scrollHeight;
 }
 
+function setTrafficInfo(totalTraffic, recordingSince) {
+    insertReadableSizeTwoOutputs(totalTraffic, 'totalTraffic', 'totalTrafficUnit');
+    document.getElementById('cardTraffic').title= "Traffic since "+formatUnixTimestamp(recordingSince);
+}
+
 function setMemoryUsage(used, total) {
     insertReadableSizeTwoOutputs(total, 'totalMemory', 'memoryUnit');
     let unit = document.getElementById('memoryUnit').innerText;
@@ -141,7 +146,7 @@ async function loadStatus() {
         setPercentageBar("barMemory", data.memoryUsagePercentage);
         setMemoryUsage(data.memoryUsed, data.memoryTotal);
         setDiskUsage(data.diskUsed, data.diskTotal);
-        insertReadableSizeTwoOutputs(data.dataServed, 'totalTraffic', 'totalTrafficUnit');
+        setTrafficInfo(data.dataServed, data.trafficRecordingSince)
     } catch (error) {
         console.error("Failed to server status:", error);
     }
@@ -205,6 +210,22 @@ function deleteLogs() {
         })
         .catch(error => {
             alert("Unable to delete logs: " + error);
+            console.error('Error:', error);
+        });
+}
+
+
+function resetTrafficStat() {
+    if (!confirm("Do you want to reset the traffic statistics?")) {
+        return;
+    }
+
+    apiLogResetTraffic()
+        .then(data => {
+            location.reload();
+        })
+        .catch(error => {
+            alert("Unable to reset stats: " + error);
             console.error('Error:', error);
         });
 }

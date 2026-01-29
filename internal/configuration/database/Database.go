@@ -365,3 +365,13 @@ func GetStatTraffic() uint64 {
 func SaveStatTraffic(totalTraffic uint64) {
 	db.SaveStatTraffic(totalTraffic)
 }
+
+// SaveTrafficSince stores the beginning of traffic counting
+func SaveTrafficSince(since int64) {
+	db.SaveTrafficSince(since)
+}
+
+// GetTrafficSince gets the beginning of traffic counting
+func GetTrafficSince() (int64, bool) {
+	return db.GetTrafficSince()
+}

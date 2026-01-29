@@ -113,6 +113,10 @@ type Database interface {
 	GetStatTraffic() uint64
 	// SaveStatTraffic stores the total traffic
 	SaveStatTraffic(totalTraffic uint64)
+	// SaveTrafficSince stores the beginning of traffic counting
+	SaveTrafficSince(since int64)
+	// GetTrafficSince gets the beginning of traffic counting
+	GetTrafficSince() (int64, bool)
 }
 
 // GetNew connects to the given database and initialises it

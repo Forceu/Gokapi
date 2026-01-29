@@ -746,6 +746,7 @@ type AdminView struct {
 	DataServed            int64
 	Uptime                int64
 	TimeNow               int64
+	TrafficSince          int64
 	MemoryUsage           uint64
 	MemoryTotal           uint64
 	DiskUsage             uint64
@@ -820,7 +821,7 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 	case ViewLogs:
 		u.TotalFiles = serverStats.GetTotalFiles()
 		u.Uptime = serverStats.GetUptime()
-		u.TotalTraffic = serverStats.GetCurrentTraffic()
+		u.TotalTraffic, u.TrafficSince = serverStats.GetCurrentTraffic()
 		_, u.MemoryUsage, u.MemoryTotal, u.MemoryUsagePercent = serverStats.GetMemoryInfo()
 		_, u.DiskUsage, u.DiskTotal, u.DiskUsagePercent = serverStats.GetDiskInfo()
 		u.CpuLoad = serverStats.GetCpuUsage()

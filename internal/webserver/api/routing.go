@@ -245,6 +245,13 @@ var routes = []apiRoute{
 		RequestParser: nil,
 	},
 	{
+		Url:           "/logs/resetTraffic",
+		ApiPerm:       models.ApiPermManageLogs,
+		AdminOnly:     true,
+		execution:     apiLogResetTraffic,
+		RequestParser: nil,
+	},
+	{
 		Url:           "/logs/get",
 		ApiPerm:       models.ApiPermManageLogs,
 		execution:     apiLogsGet,

@@ -997,6 +997,7 @@ func apiLogsGet(w http.ResponseWriter, r requestParser, _ models.User) {
 func apiLogSystemStatus(w http.ResponseWriter, _ requestParser, _ models.User) {
 	result := struct {
 		Uptime                int64  `json:"uptime"`
+		TrafficRecordingSince int64  `json:"trafficRecordingSince"`
 		CpuLoad               int    `json:"cpuLoad"`
 		MemoryUsagePercentage int    `json:"memoryUsagePercentage"`
 		DiskUsagePercentage   int    `json:"diskUsagePercentage"`
@@ -1009,9 +1010,9 @@ func apiLogSystemStatus(w http.ResponseWriter, _ requestParser, _ models.User) {
 	}{
 		Uptime:      serverStats.GetUptime(),
 		CpuLoad:     serverStats.GetCpuUsage(),
-		DataServed:  serverStats.GetCurrentTraffic(),
 		ActiveFiles: serverStats.GetTotalFiles(),
 	}
+	result.DataServed, result.TrafficRecordingSince = serverStats.GetCurrentTraffic()
 	_, result.MemoryUsed, result.MemoryTotal, result.MemoryUsagePercentage = serverStats.GetMemoryInfo()
 	_, result.DiskUsed, result.DiskTotal, result.DiskUsagePercentage = serverStats.GetDiskInfo()
 	resultJson, err := json.Marshal(result)
@@ -1021,6 +1022,11 @@ func apiLogSystemStatus(w http.ResponseWriter, _ requestParser, _ models.User) {
 		return
 	}
 	_, _ = w.Write(resultJson)
+}
+
+func apiLogResetTraffic(w http.ResponseWriter, _ requestParser, _ models.User) {
+	serverStats.ClearTraffic()
+	_, _ = w.Write([]byte(`{"Result":"OK"}`))
 }
 
 func apiE2eGet(w http.ResponseWriter, _ requestParser, user models.User) {

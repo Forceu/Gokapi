@@ -20,16 +20,26 @@ var lastCpuCheck time.Time
 var currentTraffic trafficInfo
 
 type trafficInfo struct {
-	Total      uint64
-	Mutex      sync.RWMutex
-	LastUpdate time.Time
+	Total          uint64
+	Mutex          sync.RWMutex
+	LastUpdate     time.Time
+	RecordingSince int64
 }
 
 func Init() {
 	startTime = time.Now()
-	currentTraffic = trafficInfo{LastUpdate: startTime}
+	currentTraffic = trafficInfo{LastUpdate: startTime, RecordingSince: getInitTrafficSince()}
 	AddTraffic(database.GetStatTraffic())
 	monitorCpuUsage()
+}
+
+func getInitTrafficSince() int64 {
+	since, ok := database.GetTrafficSince()
+	if !ok {
+		since = time.Now().Unix()
+		database.SaveTrafficSince(since)
+	}
+	return since
 }
 
 func monitorCpuUsage() {
@@ -52,12 +62,15 @@ func Shutdown() {
 }
 
 func saveTraffic() {
-	database.SaveStatTraffic(GetCurrentTraffic())
+	totalTraffic, _ := GetCurrentTraffic()
+	database.SaveStatTraffic(totalTraffic)
 }
 
 func ClearTraffic() {
-	currentTraffic = trafficInfo{LastUpdate: startTime}
-	database.SaveStatTraffic(GetCurrentTraffic())
+	timeNow := time.Now().Unix()
+	currentTraffic = trafficInfo{LastUpdate: time.Now(), RecordingSince: timeNow}
+	database.SaveStatTraffic(0)
+	database.SaveTrafficSince(timeNow)
 }
 
 func GetUptime() int64 {
@@ -68,10 +81,10 @@ func GetTotalFiles() int {
 	return len(database.GetAllMetadata())
 }
 
-func GetCurrentTraffic() uint64 {
+func GetCurrentTraffic() (uint64, int64) {
 	currentTraffic.Mutex.RLock()
 	defer currentTraffic.Mutex.RUnlock()
-	return currentTraffic.Total
+	return currentTraffic.Total, currentTraffic.RecordingSince
 }
 
 func GetMemoryInfo() (uint64, uint64, uint64, int) {

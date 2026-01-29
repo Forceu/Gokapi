@@ -738,6 +738,38 @@ async function apiLogSystemStatus() {
     }
 }
 
+async function apiLogResetTraffic() {
+    const apiUrl = './api/logs/resetTraffic';
+    const reqPerm = 'PERM_MANAGE_LOGS';
+
+    let token;
+
+    try {
+        token = await getToken(reqPerm, false);
+    } catch (error) {
+        console.error("Unable to gain permission token:", error);
+        throw error;
+    }
+
+    const requestOptions = {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'apikey': token
+        },
+    };
+
+    try {
+        const response = await fetch(apiUrl, requestOptions);
+        if (!response.ok) {
+            throw new Error(`Request failed with status: ${response.status}`);
+        }
+    } catch (error) {
+        console.error("Error in apiLogResetTraffic:", error);
+        throw error;
+    }
+}
+
 async function apiLogGet(timestamp) {
     const apiUrl = './api/logs/get';
     const reqPerm = 'PERM_MANAGE_LOGS';
