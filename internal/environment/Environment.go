@@ -30,12 +30,16 @@ type Environment struct {
 	ConfigPath string
 	// Sets the directory for the data
 	DataDir string `env:"DATA_DIR" envDefault:"data" persistent:"true"`
+	// Disables the CORS check on startup and during setup, if set to true
+	DisableCorsCheck bool `env:"DISABLE_CORS_CHECK" envDefault:"false"`
 	// Sets the size of chunks that are uploaded in MB
 	ChunkSizeMB int `env:"CHUNK_SIZE_MB" envDefault:"45" onlyPositive:"true" persistent:"true"`
 	// Sets the length of the download IDs
 	LengthId int `env:"LENGTH_ID" envDefault:"15" minValue:"5"`
 	// Sets the length of the hotlink IDs
 	LengthHotlinkId int `env:"LENGTH_HOTLINK_ID" envDefault:"40" minValue:"8"`
+	// Also outputs all log file entries to the console output, if set to true
+	LogToStdout bool `env:"LOG_STDOUT" envDefault:"false"`
 	// Sets the maximum allowed file size in MB
 	// Default 102400 = 100GB
 	MaxFileSize int `env:"MAX_FILESIZE" envDefault:"102400" onlyPositive:"true" persistent:"true"`
@@ -58,14 +62,14 @@ type Environment struct {
 	MinFreeSpaceMB int `env:"MIN_FREE_SPACE" envDefault:"400" onlyPositive:"true"`
 	// Sets the minium password length
 	MinLengthPassword int `env:"MIN_LENGTH_PASSWORD" envDefault:"8" minValue:"6"`
-	// Sets the webserver port
-	WebserverPort int `env:"PORT" envDefault:"53842" onlyPositive:"true" persistent:"true"`
-	// Disables the CORS check on startup and during setup, if set to true
-	DisableCorsCheck bool `env:"DISABLE_CORS_CHECK" envDefault:"false"`
 	// Allows all users by default to create file requests, if set to true
 	PermRequestGrantedByDefault bool `env:"GUEST_UPLOAD_BY_DEFAULT" envDefault:"false"`
-	// Also outputs all log file entries to the console output, if set to true
-	LogToStdout bool `env:"LOG_STDOUT" envDefault:"false"`
+	// Sets a list of trusted proxies. If set, the webserver will trust the IP addresses sent
+	// by these proxies with the X-Forwarded-For and X-REAL-IP header
+	// List is comma separated
+	TrustedProxies []string `env:"TRUSTED_PROXIES" envSeparator:"," envDefault:"127.0.0.1"`
+	// Sets the webserver port
+	WebserverPort int `env:"PORT" envDefault:"53842" onlyPositive:"true" persistent:"true"`
 	// Allow hotlinking of videos. Note: Due to buffering, playing a video might count as
 	// multiple downloads. It is only recommended to use video hotlinking for uploads with
 	// unlimited downloads enabled

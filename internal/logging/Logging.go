@@ -27,12 +27,14 @@ const categoryAuth = "auth"
 const categoryWarning = "warning"
 
 var outputToStdout = false
+var trustedProxies []string
 
 // Init sets the path where to write the log file to
 func Init(filePath string) {
 	logPath = filePath + "/log.txt"
 	env := environment.New()
 	outputToStdout = env.LogToStdout
+	trustedProxies = env.TrustedProxies
 }
 
 // GetAll returns all log entries as a single string and if the log file exists
@@ -207,10 +209,15 @@ func LogUserCreation(modifiedUser, userEditor models.User) {
 		modifiedUser.Name, modifiedUser.Id, userEditor.Name, userEditor.Id), false)
 }
 
+// LogInvalidLogin adds a log entry to indicate that an invalid login was attempted. Non-blocking
+func LogInvalidLogin(username, ip string) {
+	createLogEntry(categoryAuth, fmt.Sprintf("Invalid login for user %s by IP %s", username, ip), false)
+}
+
 // LogDownload adds a log entry when a download was requested. Non-Blocking
 func LogDownload(file models.File, r *http.Request, saveIp bool) {
 	if saveIp {
-		createLogEntry(categoryDownload, fmt.Sprintf("%s, IP %s, ID %s, Useragent %s", file.Name, getIpAddress(r), file.Id, r.UserAgent()), false)
+		createLogEntry(categoryDownload, fmt.Sprintf("%s, IP %s, ID %s, Useragent %s", file.Name, GetIpAddress(r), file.Id, r.UserAgent()), false)
 	} else {
 		createLogEntry(categoryDownload, fmt.Sprintf("%s, ID %s, Useragent %s", file.Name, file.Id, r.UserAgent()), false)
 	}
@@ -305,7 +312,7 @@ func parseTimeLogEntry(input string) (time.Time, error) {
 
 func getLogDeletionMessage(userName string, userId int, r *http.Request, timestamp time.Time) string {
 	return createLogFormatCustomTimestamp(categoryWarning, fmt.Sprintf("Previous logs deleted by %s (user #%d) on %s. IP: %s\n",
-		userName, userId, getDate(time.Now()), getIpAddress(r)), timestamp)
+		userName, userId, getDate(time.Now()), GetIpAddress(r)), timestamp)
 }
 
 func deleteAllLogs(userName string, userId int, r *http.Request) {
@@ -330,32 +337,47 @@ func getDate(timestamp time.Time) string {
 	return timestamp.UTC().Format(time.RFC1123)
 }
 
-func getIpAddress(r *http.Request) string {
-	// Get IP from X-FORWARDED-FOR header
-	ips := r.Header.Get("X-FORWARDED-FOR")
-	splitIps := strings.Split(ips, ",")
-	for _, ip := range splitIps {
-		netIP := net.ParseIP(ip)
-		if netIP != nil {
-			return ip
+func isTrustedProxy(ip string) bool {
+	for _, proxy := range trustedProxies {
+		if ip == proxy {
+			return true
+		}
+	}
+	return false
+}
+
+// GetIpAddress returns the IP address of the requester
+func GetIpAddress(r *http.Request) string {
+	ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		ip = r.RemoteAddr
+	}
+
+	// Clean up if it's an IPv6 zone
+	netIP := net.ParseIP(ip)
+
+	// Check if the immediate connector is a Trusted Proxy and if yes, use their header for IP
+	// Otherwise this returns the actual IP used for the connection
+	if netIP != nil && isTrustedProxy(netIP.String()) {
+
+		// Check X-Forwarded-For
+		// Ideally, use the last IP in the list if a proxy appends to it
+		xff := r.Header.Get("X-FORWARDED-FOR")
+		if xff != "" {
+			ips := strings.Split(xff, ",")
+			//Take the last IP or investigate based on proxy setup
+			realIP := strings.TrimSpace(ips[len(ips)-1])
+			if net.ParseIP(realIP) != nil {
+				return realIP
+			}
+		}
+
+		// Fallback to X-Real-Ip if XFF fails
+		xri := r.Header.Get("X-REAL-IP")
+		if net.ParseIP(xri) != nil {
+			return xri
 		}
 	}
 
-	// Get IP from the X-REAL-IP header
-	ip := r.Header.Get("X-REAL-IP")
-	netIP := net.ParseIP(ip)
-	if netIP != nil {
-		return ip
-	}
-
-	// Get IP from RemoteAddr
-	ip, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		return "Unknown IP"
-	}
-	netIP = net.ParseIP(ip)
-	if netIP != nil {
-		return ip
-	}
-	return "Unknown IP"
+	return ip
 }

@@ -395,9 +395,11 @@ If you are using Docker, shut down the running instance and create a new tempora
 Reverse Proxy
 **********************************
 
-It is highly recommended to run Gokapi behind a reverse proxy. Make sure to select a high timeout (recommended: 300 seconds) and increase the allowed body size.
+Running Gokapi behind a reverse proxy is strongly recommended. Configure the proxy with a sufficiently high timeout (recommended: 300 seconds) and ensure that the maximum allowed request body size is increased accordingly.
 
-An example for Nginx can be found here: :ref:`nginx_config`
+If your reverse proxy does not use 127.0.0.1 as its source IP, you must explicitly specify the trusted proxy IP address(es) using the environment variable ``GOKAPI_TRUSTED_PROXIES``, see :ref:`availenvvar`
+
+An example configuration for Nginx is available here: :ref:`nginx_config`
 
 
 **********************************

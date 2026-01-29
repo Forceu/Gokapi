@@ -29,6 +29,7 @@ import (
 	"github.com/forceu/gokapi/internal/encryption"
 	"github.com/forceu/gokapi/internal/environment"
 	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/logging"
 	"github.com/forceu/gokapi/internal/logging/serverstats"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
@@ -41,6 +42,7 @@ import (
 	"github.com/forceu/gokapi/internal/webserver/authentication/tokengeneration"
 	"github.com/forceu/gokapi/internal/webserver/favicon"
 	"github.com/forceu/gokapi/internal/webserver/fileupload"
+	"github.com/forceu/gokapi/internal/webserver/ratelimiter"
 	"github.com/forceu/gokapi/internal/webserver/sse"
 	"github.com/forceu/gokapi/internal/webserver/ssl"
 )
@@ -224,6 +226,11 @@ func initTemplates(templateFolderEmbedded embed.FS) {
 // Sends a redirect HTTP output to the client. Variable url is used to redirect to ./url
 func redirect(w http.ResponseWriter, url string) {
 	_, _ = io.WriteString(w, "<html><head><meta http-equiv=\"Refresh\" content=\"0; URL=./"+url+"\"></head></html>")
+}
+
+func redirectOnIncorrectId(w http.ResponseWriter, r *http.Request, url string) {
+	ratelimiter.WaitOnFailedId(r)
+	redirect(w, url)
 }
 
 type redirectValues struct {
@@ -510,9 +517,9 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 			redirect(w, "admin")
 			return
 		}
-		select {
-		case <-time.After(3 * time.Second):
-		}
+		ip := logging.GetIpAddress(r)
+		logging.LogInvalidLogin(user, ip)
+		ratelimiter.WaitOnFailedLogin(ip)
 		failedLogin = true
 	}
 	err = templateFolder.ExecuteTemplate(w, "login", LoginView{
@@ -543,7 +550,7 @@ func showDownload(w http.ResponseWriter, r *http.Request) {
 	keyId := queryUrl(w, r, "id", "error")
 	file, ok := storage.GetFile(keyId)
 	if !ok || file.IsFileRequest() {
-		redirect(w, "error")
+		redirectOnIncorrectId(w, r, "error")
 		return
 	}
 
@@ -1031,9 +1038,9 @@ func serveFile(id string, isRootUrl bool, w http.ResponseWriter, r *http.Request
 	savedFile, ok := storage.GetFile(id)
 	if !ok || savedFile.IsFileRequest() {
 		if isRootUrl {
-			redirect(w, "error")
+			redirectOnIncorrectId(w, r, "error")
 		} else {
-			redirect(w, "../../error")
+			redirectOnIncorrectId(w, r, "../../error")
 		}
 		return
 	}

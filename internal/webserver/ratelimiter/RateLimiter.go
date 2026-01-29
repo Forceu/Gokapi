@@ -1,16 +1,18 @@
 package ratelimiter
 
 import (
+	"context"
+	"net/http"
 	"sync"
 	"time"
 
+	"github.com/forceu/gokapi/internal/logging"
 	"golang.org/x/time/rate"
 )
 
-var uuidLimiter = newLimiter()
-
-// Currently unused
-var byteLimiter = newLimiter()
+var newUuidLimiter = newLimiter()
+var failedLoginLimiter = newLimiter()
+var failedIdLimiter = newLimiter()
 
 type limiterEntry struct {
 	limiter  *rate.Limiter
@@ -29,9 +31,23 @@ func newLimiter() *store {
 	}
 }
 
+// WaitOnFailedLogin blocks the current goroutine until the rate limiter allows a request
+// Two failed attempts without limiting, thereafter one attempt every 3 seconds
+func WaitOnFailedLogin(ip string) {
+	_ = failedLoginLimiter.Get(ip, 1, 6).WaitN(context.Background(), 3)
+}
+
+// WaitOnFailedId blocks the current goroutine until the rate limiter allows a request
+// Ten failed attempts without limiting, thereafter one attempt every second
+func WaitOnFailedId(r *http.Request) {
+	ip := logging.GetIpAddress(r)
+	_ = failedIdLimiter.Get(ip, 1, 10).Wait(context.Background())
+}
+
 // IsAllowedNewUuid returns true if a new uuid is not rate-limited
+// Four initial requests are allowed without rate limiting, thereafter one every second
 func IsAllowedNewUuid(key string) bool {
-	return uuidLimiter.Get(key, 1, 4).Allow()
+	return newUuidLimiter.Get(key, 1, 4).Allow()
 }
 
 // Get returns the rate limiter for the given key

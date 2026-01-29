@@ -1,14 +1,15 @@
 package logging
 
 import (
-	"github.com/forceu/gokapi/internal/models"
-	"github.com/forceu/gokapi/internal/test"
-	"github.com/forceu/gokapi/internal/test/testconfiguration"
 	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/test"
+	"github.com/forceu/gokapi/internal/test/testconfiguration"
 )
 
 func TestMain(m *testing.M) {
@@ -20,16 +21,16 @@ func TestMain(m *testing.M) {
 
 func TestGetIpAddress(t *testing.T) {
 	r := httptest.NewRequest("GET", "/test", nil)
-	test.IsEqualString(t, getIpAddress(r), "192.0.2.1")
+	test.IsEqualString(t, GetIpAddress(r), "192.0.2.1")
 	r = httptest.NewRequest("GET", "/test", nil)
 	r.RemoteAddr = "127.0.0.1:1234"
-	test.IsEqualString(t, getIpAddress(r), "127.0.0.1")
+	test.IsEqualString(t, GetIpAddress(r), "127.0.0.1")
 	r.RemoteAddr = "invalid"
-	test.IsEqualString(t, getIpAddress(r), "Unknown IP")
+	test.IsEqualString(t, GetIpAddress(r), "Unknown IP")
 	r.Header.Add("X-REAL-IP", "1.1.1.1")
-	test.IsEqualString(t, getIpAddress(r), "1.1.1.1")
+	test.IsEqualString(t, GetIpAddress(r), "1.1.1.1")
 	r.Header.Add("X-FORWARDED-FOR", "1.1.1.2")
-	test.IsEqualString(t, getIpAddress(r), "1.1.1.2")
+	test.IsEqualString(t, GetIpAddress(r), "1.1.1.2")
 }
 
 func TestInit(t *testing.T) {
