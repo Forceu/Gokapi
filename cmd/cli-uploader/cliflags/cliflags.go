@@ -121,7 +121,7 @@ func GetUploadParameters(mode int) FlagConfig {
 			result.FileName = getParameter(&i)
 		case "-k":
 			fallthrough
-		case "--ouput-path":
+		case "--output-path":
 			result.OutputPath = getParameter(&i)
 		case "-r":
 			fallthrough

@@ -27,6 +27,7 @@ import (
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/encryption"
+	"github.com/forceu/gokapi/internal/environment"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/logging/serverStats"
 	"github.com/forceu/gokapi/internal/models"
@@ -612,13 +613,9 @@ func showHotlink(w http.ResponseWriter, r *http.Request) {
 }
 
 // Checks if a file is associated with the GET parameter from the current URL
-// Stops for 500ms to limit brute forcing if invalid key and redirects to redirectUrl
 func queryUrl(w http.ResponseWriter, r *http.Request, keyword string, redirectUrl string) string {
 	keys, ok := r.URL.Query()[keyword]
-	if !ok || len(keys[0]) < configuration.GetEnvironment().LengthId {
-		select {
-		case <-time.After(500 * time.Millisecond):
-		}
+	if !ok || len(keys[0]) < environment.MinLengthId {
 		redirect(w, redirectUrl)
 		return ""
 	}

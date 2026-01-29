@@ -16,6 +16,10 @@ import (
 // DefaultPort for the webserver
 const DefaultPort = 53842
 
+// MinLengthId is the minimum character length for download and file request IDs
+// The value is hardcoded in Environment and needs to be kept in sync with this value.
+const MinLengthId = 5
+
 // Environment is a struct containing available env variables
 type Environment struct {
 	// Sets the directory for the config file
