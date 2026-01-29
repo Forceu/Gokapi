@@ -1,4 +1,4 @@
-package serverStats
+package serverstats
 
 import (
 	"fmt"
@@ -26,6 +26,7 @@ type trafficInfo struct {
 	RecordingSince int64
 }
 
+// Init initializes the server stats
 func Init() {
 	startTime = time.Now()
 	currentTraffic = trafficInfo{LastUpdate: startTime, RecordingSince: getInitTrafficSince()}
@@ -57,6 +58,7 @@ func monitorCpuUsage() {
 	}()
 }
 
+// Shutdown saves statistics to the database
 func Shutdown() {
 	saveTraffic()
 }
@@ -66,6 +68,7 @@ func saveTraffic() {
 	database.SaveStatTraffic(totalTraffic)
 }
 
+// ClearTraffic resets the traffic counter
 func ClearTraffic() {
 	timeNow := time.Now().Unix()
 	currentTraffic = trafficInfo{LastUpdate: time.Now(), RecordingSince: timeNow}
@@ -73,20 +76,24 @@ func ClearTraffic() {
 	database.SaveTrafficSince(timeNow)
 }
 
+// GetUptime returns the uptime of the server in seconds
 func GetUptime() int64 {
 	return time.Since(startTime).Milliseconds() / 1000
 }
 
+// GetTotalFiles returns the total number of files stored in the database
 func GetTotalFiles() int {
 	return len(database.GetAllMetadata())
 }
 
+// GetCurrentTraffic returns the current traffic in bytes and the time since the last recording
 func GetCurrentTraffic() (uint64, int64) {
 	currentTraffic.Mutex.RLock()
 	defer currentTraffic.Mutex.RUnlock()
 	return currentTraffic.Total, currentTraffic.RecordingSince
 }
 
+// GetMemoryInfo returns information about the memory usage
 func GetMemoryInfo() (uint64, uint64, uint64, int) {
 	memInfo, err := mem.VirtualMemory()
 	if err != nil {
@@ -96,6 +103,7 @@ func GetMemoryInfo() (uint64, uint64, uint64, int) {
 	return memInfo.Free, memInfo.Used, memInfo.Total, int((float64(memInfo.Used) / float64(memInfo.Total)) * 100)
 }
 
+// GetDiskInfo returns information about the disk usage
 func GetDiskInfo() (uint64, uint64, uint64, int) {
 	diskInfo, err := disk.Usage(configuration.Get().DataDir)
 	if err != nil {
@@ -105,6 +113,7 @@ func GetDiskInfo() (uint64, uint64, uint64, int) {
 	return diskInfo.Free, diskInfo.Used, diskInfo.Total, int((float64(diskInfo.Used) / float64(diskInfo.Total)) * 100)
 }
 
+// GetCpuUsage returns the current CPU usage in percent
 func GetCpuUsage() int {
 	usage, err := cpu.Percent(0, false)
 	if err != nil {
@@ -114,6 +123,7 @@ func GetCpuUsage() int {
 	return int(math.Round(usage[0]))
 }
 
+// AddTraffic adds traffic to the current traffic counter
 func AddTraffic(bytes uint64) {
 	currentTraffic.Mutex.Lock()
 	currentTraffic.Total = currentTraffic.Total + bytes

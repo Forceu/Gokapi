@@ -29,7 +29,7 @@ import (
 	"github.com/forceu/gokapi/internal/encryption"
 	"github.com/forceu/gokapi/internal/environment"
 	"github.com/forceu/gokapi/internal/helper"
-	"github.com/forceu/gokapi/internal/logging/serverStats"
+	"github.com/forceu/gokapi/internal/logging/serverstats"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
 	"github.com/forceu/gokapi/internal/storage/filerequest"
@@ -816,12 +816,12 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 		}
 		apiKeyList = sortApiKeys(apiKeyList)
 	case ViewLogs:
-		u.TotalFiles = serverStats.GetTotalFiles()
-		u.Uptime = serverStats.GetUptime()
-		u.TotalTraffic, u.TrafficSince = serverStats.GetCurrentTraffic()
-		_, u.MemoryUsage, u.MemoryTotal, u.MemoryUsagePercent = serverStats.GetMemoryInfo()
-		_, u.DiskUsage, u.DiskTotal, u.DiskUsagePercent = serverStats.GetDiskInfo()
-		u.CpuLoad = serverStats.GetCpuUsage()
+		u.TotalFiles = serverstats.GetTotalFiles()
+		u.Uptime = serverstats.GetUptime()
+		u.TotalTraffic, u.TrafficSince = serverstats.GetCurrentTraffic()
+		_, u.MemoryUsage, u.MemoryTotal, u.MemoryUsagePercent = serverstats.GetMemoryInfo()
+		_, u.DiskUsage, u.DiskTotal, u.DiskUsagePercent = serverstats.GetDiskInfo()
+		u.CpuLoad = serverstats.GetCpuUsage()
 	case ViewUsers:
 		uploadCounts := storage.GetUploadCounts()
 		u.Users = make([]userInfo, 0)
@@ -965,7 +965,7 @@ func uploadChunk(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, maxUpload)
-	err, _ := fileupload.ProcessNewChunk(w, r, false, "")
+	_, err := fileupload.ProcessNewChunk(w, r, false, "")
 	responseError(w, err)
 }
 

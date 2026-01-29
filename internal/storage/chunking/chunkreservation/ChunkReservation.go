@@ -19,6 +19,7 @@ type reservation struct {
 	Expiry int64
 }
 
+// GetCount returns the number of chunks reserved for the given file request
 func GetCount(id string) int {
 	reservationMutex.RLock()
 	defer reservationMutex.RUnlock()
@@ -26,6 +27,7 @@ func GetCount(id string) int {
 	return length
 }
 
+// New creates a new chunk reservation
 func New(id string) string {
 	reservationMutex.Lock()
 	defer reservationMutex.Unlock()
@@ -46,12 +48,14 @@ func New(id string) string {
 	return uuid
 }
 
+// SetComplete marks a chunk as complete or cancelled
 func SetComplete(id, uuid string) {
 	reservationMutex.Lock()
 	delete(reservedChunks[id], uuid)
 	reservationMutex.Unlock()
 }
 
+// SetUploading marks a chunk as uploading and extends the reservation time
 func SetUploading(id string, uuid string) bool {
 	reservationMutex.Lock()
 	defer reservationMutex.Unlock()

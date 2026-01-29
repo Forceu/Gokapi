@@ -145,7 +145,7 @@ func Load() {
 	}
 	data, err := os.ReadFile(configPath)
 	helper.Check(err)
-	
+
 	var config configFile
 	err = json.Unmarshal(data, &config)
 	if err != nil {

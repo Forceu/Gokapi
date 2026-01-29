@@ -50,6 +50,7 @@ type ApiKey struct {
 // ApiPermission contains zero or more permissions as an uint16 format
 type ApiPermission uint16
 
+// ApiPermissionFromString converts a string to a permission constant
 func ApiPermissionFromString(permString string) (ApiPermission, error) {
 	switch strings.ToUpper(permString) {
 	case "PERM_VIEW":

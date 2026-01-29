@@ -27,6 +27,7 @@ var faviconPng192x192 []byte
 
 var faviconPng512x512 []byte
 
+// Init creates the favicon with a custom icon or the default one
 func Init(pathCustomIcon string, fsDefault fs.FS) {
 	var imageContent []byte
 	exists, err := helper.FileExists(pathCustomIcon)
@@ -63,6 +64,7 @@ func Init(pathCustomIcon string, fsDefault fs.FS) {
 	faviconPng512x512 = imageContent
 }
 
+// GetFavicon returns the favicon for the given url
 func GetFavicon(url string) []byte {
 	if strings.HasPrefix(url, "/favicon.ico") {
 		return faviconIco

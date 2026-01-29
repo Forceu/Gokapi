@@ -85,6 +85,7 @@ type Environment struct {
 	isSet              bool
 }
 
+// IsParsed returns true if the env variables have been parsed
 func (e *Environment) IsParsed() bool {
 	return e.isSet
 }

@@ -21,6 +21,7 @@ func New(user models.User) models.FileRequest {
 	}
 }
 
+// Get returns a file request object by its ID and populates it
 func Get(id string) (models.FileRequest, bool) {
 	result, ok := database.GetFileRequest(id)
 	if !ok {
@@ -30,6 +31,7 @@ func Get(id string) (models.FileRequest, bool) {
 	return result, true
 }
 
+// GetAll returns a list of all file requests and populates them
 func GetAll() []models.FileRequest {
 	result := database.GetAllFileRequests()
 	if len(result) == 0 {

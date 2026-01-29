@@ -17,23 +17,25 @@ type limiterEntry struct {
 	lastSeen time.Time
 }
 
-type Store struct {
+type store struct {
 	mu             sync.Mutex
 	limiters       map[string]*limiterEntry
 	cleanupStarted bool
 }
 
-func newLimiter() *Store {
-	return &Store{
+func newLimiter() *store {
+	return &store{
 		limiters: make(map[string]*limiterEntry),
 	}
 }
 
+// IsAllowedNewUuid returns true if a new uuid is not rate-limited
 func IsAllowedNewUuid(key string) bool {
 	return uuidLimiter.Get(key, 1, 4).Allow()
 }
 
-func (s *Store) Get(key string, r rate.Limit, burst int) *rate.Limiter {
+// Get returns the rate limiter for the given key
+func (s *store) Get(key string, r rate.Limit, burst int) *rate.Limiter {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -50,7 +52,8 @@ func (s *Store) Get(key string, r rate.Limit, burst int) *rate.Limiter {
 	return e.limiter
 }
 
-func (s *Store) StartCleanup(maxIdle time.Duration) {
+// StartCleanup starts a goroutine that continuously cleans up old entries from the store
+func (s *store) StartCleanup(maxIdle time.Duration) {
 	if s.cleanupStarted {
 		return
 	}

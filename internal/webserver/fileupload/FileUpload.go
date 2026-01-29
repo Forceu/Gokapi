@@ -66,38 +66,38 @@ func isChunkMinChunkSize(r *http.Request, offset, fileSize int64) bool {
 }
 
 // ProcessNewChunk processes a file chunk upload request
-func ProcessNewChunk(w http.ResponseWriter, r *http.Request, isApiCall bool, filerequestId string) (error, int) {
+func ProcessNewChunk(w http.ResponseWriter, r *http.Request, isApiCall bool, filerequestId string) (int, error) {
 	err := r.ParseMultipartForm(int64(configuration.Get().MaxMemory) * 1024 * 1024)
 	if err != nil {
-		return err, errorcodes.CannotParse
+		return errorcodes.CannotParse, err
 	}
 	defer r.MultipartForm.RemoveAll()
 	chunkInfo, err := chunking.ParseChunkInfo(r, isApiCall)
 	if err != nil {
-		return err, errorcodes.InvalidUserInput
+		return errorcodes.InvalidUserInput, err
 	}
 	file, header, err := r.FormFile("file")
 	if err != nil {
-		return err, errorcodes.InvalidUserInput
+		return errorcodes.InvalidUserInput, err
 	}
 
 	if !isChunkMinChunkSize(r, chunkInfo.Offset, chunkInfo.TotalFilesizeBytes) {
-		return storage.ErrorChunkTooSmall, errorcodes.ChunkTooSmall
+		return errorcodes.ChunkTooSmall, storage.ErrorChunkTooSmall
 	}
 
 	if filerequestId != "" {
 		if !chunkreservation.SetUploading(filerequestId, chunkInfo.UUID) {
-			return errors.New("chunk reservation has expired or was not requested"), errorcodes.InvalidChunkReservation
+			return errorcodes.InvalidChunkReservation, errors.New("chunk reservation has expired or was not requested")
 		}
 	}
 
 	err = chunking.NewChunk(file, header, chunkInfo)
 	defer file.Close()
 	if err != nil {
-		return err, errorcodes.CannotAllocateFile
+		return errorcodes.CannotAllocateFile, err
 	}
 	_, _ = io.WriteString(w, "{\"result\":\"OK\"}")
-	return nil, 0
+	return 0, nil
 }
 
 // ParseFileHeader parses the parameters for CompleteChunk()

@@ -8,6 +8,7 @@ import (
 	"github.com/forceu/gokapi/internal/storage/chunking/chunkreservation"
 )
 
+// FileRequest contains information about a file request
 type FileRequest struct {
 	Id              string   `json:"id" redis:"id"`                     // The internal ID of the file request
 	UserId          int      `json:"userid" redis:"userid"`             // The user ID of the owner
@@ -57,34 +58,42 @@ func (f *FileRequest) GetReadableDateLastUpdate() string {
 	return time.Unix(f.LastUpload, 0).Format("2006-01-02 15:04:05")
 }
 
+// GetReadableTotalSize returns the total file size in a human-readable format
 func (f *FileRequest) GetReadableTotalSize() string {
 	return helper.ByteCountSI(f.TotalFileSize)
 }
 
+// GetFilesAsString returns a comma-separated list of file IDs
 func (f *FileRequest) GetFilesAsString() string {
 	return strings.Join(f.FileIdList, ",")
 }
 
+// IsUnlimitedSize returns true if there is no size limit
 func (f *FileRequest) IsUnlimitedSize() bool {
 	return f.MaxSize == 0
 }
 
+// IsUnlimitedFiles returns true if there is no file limit
 func (f *FileRequest) IsUnlimitedFiles() bool {
 	return f.MaxFiles == 0
 }
 
+// IsUnlimitedTime returns true if there is no expiry time
 func (f *FileRequest) IsUnlimitedTime() bool {
 	return f.Expiry == 0
 }
 
+// IsExpired returns true if the file request has expired
 func (f *FileRequest) IsExpired() bool {
 	return !f.IsUnlimitedTime() && time.Now().Unix() > f.Expiry
 }
 
+// HasRestrictions returns true if the file request has any restrictions e.g. size or time limit
 func (f *FileRequest) HasRestrictions() bool {
 	return !(f.IsUnlimitedSize() && f.IsUnlimitedFiles() && f.IsUnlimitedTime())
 }
 
+// FilesRemaining returns the number of files that can still be uploaded
 func (f *FileRequest) FilesRemaining() int {
 	result := f.MaxFiles - f.UploadedFiles - f.ReservedUploads
 	if result < 0 {

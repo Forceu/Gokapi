@@ -14,7 +14,7 @@ import (
 	"github.com/forceu/gokapi/internal/encryption"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/logging"
-	"github.com/forceu/gokapi/internal/logging/serverStats"
+	"github.com/forceu/gokapi/internal/logging/serverstats"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
 	"github.com/forceu/gokapi/internal/storage/chunking"
@@ -27,7 +27,10 @@ import (
 	"github.com/forceu/gokapi/internal/webserver/fileupload"
 )
 
+// LengthPublicId is the length of the public ID used for API keys
 const LengthPublicId = 35
+
+// LengthApiKey is the length of the private API key used for authentication
 const LengthApiKey = 30
 
 // Process parses the request and executes the API call or returns an error message to the sender
@@ -444,7 +447,7 @@ func processNewChunk(w http.ResponseWriter, request chunkParams, maxFileSizeMb i
 		return http.StatusBadRequest, errorcodes.FileTooLarge, storage.ErrorFileTooLarge.Error()
 	}
 	request.GetRequest().Body = http.MaxBytesReader(w, request.GetRequest().Body, maxUpload)
-	err, errCode := fileupload.ProcessNewChunk(w, request.GetRequest(), true, filerequestId)
+	errCode, err := fileupload.ProcessNewChunk(w, request.GetRequest(), true, filerequestId)
 	if err != nil {
 		return http.StatusBadRequest, errCode, err.Error()
 	}
@@ -1008,13 +1011,13 @@ func apiLogSystemStatus(w http.ResponseWriter, _ requestParser, _ models.User) {
 		DiskTotal             uint64 `json:"diskTotal"`
 		DataServed            uint64 `json:"dataServed"`
 	}{
-		Uptime:      serverStats.GetUptime(),
-		CpuLoad:     serverStats.GetCpuUsage(),
-		ActiveFiles: serverStats.GetTotalFiles(),
+		Uptime:      serverstats.GetUptime(),
+		CpuLoad:     serverstats.GetCpuUsage(),
+		ActiveFiles: serverstats.GetTotalFiles(),
 	}
-	result.DataServed, result.TrafficRecordingSince = serverStats.GetCurrentTraffic()
-	_, result.MemoryUsed, result.MemoryTotal, result.MemoryUsagePercentage = serverStats.GetMemoryInfo()
-	_, result.DiskUsed, result.DiskTotal, result.DiskUsagePercentage = serverStats.GetDiskInfo()
+	result.DataServed, result.TrafficRecordingSince = serverstats.GetCurrentTraffic()
+	_, result.MemoryUsed, result.MemoryTotal, result.MemoryUsagePercentage = serverstats.GetMemoryInfo()
+	_, result.DiskUsed, result.DiskTotal, result.DiskUsagePercentage = serverstats.GetDiskInfo()
 	resultJson, err := json.Marshal(result)
 	if err != nil {
 		fmt.Println(err)
@@ -1025,7 +1028,7 @@ func apiLogSystemStatus(w http.ResponseWriter, _ requestParser, _ models.User) {
 }
 
 func apiLogResetTraffic(w http.ResponseWriter, _ requestParser, _ models.User) {
-	serverStats.ClearTraffic()
+	serverstats.ClearTraffic()
 	_, _ = w.Write([]byte(`{"Result":"OK"}`))
 }
 

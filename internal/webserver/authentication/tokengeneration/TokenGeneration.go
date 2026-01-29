@@ -14,6 +14,7 @@ func containsApiPermission(requestedPermissions models.ApiPermission, containsPe
 	return containsPermission&requestedPermissions == containsPermission
 }
 
+// Generate a temporary API key for the given user
 func Generate(user models.User, permission models.ApiPermission) (string, int64, error) {
 	if containsApiPermission(permission, models.ApiPermReplace) && !user.HasPermissionReplace() {
 		return "", 0, errors.New("user does not have permission to generate a token with PERM_REPLACE")

@@ -5,6 +5,7 @@ import (
 	"strings"
 )
 
+// Deprecation contains information about a deprecation
 type Deprecation struct {
 	Id            string
 	Name          string
@@ -13,6 +14,7 @@ type Deprecation struct {
 	checkFunction func() bool
 }
 
+// IsSet returns true if the deprecation is set
 func (d *Deprecation) IsSet() bool {
 	if d.checkFunction == nil {
 		panic("checkFunction is nil")
@@ -20,6 +22,7 @@ func (d *Deprecation) IsSet() bool {
 	return d.checkFunction()
 }
 
+// GetActive returns all active deprecations
 func GetActive() []Deprecation {
 	result := make([]Deprecation, 0)
 	for _, deprecation := range availableDeprecations {

@@ -10,9 +10,13 @@ import (
 
 const minLengthUser = 2
 
+// ErrorNameToShort is returned when the username is too short
 var ErrorNameToShort = errors.New("username too short")
+
+// ErrorUserExists is returned when the user already exists
 var ErrorUserExists = errors.New("user already exists")
 
+// Create creates a new user and returns an error if the user already exists or the username is too short
 func Create(name string) (models.User, error) {
 	if len(name) < minLengthUser {
 		return models.User{}, ErrorNameToShort

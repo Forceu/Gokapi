@@ -6,7 +6,9 @@ import (
 )
 
 const (
+	// TypeUserLastOnline can be used with models.User.LastOnline
 	TypeUserLastOnline = iota
+	// TypeApiLastUsed can be used with models.ApiKey.LastUsed
 	TypeApiLastUsed
 )
 
@@ -19,11 +21,13 @@ type cacheEntry struct {
 	mutex     sync.Mutex
 }
 
+// Init initializes the cacheEntry
 func (c *cacheEntry) Init() {
 	c.mapString = make(map[string]int64)
 	c.mapInt = make(map[int]int64)
 }
 
+// Init initializes the cacheStore or resets it
 func Init() {
 	globalMutex.Lock()
 	cacheStore = make([]cacheEntry, 2)
@@ -32,6 +36,7 @@ func Init() {
 	globalMutex.Unlock()
 }
 
+// IsUpdateRequiredString returns true if the entry needs to be updated
 func (c *cacheEntry) IsUpdateRequiredString(key string, maxDiffSeconds int64) bool {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
@@ -42,6 +47,8 @@ func (c *cacheEntry) IsUpdateRequiredString(key string, maxDiffSeconds int64) bo
 	}
 	return false
 }
+
+// IsUpdateRequiredInt returns true if the entry needs to be updated
 func (c *cacheEntry) IsUpdateRequiredInt(key int, maxDiffSeconds int64) bool {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()

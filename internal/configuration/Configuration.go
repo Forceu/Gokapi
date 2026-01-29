@@ -169,6 +169,7 @@ func LoadFromSetup(config models.Configuration, cloudConfig *cloudconfig.CloudCo
 	}
 }
 
+// GetEnvironment returns a copy of the environment object
 func GetEnvironment() environment.Environment {
 	if !parsedEnvironment.IsParsed() {
 		panic("Environment is not parsed yet")

@@ -9,12 +9,12 @@ import (
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/helper"
-	"github.com/forceu/gokapi/internal/logging/serverStats"
+	"github.com/forceu/gokapi/internal/logging/serverstats"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage/filerequest"
 )
 
-type FileEntry struct {
+type fileEntry struct {
 	Name      string
 	SizeStr   string
 	SizeBytes int64
@@ -38,11 +38,11 @@ func main() {
 }
 
 func addTraffic() {
-	serverStats.AddTraffic(2818730232000)
+	serverstats.AddTraffic(2818730232000)
 }
 
 func deleteAllData() {
-	serverStats.ClearTraffic()
+	serverstats.ClearTraffic()
 	for _, file := range database.GetAllMetadata() {
 		database.DeleteMetaData(file.Id)
 	}
@@ -179,7 +179,7 @@ var apiNames = []string{
 	"Temporary Migration Key",
 }
 
-var fileNames = []FileEntry{
+var fileNames = []fileEntry{
 	{"Quarterly Report Q1 2024.pdf", "3.2 MB", 3_355_443},
 	{"Quarterly Report Q2 2024.pdf", "3.8 MB", 3_981_312},
 	{"Annual Report 2023.pdf", "12.4 MB", 12_996_736},

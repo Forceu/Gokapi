@@ -47,6 +47,7 @@ func GetAll() (string, bool) {
 	return fmt.Sprintf("[%s] No log file found!", categoryWarning), false
 }
 
+// GetSince returns all log entries since a given timestamp
 func GetSince(timestamp int64) string {
 	exists, err := helper.FileExists(logPath)
 	helper.Check(err)
