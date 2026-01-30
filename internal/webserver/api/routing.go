@@ -635,7 +635,7 @@ func (p *paramChunkAdd) GetRequest() *http.Request {
 type paramChunkUploadRequestAdd struct {
 	Request       *http.Request
 	FileRequestId string `header:"fileRequestId" required:"true"`
-	ApiKey        string `header:"apikey"` // not published in API documentation
+	ApiKey        string `header:"apikey" unpublished:"true"` // not published in API documentation
 	foundHeaders  map[string]bool
 }
 
@@ -651,12 +651,12 @@ type paramChunkComplete struct {
 	Uuid               string `header:"uuid" required:"true"`
 	FileName           string `header:"filename" required:"true" supportBase64:"true"`
 	FileSize           int64  `header:"filesize" required:"true"`
-	RealSize           int64  `header:"realsize"` // not published in API documentation
+	RealSize           int64  `header:"realsize" unpublished:"true"` // not published in API documentation
 	ContentType        string `header:"contenttype"`
 	AllowedDownloads   int    `header:"allowedDownloads"`
 	ExpiryDays         int    `header:"expiryDays"`
 	Password           string `header:"password"`
-	IsE2E              bool   `header:"isE2E"` // not published in API documentation
+	IsE2E              bool   `header:"isE2E" unpublished:"true"` // not published in API documentation
 	IsNonBlocking      bool   `header:"nonblocking"`
 	UnlimitedDownloads bool
 	UnlimitedTime      bool
@@ -707,7 +707,7 @@ func (p *paramChunkComplete) ProcessParameter(_ *http.Request) error {
 
 type paramChunkReserve struct {
 	Id           string `header:"id" required:"true"`
-	ApiKey       string `header:"apikey"` // not published in API documentation
+	ApiKey       string `header:"apikey" unpublished:"true"` // not published in API documentation
 	foundHeaders map[string]bool
 }
 
@@ -718,7 +718,7 @@ func (p *paramChunkReserve) ProcessParameter(_ *http.Request) error {
 type paramChunkUnreserve struct {
 	Id           string `header:"id" required:"true"`
 	Uuid         string `header:"uuid" required:"true"`
-	ApiKey       string `header:"apikey"` // not published in API documentation
+	ApiKey       string `header:"apikey" unpublished:"true"` // not published in API documentation
 	foundHeaders map[string]bool
 }
 
@@ -733,7 +733,7 @@ type paramChunkUploadRequestComplete struct {
 	FileSize      int64  `header:"filesize" required:"true"`
 	ContentType   string `header:"contenttype"`
 	IsNonBlocking bool   `header:"nonblocking"`
-	ApiKey        string `header:"apikey"` // not published in API documentation
+	ApiKey        string `header:"apikey" unpublished:"true"` // not published in API documentation
 	FileHeader    chunking.FileHeader
 	foundHeaders  map[string]bool
 }

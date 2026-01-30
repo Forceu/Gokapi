@@ -665,15 +665,6 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "nonblocking",
-            "in": "header",
-            "description": "If set to true, the call returns without waiting for the file processing to finish.",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
           }
         ],
         "requestBody": {
@@ -765,6 +756,15 @@
             "required": false,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "nonblocking",
+            "in": "header",
+            "description": "If set to true, the call returns without waiting for the file processing to finish.",
+            "required": false,
+            "schema": {
+              "type": "boolean"
             }
           }
         ],
@@ -1014,7 +1014,7 @@
             }
           },
           {
-            "name": "allowed-downloads",
+            "name": "allowedDownloads",
             "in": "header",
             "required": false,
             "description": "How many downloads are allowed. Original value from web interface will be used if empty. Unlimited if 0 is passed.",
@@ -1023,7 +1023,7 @@
             }
           },
           {
-            "name": "expiry-days",
+            "name": "expiryDays",
             "in": "header",
             "required": false,
             "description": "How many days the file will be stored. Original value from web interface will be used if empty. Unlimited if 0 is passed.",
@@ -1041,7 +1041,7 @@
             }
           },
           {
-            "name": "original-password",
+            "name": "originalPassword",
             "in": "header",
             "required": false,
             "description": "Set to true to use original password. Field \"password\" will be ignored if set.",
@@ -1459,7 +1459,7 @@
         ],
         "parameters": [
           {
-            "name": "apiKeyToModify",
+            "name": "targetKey",
             "in": "header",
             "description": "The API key to change the name of. Can be either the public ID or the actual API key",
             "required": true,
@@ -1511,7 +1511,7 @@
         ],
         "parameters": [
           {
-            "name": "apiKeyToModify",
+            "name": "targetKey",
             "in": "header",
             "description": "The API key to change the permission of. Can be either the public ID or the actual API key",
             "required": true,
@@ -1592,7 +1592,7 @@
         ],
         "parameters": [
           {
-            "name": "apiKeyToModify",
+            "name": "targetKey",
             "in": "header",
             "description": "The API key to delete. Can be either the public ID or the actual API key",
             "required": true,
@@ -1880,17 +1880,6 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "email",
-            "in": "header",
-            "description": "Email address of new user. Must be at least 4 characters and include an @ sign",
-            "required": true,
-            "style": "simple",
-            "explode": false,
-            "schema": {
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -2073,10 +2062,21 @@
         ],
         "parameters": [
           {
+            "name": "userid",
+            "in": "header",
+            "description": "The id of the target user",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "generateNewPassword",
             "in": "header",
             "description": "Generate a new password",
-            "required": true,
+            "required": false,
             "style": "simple",
             "explode": false,
             "schema": {

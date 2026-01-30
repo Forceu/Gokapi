@@ -18,6 +18,7 @@ Changelog
 * Better rate limiting for invalid logins or IDs
 * Better IP parsing
 * Fixed gokapi-cli flag parsing for --output-path
+* Fixed multiple incorrect parameters in API documentation
 
 
 
