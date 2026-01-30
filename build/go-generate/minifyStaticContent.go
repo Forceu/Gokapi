@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 
 	minify "github.com/tdewolff/minify/v2"
 	"github.com/tdewolff/minify/v2/css"
@@ -16,11 +15,11 @@ import (
 const pathPrefix = "../../internal/webserver/web/static/"
 
 type converter struct {
-	InputPath       string
-	OutputPath      string
-	PreviousVersion string
-	Type            string
-	Name            string
+	InputPath         string
+	OutputPath        string
+	GlobPreviousFiles string
+	Type              string
+	Name              string
 }
 
 func main() {
@@ -32,32 +31,32 @@ func main() {
 func getPaths() []converter {
 	var result []converter
 	result = append(result, converter{
-		InputPath:       pathPrefix + "css/*.css",
-		OutputPath:      pathPrefix + "css/min/gokapi.min." + strconv.Itoa(cssMainVersion) + ".css",
-		PreviousVersion: pathPrefix + "css/min/gokapi.min." + strconv.Itoa(cssMainVersion-1) + ".css",
-		Type:            "text/css",
-		Name:            "Main CSS",
+		InputPath:         pathPrefix + "css/*.css",
+		OutputPath:        pathPrefix + "css/min/gokapi.min." + cssMainVersion + ".css",
+		GlobPreviousFiles: pathPrefix + "css/min/gokapi.min.*.css",
+		Type:              "text/css",
+		Name:              "Main CSS",
 	})
 	result = append(result, converter{
-		InputPath:       pathPrefix + "js/admin_*.js",
-		OutputPath:      pathPrefix + "js/min/admin.min." + strconv.Itoa(jsAdminVersion) + ".js",
-		PreviousVersion: pathPrefix + "js/min/admin.min." + strconv.Itoa(jsAdminVersion-1) + ".js",
-		Type:            "text/javascript",
-		Name:            "Admin JS",
+		InputPath:         pathPrefix + "js/admin_*.js",
+		OutputPath:        pathPrefix + "js/min/admin.min." + jsAdminVersion + ".js",
+		GlobPreviousFiles: pathPrefix + "js/min/admin.min.*.js",
+		Type:              "text/javascript",
+		Name:              "Admin JS",
 	})
 	result = append(result, converter{
-		InputPath:       pathPrefix + "js/end2end_admin.js",
-		OutputPath:      pathPrefix + "js/min/end2end_admin.min." + strconv.Itoa(jsE2EVersion) + ".js",
-		PreviousVersion: pathPrefix + "js/min/end2end_admin.min." + strconv.Itoa(jsE2EVersion-1) + ".js",
-		Type:            "text/javascript",
-		Name:            "Admin E2E JS",
+		InputPath:         pathPrefix + "js/end2end_admin.js",
+		OutputPath:        pathPrefix + "js/min/end2end_admin.min." + jsE2EVersion + ".js",
+		GlobPreviousFiles: pathPrefix + "js/min/end2end_admin.min.*.js",
+		Type:              "text/javascript",
+		Name:              "Admin E2E JS",
 	})
 	result = append(result, converter{
-		InputPath:       pathPrefix + "js/end2end_download.js",
-		OutputPath:      pathPrefix + "js/min/end2end_download.min." + strconv.Itoa(jsE2EVersion) + ".js",
-		PreviousVersion: pathPrefix + "js/min/end2end_download.min." + strconv.Itoa(jsE2EVersion-1) + ".js",
-		Type:            "text/javascript",
-		Name:            "Download E2E JS",
+		InputPath:         pathPrefix + "js/end2end_download.js",
+		OutputPath:        pathPrefix + "js/min/end2end_download.min." + jsE2EVersion + ".js",
+		GlobPreviousFiles: pathPrefix + "js/min/end2end_download.min.*.js",
+		Type:              "text/javascript",
+		Name:              "Download E2E JS",
 	})
 	result = append(result, converter{
 		InputPath:  pathPrefix + "js/streamsaver.js",
@@ -91,6 +90,10 @@ func minifyContent(conv converter) {
 	m.AddFunc("text/css", css.Minify)
 	m.AddFunc("text/javascript", js.Minify)
 
+	if conv.GlobPreviousFiles != "" {
+		removeOldFiles(conv.GlobPreviousFiles)
+	}
+
 	files, err := m.Bytes(conv.Type, getAllFiles(conv.InputPath))
 	if err != nil {
 		fmt.Println(err)
@@ -103,15 +106,28 @@ func minifyContent(conv converter) {
 		os.Exit(5)
 	}
 	fmt.Println("Minified " + conv.Name)
-	if conv.PreviousVersion != "" && fileExists(conv.PreviousVersion) {
-		fmt.Println("Removing old version of " + conv.Name)
-		err = os.Remove(conv.PreviousVersion)
-		if err != nil {
-			fmt.Println("Could not remove old " + conv.Name + " file")
-			fmt.Println(err)
-			os.Exit(6)
-		}
+}
+
+func removeOldFiles(pattern string) {
+	matches, err := filepath.Glob(pattern)
+	if err != nil {
+		panic(err)
 	}
+
+	if len(matches) == 0 {
+		return
+	}
+
+	if len(matches) > 1 {
+		fmt.Println("Multiple matching files found for " + pattern + ", refusing to delete")
+		os.Exit(6)
+	}
+
+	err = os.Remove(matches[0])
+	if err != nil {
+		panic(err)
+	}
+
 }
 
 func getAllFiles(pattern string) []byte {
@@ -150,6 +166,6 @@ func fileExists(filename string) bool {
 // Auto-generated content below, do not modify
 // Version codes can be changed in updateVersionNumbers.go
 
-const jsAdminVersion = 15
-const jsE2EVersion = 8
-const cssMainVersion = 5
+const jsAdminVersion = "d01c4e9bf1"
+const jsE2EVersion = "d01c4e9bf1"
+const cssMainVersion = "d01c4e9bf1"
