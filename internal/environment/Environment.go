@@ -68,6 +68,8 @@ type Environment struct {
 	// by these proxies with the X-Forwarded-For and X-REAL-IP header
 	// List is comma separated
 	TrustedProxies []string `env:"TRUSTED_PROXIES" envSeparator:"," envDefault:"127.0.0.1"`
+	// Set this to true if you are using Cloudflare
+	UseCloudFlare bool `env:"USE_CLOUDFLARE" envDefault:"false"`
 	// Sets the webserver port
 	WebserverPort int `env:"PORT" envDefault:"53842" onlyPositive:"true" persistent:"true"`
 	// Allow hotlinking of videos. Note: Due to buffering, playing a video might count as

@@ -8,8 +8,38 @@ Overview of all changes
 -----------------------
 
 
-v2.2.0 (2026-01-29)
+v2.2.1 (2026-01-30)
 ^^^^^^^^^^^^^^^^^^^
+
+Changelog
+"""""""""
+
+* Fixed File Requests not working, when GOKAPI_LENGTH_ID>15
+* Better rate limiting for invalid logins or IDs
+* Better IP parsing
+* Fixed gokapi-cli flag parsing for --output-path
+
+
+
+Updating
+""""""""
+
+If your reverse proxy does not connect from ``127.0.0.1``, add its IP address to the ``GOKAPI_TRUSTED_PROXIES`` environment variable (comma-separated if there are multiple).
+
+If Gokapi is running behind Cloudflare, make sure to set the ``GOKAPI_USE_CLOUDFLARE`` environment variable to true.
+
+
+**Full Changelog**: https://github.com/Forceu/Gokapi/compare/v2.2.0...v2.2.1
+
+
+v2.2.0 (2026-01-28)
+^^^^^^^^^^^^^^^^^^^
+
+We are proud to release v2.2.0, one of our biggest updates so far with 15,000 lines of code changed!
+This update contains the File Request feature, where a user can now generate a URL that lets external parties upload files to the server, visible only to the requester.
+Also a lot of UI elements have been updated to look more modern and a new status page has been created with the most important server stats.
+Although there was a lot of testing, with so many changes it is possible, that some bugs are included in this version. If you find any, please open an issue here on Github!
+
 
 Changelog
 """""""""
@@ -23,9 +53,15 @@ Changelog
 * Downloads can be made from the UI without increasing the download counter
 * gokapi-cli now supports downloads
 * Add deprecation alerts @spaghetti-coder
+* Gokapi now checks if enough free space is available, and otherwise rejects a new upload
 * A lot of UI improvements
 * Many small fixes and improvements
 
+
+Updating
+""""""""
+
+By default, new users are not allowed to create file requests. If you want to have all your old users gain that permission, set the environment variable ``GOKAPI_GUEST_UPLOAD_BY_DEFAULT`` to ``true`` before updating your instance.
 
 Breaking Changes
 """"""""""""""""

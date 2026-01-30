@@ -27,6 +27,7 @@ const categoryAuth = "auth"
 const categoryWarning = "warning"
 
 var outputToStdout = false
+var useCloudflare = false
 var trustedProxies []string
 
 // Init sets the path where to write the log file to
@@ -35,6 +36,7 @@ func Init(filePath string) {
 	env := environment.New()
 	outputToStdout = env.LogToStdout
 	trustedProxies = env.TrustedProxies
+	useCloudflare = env.UseCloudFlare
 }
 
 // GetAll returns all log entries as a single string and if the log file exists
@@ -353,8 +355,15 @@ func GetIpAddress(r *http.Request) string {
 		ip = r.RemoteAddr
 	}
 
-	// Clean up if it's an IPv6 zone
+	// Clean up if it is an IPv6 zone
 	netIP := net.ParseIP(ip)
+
+	if useCloudflare {
+		cfIp := r.Header.Get("CF-Connecting-IP")
+		if cfIp != "" {
+			return cfIp
+		}
+	}
 
 	// Check if the immediate connector is a Trusted Proxy and if yes, use their header for IP
 	// Otherwise this returns the actual IP used for the connection

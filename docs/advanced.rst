@@ -124,6 +124,8 @@ Available environment variables
 |                                |                                                                                        |                 |                             |
 |                                | List is comma separated                                                                |                 |                             |
 +--------------------------------+----------------------------------------------------------------------------------------+-----------------+-----------------------------+
+| GOKAPI_USE_CLOUDFLARE          | Set this to true if you are using Cloudflare                                           | No              | false                       |
++--------------------------------+----------------------------------------------------------------------------------------+-----------------+-----------------------------+
 | TMPDIR                         | Sets the path which contains temporary files                                           | No              | Non-Docker: Default OS path |
 |                                |                                                                                        |                 |                             |
 |                                |                                                                                        |                 | Docker: [DATA_DIR]          |

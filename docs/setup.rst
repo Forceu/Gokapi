@@ -399,6 +399,8 @@ Running Gokapi behind a reverse proxy is strongly recommended. Configure the pro
 
 If your reverse proxy does not use 127.0.0.1 as its source IP, you must explicitly specify the trusted proxy IP address(es) using the environment variable ``GOKAPI_TRUSTED_PROXIES``, see :ref:`availenvvar`
 
+If Gokapi is running behind Cloudflare, make sure to set the ``GOKAPI_USE_CLOUDFLARE`` environment variable to true.
+
 An example configuration for Nginx is available here: :ref:`nginx_config`
 
 
