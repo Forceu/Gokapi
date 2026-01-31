@@ -8,16 +8,28 @@ Overview of all changes
 -----------------------
 
 
+v2.2.2 (2026-01-31)
+^^^^^^^^^^^^^^^^^^^
+
+Changelog
+"""""""""
+
+* Added option to add CIDR for trusted proxies (e.g. ``10.0.0.0/24``)
+* Docker subnets are automatically configured as trusted proxies. If this version is not secure for your environment, set ``GOKAPI_DISABLE_DOCKER_TRUSTED_PROXY`` to true.
+* Fixed caching issues with previous version
+
+
+
 v2.2.1 (2026-01-30)
 ^^^^^^^^^^^^^^^^^^^
 
 Changelog
 """""""""
 
-* Fixed File Requests not working, when GOKAPI_LENGTH_ID>15
+* Fixed File Requests not working, when ``GOKAPI_LENGTH_ID`` > 15 `#353 <https://github.com/Forceu/Gokapi/issues/353>`__ 
 * Better rate limiting for invalid logins or IDs
 * Better IP parsing
-* Fixed gokapi-cli flag parsing for --output-path
+* Fixed ``gokapi-cli`` flag parsing for ``--output-path``
 * Fixed multiple incorrect parameters in API documentation
 
 
@@ -28,9 +40,6 @@ Updating
 If your reverse proxy does not connect from ``127.0.0.1``, add its IP address to the ``GOKAPI_TRUSTED_PROXIES`` environment variable (comma-separated if there are multiple).
 
 If Gokapi is running behind Cloudflare, make sure to set the ``GOKAPI_USE_CLOUDFLARE`` environment variable to true.
-
-
-**Full Changelog**: https://github.com/Forceu/Gokapi/compare/v2.2.0...v2.2.1
 
 
 v2.2.0 (2026-01-28)
