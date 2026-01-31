@@ -10,8 +10,13 @@
 		    
 			<form action="./uploadChunk" class="dropzone upload-box text-center w-100" id="uploaddropzone">
 				<div class="dz-message">
-				    <p class="mb-2 fs-5">Drag & drop files here</p>
-				    <p class="mb-0 opacity-75">or paste or click to select</p>
+{{ if .EndToEndEncryption }}
+				    <p id="uploadBoxTitle" class="mb-2 fs-5">Please wait</p>
+				    <p id="uploadBoxSubtitle" class="mb-0 opacity-75">Loading end-to-end encryption...</p>
+{{ else }}
+				    <p id="uploadBoxTitle" class="mb-2 fs-5">Drag & drop files here</p>
+				    <p id="uploadBoxSubtitle" class="mb-0 opacity-75">or paste or click to select.</p>
+{{ end }}
 				</div>
 			</form>
 		

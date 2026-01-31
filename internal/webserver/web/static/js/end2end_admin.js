@@ -26,7 +26,8 @@ function checkIfE2EKeyIsSet() {
             }
             getE2EInfo();
             dropzoneObject.enable();
-            document.getElementsByClassName("dz-button")[0].innerText = "Drop files, paste or click here to upload (end-to-end encrypted)";
+            document.getElementById("uploadBoxTitle").innerText = "Drag & drop files here";
+            document.getElementById("uploadBoxSubtitle").innerText = "or paste or click to upload with end-to-end encryption";
         });
     }
 }
