@@ -2,7 +2,15 @@ GOPACKAGE=github.com/forceu/gokapi
 BUILD_FLAGS=-ldflags="-s -w -X '$(GOPACKAGE)/internal/environment.Builder=Make Script' -X '$(GOPACKAGE)/internal/environment.BuildTime=$(shell date)'"
 BUILD_FLAGS_DEBUG=-ldflags="-X '$(GOPACKAGE)/internal/environment.Builder=Make Script' -X '$(GOPACKAGE)/internal/environment.BuildTime=$(shell date)'"
 DOCKER_IMAGE_NAME=gokapi
+
+# Check for docker, then podman, otherwise use what the user provided
+ifeq ($(origin CONTAINER_TOOL), undefined)
+    CONTAINER_TOOL := $(shell command -v docker 2> /dev/null || command -v podman 2> /dev/null)
+endif
+
+# Fallback if neither is found and nothing was provided
 CONTAINER_TOOL ?= docker
+
 
 # Default target
 .PHONY: all

@@ -32,6 +32,8 @@ type Environment struct {
 	DataDir string `env:"DATA_DIR" envDefault:"data" persistent:"true"`
 	// Disables the CORS check on startup and during setup, if set to true
 	DisableCorsCheck bool `env:"DISABLE_CORS_CHECK" envDefault:"false"`
+	// Disables automatically adding Docker subnet to trusted proxies, if set to true
+	DisableDockerTrustedProxy bool `env:"DISABLE_DOCKER_TRUSTED_PROXY" envDefault:"false"`
 	// Sets the size of chunks that are uploaded in MB
 	ChunkSizeMB int `env:"CHUNK_SIZE_MB" envDefault:"45" onlyPositive:"true" persistent:"true"`
 	// Sets the length of the download IDs
@@ -66,7 +68,8 @@ type Environment struct {
 	PermRequestGrantedByDefault bool `env:"GUEST_UPLOAD_BY_DEFAULT" envDefault:"false"`
 	// Sets a list of trusted proxies. If set, the webserver will trust the IP addresses sent
 	// by these proxies with the X-Forwarded-For and X-REAL-IP header
-	// List is comma separated
+	// List is comma separated; entries can be fixed IPs ("10.0.0.1, 10.0.0.2")
+	// and subnets ("10.0.0.0/24")
 	TrustedProxies []string `env:"TRUSTED_PROXIES" envSeparator:"," envDefault:"127.0.0.1"`
 	// Set this to true if you are using Cloudflare
 	UseCloudFlare bool `env:"USE_CLOUDFLARE" envDefault:"false"`

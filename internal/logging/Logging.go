@@ -28,15 +28,69 @@ const categoryWarning = "warning"
 
 var outputToStdout = false
 var useCloudflare = false
-var trustedProxies []string
+
+var parsedTrustedIPs []net.IP
+var parsedTrustedCIDRs []*net.IPNet
 
 // Init sets the path where to write the log file to
 func Init(filePath string) {
 	logPath = filePath + "/log.txt"
 	env := environment.New()
 	outputToStdout = env.LogToStdout
-	trustedProxies = env.TrustedProxies
 	useCloudflare = env.UseCloudFlare
+	parseTrustedProxies(env.TrustedProxies, !env.DisableDockerTrustedProxy)
+}
+
+// parseTrustedProxies processes the raw strings into net.IP and net.IPNet objects
+func parseTrustedProxies(proxies []string, useDockerSubnet bool) {
+	parsedTrustedIPs = nil
+	parsedTrustedCIDRs = nil
+
+	if environment.IsDockerInstance() && useDockerSubnet {
+		subnet, err := getDockerSubnet()
+		if err == nil {
+			parsedTrustedCIDRs = append(parsedTrustedCIDRs, subnet)
+		}
+	}
+
+	for _, proxy := range proxies {
+		proxy = strings.TrimSpace(proxy)
+		if strings.Contains(proxy, "/") {
+			// Handle CIDR (e.g., "10.0.0.0/24")
+			_, ipNet, err := net.ParseCIDR(proxy)
+			if err == nil {
+				parsedTrustedCIDRs = append(parsedTrustedCIDRs, ipNet)
+			}
+		} else {
+			// Handle Fixed IP (e.g., "127.0.0.1")
+			ip := net.ParseIP(proxy)
+			if ip != nil {
+				parsedTrustedIPs = append(parsedTrustedIPs, ip)
+			}
+		}
+	}
+}
+
+func getDockerSubnet() (*net.IPNet, error) {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, addr := range addrs {
+		if ipnet, ok := addr.(*net.IPNet); ok {
+			// Docker typically uses these private ranges
+			// Common: 172.16.0.0/12, 192.168.0.0/16, 10.0.0.0/8
+			// Docker bridge default: 172.17.0.0/16
+			if ipnet.IP.IsPrivate() && !ipnet.IP.IsLoopback() {
+				// Skip if it's just the host IP (not a subnet)
+				if ipnet.IP.To4() != nil {
+					return ipnet, nil
+				}
+			}
+		}
+	}
+	return nil, fmt.Errorf("no Docker subnet found")
 }
 
 // GetAll returns all log entries as a single string and if the log file exists
@@ -339,24 +393,26 @@ func getDate(timestamp time.Time) string {
 	return timestamp.UTC().Format(time.RFC1123)
 }
 
-func isTrustedProxy(ip string) bool {
-	for _, proxy := range trustedProxies {
-		if ip == proxy {
+func isTrustedProxy(ip net.IP) bool {
+	// Check against fixed IPs
+	for _, trustedIP := range parsedTrustedIPs {
+		if trustedIP.Equal(ip) {
 			return true
 		}
 	}
+
+	// Check against CIDR ranges
+	for _, trustedNet := range parsedTrustedCIDRs {
+		if trustedNet.Contains(ip) {
+			return true
+		}
+	}
+
 	return false
 }
 
 // GetIpAddress returns the IP address of the requester
 func GetIpAddress(r *http.Request) string {
-	ip, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		ip = r.RemoteAddr
-	}
-
-	// Clean up if it is an IPv6 zone
-	netIP := net.ParseIP(ip)
 
 	if useCloudflare {
 		cfIp := r.Header.Get("CF-Connecting-IP")
@@ -365,19 +421,30 @@ func GetIpAddress(r *http.Request) string {
 		}
 	}
 
+	ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		ip = r.RemoteAddr
+	}
+
+	// Clean up if it is an IPv6 zone
+	netIP := net.ParseIP(ip)
+
 	// Check if the immediate connector is a Trusted Proxy and if yes, use their header for IP
 	// Otherwise this returns the actual IP used for the connection
-	if netIP != nil && isTrustedProxy(netIP.String()) {
+	if netIP != nil && isTrustedProxy(netIP) {
 
 		// Check X-Forwarded-For
 		// Ideally, use the last IP in the list if a proxy appends to it
 		xff := r.Header.Get("X-FORWARDED-FOR")
 		if xff != "" {
 			ips := strings.Split(xff, ",")
-			//Take the last IP or investigate based on proxy setup
-			realIP := strings.TrimSpace(ips[len(ips)-1])
-			if net.ParseIP(realIP) != nil {
-				return realIP
+			// Iterate from right to left, skip trusted proxies
+			for i := len(ips) - 1; i >= 0; i-- {
+				ipXff := strings.TrimSpace(ips[i])
+				parsedIP := net.ParseIP(ipXff)
+				if parsedIP != nil && !isTrustedProxy(parsedIP) {
+					return ipXff
+				}
 			}
 		}
 

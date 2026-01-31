@@ -1,8 +1,14 @@
 # Define variables
 IMAGE_NAME=gokapi-builder
 CONTAINER_WORK_DIR=/usr/src/myapp
-#To use podman, use make CONTAINER_TOOL=podman
-CONTAINER_TOOL?=podman
+
+# Check for docker, then podman, otherwise use what the user provided
+ifeq ($(origin CONTAINER_TOOL), undefined)
+    CONTAINER_TOOL := $(shell command -v docker 2> /dev/null || command -v podman 2> /dev/null)
+endif
+
+# Fallback if neither is found and nothing was provided
+CONTAINER_TOOL ?= docker
 
 # Default target
 all: compile
