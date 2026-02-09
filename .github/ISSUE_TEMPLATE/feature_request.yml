@@ -23,6 +23,14 @@ body:
     attributes:
       label: Describe alternatives you've considered
       description: Any other ways you've thought about solving this.
+      
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Anything else you would like to add to the suggestion
+    validations:
+      required: false
 
   - type: checkboxes
     id: breaking

@@ -63,6 +63,14 @@ body:
         3. See error
     validations:
       required: true
+      
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Anything else you would like to add to the report
+    validations:
+      required: false
 
   - type: textarea
     id: logs
