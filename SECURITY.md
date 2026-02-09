@@ -6,8 +6,8 @@ We currently support the latest stable version of Gokapi. Security updates are p
 
 | Version | Supported          |
 | ------- | ------------------ |
-| Latest  | ✅                 |
-| Older   | ❌                 |
+| Latest  | Yes                |
+| Older   | No                 |
 
 ## Reporting a Vulnerability
 

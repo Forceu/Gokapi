@@ -1,0 +1,80 @@
+name: Bug Report
+description: Report a bug to help improve Gokapi
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before opening this, please ensure you are not reporting a **security vulnerability**. Instead, report it at https://github.com/Forceu/Gokapi/security/advisories/new .
+
+  - type: input
+    id: version
+    attributes:
+      label: Gokapi Version
+      description: What version are you running? (e.g., v2.2.0 or a specific commit hash)
+      placeholder: v2.x.x
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System / Deployment
+      options:
+        - Docker (Official Image)
+        - Linux (Binary)
+        - Windows (Binary)
+        - macOS (Binary)
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: storage
+    attributes:
+      label: Storage Backend
+      description: Which storage backend are you using?
+      options:
+        - Local Disk
+        - S3 Compatible (AWS, Minio, etc.)
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: database
+    attributes:
+      label: Database
+      options:
+        - SQLite
+        - Redis
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Tell us exactly how to trigger the bug.
+      placeholder: |
+        1. Go to '...'
+        2. Click on '....'
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Logs
+      description: Please paste terminal output or browser console logs here.
+      render: shell
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I have removed sensitive information (API keys, passwords) from my logs.
+          required: true
