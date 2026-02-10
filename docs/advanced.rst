@@ -168,7 +168,7 @@ All values that are described in :ref:`cloudstorage` can be passed as environmen
 Databases
 ********************************
 
-By default, Gokapi uses an SQLite database for data storage, which should suffice for most use cases. Additionally, Redis is available as an experimental option.
+By default, Gokapi uses an SQLite database for data storage, which should suffice for most use cases. However if you are using a slow media for storing the database or expect to have a lot of files uploaded or downloaded it is highly recommended to use Redis instead.
 
 
 

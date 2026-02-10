@@ -5,7 +5,7 @@
 [![Coverage](https://img.shields.io/badge/Go%20Coverage-83%25-brightgreen.svg?longCache=true&style=flat)](https://github.com/jpoles1/gopherbadger)
 [![Docker Pulls](https://img.shields.io/docker/pulls/f0rc3/gokapi.svg)](https://hub.docker.com/r/f0rc3/gokapi/)
 
-**Gokapi** is a simple, self-hosted file sharing server with automatic expiration and encryption support — ideal for teams or individuals who want privacy, control, and no clutter.
+**Gokapi** is a modern, self-hosted alternative to Firefox Send that puts you in control of your file sharing. Built with Go, it combines simplicity with powerful features like automatic file expiration, end-to-end encryption, and flexible cloud storage support.
 
 ### Available for:
 
@@ -24,7 +24,7 @@
 - **REST API:** For automation and integration into other systems
 - **Customizable UI:** Adjust look and feel with custom CSS and JavaScript
 
-
+---
 
 ## Getting Started
 
@@ -38,8 +38,16 @@ You can deploy Gokapi in seconds using Docker or directly on your system.
 Start Gokapi instantly with Docker:
 
 ```bash
-docker run -v gokapi-data:/app/data -v gokapi-config:/app/config -p 127.0.0.1:53842:53842 -e TZ=UTC f0rc3/gokapi:latest
+docker run -d \
+  --name gokapi \
+  -v gokapi-data:/app/data \
+  -v gokapi-config:/app/config \
+  -p 127.0.0.1:53842:53842 \
+  -e TZ=UTC \
+  f0rc3/gokapi:latest
 ```
+
+Then visit ``http://localhost:53842`` and follow the setup wizard.
 
 
 
@@ -86,12 +94,39 @@ docker run -v gokapi-data:/app/data -v gokapi-config:/app/config -p 127.0.0.1:53
 
 </a>
 
+---
 
+## System Requirements
 
+### Minimum
+- **CPU**: 1 core
+- **RAM**: 256 MB
+- **Storage**: 100 MB + file storage
+- **OS**: Linux, macOS, Windows
 
+### Recommended  
+- **CPU**: 2+ cores
+- **RAM**: 512 MB+
+- **Storage**: SSD strongly recommended
 
+## Development
 
+### Building from Source
 
+```bash
+# Clone the repository
+git clone https://github.com/Forceu/gokapi.git
+cd gokapi
+
+# Build the binary
+make build
+
+# Run tests
+make test
+
+# Build Docker image
+docker build -t gokapi:local .
+```
 
 ## License
 
@@ -111,6 +146,7 @@ As with all Free software, the power is less in the finances and more in the col
 [![paypal](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=donate@bulling.mobi&lc=US&item_name=BarcodeBuddy&no_note=0&cn=&currency_code=EUR&bn=PP-DonationsBF:btn_donateCC_LG.gif:NonHosted) [![LiberaPay](https://img.shields.io/badge/Donate-LiberaPay-green.svg)](https://liberapay.com/MBulling/donate)
 
 Powered by [Jetbrains](https://jb.gg/OpenSourceSupport)
+
 
 
 
