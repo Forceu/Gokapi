@@ -457,3 +457,40 @@ func GetIpAddress(r *http.Request) string {
 
 	return ip
 }
+
+// IsFromTrustedProxy returns true if the request originates from a trusted proxy
+func IsFromTrustedProxy(r *http.Request) bool {
+	ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		ip = r.RemoteAddr
+	}
+	netIP := net.ParseIP(ip)
+	if netIP == nil {
+		return false
+	}
+	return isTrustedProxy(netIP)
+}
+
+// GetServerUrl returns the server URL, taking into account proxy headers if the request is from a trusted proxy.
+// If the request is nil or not from a trusted proxy, it returns the fallbackUrl.
+func GetServerUrl(r *http.Request, fallbackUrl string) string {
+	if r == nil || !IsFromTrustedProxy(r) {
+		return fallbackUrl
+	}
+	proto := r.Header.Get("X-Forwarded-Proto")
+	if proto == "" {
+		proto = "http"
+		if r.TLS != nil {
+			proto = "https"
+		}
+	}
+	host := r.Header.Get("X-Forwarded-Host")
+	if host == "" {
+		host = r.Host
+	}
+	url := proto + "://" + host
+	if !strings.HasSuffix(url, "/") {
+		url += "/"
+	}
+	return url
+}
