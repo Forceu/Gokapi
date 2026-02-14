@@ -223,7 +223,14 @@ func serveDecryptedFile(w http.ResponseWriter, file models.File) error {
 	defer obj.Body.Close()
 
 	headers.Write(file, w, true, true)
-	return encryption.DecryptReader(file.Encryption, obj.Body, w)
+	if file.Encryption.IsEncrypted {
+		if !encryption.IsDecryptionAvailable() {
+			return errors.New("file is encrypted but server-side decryption key is not available")
+		}
+		return encryption.DecryptReader(file.Encryption, obj.Body, w)
+	}
+	_, err = io.Copy(w, obj.Body)
+	return err
 }
 
 func getTimeoutContext() (context.Context, context.CancelFunc) {

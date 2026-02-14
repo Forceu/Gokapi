@@ -167,9 +167,12 @@ func checkRequiredUploadParameter(config *FlagConfig, mode int) bool {
 	if mode == ModeUpload && config.File != "" {
 		return true
 	}
-	if mode == ModeDownload && config.DownloadId == "" {
-		fmt.Println("ERROR: Missing parameter --id")
-		return false
+	if mode == ModeDownload {
+		if config.DownloadId == "" {
+			fmt.Println("ERROR: Missing parameter --id")
+			return false
+		}
+		return true
 	}
 
 	if !environment.IsDockerInstance() {
