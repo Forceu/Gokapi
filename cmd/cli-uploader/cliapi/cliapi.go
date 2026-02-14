@@ -256,17 +256,6 @@ func DownloadFile(downloadParams cliflags.FlagConfig) error {
 			return err
 		}
 	}
-	helper.CreateDir(downloadParams.OutputPath)
-	file, err := os.Create(downloadParams.OutputPath + "/" + downloadParams.FileName)
-	defer file.Close()
-	if err != nil {
-		fmt.Println("ERROR: Could not create new file")
-		return err
-	}
-
-	if !downloadParams.JsonOutput {
-		progressBar = progressbar.DefaultBytes(info.SizeBytes, "Downloading")
-	}
 
 	req, err := http.NewRequest("GET", gokapiUrl+"/files/download/"+downloadParams.DownloadId, nil)
 	if err != nil {
@@ -286,6 +275,18 @@ func DownloadFile(downloadParams cliflags.FlagConfig) error {
 		os.Exit(4)
 	}
 
+	helper.CreateDir(downloadParams.OutputPath)
+	file, err := os.Create(filename)
+	if err != nil {
+		fmt.Println("ERROR: Could not create new file")
+		return err
+	}
+	defer file.Close()
+
+	if !downloadParams.JsonOutput {
+		progressBar = progressbar.DefaultBytes(info.SizeBytes, "Downloading")
+	}
+
 	if !downloadParams.JsonOutput {
 		_, err = io.Copy(file, io.TeeReader(resp.Body, progressBar))
 	} else {
@@ -293,6 +294,7 @@ func DownloadFile(downloadParams cliflags.FlagConfig) error {
 	}
 
 	if err != nil {
+		os.Remove(filename)
 		fmt.Println("ERROR: Could not download file")
 		return err
 	}
