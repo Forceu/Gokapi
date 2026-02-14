@@ -223,7 +223,11 @@ func serveDecryptedFile(w http.ResponseWriter, file models.File) error {
 	defer obj.Body.Close()
 
 	headers.Write(file, w, true, true)
-	return encryption.DecryptReader(file.Encryption, obj.Body, w)
+	if file.Encryption.IsEncrypted {
+		return encryption.DecryptReader(file.Encryption, obj.Body, w)
+	}
+	_, err = io.Copy(w, obj.Body)
+	return err
 }
 
 func getTimeoutContext() (context.Context, context.CancelFunc) {
