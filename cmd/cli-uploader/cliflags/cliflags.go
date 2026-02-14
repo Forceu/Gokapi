@@ -27,7 +27,7 @@ const (
 	ModeInvalid
 )
 
-const version = "v1.1.0"
+const version = "v1.1.1"
 
 // FlagConfig contains the parameters for the upload command.
 type FlagConfig struct {

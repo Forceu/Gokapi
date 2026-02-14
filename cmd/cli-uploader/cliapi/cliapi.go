@@ -372,17 +372,19 @@ func uploadChunk(f io.Reader, uuid string, offset, chunkSize, filesize int64, pr
 		return err
 	}
 
-	var bodyReader io.Reader
+	data := body.Bytes()
+	dataSize := int64(len(data))
+	bodyReader := io.Reader(bytes.NewReader(data))
+
 	if progressBar != nil {
-		bodyReader = io.TeeReader(body, progressBar)
-	} else {
-		bodyReader = body
+		bodyReader = io.TeeReader(bodyReader, progressBar)
 	}
 
 	r, err := http.NewRequest("POST", gokapiUrl+"/chunk/add", bodyReader)
 	if err != nil {
 		return err
 	}
+	r.ContentLength = dataSize
 	r.Header.Set("Content-Type", writer.FormDataContentType())
 	r.Header.Set("apikey", apiKey)
 	client := &http.Client{}
