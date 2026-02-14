@@ -233,6 +233,24 @@ func DownloadFile(downloadParams cliflags.FlagConfig) error {
 		fmt.Println("ERROR: Could not get file info or file does not exist")
 		return err
 	}
+
+	// For E2E files, retrieve the per-file cipher and real filename
+	var e2eCipher []byte
+	if info.IsEndToEndEncrypted {
+		if len(e2eKey) == 0 {
+			return errors.New("file is end-to-end encrypted but no E2E key is configured - please re-run login")
+		}
+		var realName string
+		e2eCipher, realName, err = getE2eCipher(downloadParams.DownloadId)
+		if err != nil {
+			fmt.Println("ERROR: Could not retrieve E2E decryption key for this file")
+			return err
+		}
+		if downloadParams.FileName == "" {
+			info.Name = realName
+		}
+	}
+
 	if downloadParams.OutputPath == "" {
 		downloadParams.OutputPath = "."
 	}
@@ -287,10 +305,20 @@ func DownloadFile(downloadParams cliflags.FlagConfig) error {
 		progressBar = progressbar.DefaultBytes(info.SizeBytes, "Downloading")
 	}
 
+	// For E2E files, wrap the response body in a decryption reader
+	var body io.Reader = resp.Body
+	if info.IsEndToEndEncrypted {
+		body, err = encryption.GetDecryptReader(e2eCipher, resp.Body)
+		if err != nil {
+			os.Remove(filename)
+			return err
+		}
+	}
+
 	if !downloadParams.JsonOutput {
-		_, err = io.Copy(file, io.TeeReader(resp.Body, progressBar))
+		_, err = io.Copy(file, io.TeeReader(body, progressBar))
 	} else {
-		_, err = io.Copy(file, resp.Body)
+		_, err = io.Copy(file, body)
 	}
 
 	if err != nil {
@@ -310,6 +338,20 @@ func DownloadFile(downloadParams cliflags.FlagConfig) error {
 		fmt.Println("{\"result\":\"OK\"}")
 	}
 	return nil
+}
+
+// getE2eCipher retrieves the per-file cipher and real filename for an E2E encrypted file
+func getE2eCipher(fileId string) ([]byte, string, error) {
+	e2eInfo, err := GetE2eInfo()
+	if err != nil {
+		return nil, "", err
+	}
+	for _, f := range e2eInfo.Files {
+		if f.Id == fileId {
+			return f.Cipher, f.Filename, nil
+		}
+	}
+	return nil, "", errors.New("file not found in E2E metadata")
 }
 
 func nameToBase64(f *os.File, uploadParams cliflags.FlagConfig) string {
