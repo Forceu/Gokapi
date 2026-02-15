@@ -1,9 +1,9 @@
-FROM golang:1.25.6-bookworm
+FROM golang:1.26.0-bookworm
 
 ## To compile:
 ## cd Gokapi/build/
 ## docker build . --tag gokapi-builder
-## docker run --rm -it -v ../:/usr/src/myapp -w /usr/src/myapp gokapi-builder
+## docker run --rm -it -v ../:/src/gokapi -w /src/gokapi gokapi-builder
 
 RUN \
   apt-get update && \
