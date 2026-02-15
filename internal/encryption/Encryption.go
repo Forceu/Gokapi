@@ -39,6 +39,12 @@ const EndToEndEncryption = 5
 
 var encryptedKey, ramCipher []byte
 
+// IsDecryptionAvailable returns true if the master encryption key has been
+// loaded into memory, meaning server-side decryption is possible.
+func IsDecryptionAvailable() bool {
+	return len(ramCipher) > 0
+}
+
 const blockSize = 32
 const nonceSize = 12
 
