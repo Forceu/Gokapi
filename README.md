@@ -47,7 +47,7 @@ docker run -d \
   f0rc3/gokapi:latest
 ```
 
-Then visit ``http://localhost:53842`` and follow the setup wizard.
+Then visit ``http://localhost:53842/setup`` and follow the setup wizard.
 
 
 
