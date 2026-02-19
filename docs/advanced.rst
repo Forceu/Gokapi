@@ -565,8 +565,6 @@ If you want to deploy Gokapi to multiple instances that contain different data, 
 +-----------+------------------------------------------------------------+----------------------+
 | SaltFiles | Change to empty value                                      | "SaltFiles": "",     |
 +-----------+------------------------------------------------------------+----------------------+
-| Password  | Change to empty value                                      | "Password": "",      |
-+-----------+------------------------------------------------------------+----------------------+
 | Username  | Change to the username of your preference,                 | "Username": "admin", |
 |           |                                                            |                      |
 |           | if you are using internal username/password authentication |                      |
