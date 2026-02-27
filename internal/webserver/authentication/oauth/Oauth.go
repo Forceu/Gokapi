@@ -2,15 +2,16 @@ package oauth
 
 import (
 	"context"
+	"log"
+	"net/http"
+	"time"
+
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/webserver/authentication"
 	"golang.org/x/oauth2"
-	"log"
-	"net/http"
-	"time"
 )
 
 var config oauth2.Config
@@ -79,12 +80,13 @@ func HandlerCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if isLoginRequired(r) {
+		initLogin(w, r, true)
+		return
+	}
+
 	oauth2Token, err := config.Exchange(ctx, r.URL.Query().Get("code"))
 	if err != nil {
-		if isLoginRequired(r) {
-			initLogin(w, r, true)
-			return
-		}
 		showOauthErrorPage(w, r, "Failed to exchange token: "+err.Error())
 		return
 	}

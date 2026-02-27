@@ -5,11 +5,12 @@ Manages the sessions for the admin user or to access password-protected files
 */
 
 import (
+	"net/http"
+	"time"
+
 	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
-	"net/http"
-	"time"
 )
 
 // If no login occurred during this time, the admin session will be deleted. Default 30 days
@@ -17,7 +18,7 @@ const cookieLifeAdmin = 30 * 24 * time.Hour
 const lengthSessionId = 60
 
 // IsValidSession checks if the user is submitting a valid session token
-// If valid session is found, useSession will be called
+// If a valid session is found, useSession will be called
 // Returns true if authenticated, otherwise false
 func IsValidSession(w http.ResponseWriter, r *http.Request, isOauth bool, OAuthRecheckInterval int) (models.User, bool) {
 	cookie, err := r.Cookie("session_token")
@@ -38,7 +39,7 @@ func IsValidSession(w http.ResponseWriter, r *http.Request, isOauth bool, OAuthR
 }
 
 // useSession checks if a session is still valid. It Changes the session string
-// if it has // been used for more than an hour to limit session hijacking
+// if it has been used for more than an hour to limit session hijacking
 // Returns true if session is still valid
 // Returns false if session is invalid (and deletes it)
 func useSession(w http.ResponseWriter, id string, session models.Session, isOauth bool, OAuthRecheckInterval int) bool {

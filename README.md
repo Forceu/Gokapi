@@ -38,13 +38,13 @@ You can deploy Gokapi in seconds using Docker or directly on your system.
 Start Gokapi instantly with Docker:
 
 ```bash
-docker run -d \
+docker run --rm \
   --name gokapi \
   -v gokapi-data:/app/data \
   -v gokapi-config:/app/config \
   -p 127.0.0.1:53842:53842 \
   -e TZ=UTC \
-  f0rc3/gokapi:latest
+  docker.io/f0rc3/gokapi:latest
 ```
 
 Then visit ``http://localhost:53842/setup`` and follow the setup wizard.
