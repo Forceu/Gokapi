@@ -84,9 +84,10 @@ func LogoutSession(w http.ResponseWriter, r *http.Request) {
 // Writes session cookie to browser
 func writeSessionCookie(w http.ResponseWriter, sessionString string, expiry time.Time) {
 	c := &http.Cookie{
-		Name:    "session_token",
-		Value:   sessionString,
-		Expires: expiry,
+		Name:     "session_token",
+		Value:    sessionString,
+		Expires:  expiry,
+		SameSite: http.SameSiteLaxMode,
 	}
 	http.SetCookie(w, c)
 }

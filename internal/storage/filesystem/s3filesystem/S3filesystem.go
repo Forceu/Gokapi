@@ -2,10 +2,11 @@ package s3filesystem
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/forceu/gokapi/internal/models"
 	fileInterfaces "github.com/forceu/gokapi/internal/storage/filesystem/interfaces"
 	"github.com/forceu/gokapi/internal/storage/filesystem/s3filesystem/aws"
-	"os"
 )
 
 // GetDriver returns a driver for the AWS file system
