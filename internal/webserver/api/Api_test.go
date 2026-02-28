@@ -1530,7 +1530,7 @@ func TestChunkComplete(t *testing.T) {
 }
 
 func TestMinorFunctions(t *testing.T) {
-	outputFileJson(nil, models.File{})
+	outputFileJson(nil, models.File{}, nil)
 	sendError(nil, 0, 0, "none")
 }
 
