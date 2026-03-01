@@ -31,10 +31,10 @@ func newLimiter() *store {
 	}
 }
 
-// WaitOnFailedLogin blocks the current goroutine until the rate limiter allows a request
-// Two failed attempts without limiting, thereafter one attempt every 3 seconds
-func WaitOnFailedLogin(ip string) {
-	_ = failedLoginLimiter.Get(ip, 1, 6).WaitN(context.Background(), 3)
+// WaitOnLogin blocks the current goroutine until the rate limiter allows a request
+// Three attempts without limiting, thereafter one attempt every 3 seconds
+func WaitOnLogin(ip string) {
+	_ = failedLoginLimiter.Get(ip, 1, 9).WaitN(context.Background(), 3)
 }
 
 // WaitOnFailedId blocks the current goroutine until the rate limiter allows a request

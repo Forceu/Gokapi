@@ -270,6 +270,11 @@ func LogInvalidLogin(username, ip string) {
 	createLogEntry(categoryAuth, fmt.Sprintf("Invalid login for user %s by IP %s", username, ip), false)
 }
 
+// LogValidLogin adds a log entry to indicate that a login was successful. Non-blocking
+func LogValidLogin(username string) {
+	createLogEntry(categoryAuth, fmt.Sprintf("%s logged in sucessfully", username), false)
+}
+
 // LogDownload adds a log entry when a download was requested. Non-Blocking
 func LogDownload(file models.File, r *http.Request, saveIp bool) {
 	if saveIp {

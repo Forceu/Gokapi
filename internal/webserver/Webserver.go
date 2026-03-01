@@ -511,15 +511,16 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 	pw := r.Form.Get("password")
 	failedLogin := false
 	if pw != "" && user != "" {
+		ip := logging.GetIpAddress(r)
+		ratelimiter.WaitOnLogin(ip)
 		retrievedUser, validCredentials := authentication.IsCorrectUsernameAndPassword(user, pw)
 		if validCredentials {
+			logging.LogValidLogin(user)
 			sessionmanager.CreateSession(w, false, 0, retrievedUser.Id)
 			redirect(w, "admin")
 			return
 		}
-		ip := logging.GetIpAddress(r)
 		logging.LogInvalidLogin(user, ip)
-		ratelimiter.WaitOnFailedLogin(ip)
 		failedLogin = true
 	}
 	err = templateFolder.ExecuteTemplate(w, "login", LoginView{
