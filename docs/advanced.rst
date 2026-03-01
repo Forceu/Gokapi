@@ -158,6 +158,14 @@ All values that are described in :ref:`cloudstorage` can be passed as environmen
 +---------------------------+-----------------------------------------+-----------------------------+
 | GOKAPI_AWS_ENDPOINT       | Sets the endpoint                       | eu-central-000.provider.com |
 +---------------------------+-----------------------------------------+-----------------------------+
+| GOKAPI_AWS_PROXY_DOWNLOAD | If true, users will not be redirected   | true                        |
+|                           |                                         |                             |
+|                           | to a pre-signed S3 URL for downloading. |                             |
+|                           |                                         |                             |
+|                           | Instead, Gokapi will download the file  |                             |
+|                           |                                         |                             |
+|                           | and proxy it to the user                |                             |
++---------------------------+-----------------------------------------+-----------------------------+
 
 
 
