@@ -719,7 +719,10 @@ func (v *setupView) loadFromConfig() {
 	v.HasAwsFeature = aws.IsIncludedInBuild
 	v.ProtectedUrls = protectedUrls
 	if isInitialSetup {
-		v.MinPasswordLength = environment.New().MinLengthPassword
+		env := environment.New()
+		v.MinPasswordLength = env.MinLengthPassword
+		v.CloudSettings, _ = cloudconfig.Load()
+		v.S3EnvProvided = env.IsAwsProvided()
 		return
 	}
 	configuration.Load()
@@ -874,7 +877,7 @@ func handleTestAws(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	aws.Init(awsConfig)
-	ok, err = aws.IsCorsCorrectlySet(t.Bucket, t.GokapiUrl)
+	ok, err = aws.IsCorsCorrectlySet(awsConfig.Bucket, t.GokapiUrl)
 	aws.LogOut()
 	if err != nil {
 		handleAwsError(w, err, "Could not get CORS settings. ")
@@ -907,3 +910,4 @@ func handleAwsError(w http.ResponseWriter, err error, prefix string) {
 		_, _ = w.Write([]byte(prefix + "Error: " + err.Error()))
 	}
 }
+

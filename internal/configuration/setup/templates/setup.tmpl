@@ -821,28 +821,27 @@ function TestAWS(button, isManual) {
 				}
 				
 
-	{{ if .CloudSettings.Aws.Bucket }}				
+{{ end }}
+
+{{ if .CloudSettings.Aws.Bucket }}
 				document.getElementById("storage_sel").value = "cloud";
 				storageSelectionChanged(1);
-				
-		{{ if .CloudSettings.Aws.ProxyDownload }}
+
+	{{ if .CloudSettings.Aws.ProxyDownload }}
 				document.getElementById("storage_sel_proxy").value = "proxy";
-		{{ end }}
-		
-		{{ if .Settings.PicturesAlwaysLocal }}
+	{{ end }}
+
+	{{ if .Settings.PicturesAlwaysLocal }}
 				document.getElementById("storage_sel_image").value = "local";
-		{{ end }}
-				
-		{{ if not .S3EnvProvided }}
+	{{ end }}
+
+	{{ if not .S3EnvProvided }}
 				document.getElementById("s3_bucket").value = "{{ .CloudSettings.Aws.Bucket }}";
 				document.getElementById("s3_region").value =  "{{ .CloudSettings.Aws.Region }}";
 				document.getElementById("s3_api").value = "{{ .CloudSettings.Aws.KeyId }}";
 				document.getElementById("s3_secret").value =  "{{ .CloudSettings.Aws.KeySecret }}";
 				document.getElementById("s3_endpoint").value =  "{{ .CloudSettings.Aws.Endpoint }}";
-		{{ end }}
 	{{ end }}
-				
-				
 {{ end }}
 
 
