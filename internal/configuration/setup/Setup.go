@@ -869,7 +869,7 @@ func handleTestAws(w http.ResponseWriter, r *http.Request) {
 	}
 	ok, err := aws.IsValidLogin(awsConfig)
 	if err != nil {
-		handleAwsError(w, err, "Unable to login. ")
+		handleAwsError(w, err, awsOperationLogin)
 		return
 	}
 	if !ok {
@@ -880,7 +880,7 @@ func handleTestAws(w http.ResponseWriter, r *http.Request) {
 	ok, err = aws.IsCorsCorrectlySet(awsConfig.Bucket, t.GokapiUrl)
 	aws.LogOut()
 	if err != nil {
-		handleAwsError(w, err, "Could not get CORS settings. ")
+		handleAwsError(w, err, awsOperationCors)
 		return
 	}
 	if !ok {
@@ -890,11 +890,24 @@ func handleTestAws(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write([]byte("All tests OK."))
 }
 
-func handleAwsError(w http.ResponseWriter, err error, prefix string) {
+const (
+	awsOperationLogin = iota
+	awsOperationCors
+)
+
+func handleAwsError(w http.ResponseWriter, err error, operation int) {
 	var awsErr awserr.Error
 	isAwsErr := errors.As(err, &awsErr)
+	var prefix string
+	switch operation {
+	case awsOperationLogin:
+		prefix = "Unable to login. "
+	case awsOperationCors:
+		prefix = "Could not get CORS settings. "
+	}
 	if isAwsErr {
-		switch awsErr.Code() {
+		code := awsErr.Code()
+		switch code {
 		case s3.ErrCodeNoSuchBucket:
 			_, _ = w.Write([]byte("Invalid bucket or regions provided, bucket does not exist."))
 		case "Forbidden":
@@ -903,6 +916,13 @@ func handleAwsError(w http.ResponseWriter, err error, prefix string) {
 			_, _ = w.Write([]byte("Unable to connect to server, check endpoint."))
 		case "SerializationError":
 			_, _ = w.Write([]byte("Invalid response received by server, check endpoint."))
+		case "NotFound":
+			if operation == awsOperationCors {
+				_, _ = w.Write([]byte("Login OK, but could not check bucket CORS settings."))
+
+			} else {
+				_, _ = w.Write([]byte("The requested resource could not be found, check endpoint"))
+			}
 		default:
 			_, _ = w.Write([]byte(prefix + "Error " + awsErr.Code() + ": " + err.Error()))
 		}

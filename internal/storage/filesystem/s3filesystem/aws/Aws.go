@@ -267,9 +267,9 @@ func fileExists(bucket, filename string) (bool, int64, error) {
 			if aerr.Code() == "NotFound" {
 				return false, 0, nil
 			}
-		}
-		if aerr.Code() == request.CanceledErrorCode {
-			return false, 0, errors.New("Timeout - could not connect to " + *svc.Config.Endpoint)
+			if aerr.Code() == request.CanceledErrorCode {
+				return false, 0, errors.New("Timeout - could not connect to " + *svc.Config.Endpoint)
+			}
 		}
 		return false, 0, err
 	}
@@ -310,7 +310,8 @@ func IsCorsCorrectlySet(bucket, gokapiUrl string) (bool, error) {
 	if err != nil {
 		var aerr awserr.Error
 		ok := errors.As(err, &aerr)
-		if ok && aerr.Code() == "NoSuchCorsConfiguration" {
+		if ok && (aerr.Code() == "NoSuchCORSConfiguration" ||
+			aerr.Code() == "NoSuchCorsConfiguration") {
 			return false, nil
 		}
 		return false, err
