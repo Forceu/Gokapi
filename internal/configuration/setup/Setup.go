@@ -91,7 +91,7 @@ func basicAuth(next http.HandlerFunc) http.HandlerFunc {
 
 		enteredUser, enteredPw, ok := r.BasicAuth()
 		if ok {
-			usernameMatch := authentication.IsEqualStringConstantTime(enteredUser, credentialUsername)
+			usernameMatch := authentication.IsEqualStringConstantTime(strings.ToLower(enteredUser), strings.ToLower(credentialUsername))
 			passwordMatch := authentication.IsEqualStringConstantTime(enteredPw, credentialPassword)
 			if usernameMatch && passwordMatch {
 				next.ServeHTTP(w, r)
@@ -931,4 +931,3 @@ func handleAwsError(w http.ResponseWriter, err error, operation int) {
 		_, _ = w.Write([]byte(prefix + "Error: " + err.Error()))
 	}
 }
-

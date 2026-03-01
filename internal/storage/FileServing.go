@@ -630,9 +630,15 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 		}
 		return
 	}
-	fileData, _ := getFileHandler(file, configuration.Get().DataDir)
+	fileHandler, _, err := getFileHandler(file, configuration.Get().DataDir)
+	defer fileHandler.Close()
+	if err != nil {
+		fmt.Println(err)
+		_, _ = w.Write([]byte("Error getting file handler"))
+		return
+	}
 	if file.Encryption.IsEncrypted && !file.RequiresClientDecryption() {
-		if !encryption.IsCorrectKey(file.Encryption, fileData) {
+		if !encryption.IsCorrectKey(file.Encryption, fileHandler) {
 			_, _ = w.Write([]byte("Internal error - Error decrypting file, source data might be damaged or an incorrect key has been used"))
 			return
 		}
@@ -640,14 +646,14 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 	statusId := downloadstatus.SetDownload(file)
 	headers.Write(file, w, forceDownload, false)
 	if file.Encryption.IsEncrypted && !file.RequiresClientDecryption() {
-		err := encryption.DecryptReader(file.Encryption, fileData, w)
+		err = encryption.DecryptReader(file.Encryption, fileHandler, w)
 		if err != nil {
 			_, _ = w.Write([]byte("Error decrypting file"))
 			fmt.Println(err)
 			return
 		}
 	} else {
-		http.ServeContent(w, r, file.Name, time.Now(), fileData)
+		http.ServeContent(w, r, file.Name, time.Now(), fileHandler)
 	}
 	downloadstatus.SetComplete(statusId)
 }
@@ -708,21 +714,27 @@ func ServeFilesAsZip(files []models.File, filename string, w http.ResponseWriter
 			}
 			continue
 		}
-		fileData, _ := getFileHandler(file, configuration.Get().DataDir)
+		fileHandler, _, err := getFileHandler(file, configuration.Get().DataDir)
+		defer fileHandler.Close()
+		if err != nil {
+			fmt.Println(err)
+			_, _ = w.Write([]byte("Error getting file handler"))
+			return
+		}
 		statusId := downloadstatus.SetDownload(file)
 		if file.Encryption.IsEncrypted {
-			if !encryption.IsCorrectKey(file.Encryption, fileData) {
+			if !encryption.IsCorrectKey(file.Encryption, fileHandler) {
 				_, _ = w.Write([]byte("Internal error - Error decrypting file, source data might be damaged or an incorrect key has been used"))
 				return
 			}
-			err = encryption.DecryptReader(file.Encryption, fileData, entryWriter)
+			err = encryption.DecryptReader(file.Encryption, fileHandler, entryWriter)
 			if err != nil {
 				_, _ = w.Write([]byte("Error decrypting file"))
 				fmt.Println(err)
 				return
 			}
 		} else {
-			_, err = io.Copy(entryWriter, fileData)
+			_, err = io.Copy(entryWriter, fileHandler)
 			helper.Check(err)
 		}
 		downloadstatus.SetComplete(statusId)
@@ -734,12 +746,16 @@ func ServeFilesAsZip(files []models.File, filename string, w http.ResponseWriter
 	}
 }
 
-func getFileHandler(file models.File, dataDir string) (*os.File, int64) {
-	storageData, err := os.OpenFile(dataDir+"/"+file.SHA1, os.O_RDONLY, 0644)
-	helper.Check(err)
-	size, err := helper.GetFileSize(storageData)
-	helper.Check(err)
-	return storageData, size
+func getFileHandler(file models.File, dataDir string) (*os.File, int64, error) {
+	fileHandler, err := os.OpenFile(dataDir+"/"+file.SHA1, os.O_RDONLY, 0644)
+	if err != nil {
+		return nil, 0, err
+	}
+	size, err := helper.GetFileSize(fileHandler)
+	if err != nil {
+		return nil, 0, err
+	}
+	return fileHandler, size, nil
 }
 
 // FileExists checks if the file exists locally or in S3

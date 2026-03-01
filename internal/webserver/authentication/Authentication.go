@@ -191,7 +191,10 @@ func extractOauthGroups(userInfo OAuthUserClaims, groupScope string) ([]string, 
 		groups = append(groups, v)
 	case []any:
 		for _, group := range v {
-			groups = append(groups, group.(string))
+			groupString, isValid := group.(string)
+			if isValid {
+				groups = append(groups, groupString)
+			}
 		}
 	default:
 		return nil, fmt.Errorf("scope %s is not a valid type", groupScope)
@@ -287,9 +290,7 @@ func IsCorrectUsernameAndPassword(username, password string) (models.User, bool)
 
 // IsEqualStringConstantTime uses ConstantTimeCompare to prevent timing attack.
 func IsEqualStringConstantTime(s1, s2 string) bool {
-	return subtle.ConstantTimeCompare(
-		[]byte(strings.ToLower(s1)),
-		[]byte(strings.ToLower(s2))) == 1
+	return subtle.ConstantTimeCompare([]byte(s1), []byte(s2)) == 1
 }
 
 // Sends a redirect HTTP output to the client. Variable url is used to redirect to ./url
