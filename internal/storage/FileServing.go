@@ -849,8 +849,8 @@ func cleanInvalidFileRequests() {
 			files := database.GetAllMetadata()
 			for _, file := range files {
 				if file.UploadRequestId == fileRequest.Id {
+					DeleteFile(file.Id, true)
 				}
-				DeleteFile(file.Id, true)
 			}
 			database.DeleteFileRequest(fileRequest)
 		}
