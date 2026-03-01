@@ -741,6 +741,7 @@ func (v *setupView) loadFromConfig() {
 	}
 	env := environment.New()
 	v.S3EnvProvided = env.IsAwsProvided()
+	v.MinPasswordLength = env.MinLengthPassword
 
 	dbSettings, err := database.ParseUrl(settings.DatabaseUrl, false)
 	helper.Check(err)
