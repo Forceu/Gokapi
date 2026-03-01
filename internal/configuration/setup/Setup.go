@@ -877,7 +877,7 @@ func handleTestAws(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	aws.Init(awsConfig)
-	ok, err = aws.IsCorsCorrectlySet(t.Bucket, t.GokapiUrl)
+	ok, err = aws.IsCorsCorrectlySet(awsConfig.Bucket, t.GokapiUrl)
 	aws.LogOut()
 	if err != nil {
 		handleAwsError(w, err, "Could not get CORS settings. ")
@@ -910,3 +910,4 @@ func handleAwsError(w http.ResponseWriter, err error, prefix string) {
 		_, _ = w.Write([]byte(prefix + "Error: " + err.Error()))
 	}
 }
+
