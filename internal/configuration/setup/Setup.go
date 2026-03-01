@@ -719,7 +719,10 @@ func (v *setupView) loadFromConfig() {
 	v.HasAwsFeature = aws.IsIncludedInBuild
 	v.ProtectedUrls = protectedUrls
 	if isInitialSetup {
-		v.MinPasswordLength = environment.New().MinLengthPassword
+		env := environment.New()
+		v.MinPasswordLength = env.MinLengthPassword
+		v.CloudSettings, _ = cloudconfig.Load()
+		v.S3EnvProvided = env.IsAwsProvided()
 		return
 	}
 	configuration.Load()
