@@ -823,26 +823,26 @@ function TestAWS(button, isManual) {
 
 {{ end }}
 
-{{ if .CloudSettings.Aws.Bucket }}
+	{{ if .CloudSettings.Aws.Bucket }}
 				document.getElementById("storage_sel").value = "cloud";
 				storageSelectionChanged(1);
 
-	{{ if .CloudSettings.Aws.ProxyDownload }}
+		{{ if .CloudSettings.Aws.ProxyDownload }}
 				document.getElementById("storage_sel_proxy").value = "proxy";
-	{{ end }}
+		{{ end }}
 
-	{{ if .Settings.PicturesAlwaysLocal }}
+		{{ if .Settings.PicturesAlwaysLocal }}
 				document.getElementById("storage_sel_image").value = "local";
-	{{ end }}
+		{{ end }}
 
-	{{ if not .S3EnvProvided }}
+		{{ if not .S3EnvProvided }}
 				document.getElementById("s3_bucket").value = "{{ .CloudSettings.Aws.Bucket }}";
 				document.getElementById("s3_region").value =  "{{ .CloudSettings.Aws.Region }}";
 				document.getElementById("s3_api").value = "{{ .CloudSettings.Aws.KeyId }}";
 				document.getElementById("s3_secret").value =  "{{ .CloudSettings.Aws.KeySecret }}";
 				document.getElementById("s3_endpoint").value =  "{{ .CloudSettings.Aws.Endpoint }}";
+		{{ end }}
 	{{ end }}
-{{ end }}
 
 
 				wizard.on("submit", function(wizard) {
