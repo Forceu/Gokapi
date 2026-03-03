@@ -598,7 +598,7 @@ func apiDownloadSingle(w http.ResponseWriter, r requestParser, user models.User)
 		return
 	}
 	if !request.PresignUrl {
-		forceDecryption := !file.Encryption.IsEndToEndEncrypted
+		forceDecryption := file.Encryption.IsEncrypted && !file.Encryption.IsEndToEndEncrypted
 		storage.ServeFile(file, w, request.WebRequest, true, request.IncreaseCounter, forceDecryption)
 		return
 	}

@@ -1028,7 +1028,9 @@ func downloadPresigned(w http.ResponseWriter, r *http.Request) {
 	presign.Delete(presignedUrl.Id)
 
 	if len(files) == 1 {
-		storage.ServeFile(files[0], w, r, true, false, true)
+		file := files[0]
+		forceDecryption := file.Encryption.IsEncrypted && !file.Encryption.IsEndToEndEncrypted
+		storage.ServeFile(file, w, r, true, false, forceDecryption)
 		return
 	}
 	storage.ServeFilesAsZip(files, presignedUrl.Filename, w, r)
