@@ -41,7 +41,7 @@ func WaitOnLogin(ip string) {
 // WaitOnDownloadPassword blocks the current goroutine until the rate limiter allows a request
 // Ten attempts without limiting, thereafter one attempt every 2 seconds
 func WaitOnDownloadPassword(ip string) {
-	_ = failedLoginLimiter.Get(ip, 1, 20).WaitN(context.Background(), 2)
+	_ = failedDownloadPasswordLimiter.Get(ip, 1, 20).WaitN(context.Background(), 2)
 }
 
 // WaitOnFailedId blocks the current goroutine until the rate limiter allows a request
