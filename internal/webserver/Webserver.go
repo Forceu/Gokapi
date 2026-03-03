@@ -585,9 +585,7 @@ func showDownload(w http.ResponseWriter, r *http.Request) {
 		if configuration.HashPassword(enteredPassword, true) != file.PasswordHash && !isValidPwCookie(r, file) {
 			if enteredPassword != "" {
 				view.IsFailedLogin = true
-				select {
-				case <-time.After(1 * time.Second):
-				}
+				time.Sleep(1 * time.Second)
 			}
 			view.IsPasswordView = true
 			err := templateFolder.ExecuteTemplate(w, "download_password", view)
@@ -1111,9 +1109,7 @@ func isValidPwCookie(r *http.Request, file models.File) bool {
 		if cookie.Value == file.PasswordHash {
 			return true
 		}
-		select {
-		case <-time.After(3 * time.Second):
-		}
+		time.Sleep(3 * time.Second)
 	}
 	return false
 }

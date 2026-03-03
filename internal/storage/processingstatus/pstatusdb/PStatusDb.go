@@ -60,8 +60,6 @@ func doGarbageCollection(runPeriodically bool) {
 	if !runPeriodically {
 		return
 	}
-	select {
-	case <-time.After(1 * time.Hour):
-		doGarbageCollection(true)
-	}
+	time.Sleep(1 * time.Hour)
+	go doGarbageCollection(true)
 }

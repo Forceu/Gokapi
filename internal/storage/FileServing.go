@@ -817,10 +817,8 @@ func CleanUp(periodic bool) {
 
 	if periodic {
 		go func() {
-			select {
-			case <-time.After(time.Hour):
-				CleanUp(periodic)
-			}
+			time.Sleep(time.Hour)
+			CleanUp(periodic)
 		}()
 	}
 }
@@ -1003,9 +1001,7 @@ func DeleteFileSchedule(fileId string, delayMs int, deleteSource bool) bool {
 	database.SaveMetaData(file)
 	// Explicit parameter to avoid accidental changes
 	go func(id string, timestamp int64) {
-		select {
-		case <-time.After(time.Duration(delayMs) * time.Millisecond):
-		}
+		time.Sleep(time.Duration(delayMs) * time.Millisecond)
 		// A new models.File needs to be assigned to avoid a racy mutation
 		retrievedFile, exists := database.GetMetaDataById(id)
 		if !exists {

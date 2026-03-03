@@ -53,9 +53,7 @@ func cleanUp(periodic bool) {
 	}
 	mutex.Unlock()
 	if periodic {
-		select {
-		case <-time.After(20 * time.Minute):
-			go cleanUp(true)
-		}
+		time.Sleep(20 * time.Minute)
+		go cleanUp(true)
 	}
 }
