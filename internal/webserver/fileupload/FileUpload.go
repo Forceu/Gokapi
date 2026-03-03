@@ -108,7 +108,7 @@ func ParseFileHeader(r *http.Request) (string, chunking.FileHeader, models.Uploa
 	if err != nil {
 		return "", chunking.FileHeader{}, models.UploadParameters{}, err
 	}
-	chunkId := r.Form.Get("chunkid")
+	chunkId := r.PostForm.Get("chunkid")
 	config, err := parseConfig(r.Form)
 	if err != nil {
 		return "", chunking.FileHeader{}, models.UploadParameters{}, err

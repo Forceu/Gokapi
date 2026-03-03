@@ -49,7 +49,7 @@ func ParseChunkInfo(r *http.Request, isApiCall bool) (ChunkInfo, error) {
 		formUuid = "uuid"
 	}
 
-	buf := r.Form.Get(formTotalSize)
+	buf := r.PostForm.Get(formTotalSize)
 	info.TotalFilesizeBytes, err = strconv.ParseInt(buf, 10, 64)
 	if err != nil {
 		return ChunkInfo{}, err
@@ -58,7 +58,7 @@ func ParseChunkInfo(r *http.Request, isApiCall bool) (ChunkInfo, error) {
 		return ChunkInfo{}, errors.New("value cannot be negative")
 	}
 
-	buf = r.Form.Get(formOffset)
+	buf = r.PostForm.Get(formOffset)
 	info.Offset, err = strconv.ParseInt(buf, 10, 64)
 	if err != nil {
 		return ChunkInfo{}, err
@@ -67,7 +67,7 @@ func ParseChunkInfo(r *http.Request, isApiCall bool) (ChunkInfo, error) {
 		return ChunkInfo{}, errors.New("value cannot be negative")
 	}
 
-	info.UUID = r.Form.Get(formUuid)
+	info.UUID = r.PostForm.Get(formUuid)
 	if len(info.UUID) < 10 {
 		return ChunkInfo{}, errors.New("invalid uuid submitted, needs to be at least 10 characters long")
 	}
@@ -87,12 +87,12 @@ func ParseFileHeader(r *http.Request) (FileHeader, error) {
 	if err != nil {
 		return FileHeader{}, err
 	}
-	name := r.Form.Get("filename")
+	name := r.PostForm.Get("filename")
 	if name == "" {
 		return FileHeader{}, errors.New("empty filename provided")
 	}
 	contentType := parseContentType(r)
-	size := r.Form.Get("filesize")
+	size := r.PostForm.Get("filesize")
 	if size == "" {
 		return FileHeader{}, errors.New("empty size provided")
 	}
@@ -111,11 +111,11 @@ func ParseFileHeader(r *http.Request) (FileHeader, error) {
 }
 
 func parseContentType(r *http.Request) string {
-	contentType := r.Form.Get("filecontenttype")
+	contentType := r.PostForm.Get("filecontenttype")
 	if contentType != "" {
 		return contentType
 	}
-	fileExt := strings.ToLower(filepath.Ext(r.Form.Get("filename")))
+	fileExt := strings.ToLower(filepath.Ext(r.PostForm.Get("filename")))
 	switch fileExt {
 	case ".jpg", ".jpeg":
 		contentType = "image/jpeg"

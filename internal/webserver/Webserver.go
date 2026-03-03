@@ -335,7 +335,7 @@ func changePassword(w http.ResponseWriter, r *http.Request) {
 		var ok bool
 		var pwHash string
 
-		pw := r.Form.Get("newpw")
+		pw := r.PostForm.Get("newpw")
 		errMessage, pwHash, ok = validateNewPassword(pw, user)
 		if ok {
 			user.Password = pwHash
@@ -507,8 +507,8 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(err)
 		return
 	}
-	user := r.Form.Get("username")
-	pw := r.Form.Get("password")
+	user := r.PostForm.Get("username")
+	pw := r.PostForm.Get("password")
 	failedLogin := false
 	if pw != "" && user != "" {
 		ip := logging.GetIpAddress(r)
@@ -581,7 +581,7 @@ func showDownload(w http.ResponseWriter, r *http.Request) {
 
 	if file.PasswordHash != "" {
 		_ = r.ParseForm()
-		enteredPassword := r.Form.Get("password")
+		enteredPassword := r.PostForm.Get("password")
 		if configuration.HashPassword(enteredPassword, true) != file.PasswordHash && !isValidPwCookie(r, file) {
 			if enteredPassword != "" {
 				view.IsFailedLogin = true
