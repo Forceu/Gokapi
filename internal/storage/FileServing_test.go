@@ -600,6 +600,16 @@ func TestServeFile(t *testing.T) {
 		} else {
 			test.ResponseBodyContains(t, w, "<a href=\"http")
 		}
+		r = httptest.NewRequest("GET", "/", nil)
+		w = httptest.NewRecorder()
+		file, result = GetFile("awsTest1234567890123")
+		test.IsEqualBool(t, result, true)
+		ServeFile(file, w, r, false, true, true)
+		if aws.IsMockApi {
+			test.ResponseBodyContains(t, w, "https://redirect.url")
+		} else {
+			test.ResponseBodyContains(t, w, "<a href=\"http")
+		}
 		testconfiguration.DisableS3()
 	}
 	newFile, err := createTestFile()

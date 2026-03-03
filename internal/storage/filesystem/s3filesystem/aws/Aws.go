@@ -148,11 +148,15 @@ func Stream(writer io.Writer, file models.File) error {
 // ServeFile either redirects the user to a pre-signed download url (default) or downloads the file and serves it as a proxy (depending
 // on configuration). Returns true if blocking operation (to set download status) or false if non-blocking.
 func ServeFile(w http.ResponseWriter, r *http.Request, file models.File, forceDownload, forceDecryption bool) (bool, error) {
-	if forceDecryption {
-		return true, serveDecryptedFile(w, file)
-	}
+	needsDecryption := forceDecryption && file.Encryption.IsEncrypted
 	if awsConfig.ProxyDownload {
+		if needsDecryption {
+			return true, serveDecryptedFile(w, file)
+		}
 		return true, proxyDownload(w, file, forceDownload)
+	}
+	if needsDecryption {
+		return true, serveDecryptedFile(w, file)
 	}
 	return false, redirectToDownload(w, r, file, forceDownload)
 }
