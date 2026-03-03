@@ -37,6 +37,7 @@ import (
 	"github.com/forceu/gokapi/internal/storage/presign"
 	"github.com/forceu/gokapi/internal/webserver/api"
 	"github.com/forceu/gokapi/internal/webserver/authentication"
+	"github.com/forceu/gokapi/internal/webserver/authentication/downloadPasswordToken"
 	"github.com/forceu/gokapi/internal/webserver/authentication/oauth"
 	"github.com/forceu/gokapi/internal/webserver/authentication/sessionmanager"
 	"github.com/forceu/gokapi/internal/webserver/authentication/tokengeneration"
@@ -579,26 +580,32 @@ func showDownload(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if file.PasswordHash != "" {
+	if file.PasswordHash != "" && !isValidPwCookie(r, file) {
 		_ = r.ParseForm()
 		enteredPassword := r.PostForm.Get("password")
-		if configuration.HashPassword(enteredPassword, true) != file.PasswordHash && !isValidPwCookie(r, file) {
-			if enteredPassword != "" {
-				view.IsFailedLogin = true
-				time.Sleep(1 * time.Second)
-			}
+		if enteredPassword == "" {
 			view.IsPasswordView = true
 			err := templateFolder.ExecuteTemplate(w, "download_password", view)
 			helper.CheckIgnoreTimeout(err)
 			return
 		}
-		if !isValidPwCookie(r, file) {
+
+		ip := logging.GetIpAddress(r)
+		ratelimiter.WaitOnDownloadPassword(ip)
+
+		if configuration.HashPassword(enteredPassword, true) == file.PasswordHash {
 			writeFilePwCookie(w, file)
 			// redirect so that there is no post data to be resent if user refreshes page
 			redirect(w, "d?id="+file.Id)
 			return
 		}
+		view.IsFailedLogin = true
+		view.IsPasswordView = true
+		err := templateFolder.ExecuteTemplate(w, "download_password", view)
+		helper.CheckIgnoreTimeout(err)
+		return
 	}
+
 	err := templateFolder.ExecuteTemplate(w, "download", view)
 	helper.CheckIgnoreTimeout(err)
 }
@@ -1095,23 +1102,21 @@ func newAdminButtonContext(file models.FileApiOutput, user models.User) adminBut
 // Write a cookie if the user has entered a correct password for a password-protected file
 func writeFilePwCookie(w http.ResponseWriter, file models.File) {
 	http.SetCookie(w, &http.Cookie{
-		Name:    "p" + file.Id,
-		Value:   file.PasswordHash,
-		Expires: time.Now().Add(5 * time.Minute),
+		Name:     "p" + file.Id,
+		Value:    downloadPasswordToken.Generate(file.Id),
+		Expires:  time.Now().Add(5 * time.Minute),
+		HttpOnly: true,
+		SameSite: http.SameSiteStrictMode,
 	})
 }
 
-// Checks if a cookie contains the correct password hash for a password-protected file
-// If incorrect, a 3-second delay is introduced unless the cookie was empty.
+// Checks if a cookie contains the correct token for a password-protected file
 func isValidPwCookie(r *http.Request, file models.File) bool {
 	cookie, err := r.Cookie("p" + file.Id)
-	if err == nil {
-		if cookie.Value == file.PasswordHash {
-			return true
-		}
-		time.Sleep(3 * time.Second)
+	if err != nil {
+		return false
 	}
-	return false
+	return downloadPasswordToken.IsValid(cookie.Value, file.Id)
 }
 
 // Adds a header to disable external caching
