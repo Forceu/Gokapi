@@ -820,14 +820,13 @@ func apiModifyUser(w http.ResponseWriter, r requestParser, user models.User) {
 		if !userEdit.HasPermission(request.Permission) {
 			userEdit.GrantPermission(request.Permission)
 			database.SaveUser(userEdit, false)
-			updateApiKeyPermsOnUserPermChange(userEdit.Id, request.Permission, true)
 		}
 		return
 	}
 	if userEdit.HasPermission(request.Permission) {
 		userEdit.RemovePermission(request.Permission)
 		database.SaveUser(userEdit, false)
-		updateApiKeyPermsOnUserPermChange(userEdit.Id, request.Permission, false)
+		updateApiKeyPermsOnUserPermChange(userEdit.Id, request.Permission)
 	}
 }
 
@@ -852,12 +851,12 @@ func apiChangeUserRank(w http.ResponseWriter, r requestParser, user models.User)
 	switch request.NewRank {
 	case models.UserLevelAdmin:
 		userEdit.Permissions = models.UserPermissionAll
-		updateApiKeyPermsOnUserPermChange(userEdit.Id, models.UserPermReplaceUploads, true)
-		updateApiKeyPermsOnUserPermChange(userEdit.Id, models.UserPermManageUsers, true)
 	case models.UserLevelUser:
 		userEdit.Permissions = models.UserPermissionNone
-		updateApiKeyPermsOnUserPermChange(userEdit.Id, models.UserPermReplaceUploads, false)
-		updateApiKeyPermsOnUserPermChange(userEdit.Id, models.UserPermManageUsers, false)
+		updateApiKeyPermsOnUserPermChange(userEdit.Id, models.UserPermReplaceUploads)
+		updateApiKeyPermsOnUserPermChange(userEdit.Id, models.UserPermManageUsers)
+		updateApiKeyPermsOnUserPermChange(userEdit.Id, models.UserPermManageLogs)
+		updateApiKeyPermsOnUserPermChange(userEdit.Id, models.UserPermGuestUploads)
 	default:
 		sendError(w, http.StatusBadRequest, errorcodes.InvalidUserInput, "invalid rank sent")
 		return
@@ -866,7 +865,7 @@ func apiChangeUserRank(w http.ResponseWriter, r requestParser, user models.User)
 	database.SaveUser(userEdit, false)
 }
 
-func updateApiKeyPermsOnUserPermChange(userId int, userPerm models.UserPermission, isNewlyGranted bool) {
+func updateApiKeyPermsOnUserPermChange(userId int, userPerm models.UserPermission) {
 	var affectedPermission models.ApiPermission
 	switch userPerm {
 	case models.UserPermManageUsers:
@@ -884,12 +883,7 @@ func updateApiKeyPermsOnUserPermChange(userId int, userPerm models.UserPermissio
 		if apiKey.UserId != userId {
 			continue
 		}
-		if isNewlyGranted {
-			if apiKey.IsSystemKey {
-				apiKey.GrantPermission(affectedPermission)
-				database.SaveApiKey(apiKey)
-			}
-		} else if apiKey.HasPermission(affectedPermission) {
+		if apiKey.HasPermission(affectedPermission) {
 			apiKey.RemovePermission(affectedPermission)
 			database.SaveApiKey(apiKey)
 		}
