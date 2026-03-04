@@ -20,6 +20,7 @@ import (
 	"github.com/forceu/gokapi/internal/test"
 	"github.com/forceu/gokapi/internal/test/testconfiguration"
 	"github.com/forceu/gokapi/internal/webserver/authentication"
+	"github.com/forceu/gokapi/internal/webserver/authentication/csrftoken"
 )
 
 func TestMain(m *testing.M) {
@@ -90,6 +91,9 @@ func TestLogin(t *testing.T) {
 			}, {
 				Key:   "password",
 				Value: "invalid",
+			}, {
+				Key:   "csrf-token",
+				Value: csrftoken.Generate(),
 			},
 		},
 		ResultCode: 200,
@@ -102,6 +106,23 @@ func TestLogin(t *testing.T) {
 			Value: "test",
 		}, {
 			Key:   "password",
+			Value: "invalid",
+		}, {
+			Key:   "csrf-token",
+			Value: csrftoken.Generate(),
+		},
+	}
+	test.HttpPostRequest(t, config)
+
+	config.PostValues = []test.PostBody{
+		{
+			Key:   "username",
+			Value: "test",
+		}, {
+			Key:   "password",
+			Value: "adminadmin",
+		}, {
+			Key:   "csrf-token",
 			Value: "invalid",
 		},
 	}
@@ -129,6 +150,9 @@ func TestLogin(t *testing.T) {
 		}, {
 			Key:   "password",
 			Value: "adminadmin",
+		}, {
+			Key:   "csrf-token",
+			Value: csrftoken.Generate(),
 		},
 	}
 	cookies := test.HttpPostRequest(t, config)
@@ -273,7 +297,7 @@ func TestLoginCorrect(t *testing.T) {
 		RequiredContent: []string{"URL=./admin\""},
 		IsHtml:          true,
 		Method:          "POST",
-		PostValues:      []test.PostBody{{"username", "test"}, {"password", "adminadmin"}},
+		PostValues:      []test.PostBody{{"username", "test"}, {"password", "adminadmin"}, {"csrf-token", csrftoken.Generate()}},
 	})
 }
 

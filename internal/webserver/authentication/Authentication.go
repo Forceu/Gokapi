@@ -17,6 +17,7 @@ import (
 	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/webserver/authentication/csrftoken"
 	"github.com/forceu/gokapi/internal/webserver/authentication/sessionmanager"
 )
 
@@ -277,7 +278,10 @@ func isGrantedSession(w http.ResponseWriter, r *http.Request) (models.User, bool
 }
 
 // IsCorrectUsernameAndPassword checks if a provided username and password is correct
-func IsCorrectUsernameAndPassword(username, password string) (models.User, bool) {
+func IsCorrectUsernameAndPassword(username, password, userCsrfToken string) (models.User, bool) {
+	if !csrftoken.IsValid(userCsrfToken) {
+		return models.User{}, false
+	}
 	user, ok := database.GetUserByName(username)
 	if !ok {
 		return models.User{}, false

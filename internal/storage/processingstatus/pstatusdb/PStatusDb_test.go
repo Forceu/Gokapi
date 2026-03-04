@@ -1,14 +1,17 @@
 package pstatusdb
 
 import (
-	"github.com/forceu/gokapi/internal/models"
-	"github.com/forceu/gokapi/internal/test"
 	"testing"
 	"time"
+
+	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/test"
 )
 
 func TestSetStatus(t *testing.T) {
-	isGbStarted = true
+	startCleanupOnce.Do(func() {
+		// Do nothing
+	})
 	const id = "testchunk"
 	status, ok := getStatus(id)
 	test.IsEqualBool(t, ok, false)

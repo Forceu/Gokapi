@@ -18,6 +18,7 @@
 				       required minlength="{{.MinPasswordLength}}" placeholder="Confirm New Password" 
 				       id="newpw_c" name="newpw_c" onchange="checkSame()" autocomplete="new-password">
 			    </div>
+				<input type="hidden" id="csrf-token" name="csrf-token" value="{{.CsrfToken}}">
 
 {{ if ne .ErrorMessage "" }}
 			    <p id="errormessage" class="text-danger" style="margin-top:1em">{{.ErrorMessage}}</p>

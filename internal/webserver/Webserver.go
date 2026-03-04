@@ -37,6 +37,7 @@ import (
 	"github.com/forceu/gokapi/internal/storage/presign"
 	"github.com/forceu/gokapi/internal/webserver/api"
 	"github.com/forceu/gokapi/internal/webserver/authentication"
+	"github.com/forceu/gokapi/internal/webserver/authentication/csrftoken"
 	"github.com/forceu/gokapi/internal/webserver/authentication/downloadPasswordToken"
 	"github.com/forceu/gokapi/internal/webserver/authentication/oauth"
 	"github.com/forceu/gokapi/internal/webserver/authentication/sessionmanager"
@@ -337,7 +338,8 @@ func changePassword(w http.ResponseWriter, r *http.Request) {
 		var pwHash string
 
 		pw := r.PostForm.Get("newpw")
-		errMessage, pwHash, ok = validateNewPassword(pw, user)
+		csrf := r.PostForm.Get("csrf-token")
+		errMessage, pwHash, ok = validateNewPassword(pw, user, csrf)
 		if ok {
 			user.Password = pwHash
 			user.ResetPassword = false
@@ -351,20 +353,24 @@ func changePassword(w http.ResponseWriter, r *http.Request) {
 		genericView{PublicName: config.PublicName,
 			MinPasswordLength: configuration.GetEnvironment().MinLengthPassword,
 			ErrorMessage:      errMessage,
-			CustomContent:     customStaticInfo})
+			CustomContent:     customStaticInfo,
+			CsrfToken:         csrftoken.Generate()})
 	helper.CheckIgnoreTimeout(err)
 }
 
-func validateNewPassword(newPassword string, user models.User) (string, string, bool) {
+func validateNewPassword(newPassword string, user models.User, userCsrfToken string) (string, string, bool) {
 	if len(newPassword) == 0 {
 		return "", user.Password, false
 	}
+	if !csrftoken.IsValid(userCsrfToken) {
+		return "Form was not submitted completely", "", false
+	}
 	if len(newPassword) < configuration.GetEnvironment().MinLengthPassword {
-		return "Password is too short", user.Password, false
+		return "Password is too short", "", false
 	}
 	newPasswordHash := configuration.HashPassword(newPassword, false)
 	if user.Password == newPasswordHash {
-		return "New password has to be different from the old password", user.Password, false
+		return "New password has to be different from the old password", "", false
 	}
 	return "", newPasswordHash, true
 }
@@ -521,11 +527,12 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	user := r.PostForm.Get("username")
 	pw := r.PostForm.Get("password")
+	csfr := r.PostForm.Get("csrf-token")
 	failedLogin := false
 	if pw != "" && user != "" {
 		ip := logging.GetIpAddress(r)
 		ratelimiter.WaitOnLogin(ip)
-		retrievedUser, validCredentials := authentication.IsCorrectUsernameAndPassword(user, pw)
+		retrievedUser, validCredentials := authentication.IsCorrectUsernameAndPassword(user, pw, csfr)
 		if validCredentials {
 			logging.LogValidLogin(user)
 			sessionmanager.CreateSession(w, false, 0, retrievedUser.Id)
@@ -541,6 +548,7 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 		IsAdminView:   false,
 		PublicName:    configuration.Get().PublicName,
 		CustomContent: customStaticInfo,
+		CsrfToken:     csrftoken.Generate(),
 	})
 	helper.CheckIgnoreTimeout(err)
 }
@@ -552,6 +560,7 @@ type LoginView struct {
 	IsDownloadView bool
 	User           string
 	PublicName     string
+	CsrfToken      string
 	CustomContent  customStatic
 }
 
@@ -1158,6 +1167,7 @@ type genericView struct {
 	PublicName        string
 	RedirectUrl       string
 	ErrorMessage      string
+	CsrfToken         string
 	ErrorId           int
 	ErrorCardWidth    int
 	MinPasswordLength int

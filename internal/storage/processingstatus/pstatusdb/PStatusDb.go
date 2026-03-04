@@ -9,7 +9,7 @@ import (
 
 var statusMap = make(map[string]models.UploadStatus)
 var statusMutex sync.RWMutex
-var isGbStarted = false
+var startCleanupOnce sync.Once
 
 // GetAll returns all UploadStatus that were created in the last 24 hours
 func GetAll() []models.UploadStatus {
@@ -35,10 +35,7 @@ func Set(status models.UploadStatus) {
 	status.Creation = time.Now().Unix()
 	statusMap[status.ChunkId] = status
 	statusMutex.Unlock()
-	if !isGbStarted {
-		isGbStarted = true
-		go doGarbageCollection(true)
-	}
+	startCleanupOnce.Do(func() { go doGarbageCollection(true) })
 }
 
 func deleteAllExpiredStatus() {

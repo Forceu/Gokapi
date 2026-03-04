@@ -9,14 +9,14 @@ import (
 
 var presignedUrls = make(map[string]models.Presign)
 var mutex sync.RWMutex
-var cleanupStarted = false
+var startCleanupOnce sync.Once
 
 // Save saves the presigned url
 func Save(presign models.Presign) {
 	mutex.Lock()
 	presignedUrls[presign.Id] = presign
 	mutex.Unlock()
-	go cleanUp(true)
+	startCleanupOnce.Do(func() { go cleanUp(true) })
 }
 
 // Get returns the presigned url with the given ID or false if not a valid ID
@@ -41,10 +41,6 @@ func Delete(id string) {
 }
 
 func cleanUp(periodic bool) {
-	if cleanupStarted {
-		return
-	}
-	cleanupStarted = true
 	mutex.Lock()
 	for k, v := range presignedUrls {
 		if v.Expiry < time.Now().Unix() {

@@ -5,18 +5,20 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/forceu/gokapi/internal/configuration"
-	"github.com/forceu/gokapi/internal/configuration/database"
-	"github.com/forceu/gokapi/internal/models"
-	"github.com/forceu/gokapi/internal/test"
-	"github.com/forceu/gokapi/internal/test/testconfiguration"
-	"github.com/forceu/gokapi/internal/webserver/authentication/sessionmanager"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/forceu/gokapi/internal/configuration"
+	"github.com/forceu/gokapi/internal/configuration/database"
+	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/test"
+	"github.com/forceu/gokapi/internal/test/testconfiguration"
+	"github.com/forceu/gokapi/internal/webserver/authentication/csrftoken"
+	"github.com/forceu/gokapi/internal/webserver/authentication/sessionmanager"
 )
 
 func TestMain(m *testing.M) {
@@ -75,17 +77,19 @@ func TestIsValid(t *testing.T) {
 }
 
 func TestIsCorrectUsernameAndPassword(t *testing.T) {
-	user, ok := IsCorrectUsernameAndPassword("test", "adminadmin")
+	user, ok := IsCorrectUsernameAndPassword("test", "adminadmin", csrftoken.Generate())
 	test.IsEqualBool(t, ok, true)
-	user, ok = IsCorrectUsernameAndPassword("Test", "adminadmin")
+	user, ok = IsCorrectUsernameAndPassword("Test", "adminadmin", csrftoken.Generate())
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualInt(t, user.Id, 5)
-	user, ok = IsCorrectUsernameAndPassword("user", "useruser")
+	user, ok = IsCorrectUsernameAndPassword("user", "useruser", csrftoken.Generate())
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualInt(t, user.Id, 7)
-	_, ok = IsCorrectUsernameAndPassword("test", "wrong")
+	_, ok = IsCorrectUsernameAndPassword("test", "wrong", csrftoken.Generate())
 	test.IsEqualBool(t, ok, false)
-	_, ok = IsCorrectUsernameAndPassword("invalid", "adminadmin")
+	_, ok = IsCorrectUsernameAndPassword("invalid", "adminadmin", csrftoken.Generate())
+	test.IsEqualBool(t, ok, false)
+	_, ok = IsCorrectUsernameAndPassword("test", "adminadmin", "invalidToken")
 	test.IsEqualBool(t, ok, false)
 }
 
