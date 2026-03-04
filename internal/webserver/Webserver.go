@@ -310,7 +310,7 @@ func handleGenerateAuthToken(w http.ResponseWriter, r *http.Request) {
 	}
 	token, expiry, err := tokengeneration.Generate(user, permission)
 	if err != nil {
-		http.Error(w, "Invalid permission", http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	_, _ = w.Write([]byte("{\"key\":\"" + token + "\",\"expiry\":" + strconv.FormatInt(expiry, 10) + "}"))
