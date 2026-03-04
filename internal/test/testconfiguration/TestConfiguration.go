@@ -251,10 +251,12 @@ func writeTestUploadStatus() {
 	pstatusdb.Set(models.UploadStatus{
 		ChunkId:       "validstatus_0",
 		CurrentStatus: 0,
+		UserId:        7,
 	})
 	pstatusdb.Set(models.UploadStatus{
 		ChunkId:       "validstatus_1",
 		CurrentStatus: 1,
+		UserId:        7,
 	})
 }
 

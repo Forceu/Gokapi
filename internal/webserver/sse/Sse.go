@@ -2,13 +2,15 @@ package sse
 
 import (
 	"encoding/json"
-	"github.com/forceu/gokapi/internal/helper"
-	"github.com/forceu/gokapi/internal/models"
-	"github.com/forceu/gokapi/internal/storage/processingstatus/pstatusdb"
 	"io"
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/storage/processingstatus/pstatusdb"
+	"github.com/forceu/gokapi/internal/webserver/authentication"
 )
 
 var listeners = make(map[string]listener)
@@ -20,6 +22,7 @@ var pingInterval = 15 * time.Second
 type listener struct {
 	Reply    func(reply string)
 	Shutdown func()
+	UserId   int
 }
 
 func addListener(id string, channel listener) {
@@ -62,16 +65,18 @@ func PublishNewStatus(uploadStatus models.UploadStatus) {
 		FileId:       uploadStatus.FileId,
 		ErrorMessage: uploadStatus.ErrorMessage,
 	}
-	publishMessage(event)
+	publishMessage(event, uploadStatus.UserId)
 }
 
-func publishMessage[d eventData](data d) {
+func publishMessage[d eventData](data d, userId int) {
 	message, err := json.Marshal(data)
 	helper.Check(err)
 
 	mutex.RLock()
 	for _, channel := range listeners {
-		go channel.Reply("event: message\ndata: " + string(message) + "\n\n")
+		if channel.UserId == userId {
+			go channel.Reply("event: message\ndata: " + string(message) + "\n\n")
+		}
 	}
 	mutex.RUnlock()
 }
@@ -87,7 +92,7 @@ func PublishDownloadCount(file models.File) {
 	if file.UnlimitedDownloads {
 		event.DownloadsRemaining = -1
 	}
-	publishMessage(event)
+	publishMessage(event, file.UserId)
 }
 
 // Shutdown stops the SSE and closes the connection to all listeners
@@ -111,19 +116,36 @@ func GetStatusSSE(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	creationTime := time.Now()
 
+	user, err := authentication.GetUserFromRequest(r)
+	if err != nil {
+		_, _ = w.Write([]byte("Internal server error"))
+		return
+	}
+
 	replyChannel := make(chan string)
 	shutdownChannel := make(chan bool)
-	channel := listener{Reply: func(reply string) { replyChannel <- reply }, Shutdown: func() {
-		shutdownChannel <- true
-	}}
+	channel := listener{
+		Reply:    func(reply string) { replyChannel <- reply },
+		Shutdown: func() { shutdownChannel <- true },
+		UserId:   user.Id,
+	}
 	channelId := helper.GenerateRandomString(20)
 	addListener(channelId, channel)
 
-	allStatus := pstatusdb.GetAll()
-	for _, status := range allStatus {
-		PublishNewStatus(status)
+	for _, status := range pstatusdb.GetAllForUser(user.Id) {
+		event := eventUploadStatus{
+			Event:        "uploadStatus",
+			ChunkId:      status.ChunkId,
+			UploadStatus: status.CurrentStatus,
+			FileId:       status.FileId,
+			ErrorMessage: status.ErrorMessage,
+		}
+		message, merr := json.Marshal(event)
+		helper.Check(merr)
+		_, _ = io.WriteString(w, "event: message\ndata: "+string(message)+"\n\n")
 	}
 	w.(http.Flusher).Flush()
+
 	for {
 		if time.Now().After(creationTime.Add(maxConnection)) {
 			removeListener(channelId)

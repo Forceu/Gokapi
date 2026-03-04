@@ -168,7 +168,7 @@ func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, userId int
 		return models.File{}, err
 	}
 
-	processingstatus.Set(chunkId, processingstatus.StatusHashingOrEncrypting, models.File{}, nil)
+	processingstatus.Set(chunkId, processingstatus.StatusHashingOrEncrypting, models.File{}, userId, nil)
 	hash, err := getChunkFileHash(file, uploadRequest.IsEndToEndEncrypted)
 	if err != nil {
 		return models.File{}, err
@@ -201,7 +201,7 @@ func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, userId int
 			}
 			fileToMove = tempFile
 		}
-		processingstatus.Set(chunkId, processingstatus.StatusUploading, models.File{}, nil)
+		processingstatus.Set(chunkId, processingstatus.StatusUploading, models.File{}, userId, nil)
 		if metaData.IsLocalStorage() {
 			err = filesystem.GetLocal().MoveToFilesystem(fileToMove, metaData)
 		} else {
@@ -212,7 +212,7 @@ func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, userId int
 		}
 	}
 	database.SaveMetaData(metaData)
-	processingstatus.Set(chunkId, processingstatus.StatusFinished, metaData, nil)
+	processingstatus.Set(chunkId, processingstatus.StatusFinished, metaData, userId, nil)
 	return metaData, nil
 }
 

@@ -503,17 +503,6 @@ func TestPostUpload(t *testing.T) {
 	test.IsEqualInt(t, resp.StatusCode, http.StatusOK)
 	scanner := bufio.NewScanner(resp.Body)
 
-	// Discard any initial SSE messages
-	for scanner.Scan() {
-		line := scanner.Text()
-		if strings.HasPrefix(line, "data:") {
-			_ = strings.TrimSpace(strings.TrimPrefix(line, "data:"))
-			break
-		}
-	}
-	err = scanner.Err()
-	test.IsNil(t, err)
-
 	test.HttpPostUploadRequest(t, test.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/uploadChunk",
 		UploadFileName:  "test/fileupload.jpg",
