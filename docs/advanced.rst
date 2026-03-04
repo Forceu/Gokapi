@@ -70,6 +70,8 @@ Available environment variables
 +-------------------------------------+----------------------------------------------------------------------------------------+-----------------+-----------------------------+
 | GOKAPI_DATA_DIR                     | Sets the directory for the data                                                        | Yes             | data                        |
 +-------------------------------------+----------------------------------------------------------------------------------------+-----------------+-----------------------------+
+| GOKAPI_DISABLE_API_MENU             | Disables the API menu and generation of API keys for non-admin users                   | No              | false                       |
++-------------------------------------+----------------------------------------------------------------------------------------+-----------------+-----------------------------+
 | GOKAPI_DISABLE_CORS_CHECK           | Disables the CORS check on startup and during setup, if set to true                    | No              | false                       |
 +-------------------------------------+----------------------------------------------------------------------------------------+-----------------+-----------------------------+
 | GOKAPI_DISABLE_DOCKER_TRUSTED_PROXY | Disables automatically adding Docker subnet to trusted proxies, if set to true         | No              | false                       |

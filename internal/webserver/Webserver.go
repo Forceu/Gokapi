@@ -443,6 +443,11 @@ func showUploadRequest(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 	view := (&AdminView{}).convertGlobalConfig(ViewFileRequests, userId)
+
+	if !view.ActiveUser.HasPermissionCreateFileRequests() {
+		redirect(w, "admin")
+		return
+	}
 	err = templateFolder.ExecuteTemplate(w, "uploadreq", view)
 	helper.CheckIgnoreTimeout(err)
 }
@@ -455,6 +460,12 @@ func showApiAdmin(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 	view := (&AdminView{}).convertGlobalConfig(ViewAPI, userId)
+
+	//if configuration.GetEnvironment().DisableApiMenu && !view.ActiveUser.IsAdmin() {
+	//		redirect(w, "admin")
+	//	return
+	//}
+
 	err = templateFolder.ExecuteTemplate(w, "api", view)
 	helper.CheckIgnoreTimeout(err)
 }
@@ -741,6 +752,7 @@ type AdminView struct {
 	EndToEndEncryption    bool
 	IncludeFilename       bool
 	IsInternalAuth        bool
+	ShowApiMenu           bool
 	ShowDeprecationNotice bool
 	MaxFileSize           int
 	ActiveView            int
@@ -870,6 +882,11 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 		}
 	}
 
+	showApiMenu := true
+	if configuration.GetEnvironment().DisableApiMenu {
+		showApiMenu = user.IsAdmin()
+	}
+
 	u.ServerUrl = config.ServerUrl
 	u.Items = metaDataList
 	u.PublicName = config.PublicName
@@ -879,6 +896,7 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 	u.ActiveView = view
 	u.MaxFileSize = config.MaxFileSizeMB
 	u.IsLogoutAvailable = authentication.IsLogoutAvailable()
+	u.ShowApiMenu = showApiMenu
 	u.IsUserTabAvailable = config.Authentication.Method != models.AuthenticationDisabled
 	u.EndToEndEncryption = config.Encryption.Level == encryption.EndToEndEncryption
 	u.MaxParallelUploads = config.MaxParallelUploads

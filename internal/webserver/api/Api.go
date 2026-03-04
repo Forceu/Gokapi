@@ -231,6 +231,12 @@ func apiCreateApiKey(w http.ResponseWriter, r requestParser, user models.User) {
 	if !ok {
 		panic("invalid parameter passed")
 	}
+
+	if configuration.GetEnvironment().DisableApiMenu && !user.IsAdmin() {
+		sendError(w, http.StatusForbidden, errorcodes.NoPermission, "User API keys are disabled for this instance")
+		return
+	}
+
 	key := generateNewKey(request.BasicPermissions, user.Id, request.FriendlyName, "")
 	output := models.ApiKeyOutput{
 		Result:   "OK",

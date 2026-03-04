@@ -30,6 +30,8 @@ type Environment struct {
 	ConfigPath string
 	// Sets the directory for the data
 	DataDir string `env:"DATA_DIR" envDefault:"data" persistent:"true"`
+	// Disables the API menu and generation of API keys for non-admin users
+	DisableApiMenu bool `env:"DISABLE_API_MENU" envDefault:"false"`
 	// Disables the CORS check on startup and during setup, if set to true
 	DisableCorsCheck bool `env:"DISABLE_CORS_CHECK" envDefault:"false"`
 	// Disables automatically adding Docker subnet to trusted proxies, if set to true

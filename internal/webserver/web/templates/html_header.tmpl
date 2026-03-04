@@ -78,7 +78,9 @@
             {{ if and .ActiveUser.HasPermissionManageUsers .IsUserTabAvailable }}
             <a class="nav-link {{ if eq .ActiveView 3 }}active{{ end }}" href="./users">Users</a>
             {{ end }}
+            {{ if .ShowApiMenu }}
             <a class="nav-link {{ if eq .ActiveView 2 }}active{{ end }}" href="./apiKeys">API</a>
+            {{ end }}
             {{ if .ActiveUser.HasPermissionManageLogs }}
             <a class="nav-link {{ if eq .ActiveView 1 }}active{{ end }}" href="./logs">Status</a>
             {{ end }}
