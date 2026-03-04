@@ -367,7 +367,7 @@ func writeTestFiles() {
 		SHA1:               "a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd0",
 		ExpireAt:           2147483646,
 		DownloadsRemaining: 1,
-		ContentType:        "text/html",
+		ContentType:        "image/jpg",
 		HotlinkId:          "PhSs6mFtf8O5YGlLMfNw9rYXx9XRNkzCnJZpQBi7inunv3Z4A.jpg",
 		UserId:             5,
 	})
@@ -378,7 +378,7 @@ func writeTestFiles() {
 		SHA1:               "a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd1",
 		ExpireAt:           2147483646,
 		DownloadsRemaining: 1,
-		ContentType:        "text/html",
+		ContentType:        "image/jpg",
 		HotlinkId:          "wjqlzpq2.jpg",
 		UserId:             5,
 	})

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/forceu/gokapi/internal/environment"
 
@@ -21,7 +22,7 @@ type DatabaseProvider struct {
 }
 
 // DatabaseSchemeVersion contains the version number to be expected from the current database. If lower, an upgrade will be performed
-const DatabaseSchemeVersion = 13
+const DatabaseSchemeVersion = 14
 
 // New returns an instance
 func New(dbConfig models.DbConnection) (DatabaseProvider, error) {
@@ -86,6 +87,28 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 				PRIMARY KEY("id" AUTOINCREMENT)
 			);`)
 		helper.Check(err)
+	}
+
+	// < v2.2.3
+	if currentDbVersion < 14 {
+		// Remove all hotlinks for SVG files
+		for _, hotlink := range p.GetAllHotlinks() {
+			fileId, ok := p.GetHotlink(hotlink)
+			if !ok {
+				p.DeleteHotlink(hotlink)
+				continue
+			}
+			file, ok := p.GetMetaDataById(fileId)
+			if !ok {
+				p.DeleteHotlink(hotlink)
+				continue
+			}
+			if strings.HasSuffix(strings.ToLower(file.Name), ".svg") || strings.HasPrefix(strings.ToLower(file.ContentType), "image/svg") {
+				p.DeleteHotlink(hotlink)
+				file.HotlinkId = ""
+				p.SaveMetaData(file)
+			}
+		}
 	}
 }
 

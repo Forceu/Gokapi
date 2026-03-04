@@ -21,7 +21,7 @@ type DatabaseProvider struct {
 }
 
 // DatabaseSchemeVersion contains the version number to be expected from the current database. If lower, an upgrade will be performed
-const DatabaseSchemeVersion = 6
+const DatabaseSchemeVersion = 7
 
 // New returns an instance
 func New(dbConfig models.DbConnection) (DatabaseProvider, error) {
@@ -134,6 +134,27 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 		for _, apiKey := range p.GetAllApiKeys() {
 			if apiKey.IsSystemKey {
 				p.DeleteApiKey(apiKey.Id)
+			}
+		}
+	}
+	// < v2.2.3
+	if currentDbVersion < 7 {
+		// Remove all hotlinks for SVG files
+		for _, hotlink := range p.GetAllHotlinks() {
+			fileId, ok := p.GetHotlink(hotlink)
+			if !ok {
+				p.DeleteHotlink(hotlink)
+				continue
+			}
+			file, ok := p.GetMetaDataById(fileId)
+			if !ok {
+				p.DeleteHotlink(hotlink)
+				continue
+			}
+			if strings.HasSuffix(strings.ToLower(file.Name), ".svg") || strings.HasPrefix(strings.ToLower(file.ContentType), "image/svg") {
+				p.DeleteHotlink(hotlink)
+				file.HotlinkId = ""
+				p.SaveMetaData(file)
 			}
 		}
 	}

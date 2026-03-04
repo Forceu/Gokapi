@@ -319,7 +319,7 @@ func createNewMetaData(hash string, fileHeader chunking.FileHeader, userId int, 
 		file.Encryption.IsEncrypted = true
 	}
 	if aws.IsAvailable() {
-		if !configuration.Get().PicturesAlwaysLocal || !isPictureFile(file.Name) {
+		if !configuration.Get().PicturesAlwaysLocal || !isPictureFile(file.Name, file.ContentType) {
 			aws.AddBucketName(&file)
 		}
 	}
@@ -512,7 +512,7 @@ func isEncryptionRequested() bool {
 }
 
 // imageFileExtensions contains all known image extensions that can be used for hotlinks
-var imageFileExtensions = []string{".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg", ".tiff", ".tif", ".ico", ".avif", ".avifs", ".apng"}
+var imageFileExtensions = []string{".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".tiff", ".tif", ".ico", ".avif", ".avifs", ".apng"}
 
 // videoFileExtensions contains all known video extensions that can be used for hotlinks, if enabled with the env var ENABLE_HOTLINK_VIDEOS
 var videoFileExtensions = []string{".3gp", ".avi", ".flv", ".m4v", ".mkv", ".mov", ".mp4", ".mpg", ".mpeg", ".ts", ".webm", ".wmv"}
@@ -537,14 +537,17 @@ func IsAbleHotlink(file models.File) bool {
 	if file.PasswordHash != "" {
 		return false
 	}
-	if isPictureFile(file.Name) {
+	if strings.Contains(strings.ToLower(file.ContentType), "image/svg") {
+		return false
+	}
+	if isPictureFile(file.Name, file.ContentType) {
 		return true
 	}
 	env := environment.New()
 	if !env.HotlinkVideos {
 		return false
 	}
-	return isVideoFile(file.Name)
+	return isVideoFile(file.Name, file.ContentType)
 }
 
 // getFileExtension returns the file extension of a filename in lowercase
@@ -552,13 +555,19 @@ func getFileExtension(filename string) string {
 	return strings.ToLower(filepath.Ext(filename))
 }
 
-// isPictureFile returns true if it has one of supported extensions saved in imageFileExtensions
-func isPictureFile(filename string) bool {
-	extension := getFileExtension(filename)
+// isPictureFile returns true if it has one of the supported extensions saved in imageFileExtensions
+func isPictureFile(filename, contentType string) bool {
+	if !strings.HasPrefix(strings.ToLower(contentType), "image/") {
+		return false
+	}
+	extension := strings.ToLower(getFileExtension(filename))
 	return helper.IsInArray(imageFileExtensions, extension)
 }
 
-func isVideoFile(filename string) bool {
+func isVideoFile(filename, contentType string) bool {
+	if !strings.HasPrefix(strings.ToLower(contentType), "video/") {
+		return false
+	}
 	extension := getFileExtension(filename)
 	return helper.IsInArray(videoFileExtensions, extension)
 }
