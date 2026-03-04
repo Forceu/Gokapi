@@ -461,10 +461,10 @@ func showApiAdmin(w http.ResponseWriter, r *http.Request) {
 	}
 	view := (&AdminView{}).convertGlobalConfig(ViewAPI, userId)
 
-	//if configuration.GetEnvironment().DisableApiMenu && !view.ActiveUser.IsAdmin() {
-	//		redirect(w, "admin")
-	//	return
-	//}
+	if configuration.GetEnvironment().DisableApiMenu && !view.ActiveUser.IsAdmin() {
+		redirect(w, "admin")
+		return
+	}
 
 	err = templateFolder.ExecuteTemplate(w, "api", view)
 	helper.CheckIgnoreTimeout(err)
