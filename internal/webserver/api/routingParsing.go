@@ -400,7 +400,7 @@ func (p *paramFilesReplace) ParseRequest(r *http.Request) error {
 	}
 	p.foundHeaders["deleteNewFile"] = exists
 	if exists {
-		p.Delete, err = parseHeaderBool(r, "deleteNewFile")
+		p.DeleteNewFile, err = parseHeaderBool(r, "deleteNewFile")
 		if err != nil {
 			return fmt.Errorf("invalid value in header deleteNewFile supplied")
 		}

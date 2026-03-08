@@ -38,15 +38,14 @@ func ProcessCompleteFile(w http.ResponseWriter, r *http.Request, userId, maxMemo
 		return err
 	}
 
+	config.FileRequestId = ""
 	result, err := storage.NewFile(file, header, userId, config)
 	defer file.Close()
 	if err != nil {
 		return err
 	}
 	user, _ := database.GetUser(userId)
-	// Returns empty fr if the file is not related to a file request
-	fr, _ := database.GetFileRequest(config.FileRequestId)
-	logging.LogUpload(result, user, fr)
+	logging.LogUpload(result, user, models.FileRequest{})
 	_, _ = io.WriteString(w, result.ToJsonResult(config.ExternalUrl, configuration.Get().IncludeFilename))
 	return nil
 }

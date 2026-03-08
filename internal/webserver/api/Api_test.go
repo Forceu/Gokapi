@@ -119,6 +119,11 @@ func getRecorderWithBody(url, apikey, method string, headers []test.Header, body
 	return test.GetRecorder(method, url, nil, passedHeaders, body)
 }
 
+func TestIsDebugModeFalse(t *testing.T) {
+	test.IsEqualBool(t, isDebug, false)
+	SetDebugTrue()
+}
+
 func testAuthorisation(t *testing.T, url string, requiredPermission models.ApiPermission) models.ApiKey {
 	w, r := getRecorder(url, "", []test.Header{{}})
 	Process(w, r)
@@ -351,6 +356,7 @@ func TestUserChangeRank(t *testing.T) {
 	const headerNewRank = "newRank"
 
 	apiKey := testAuthorisation(t, apiUrl, models.ApiPermManageUsers)
+
 	testInvalidUserId(t, apiUrl, apiKey.Id, []test.Header{{Name: headerNewRank, Value: "admin"}})
 	var validHeaders = []test.Header{
 		{
@@ -395,10 +401,30 @@ func TestUserChangeRank(t *testing.T) {
 		Value: "ADMIN",
 	}})
 	Process(w, r)
+	test.IsEqualInt(t, w.Code, 400)
+	user, ok = database.GetUser(idAdmin)
+	test.IsEqualBool(t, ok, true)
+	test.IsEqual(t, user.UserLevel, models.UserLevelUser)
+	user, _ = database.GetUser(idUser)
+	user.UserLevel = models.UserLevelAdmin
+	database.SaveUser(user, false)
+
+	w, r = getRecorder(apiUrl, apiKey.Id, []test.Header{{
+		Name:  headerUserId,
+		Value: strconv.Itoa(idAdmin),
+	}, {
+		Name:  headerNewRank,
+		Value: "ADMIN",
+	}})
+	Process(w, r)
 	test.IsEqualInt(t, w.Code, 200)
 	user, ok = database.GetUser(idAdmin)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqual(t, user.UserLevel, models.UserLevelAdmin)
+
+	user, _ = database.GetUser(idUser)
+	user.UserLevel = models.UserLevelUser
+	database.SaveUser(user, false)
 
 	defer test.ExpectPanic(t)
 	apiChangeUserRank(w, &paramAuthCreate{}, models.User{Id: 7})
@@ -574,7 +600,7 @@ func TestUserPasswordReset(t *testing.T) {
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, user.ResetPassword, true)
 	test.IsEqualString(t, user.Password, "1234")
-	test.ResponseBodyIs(t, w, `{"Result":"ok","password":""}`)
+	test.ResponseBodyIs(t, w, `{"Result":"OK","password":""}`)
 
 	user.ResetPassword = false
 	database.SaveUser(user, false)
@@ -602,7 +628,7 @@ func TestUserPasswordReset(t *testing.T) {
 	var resp response
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	test.IsNil(t, err)
-	test.IsEqualString(t, resp.Result, "ok")
+	test.IsEqualString(t, resp.Result, "OK")
 	test.IsNotEmpty(t, resp.Password)
 
 	defer test.ExpectPanic(t)

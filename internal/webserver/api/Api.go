@@ -33,6 +33,10 @@ const LengthPublicId = 35
 // LengthApiKey is the length of the private API key used for authentication
 const LengthApiKey = 30
 
+// isDebug must be false and is only set to true for running test units
+// If true, rate limiting is disabled for API calls
+var isDebug = false
+
 // Process parses the request and executes the API call or returns an error message to the sender
 func Process(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("cache-control", "no-store")
@@ -69,6 +73,12 @@ func Process(w http.ResponseWriter, r *http.Request) {
 
 func parseRequestUrl(r *http.Request) string {
 	return strings.Replace(r.URL.String(), "/api", "", 1)
+}
+
+// SetDebugTrue should never be called in production
+// It is used to disable API rate limiting
+func SetDebugTrue() {
+	isDebug = true
 }
 
 func apiEditFile(w http.ResponseWriter, r requestParser, user models.User) {
@@ -765,7 +775,12 @@ func apiReplaceFile(w http.ResponseWriter, r requestParser, user models.User) {
 		return
 	}
 
-	modifiedFile, err := storage.ReplaceFile(request.Id, request.IdNewContent, request.Delete)
+	if request.DeleteNewFile && fileNewContent.UserId != user.Id && !user.HasPermission(models.UserPermDeleteOtherUploads) {
+		sendError(w, http.StatusUnauthorized, errorcodes.NoPermission, "No permission to delete original file")
+		return
+	}
+
+	modifiedFile, err := storage.ReplaceFile(request.Id, request.IdNewContent, request.DeleteNewFile)
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrorReplaceE2EFile):
@@ -815,6 +830,10 @@ func apiModifyUser(w http.ResponseWriter, r requestParser, user models.User) {
 		sendError(w, http.StatusBadRequest, errorcodes.ResourceCanNotBeEdited, "Cannot modify yourself")
 		return
 	}
+	if request.GrantPermission && !user.HasPermission(request.Permission) {
+		sendError(w, http.StatusBadRequest, errorcodes.NoPermission, "Cannot grant rights the user does not have")
+		return
+	}
 	logging.LogUserEdit(userEdit, user)
 	if request.GrantPermission {
 		if !userEdit.HasPermission(request.Permission) {
@@ -847,6 +866,11 @@ func apiChangeUserRank(w http.ResponseWriter, r requestParser, user models.User)
 		sendError(w, http.StatusBadRequest, errorcodes.ResourceCanNotBeEdited, "Cannot modify super admin")
 		return
 	}
+	if request.NewRank == models.UserLevelAdmin && !user.IsAdmin() {
+		sendError(w, http.StatusBadRequest, errorcodes.ResourceCanNotBeEdited, "Only admins can promote users to admin")
+		return
+	}
+
 	userEdit.UserLevel = request.NewRank
 	switch request.NewRank {
 	case models.UserLevelAdmin:
@@ -915,7 +939,12 @@ func apiResetPassword(w http.ResponseWriter, r requestParser, user models.User) 
 	}
 	database.DeleteAllSessionsByUser(userToEdit.Id)
 	database.SaveUser(userToEdit, false)
-	_, _ = w.Write([]byte("{\"Result\":\"ok\",\"password\":\"" + password + "\"}"))
+	resultStruct := struct {
+		Result      string `json:"Result"`
+		NewPassword string `json:"password"`
+	}{Result: "OK", NewPassword: password}
+	result, _ := json.Marshal(resultStruct)
+	_, _ = w.Write(result)
 }
 
 func apiDeleteUser(w http.ResponseWriter, r requestParser, user models.User) {
@@ -1179,8 +1208,8 @@ func apiUploadRequestListSingle(w http.ResponseWriter, r requestParser, user mod
 		sendError(w, http.StatusNotFound, errorcodes.NotFound, "FileRequest does not exist with the given ID")
 		return
 	}
-	if uploadRequest.UserId != user.Id && !user.HasPermission(models.UserPermDeleteOtherUploads) {
-		sendError(w, http.StatusUnauthorized, errorcodes.NoPermission, "No permission to delete this upload request")
+	if uploadRequest.UserId != user.Id && !user.HasPermission(models.UserPermListOtherUploads) {
+		sendError(w, http.StatusUnauthorized, errorcodes.NoPermission, "No permission to show this upload request")
 		return
 	}
 	result, err := json.Marshal(uploadRequest)
@@ -1190,6 +1219,7 @@ func apiUploadRequestListSingle(w http.ResponseWriter, r requestParser, user mod
 
 func isAuthorisedForApi(r *http.Request, routing apiRoute) (models.User, bool) {
 	keyId := r.Header.Get("apikey")
+	ratelimiter.WaitOnApiAuthentication(logging.GetIpAddress(r), isDebug)
 	user, apiKey, ok := isValidApiKey(keyId, true, routing.ApiPerm)
 	if !ok {
 		return models.User{}, false

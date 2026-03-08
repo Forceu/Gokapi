@@ -53,7 +53,6 @@ var routes = []apiRoute{
 		Url:           "/files/downloadzip",
 		ApiPerm:       models.ApiPermDownload,
 		execution:     apiDownloadZip,
-		HasWildcard:   true,
 		RequestParser: &paramFilesDownloadZip{},
 	},
 	{
@@ -420,10 +419,10 @@ func (p *paramFilesModify) ProcessParameter(_ *http.Request) error {
 }
 
 type paramFilesReplace struct {
-	Id           string `header:"id" required:"true"`
-	IdNewContent string `header:"idNewContent" required:"true"`
-	Delete       bool   `header:"deleteNewFile"`
-	foundHeaders map[string]bool
+	Id            string `header:"id" required:"true"`
+	IdNewContent  string `header:"idNewContent" required:"true"`
+	DeleteNewFile bool   `header:"deleteNewFile"`
+	foundHeaders  map[string]bool
 }
 
 func (p *paramFilesReplace) ProcessParameter(_ *http.Request) error { return nil }

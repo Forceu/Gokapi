@@ -165,7 +165,15 @@ func (f *File) IsFileRequest() bool {
 }
 func errorAsJson(err error) string {
 	fmt.Println(err)
-	return "{\"Result\":\"error\",\"ErrorMessage\":\"" + err.Error() + "\"}"
+	errOutput := struct {
+		Result       string `json:"Result"`
+		ErrorMessage string `json:"ErrorMessage"`
+	}{Result: "error", ErrorMessage: err.Error()}
+	result, err := json.Marshal(errOutput)
+	if err != nil {
+		return "{\"Result\":\"error\",\"ErrorMessage\":\"Unknown error\"}"
+	}
+	return string(result)
 }
 
 // Result is the struct used for the result after an upload

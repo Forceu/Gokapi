@@ -19,6 +19,7 @@ import (
 	"github.com/forceu/gokapi/internal/storage/processingstatus"
 	"github.com/forceu/gokapi/internal/test"
 	"github.com/forceu/gokapi/internal/test/testconfiguration"
+	"github.com/forceu/gokapi/internal/webserver/api"
 	"github.com/forceu/gokapi/internal/webserver/authentication"
 	"github.com/forceu/gokapi/internal/webserver/authentication/csrftoken"
 )
@@ -30,6 +31,7 @@ func TestMain(m *testing.M) {
 	authentication.Init(configuration.Get().Authentication)
 	go Start()
 	time.Sleep(1 * time.Second)
+	api.SetDebugTrue()
 	exitVal := m.Run()
 	testconfiguration.Delete()
 	os.Exit(exitVal)
