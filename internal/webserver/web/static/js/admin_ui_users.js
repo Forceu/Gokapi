@@ -266,8 +266,8 @@ const PermissionDefinitions = [
     }
 ];
 
-function hasPermission(userPermissions, permissionBit) {
-    return (userPermissions & permissionBit) !== 0;
+function hasPermission(userPerm, permissionBit) {
+    return (userPerm & permissionBit) !== 0;
 }
 
 
@@ -321,7 +321,11 @@ function addRowUser(userid, name, permissions) {
     btnPromote.type = "button";
     btnPromote.className = "btn btn-outline-light btn-sm";
     btnPromote.title = "Promote User";
-    btnPromote.onclick = () => changeRank(userid, 'ADMIN', `changeRank_${userid}`);
+    if (isAdmin) {
+        btnPromote.onclick = () => changeRank(userid, 'ADMIN', `changeRank_${userid}`);
+    } else {
+        btnPromote.disabled = true;
+    }
     btnPromote.innerHTML = `<i class="bi bi-chevron-double-up"></i>`;
     btnGroup.appendChild(btnPromote);
 
@@ -341,15 +345,21 @@ function addRowUser(userid, name, permissions) {
 
     // Permissions
      cellPermissions.innerHTML = PermissionDefinitions.map(perm => {
-        const granted = hasPermission(permissions, perm.bit)
-            ? "perm-granted"
-            : "perm-notgranted";
-
+        let granted = "perm-notgranted";
+        if (hasPermission(permissions, perm.bit)) {
+            granted = "perm-granted";
+        }
         const id = perm.htmlId(userid);
+        let nochangeClass = "";
+        if (!hasPermission(userPermissions, perm.bit)) {
+            nochangeClass = "perm-nochange";
+        }
+        
+        
 
         return `
         <i id="${id}"
-           class="${perm.icon} ${granted}"
+           class="${perm.icon} ${granted} ${nochangeClass}"
            title="${perm.title}"
            onclick='changeUserPermission(${userid}, "${perm.apiName}", "${id}")'>
         </i>`;

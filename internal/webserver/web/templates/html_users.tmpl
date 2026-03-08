@@ -210,6 +210,8 @@
 <script src="./js/min/admin.min.{{ template "js_admin_version"}}.js"></script>
 <script>
 	var isInternalAuth = {{.IsInternalAuth}};
+	var isAdmin = {{.ActiveUser.IsAdmin}};
+	var userPermissions = {{.ActiveUser.Permissions}};
 </script>
 {{ template "pagename" "OverviewUsers"}}
 {{ template "customjs" .}}

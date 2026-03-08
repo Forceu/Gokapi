@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -21,6 +22,7 @@ import (
 	"github.com/forceu/gokapi/internal/storage/chunking/chunkreservation"
 	"github.com/forceu/gokapi/internal/storage/filerequest"
 	"github.com/forceu/gokapi/internal/storage/presign"
+	"github.com/forceu/gokapi/internal/webserver/api/apiMutex"
 	"github.com/forceu/gokapi/internal/webserver/api/errorcodes"
 	"github.com/forceu/gokapi/internal/webserver/authentication/users"
 	"github.com/forceu/gokapi/internal/webserver/fileupload"
@@ -86,6 +88,9 @@ func apiEditFile(w http.ResponseWriter, r requestParser, user models.User) {
 	if !ok {
 		panic("invalid parameter passed")
 	}
+	apiMutex.Lock(apiMutex.TypeMetaData, request.Id)
+	defer apiMutex.Unlock(apiMutex.TypeMetaData, request.Id)
+
 	file, ok := database.GetMetaDataById(request.Id)
 	if !ok {
 		sendError(w, http.StatusNotFound, errorcodes.NotFound, "Invalid file ID provided.")
@@ -171,6 +176,9 @@ func apiModifyApiKey(w http.ResponseWriter, r requestParser, user models.User) {
 	if !ok {
 		panic("invalid parameter passed")
 	}
+	apiMutex.Lock(apiMutex.TypeApiKey, request.KeyId)
+	defer apiMutex.Unlock(apiMutex.TypeApiKey, request.KeyId)
+
 	apiKeyOwner, apiKey, ok := isValidKeyForEditing(request.KeyId)
 	if !ok {
 		sendError(w, http.StatusNotFound, errorcodes.NotFound, "Invalid key ID provided.")
@@ -284,6 +292,7 @@ func apiChangeFriendlyName(w http.ResponseWriter, r requestParser, user models.U
 	if !ok {
 		panic("invalid parameter passed")
 	}
+
 	ownerApiKey, apiKey, ok := isValidKeyForEditing(request.KeyId)
 	if !ok {
 		sendError(w, http.StatusNotFound, errorcodes.NotFound, "Invalid key ID provided.")
@@ -304,6 +313,10 @@ func renameApiKeyFriendlyName(id string, newName string) error {
 	if newName == "" {
 		newName = "Unnamed key"
 	}
+
+	apiMutex.Lock(apiMutex.TypeApiKey, id)
+	defer apiMutex.Unlock(apiMutex.TypeApiKey, id)
+
 	key, ok := database.GetApiKey(id)
 	if !ok {
 		return errors.New("could not modify API key")
@@ -727,6 +740,10 @@ func apiChangeFileOwner(w http.ResponseWriter, r requestParser, user models.User
 	if !ok {
 		panic("invalid parameter passed")
 	}
+
+	apiMutex.Lock(apiMutex.TypeMetaData, request.Id)
+	defer apiMutex.Unlock(apiMutex.TypeMetaData, request.Id)
+
 	file, ok := storage.GetFile(request.Id)
 	if !ok {
 		sendError(w, http.StatusNotFound, errorcodes.NotFound, "Invalid id provided.")
@@ -818,6 +835,10 @@ func apiModifyUser(w http.ResponseWriter, r requestParser, user models.User) {
 	if !ok {
 		panic("invalid parameter passed")
 	}
+	idStr := strconv.Itoa(request.Id)
+	apiMutex.Lock(apiMutex.TypeUser, idStr)
+	defer apiMutex.Unlock(apiMutex.TypeUser, idStr)
+
 	userEdit, ok := isValidUserForEditing(w, request.Id)
 	if !ok {
 		return
@@ -854,6 +875,10 @@ func apiChangeUserRank(w http.ResponseWriter, r requestParser, user models.User)
 	if !ok {
 		panic("invalid parameter passed")
 	}
+	idStr := strconv.Itoa(request.Id)
+	apiMutex.Lock(apiMutex.TypeUser, idStr)
+	defer apiMutex.Unlock(apiMutex.TypeUser, idStr)
+
 	userEdit, ok := isValidUserForEditing(w, request.Id)
 	if !ok {
 		return
@@ -965,7 +990,16 @@ func apiDeleteUser(w http.ResponseWriter, r requestParser, user models.User) {
 		return
 	}
 	logging.LogUserDeletion(userToDelete, user)
-	database.DeleteUser(userToDelete.Id)
+
+	database.DeleteAllSessionsByUser(userToDelete.Id)
+
+	for _, apiKey := range database.GetAllApiKeys() {
+		if apiKey.UserId == userToDelete.Id {
+			database.DeleteApiKey(apiKey.Id)
+		}
+	}
+
+	database.DeleteEnd2EndInfo(userToDelete.Id)
 
 	for _, fRequest := range database.GetAllFileRequests() {
 		if fRequest.UserId == userToDelete.Id {
@@ -988,13 +1022,7 @@ func apiDeleteUser(w http.ResponseWriter, r requestParser, user models.User) {
 			}
 		}
 	}
-	for _, apiKey := range database.GetAllApiKeys() {
-		if apiKey.UserId == userToDelete.Id {
-			database.DeleteApiKey(apiKey.Id)
-		}
-	}
-	database.DeleteAllSessionsByUser(userToDelete.Id)
-	database.DeleteEnd2EndInfo(userToDelete.Id)
+	database.DeleteUser(userToDelete.Id)
 }
 
 func apiLogsDelete(_ http.ResponseWriter, r requestParser, user models.User) {
