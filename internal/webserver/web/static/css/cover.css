@@ -721,4 +721,20 @@ tr.no-bottom-border td {
         border-color: #333 !important;
         color: #b0b0b0 !important;
     }
+    
+    
+.popover {
+    --bs-popover-bg: #212529;
+    --bs-popover-header-bg: #212529;
+    --bs-popover-header-color: #dee2e6;
+    --bs-popover-body-color: #dee2e6;
+    --bs-popover-body-padding-y: 0;
+    --bs-popover-border-color: rgba(255, 255, 255, 0.15);
+    --bs-popover-arrow-border: rgba(255, 255, 255, 0.15);
+}
+
+.popover-header {
+    border-bottom-color: rgba(255, 255, 255, 0.15);
+}
+
 

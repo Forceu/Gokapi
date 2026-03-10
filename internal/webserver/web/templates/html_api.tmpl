@@ -28,7 +28,35 @@
                                 <th scope="col">Name</th>
                                 <th scope="col">API Key</th>
                                 <th scope="col">Last Used</th>
-            			<th scope="col">Permissions</th>
+            			<th scope="col">Permissions
+                                    <button type="button"
+                                        class="btn btn-sm btn-link text-white-50 p-0 ms-1 align-baseline"
+                                        id="apiPermLegendBtn"
+                                        data-bs-toggle="popover"
+                                        data-bs-placement="top"
+                                        data-bs-html="true"
+                                        data-bs-trigger="focus"
+                                        data-bs-content='
+                                            <table class="table table-sm table-dark mb-0" style="font-size:0.85em">
+                                              <tbody>
+                                                <tr><td><i class="bi bi-eye"></i></td><td>List uploads</td></tr>
+                                                <tr><td><i class="bi bi-file-earmark-plus"></i></td><td>Upload files</td></tr>
+                                                <tr><td><i class="bi bi-pencil"></i></td><td>Edit uploads</td></tr>
+                                                <tr><td><i class="bi bi-trash3"></i></td><td>Delete uploads</td></tr>
+                                                <tr><td><i class="bi bi-recycle"></i></td><td>Replace uploads</td></tr>
+                                                <tr><td><i class="bi bi-box-arrow-in-down"></i></td><td>Download files</td></tr>
+                                                <tr><td><i class="bi bi-file-earmark-arrow-up"></i></td><td>Manage file requests</td></tr>
+                                                <tr><td><i class="bi bi-people"></i></td><td>Manage users</td></tr>
+                                                <tr><td><i class="bi bi-card-list"></i></td><td>Manage system logs</td></tr>
+                                                <tr><td><i class="bi bi-sliders2"></i></td><td>Manage API keys</td></tr>
+                                              </tbody>
+                                            </table>'
+                                        title="Permission Legend"
+                                        tabindex="0"
+                                        aria-label="Show permission legend">
+                                        <i class="bi bi-question-circle"></i>
+                                    </button>
+                                </th>
 {{ if .ActiveUser.HasPermissionManageApi }}
             			<th scope="col">User</th>
 {{ end }}
@@ -87,6 +115,13 @@
         var canManageUsers = {{.ActiveUser.HasPermissionManageUsers }};
         var canViewSystemLog = {{.ActiveUser.HasPermissionManageLogs }};
         var canCreateFileRequest = {{.ActiveUser.HasPermissionCreateFileRequests }};
+
+	(function () {
+		var el = document.getElementById('apiPermLegendBtn');
+		if (el) {
+			new bootstrap.Popover(el, { sanitize: false });
+		}
+	})();
 </script>
 
         

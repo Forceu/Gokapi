@@ -260,7 +260,7 @@ const PermissionDefinitions = [
         key: "UserPermManageApiKeys",
         bit: 1 << 6,
         icon: "bi bi-sliders2",
-        title: "Manage API keys",
+        title: "Manage all API keys",
         htmlId: userid => `perm_api_${userid}`,
         apiName: "PERM_API"
     }
