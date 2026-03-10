@@ -19,6 +19,7 @@ import (
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/webserver/authentication/csrftoken"
 	"github.com/forceu/gokapi/internal/webserver/authentication/sessionmanager"
+	"github.com/forceu/gokapi/internal/webserver/authentication/users"
 )
 
 type userNameContext string
@@ -245,15 +246,8 @@ func getOrCreateUser(username string) (models.User, bool) {
 		if authSettings.OnlyRegisteredUsers {
 			return models.User{}, false
 		}
-		user = models.User{
-			Name:      username,
-			UserLevel: models.UserLevelUser,
-		}
-		database.SaveUser(user, true)
-		user, ok = database.GetUserByName(username)
-		if !ok {
-			panic("unable to read new user")
-		}
+		//TODO check error, already done in branch betterErrors
+		user, _ = users.Create(username)
 	}
 	return user, true
 }
