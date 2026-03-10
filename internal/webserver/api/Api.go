@@ -476,7 +476,7 @@ func processNewChunk(w http.ResponseWriter, request chunkParams, maxFileSizeMb i
 		return http.StatusBadRequest, errorcodes.FileTooLarge, storage.ErrorFileTooLarge.Error()
 	}
 	request.GetRequest().Body = http.MaxBytesReader(w, request.GetRequest().Body, maxUpload)
-	errCode, err := fileupload.ProcessNewChunk(w, request.GetRequest(), true, filerequestId)
+	errCode, err := fileupload.ProcessNewChunk(w, request.GetRequest(), true, filerequestId, maxUpload)
 	if err != nil {
 		return http.StatusBadRequest, errCode, err.Error()
 	}

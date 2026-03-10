@@ -202,19 +202,22 @@ func FileExists(id string) bool {
 }
 
 // NewChunk allocates the space for the new file and writes the chunk
-func NewChunk(chunkContent io.Reader, fileHeader *multipart.FileHeader, info ChunkInfo) error {
-	err := allocateFile(info)
+func NewChunk(chunkContent io.Reader, fileHeader *multipart.FileHeader, info ChunkInfo, maxAllowedSize int64) error {
+	err := allocateFile(info, maxAllowedSize)
 	if err != nil {
 		return err
 	}
 	return writeChunk(chunkContent, fileHeader, info)
 }
 
-func allocateFile(info ChunkInfo) error {
+func allocateFile(info ChunkInfo, maxAllowedSize int64) error {
+	if maxAllowedSize <= 0 {
+		return errors.New("invalid maxAllowedSize")
+	}
 	if FileExists(info.UUID) {
 		return nil
 	}
-	maxSizeBytes := int64(configuration.Get().MaxFileSizeMB) * 1024 * 1024
+	maxSizeBytes := min(int64(configuration.Get().MaxFileSizeMB)*1024*1024, maxAllowedSize)
 	if info.TotalFilesizeBytes > maxSizeBytes {
 		return errors.New("declared file size exceeds the maximum allowed size")
 	}

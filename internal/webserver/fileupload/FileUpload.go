@@ -65,7 +65,7 @@ func isChunkMinChunkSize(r *http.Request, offset, fileSize int64) bool {
 }
 
 // ProcessNewChunk processes a file chunk upload request
-func ProcessNewChunk(w http.ResponseWriter, r *http.Request, isApiCall bool, filerequestId string) (int, error) {
+func ProcessNewChunk(w http.ResponseWriter, r *http.Request, isApiCall bool, filerequestId string, maxFileSize int64) (int, error) {
 	err := r.ParseMultipartForm(int64(configuration.Get().MaxMemory) * 1024 * 1024)
 	if err != nil {
 		return errorcodes.CannotParse, err
@@ -83,6 +83,9 @@ func ProcessNewChunk(w http.ResponseWriter, r *http.Request, isApiCall bool, fil
 	if !isChunkMinChunkSize(r, chunkInfo.Offset, chunkInfo.TotalFilesizeBytes) {
 		return errorcodes.ChunkTooSmall, storage.ErrorChunkTooSmall
 	}
+	if chunkInfo.TotalFilesizeBytes > maxFileSize || chunkInfo.Offset > maxFileSize {
+		return errorcodes.FileTooLarge, storage.ErrorFileTooLarge
+	}
 
 	if filerequestId != "" {
 		if !chunkreservation.SetUploading(filerequestId, chunkInfo.UUID) {
@@ -90,7 +93,7 @@ func ProcessNewChunk(w http.ResponseWriter, r *http.Request, isApiCall bool, fil
 		}
 	}
 
-	err = chunking.NewChunk(file, header, chunkInfo)
+	err = chunking.NewChunk(file, header, chunkInfo, maxFileSize)
 	defer file.Close()
 	if err != nil {
 		return errorcodes.CannotAllocateFile, err
