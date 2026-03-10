@@ -23,8 +23,8 @@ import (
 	"github.com/forceu/gokapi/internal/storage/filerequest"
 	"github.com/forceu/gokapi/internal/storage/presign"
 	"github.com/forceu/gokapi/internal/webserver/api/apiMutex"
-	"github.com/forceu/gokapi/internal/webserver/api/errorcodes"
 	"github.com/forceu/gokapi/internal/webserver/authentication/users"
+	"github.com/forceu/gokapi/internal/webserver/errorHandling/errorcodes"
 	"github.com/forceu/gokapi/internal/webserver/fileupload"
 	"github.com/forceu/gokapi/internal/webserver/ratelimiter"
 )

@@ -362,28 +362,28 @@ func TestCheckOauthUser(t *testing.T) {
 	info := OAuthUserInfo{
 		ClaimsSent: testInfo{Output: []byte(`{"amr":["pwd","hwk","user","pin","mfa"],"aud":["gokapi-dev"],"auth_time":1705573822,"azp":"gokapi-dev","client_id":"gokapi-dev","email":"test@test.com","email_verified":true,"groups":["admins","dev"],"iat":1705577400,"iss":"https://auth.test.com","name":"gokapi","preferred_username":"gokapi","rat":1705577400,"sub":"944444cf3e-0546-44f2-acfa-a94444444360"}`)},
 	}
-	output, err := getOuthUserOutput(t, info)
+	output, err := getOauthUserOutput(t, info)
 	test.IsNil(t, err)
 	test.IsEqualString(t, redirectsToSite(output), "error-auth")
 
 	info.Subject = "random"
-	output, err = getOuthUserOutput(t, info)
+	output, err = getOauthUserOutput(t, info)
 	test.IsNil(t, err)
 	test.IsEqualString(t, redirectsToSite(output), "error-auth")
 
 	info.Email = "random"
-	output, err = getOuthUserOutput(t, info)
+	output, err = getOauthUserOutput(t, info)
 	test.IsNil(t, err)
 	test.IsEqualString(t, redirectsToSite(output), "admin")
 
 	info.Email = "test@test-invalid.com"
 	authSettings.OnlyRegisteredUsers = true
-	output, err = getOuthUserOutput(t, info)
+	output, err = getOauthUserOutput(t, info)
 	test.IsNil(t, err)
 	test.IsEqualString(t, redirectsToSite(output), "error-auth")
 
 	info.Email = "random"
-	output, err = getOuthUserOutput(t, info)
+	output, err = getOauthUserOutput(t, info)
 	test.IsNil(t, err)
 	test.IsEqualString(t, redirectsToSite(output), "admin")
 
@@ -392,7 +392,7 @@ func TestCheckOauthUser(t *testing.T) {
 	authSettings.OAuthGroupScope = "groupscope"
 	newClaims := testInfo{Output: []byte("{invalid")}
 	info.ClaimsSent = newClaims
-	_, err = getOuthUserOutput(t, info)
+	_, err = getOauthUserOutput(t, info)
 	test.IsNotNil(t, err)
 }
 
@@ -404,17 +404,6 @@ func redirectsToSite(input string) string {
 		}
 	}
 	return "other"
-}
-
-func getOuthUserOutput(t *testing.T, info OAuthUserInfo) (string, error) {
-	t.Helper()
-	w := httptest.NewRecorder()
-	err := CheckOauthUserAndRedirect(info, w)
-	if err != nil {
-		return "", err
-	}
-	output, _ := io.ReadAll(w.Result().Body)
-	return string(output), nil
 }
 
 var modelUserPW = models.AuthenticationConfig{
