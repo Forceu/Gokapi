@@ -1,4 +1,4 @@
-FROM golang:1.26.0-bookworm
+FROM golang:1.26.1-bookworm
 
 ## To compile:
 ## cd Gokapi/build/
