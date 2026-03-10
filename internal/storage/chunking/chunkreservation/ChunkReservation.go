@@ -9,7 +9,7 @@ import (
 
 var reservedChunks = make(map[string]map[string]reservation)
 var reservationMutex sync.RWMutex
-var gcIsRunning = false
+var runGcOnce = sync.Once{}
 
 const timeReservationWithoutUpload = 4 * 60
 const timeReservationWithUpload = 23 * 60 * 60
@@ -41,10 +41,7 @@ func New(id string) string {
 		Expiry: time.Now().Unix() + timeReservationWithoutUpload,
 	}
 
-	if !gcIsRunning {
-		gcIsRunning = true
-		go cleanUp(true)
-	}
+	runGcOnce.Do(func() { go cleanUp(true) })
 	return uuid
 }
 
