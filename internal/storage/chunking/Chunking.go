@@ -214,6 +214,10 @@ func allocateFile(info ChunkInfo) error {
 	if FileExists(info.UUID) {
 		return nil
 	}
+	maxSizeBytes := int64(configuration.Get().MaxFileSizeMB) * 1024 * 1024
+	if info.TotalFilesizeBytes > maxSizeBytes {
+		return errors.New("declared file size exceeds the maximum allowed size")
+	}
 	enoughSpace, err := isEnoughSpace(info.TotalFilesizeBytes)
 	if err != nil {
 		return err

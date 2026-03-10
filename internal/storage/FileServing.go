@@ -165,6 +165,7 @@ func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, userId int
 	defer file.Close()
 	err = validateChunkInfo(file, fileHeader)
 	if err != nil {
+		_ = chunking.DeleteChunk(chunkId)
 		return models.File{}, err
 	}
 

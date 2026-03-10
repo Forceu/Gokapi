@@ -584,7 +584,6 @@ type paramE2eStore struct {
 func (p *paramE2eStore) ProcessParameter(r *http.Request) error {
 	const maxBodySize = 5 * 1024 * 1024 // 5MB in bytes
 	bodyReader := http.MaxBytesReader(nil, r.Body, maxBodySize)
-	defer bodyReader.Close()
 
 	type expectedInput struct {
 		Content string `json:"content"`

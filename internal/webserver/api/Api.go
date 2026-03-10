@@ -507,6 +507,7 @@ func apiChunkComplete(w http.ResponseWriter, r requestParser, user models.User) 
 func doBlockingPartCompleteChunk(w http.ResponseWriter, uuid string, fileHeader chunking.FileHeader, user models.User, uploadParameters models.UploadParameters) {
 	file, err := fileupload.CompleteChunk(uuid, fileHeader, user.Id, uploadParameters)
 	if err != nil {
+		_ = chunking.DeleteChunk(uuid)
 		sendError(w, http.StatusBadRequest, errorcodes.UnspecifiedError, err.Error())
 		return
 	}
