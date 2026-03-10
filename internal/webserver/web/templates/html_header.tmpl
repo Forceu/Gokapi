@@ -66,6 +66,13 @@
   </head>
   <body class="d-flex h-100 text-center text-white bg-dark">
 {{ if .IsAdminView }}
+   {{ if .IsUserTabAvailable }}
+<div style="position:fixed;top:0.5rem;right:0.75rem;z-index:9999;">
+  <span class="badge bg-secondary opacity-75">
+    <i class="bi bi-person-fill"></i> {{.ActiveUser.Name}}
+  </span>
+</div>
+  {{ end }}
   <div class="d-flex w-100 h-100 p-3 mx-auto flex-column">
       <header class="masthead mb-auto">
         <div  style="max-width: 80em;  margin: 0 auto;"  class="inner">
