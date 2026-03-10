@@ -250,6 +250,7 @@ func getOrCreateUser(username string) (models.User, bool, error) {
 	user, ok := database.GetUserByName(username)
 	if ok {
 		return user, true, nil
+
 	}
 	if authSettings.OnlyRegisteredUsers {
 		return models.User{}, false, nil
