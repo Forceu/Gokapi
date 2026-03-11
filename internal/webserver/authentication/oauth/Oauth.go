@@ -109,7 +109,7 @@ func HandlerCallback(w http.ResponseWriter, r *http.Request) {
 	}
 	err = authentication.CheckOauthUserAndRedirect(w, r, info)
 	if err != nil {
-		errorHandling.RedirectToOAuthErrorPage(w, r, "Failed to continue with login", err)
+		errorHandling.RedirectToOAuthErrorPage(w, r, "Failed to continue with login: ", err)
 	}
 }
 

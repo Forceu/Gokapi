@@ -133,7 +133,7 @@ func isGrantedHeader(r *http.Request) (models.User, bool, error) {
 	}
 	userName := r.Header.Get(authSettings.HeaderKey)
 	if userName == "" {
-		return models.User{}, false, errors.New("no user found in header")
+		return models.User{}, false, errors.New("header key is not set or empty")
 	}
 	return getOrCreateUser(userName)
 }

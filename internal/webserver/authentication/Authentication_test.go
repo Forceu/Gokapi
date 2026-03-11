@@ -99,7 +99,7 @@ func TestIsAuthenticated(t *testing.T) {
 	testAuthDisabled(t)
 	w, r := test.GetRecorder("GET", "/", nil, nil, nil)
 	authSettings.Method = -1
-	_, ok := IsAuthenticated(w, r)
+	_, ok, _ := IsAuthenticated(w, r)
 	test.IsEqualBool(t, ok, false)
 }
 
@@ -112,17 +112,17 @@ func testAuthSession(t *testing.T) {
 
 	w, r := test.GetRecorder("GET", "/", nil, nil, nil)
 	Init(modelUserPW)
-	_, ok := IsAuthenticated(w, r)
+	_, ok, _ := IsAuthenticated(w, r)
 	test.IsEqualBool(t, ok, false)
 	Init(modelOauth)
-	_, ok = IsAuthenticated(w, r)
+	_, ok, _ = IsAuthenticated(w, r)
 	test.IsEqualBool(t, ok, false)
 	Init(modelUserPW)
 	w, r = test.GetRecorder("GET", "/", []test.Cookie{{
 		Name:  "session_token",
 		Value: "validsession",
 	}}, nil, nil)
-	user, ok := IsAuthenticated(w, r)
+	user, ok, _ := IsAuthenticated(w, r)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualInt(t, user.Id, 7)
 	test.IsEqualInt(t, exitCode, 0)
@@ -137,28 +137,31 @@ func testAuthSession(t *testing.T) {
 func testAuthHeader(t *testing.T) {
 	w, r := test.GetRecorder("GET", "/", nil, nil, nil)
 	Init(modelHeader)
-	_, ok := IsAuthenticated(w, r)
+	_, ok, err := IsAuthenticated(w, r)
 	test.IsEqualBool(t, ok, false)
+	test.IsNotNil(t, err)
 	w, r = test.GetRecorder("GET", "/", nil, []test.Header{{
 		Name:  "testHeader",
 		Value: "testUser",
 	}}, nil)
 
-	user, ok := IsAuthenticated(w, r)
+	user, ok, err := IsAuthenticated(w, r)
 	test.IsEqualString(t, user.Name, "testuser")
 	test.IsEqualBool(t, ok, true)
+	test.IsNil(t, err)
 	authSettings.OnlyRegisteredUsers = true
 	w, r = test.GetRecorder("GET", "/", nil, []test.Header{{
 		Name:  "testHeader",
 		Value: "testUser",
 	}}, nil)
-	_, ok = IsAuthenticated(w, r)
+	_, ok, err = IsAuthenticated(w, r)
+	test.IsNil(t, err)
 	test.IsEqualBool(t, ok, true)
 	w, r = test.GetRecorder("GET", "/", nil, []test.Header{{
 		Name:  "testHeader",
 		Value: "otherUser2",
 	}}, nil)
-	_, ok = IsAuthenticated(w, r)
+	_, ok, _ = IsAuthenticated(w, r)
 	test.IsEqualBool(t, ok, false)
 	authSettings.OnlyRegisteredUsers = false
 }
@@ -166,7 +169,7 @@ func testAuthHeader(t *testing.T) {
 func testAuthDisabled(t *testing.T) {
 	w, r := test.GetRecorder("GET", "/", nil, nil, nil)
 	Init(modelDisabled)
-	user, ok := IsAuthenticated(w, r)
+	user, ok, _ := IsAuthenticated(w, r)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualInt(t, user.Id, 5)
 }
@@ -185,14 +188,6 @@ func TestIsLogoutAvailable(t *testing.T) {
 func TestEqualString(t *testing.T) {
 	test.IsEqualBool(t, IsEqualStringConstantTime("yes", "no"), false)
 	test.IsEqualBool(t, IsEqualStringConstantTime("yes", "yes"), true)
-}
-
-func TestRedirect(t *testing.T) {
-	w := httptest.NewRecorder()
-	redirect(w, "test")
-	output, err := io.ReadAll(w.Body)
-	test.IsNil(t, err)
-	test.IsEqualString(t, string(output), "<html><head><meta http-equiv=\"Refresh\" content=\"0; URL=./test\"></head></html>")
 }
 
 func TestGetUserFromRequest(t *testing.T) {
@@ -356,7 +351,17 @@ func (t testInfo) Claims(v interface{}) error {
 	}
 	return json.Unmarshal(t.Output, v)
 }
-
+func getOauthUserOutput(t *testing.T, info OAuthUserInfo) (string, error) {
+	t.Helper()
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("GET", "/", nil)
+	err := CheckOauthUserAndRedirect(w, r, info)
+	if err != nil {
+		return "", err
+	}
+	output, _ := io.ReadAll(w.Result().Body)
+	return string(output), nil
+}
 func TestCheckOauthUser(t *testing.T) {
 	Init(modelOauth)
 	info := OAuthUserInfo{

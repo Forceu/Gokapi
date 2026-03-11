@@ -117,7 +117,6 @@ func Start() {
 	mux.HandleFunc("/h/", showHotlink)
 	mux.HandleFunc("/hotlink/", showHotlink) // backward compatibility
 	mux.HandleFunc("/index", showIndex)
-	mux.HandleFunc("/test", doTest)
 	mux.HandleFunc("/login", showLogin)
 	mux.HandleFunc("/logs", requireLogin(showLogs, true, false))
 	mux.HandleFunc("/logout", doLogout)
@@ -297,10 +296,6 @@ func showIndex(w http.ResponseWriter, r *http.Request) {
 	helper.CheckIgnoreTimeout(err)
 }
 
-func doTest(w http.ResponseWriter, r *http.Request) {
-	errorHandling.RedirectGenericErrorPage(w, r, 5)
-}
-
 func handleGenerateAuthToken(w http.ResponseWriter, r *http.Request) {
 	user, err := authentication.GetUserFromRequest(r)
 	if err != nil {
@@ -470,7 +465,7 @@ func processApi(w http.ResponseWriter, r *http.Request) {
 func showLogin(w http.ResponseWriter, r *http.Request) {
 	_, ok, err := authentication.IsAuthenticated(w, r)
 	if err != nil {
-		errorHandling.RedirectToErrorPage(w, r, "Unable to log in", err.Error(), errorHandling.WidthDefault)
+		errorHandling.RedirectToErrorPage(w, r, "Unable to log in", "The following error was raised: "+err.Error(), errorHandling.WidthDefault)
 		return
 	}
 	if ok {
@@ -478,7 +473,8 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if configuration.Get().Authentication.Method == models.AuthenticationHeader {
-		errorHandling.RedirectToErrorPage(w, r, "Unauthorised", "No login information was sent from the authentication provider.", errorHandling.WidthDefault)
+		errorHandling.RedirectToErrorPage(w, r, "Unauthorised",
+			"No login information was sent from the authentication provider.", errorHandling.WidthDefault)
 		return
 	}
 	if configuration.Get().Authentication.Method == models.AuthenticationOAuth2 {
@@ -1068,7 +1064,7 @@ func requireLogin(next http.HandlerFunc, isUiCall, isPwChangeView bool) http.Han
 		addNoCacheHeader(w)
 		user, isLoggedIn, err := authentication.IsAuthenticated(w, r)
 		if err != nil {
-			errorHandling.RedirectToErrorPage(w, r, "Unable to log in", err.Error(), errorHandling.WidthDefault)
+			errorHandling.RedirectToErrorPage(w, r, "Unable to log in", "The following error was raised: "+err.Error(), errorHandling.WidthDefault)
 			return
 		}
 		if isLoggedIn {
