@@ -269,6 +269,12 @@ func HttpPageResult(t MockT, config HttpTestConfig) []*http.Cookie {
 	config.init(t)
 	client := &http.Client{}
 
+	if config.RedirectUrl != "" {
+		client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		}
+	}
+
 	data := url.Values{}
 	for _, value := range config.PostValues {
 		data.Add(value.Key, value.Value)
@@ -337,6 +343,9 @@ func checkResponse(t MockT, response *http.Response, config HttpTestConfig) {
 	}
 	if config.RedirectUrl != "" {
 		location := response.Header.Get("Location")
+		if config.IgnoreRedirectParm {
+			location = strings.Split(location, "?")[0]
+		}
 		if !strings.HasSuffix(location, config.RedirectUrl) {
 			t.Errorf("Redirect Location mismatch: got %s, want to end with %s", location, config.RedirectUrl)
 		}
@@ -355,19 +364,20 @@ func checkResponse(t MockT, response *http.Response, config HttpTestConfig) {
 
 // HttpTestConfig is a struct for http test init
 type HttpTestConfig struct {
-	Url             string
-	RequiredContent []string
-	ExcludedContent []string
-	IsHtml          bool
-	Method          string
-	PostValues      []PostBody
-	Cookies         []Cookie
-	Headers         []Header
-	UploadFileName  string
-	UploadFieldName string
-	RedirectUrl     string
-	ResultCode      int
-	Body            io.Reader
+	Url                string
+	RequiredContent    []string
+	ExcludedContent    []string
+	IsHtml             bool
+	IgnoreRedirectParm bool
+	Method             string
+	PostValues         []PostBody
+	Cookies            []Cookie
+	Headers            []Header
+	UploadFileName     string
+	UploadFieldName    string
+	RedirectUrl        string
+	ResultCode         int
+	Body               io.Reader
 }
 
 func (c *HttpTestConfig) init(t MockT) {
@@ -379,7 +389,11 @@ func (c *HttpTestConfig) init(t MockT) {
 		c.Method = "GET"
 	}
 	if c.ResultCode == 0 {
-		c.ResultCode = 200
+		if c.RedirectUrl == "" {
+			c.ResultCode = 200
+		} else {
+			c.ResultCode = 307
+		}
 	}
 }
 
@@ -467,6 +481,11 @@ func HttpPostRequest(t MockT, config HttpTestConfig) []*http.Cookie {
 		r.Header.Set(header.Name, header.Value)
 	}
 	client := &http.Client{}
+	if config.RedirectUrl != "" {
+		client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		}
+	}
 	response, err := client.Do(r)
 	IsNil(t, err)
 	defer response.Body.Close()

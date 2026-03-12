@@ -41,10 +41,6 @@ func (d DisplayedError) IsExpired() bool {
 	return d.expiry < time.Now().Unix()
 }
 
-func (d DisplayedError) GetWidth() bool {
-	return d.expiry < time.Now().Unix()
-}
-
 func RedirectToErrorPage(w http.ResponseWriter, r *http.Request, errorTitle, errorMessage, cardWidth string) {
 	result := DisplayedError{
 		Title:     errorTitle,
@@ -124,6 +120,8 @@ func redirectToError(w http.ResponseWriter, r *http.Request, displayedError Disp
 }
 
 func Get(r *http.Request) DisplayedError {
+	mutex.RLock()
+	defer mutex.RUnlock()
 	if !r.URL.Query().Has("e") {
 		return DisplayedError{
 			IsGeneric: true,
