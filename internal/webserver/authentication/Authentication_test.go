@@ -5,11 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/forceu/gokapi/internal/configuration"
@@ -324,7 +322,7 @@ func TestLogout(t *testing.T) {
 	test.IsEqualBool(t, ok, false)
 	_, ok = sessionmanager.IsValidSession(w, r, false, 0)
 	test.IsEqualBool(t, ok, false)
-	test.ResponseBodyContains(t, w, "<html><head><meta http-equiv=\"Refresh\" content=\"0; URL=./login\"></head></html>")
+	test.ResponseIsRedirect(t, w, "login", false)
 
 	Init(modelOauth)
 	w, r, _, _ = getRecorder([]test.Cookie{{
@@ -338,7 +336,7 @@ func TestLogout(t *testing.T) {
 	test.IsEqualBool(t, ok, false)
 	_, ok = sessionmanager.IsValidSession(w, r, false, 0)
 	test.IsEqualBool(t, ok, false)
-	test.ResponseBodyContains(t, w, "<html><head><meta http-equiv=\"Refresh\" content=\"0; URL=./login?consent=true\"></head></html>")
+	test.ResponseIsRedirect(t, w, "login?consent=true", false)
 }
 
 type testInfo struct {
@@ -351,46 +349,45 @@ func (t testInfo) Claims(v interface{}) error {
 	}
 	return json.Unmarshal(t.Output, v)
 }
-func getOauthUserOutput(t *testing.T, info OAuthUserInfo) (string, error) {
+func getOauthUserOutput(t *testing.T, info OAuthUserInfo) (*httptest.ResponseRecorder, error) {
 	t.Helper()
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest("GET", "/", nil)
 	err := CheckOauthUserAndRedirect(w, r, info)
 	if err != nil {
-		return "", err
+		return w, err
 	}
-	output, _ := io.ReadAll(w.Result().Body)
-	return string(output), nil
+	return w, nil
 }
 func TestCheckOauthUser(t *testing.T) {
 	Init(modelOauth)
 	info := OAuthUserInfo{
 		ClaimsSent: testInfo{Output: []byte(`{"amr":["pwd","hwk","user","pin","mfa"],"aud":["gokapi-dev"],"auth_time":1705573822,"azp":"gokapi-dev","client_id":"gokapi-dev","email":"test@test.com","email_verified":true,"groups":["admins","dev"],"iat":1705577400,"iss":"https://auth.test.com","name":"gokapi","preferred_username":"gokapi","rat":1705577400,"sub":"944444cf3e-0546-44f2-acfa-a94444444360"}`)},
 	}
-	output, err := getOauthUserOutput(t, info)
+	w, err := getOauthUserOutput(t, info)
 	test.IsNil(t, err)
-	test.IsEqualString(t, redirectsToSite(output), "error-auth")
+	test.ResponseIsRedirect(t, w, "error", true)
 
 	info.Subject = "random"
-	output, err = getOauthUserOutput(t, info)
+	w, err = getOauthUserOutput(t, info)
 	test.IsNil(t, err)
-	test.IsEqualString(t, redirectsToSite(output), "error-auth")
+	test.ResponseIsRedirect(t, w, "error", true)
 
 	info.Email = "random"
-	output, err = getOauthUserOutput(t, info)
+	w, err = getOauthUserOutput(t, info)
 	test.IsNil(t, err)
-	test.IsEqualString(t, redirectsToSite(output), "admin")
+	test.ResponseIsRedirect(t, w, "admin", false)
 
 	info.Email = "test@test-invalid.com"
 	authSettings.OnlyRegisteredUsers = true
-	output, err = getOauthUserOutput(t, info)
+	w, err = getOauthUserOutput(t, info)
 	test.IsNil(t, err)
-	test.IsEqualString(t, redirectsToSite(output), "error-auth")
+	test.ResponseIsRedirect(t, w, "error", true)
 
 	info.Email = "random"
-	output, err = getOauthUserOutput(t, info)
+	w, err = getOauthUserOutput(t, info)
 	test.IsNil(t, err)
-	test.IsEqualString(t, redirectsToSite(output), "admin")
+	test.ResponseIsRedirect(t, w, "admin", false)
 
 	authSettings.OnlyRegisteredUsers = false
 	authSettings.OAuthGroups = []string{"otheruser@test"}
@@ -399,16 +396,6 @@ func TestCheckOauthUser(t *testing.T) {
 	info.ClaimsSent = newClaims
 	_, err = getOauthUserOutput(t, info)
 	test.IsNotNil(t, err)
-}
-
-func redirectsToSite(input string) string {
-	sites := []string{"admin", "error-auth"}
-	for _, site := range sites {
-		if strings.Contains(input, site) {
-			return site
-		}
-	}
-	return "other"
 }
 
 var modelUserPW = models.AuthenticationConfig{

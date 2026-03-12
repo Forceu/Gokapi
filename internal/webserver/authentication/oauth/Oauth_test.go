@@ -49,7 +49,7 @@ func TestHandlerCallback_StateMismatch(t *testing.T) {
 	HandlerCallback(rr, req)
 
 	// Should redirect to error page
-	test.IsEqualInt(t, rr.Code, http.StatusSeeOther)
+	test.IsEqualInt(t, rr.Code, http.StatusTemporaryRedirect)
 	test.IsEqualBool(t, rr.Header().Get("Location") != "", true)
 }
 

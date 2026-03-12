@@ -19,9 +19,9 @@ import (
 	"github.com/forceu/gokapi/internal/storage/processingstatus"
 	"github.com/forceu/gokapi/internal/test"
 	"github.com/forceu/gokapi/internal/test/testconfiguration"
-	"github.com/forceu/gokapi/internal/webserver/api"
 	"github.com/forceu/gokapi/internal/webserver/authentication"
 	"github.com/forceu/gokapi/internal/webserver/authentication/csrftoken"
+	"github.com/forceu/gokapi/internal/webserver/ratelimiter"
 )
 
 func TestMain(m *testing.M) {
@@ -31,7 +31,7 @@ func TestMain(m *testing.M) {
 	authentication.Init(configuration.Get().Authentication)
 	go Start()
 	time.Sleep(1 * time.Second)
-	api.SetDebugTrue()
+	ratelimiter.SetUnitTestMode(true)
 	exitVal := m.Run()
 	testconfiguration.Delete()
 	os.Exit(exitVal)
@@ -594,7 +594,8 @@ func TestApiPageNotAuthorized(t *testing.T) {
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://127.0.0.1:53843/apiKeys",
 		IsHtml:          true,
-		RequiredContent: []string{"URL=./login"},
+		RedirectUrl:     "login",
+		ResultCode:      http.StatusTemporaryRedirect,
 		ExcludedContent: []string{"Click on the API key name to give it a new name."},
 		Cookies: []test.Cookie{{
 			Name:  "session_token",
@@ -672,15 +673,6 @@ func TestResponseError(t *testing.T) {
 	responseError(w, errors.New("testerror"))
 	test.IsEqualInt(t, w.Result().StatusCode, 400)
 	test.ResponseBodyContains(t, w, "testerror")
-}
-
-func TestShowErrorAuth(t *testing.T) {
-	t.Parallel()
-	test.HttpPageResult(t, test.HttpTestConfig{
-		Url:             "http://localhost:53843/error-auth",
-		RequiredContent: []string{"Log in as different user"},
-		IsHtml:          true,
-	})
 }
 
 func TestServeWasmDownloader(t *testing.T) {

@@ -97,9 +97,12 @@ func RedirectToOAuthErrorPage(w http.ResponseWriter, r *http.Request, errorMessa
 		redirectToError(w, r, result)
 		return
 	}
+	if err != nil {
+		errorMessage = errorMessage + " " + err.Error()
+	}
 	result := DisplayedError{
 		Title:                r.URL.Query().Get("error"),
-		Message:              errorMessage + " " + err.Error(),
+		Message:              errorMessage,
 		OAuthProviderMessage: r.URL.Query().Get("error_description"),
 		expiry:               time.Now().Add(ttl).Unix(),
 		ErrorId:              TypeOAuthNonGeneric,

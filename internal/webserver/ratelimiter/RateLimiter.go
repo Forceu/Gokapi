@@ -2,6 +2,7 @@ package ratelimiter
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"sync"
 	"time"
@@ -16,9 +17,20 @@ var failedIdLimiter = newLimiter()
 var failedDownloadPasswordLimiter = newLimiter()
 var failedApiKeyLimiter = newLimiter()
 
+// isUnitTest must be false and is only set to true for running test units
+// If true, rate limiting is disabled
+var isUnitTest = false
+
 type limiterEntry struct {
 	limiter  *rate.Limiter
 	lastSeen time.Time
+}
+
+// SetUnitTestMode disables all rate limiting
+// This is only used for running unit tests
+func SetUnitTestMode(enabled bool) {
+	fmt.Println("Rate limiting disabled for unit tests")
+	isUnitTest = enabled
 }
 
 type store struct {
@@ -41,10 +53,7 @@ func WaitOnLogin(ip string) {
 
 // WaitOnApiAuthentication blocks the current goroutine until the rate limiter allows a request
 // 200 attempts without limiting, thereafter one attempt every second
-func WaitOnApiAuthentication(ip string, isDebug bool) {
-	if isDebug {
-		return
-	}
+func WaitOnApiAuthentication(ip string) {
 	_ = failedApiKeyLimiter.Get(ip, 1, 200).WaitN(context.Background(), 1)
 }
 
@@ -69,6 +78,9 @@ func IsAllowedNewUuid(key string) bool {
 
 // Get returns the rate limiter for the given key
 func (s *store) Get(key string, r rate.Limit, burst int) *rate.Limiter {
+	if isUnitTest {
+		return rate.NewLimiter(r, burst)
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
