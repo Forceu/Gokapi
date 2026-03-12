@@ -47,6 +47,19 @@ func ResponseBodyContains(t MockT, got *httptest.ResponseRecorder, want string) 
 	}
 }
 
+// ResponseIsRedirect fails test if not correct redirect
+func ResponseIsRedirect(t MockT, got *httptest.ResponseRecorder, wantUrl string, ignoreParam bool) {
+	t.Helper()
+	IsEqualInt(t, got.Code, http.StatusTemporaryRedirect)
+	location := got.Header().Get("Location")
+	if ignoreParam {
+		location = strings.Split(location, "?")[0]
+	}
+	if !strings.HasSuffix(location, wantUrl) {
+		t.Errorf("Redirect Location mismatch: got %s, want to end with %s", location, wantUrl)
+	}
+}
+
 // ResponseBodyIs fails test if http response is not the exact string
 func ResponseBodyIs(t MockT, got *httptest.ResponseRecorder, want string) {
 	t.Helper()
@@ -256,6 +269,12 @@ func HttpPageResult(t MockT, config HttpTestConfig) []*http.Cookie {
 	config.init(t)
 	client := &http.Client{}
 
+	if config.RedirectUrl != "" {
+		client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		}
+	}
+
 	data := url.Values{}
 	for _, value := range config.PostValues {
 		data.Add(value.Key, value.Value)
@@ -309,7 +328,10 @@ func HttpPageResultJson(t MockT, config HttpTestConfig) []*http.Cookie {
 
 func checkResponse(t MockT, response *http.Response, config HttpTestConfig) {
 	t.Helper()
-	IsEqualBool(t, response != nil, true)
+	if response == nil {
+		t.Errorf("No response received")
+		return
+	}
 	if response.StatusCode != config.ResultCode {
 		t.Errorf("Status Code - Got: %d Want: %d", response.StatusCode, config.ResultCode)
 	}
@@ -318,6 +340,15 @@ func checkResponse(t MockT, response *http.Response, config HttpTestConfig) {
 	IsNil(t, err)
 	if config.IsHtml && !bytes.Contains(content, []byte("</html>")) {
 		t.Errorf(config.Url + ": Incorrect response, no HTML tag")
+	}
+	if config.RedirectUrl != "" {
+		location := response.Header.Get("Location")
+		if config.IgnoreRedirectParm {
+			location = strings.Split(location, "?")[0]
+		}
+		if !strings.HasSuffix(location, config.RedirectUrl) {
+			t.Errorf("Redirect Location mismatch: got %s, want to end with %s", location, config.RedirectUrl)
+		}
 	}
 	for _, requiredString := range config.RequiredContent {
 		if !bytes.Contains(content, []byte(requiredString)) {
@@ -333,18 +364,20 @@ func checkResponse(t MockT, response *http.Response, config HttpTestConfig) {
 
 // HttpTestConfig is a struct for http test init
 type HttpTestConfig struct {
-	Url             string
-	RequiredContent []string
-	ExcludedContent []string
-	IsHtml          bool
-	Method          string
-	PostValues      []PostBody
-	Cookies         []Cookie
-	Headers         []Header
-	UploadFileName  string
-	UploadFieldName string
-	ResultCode      int
-	Body            io.Reader
+	Url                string
+	RequiredContent    []string
+	ExcludedContent    []string
+	IsHtml             bool
+	IgnoreRedirectParm bool
+	Method             string
+	PostValues         []PostBody
+	Cookies            []Cookie
+	Headers            []Header
+	UploadFileName     string
+	UploadFieldName    string
+	RedirectUrl        string
+	ResultCode         int
+	Body               io.Reader
 }
 
 func (c *HttpTestConfig) init(t MockT) {
@@ -356,7 +389,11 @@ func (c *HttpTestConfig) init(t MockT) {
 		c.Method = "GET"
 	}
 	if c.ResultCode == 0 {
-		c.ResultCode = 200
+		if c.RedirectUrl == "" {
+			c.ResultCode = 200
+		} else {
+			c.ResultCode = 307
+		}
 	}
 }
 
@@ -444,6 +481,11 @@ func HttpPostRequest(t MockT, config HttpTestConfig) []*http.Cookie {
 		r.Header.Set(header.Name, header.Value)
 	}
 	client := &http.Client{}
+	if config.RedirectUrl != "" {
+		client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		}
+	}
 	response, err := client.Do(r)
 	IsNil(t, err)
 	defer response.Body.Close()

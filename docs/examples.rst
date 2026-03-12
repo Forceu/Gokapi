@@ -165,7 +165,7 @@ Keycloak
 ^^^^^^^^^^^^
 
 .. note::
-   This guide has been written for version 24.0.3
+   This guide has been written for version 26.5.5
 
 .. warning::
    In a previous version of this guide, the client mapping was for the predefined mapper "Group memberships", which in some cases always returned the value "admin". Please make sure that you are using a custom mapper, as described in :ref:`oidcconfig_keycloak_opt`
@@ -233,7 +233,7 @@ Gokapi Configuration
 +---------------------------+-----------------------------------------------------------------------+--------------------------------------------+
 | Client Secret             | Client secret provided                                                | AhXeV7_EXAMPLE_KEY                         |
 +---------------------------+-----------------------------------------------------------------------+--------------------------------------------+
-| Recheck identity          | If open ``Consent required`` is disabled, use a low interval          | 12 hours                                   |
+| Recheck identity          | If ``Consent required`` is disabled, use a low interval               | 12 hours                                   |
 +---------------------------+-----------------------------------------------------------------------+--------------------------------------------+
 | Admin email address       | The email address for the super-admin                                 | gokapi@example.com                         |
 +---------------------------+-----------------------------------------------------------------------+--------------------------------------------+

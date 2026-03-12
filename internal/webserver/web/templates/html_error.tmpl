@@ -2,35 +2,19 @@
  
      <div class="row justify-content-center mt-5">
   <div class="col-md-6">
-    <div class="card shadow-sm" style="width: {{ .ErrorCardWidth }}rem;">
+    <div class="card shadow-sm" style="width: {{ .ErrorCardWidth }};">
       <div class="card-body text-center">
-{{ if eq .ErrorId 0 }}
+{{ if .IsGenericError }}
+
+    {{ if eq .ErrorId 0 }}
         <h2 class="card-title">
           File not found
         </h2>
         <br>
           The link may have expired or the file has been downloaded too many times.
-{{ end }}
-
-{{ if eq .ErrorId 1 }}
-        <h2 class="card-title">
-          Missing decryption key
-        </h2>
-        <br>
-          This file is encrypted, but no key was provided.<br>
-          Please contact the uploader and ensure the full link (including the value after the hash) is used.
-{{ end }}
-
-{{ if eq .ErrorId 2 }}
-        <h2 class="card-title">
-          Invalid decryption key
-        </h2>
-        <br>
-          This file is encrypted, but the provided key is incorrect.<br>
-          If this file is end-to-end encrypted, please request the correct link from the uploader.
-{{ end }}
-
-{{ if eq .ErrorId 3 }}
+    {{ end }}
+    
+    {{ if eq .ErrorId 1 }}
         <h2 class="card-title">
           Unable to upload files
         </h2>
@@ -41,7 +25,48 @@
             <li>- The file limit for this upload request has been reached</li>
             <li>- An invalid upload URL was submitted</li>
           </ul></i>
+   {{ end }}
+   
+   {{ if eq .ErrorId 2 }}
+        <h2 class="card-title">
+          Missing or invalid decryption key
+        </h2>
+        <br>
+          This file is encrypted, but no key was provided or the key is invalid.<br><br>
+          Please contact the uploader and make sure the complete URL is used, including the value after the hash.
+   {{ end }}
+   
+   {{ if eq .ErrorId 3 }}
+       <h2 class="card-title">Unauthorised user</h2>
+		    <br>
+		    <p class="card-text">Login with OAuth provider was sucessful, however this user is not authorised to use Gokapi.</p><br><br>
+		    <a href="./login?consent=true" class="card-link">Log in as different user</a>
+   {{ end }}
+    
+{{ else }}
+   
+   {{ if eq .ErrorId 4 }}
+		 <h2 class="card-title">OIDC Provider Error: {{.ErrorTitle}}</h2>
+				    <br>
+				    <p class="card-text"><b>Login with OAuth provider was not sucessful, the following error was raised:</b></p>
+		{{ if .ErrorOauthMessage }}
+				 <p class="text-monospace">{{ .ErrorOauthMessage }}</p>
+		{{ end}}
+				 <p class="text-monospace">{{ .ErrorMessage }}</p><br>
+				    <a href="./login?consent=true" class="card-link">Try again</a>
+   {{ else }}
+   
+        <h2 class="card-title">
+          {{ .ErrorTitle }}
+        </h2>
+        <br>
+          {{ .ErrorMessage }}
+   {{ end }}
+
 {{ end }}
+
+
+
         </p>
       </div>
     </div>

@@ -23,8 +23,8 @@ import (
 	"github.com/forceu/gokapi/internal/storage/filerequest"
 	"github.com/forceu/gokapi/internal/storage/presign"
 	"github.com/forceu/gokapi/internal/webserver/api/apiMutex"
-	"github.com/forceu/gokapi/internal/webserver/api/errorcodes"
 	"github.com/forceu/gokapi/internal/webserver/authentication/users"
+	"github.com/forceu/gokapi/internal/webserver/errorHandling/errorcodes"
 	"github.com/forceu/gokapi/internal/webserver/fileupload"
 	"github.com/forceu/gokapi/internal/webserver/ratelimiter"
 )
@@ -34,10 +34,6 @@ const LengthPublicId = 35
 
 // LengthApiKey is the length of the private API key used for authentication
 const LengthApiKey = 30
-
-// isDebug must be false and is only set to true for running test units
-// If true, rate limiting is disabled for API calls
-var isDebug = false
 
 // Process parses the request and executes the API call or returns an error message to the sender
 func Process(w http.ResponseWriter, r *http.Request) {
@@ -75,12 +71,6 @@ func Process(w http.ResponseWriter, r *http.Request) {
 
 func parseRequestUrl(r *http.Request) string {
 	return strings.Replace(r.URL.String(), "/api", "", 1)
-}
-
-// SetDebugTrue should never be called in production
-// It is used to disable API rate limiting
-func SetDebugTrue() {
-	isDebug = true
 }
 
 func apiEditFile(w http.ResponseWriter, r requestParser, user models.User) {
@@ -1248,7 +1238,7 @@ func apiUploadRequestListSingle(w http.ResponseWriter, r requestParser, user mod
 
 func isAuthorisedForApi(r *http.Request, routing apiRoute) (models.User, bool) {
 	keyId := r.Header.Get("apikey")
-	ratelimiter.WaitOnApiAuthentication(logging.GetIpAddress(r), isDebug)
+	ratelimiter.WaitOnApiAuthentication(logging.GetIpAddress(r))
 	user, apiKey, ok := isValidApiKey(keyId, true, routing.ApiPerm)
 	if !ok {
 		return models.User{}, false

@@ -14,7 +14,7 @@ import (
 	"github.com/forceu/gokapi/internal/storage"
 	"github.com/forceu/gokapi/internal/storage/chunking"
 	"github.com/forceu/gokapi/internal/storage/chunking/chunkreservation"
-	"github.com/forceu/gokapi/internal/webserver/api/errorcodes"
+	"github.com/forceu/gokapi/internal/webserver/errorHandling/errorcodes"
 )
 
 const minChunkSize = 5 * 1024 * 1024

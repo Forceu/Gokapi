@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os"
@@ -20,6 +19,7 @@ import (
 	"github.com/forceu/gokapi/internal/webserver/authentication/csrftoken"
 	"github.com/forceu/gokapi/internal/webserver/authentication/sessionmanager"
 	"github.com/forceu/gokapi/internal/webserver/authentication/users"
+	"github.com/forceu/gokapi/internal/webserver/errorHandling"
 )
 
 type userNameContext string
@@ -96,41 +96,44 @@ func SetUserInRequest(r *http.Request, user models.User) *http.Request {
 }
 
 // IsAuthenticated returns true and the user ID if authenticated
-func IsAuthenticated(w http.ResponseWriter, r *http.Request) (models.User, bool) {
+func IsAuthenticated(w http.ResponseWriter, r *http.Request) (models.User, bool, error) {
 	switch authSettings.Method {
 	case models.AuthenticationInternal:
 		user, ok := isGrantedSession(w, r)
 		if ok {
-			return user, true
+			return user, true, nil
 		}
 	case models.AuthenticationOAuth2:
 		user, ok := isGrantedSession(w, r)
 		if ok {
-			return user, true
+			return user, true, nil
 		}
 	case models.AuthenticationHeader:
-		user, ok := isGrantedHeader(r)
+		user, ok, err := isGrantedHeader(r)
+		if err != nil {
+			return models.User{}, false, err
+		}
 		if ok {
-			return user, true
+			return user, true, nil
 		}
 	case models.AuthenticationDisabled:
 		adminUser, ok := database.GetSuperAdmin()
 		if !ok {
 			panic("no super admin found")
 		}
-		return adminUser, true
+		return adminUser, true, nil
 	}
-	return models.User{}, false
+	return models.User{}, false, nil
 }
 
 // isGrantedHeader returns true if the user was authenticated by a proxy header if enabled
-func isGrantedHeader(r *http.Request) (models.User, bool) {
+func isGrantedHeader(r *http.Request) (models.User, bool, error) {
 	if authSettings.HeaderKey == "" {
-		return models.User{}, false
+		return models.User{}, false, errors.New("header key is not set")
 	}
 	userName := r.Header.Get(authSettings.HeaderKey)
 	if userName == "" {
-		return models.User{}, false
+		return models.User{}, false, errors.New("header key is not set or empty")
 	}
 	return getOrCreateUser(userName)
 }
@@ -218,7 +221,7 @@ type OAuthUserClaims interface {
 }
 
 // CheckOauthUserAndRedirect checks if the user is allowed to use the Gokapi instance
-func CheckOauthUserAndRedirect(userInfo OAuthUserInfo, w http.ResponseWriter) error {
+func CheckOauthUserAndRedirect(w http.ResponseWriter, r *http.Request, userInfo OAuthUserInfo) error {
 	var groups []string
 	var err error
 
@@ -229,27 +232,34 @@ func CheckOauthUserAndRedirect(userInfo OAuthUserInfo, w http.ResponseWriter) er
 		}
 	}
 	if isValidOauthUser(userInfo, groups) {
-		user, ok := getOrCreateUser(userInfo.Email)
+		user, ok, errCreate := getOrCreateUser(userInfo.Email)
+		if errCreate != nil {
+			return errCreate
+		}
 		if ok {
 			sessionmanager.CreateSession(w, true, authSettings.OAuthRecheckInterval, user.Id)
-			redirect(w, "admin")
+			http.Redirect(w, r, "admin", http.StatusTemporaryRedirect)
 			return nil
 		}
 	}
-	redirect(w, "error-auth")
+	errorHandling.RedirectGenericErrorPage(w, r, errorHandling.TypeOAuthNotAuthorised)
 	return nil
 }
 
-func getOrCreateUser(username string) (models.User, bool) {
+func getOrCreateUser(username string) (models.User, bool, error) {
 	user, ok := database.GetUserByName(username)
-	if !ok {
-		if authSettings.OnlyRegisteredUsers {
-			return models.User{}, false
-		}
-		//TODO check error, already done in branch betterErrors
-		user, _ = users.Create(username)
+	if ok {
+		return user, true, nil
+
 	}
-	return user, true
+	if authSettings.OnlyRegisteredUsers {
+		return models.User{}, false, nil
+	}
+	newUser, err := users.Create(username)
+	if err != nil {
+		return models.User{}, false, err
+	}
+	return newUser, true, nil
 }
 
 func isValidOauthUser(userInfo OAuthUserInfo, groups []string) bool {
@@ -291,20 +301,15 @@ func IsEqualStringConstantTime(s1, s2 string) bool {
 	return subtle.ConstantTimeCompare([]byte(s1), []byte(s2)) == 1
 }
 
-// Sends a redirect HTTP output to the client. Variable url is used to redirect to ./url
-func redirect(w http.ResponseWriter, url string) {
-	_, _ = io.WriteString(w, "<html><head><meta http-equiv=\"Refresh\" content=\"0; URL=./"+url+"\"></head></html>")
-}
-
 // Logout logs the user out and removes the session
 func Logout(w http.ResponseWriter, r *http.Request) {
 	if authSettings.Method == models.AuthenticationInternal || authSettings.Method == models.AuthenticationOAuth2 {
 		sessionmanager.LogoutSession(w, r)
 	}
 	if authSettings.Method == models.AuthenticationOAuth2 {
-		redirect(w, "login?consent=true")
+		http.Redirect(w, r, "login?consent=true", http.StatusTemporaryRedirect)
 	} else {
-		redirect(w, "login")
+		http.Redirect(w, r, "login", http.StatusTemporaryRedirect)
 	}
 }
 

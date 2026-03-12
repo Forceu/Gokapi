@@ -20,6 +20,7 @@ import (
 	"github.com/forceu/gokapi/internal/storage"
 	"github.com/forceu/gokapi/internal/test"
 	"github.com/forceu/gokapi/internal/test/testconfiguration"
+	"github.com/forceu/gokapi/internal/webserver/ratelimiter"
 )
 
 func TestMain(m *testing.M) {
@@ -27,6 +28,7 @@ func TestMain(m *testing.M) {
 	configuration.Load()
 	configuration.ConnectDatabase()
 	generateTestData()
+	ratelimiter.SetUnitTestMode(true)
 	exitVal := m.Run()
 	testconfiguration.Delete()
 	os.Exit(exitVal)
@@ -117,11 +119,6 @@ func getRecorderWithBody(url, apikey, method string, headers []test.Header, body
 		passedHeaders = append(passedHeaders, header)
 	}
 	return test.GetRecorder(method, url, nil, passedHeaders, body)
-}
-
-func TestIsDebugModeFalse(t *testing.T) {
-	test.IsEqualBool(t, isDebug, false)
-	SetDebugTrue()
 }
 
 func testAuthorisation(t *testing.T, url string, requiredPermission models.ApiPermission) models.ApiKey {
