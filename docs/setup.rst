@@ -4,282 +4,247 @@
 Setup
 =====
 
-There are two different ways to set up Gokapi: either a native deployment approach or a containerised installation using Docker/Podman.
+.. note::
+   **Most users:** pull the Docker image, run the container, open the setup URL in your browser.
+   Jump straight to :ref:`quickstart_docker` if that describes you.
+   The sections below cover every option in full detail.
 
-Also, there are two different versions: *Stable* indicates that you are using the latest release, which should work without any major bugs. *Unstable* is the latest developer version, which might include more features but could also contain bugs.
 
-
-**************
+*****************************
 Installation
-**************
+*****************************
 
+There are two deployment methods (Docker and native) and two release tracks (stable and unstable).
+**Stable + Docker is the recommended combination for most users.**
 
 Docker
 ^^^^^^^
 
-To download, run the following command:
-::
+Pull the latest stable image:
 
-  docker pull docker.io/f0rc3/gokapi:latest
+.. code-block:: bash
 
-If you want to install the unstable version, use ``latest-dev`` instead of ``latest``
+   docker pull docker.io/f0rc3/gokapi:latest
 
-If you don't want to download the prebuilt image, you can find the Dockerfile on the `Github project page <https://github.com/Forceu/gokapi>`_. 
+For the unstable (development) build, use ``latest-dev`` instead of ``latest``.
 
-
-
+If you prefer to build the image yourself, the Dockerfile is available on the `GitHub project page <https://github.com/Forceu/gokapi>`_.
 
 
 Native Deployment
 ^^^^^^^^^^^^^^^^^^
 
 Stable version
-"""""""""""""""""
-`Download the latest release <https://github.com/Forceu/gokapi/releases/latest>`_ and copy the executable into a new folder with write permissions. Select the executable according to your system. If you are using Windows, select ``gokapi-windows_amd64``, for Mac either ``gokapi-darwin_amd64`` or ``gokapi-darwin_arm64`` and for Linux the ``gokapi-linux_`` file matching your system.
+""""""""""""""
 
+`Download the latest release <https://github.com/Forceu/gokapi/releases/latest>`_ and copy the executable into a new folder with write permissions.
+
+Choose the binary that matches your system:
+
+* **Windows:** ``gokapi-windows_amd64``
+* **Mac (Intel):** ``gokapi-darwin_amd64``
+* **Mac (Apple Silicon):** ``gokapi-darwin_arm64``
+* **Linux:** ``gokapi-linux_<arch>`` matching your architecture
 
 .. note::
-
-  Make sure to select the correct binary: ``gokapi-XXX`` is the main application, while ``gokapi-cli-XXX`` is only a command-line upload tool.
+   ``gokapi-XXX`` is the main server application. ``gokapi-cli-XXX`` is the optional command-line upload/download tool — you do not need it to run the server.
 
 Unstable version
-"""""""""""""""""
-
-Only recommended if you have experience with the command line. Go 1.25+ needs to be installed.
-
-Create a new folder and in this folder execute 
-::
-
- git clone https://github.com/Forceu/Gokapi.git .
- make
-
-This will compile the source code and create an executable from the latest code.
-
-**************
-First Start
-**************
-
-After the first start you will be redirected to a setup webpage. If you require to change the port for the setup webserver, please set the ``GOKAPI_PORT`` env variable, see :ref:`envvar`
-
-
-Starting Gokapi
-^^^^^^^^^^^^^^^^
-
-
-.. _setupdocker:
-
-Docker
-""""""""""
-
-To start the container, run the following command: ::
-
- docker run -v gokapi-data:/app/data -v gokapi-config:/app/config -p 127.0.0.1:53842:53842 -e TZ=UTC f0rc3/gokapi:latest
-
-With the argument ``-p 127.0.0.1:53842:53842`` the service will only be accessible from the machine it is running on. In most use-cases you will use a reverse proxy for SSL - if you want to make the service available to other computers in the network without a reverse proxy, replace the argument with ``-p 53842:53842``. Please note, unless you select SSL during the setup, the traffic will not be encrypted that way and data like passwords or transferred files can easily be read by third parties!
-
-Set ``-e TZ=UTC`` to the timezone you are in, e.g. ``-e TZ=Europe/Berlin``.
-
-Please make sure that ``/app/data`` and ``/app/config`` are mounted as volumes (see example above), otherwise you will lose all your data after rebuilding or updating your container.
-
-If you do not want the binary to run as the root user in the container, you can run it with ``--user`` option, like in the following example: ::
-
-  docker run --user "1000:1000" -v ./gokapi-data:/app/data -v ./gokapi-config:/app/config -p 127.0.0.1:53842:53842 -e TZ=UTC f0rc3/gokapi:latest
-
-Where ``1000:1000`` are colon separated desired user ID and group ID. Please note the command uses bind mounts instead of named volumes. Make sure that the user has read / write permissions to the volumes directories. You can change the names of ``./gokapi-data`` and ``./gokapi-config`` directories to your liking.
-
-
-.. _deprecation_nonroot:
-
-Migration from DOCKER_NONROOT to docker --user
-***********************************************
-
-With deprecation of ``DOCKER_NONROOT`` environment variable you may want to consider migration of your existing configuration and data to ``docker --user`` option approach. The steps are as follows:
-
-::
-
-  # Copy configuration and data from the container to your docker host machine.
-  # Make sure ./gokapi-config and ./gokapi-data directories are not present before
-  # the following commands are executed
-  docker cp gokapi:/app/config ./gokapi-config
-  docker cp gokapi:/app/data ./gokapi-data
-
-  # Remove the current container
-  docker rm -f gokapi
-
-  # Start a new container with the current linux session user
-  docker run --user "$(id -u):$(id -g)" -v ./gokapi-data:/app/data -v ./gokapi-config:/app/config -p 127.0.0.1:53842:53842 -e TZ=UTC f0rc3/gokapi:latest
-
-Where:
-  * ``gokapi`` is the container name. For you it can be different.
-  * ``/app/config`` and ``/app/data`` are directories inside container where configuration and data reside. Can be different, depending on your ``GOKAPI_CONFIG_DIR`` and ``GOKAPI_DATA_DIR`` settings.
-  
-  This example uses your current user ID and group ID for starting the container. To use a different IDs, replace ``$(id -u)`` with the actual user ID and ``$(id -g)`` with the actual group ID.
-
-
-
-
-Docker Compose
 """"""""""""""""
 
-To launch Gokapi using Docker Compose, download the ``docker-compose.yaml`` and ``.env.dist`` files from the repository. Rename ``.env.dist`` to ``.env`` and modify if required.
+Only recommended if you are comfortable with the command line. Requires Go 1.25 or newer.
 
-The folders ``gokapi-data`` and ``gokapi-config`` will be created automatically in the current directory, if they do not exist yet. You can change the names of these folders to your liking, but make sure to adjust the paths in the ``volumes:`` section accordingly.
+.. code-block:: bash
 
-By default, the container is set to always automatically (re)start when the system boots up. If you do not want this, you can remove the ``restart: always`` line or change it to ``restart: unless-stopped`` to have it only restart after a crash.
+   git clone https://github.com/Forceu/Gokapi.git .
+   make
 
-Then, start the container with the command ``docker compose up -d``
-
-
-
-Native Deployment
-""""""""""""""""""
-
-To start Gokapi, execute the binary with your command line or by double clicking.
+This compiles the source and produces a ``gokapi`` executable from the latest code.
 
 
+*****************************
+Running Gokapi
+*****************************
 
-Initial Setup
-^^^^^^^^^^^^^^^
+.. _quickstart_docker:
 
-During the first start, a new configuration file will be created and you will be asked for several inputs. With your webbrowser open ``http://localhost:53842/setup`` (or the appropriate URL) and follow the setup.
-
-
-
-Database
-""""""""""""""
-By default, Gokapi stores its data in a SQLite database located in the ``data`` directory. You can specify a different database location in this menu. If you expect a high frequency of downloads or uploads or if your instance has a slow disk, using **Redis is strongly recommended instead of SQLite**.
-
-You can configure the following settings:
-
--  **Type of database** Choose either SQLite or Redis.
--  **Database location** Specify the path to the SQLite database.
--  **Database host** Provide the host and port number for the Redis database.
--  **Key prefix (optional)** This prefix will be added to all keys to prevent conflicts if the database is shared with other applications.
--  **Username (optional)** Enter the username for database connection.
--  **Password (optional)** Enter the password for database connection.
--  **Use SSL** Select this option to establish an SSL connection.
-
-
-.. danger::
-   When using Redis, make sure that you enable persistence (e.g. by setting ``save 1 1`` in the redis server configuration file). Otherwise all data will be lost after a restart!
+Docker
+^^^^^^^
 
 .. warning::
-   The Redis password will be stored in plain text and can be viewed when re-running the setup.
+   Always mount ``/app/data`` and ``/app/config`` as volumes. Without them, **all data is lost** when the container is removed or updated.
+
+The standard run command:
+
+.. code-block:: bash
+
+   docker run -v gokapi-data:/app/data -v gokapi-config:/app/config \
+     -p 127.0.0.1:53842:53842 -e TZ=UTC f0rc3/gokapi:latest
+
+* ``-p 127.0.0.1:53842:53842`` — binds to localhost only, which is correct when using a reverse proxy.
+  Replace with ``-p 53842:53842`` only if you need direct access without a proxy — note that without SSL, traffic is unencrypted.
+* ``-e TZ=UTC`` — set this to your timezone, e.g. ``-e TZ=Europe/Berlin``.
+
+Running as a non-root user:
+
+.. code-block:: bash
+
+   docker run --user "1000:1000" \
+     -v ./gokapi-data:/app/data -v ./gokapi-config:/app/config \
+     -p 127.0.0.1:53842:53842 -e TZ=UTC f0rc3/gokapi:latest
+
+Replace ``1000:1000`` with the desired ``uid:gid``. Note that this form uses bind mounts (``./gokapi-data``) instead of named volumes — make sure the host directories exist and the user has read/write access.
+
+See :ref:`deprecation_nonroot` if you are migrating from the old ``DOCKER_NONROOT`` environment variable.
+
+Docker Compose
+""""""""""""""
+
+Download ``docker-compose.yaml`` and ``.env.dist`` from the repository. Rename ``.env.dist`` to ``.env`` and edit as needed.
+
+The ``gokapi-data`` and ``gokapi-config`` folders are created automatically in the current directory. Start with:
+
+.. code-block:: bash
+
+   docker compose up -d
+
+By default the container restarts automatically on boot (``restart: always``). Change to ``restart: unless-stopped`` if you only want automatic restart after a crash.
+
+Native Deployment
+"""""""""""""""""
+
+Execute the binary from the command line or by double-clicking it.
+
+
+*****************************
+Initial Setup
+*****************************
+
+On the first start, Gokapi creates a configuration file and opens a setup wizard. Open ``http://localhost:53842/setup`` in your browser (adjust the host and port as needed) and work through the steps below.
+
+If you need to change the port before running setup, set ``GOKAPI_PORT`` — see :ref:`envvar`.
+
+.. _setup_database:
+
+Database
+^^^^^^^^^
+
+.. warning::
+   If you choose Redis, **you must enable Redis persistence** before storing any data (e.g. add ``save 1 1`` to your ``redis.conf``). Without persistence, all data is lost on a Redis restart.
+
+.. warning::
+   The Redis password is stored in plain text in the configuration file and will be visible if you re-run setup.
+
+By default Gokapi uses SQLite, which is fine for most deployments. Use Redis if:
+
+* you expect high download/upload traffic, or
+* your SQLite database lives on a slow disk (e.g. a network share or SD card).
+
+Settings:
+
+* **Type of database** — SQLite or Redis.
+* **Database location** — path to the SQLite file.
+* **Database host** — host and port for Redis (e.g. ``127.0.0.1:6379``).
+* **Key prefix** *(optional)* — added to all Redis keys; useful when sharing a Redis instance with other applications.
+* **Username / Password** *(optional)* — Redis authentication credentials.
+* **Use SSL** — enables TLS for the Redis connection.
+
+.. _setup_webserver:
 
 Webserver
-""""""""""""""
+^^^^^^^^^
 
-The following configuration can be set:
-
--  **Bind to localhost** Only allow the server to be accessed from the machine it is running on. Select this if you are running Gokapi behind a reverse proxy or for testing purposes
--  **Use SSL** Generates a self-signed SSL certificate (which can be replaced with a valid one). Select this if you are not running Gokapi behind a reverse proxy. Please note: Gokapi needs to be restarted in order to renew a certificate.
--  **Save IP** If set, the IP address of the client requesting a download will be saved to the log file. This might not be GDPR compliant.
--  **Include filename in download URL** If set, all Gokapi URLs for file downloads will include the filename as well. Example: ``https:/gokapi.server/d/1234/File.pdf`` instead of ``https:/gokapi.server/d?id=1234``
--  **Public Name** The name that is set in the title. You can for example use your company name
--  **Webserver Port** Set the port that Gokapi can be accessed on
--  **Public Facing URL** Enter the URL where users from an external network can use to reach Gokapi. The URL will be used for generating download links
--  **Redirection URL**  By default Gokapi redirects to this URL instead of showing a generic page if no download link was passed
-
+* **Bind to localhost** — only accept connections from the local machine. Enable this when running behind a reverse proxy.
+* **Use SSL** — generates a self-signed certificate. Use this only if you are *not* behind a reverse proxy. Gokapi must be restarted to renew the certificate.
+* **Save IP** — logs the downloader's IP address. This may not be GDPR-compliant depending on your jurisdiction.
+* **Include filename in download URL** — appends the filename to download links, e.g. ``/d/1234/Report.pdf`` instead of ``/d?id=1234``.
+* **Public Name** — shown in the page title; use your company or service name.
+* **Webserver Port** — the port Gokapi listens on.
+* **Public Facing URL** — the externally reachable URL used when generating download links.
+* **Redirection URL** — where users are sent when they open the root URL without a valid download link.
 
 .. note::
-   If you choose to include the filename in the URL and later enable end-to-end encryption, the filename will appear in these URLs. However, since the filename is encrypted, it is only appended locally (client-side). This could pose a privacy concern in some situations. To address this, you can either disable the option or modify sensitive filenames in the URLs.
-   
-   Gokapi does not verify the filename in the URL, so you can change it to anything while the downloaded file will retain its original filename.
+   If you enable filename-in-URL together with end-to-end encryption, the filename is appended client-side after decryption and is therefore visible in the URL. This may be a privacy concern for sensitive filenames. You can disable the option, or simply edit the filename in the URL — Gokapi ignores it and always serves the correct file.
 
-
+.. _setup_authentication:
 
 Authentication
-""""""""""""""
+^^^^^^^^^^^^^^
 
-This menu guides you through the authentication setup, where you select how users log in. It is possible to disable authentication completely, but strongly discouraged.
+Choose how users log in. Disabling authentication entirely is strongly discouraged.
 
+Username / Password
+""""""""""""""""""""
 
-Username / Password 
-*********************
+The default method. All users authenticate with a username and password. You will be asked to create the initial admin credentials in the next step.
 
-The default authentication method. All users authenticate with a username and password. In the next step, you will be asked for the credentials for an admin account.
+OAuth2 / OpenID Connect
+""""""""""""""""""""""""""
 
+.. note::
+   Users must have an email address associated with their OIDC account.
 
-OAuth2 OpenID Connect
-************************
-
-Setup interface
-========================
-
-Use this to authenticate with an OIDC server, e.g. Google or an internal server like Authelia or Keycloak. It is required that users have an email associated with their OIDC account.
+Use this to delegate authentication to an OIDC server such as Google, Authelia, or Keycloak.
 
 +---------------------+---------------------------------------------------------------------------------------------------+-----------------------------------------+
 | Option              | Expected Entry                                                                                    | Example                                 |
 +=====================+===================================================================================================+=========================================+
-| Provider URL        | The URL to connect to the OIDC server                                                             | https://accounts.google.com             |
+| Provider URL        | The URL of the OIDC server                                                                        | https://accounts.google.com             |
 +---------------------+---------------------------------------------------------------------------------------------------+-----------------------------------------+
-| Client ID           | Client ID provided by the OIDC server                                                             | [random String]                         |
+| Client ID           | Client ID from the OIDC server                                                                    | [random string]                         |
 +---------------------+---------------------------------------------------------------------------------------------------+-----------------------------------------+
-| Client Secret       | Client secret provided by the OIDC server                                                         | [random String]                         |
+| Client Secret       | Client secret from the OIDC server                                                                | [random string]                         |
 +---------------------+---------------------------------------------------------------------------------------------------+-----------------------------------------+
-| Admin email         | The email address used to identify the super-admin                                                | gokapi@company.com                      |
+| Admin email         | Email address that identifies the super-admin account                                             | gokapi@company.com                      |
 +---------------------+---------------------------------------------------------------------------------------------------+-----------------------------------------+
-| Recheck identity    | How often to recheck identity.                                                                    | 12 hours                                |
+| Recheck identity    | How often to re-verify the user's identity with the OIDC server.                                  | 12 hours                                |
 |                     |                                                                                                   |                                         |
-|                     | If the OIDC server is configured to remember the consent, the user should not receive any further |                                         |
+|                     | If the server remembers consent, users will not see a login prompt again.                         |                                         |
 |                     |                                                                                                   |                                         |
-|                     | login prompts and it can be ensured, that the user still exist on the server.                     |                                         |
-|                     |                                                                                                   |                                         |
-|                     | Otherwise the user has actively grant access every time the identity is rechecked. In that case   |                                         |
-|                     |                                                                                                   |                                         |
-|                     | a higher interval would make sense.                                                               |                                         |
+|                     | If it does not, each recheck triggers an active login prompt — use a longer interval.             |                                         |
 +---------------------+---------------------------------------------------------------------------------------------------+-----------------------------------------+
-| Restrict to groups  | Only allow users that are part of authorised groups to access Gokapi                              | true                                    |
+| Restrict to groups  | Only allow members of specific groups                                                             | true                                    |
 +---------------------+---------------------------------------------------------------------------------------------------+-----------------------------------------+
-| Scope for groups    | The OIDC scope that contains the group info                                                       | groups                                  |
+| Scope for groups    | The OIDC scope that carries group membership                                                      | groups                                  |
 +---------------------+---------------------------------------------------------------------------------------------------+-----------------------------------------+
-| Only existing users | When selected, a new user will not be created automatically                                       | checked                                 |
+| Only existing users | Do not create a new Gokapi account automatically on first OIDC login                              | checked                                 |
 +---------------------+---------------------------------------------------------------------------------------------------+-----------------------------------------+
-| Authorised groups   | List of groups that are authorised to log their users in as an admin, separated by semicolon.     | admin;dev;gokapi-\*                     |
-|                     |                                                                                                   |                                         |
-|                     | ``*`` can be used as a wildcard                                                                   |                                         |
+| Authorised groups   | Semicolon-separated list of groups. ``*`` is a wildcard.                                          | admin;dev;gokapi-\*                     |
 +---------------------+---------------------------------------------------------------------------------------------------+-----------------------------------------+
-
 
 .. note::
-   If a user was disabled in OIDC, they will still be able to login to Gokapi until the time specified in ``Recheck identity`` has passed. To prevent the user from
-   logging in immediately, the respective Gokapi user account should be deleted through the UI.
-   
-   
+   If a user is disabled in the OIDC provider, they can still log in to Gokapi until the *Recheck identity* interval expires.
+   To revoke access immediately, delete the user's Gokapi account from the Users page.
+
 .. note::
-   If the OIDC provider is set up to remember consent, it might not be possible to log out through the Gokapi interface
-   
-   
+   If the OIDC provider remembers consent, logging out through the Gokapi interface may not fully log the user out.
 
+When registering Gokapi as a client in your OIDC server, set the **redirect URL** to:
+``http[s]://[your-gokapi-url]/oauth-callback``
 
-OIDC client/server configuration
-=======================================
-
-When creating an OIDC client on the server, you will need to provide a **redirection URL**. Enter ``http[s]://[gokapi URL]/oauth-callback``
-
-Tutorial for configuring OIDC servers and the correct client settings for Gokapi can be found in the :ref:`examples` page for the following servers:
+Step-by-step configuration guides for specific providers are in the :ref:`examples` section:
 
 * :ref:`oidcconfig_authelia`
 * :ref:`oidcconfig_keycloak`
 * :ref:`oidcconfig_google`
 * :ref:`oidcconfig_entra`
 
-
 Header Authentication
-************************
+""""""""""""""""""""""
 
-Only use this if you are running Gokapi behind a reverse proxy that is capable of authenticating users, e.g. by using Authelia or Authentik. Keycloak does apparently not support this feature.
+Use this only if your reverse proxy handles authentication (e.g. Authelia or Authentik) and forwards the authenticated username as a request header. Keycloak does not support this mode.
 
-Enter the key of the header that returns the username. For Authelia this would be ``Remote-User`` and for Authentik ``X-authentik-username``.
-Enter the username for the admin in the respective field. If ``Only allow already existing users to log in``, new users will not be able to use Gokapi until an account was created through the UI.
+Enter the header key that contains the username (e.g. ``Remote-User`` for Authelia, ``X-authentik-username`` for Authentik) and the username of the admin account.
 
+If *Only allow already existing users to log in* is enabled, new usernames coming from the proxy will be rejected until an account is created through the UI.
 
 Disabled / Access Restriction
-*************************************
+"""""""""""""""""""""""""""""""
 
-Only use this if you are running Gokapi behind a reverse proxy that is capable of authenticating users, e.g. by using Authelia or Authentik.
+.. warning::
+   This option is **very dangerous**. Only use it if you fully understand the implications and your reverse proxy is correctly configured.
 
-This option disables Gokapis internal authentication completely, except for API calls. The following URLs need to be restricted by the reverse proxy:
+This disables all of Gokapi's internal authentication except for API calls. The following paths **must** be protected by your reverse proxy:
 
 - ``/admin``
 - ``/apiKeys``
@@ -293,140 +258,174 @@ This option disables Gokapis internal authentication completely, except for API 
 - ``/uploadStatus``
 - ``/users``
 
-.. warning::
-   This option has potential to be *very* dangerous, only proceed if you know what you are doing!
-
-
+.. _setup_storage:
 
 Storage
-""""""""""""""
+^^^^^^^^^^
 
-Here you can choose where uploaded files shall be stored. If you select cloud storage, you have the option to always store image files to the local storage. That way you can use encryption for cloudstorage, but also have hotlink support. 
-
-If using cloud storage, by default Gokapi creates a pre-signed download link for files to be downloaded (basically a URL that can only be used for a very short time). If your storage is not accessible from the internet or if you prefer to not expose any cloud storage URLs, you can choose to proxy the downloads. That way Gokapi downloads them and passes them to the user through the Gokapi service.
+Choose where uploaded files are stored.
 
 Local Storage
-*********************
+"""""""""""""""""
 
-Stores files locally in the subdirectory ``data`` by default.
-
+Files are stored in the ``data`` subdirectory by default.
 
 .. _cloudstorage:
 
-Cloudstorage
-*********************
+Cloud Storage (S3-compatible)
+""""""""""""""""""""""""""""""""""
 
 .. note::
-   Files will be stored in plain-text, if no encryption is selected later on in the setup
+   Without encryption enabled later in setup, files are stored in plain text on the cloud provider.
 
-Stores files remotely on an S3 compatible server, e.g. Amazon AWS S3 or Backblaze B2.
+Stores files on an S3-compatible service such as Amazon S3 or Backblaze B2.
 
+Create a dedicated private bucket for Gokapi. For each download, Gokapi generates a short-lived pre-signed URL so the user downloads directly from the storage provider without routing traffic through your server. If the storage is not publicly reachable, or if you prefer not to expose storage URLs, enable the proxy download option — Gokapi will retrieve the file and stream it to the user itself.
 
-It is highly recommended to create a new bucket for Gokapi and set it to "private", so that no file can be downloaded externally. For each download request Gokapi will create a public URL that is only valid for a couple of seconds, so that the file can be downloaded from the external server directly instead of routing it through the local server.
-
-You then need to create an app key with read-/write-access to this bucket. If you are planning to use the encryption feature, make sure to set the bucket's CORS rules to allow access from the Gokapi URL.
-
-The following data needs to be provided:
-
+Required fields:
 
 +-----------+-----------------------------------------------+-----------------------+-----------------------------------+
-| Key       | Description                                   | Required              | Example                           |
+| Field     | Description                                   | Required              | Example                           |
 +===========+===============================================+=======================+===================================+
-| Bucket    | Name of the bucket in use                     | yes                   | gokapi                            |
+| Bucket    | Name of the bucket                            | Yes                   | gokapi                            |
 +-----------+-----------------------------------------------+-----------------------+-----------------------------------+
-| Region    | Name of the region                            | yes                   | eu-central-1                      |
+| Region    | Region name                                   | Yes                   | eu-central-1                      |
 +-----------+-----------------------------------------------+-----------------------+-----------------------------------+
-| KeyId     | Name of the API key                           | yes                   | keyname123456789                  |
+| KeyId     | API key ID                                    | Yes                   | keyname123456789                  |
 +-----------+-----------------------------------------------+-----------------------+-----------------------------------+
-| KeySecret | Value of the API key secret                   | yes                   | verysecret123                     |
+| KeySecret | API key secret                                | Yes                   | verysecret123                     |
 +-----------+-----------------------------------------------+-----------------------+-----------------------------------+
-| Endpoint  | Endpoint to use. Leave blank if using AWS S3. | only for Backblaze B2 | s3.eu-central-001.backblazeb2.com |
+| Endpoint  | Custom endpoint. Leave blank for AWS S3.      | Only for Backblaze B2 | s3.eu-central-001.backblazeb2.com |
 +-----------+-----------------------------------------------+-----------------------+-----------------------------------+
+
+If you plan to use end-to-end encryption with cloud storage, configure your bucket's CORS rules to allow requests from your Gokapi URL.
+
+.. _setup_encryption:
 
 Encryption
-""""""""""""""
+^^^^^^^^^^^
 
 .. warning::
-   Encryption has not been audited.
+   The encryption implementation has not been independently audited. Evaluate this risk before using it for sensitive data.
 
-There are three different encryption levels, level 1 encrypts only local files and level 2 encrypts local and files stored on cloud storage (e.g. AWS S3). Decryption of files on remote storage is done client-side, for which a 2MB library needs to be downloaded on first visit. End-to-End encryption (level 3) encrypts the files client-side, therefore even if the Gokapi server has been compromised, no data should leak to the attacker. If the decryption is done client-side, the download on mobile devices may be significantly slower.
-
-There are some drawbacks of using encryption:
+Three levels are available:
 
 +------------------------------+---------------+---------------------------------+---------------------------------+-------------------------+
-|                              | No Encryption | Level 1 Local                   | Level 2 Full                    | Level 3 End-to-End      |
+|                              | No Encryption | Level 1 — Local only            | Level 2 — Full                  | Level 3 — End-to-End    |
 +==============================+===============+=================================+=================================+=========================+
-| File Encryption              | None          | Only local files                | Local and cloud storage         | Local and cloud storage |
+| File Encryption              | None          | Local files only                | Local and cloud storage         | Local and cloud storage |
 +------------------------------+---------------+---------------------------------+---------------------------------+-------------------------+
-| Hotlink Support              | Yes           | Yes                             | Only local files                | No                      |
+| Hotlink Support              | Yes           | Yes                             | Local files only                | No                      |
 +------------------------------+---------------+---------------------------------+---------------------------------+-------------------------+
-| Download Progress Indication | Yes           | Only cloud storage              | No                              | No                      |
+| Download Progress Indication | Yes           | Cloud storage only              | No                              | No                      |
 +------------------------------+---------------+---------------------------------+---------------------------------+-------------------------+
-| Download Speed               | Full          | Might be slower for local files | Slower for remote files,        | Slower for all files    |
-|                              |               |                                 | might be slower for local files |                         |
+| Download Speed               | Full          | May be slower for local files   | Slower for remote files         | Slower for all files    |
 +------------------------------+---------------+---------------------------------+---------------------------------+-------------------------+
 
-You can choose to store the key in the configuration file, which is preferred if access by other parties to your configuration file is unlikely.
+* **Level 1** encrypts files stored locally; cloud files are unencrypted.
+* **Level 2** encrypts both local and cloud files. Cloud file decryption is done client-side; a 2 MB library is downloaded on first visit.
+* **Level 3 (end-to-end)** encrypts files in the browser before upload. Even a fully compromised server cannot read the file contents. Downloads on mobile devices may be noticeably slower.
 
-If you are concerned that the configuration file can be read, you can also choose to enter a master password on startup. This needs to be entered in the command line however and Gokapi will not be able to start without it.
+The encryption key can be stored in the configuration file (convenient, lower security) or entered as a master password at each startup (more secure, requires manual input).
 
 .. note::
-   If you re-run the setup and enable encryption, unencrypted files will stay unencrypted. If you change any configuration related to encryption, all already encrypted files will be deleted.
-
-************************
-Changing Configuration
-************************
-
-To change any settings set in the initial setup (e.g. your password or storage location), run Gokapi with the parameter ``--reconfigure`` and follow the instructions. A random username and password will be generated and displayed in the program output to access the configuration webpage, as all entered information can be read in plain text (except the user password).
-
-If you are using Docker, shut down the running instance and create a new temporary container with the following command: ::
-
- docker run --rm -p 127.0.0.1:53842:53842 -v gokapi-data:/app/data -v gokapi-config:/app/config  f0rc3/gokapi:latest /app/run.sh --reconfigure
- 
-.. note::
-   After completing the setup, all users will be logged out
-
-
-.. note::
-   If you are using Docker, make sure to stop the temporary container and to restart the original one after the setup is complete
-
-
-**********************************
-Reverse Proxy
-**********************************
-
-Running Gokapi behind a reverse proxy is strongly recommended. Configure the proxy with a sufficiently high timeout (recommended: 300 seconds) and ensure that the maximum allowed request body size is increased accordingly.
-
-If your reverse proxy does not use 127.0.0.1 as its source IP, you must explicitly specify the trusted proxy IP address(es) using the environment variable ``GOKAPI_TRUSTED_PROXIES``, see :ref:`availenvvar`
-
-If Gokapi is running behind Cloudflare, make sure to set the ``GOKAPI_USE_CLOUDFLARE`` environment variable to true.
-
-An example configuration for Nginx is available here: :ref:`nginx_config`
-
-
-**********************************
-Installing a systemd service
-**********************************
+   If you re-run setup and enable encryption, existing unencrypted files remain unencrypted. Changing any encryption setting deletes all already-encrypted files.
 
 .. warning::
-   Only install Gokapi as a service *after* running it manually first and completing the setup steps under the `Initial Setup section <#initial-setup>`_.
+   Firefox is currently not completly compatible with end-to-end encryption, which may result in truncated files when downloading end-to-end encrypted files with a Firefox browser
+
+
+*****************************
+Changing Configuration
+*****************************
+
+To change settings after the initial setup (e.g. password, storage backend, authentication method), run Gokapi with ``--reconfigure``. A temporary random username and password are printed to the console for accessing the configuration page.
+
+Native:
+
+.. code-block:: bash
+
+   ./gokapi --reconfigure
+
+Docker:
+
+.. code-block:: bash
+
+   docker run --rm -p 127.0.0.1:53842:53842 \
+     -v gokapi-data:/app/data -v gokapi-config:/app/config \
+     f0rc3/gokapi:latest /app/run.sh --reconfigure
 
 .. note::
-   This feature is currently only supported on UNIX-like systems that use systemd, for unsupported systems an error message will be shown. 
-
-If you want to run Gokapi as a background service that starts on boot, you can use the following command:
-::
-
-  sudo ./gokapi --install-service
-
-If you decide later to uninstall the service, you can use the following command:
-::
-
-  sudo ./gokapi --uninstall-service
-
-By using either of these commands, all other command line flags will be ignored. Gokapi will try to determine the username of the user that invoked sudo, make sure that it is the correct user. It will not allow the service to be run as the root user.
+   Stop the ``--reconfigure`` container and restart your normal container after completing the setup. All users will be logged out.
 
 
+*****************************
+Reverse Proxy
+*****************************
+
+Running Gokapi behind a reverse proxy is strongly recommended for production deployments. The proxy handles SSL termination and exposes Gokapi on standard ports.
+
+Required proxy settings:
+
+* **Timeout** — at least 300 seconds (to accommodate large file uploads).
+* **Maximum request body size** — set high enough for your largest expected upload.
+* **Forwarded headers** — pass ``X-Real-IP`` and ``X-Forwarded-For`` so Gokapi sees the real client IP.
+
+If your proxy's outgoing IP is not ``127.0.0.1``, add it to ``GOKAPI_TRUSTED_PROXIES`` — see :ref:`availenvvar`.
+
+If Gokapi is behind Cloudflare, set ``GOKAPI_USE_CLOUDFLARE=true``.
+
+.. note::
+   Cloudflare's free plan limits upload chunks to 100 MB. If you use Cloudflare, keep ``GOKAPI_CHUNK_SIZE_MB`` at or below 100.
+
+A complete Nginx configuration example is in the :ref:`examples` section: :ref:`nginx_config`.
+
+For other reverse proxies (Caddy, Traefik, Apache), the same principles apply: increase timeouts, increase body size limits, and forward the real client IP. Consult your proxy's documentation for the specific directives.
 
 
+*********************************
+Installing as a systemd Service
+*********************************
 
+.. warning::
+   Complete the initial setup by running Gokapi manually at least once before installing it as a service.
+
+.. note::
+   Only supported on Linux systems using systemd. An error is shown on unsupported systems.
+
+.. code-block:: bash
+
+   sudo ./gokapi --install-service
+
+To uninstall:
+
+.. code-block:: bash
+
+   sudo ./gokapi --uninstall-service
+
+Gokapi detects the user who invoked ``sudo`` and runs the service as that user. Running as root is not permitted.
+
+
+.. _deprecation_nonroot:
+
+********************************************************
+Migration from DOCKER_NONROOT to docker --user
+********************************************************
+
+The ``DOCKER_NONROOT`` environment variable is deprecated. To migrate to ``docker --user``:
+
+.. code-block:: bash
+
+   # Copy data out of the container (directories must not exist yet)
+   docker cp gokapi:/app/config ./gokapi-config
+   docker cp gokapi:/app/data ./gokapi-data
+
+   # Remove the old container
+   docker rm -f gokapi
+
+   # Start a new container as the current user
+   docker run --user "$(id -u):$(id -g)" \
+     -v ./gokapi-data:/app/data -v ./gokapi-config:/app/config \
+     -p 127.0.0.1:53842:53842 -e TZ=UTC f0rc3/gokapi:latest
+
+Replace ``gokapi`` with your actual container name if different. Replace ``$(id -u):$(id -g)`` with explicit IDs if you want a specific user. Ensure the bind-mount directories are owned by that user.

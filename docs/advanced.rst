@@ -4,6 +4,18 @@
 Advanced usage
 ================
 
+This page is a reference for users who have already completed the initial setup. Here is a quick map:
+
+* **Configuring Gokapi without editing files** — :ref:`envvar`
+* **Switching or migrating the database** — :ref:`databases`
+* **Using the command-line upload/download tool** — :ref:`clitool`
+* **Scripting with the REST API** — :ref:`api`
+* **Tuning upload performance or RAM usage** — :ref:`chunksizes`
+* **Deploying without running setup interactively** — :ref:`autodeployment`
+* **Changing the look and feel** — :ref:`customising`
+
+----
+
 .. _envvar:
 
 ********************************
@@ -538,6 +550,8 @@ If you have not completed the Gokapi setup yet, you can set all the values menti
 
 
 
+.. _autodeployment:
+
 ********************************
 Automatic Deployment
 ********************************
@@ -589,6 +603,8 @@ If you are using a Docker image, this has to be done by starting a container wit
 
  docker run --rm -v gokapi-data:/app/data -v gokapi-config:/app/config  f0rc3/gokapi:latest /app/run.sh --deployment-password newPassword
 
+
+.. _customising:
 
 ********************************
 Customising

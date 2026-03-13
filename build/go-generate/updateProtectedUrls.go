@@ -93,14 +93,14 @@ func writeDocumentationFile(urls []string) {
 		fmt.Println(err)
 		os.Exit(6)
 	}
-	output := "proxy:\n\n"
+	output := "be protected by your reverse proxy:\n\n"
 	for _, url := range urls {
 		output = output + "- ``" + url + "``\n"
 	}
-	regex := regexp.MustCompile("proxy:(?:\\r?\\n)+(?:- ``\\/[^`]+``\\r?\\n)+")
+	regex := regexp.MustCompile("be protected by your reverse proxy:(?:\\r?\\n)+(?:- ``\\/[^`]+``\\r?\\n)+")
 	matches := regex.FindAllIndex(documentationContent, -1)
 	if len(matches) != 1 {
-		fmt.Println("ERROR: Not one match found exactly for documentation")
+		fmt.Println("ERROR: Could not find match for inserting protected URLs in documentation")
 		os.Exit(7)
 	}
 	documentationContent = regex.ReplaceAll(documentationContent, []byte(output))

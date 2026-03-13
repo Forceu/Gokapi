@@ -10,9 +10,16 @@ Examples
 .. _nginx_config:
 
 *********************************
-Nginx  Configuration
+Nginx Configuration
 *********************************
 
+The key settings any reverse proxy must have for Gokapi:
+
+* **Body size limit** — large enough for your biggest upload (``client_max_body_size`` in Nginx).
+* **Timeouts** — at least 300 seconds for send, receive, and connect.
+* **Forwarded IP headers** — pass ``X-Real-IP`` and ``X-Forwarded-For`` so Gokapi sees the real client IP.
+
+If you use a different proxy (Caddy, Traefik, Apache), apply the same three settings using your proxy's equivalent directives.
 
 .. code-block:: nginx
 
@@ -28,24 +35,22 @@ Nginx  Configuration
 		client_body_buffer_size 128k;
 
 		server_name your.server.url;
-		
+
 		proxy_connect_timeout 300;
 		proxy_send_timeout 300;
 		proxy_read_timeout 300;
 		send_timeout 300;
 
 		location / {
-			# If using Cloudflare
-			proxy_set_header X-Forwarded-Host $http_cf_connecting_ip;
-			
+			# Only add this line if using Cloudflare, remove it otherwise
+			# proxy_set_header X-Forwarded-Host $http_cf_connecting_ip;
+
 			proxy_set_header Host $http_host;
 			proxy_set_header X-Real-IP $remote_addr;
 			proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 			proxy_set_header X-Forwarded-Proto http;
 			proxy_pass http://127.0.0.1:53842;
 		}
-
-
 
 		# Always redirect to https
 		if ( $scheme = http ) {
@@ -363,5 +368,3 @@ Gokapi Configuration
 |                           |                                                                   |                                                                             |
 |                           | automatically create a new account or restore a deleted one       |                                                                             |
 +---------------------------+-------------------------------------------------------------------+-----------------------------------------------------------------------------+
-
-
