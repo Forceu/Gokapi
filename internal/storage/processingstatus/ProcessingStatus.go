@@ -6,10 +6,10 @@ import (
 	"github.com/forceu/gokapi/internal/webserver/sse"
 )
 
-// StatusHashingOrEncrypting indicates that the file has been completely uploaded, but is now processed by Gokapi
+// StatusHashingOrEncrypting indicates that the file has been completely uploaded but is now processed by Gokapi
 const StatusHashingOrEncrypting = 0
 
-// StatusUploading indicates that the file has been processed, but is now moved to the data filesystem
+// StatusUploading indicates that the file has been processed but is now moved to the data filesystem
 const StatusUploading = 1
 
 // StatusFinished indicates that the file has been fully processed and uploaded
@@ -19,11 +19,12 @@ const StatusFinished = 2
 const StatusError = 3
 
 // Set sets the status for an id
-func Set(id string, status int, file models.File, err error) {
+func Set(id string, status int, file models.File, userId int, err error) {
 	newStatus := models.UploadStatus{
 		ChunkId:       id,
 		CurrentStatus: status,
 		FileId:        file.Id,
+		UserId:        userId,
 	}
 	if err != nil {
 		newStatus.ErrorMessage = err.Error()

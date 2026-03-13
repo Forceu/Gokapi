@@ -53,7 +53,6 @@ var routes = []apiRoute{
 		Url:           "/files/downloadzip",
 		ApiPerm:       models.ApiPermDownload,
 		execution:     apiDownloadZip,
-		HasWildcard:   true,
 		RequestParser: &paramFilesDownloadZip{},
 	},
 	{
@@ -430,11 +429,11 @@ func (p *paramFilesModify) ProcessParameter(r *http.Request) error {
 }
 
 type paramFilesReplace struct {
-	Id           string `header:"id" required:"true"`
-	IdNewContent string `header:"idNewContent" required:"true"`
-	Delete       bool   `header:"deleteNewFile"`
+	Id            string `header:"id" required:"true"`
+	IdNewContent  string `header:"idNewContent" required:"true"`
+	DeleteNewFile bool   `header:"deleteNewFile"`
 	WebRequest   *http.Request
-	foundHeaders map[string]bool
+	foundHeaders  map[string]bool
 }
 
 func (p *paramFilesReplace) ProcessParameter(r *http.Request) error {
@@ -601,15 +600,20 @@ type paramE2eStore struct {
 }
 
 func (p *paramE2eStore) ProcessParameter(r *http.Request) error {
+	const maxBodySize = 5 * 1024 * 1024 // 5MB in bytes
+	bodyReader := http.MaxBytesReader(nil, r.Body, maxBodySize)
+
 	type expectedInput struct {
 		Content string `json:"content"`
 	}
 	var input expectedInput
 
-	err := json.NewDecoder(r.Body).Decode(&input)
+	err := json.NewDecoder(bodyReader).Decode(&input)
 	if err != nil {
+		// If body is larger than 5MB, this will be returned here as an error
 		return err
 	}
+
 	content, err := base64.StdEncoding.DecodeString(input.Content)
 	if err != nil {
 		return err

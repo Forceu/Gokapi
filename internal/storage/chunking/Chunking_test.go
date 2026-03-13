@@ -4,18 +4,19 @@ import (
 	"bytes"
 	"crypto/sha1"
 	"encoding/hex"
-	"github.com/forceu/gokapi/internal/configuration"
-	"github.com/forceu/gokapi/internal/helper"
-	"github.com/forceu/gokapi/internal/test"
-	"github.com/forceu/gokapi/internal/test/testconfiguration"
-	"github.com/juju/ratelimit"
-	"golang.org/x/sync/errgroup"
 	"mime/multipart"
 	"net/textproto"
 	"net/url"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/forceu/gokapi/internal/configuration"
+	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/test"
+	"github.com/forceu/gokapi/internal/test/testconfiguration"
+	"github.com/juju/ratelimit"
+	"golang.org/x/sync/errgroup"
 )
 
 func TestMain(m *testing.M) {
@@ -286,7 +287,7 @@ func TestNewChunk(t *testing.T) {
 	header := multipart.FileHeader{
 		Size: 21,
 	}
-	err := NewChunk(strings.NewReader("This is a test content"), &header, info)
+	err := NewChunk(strings.NewReader("This is a test content"), &header, info, 100000)
 	test.IsNil(t, err)
 	test.IsEqualString(t, sha1sumFile("test/data/chunk-testuuid12345"), "a69ec3c3a031e3540d0c2a864ca931f3d54e2c13")
 
@@ -294,24 +295,24 @@ func TestNewChunk(t *testing.T) {
 	header = multipart.FileHeader{
 		Size: 11,
 	}
-	err = NewChunk(strings.NewReader("More content"), &header, info)
+	err = NewChunk(strings.NewReader("More content"), &header, info, 100000)
 	test.IsNil(t, err)
 	test.IsEqualString(t, sha1sumFile("test/data/chunk-testuuid12345"), "8794d8352fae46b83bab83d3e613dde8f0244ded")
 
 	info.Offset = 99
-	err = NewChunk(strings.NewReader("More content"), &header, info)
+	err = NewChunk(strings.NewReader("More content"), &header, info, 100000)
 	test.IsNotNil(t, err)
 
 	err = os.Remove("test/data/chunk-testuuid12345")
 	test.IsNil(t, err)
 
 	info.TotalFilesizeBytes = -4
-	err = NewChunk(strings.NewReader("More content"), &header, info)
+	err = NewChunk(strings.NewReader("More content"), &header, info, 100000)
 	test.IsNotNil(t, err)
 
 	info.TotalFilesizeBytes = 100
 	info.UUID = "../../../../../../../../../../invalid"
-	err = NewChunk(strings.NewReader("More content"), &header, info)
+	err = NewChunk(strings.NewReader("More content"), &header, info, 100000)
 	test.IsNotNil(t, err)
 
 	// Testing simultaneous writes
@@ -341,7 +342,7 @@ func writeRateLimitedChunk(firstHalf bool) error {
 	}
 	content := []byte(helper.GenerateRandomString(500 * 1024))
 	bucket := ratelimit.NewBucketWithRate(400*1024, 400*1024)
-	err := NewChunk(ratelimit.Reader(bytes.NewReader(content), bucket), &header, info)
+	err := NewChunk(ratelimit.Reader(bytes.NewReader(content), bucket), &header, info, 2000000)
 	return err
 }
 

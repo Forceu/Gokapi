@@ -25,6 +25,9 @@ func Generate(user models.User, permission models.ApiPermission) (string, int64,
 	if containsApiPermission(permission, models.ApiPermManageLogs) && !user.HasPermissionManageLogs() {
 		return "", 0, errors.New("user does not have permission to generate a token with PERM_MANAGE_LOGS")
 	}
+	if containsApiPermission(permission, models.ApiPermManageFileRequests) && !user.HasPermissionCreateFileRequests() {
+		return "", 0, errors.New("user does not have permission to generate a token with PERM_MANAGE_FILE_REQUESTS")
+	}
 
 	key := models.ApiKey{
 		Id:           helper.GenerateRandomString(api.LengthApiKey),

@@ -4,7 +4,6 @@ package test
 
 import (
 	"errors"
-	"github.com/forceu/gokapi/internal/helper"
 	"io"
 	"log"
 	"net/http"
@@ -12,6 +11,8 @@ import (
 	"os"
 	"testing"
 	"time"
+
+	"github.com/forceu/gokapi/internal/helper"
 )
 
 var (
@@ -300,13 +301,13 @@ func TestResponseBodyContains(t *testing.T) {
 
 func startTestServer() {
 	http.HandleFunc("/test", func(writer http.ResponseWriter, request *http.Request) {
-		io.WriteString(writer, "TestContent\n")
+		_, _ = io.WriteString(writer, "TestContent\n")
 		for _, cookie := range request.Cookies() {
-			io.WriteString(writer, "cookie name: "+cookie.Name+" cookie value: "+cookie.Value+"\n")
+			_, _ = io.WriteString(writer, "cookie name: "+cookie.Name+" cookie value: "+cookie.Value+"\n")
 		}
-		request.ParseForm()
-		if request.Form.Get("testPostKey") != "" {
-			io.WriteString(writer, "testPostKey: "+request.Form.Get("testPostKey")+"\n")
+		_ = request.ParseForm()
+		if request.PostForm.Get("testPostKey") != "" {
+			_, _ = io.WriteString(writer, "testPostKey: "+request.PostForm.Get("testPostKey")+"\n")
 		}
 	})
 	go func() { log.Fatal(http.ListenAndServe("127.0.0.1:9999", nil)) }()

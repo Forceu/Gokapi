@@ -190,7 +190,7 @@ func StartS3TestServer() *httptest.Server {
 	backend := s3mem.New()
 	_ = backend.CreateBucket("gokapi")
 	_ = backend.CreateBucket("gokapi-test")
-	_, _ = backend.PutObject("gokapi-test", "x341354656543213246465465465432456898794", nil, strings.NewReader("content"), 7)
+	_, _ = backend.PutObject("gokapi-test", "x341354656543213246465465465432456898794", nil, strings.NewReader("content"), 7, nil)
 	faker := gofakes3.New(backend)
 	server := httptest.NewServer(faker.Server())
 	os.Setenv("GOKAPI_AWS_ENDPOINT", server.URL)
@@ -251,10 +251,12 @@ func writeTestUploadStatus() {
 	pstatusdb.Set(models.UploadStatus{
 		ChunkId:       "validstatus_0",
 		CurrentStatus: 0,
+		UserId:        7,
 	})
 	pstatusdb.Set(models.UploadStatus{
 		ChunkId:       "validstatus_1",
 		CurrentStatus: 1,
+		UserId:        7,
 	})
 }
 
@@ -367,7 +369,7 @@ func writeTestFiles() {
 		SHA1:               "a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd0",
 		ExpireAt:           2147483646,
 		DownloadsRemaining: 1,
-		ContentType:        "text/html",
+		ContentType:        "image/jpg",
 		HotlinkId:          "PhSs6mFtf8O5YGlLMfNw9rYXx9XRNkzCnJZpQBi7inunv3Z4A.jpg",
 		UserId:             5,
 	})
@@ -378,7 +380,7 @@ func writeTestFiles() {
 		SHA1:               "a8fdc205a9f19cc1c7507a60c4f01b13d11d7fd1",
 		ExpireAt:           2147483646,
 		DownloadsRemaining: 1,
-		ContentType:        "text/html",
+		ContentType:        "image/jpg",
 		HotlinkId:          "wjqlzpq2.jpg",
 		UserId:             5,
 	})

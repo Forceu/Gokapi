@@ -14,7 +14,7 @@ import (
 	"github.com/forceu/gokapi/internal/storage"
 	"github.com/forceu/gokapi/internal/storage/chunking"
 	"github.com/forceu/gokapi/internal/storage/chunking/chunkreservation"
-	"github.com/forceu/gokapi/internal/webserver/api/errorcodes"
+	"github.com/forceu/gokapi/internal/webserver/errorHandling/errorcodes"
 )
 
 const minChunkSize = 5 * 1024 * 1024
@@ -38,15 +38,14 @@ func ProcessCompleteFile(w http.ResponseWriter, r *http.Request, userId, maxMemo
 		return err
 	}
 
+	config.FileRequestId = ""
 	result, err := storage.NewFile(file, header, userId, config)
 	defer file.Close()
 	if err != nil {
 		return err
 	}
 	user, _ := database.GetUser(userId)
-	// Returns empty fr if the file is not related to a file request
-	fr, _ := database.GetFileRequest(config.FileRequestId)
-	logging.LogUpload(result, user, fr)
+	logging.LogUpload(result, user, models.FileRequest{})
 	_, _ = io.WriteString(w, result.ToJsonResult(config.ExternalUrl, configuration.Get().IncludeFilename))
 	return nil
 }
@@ -66,7 +65,7 @@ func isChunkMinChunkSize(r *http.Request, offset, fileSize int64) bool {
 }
 
 // ProcessNewChunk processes a file chunk upload request
-func ProcessNewChunk(w http.ResponseWriter, r *http.Request, isApiCall bool, filerequestId string) (int, error) {
+func ProcessNewChunk(w http.ResponseWriter, r *http.Request, isApiCall bool, filerequestId string, maxFileSize int64) (int, error) {
 	err := r.ParseMultipartForm(int64(configuration.Get().MaxMemory) * 1024 * 1024)
 	if err != nil {
 		return errorcodes.CannotParse, err
@@ -84,6 +83,9 @@ func ProcessNewChunk(w http.ResponseWriter, r *http.Request, isApiCall bool, fil
 	if !isChunkMinChunkSize(r, chunkInfo.Offset, chunkInfo.TotalFilesizeBytes) {
 		return errorcodes.ChunkTooSmall, storage.ErrorChunkTooSmall
 	}
+	if chunkInfo.TotalFilesizeBytes > maxFileSize || chunkInfo.Offset > maxFileSize {
+		return errorcodes.FileTooLarge, storage.ErrorFileTooLarge
+	}
 
 	if filerequestId != "" {
 		if !chunkreservation.SetUploading(filerequestId, chunkInfo.UUID) {
@@ -91,7 +93,7 @@ func ProcessNewChunk(w http.ResponseWriter, r *http.Request, isApiCall bool, fil
 		}
 	}
 
-	err = chunking.NewChunk(file, header, chunkInfo)
+	err = chunking.NewChunk(file, header, chunkInfo, maxFileSize)
 	defer file.Close()
 	if err != nil {
 		return errorcodes.CannotAllocateFile, err
@@ -108,7 +110,7 @@ func ParseFileHeader(r *http.Request) (string, chunking.FileHeader, models.Uploa
 	if err != nil {
 		return "", chunking.FileHeader{}, models.UploadParameters{}, err
 	}
-	chunkId := r.Form.Get("chunkid")
+	chunkId := r.PostForm.Get("chunkid")
 	config, err := parseConfig(r.Form)
 	if err != nil {
 		return "", chunking.FileHeader{}, models.UploadParameters{}, err

@@ -85,7 +85,7 @@ func writeMinify() {
 
 	err = os.WriteFile(fileMinify, []byte(strings.Join(lines, "\n")), 0664)
 	if err != nil {
-		fmt.Println("FAIL: Wrining minify go file")
+		fmt.Println("FAIL: Writing minify go file")
 		fmt.Println(err)
 		os.Exit(3)
 	}

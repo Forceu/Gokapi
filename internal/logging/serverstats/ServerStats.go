@@ -51,10 +51,8 @@ func monitorCpuUsage() {
 			_ = GetCpuUsage()
 			lastCpuCheck = time.Now()
 		}
-		select {
-		case <-time.After(time.Minute * 1):
-			monitorCpuUsage()
-		}
+		time.Sleep(time.Minute)
+		monitorCpuUsage()
 	}()
 }
 

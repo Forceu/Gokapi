@@ -4,16 +4,38 @@
 Updating Gokapi
 ======================
 
+.. note::
+   Before updating, always check the :ref:`changelog` for breaking changes in the version you are upgrading to.
+   Some releases require manual steps before or after the update.
+
+The database schema is migrated automatically on the first start after an upgrade.
+It is not possible to downgrade to an older version after a schema migration has run.
+
+.. warning::
+   **Back up your data before updating**, especially for major version upgrades.
+   Copy the ``data`` and ``config`` directories (or their Docker volumes) to a safe location.
+
+
 ***************
 Docker
 ***************
 
-To update, run the following command:
-::
+Pull the new image:
 
-  docker pull f0rc3/gokapi:YOURTAG
+.. code-block:: bash
 
-Then stop the running container and follow the same steps as in SETUP. All userdata will be preserved, as it is saved to the ``gokapi-data`` and ``gokapi-data`` volume (``-v`` argument during creation) 
+   docker pull f0rc3/gokapi:latest
+
+Then stop the running container and start it again with the same command you used originally.
+Named volumes (``-v gokapi-data:/app/data``) preserve all your data automatically.
+
+If you use Docker Compose:
+
+.. code-block:: bash
+
+   docker compose pull
+   docker compose up -d
+
 
 *******************
 Native deployment
@@ -22,10 +44,14 @@ Native deployment
 Stable version
 ==============
 
-To update, download the latest release and unzip it to the directory that contains the old version. Overwrite any existing files.
-
+Download the latest release and extract it into the same directory as your existing installation, overwriting the old binary. Then restart Gokapi.
 
 Unstable version
 =================
 
-To update, execute the command ``git pull`` and then rebuild the binary with ``go build Gokapi/cmd/gokapi``.
+.. code-block:: bash
+
+   git pull
+   make
+
+Then restart Gokapi.

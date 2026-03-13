@@ -166,7 +166,7 @@ func Delete() error {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	if exists {
+	if !exists {
 		return nil
 	}
 	return os.Remove(configPath)

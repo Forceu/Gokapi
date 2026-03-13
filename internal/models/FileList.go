@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/jinzhu/copier"
@@ -108,7 +109,7 @@ func (f *File) ToFileApiOutput(serverUrl string, useFilenameInUrl bool) (FileApi
 
 func getDownloadUrl(input FileApiOutput, serverUrl string, useFilename bool) string {
 	if useFilename {
-		return serverUrl + "d/" + input.Id + "/" + url.PathEscape(input.Name)
+		return serverUrl + "d/" + input.Id + "/" + escapeFilename(input.Name)
 	}
 	return serverUrl + "d?id=" + input.Id
 }
@@ -121,9 +122,14 @@ func getHotlinkUrl(input FileApiOutput, serverUrl string, useFilename bool) stri
 		return serverUrl + "h/" + input.HotlinkId
 	}
 	if useFilename {
-		return serverUrl + "dh/" + input.Id + "/" + url.PathEscape(input.Name)
+		return serverUrl + "dh/" + input.Id + "/" + escapeFilename(input.Name)
 	}
 	return serverUrl + "downloadFile?id=" + input.Id
+}
+
+// escapeFilename does a regular url escape, but replaces spaces with underscores for better readability
+func escapeFilename(filename string) string {
+	return url.PathEscape(strings.Replace(filename, " ", "_", -1))
 }
 
 // ToJsonResult converts the file info to a json String used for returning a result for an upload
@@ -159,7 +165,15 @@ func (f *File) IsFileRequest() bool {
 }
 func errorAsJson(err error) string {
 	fmt.Println(err)
-	return "{\"Result\":\"error\",\"ErrorMessage\":\"" + err.Error() + "\"}"
+	errOutput := struct {
+		Result       string `json:"Result"`
+		ErrorMessage string `json:"ErrorMessage"`
+	}{Result: "error", ErrorMessage: err.Error()}
+	result, err := json.Marshal(errOutput)
+	if err != nil {
+		return "{\"Result\":\"error\",\"ErrorMessage\":\"Unknown error\"}"
+	}
+	return string(result)
 }
 
 // Result is the struct used for the result after an upload

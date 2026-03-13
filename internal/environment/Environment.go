@@ -30,6 +30,8 @@ type Environment struct {
 	ConfigPath string
 	// Sets the directory for the data
 	DataDir string `env:"DATA_DIR" envDefault:"data" persistent:"true"`
+	// Disables the API menu and generation of API keys for non-admin users
+	DisableApiMenu bool `env:"DISABLE_API_MENU" envDefault:"false"`
 	// Disables the CORS check on startup and during setup, if set to true
 	DisableCorsCheck bool `env:"DISABLE_CORS_CHECK" envDefault:"false"`
 	// Disables automatically adding Docker subnet to trusted proxies, if set to true
@@ -60,9 +62,9 @@ type Environment struct {
 	MaxSizeGuestUploadMb int `env:"MAX_SIZE_GUESTUPLOAD" envDefault:"10240" onlyPositive:"true"`
 	// Set the number of chunks that are uploaded in parallel for a single file
 	MaxParallelUploads int `env:"MAX_PARALLEL_UPLOADS" envDefault:"3" onlyPositive:"true" persistent:"true"`
-	// Sets the minium free space on the disk in MB for accepting an upload
+	// Sets the minimum free space on the disk in MB for accepting an upload
 	MinFreeSpaceMB int `env:"MIN_FREE_SPACE" envDefault:"400" onlyPositive:"true"`
-	// Sets the minium password length
+	// Sets the minimum password length
 	MinLengthPassword int `env:"MIN_LENGTH_PASSWORD" envDefault:"8" minValue:"6"`
 	// Allows all users by default to create file requests, if set to true
 	PermRequestGrantedByDefault bool `env:"GUEST_UPLOAD_BY_DEFAULT" envDefault:"false"`
@@ -89,6 +91,8 @@ type Environment struct {
 	AwsKeySecret string `env:"AWS_KEY_SECRET"`
 	// Sets the AWS endpoint
 	AwsEndpoint string `env:"AWS_ENDPOINT"`
+	// Proxies downloads through the server instead of redirecting to pre-signed S3 URLs, if set to true
+	AwsProxyDownload bool `env:"AWS_PROXY_DOWNLOAD" envDefault:"false"`
 	// List of active deprecations
 	ActiveDeprecations []deprecation.Deprecation
 	isSet              bool

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -21,8 +22,9 @@ import (
 	"github.com/forceu/gokapi/internal/storage/chunking/chunkreservation"
 	"github.com/forceu/gokapi/internal/storage/filerequest"
 	"github.com/forceu/gokapi/internal/storage/presign"
-	"github.com/forceu/gokapi/internal/webserver/api/errorcodes"
+	"github.com/forceu/gokapi/internal/webserver/api/apiMutex"
 	"github.com/forceu/gokapi/internal/webserver/authentication/users"
+	"github.com/forceu/gokapi/internal/webserver/errorHandling/errorcodes"
 	"github.com/forceu/gokapi/internal/webserver/fileupload"
 	"github.com/forceu/gokapi/internal/webserver/ratelimiter"
 )
@@ -76,6 +78,9 @@ func apiEditFile(w http.ResponseWriter, r requestParser, user models.User) {
 	if !ok {
 		panic("invalid parameter passed")
 	}
+	apiMutex.Lock(apiMutex.TypeMetaData, request.Id)
+	defer apiMutex.Unlock(apiMutex.TypeMetaData, request.Id)
+
 	file, ok := database.GetMetaDataById(request.Id)
 	if !ok {
 		sendError(w, http.StatusNotFound, errorcodes.NotFound, "Invalid file ID provided.")
@@ -161,6 +166,9 @@ func apiModifyApiKey(w http.ResponseWriter, r requestParser, user models.User) {
 	if !ok {
 		panic("invalid parameter passed")
 	}
+	apiMutex.Lock(apiMutex.TypeApiKey, request.KeyId)
+	defer apiMutex.Unlock(apiMutex.TypeApiKey, request.KeyId)
+
 	apiKeyOwner, apiKey, ok := isValidKeyForEditing(request.KeyId)
 	if !ok {
 		sendError(w, http.StatusNotFound, errorcodes.NotFound, "Invalid key ID provided.")
@@ -231,6 +239,12 @@ func apiCreateApiKey(w http.ResponseWriter, r requestParser, user models.User) {
 	if !ok {
 		panic("invalid parameter passed")
 	}
+
+	if configuration.GetEnvironment().DisableApiMenu && !user.IsAdmin() {
+		sendError(w, http.StatusForbidden, errorcodes.NoPermission, "User API keys are disabled for this instance")
+		return
+	}
+
 	key := generateNewKey(request.BasicPermissions, user.Id, request.FriendlyName, "")
 	output := models.ApiKeyOutput{
 		Result:   "OK",
@@ -268,6 +282,7 @@ func apiChangeFriendlyName(w http.ResponseWriter, r requestParser, user models.U
 	if !ok {
 		panic("invalid parameter passed")
 	}
+
 	ownerApiKey, apiKey, ok := isValidKeyForEditing(request.KeyId)
 	if !ok {
 		sendError(w, http.StatusNotFound, errorcodes.NotFound, "Invalid key ID provided.")
@@ -288,6 +303,10 @@ func renameApiKeyFriendlyName(id string, newName string) error {
 	if newName == "" {
 		newName = "Unnamed key"
 	}
+
+	apiMutex.Lock(apiMutex.TypeApiKey, id)
+	defer apiMutex.Unlock(apiMutex.TypeApiKey, id)
+
 	key, ok := database.GetApiKey(id)
 	if !ok {
 		return errors.New("could not modify API key")
@@ -447,7 +466,7 @@ func processNewChunk(w http.ResponseWriter, request chunkParams, maxFileSizeMb i
 		return http.StatusBadRequest, errorcodes.FileTooLarge, storage.ErrorFileTooLarge.Error()
 	}
 	request.GetRequest().Body = http.MaxBytesReader(w, request.GetRequest().Body, maxUpload)
-	errCode, err := fileupload.ProcessNewChunk(w, request.GetRequest(), true, filerequestId)
+	errCode, err := fileupload.ProcessNewChunk(w, request.GetRequest(), true, filerequestId, maxUpload)
 	if err != nil {
 		return http.StatusBadRequest, errCode, err.Error()
 	}
@@ -478,6 +497,7 @@ func apiChunkComplete(w http.ResponseWriter, r requestParser, user models.User) 
 func doBlockingPartCompleteChunk(w http.ResponseWriter, uuid string, fileHeader chunking.FileHeader, user models.User, uploadParameters models.UploadParameters, r *http.Request) {
 	file, err := fileupload.CompleteChunk(uuid, fileHeader, user.Id, uploadParameters)
 	if err != nil {
+		_ = chunking.DeleteChunk(uuid)
 		sendError(w, http.StatusBadRequest, errorcodes.UnspecifiedError, err.Error())
 		return
 	}
@@ -600,7 +620,8 @@ func apiDownloadSingle(w http.ResponseWriter, r requestParser, user models.User)
 		return
 	}
 	if !request.PresignUrl {
-		storage.ServeFile(file, w, request.WebRequest, true, request.IncreaseCounter, true)
+		forceDecryption := file.Encryption.IsEncrypted && !file.Encryption.IsEndToEndEncrypted
+		storage.ServeFile(file, w, request.WebRequest, true, request.IncreaseCounter, forceDecryption)
 		return
 	}
 	createAndOutputPresignedUrl([]string{file.Id}, w, request.WebRequest, "")
@@ -636,9 +657,6 @@ func checkDownloadAllowed(fileId string, user models.User) (models.File, int, in
 	}
 	if file.UserId != user.Id && !user.HasPermission(models.UserPermListOtherUploads) {
 		return models.File{}, http.StatusUnauthorized, errorcodes.NoPermission, "no permission to download file"
-	}
-	if file.Encryption.IsEndToEndEncrypted {
-		return models.File{}, http.StatusBadRequest, errorcodes.EndToEndNotSupported, "End-to-end encrypted files cannot be downloaded"
 	}
 	return file, 0, 0, ""
 }
@@ -716,6 +734,10 @@ func apiChangeFileOwner(w http.ResponseWriter, r requestParser, user models.User
 	if !ok {
 		panic("invalid parameter passed")
 	}
+
+	apiMutex.Lock(apiMutex.TypeMetaData, request.Id)
+	defer apiMutex.Unlock(apiMutex.TypeMetaData, request.Id)
+
 	file, ok := storage.GetFile(request.Id)
 	if !ok {
 		sendError(w, http.StatusNotFound, errorcodes.NotFound, "Invalid id provided.")
@@ -764,7 +786,12 @@ func apiReplaceFile(w http.ResponseWriter, r requestParser, user models.User) {
 		return
 	}
 
-	modifiedFile, err := storage.ReplaceFile(request.Id, request.IdNewContent, request.Delete)
+	if request.DeleteNewFile && fileNewContent.UserId != user.Id && !user.HasPermission(models.UserPermDeleteOtherUploads) {
+		sendError(w, http.StatusUnauthorized, errorcodes.NoPermission, "No permission to delete original file")
+		return
+	}
+
+	modifiedFile, err := storage.ReplaceFile(request.Id, request.IdNewContent, request.DeleteNewFile)
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrorReplaceE2EFile):
@@ -804,6 +831,10 @@ func apiModifyUser(w http.ResponseWriter, r requestParser, user models.User) {
 	if !ok {
 		panic("invalid parameter passed")
 	}
+	idStr := strconv.Itoa(request.Id)
+	apiMutex.Lock(apiMutex.TypeUser, idStr)
+	defer apiMutex.Unlock(apiMutex.TypeUser, idStr)
+
 	userEdit, ok := isValidUserForEditing(w, request.Id)
 	if !ok {
 		return
@@ -816,19 +847,22 @@ func apiModifyUser(w http.ResponseWriter, r requestParser, user models.User) {
 		sendError(w, http.StatusBadRequest, errorcodes.ResourceCanNotBeEdited, "Cannot modify yourself")
 		return
 	}
+	if request.GrantPermission && !user.HasPermission(request.Permission) {
+		sendError(w, http.StatusBadRequest, errorcodes.NoPermission, "Cannot grant rights the user does not have")
+		return
+	}
 	logging.LogUserEdit(userEdit, user)
 	if request.GrantPermission {
 		if !userEdit.HasPermission(request.Permission) {
 			userEdit.GrantPermission(request.Permission)
 			database.SaveUser(userEdit, false)
-			updateApiKeyPermsOnUserPermChange(userEdit.Id, request.Permission, true)
 		}
 		return
 	}
 	if userEdit.HasPermission(request.Permission) {
 		userEdit.RemovePermission(request.Permission)
 		database.SaveUser(userEdit, false)
-		updateApiKeyPermsOnUserPermChange(userEdit.Id, request.Permission, false)
+		updateApiKeyPermsOnUserPermChange(userEdit.Id, request.Permission)
 	}
 }
 
@@ -837,6 +871,10 @@ func apiChangeUserRank(w http.ResponseWriter, r requestParser, user models.User)
 	if !ok {
 		panic("invalid parameter passed")
 	}
+	idStr := strconv.Itoa(request.Id)
+	apiMutex.Lock(apiMutex.TypeUser, idStr)
+	defer apiMutex.Unlock(apiMutex.TypeUser, idStr)
+
 	userEdit, ok := isValidUserForEditing(w, request.Id)
 	if !ok {
 		return
@@ -849,16 +887,21 @@ func apiChangeUserRank(w http.ResponseWriter, r requestParser, user models.User)
 		sendError(w, http.StatusBadRequest, errorcodes.ResourceCanNotBeEdited, "Cannot modify super admin")
 		return
 	}
+	if request.NewRank == models.UserLevelAdmin && !user.IsAdmin() {
+		sendError(w, http.StatusBadRequest, errorcodes.ResourceCanNotBeEdited, "Only admins can promote users to admin")
+		return
+	}
+
 	userEdit.UserLevel = request.NewRank
 	switch request.NewRank {
 	case models.UserLevelAdmin:
 		userEdit.Permissions = models.UserPermissionAll
-		updateApiKeyPermsOnUserPermChange(userEdit.Id, models.UserPermReplaceUploads, true)
-		updateApiKeyPermsOnUserPermChange(userEdit.Id, models.UserPermManageUsers, true)
 	case models.UserLevelUser:
 		userEdit.Permissions = models.UserPermissionNone
-		updateApiKeyPermsOnUserPermChange(userEdit.Id, models.UserPermReplaceUploads, false)
-		updateApiKeyPermsOnUserPermChange(userEdit.Id, models.UserPermManageUsers, false)
+		updateApiKeyPermsOnUserPermChange(userEdit.Id, models.UserPermReplaceUploads)
+		updateApiKeyPermsOnUserPermChange(userEdit.Id, models.UserPermManageUsers)
+		updateApiKeyPermsOnUserPermChange(userEdit.Id, models.UserPermManageLogs)
+		updateApiKeyPermsOnUserPermChange(userEdit.Id, models.UserPermGuestUploads)
 	default:
 		sendError(w, http.StatusBadRequest, errorcodes.InvalidUserInput, "invalid rank sent")
 		return
@@ -867,7 +910,7 @@ func apiChangeUserRank(w http.ResponseWriter, r requestParser, user models.User)
 	database.SaveUser(userEdit, false)
 }
 
-func updateApiKeyPermsOnUserPermChange(userId int, userPerm models.UserPermission, isNewlyGranted bool) {
+func updateApiKeyPermsOnUserPermChange(userId int, userPerm models.UserPermission) {
 	var affectedPermission models.ApiPermission
 	switch userPerm {
 	case models.UserPermManageUsers:
@@ -885,12 +928,7 @@ func updateApiKeyPermsOnUserPermChange(userId int, userPerm models.UserPermissio
 		if apiKey.UserId != userId {
 			continue
 		}
-		if isNewlyGranted {
-			if apiKey.IsSystemKey {
-				apiKey.GrantPermission(affectedPermission)
-				database.SaveApiKey(apiKey)
-			}
-		} else if apiKey.HasPermission(affectedPermission) {
+		if apiKey.HasPermission(affectedPermission) {
 			apiKey.RemovePermission(affectedPermission)
 			database.SaveApiKey(apiKey)
 		}
@@ -922,7 +960,12 @@ func apiResetPassword(w http.ResponseWriter, r requestParser, user models.User) 
 	}
 	database.DeleteAllSessionsByUser(userToEdit.Id)
 	database.SaveUser(userToEdit, false)
-	_, _ = w.Write([]byte("{\"Result\":\"ok\",\"password\":\"" + password + "\"}"))
+	resultStruct := struct {
+		Result      string `json:"Result"`
+		NewPassword string `json:"password"`
+	}{Result: "OK", NewPassword: password}
+	result, _ := json.Marshal(resultStruct)
+	_, _ = w.Write(result)
 }
 
 func apiDeleteUser(w http.ResponseWriter, r requestParser, user models.User) {
@@ -943,7 +986,16 @@ func apiDeleteUser(w http.ResponseWriter, r requestParser, user models.User) {
 		return
 	}
 	logging.LogUserDeletion(userToDelete, user)
-	database.DeleteUser(userToDelete.Id)
+
+	database.DeleteAllSessionsByUser(userToDelete.Id)
+
+	for _, apiKey := range database.GetAllApiKeys() {
+		if apiKey.UserId == userToDelete.Id {
+			database.DeleteApiKey(apiKey.Id)
+		}
+	}
+
+	database.DeleteEnd2EndInfo(userToDelete.Id)
 
 	for _, fRequest := range database.GetAllFileRequests() {
 		if fRequest.UserId == userToDelete.Id {
@@ -966,13 +1018,7 @@ func apiDeleteUser(w http.ResponseWriter, r requestParser, user models.User) {
 			}
 		}
 	}
-	for _, apiKey := range database.GetAllApiKeys() {
-		if apiKey.UserId == userToDelete.Id {
-			database.DeleteApiKey(apiKey.Id)
-		}
-	}
-	database.DeleteAllSessionsByUser(userToDelete.Id)
-	database.DeleteEnd2EndInfo(userToDelete.Id)
+	database.DeleteUser(userToDelete.Id)
 }
 
 func apiLogsDelete(_ http.ResponseWriter, r requestParser, user models.User) {
@@ -1186,8 +1232,8 @@ func apiUploadRequestListSingle(w http.ResponseWriter, r requestParser, user mod
 		sendError(w, http.StatusNotFound, errorcodes.NotFound, "FileRequest does not exist with the given ID")
 		return
 	}
-	if uploadRequest.UserId != user.Id && !user.HasPermission(models.UserPermDeleteOtherUploads) {
-		sendError(w, http.StatusUnauthorized, errorcodes.NoPermission, "No permission to delete this upload request")
+	if uploadRequest.UserId != user.Id && !user.HasPermission(models.UserPermListOtherUploads) {
+		sendError(w, http.StatusUnauthorized, errorcodes.NoPermission, "No permission to show this upload request")
 		return
 	}
 	result, err := json.Marshal(uploadRequest)
@@ -1197,6 +1243,7 @@ func apiUploadRequestListSingle(w http.ResponseWriter, r requestParser, user mod
 
 func isAuthorisedForApi(r *http.Request, routing apiRoute) (models.User, bool) {
 	keyId := r.Header.Get("apikey")
+	ratelimiter.WaitOnApiAuthentication(logging.GetIpAddress(r))
 	user, apiKey, ok := isValidApiKey(keyId, true, routing.ApiPerm)
 	if !ok {
 		return models.User{}, false

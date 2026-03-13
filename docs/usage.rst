@@ -11,7 +11,7 @@ Upload Menu
 General
 ----------------
 
-After you have started the Gokapi server, you can login using the your credentials by going to `http(s)://your.gokapi.url/admin``
+After you have started the Gokapi server, log in with your credentials by going to ``http(s)://your.gokapi.url/admin``
 
 There you can list and manage files and upload new files. You will also see three fields:
 
@@ -29,9 +29,9 @@ Identical files are deduplicated, which means if you upload a file twice, it wil
 Sharing files
 ---------------
 
-Once you uploaded an file, you will see a button with the options *Copy URL* and *Copy Hotlink*. By clicking on *Copy URL*, you copy the URL for the Download page to your clipboard. A user can then download the file from that page.
+Once you have uploaded a file, you will see a button with the options *Copy URL* and *Copy Hotlink*. By clicking on *Copy URL*, you copy the URL for the download page to your clipboard. A user can then download the file from that page.
 
-If a file does not require client-side decryption, you can also use the *Copy Hotlink* button. The hotlink URL is a direct link to the file and can for example be posted as an image on a forum or on a website. Each view counts as a download. Although Gokapi sets a Header to explicitly disallow caching, some browsers or external caches may still cache the image if they are not compliant.
+If a file does not require client-side decryption, you can also use the *Copy Hotlink* button. A hotlink is a direct URL to the raw file, bypassing the download page — it can be embedded as an image on a forum or website, or used in scripts. Each view of a hotlink counts as one download. Although Gokapi sends headers to disallow caching, some browsers or external caches may still cache the content if they are not compliant.
 
 The second button lets you share the regular URL easily. If you are accessing Gokapi with a mobile device, a tap on the button will open your device's share menu. Otherwise you can click on the drop down element and select to either share the link via email or generate a QR code.
 
@@ -60,9 +60,8 @@ General
 
 The File Requests page allows you to create secure, invitation-only upload links. These links enable external users to send files directly to your server without needing an account.
 
-
-.. note::
-   **Security Note:** If End-to-End Encryption is enabled globally, please note that **File Requests bypass this**. All files uploaded through the upload request page will be in plain text. This does only affect servers with end-to-end encryption, regular file encryption is still in place.
+.. warning::
+   If end-to-end encryption (Level 3) is enabled on your server, File Requests **bypass it**. Files uploaded through a File Request link are stored without end-to-end encryption. Standard server-side encryption (Levels 1 and 2) is still applied if configured.
 
 Dashboard
 ---------------------------
@@ -123,7 +122,7 @@ To create a new request, click the *Plus* icon at the top right. To modify an ex
 
 
 .. note::
-   By default, non-admin users are limited to requesting up to 100 files, with a maximum size of 10 GB per file. To modify these limits or disable them entirely, set the environment variables ``GOKAPI_MAX_FILES_GUESTUPLOAD`` and ``GOKAPI_MAX_SIZE_GUESTUPLOAD`` to your desired values. See :ref:`availenvvar` for details.
+   By default, non-admin users are limited to requesting up to 100 files with a maximum total size of 10 GB per File Request. To change or remove these limits, set ``GOKAPI_MAX_FILES_GUESTUPLOAD`` and ``GOKAPI_MAX_SIZE_GUESTUPLOAD``. See :ref:`availenvvar` for details.
 
 
 
@@ -179,7 +178,7 @@ Permissions are granular and can be toggled by clicking the icons in the **Permi
    * - Replace Own Uploads
      - Allows the user to overwrite files they previously uploaded.
    * - List Other Uploads
-     - Grant visibility to files uploaded by other system users.
+     - Grants visibility into files uploaded by other users.
    * - Edit Other Uploads
      - Allows editing files owned by others.
    * - Delete Other Uploads
@@ -189,7 +188,7 @@ Permissions are granular and can be toggled by clicking the icons in the **Permi
    * - Manage Users
      - Grants access to this User Management page.
    * - Manage API Keys
-     - Allows management of API keys of belonging to any user
+     - Allows management of API keys belonging to any user.
 
 .. note::
    Permissions for the Super Admin and your own account cannot be modified from this screen to prevent accidental lockouts.
@@ -364,5 +363,3 @@ You can clear logs based on their age using the following presets:
 
 .. warning::
    Log deletion is a permanent action. Once logs are cleared, the data cannot be recovered via the web interface. It is recommended to keep at least 7 days of logs for security auditing purposes.
-
-

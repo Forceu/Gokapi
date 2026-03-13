@@ -4,6 +4,18 @@
 Advanced usage
 ================
 
+This page is a reference for users who have already completed the initial setup. Here is a quick map:
+
+* **Configuring Gokapi without editing files** — :ref:`envvar`
+* **Switching or migrating the database** — :ref:`databases`
+* **Using the command-line upload/download tool** — :ref:`clitool`
+* **Scripting with the REST API** — :ref:`api`
+* **Tuning upload performance or RAM usage** — :ref:`chunksizes`
+* **Deploying without running setup interactively** — :ref:`autodeployment`
+* **Changing the look and feel** — :ref:`customising`
+
+----
+
 .. _envvar:
 
 ********************************
@@ -70,6 +82,8 @@ Available environment variables
 +-------------------------------------+----------------------------------------------------------------------------------------+-----------------+-----------------------------+
 | GOKAPI_DATA_DIR                     | Sets the directory for the data                                                        | Yes             | data                        |
 +-------------------------------------+----------------------------------------------------------------------------------------+-----------------+-----------------------------+
+| GOKAPI_DISABLE_API_MENU             | Disables the API menu and generation of API keys for non-admin users                   | No              | false                       |
++-------------------------------------+----------------------------------------------------------------------------------------+-----------------+-----------------------------+
 | GOKAPI_DISABLE_CORS_CHECK           | Disables the CORS check on startup and during setup, if set to true                    | No              | false                       |
 +-------------------------------------+----------------------------------------------------------------------------------------+-----------------+-----------------------------+
 | GOKAPI_DISABLE_DOCKER_TRUSTED_PROXY | Disables automatically adding Docker subnet to trusted proxies, if set to true         | No              | false                       |
@@ -114,9 +128,9 @@ Available environment variables
 |                                     |                                                                                        |                 |                             |
 |                                     | Default 10240 = 10GB                                                                   |                 |                             |
 +-------------------------------------+----------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| GOKAPI_MIN_FREE_SPACE               | Sets the minium free space on the disk in MB for accepting an upload                   | No              | 400                         |
+| GOKAPI_MIN_FREE_SPACE               | Sets the minimum free space on the disk in MB for accepting an upload                  | No              | 400                         |
 +-------------------------------------+----------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| GOKAPI_MIN_LENGTH_PASSWORD          | Sets the minium password length. Value must be 6 or greater                            | No              | 8                           |
+| GOKAPI_MIN_LENGTH_PASSWORD          | Sets the minimum password length. Value must be 6 or greater                           | No              | 8                           |
 +-------------------------------------+----------------------------------------------------------------------------------------+-----------------+-----------------------------+
 | GOKAPI_PORT                         | Sets the webserver port                                                                | Yes             | 53842                       |
 +-------------------------------------+----------------------------------------------------------------------------------------+-----------------+-----------------------------+
@@ -158,6 +172,14 @@ All values that are described in :ref:`cloudstorage` can be passed as environmen
 +---------------------------+-----------------------------------------+-----------------------------+
 | GOKAPI_AWS_ENDPOINT       | Sets the endpoint                       | eu-central-000.provider.com |
 +---------------------------+-----------------------------------------+-----------------------------+
+| GOKAPI_AWS_PROXY_DOWNLOAD | If true, users will not be redirected   | true                        |
+|                           |                                         |                             |
+|                           | to a pre-signed S3 URL for downloading. |                             |
+|                           |                                         |                             |
+|                           | Instead, Gokapi will download the file  |                             |
+|                           |                                         |                             |
+|                           | and proxy it to the user                |                             |
++---------------------------+-----------------------------------------+-----------------------------+
 
 
 
@@ -168,7 +190,7 @@ All values that are described in :ref:`cloudstorage` can be passed as environmen
 Databases
 ********************************
 
-By default, Gokapi uses an SQLite database for data storage, which should suffice for most use cases. Additionally, Redis is available as an experimental option.
+By default, Gokapi uses an SQLite database for data storage, which should suffice for most use cases. However if you are using a slow media for storing the database or expect to have a lot of files uploaded or downloaded it is highly recommended to use Redis instead.
 
 
 
@@ -528,6 +550,8 @@ If you have not completed the Gokapi setup yet, you can set all the values menti
 
 
 
+.. _autodeployment:
+
 ********************************
 Automatic Deployment
 ********************************
@@ -550,7 +574,7 @@ Stores the access data for cloud storage. This can be reused without modificatio
 config.json
 ------------------------
 
-Contains the server configuration. If you want to deploy Gokapi in multiple instances for redundancy  (e.g. all instances share the same data), then the configuration file can be reused without modification. Otherwise you need to modify it before deploying (see below). Can be read-only, but might need write access when upgrading Gokapi to a newer version. Needs write access when re-running setup or changing the admin password.
+Contains the server configuration. If you want to deploy Gokapi in multiple instances for redundancy  (e.g. all instances share the same data), then the configuration file can be reused without modification. Otherwise you need to modify it before deploying (see below). Can be read-only, but might need write access when upgrading Gokapi to a newer version. Needs write access when re-running setup.
 
 
 Modifying config.json to deploy without setup
@@ -565,8 +589,6 @@ If you want to deploy Gokapi to multiple instances that contain different data, 
 +-----------+------------------------------------------------------------+----------------------+
 | SaltFiles | Change to empty value                                      | "SaltFiles": "",     |
 +-----------+------------------------------------------------------------+----------------------+
-| Password  | Change to empty value                                      | "Password": "",      |
-+-----------+------------------------------------------------------------+----------------------+
 | Username  | Change to the username of your preference,                 | "Username": "admin", |
 |           |                                                            |                      |
 |           | if you are using internal username/password authentication |                      |
@@ -575,12 +597,14 @@ If you want to deploy Gokapi to multiple instances that contain different data, 
 Setting an admin password
 ====================================================
 
-If you are using internal username/password authentication, run the binary with the parameter ``--deployment-password [YOUR_PASSWORD]``. This sets the password and also generates a new salt for the password. This has to be done before Gokapi is run for the first time on the new instance. Alternatively you can do this on the orchestrating machine and then copy the configuration file to the new instance.
+If you are using internal username/password authentication, run the binary with the parameter ``--deployment-password [YOUR_PASSWORD]``. This sets the password and also generates a new salt for the password. This has to be done before Gokapi is run for the first time on the new instance. Alternatively you can do this on the orchestrating machine and then copy the configuration file and database to the new instance.
 
 If you are using a Docker image, this has to be done by starting a container with the entrypoint ``/app/run.sh``, for example: ::
 
  docker run --rm -v gokapi-data:/app/data -v gokapi-config:/app/config  f0rc3/gokapi:latest /app/run.sh --deployment-password newPassword
 
+
+.. _customising:
 
 ********************************
 Customising

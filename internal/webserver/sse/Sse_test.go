@@ -13,7 +13,10 @@ import (
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/test"
 	"github.com/forceu/gokapi/internal/test/testconfiguration"
+	"github.com/forceu/gokapi/internal/webserver/authentication"
 )
+
+const testUserId = 7
 
 func TestMain(m *testing.M) {
 	testconfiguration.Create(false)
@@ -25,7 +28,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestAddListener(t *testing.T) {
-	channel := listener{Reply: func(reply string) {}, Shutdown: func() {}}
+	channel := listener{Reply: func(reply string) {}, Shutdown: func() {}, UserId: testUserId}
 	addListener("test_id", channel)
 
 	mutex.RLock()
@@ -44,40 +47,71 @@ func TestRemoveListener(t *testing.T) {
 }
 
 func TestPublishNewStatus(t *testing.T) {
-	replyChannel := make(chan string)
-	channel := listener{Reply: func(reply string) { replyChannel <- reply }, Shutdown: func() {}}
+	replyChannel := make(chan string, 1)
+	// Listener belongs to testUserId -- messages for this user must be received.
+	channel := listener{Reply: func(reply string) { replyChannel <- reply }, Shutdown: func() {}, UserId: testUserId}
 	addListener("test_id", channel)
 
+	// Message for the correct user must be delivered.
 	go PublishNewStatus(models.UploadStatus{
 		ChunkId:       "testChunkId",
 		CurrentStatus: 4,
+		UserId:        testUserId,
 	})
 	receivedStatus := <-replyChannel
 	test.IsEqualString(t, receivedStatus, "event: message\ndata: {\"event\":\"uploadStatus\",\"chunk_id\":\"testChunkId\",\"file_id\":\"\",\"error_message\":\"\",\"upload_status\":4}\n\n")
+
+	// Message for a different user must NOT be delivered to this listener.
+	go PublishNewStatus(models.UploadStatus{
+		ChunkId:       "otherUserChunk",
+		CurrentStatus: 4,
+		UserId:        testUserId + 1,
+	})
+	select {
+	case unexpectedMsg := <-replyChannel:
+		t.Errorf("listener received message intended for a different user: %s", unexpectedMsg)
+	case <-time.After(100 * time.Millisecond):
+		// expected: nothing received
+	}
 
 	go PublishDownloadCount(models.File{
 		Id:                 "testFileId",
 		DownloadCount:      3,
 		DownloadsRemaining: 1,
 		UnlimitedDownloads: false,
+		UserId:             testUserId,
 	})
 	receivedStatus = <-replyChannel
 	test.IsEqualString(t, receivedStatus, "event: message\ndata: {\"event\":\"download\",\"file_id\":\"testFileId\",\"download_count\":3,\"downloads_remaining\":1}\n\n")
+
+	// Download event for a different user must NOT be delivered.
+	go PublishDownloadCount(models.File{
+		Id:     "otherFileId",
+		UserId: testUserId + 1,
+	})
+	select {
+	case unexpectedMsg := <-replyChannel:
+		t.Errorf("listener received download event intended for a different user: %s", unexpectedMsg)
+	case <-time.After(100 * time.Millisecond):
+		// expected: nothing received
+	}
 
 	go PublishDownloadCount(models.File{
 		Id:                 "testFileId",
 		DownloadCount:      3,
 		DownloadsRemaining: 2,
 		UnlimitedDownloads: true,
+		UserId:             testUserId,
 	})
 	receivedStatus = <-replyChannel
 	test.IsEqualString(t, receivedStatus, "event: message\ndata: {\"event\":\"download\",\"file_id\":\"testFileId\",\"download_count\":3,\"downloads_remaining\":-1}\n\n")
+
 	removeListener("test_id")
 }
 
 func TestShutdown(t *testing.T) {
 	shutdownChannel := make(chan bool)
-	channel := listener{Reply: func(reply string) {}, Shutdown: func() { shutdownChannel <- true }}
+	channel := listener{Reply: func(reply string) {}, Shutdown: func() { shutdownChannel <- true }, UserId: testUserId}
 	addListener("test_id", channel)
 
 	go Shutdown()
@@ -91,19 +125,16 @@ func TestGetStatusSSE_TimeoutWithSyncTest(t *testing.T) {
 		rr := httptest.NewRecorder()
 		req, _ := http.NewRequest("GET", "/statusUpdate", nil)
 
-		// Use a channel to signal when the handler has actually finished
 		done := make(chan struct{})
-
 		go func() {
 			GetStatusSSE(rr, req)
-			close(done) // Signal completion
+			close(done)
 		}()
 
 		synctest.Wait()
 
 		time.Sleep(maxConnection + 1*time.Second)
 		time.Sleep(pingInterval)
-		// Wait for the goroutine to finish its last loop and exit
 		<-done
 
 		mutex.RLock()
@@ -118,12 +149,12 @@ func TestGetStatusSSE_ContextCancelWithSyncTest(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		rr := httptest.NewRecorder()
 		req, _ := http.NewRequest("GET", "/statusUpdate", nil)
+		req = authentication.SetUserInRequest(req, models.User{Id: testUserId})
 
 		ctx, cancel := context.WithCancel(req.Context())
 		req = req.WithContext(ctx)
 
 		done := make(chan struct{})
-
 		go func() {
 			GetStatusSSE(rr, req)
 			close(done)
@@ -148,8 +179,8 @@ func TestGetStatusSSE_ContextCancelWithSyncTest(t *testing.T) {
 
 func TestGetStatusSSE(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
-
 		req, err := http.NewRequest("GET", "/statusUpdate", nil)
+		req = authentication.SetUserInRequest(req, models.User{Id: testUserId})
 		test.IsNil(t, err)
 
 		rr := httptest.NewRecorder()
@@ -162,11 +193,13 @@ func TestGetStatusSSE(t *testing.T) {
 
 		synctest.Wait()
 
-		// Test response headers (Headers are set immediately)
+		// Test response headers (set immediately before the loop).
 		test.IsEqualString(t, rr.Header().Get("Content-Type"), "text/event-stream")
 		test.IsEqualString(t, rr.Header().Get("X-Accel-Buffering"), "no")
 
-		// Test initial data (pstatusdb.GetAll())
+		// Test initial statuses (pstatusdb.GetAllForUser). These are now written
+		// directly to the response writer inside GetStatusSSE before the select
+		// loop, so they are reliably present after synctest.Wait().
 		bodyString := rr.Body.String()
 		isCorrect0 := bodyString == "event: message\ndata: {\"event\":\"uploadStatus\",\"chunk_id\":\"validstatus_0\",\"file_id\":\"\",\"error_message\":\"\",\"upload_status\":0}\n\n"+
 			"event: message\ndata: {\"event\":\"uploadStatus\",\"chunk_id\":\"validstatus_1\",\"file_id\":\"\",\"error_message\":\"\",\"upload_status\":1}\n\n"
@@ -174,35 +207,46 @@ func TestGetStatusSSE(t *testing.T) {
 			"event: message\ndata: {\"event\":\"uploadStatus\",\"chunk_id\":\"validstatus_0\",\"file_id\":\"\",\"error_message\":\"\",\"upload_status\":0}\n\n"
 		test.IsEqualBool(t, isCorrect0 || isCorrect1, true)
 
-		// Clear the buffer for next checks
 		rr.Body.Reset()
 
-		//  Test ping message
+		// Test ping message.
 		time.Sleep(pingInterval)
-		synctest.Wait() // Ensure the select case and WriteString finish
+		synctest.Wait()
 		test.IsEqualString(t, rr.Body.String(), "event: ping\n\n")
 		rr.Body.Reset()
 
-		// Test PublishNewStatus
+		// Test PublishNewStatus for the correct user -- must be received.
 		PublishNewStatus(models.UploadStatus{
 			ChunkId:       "secondChunkId",
 			CurrentStatus: 1,
+			UserId:        testUserId,
 		})
-		synctest.Wait() // Wait for the 'go channel.Reply' goroutine to execute
+		synctest.Wait()
 		test.IsEqualString(t, rr.Body.String(), "event: message\ndata: {\"event\":\"uploadStatus\",\"chunk_id\":\"secondChunkId\",\"file_id\":\"\",\"error_message\":\"\",\"upload_status\":1}\n\n")
 		rr.Body.Reset()
 
-		// Test another status update
+		// Test PublishNewStatus for a different user -- must NOT appear in the response.
+		PublishNewStatus(models.UploadStatus{
+			ChunkId:       "otherUserChunk",
+			CurrentStatus: 1,
+			UserId:        testUserId + 1,
+		})
+		synctest.Wait()
+		test.IsEqualString(t, rr.Body.String(), "")
+		rr.Body.Reset()
+
+		// Test a status update with all fields populated.
 		PublishNewStatus(models.UploadStatus{
 			ChunkId:       "secondChunkId",
 			CurrentStatus: 2,
 			FileId:        "testfile",
 			ErrorMessage:  "123",
+			UserId:        testUserId,
 		})
 		synctest.Wait()
 		test.IsEqualString(t, rr.Body.String(), "event: message\ndata: {\"event\":\"uploadStatus\",\"chunk_id\":\"secondChunkId\",\"file_id\":\"testfile\",\"error_message\":\"123\",\"upload_status\":2}\n\n")
 
 		Shutdown()
-		<-done // Wait for GetStatusSSE to return via shutdownChannel
+		<-done
 	})
 }

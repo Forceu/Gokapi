@@ -10,9 +10,16 @@ Examples
 .. _nginx_config:
 
 *********************************
-Nginx  Configuration
+Nginx Configuration
 *********************************
 
+The key settings any reverse proxy must have for Gokapi:
+
+* **Body size limit** — large enough for your biggest upload (``client_max_body_size`` in Nginx).
+* **Timeouts** — at least 300 seconds for send, receive, and connect.
+* **Forwarded IP headers** — pass ``X-Real-IP`` and ``X-Forwarded-For`` so Gokapi sees the real client IP.
+
+If you use a different proxy (Caddy, Traefik, Apache), apply the same three settings using your proxy's equivalent directives.
 
 .. code-block:: nginx
 
@@ -28,24 +35,22 @@ Nginx  Configuration
 		client_body_buffer_size 128k;
 
 		server_name your.server.url;
-		
+
 		proxy_connect_timeout 300;
 		proxy_send_timeout 300;
 		proxy_read_timeout 300;
 		send_timeout 300;
 
 		location / {
-			# If using Cloudflare
-			proxy_set_header X-Forwarded-Host $http_cf_connecting_ip;
-			
+			# Only add this line if using Cloudflare, remove it otherwise
+			# proxy_set_header X-Forwarded-Host $http_cf_connecting_ip;
+
 			proxy_set_header Host $http_host;
 			proxy_set_header X-Real-IP $remote_addr;
 			proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 			proxy_set_header X-Forwarded-Proto http;
 			proxy_pass http://127.0.0.1:53842;
 		}
-
-
 
 		# Always redirect to https
 		if ( $scheme = http ) {
@@ -165,7 +170,7 @@ Keycloak
 ^^^^^^^^^^^^
 
 .. note::
-   This guide has been written for version 24.0.3
+   This guide has been written for version 26.5.5
 
 .. warning::
    In a previous version of this guide, the client mapping was for the predefined mapper "Group memberships", which in some cases always returned the value "admin". Please make sure that you are using a custom mapper, as described in :ref:`oidcconfig_keycloak_opt`
@@ -195,7 +200,7 @@ Creating the client
 
 .. _oidcconfig_keycloak_opt:
 
-Addding a scope for exposing groups (optional)
+Adding a scope for exposing groups (optional)
 *****************************************************
 
 #. In the realm click on ``[Manage] Client Scopes`` and then ``Create Client Scope``
@@ -233,7 +238,7 @@ Gokapi Configuration
 +---------------------------+-----------------------------------------------------------------------+--------------------------------------------+
 | Client Secret             | Client secret provided                                                | AhXeV7_EXAMPLE_KEY                         |
 +---------------------------+-----------------------------------------------------------------------+--------------------------------------------+
-| Recheck identity          | If open ``Consent required`` is disabled, use a low interval          | 12 hours                                   |
+| Recheck identity          | If ``Consent required`` is disabled, use a low interval               | 12 hours                                   |
 +---------------------------+-----------------------------------------------------------------------+--------------------------------------------+
 | Admin email address       | The email address for the super-admin                                 | gokapi@example.com                         |
 +---------------------------+-----------------------------------------------------------------------+--------------------------------------------+
@@ -254,7 +259,7 @@ Gokapi Configuration
 
 
 .. note::
-   Logout through the Gokapi interface will not be possible anymore, unless the user logs out their Keycload account.
+   Logout through the Gokapi interface will not be possible anymore, unless the user logs out their Keycloak account.
    
 
 

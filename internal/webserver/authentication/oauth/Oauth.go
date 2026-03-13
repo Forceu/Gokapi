@@ -2,15 +2,17 @@ package oauth
 
 import (
 	"context"
+	"log"
+	"net/http"
+	"time"
+
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/webserver/authentication"
+	"github.com/forceu/gokapi/internal/webserver/errorHandling"
 	"golang.org/x/oauth2"
-	"log"
-	"net/http"
-	"time"
 )
 
 var config oauth2.Config
@@ -71,31 +73,33 @@ func isLoginRequired(r *http.Request) bool {
 func HandlerCallback(w http.ResponseWriter, r *http.Request) {
 	state, err := r.Cookie(authentication.CookieOauth)
 	if err != nil {
-		showOauthErrorPage(w, r, "Parameter state was not provided")
+		errorHandling.RedirectToOAuthErrorPage(w, r, "Parameter state was not provided", err)
 		return
 	}
 	if r.URL.Query().Get("state") != state.Value {
-		showOauthErrorPage(w, r, "Parameter state did not match")
+		errorHandling.RedirectToOAuthErrorPage(w, r, "Parameter state did not match", err)
+		return
+	}
+
+	if isLoginRequired(r) {
+		initLogin(w, r, true)
 		return
 	}
 
 	oauth2Token, err := config.Exchange(ctx, r.URL.Query().Get("code"))
 	if err != nil {
-		if isLoginRequired(r) {
-			initLogin(w, r, true)
-			return
-		}
-		showOauthErrorPage(w, r, "Failed to exchange token: "+err.Error())
+		errorHandling.RedirectToOAuthErrorPage(w, r, "Failed to exchange token", err)
 		return
 	}
 
 	userInfo, err := provider.UserInfo(ctx, oauth2.StaticTokenSource(oauth2Token))
 	if err != nil {
-		showOauthErrorPage(w, r, "Failed to get userinfo: "+err.Error())
+		errorHandling.RedirectToOAuthErrorPage(w, r, "Failed to get user info", err)
 		return
 	}
 	if userInfo.Email == "" {
-		showOauthErrorPage(w, r, "An empty email address was provided.\nPlease make sure that you have your email address set in your authentication user backend.")
+		errorHandling.RedirectToOAuthErrorPage(w, r, "An empty email address was provided.\nPlease make sure that you have your"+
+			" email address set in your authentication user backend.", nil)
 		return
 	}
 	info := authentication.OAuthUserInfo{
@@ -103,18 +107,10 @@ func HandlerCallback(w http.ResponseWriter, r *http.Request) {
 		Email:      userInfo.Email,
 		ClaimsSent: userInfo,
 	}
-	err = authentication.CheckOauthUserAndRedirect(info, w)
+	err = authentication.CheckOauthUserAndRedirect(w, r, info)
 	if err != nil {
-		showOauthErrorPage(w, r, "Failed to extract scope value: "+err.Error())
+		errorHandling.RedirectToOAuthErrorPage(w, r, "Failed to continue with login: ", err)
 	}
-}
-
-func showOauthErrorPage(w http.ResponseWriter, r *http.Request, errorMessage string) {
-	// Extract the query parameters from the original URL
-	queryParams := r.URL.Query()
-	queryParams.Add("error_generic", errorMessage)
-	redirectURL := "./error-oauth?" + queryParams.Encode()
-	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }
 
 func setCallbackCookie(w http.ResponseWriter, value string) {

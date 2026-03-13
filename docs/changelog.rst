@@ -8,16 +8,93 @@ Overview of all changes
 -----------------------
 
 
+v2.2.4 (2026-03-10)
+^^^^^^^^^^^^^^^^^^^
+
+⚠️ **This update contains important security fixes. We recommend all users to update to this version.**
+
+Changelog
+"""""""""
+
+* Fixed three vulnerabilities with moderate severity
+* Added tooltips for user and API permissions
+* Added username badge to UI
+* Delete generated chunks earlier on error
+* Updated to Go1.26.1
+* Other minor bugs fixed
+
+
+
+**Full Changelog**: https://github.com/Forceu/Gokapi/compare/v2.2.3...v2.2.4
+
+
+v2.2.3 (2026-03-04)
+^^^^^^^^^^^^^^^^^^^
+
+⚠️ **This update contains important security fixes. We recommend all users to update to this version, especially if more than one user is registered at your Gokapi instance.**
+
+Changelog
+"""""""""
+
+* Fixed one vulnerability with high severity and four with moderate severity
+* Fixed severe bug that deleted all files if a user with a file request was manually deleted from the database `#373 <https://github.com/Forceu/Gokapi/issues/373>`__
+* Add ``GOKAPI_AWS_PROXY_DOWNLOAD`` environment variable by @Nerahikada `#372 <https://github.com/Forceu/Gokapi/issues/372>`__
+* Added ``DISABLE_API_MENU`` env to hide API menu and disable generation of new API keys for non-admin users `#377 <https://github.com/Forceu/Gokapi/issues/377>`__
+* Fixed S3 environment variables not being applied during initial setup by @Nerahikada `#370 <https://github.com/Forceu/Gokapi/issues/370>`__
+* Fixed ``MinPasswordLength`` in reconfiguration setup view by @Nerahikada `#371 <https://github.com/Forceu/Gokapi/issues/371>`__
+* Fixed OIDC bug which prevented error check `#369 <https://github.com/Forceu/Gokapi/issues/369>`__
+* Fixed API download / download button always proxying AWS files `#375 <https://github.com/Forceu/Gokapi/issues/375>`__
+* Better error handling for setup CORS check
+* Added better rate limiting
+* Replace space with underscore instead of url escaping it
+* More minor changes and fixes
+* Changed to Go1.26
+
+* Gokapi-cli: Fixed logout not working, fixed upload not working `#363 <https://github.com/Forceu/Gokapi/issues/363>`__
+* Gokapi-cli: Fixed download and add E2E download support by @Upellift99 `#365 <https://github.com/Forceu/Gokapi/issues/365>`__
+
+
+Breaking Changes
+""""""""""""""""
+
+* SVG images cannot be hotlinked anymore and old hotlinks to SVG images will be removed on startup
+
+Fixed CVEs
+""""""""""
+
+* Stored XSS in SVG Hotlinks `GHSA-3c22-5j5m-4jq7 <https://github.com/advisories/GHSA-3c22-5j5m-4jq7>`__ (high)
+* Privilege escalation with auth token  `GHSA-m2hx-wjxc-9fp4 <https://github.com/advisories/GHSA-m2hx-wjxc-9fp4>`__ (moderate)
+* Incomplete API-key permission revocation on user rank demotion `GHSA-q658-hfpg-35qc <https://github.com/advisories/GHSA-q658-hfpg-35qc>`__  (moderate)
+* CSRF in Login Endpoint `GHSA-hcff-qv74-7hr4 <https://github.com/advisories/GHSA-hcff-qv74-7hr4>`__ (moderate)
+* Data Leak in Upload Status Stream `GHSA-c36c-7pc2-f2ph <https://github.com/advisories/GHSA-c36c-7pc2-f2ph>`__ (moderate)
+
+New Contributors
+""""""""""""""""
+
+* @Upellift99 made their first contribution in `#365 <https://github.com/Forceu/Gokapi/pull/365>`__
+* @anlar made their first contribution in `#366 <https://github.com/Forceu/Gokapi/pull/366>`__
+* @Nerahikada made their first contribution in `#370 <https://github.com/Forceu/Gokapi/pull/370>`__
+
+**Full Changelog**: https://github.com/Forceu/Gokapi/compare/v2.2.2...v2.2.3
+
+
 v2.2.2 (2026-01-31)
 ^^^^^^^^^^^^^^^^^^^
 
 Changelog
 """""""""
 
+* Fixed broken end-to-end encryption - files were uploaded in plain-text since v2.2.0. Affected files were not displayed as encrypted. If your file had the "encrypted" tag in the download view, it was fully end-to-end encrypted.
 * Added option to add CIDR for trusted proxies (e.g. ``10.0.0.0/24``)
-* Docker subnets are automatically configured as trusted proxies. If this version is not secure for your environment, set ``GOKAPI_DISABLE_DOCKER_TRUSTED_PROXY`` to true.
+* Docker subnets are automatically configured as trusted proxies. If this is not secure for your environment, set ``GOKAPI_DISABLE_DOCKER_TRUSTED_PROXY`` to true.
 * Fixed caching issues with previous version
 
+Updating
+""""""""
+
+Please make sure to read the release notes for `v2.2.1 <https://github.com/Forceu/Gokapi/releases/tag/v2.2.1>`__ and ` v2.2.0 <https://github.com/Forceu/Gokapi/releases/tag/v2.2.0>`__, as they contain important changes!
+
+Full Changelog: https://github.com/Forceu/Gokapi/compare/v2.2.1...v2.2.2
 
 
 v2.2.1 (2026-01-30)
@@ -42,6 +119,9 @@ If your reverse proxy does not connect from ``127.0.0.1``, add its IP address to
 If Gokapi is running behind Cloudflare, make sure to set the ``GOKAPI_USE_CLOUDFLARE`` environment variable to true.
 
 
+**Full Changelog**: https://github.com/Forceu/Gokapi/compare/v2.2.0...v2.2.1
+
+
 v2.2.0 (2026-01-28)
 ^^^^^^^^^^^^^^^^^^^
 
@@ -59,7 +139,7 @@ Changelog
 * It is now possible to use a custom favicon 
 * Short-lived tokens are used instead of user API keys to improve security
 * Browser timezone is used instead of server timezone for UI
-* Added env variable to set a minium password length @masterbender 
+* Added env variable to set a minimum password length @masterbender 
 * Downloads can be made from the UI without increasing the download counter
 * gokapi-cli now supports downloads
 * Add deprecation alerts @spaghetti-coder
@@ -138,7 +218,7 @@ This release adds user management and granular permission control. Some breaking
 Security
 """"""""
 
-This releases fixes two XSS vulnerabilities (`CVE-2025-48494 <https://github.com/Forceu/Gokapi/security/advisories/GHSA-95rc-wc32-gm53>`__ and `CVE-2025-48495 <https://github.com/Forceu/Gokapi/security/advisories/GHSA-4xg4-54hm-9j77>`__). The vulnerabilities let authorised users execute Javascript with passive interaction - if you are using Gokapi as a single user, this does not impact you, otherwise we recommend updating your instance to v2.0.0.
+This releases fixes two XSS vulnerabilities (`GHSA-95rc-wc32-gm53 <https://github.com/advisories/GHSA-95rc-wc32-gm53>`__ and `GHSA-4xg4-54hm-9j77 <https://github.com/advisories/GHSA-4xg4-54hm-9j77>`__). The vulnerabilities let authorised users execute Javascript with passive interaction - if you are using Gokapi as a single user, this does not impact you, otherwise we recommend updating your instance to v2.0.0.
 
 Changelog
 """""""""
@@ -514,7 +594,7 @@ Changelog
 """""""""
 * Fixed Gokapi not able to upload when running on a Windows system `#95 <https://github.com/Forceu/Gokapi/issues/95>`__ 
 * Improved Upload UI
-* Added healthcheck for docker by @Jisagi in https://github.com/Forceu/Gokapi/pull/89
+* Added healthcheck for docker by @Jisagi in `#89 <https://github.com/Forceu/Gokapi/pull/89>`__
 * Fixed upload counter not updating after upload `#92 <https://github.com/Forceu/Gokapi/issues/92>`__ 
 * Fixed hotlink generation on files that required client-side decryption
 * Replaced go:generate code with native Go

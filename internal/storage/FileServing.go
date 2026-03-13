@@ -165,10 +165,11 @@ func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, userId int
 	defer file.Close()
 	err = validateChunkInfo(file, fileHeader)
 	if err != nil {
+		_ = chunking.DeleteChunk(chunkId)
 		return models.File{}, err
 	}
 
-	processingstatus.Set(chunkId, processingstatus.StatusHashingOrEncrypting, models.File{}, nil)
+	processingstatus.Set(chunkId, processingstatus.StatusHashingOrEncrypting, models.File{}, userId, nil)
 	hash, err := getChunkFileHash(file, uploadRequest.IsEndToEndEncrypted)
 	if err != nil {
 		return models.File{}, err
@@ -201,7 +202,7 @@ func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, userId int
 			}
 			fileToMove = tempFile
 		}
-		processingstatus.Set(chunkId, processingstatus.StatusUploading, models.File{}, nil)
+		processingstatus.Set(chunkId, processingstatus.StatusUploading, models.File{}, userId, nil)
 		if metaData.IsLocalStorage() {
 			err = filesystem.GetLocal().MoveToFilesystem(fileToMove, metaData)
 		} else {
@@ -212,7 +213,7 @@ func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, userId int
 		}
 	}
 	database.SaveMetaData(metaData)
-	processingstatus.Set(chunkId, processingstatus.StatusFinished, metaData, nil)
+	processingstatus.Set(chunkId, processingstatus.StatusFinished, metaData, userId, nil)
 	return metaData, nil
 }
 
@@ -319,7 +320,7 @@ func createNewMetaData(hash string, fileHeader chunking.FileHeader, userId int, 
 		file.Encryption.IsEncrypted = true
 	}
 	if aws.IsAvailable() {
-		if !configuration.Get().PicturesAlwaysLocal || !isPictureFile(file.Name) {
+		if !configuration.Get().PicturesAlwaysLocal || !isPictureFile(file.Name, file.ContentType) {
 			aws.AddBucketName(&file)
 		}
 	}
@@ -512,7 +513,7 @@ func isEncryptionRequested() bool {
 }
 
 // imageFileExtensions contains all known image extensions that can be used for hotlinks
-var imageFileExtensions = []string{".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg", ".tiff", ".tif", ".ico", ".avif", ".avifs", ".apng"}
+var imageFileExtensions = []string{".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".tiff", ".tif", ".ico", ".avif", ".avifs", ".apng"}
 
 // videoFileExtensions contains all known video extensions that can be used for hotlinks, if enabled with the env var ENABLE_HOTLINK_VIDEOS
 var videoFileExtensions = []string{".3gp", ".avi", ".flv", ".m4v", ".mkv", ".mov", ".mp4", ".mpg", ".mpeg", ".ts", ".webm", ".wmv"}
@@ -537,14 +538,17 @@ func IsAbleHotlink(file models.File) bool {
 	if file.PasswordHash != "" {
 		return false
 	}
-	if isPictureFile(file.Name) {
+	if strings.Contains(strings.ToLower(file.ContentType), "image/svg") {
+		return false
+	}
+	if isPictureFile(file.Name, file.ContentType) {
 		return true
 	}
 	env := environment.New()
 	if !env.HotlinkVideos {
 		return false
 	}
-	return isVideoFile(file.Name)
+	return isVideoFile(file.Name, file.ContentType)
 }
 
 // getFileExtension returns the file extension of a filename in lowercase
@@ -552,13 +556,19 @@ func getFileExtension(filename string) string {
 	return strings.ToLower(filepath.Ext(filename))
 }
 
-// isPictureFile returns true if it has one of supported extensions saved in imageFileExtensions
-func isPictureFile(filename string) bool {
-	extension := getFileExtension(filename)
+// isPictureFile returns true if it has one of the supported extensions saved in imageFileExtensions
+func isPictureFile(filename, contentType string) bool {
+	if !strings.HasPrefix(strings.ToLower(contentType), "image/") {
+		return false
+	}
+	extension := strings.ToLower(getFileExtension(filename))
 	return helper.IsInArray(imageFileExtensions, extension)
 }
 
-func isVideoFile(filename string) bool {
+func isVideoFile(filename, contentType string) bool {
+	if !strings.HasPrefix(strings.ToLower(contentType), "video/") {
+		return false
+	}
 	extension := getFileExtension(filename)
 	return helper.IsInArray(videoFileExtensions, extension)
 }
@@ -630,9 +640,15 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 		}
 		return
 	}
-	fileData, _ := getFileHandler(file, configuration.Get().DataDir)
+	fileHandler, _, err := getFileHandler(file, configuration.Get().DataDir)
+	defer fileHandler.Close()
+	if err != nil {
+		fmt.Println(err)
+		_, _ = w.Write([]byte("Error getting file handler"))
+		return
+	}
 	if file.Encryption.IsEncrypted && !file.RequiresClientDecryption() {
-		if !encryption.IsCorrectKey(file.Encryption, fileData) {
+		if !encryption.IsCorrectKey(file.Encryption, fileHandler) {
 			_, _ = w.Write([]byte("Internal error - Error decrypting file, source data might be damaged or an incorrect key has been used"))
 			return
 		}
@@ -640,14 +656,14 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 	statusId := downloadstatus.SetDownload(file)
 	headers.Write(file, w, forceDownload, false)
 	if file.Encryption.IsEncrypted && !file.RequiresClientDecryption() {
-		err := encryption.DecryptReader(file.Encryption, fileData, w)
+		err = encryption.DecryptReader(file.Encryption, fileHandler, w)
 		if err != nil {
 			_, _ = w.Write([]byte("Error decrypting file"))
 			fmt.Println(err)
 			return
 		}
 	} else {
-		http.ServeContent(w, r, file.Name, time.Now(), fileData)
+		http.ServeContent(w, r, file.Name, time.Now(), fileHandler)
 	}
 	downloadstatus.SetComplete(statusId)
 }
@@ -708,21 +724,27 @@ func ServeFilesAsZip(files []models.File, filename string, w http.ResponseWriter
 			}
 			continue
 		}
-		fileData, _ := getFileHandler(file, configuration.Get().DataDir)
+		fileHandler, _, err := getFileHandler(file, configuration.Get().DataDir)
+		defer fileHandler.Close()
+		if err != nil {
+			fmt.Println(err)
+			_, _ = w.Write([]byte("Error getting file handler"))
+			return
+		}
 		statusId := downloadstatus.SetDownload(file)
 		if file.Encryption.IsEncrypted {
-			if !encryption.IsCorrectKey(file.Encryption, fileData) {
+			if !encryption.IsCorrectKey(file.Encryption, fileHandler) {
 				_, _ = w.Write([]byte("Internal error - Error decrypting file, source data might be damaged or an incorrect key has been used"))
 				return
 			}
-			err = encryption.DecryptReader(file.Encryption, fileData, entryWriter)
+			err = encryption.DecryptReader(file.Encryption, fileHandler, entryWriter)
 			if err != nil {
 				_, _ = w.Write([]byte("Error decrypting file"))
 				fmt.Println(err)
 				return
 			}
 		} else {
-			_, err = io.Copy(entryWriter, fileData)
+			_, err = io.Copy(entryWriter, fileHandler)
 			helper.Check(err)
 		}
 		downloadstatus.SetComplete(statusId)
@@ -734,12 +756,16 @@ func ServeFilesAsZip(files []models.File, filename string, w http.ResponseWriter
 	}
 }
 
-func getFileHandler(file models.File, dataDir string) (*os.File, int64) {
-	storageData, err := os.OpenFile(dataDir+"/"+file.SHA1, os.O_RDONLY, 0644)
-	helper.Check(err)
-	size, err := helper.GetFileSize(storageData)
-	helper.Check(err)
-	return storageData, size
+func getFileHandler(file models.File, dataDir string) (*os.File, int64, error) {
+	fileHandler, err := os.OpenFile(dataDir+"/"+file.SHA1, os.O_RDONLY, 0644)
+	if err != nil {
+		return nil, 0, err
+	}
+	size, err := helper.GetFileSize(fileHandler)
+	if err != nil {
+		return nil, 0, err
+	}
+	return fileHandler, size, nil
 }
 
 // FileExists checks if the file exists locally or in S3
@@ -801,10 +827,8 @@ func CleanUp(periodic bool) {
 
 	if periodic {
 		go func() {
-			select {
-			case <-time.After(time.Hour):
-				CleanUp(periodic)
-			}
+			time.Sleep(time.Hour)
+			CleanUp(periodic)
 		}()
 	}
 }
@@ -849,8 +873,8 @@ func cleanInvalidFileRequests() {
 			files := database.GetAllMetadata()
 			for _, file := range files {
 				if file.UploadRequestId == fileRequest.Id {
+					DeleteFile(file.Id, true)
 				}
-				DeleteFile(file.Id, true)
 			}
 			database.DeleteFileRequest(fileRequest)
 		}
@@ -987,9 +1011,7 @@ func DeleteFileSchedule(fileId string, delayMs int, deleteSource bool) bool {
 	database.SaveMetaData(file)
 	// Explicit parameter to avoid accidental changes
 	go func(id string, timestamp int64) {
-		select {
-		case <-time.After(time.Duration(delayMs) * time.Millisecond):
-		}
+		time.Sleep(time.Duration(delayMs) * time.Millisecond)
 		// A new models.File needs to be assigned to avoid a racy mutation
 		retrievedFile, exists := database.GetMetaDataById(id)
 		if !exists {

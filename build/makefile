@@ -1,6 +1,6 @@
 # Define variables
 IMAGE_NAME=gokapi-builder
-CONTAINER_WORK_DIR=/usr/src/myapp
+CONTAINER_WORK_DIR=/src/gokapi
 
 # Check for docker, then podman, otherwise use what the user provided
 ifeq ($(origin CONTAINER_TOOL), undefined)
@@ -15,8 +15,12 @@ all: compile
 
 # Compile target
 compile:
-	@echo "Creating build container image for $(CONTAINER_TOOL)..."
-	$(CONTAINER_TOOL) build . --tag $(IMAGE_NAME)
+	@if [ -z "$$($(CONTAINER_TOOL) images -q $(IMAGE_NAME) 2>/dev/null)" ]; then \
+		echo "Image $(IMAGE_NAME) not found. Building..."; \
+		$(CONTAINER_TOOL) build . --tag $(IMAGE_NAME); \
+	else \
+		echo "Image $(IMAGE_NAME) already exists. Skipping build."; \
+	fi
 	@echo "Running build container to generate binaries"
 	$(CONTAINER_TOOL) run --rm -it -v ../:$(CONTAINER_WORK_DIR) -w $(CONTAINER_WORK_DIR) $(IMAGE_NAME)
 	

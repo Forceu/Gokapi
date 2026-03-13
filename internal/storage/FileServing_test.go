@@ -133,10 +133,10 @@ func TestGetFileByHotlink(t *testing.T) {
 }
 
 func TestAddHotlink(t *testing.T) {
-	file := models.File{Name: "test.dat", Id: "testId"}
+	file := models.File{Name: "test.dat", Id: "testId", ContentType: "image/jpg"}
 	AddHotlink(&file)
 	test.IsEqualString(t, file.HotlinkId, "")
-	file = models.File{Name: "test.jpg", Id: "testId", ExpireAt: time.Now().Add(time.Hour).Unix()}
+	file = models.File{Name: "test.jpg", Id: "testId", ExpireAt: time.Now().Add(time.Hour).Unix(), ContentType: "image/jpg"}
 	AddHotlink(&file)
 	test.IsEqualInt(t, len(file.HotlinkId), 44)
 	lastCharacters := file.HotlinkId[len(file.HotlinkId)-4:]
@@ -144,7 +144,7 @@ func TestAddHotlink(t *testing.T) {
 	link, ok := database.GetHotlink(file.HotlinkId)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualString(t, link, "testId")
-	file = models.File{Name: "test.jpg", Id: "testId", ExpireAt: time.Now().Add(time.Hour).Unix()}
+	file = models.File{Name: "test.jpg", Id: "testId", ExpireAt: time.Now().Add(time.Hour).Unix(), ContentType: "image/jpg"}
 	file.Encryption.IsEncrypted = true
 	file.AwsBucket = "test"
 	AddHotlink(&file)

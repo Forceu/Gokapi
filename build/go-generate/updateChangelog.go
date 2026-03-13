@@ -33,6 +33,9 @@ func (r githubRelease) ToString() string {
 	r.Body = convertMarkdownLinksToReST(r.Body)
 	r.Body = insertMissingNewlineForSublist(r.Body)
 	r.Body = insertIssueUrl(r.Body)
+	r.Body = insertGhsaUrl(r.Body)
+	r.Body = insertPullUrl(r.Body)
+	r.Body = convertMarkdownItalicToReST(r.Body)
 
 	sb.WriteString(r.TagName)
 	sb.WriteString(" (")
@@ -45,23 +48,28 @@ func (r githubRelease) ToString() string {
 	sb.WriteString(strings.Repeat("^", sb.Len()-1))
 	sb.WriteString("\n")
 	sb.WriteString("\n")
+
+	prefixes := []struct {
+		prefix string
+		char   string
+	}{
+		{"## ", "\""},
+		{"### ", "\""},
+		{"#### ", "'"},
+	}
+
 	for _, line := range strings.Split(r.Body, "\n") {
-		if strings.HasPrefix(line, "### ") {
-			line = strings.TrimPrefix(line, "### ")
-			sb.WriteString(line)
-			sb.WriteString("\n")
-			sb.WriteString(strings.Repeat("\"", len(line)))
-			sb.WriteString("\n")
-			continue
+
+		for _, p := range prefixes {
+			if strings.HasPrefix(line, p.prefix) {
+				title := strings.TrimPrefix(line, p.prefix)
+				sb.WriteString(title + "\n")
+				sb.WriteString(strings.Repeat(p.char, len(title)))
+				line = ""
+				break
+			}
 		}
-		if strings.HasPrefix(line, "#### ") {
-			line = strings.TrimPrefix(line, "#### ")
-			sb.WriteString(line)
-			sb.WriteString("\n")
-			sb.WriteString(strings.Repeat("'", len(line)))
-			sb.WriteString("\n")
-			continue
-		}
+
 		if strings.HasPrefix(line, "- ") {
 			line = strings.Replace(line, "- ", "* ", 1)
 		}
@@ -78,15 +86,29 @@ func (r githubRelease) ToString() string {
 }
 
 func convertMarkdownLinksToReST(text string) string {
-	// Regex to match Markdown links: [link text](url)
 	re := regexp.MustCompile(`\[(.*?)\]\((https?://[^\s\)]+)\)`)
 	return re.ReplaceAllString(text, "`$1 <$2>`__")
 }
 
 func insertIssueUrl(text string) string {
-	// Regex to match Markdown links: [link text](url)
 	re := regexp.MustCompile(`#(\d+)`)
 	return re.ReplaceAllString(text, "`#$1 <https://github.com/Forceu/Gokapi/issues/$1>`__")
+}
+
+func convertMarkdownItalicToReST(text string) string {
+	re := regexp.MustCompile(`\b_([^_]+)_\b`)
+	return re.ReplaceAllString(text, "*$1*")
+}
+
+func insertPullUrl(text string) string {
+	re := regexp.MustCompile(`https://github.com/Forceu/Gokapi/pull/(\d+)`)
+	return re.ReplaceAllString(text, "`#$1 <https://github.com/Forceu/Gokapi/pull/$1>`__")
+}
+
+func insertGhsaUrl(text string) string {
+	re := regexp.MustCompile(`(GHSA-....-....-....)`)
+	return re.ReplaceAllString(text, "`$1 <https://github.com/advisories/$1>`__")
+
 }
 
 func insertMissingNewlineForSublist(text string) string {
