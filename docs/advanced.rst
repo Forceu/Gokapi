@@ -116,9 +116,9 @@ Available environment variables
 |                                     |                                                                                        |                 |                             |
 |                                     | Default 10240 = 10GB                                                                   |                 |                             |
 +-------------------------------------+----------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| GOKAPI_MIN_FREE_SPACE               | Sets the minium free space on the disk in MB for accepting an upload                   | No              | 400                         |
+| GOKAPI_MIN_FREE_SPACE               | Sets the minimum free space on the disk in MB for accepting an upload                  | No              | 400                         |
 +-------------------------------------+----------------------------------------------------------------------------------------+-----------------+-----------------------------+
-| GOKAPI_MIN_LENGTH_PASSWORD          | Sets the minium password length. Value must be 6 or greater                            | No              | 8                           |
+| GOKAPI_MIN_LENGTH_PASSWORD          | Sets the minimum password length. Value must be 6 or greater                           | No              | 8                           |
 +-------------------------------------+----------------------------------------------------------------------------------------+-----------------+-----------------------------+
 | GOKAPI_PORT                         | Sets the webserver port                                                                | Yes             | 53842                       |
 +-------------------------------------+----------------------------------------------------------------------------------------+-----------------+-----------------------------+

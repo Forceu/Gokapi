@@ -195,7 +195,7 @@ Creating the client
 
 .. _oidcconfig_keycloak_opt:
 
-Addding a scope for exposing groups (optional)
+Adding a scope for exposing groups (optional)
 *****************************************************
 
 #. In the realm click on ``[Manage] Client Scopes`` and then ``Create Client Scope``
@@ -254,7 +254,7 @@ Gokapi Configuration
 
 
 .. note::
-   Logout through the Gokapi interface will not be possible anymore, unless the user logs out their Keycload account.
+   Logout through the Gokapi interface will not be possible anymore, unless the user logs out their Keycloak account.
    
 
 

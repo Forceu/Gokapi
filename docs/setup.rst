@@ -242,7 +242,7 @@ Use this to authenticate with an OIDC server, e.g. Google or an internal server 
 
 
 .. note::
-   If a user was disabled in OIDC, the they will still be able to login to Gokapi until the time specified in ``Recheck identity`` has passed. To prevent the user from
+   If a user was disabled in OIDC, they will still be able to login to Gokapi until the time specified in ``Recheck identity`` has passed. To prevent the user from
    logging in immediately, the respective Gokapi user account should be deleted through the UI.
    
    

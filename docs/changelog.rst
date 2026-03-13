@@ -16,17 +16,13 @@ v2.2.4 (2026-03-10)
 Changelog
 """""""""
 
-* Fixed three vulnerabilities with with moderate severity
+* Fixed three vulnerabilities with moderate severity
 * Added tooltips for user and API permissions
 * Added username badge to UI
 * Delete generated chunks earlier on error
 * Updated to Go1.26.1
 * Other minor bugs fixed
 
-Fixed CVEs
-""""""""""
-
-*Will be published in the future*
 
 
 **Full Changelog**: https://github.com/Forceu/Gokapi/compare/v2.2.3...v2.2.4
@@ -89,8 +85,8 @@ Changelog
 """""""""
 
 * Fixed broken end-to-end encryption - files were uploaded in plain-text since v2.2.0. Affected files were not displayed as encrypted. If your file had the "encrypted" tag in the download view, it was fully end-to-end encrypted.
-* Added option to add CIDR for trusted proxies (e.g. ````10.0.0.0/24````)
-* Docker subnets are automatically configured as trusted proxies. If this is not secure for your environment, set ````GOKAPI_DISABLE_DOCKER_TRUSTED_PROXY```` to true.
+* Added option to add CIDR for trusted proxies (e.g. ``10.0.0.0/24``)
+* Docker subnets are automatically configured as trusted proxies. If this is not secure for your environment, set ``GOKAPI_DISABLE_DOCKER_TRUSTED_PROXY`` to true.
 * Fixed caching issues with previous version
 
 Updating
@@ -143,7 +139,7 @@ Changelog
 * It is now possible to use a custom favicon 
 * Short-lived tokens are used instead of user API keys to improve security
 * Browser timezone is used instead of server timezone for UI
-* Added env variable to set a minium password length @masterbender 
+* Added env variable to set a minimum password length @masterbender 
 * Downloads can be made from the UI without increasing the download counter
 * gokapi-cli now supports downloads
 * Add deprecation alerts @spaghetti-coder

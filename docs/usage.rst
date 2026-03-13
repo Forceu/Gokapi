@@ -11,7 +11,7 @@ Upload Menu
 General
 ----------------
 
-After you have started the Gokapi server, you can login using the your credentials by going to `http(s)://your.gokapi.url/admin``
+After you have started the Gokapi server, you can login using your credentials by going to `http(s)://your.gokapi.url/admin``
 
 There you can list and manage files and upload new files. You will also see three fields:
 
