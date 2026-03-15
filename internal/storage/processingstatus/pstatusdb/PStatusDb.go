@@ -50,11 +50,10 @@ func Set(status models.UploadStatus) {
 }
 
 func deleteAllExpiredStatus() {
-	allStatus := getAll()
 	cutOff := time.Now().Add(-24 * time.Hour).Unix()
 	statusMutex.Lock()
 	newStatusMap := make(map[string]models.UploadStatus)
-	for _, status := range allStatus {
+	for _, status := range statusMap {
 		if status.Creation > cutOff {
 			newStatusMap[status.ChunkId] = status
 		}
