@@ -296,7 +296,19 @@ To begin, authenticate your session using the following command:
 
 You will be prompted to provide your server URL, an API key with upload permissions, and your end-to-end encryption key (if applicable).
 
-* **Storage:** By default, credentials are saved in plain text to ``gokapi-cli.json``. You may specify a custom path using the ``-c`` parameter.
+* **Storage:** Credentials are stored in plain text. The CLI searches the following locations in order and uses the first file it finds:
+
+  1. ``./gokapi-cli.json`` (current working directory)
+  2. ``~/.config/gokapi-cli/gokapi-cli.json``
+  3. ``/etc/gokapi-cli/gokapi-cli.json``
+
+  When running via Docker, only ``/app/config/gokapi-cli.json`` is used.
+
+  You may also specify a custom path using the ``-c`` parameter, which skips the search entirely.
+
+  .. note::
+     On first login (when no config file exists yet), credentials are always written to ``./gokapi-cli.json`` in the current working directory. If you intend to use a different location, specify it explicitly with ``-c``.
+
 * **Logout:** To logout, run ``gokapi-cli logout`` or manually delete the configuration file.
 
 .. warning::

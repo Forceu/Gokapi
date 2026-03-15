@@ -20,6 +20,8 @@ type configFile struct {
 	E2ekey []byte `json:"E2Ekey"`
 }
 
+var configPathLocation string
+
 // CreateLogin creates a login for the CLI.
 // It will ask the user for the URL and API key.
 // It will then test the connection and download the configuration.
@@ -114,6 +116,40 @@ func CreateLogin() {
 		os.Exit(1)
 	}
 	fmt.Println("Login successful")
+	fmt.Print("Credentials saved to: ")
+	fmt.Println(getConfigPath())
+}
+
+// getConfigPath returns the path to the configuration file.
+// It first checks if the user has specified a custom location using the --config flag.
+// If not, it checks the default locations.
+// If no existing file is found, it returns the default location.
+//
+// Caches the result! For tests, make sure to clear configPathLocation first
+func getConfigPath() string {
+	if configPathLocation != "" {
+		return configPathLocation
+	}
+	configPath, isDefault := cliflags.GetConfigLocation()
+	if !isDefault {
+		configPathLocation = configPath[0]
+		return configPathLocation
+	}
+	for _, location := range configPath {
+		exists, err := helper.FileExists(location)
+		if err != nil {
+			continue
+		}
+		if exists {
+			configPathLocation = location
+			break
+		}
+	}
+	// If no existing file was found, use the first default location
+	if configPathLocation == "" {
+		configPathLocation = configPath[0]
+	}
+	return configPathLocation
 }
 
 func save(url, apikey string, e2ekey []byte) error {
@@ -128,22 +164,20 @@ func save(url, apikey string, e2ekey []byte) error {
 		return err
 	}
 
-	configPath, _ := cliflags.GetConfigLocation()
-	return os.WriteFile(configPath, jsonData, 0600)
+	return os.WriteFile(getConfigPath(), jsonData, 0600)
 }
 
 // Load initialises the configuration by reading login information from a file and setting up CLI API parameters.
 // Verifies the existence of the configuration file and validates its integrity, terminating on errors.
 func Load() {
-	configPath, _ := cliflags.GetConfigLocation()
-	exists, err := helper.FileExists(configPath)
+	exists, err := helper.FileExists(getConfigPath())
 	helper.Check(err)
 	if !exists {
 		fmt.Println("ERROR: No login information found")
 		fmt.Println("Please run 'gokapi-cli login' to create a login")
 		os.Exit(1)
 	}
-	data, err := os.ReadFile(configPath)
+	data, err := os.ReadFile(getConfigPath())
 	helper.Check(err)
 
 	var config configFile
@@ -159,8 +193,7 @@ func Load() {
 // Delete deletes the login information file.
 // It will return an error if the file exists but could not be deleted.
 func Delete() error {
-	configPath, _ := cliflags.GetConfigLocation()
-	exists, err := helper.FileExists(configPath)
+	exists, err := helper.FileExists(getConfigPath())
 	if err != nil {
 		fmt.Println("ERROR: Could not check if login information exists")
 		fmt.Println(err)
@@ -169,5 +202,5 @@ func Delete() error {
 	if !exists {
 		return nil
 	}
-	return os.Remove(configPath)
+	return os.Remove(getConfigPath())
 }

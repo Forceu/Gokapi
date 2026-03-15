@@ -27,7 +27,7 @@ const (
 	ModeInvalid
 )
 
-const version = "v1.1.2"
+const version = "v1.1.3"
 
 // FlagConfig contains the parameters for the upload command.
 type FlagConfig struct {
@@ -234,19 +234,26 @@ func getDockerUpload(isArchive bool) (bool, string) {
 }
 
 // GetConfigLocation returns the path to the configuration file. Returns true if the default file is used
-func GetConfigLocation() (string, bool) {
+func GetConfigLocation() ([]string, bool) {
 	for i := 2; i < len(os.Args); i++ {
 		switch os.Args[i] {
 		case "-c":
 			fallthrough
 		case "--configuration":
-			return getParameter(&i), false
+			return []string{getParameter(&i)}, false
 		}
 	}
 	if environment.IsDockerInstance() {
-		return cliconstants.DockerFolderConfigFile, true
+		return []string{cliconstants.DockerFolderConfigFile}, true
 	}
-	return cliconstants.DefaultConfigFileName, true
+	var result []string
+	result = append(result, cliconstants.DefaultConfigFileName)
+	dirname, err := os.UserHomeDir()
+	if err == nil {
+		result = append(result, filepath.Join(dirname, cliconstants.DefaultUserConfigPathNoHome))
+	}
+	result = append(result, cliconstants.DefaultUserConfigPathGlobal)
+	return result, true
 }
 
 func getParameter(position *int) string {
