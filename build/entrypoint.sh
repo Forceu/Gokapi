@@ -8,6 +8,15 @@ cd /src/gokapi
 go generate ./...
 
 
+VERSION_GOKAPI=$(grep -oP 'const versionGokapi = "\K[^"]+' cmd/gokapi/Main.go)
+VERSION_CLI=$(grep -oP 'const version = "v\K[^"]+' cmd/cli-uploader/cliflags/cliflags.go)
+ 
+echo
+echo "Gokapi version : ${VERSION_GOKAPI}"
+echo "CLI version    : ${VERSION_CLI}"
+echo
+
+
 echo
 echo "Building CLI Binary"
 echo
@@ -15,14 +24,15 @@ echo
 for target in $targets; do
 	os="$(echo $target | cut -d '/' -f1)"
 	arch="$(echo $target | cut -d '/' -f2)"
-	output="build/gokapi-cli-${os}_${arch}"
+	output="build/gokapi-cli"
+	zipname="$output-${VERSION_CLI}_${os}-${arch}.zip"
 	if [ $os = "windows" ]; then
 		output+='.exe'
 	fi
 
 	echo "----> Building Gokapi CLI for $target"
 	GOOS=$os GOARCH=$arch CGO_ENABLED=0 go build -ldflags="-s -w -X 'github.com/forceu/gokapi/internal/environment.Builder=Github Release Builder' -X 'github.com/forceu/gokapi/internal/environment.BuildTime=$(date)'" -o $output github.com/forceu/gokapi/cmd/cli-uploader
-	zip -j $output.zip $output >/dev/null
+	zip -j $zipname $output >/dev/null
 	rm $output
 done
 
@@ -33,14 +43,15 @@ echo
 for target in $targets; do
 	os="$(echo $target | cut -d '/' -f1)"
 	arch="$(echo $target | cut -d '/' -f2)"
-	output="build/gokapi-${os}_${arch}"
+	output="build/gokapi"
+	zipname="$output-${VERSION_GOKAPI}_${os}-${arch}.zip"
 	if [ $os = "windows" ]; then
 		output+='.exe'
 	fi
 
 	echo "----> Building Gokapi for $target"
 	GOOS=$os GOARCH=$arch CGO_ENABLED=0 go build -ldflags="-s -w -X 'github.com/forceu/gokapi/internal/environment.Builder=Github Release Builder' -X 'github.com/forceu/gokapi/internal/environment.BuildTime=$(date)'" -o $output github.com/forceu/gokapi/cmd/gokapi
-	zip -j $output.zip $output >/dev/null
+	zip -j $zipname $output >/dev/null
 	rm $output
 done
 
