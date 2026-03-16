@@ -142,7 +142,7 @@ func matchesWithWildcard(pattern, input string) (bool, error) {
 	components := strings.Split(pattern, "*")
 	if len(components) == 1 {
 		// if len is 1, there are no *'s, return exact match pattern
-		return regexp.MatchString("^"+pattern+"$", input)
+		return strings.ToLower(pattern) == strings.ToLower(input), nil
 	}
 	var result strings.Builder
 	for i, literal := range components {
