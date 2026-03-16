@@ -697,7 +697,7 @@ function addRow(item) {
 
 function createButtonGroup(item) {
     const groupContainer = document.createElement("div");
-    groupContainer.className = "btn-toolbar";
+    groupContainer.className = "btn-toolbar justify-content-end";
     groupContainer.setAttribute("role", "toolbar");
 
     const group1 = document.createElement("div");
@@ -804,7 +804,7 @@ function createButtonGroup(item) {
 
     // Button group for Download/Edit/Delete
     const group2 = document.createElement("div");
-    group2.className = "btn-group me-2";
+    group2.className = "btn-group";
     group2.setAttribute("role", "group");
     
     

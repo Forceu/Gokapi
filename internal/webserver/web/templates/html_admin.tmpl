@@ -25,36 +25,73 @@
 		<p></p>
 		
 		<br>
-		<div class="container-md">
-		  <div class="row">
-			  <div class="form-group col">
-				<input class="form-check-input" type="checkbox" name="enableDownloadLimit" id="enableDownloadLimit" onchange="checkBoxChanged(this, 'allowedDownloads')" value="" aria-label="Enable Download Limit" checked>
-	     			<label class="control-label small" for="allowedDownloads">Limit Downloads</label>
-				<div class="input-group mb-3">
-					<input type="number" class="form-control admin-input" value="1" name="allowedDownloads" id="allowedDownloads" min="1" style="text-align: right;" data-allow-regular-paste>
-	  				<span class="input-group-text">Downloads</span>
-				</div>
-			 </div>
-  			 <div class="break"></div>
-	   		 <div class="form-group col">
-				<input class="form-check-input" type="checkbox" name="enableTimeLimit" id="enableTimeLimit" onchange="checkBoxChanged(this, 'expiryDays')" value="" aria-label="Enable Time Limit" checked>
-	     			<label class="control-label  small" for="expiryDays">Expiry</label>
-				<div class="input-group mb-3">
-					<input type="number" class="form-control admin-input" value="14" name="expiryDays" id="expiryDays" min="1" max="100000" style="text-align: right;" data-allow-regular-paste>
-	  				<span class="input-group-text">Days</span>
-				</div>
-			 </div>
-  			 <div class="break"></div>
-	    		 <div class="form-group col">
-				<input class="form-check-input" type="checkbox" name="enablePassword" id="enablePassword" onchange="checkBoxChanged(this, 'password')" value="" aria-label="Enable Password Protection">
-	     			<label class="control-label  small" for="password">Password</label>
-				<input class="form-control admin-input" value="" name="password" id="password" placeholder="None" disabled  data-allow-regular-paste>
-			  </div>
+		<div class="upload-options-grid">
+
+
+		  <div class="upload-option-card">
+		    <div class="upload-option-header">
+		      <div class="d-flex align-items-center gap-2">
+		        <i class="bi bi-arrow-down-circle upload-option-icon"></i>
+		        <span class="upload-option-label">Download Limit</span>
+		      </div>
+		      <div class="form-check form-switch mb-0">
+		        <input class="form-check-input upload-option-toggle" type="checkbox" role="switch"
+		               name="enableDownloadLimit" id="enableDownloadLimit"
+		               onchange="checkBoxChanged(this, 'allowedDownloads')" checked
+		               aria-label="Enable Download Limit">
+		      </div>
+		    </div>
+		    <div class="input-group upload-option-input-group">
+		      <input type="number" class="form-control admin-input" value="1"
+		             name="allowedDownloads" id="allowedDownloads" min="1"
+		             style="text-align: right;" data-allow-regular-paste>
+		      <span class="input-group-text upload-option-suffix">Downloads</span>
+		    </div>
+		  </div>
+
+		  <div class="upload-option-card">
+		    <div class="upload-option-header">
+		      <div class="d-flex align-items-center gap-2">
+		        <i class="bi bi-calendar-x upload-option-icon"></i>
+		        <span class="upload-option-label">Expiry</span>
+		      </div>
+		      <div class="form-check form-switch mb-0">
+		        <input class="form-check-input upload-option-toggle" type="checkbox" role="switch"
+		               name="enableTimeLimit" id="enableTimeLimit"
+		               onchange="checkBoxChanged(this, 'expiryDays')" checked
+		               aria-label="Enable Time Limit">
+		      </div>
+		    </div>
+		    <div class="input-group upload-option-input-group">
+		      <input type="number" class="form-control admin-input" value="14"
+		             name="expiryDays" id="expiryDays" min="1" max="100000"
+		             style="text-align: right;" data-allow-regular-paste>
+		      <span class="input-group-text upload-option-suffix">Days</span>
+		    </div>
+		  </div>
+
+		  <div class="upload-option-card">
+		    <div class="upload-option-header">
+		      <div class="d-flex align-items-center gap-2">
+		        <i class="bi bi-key upload-option-icon"></i>
+		        <span class="upload-option-label">Password</span>
+		      </div>
+		      <div class="form-check form-switch mb-0">
+		        <input class="form-check-input upload-option-toggle" type="checkbox" role="switch"
+		               name="enablePassword" id="enablePassword"
+		               onchange="checkBoxChanged(this, 'password')"
+		               aria-label="Enable Password Protection">
+		      </div>
+		    </div>
+		    <input class="form-control admin-input upload-option-input-group" value=""
+		           name="password" id="password" placeholder="No password" disabled
+		           data-allow-regular-paste>
+		  </div>
+
+		</div>
 <div id="errordiv" class="alert alert-danger" style="display:none">
   <span id="errormessage" ></span>
 </div>
-		  </div>
-		</div>
 		<br><br>
 		<div class="table-responsive">
 			<table id="maintable" class="table table-dark">
@@ -91,12 +128,12 @@
 						<td id="cell-downloads-{{ .Id }}">{{ .DownloadCount }}</td>
 						<td><a id="url-href-{{ .Id }}" target="_blank" href="{{ .UrlDownload }}">{{ .Id }}</a>{{ if .IsPasswordProtected }}  <i title="Password protected" class="bi bi-key"></i>{{ end }}</td>
 						<td>
-						<div class="btn-toolbar" role="toolbar" >
+						<div class="btn-toolbar justify-content-end" role="toolbar" >
 						  <div class="btn-group me-2" role="group">
 						     {{ template "admin_button_copyurl" (newAdminButtonContext . $.ActiveUser)}}
 						     {{ template "admin_button_share" (newAdminButtonContext . $.ActiveUser)}}
 						  </div>
-						  <div class="btn-group me-2" role="group">
+						  <div class="btn-group" role="group">
 						     {{ template "admin_button_download" (newAdminButtonContext . $.ActiveUser) }}
 						     {{ template "admin_button_edit" (newAdminButtonContext . $.ActiveUser) }}
 						     {{ template "admin_button_delete" (newAdminButtonContext . $.ActiveUser) }}

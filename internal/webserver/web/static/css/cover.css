@@ -738,3 +738,98 @@ tr.no-bottom-border td {
 }
 
 
+
+
+/* ── Upload option cards ─────────────────────────────────────────── */
+
+.upload-options-section-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #6c757d;
+    margin-bottom: 0.5rem;
+}
+
+.upload-options-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+@media (max-width: 767px) {
+    .upload-options-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.upload-option-card {
+    background-color: #212529;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.upload-option-card:has(.upload-option-toggle:checked) {
+    border-color: rgba(13, 110, 253, 0.5);
+    box-shadow: 0 0 0 1px rgba(13, 110, 253, 0.2);
+}
+
+.upload-option-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.4rem;
+}
+
+.upload-option-icon {
+    font-size: 0.85rem;
+    color: #6ea8fe;
+    opacity: 0.9;
+}
+
+.upload-option-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #adb5bd;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.upload-option-toggle {
+    cursor: pointer;
+}
+
+.upload-option-input-group {
+    margin-top: 0;
+}
+
+.upload-option-card .form-control {
+    background-color: #2b3035;
+    border-color: rgba(255, 255, 255, 0.15);
+    color: #dee2e6;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+.upload-option-card .form-control:disabled {
+    background-color: #262a2e;
+    color: #555;
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+.upload-option-suffix {
+    background-color: #2b3035;
+    border-color: rgba(255, 255, 255, 0.15);
+    color: #adb5bd;
+    font-size: 0.8rem;
+    padding: 0.25rem 0.5rem;
+}
+
+/* ── Number input spinner color (Chrome/Edge) ───────────────────── */
+
+.upload-option-card input[type="number"]::-webkit-inner-spin-button {
+    filter: invert(1) brightness(0.6);
+}
