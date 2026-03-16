@@ -158,9 +158,12 @@
 		<h1 class="modal-title fs-5" id="m_urequestlabel">Title</h1>
 	      </div>
 	      <div class="modal-body">
-	      
 		<div class="input-group mb-3">
-		  <span class="input-group-text" id="mTitle">Title&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+	         <!-- Hidden checkbox to have same spacing -->
+	     	 <div class="input-group-text">
+  			<input type="checkbox" style="visibility: hidden" aria-hidden="true">
+		</div>
+		  <span class="input-group-text modal-samesize-input-filerequest" id="mTitle">Title</span>
 		  <input type="text" id="mFriendlyName" class="form-control" placeholder="Friendly name" aria-label="Friendly name" aria-describedby="mTitle">
 		</div>
 
@@ -168,7 +171,7 @@
 		  <div class="input-group-text">
       			<input type="checkbox" id="mc_maxfiles"  aria-label="Max files" title="Max files"  data-toggle-target="mi_maxfiles" onchange="handleEditCheckboxChange(this)">
    		 </div>
-		  <span class="input-group-text" id="mMaxFiles">Max Files</span>
+		  <span class="input-group-text modal-samesize-input-filerequest" id="mMaxFiles">Max Files</span>
 		  <input type="number" min="1" id="mi_maxfiles" onChange="checkMaxNumber(this)" disabled class="form-control" aria-label="Max Files" aria-describedby="mMaxFiles" data-allow-regular-paste>
 		</div>
 
@@ -177,7 +180,7 @@
       			<input type="checkbox" id="mc_maxsize"  aria-label="Max Size" title="Max Size" 
       			 data-toggle-target="mi_maxsize" onchange="handleEditCheckboxChange(this)">
    		 </div>
-		  <span class="input-group-text" id="tMaxSize">Max Size&nbsp;</span>
+		  <span class="input-group-text modal-samesize-input-filerequest" id="tMaxSize">Max Size</span>
 		  <input type="number" min="1" id="mi_maxsize"  onChange="checkMaxNumber(this)" disabled class="form-control" aria-label="Max Size" aria-describedby="tMaxSize" data-allow-regular-paste>
 		  <span class="input-group-text">MB</span>
 		</div>
@@ -186,12 +189,16 @@
 		  <div class="input-group-text">
       			<input id="mc_expiry" type="checkbox" aria-label="Expiry" title="Expiry"  data-toggle-target="mi_expiry" data-timestamp="" onchange="handleEditCheckboxChange(this)" >
    		 </div>
-		  <span class="input-group-text" id="edit_expdate">Expiry&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+		  <span class="input-group-text modal-samesize-input-filerequest" id="edit_expdate">Expiry</span>
 		  <input type="text" id="mi_expiry" disabled class="form-control" aria-label="Expiry" aria-describedby="edit_expdate"  data-allow-regular-paste>
 		</div>
 		
 		<div class="input-group mb-3">
-		  <span class="input-group-text" id="mdNotes">Notes&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+	         <!-- Hidden checkbox to have same spacing -->
+	     	 <div class="input-group-text">
+  			<input type="checkbox" style="visibility: hidden" aria-hidden="true">
+		</div>
+		  <span class="input-group-text modal-samesize-input-filerequest" id="mdNotes">Notes</span>
 		  <input type="text" id="mNotes" class="form-control" placeholder="Notes about the request" aria-label="Notes" aria-describedby="mdNotes">
 		</div>
 	      </div>

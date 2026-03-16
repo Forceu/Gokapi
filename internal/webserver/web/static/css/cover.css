@@ -833,3 +833,11 @@ tr.no-bottom-border td {
 .upload-option-card input[type="number"]::-webkit-inner-spin-button {
     filter: invert(1) brightness(0.6);
 }
+
+
+.modal-samesize-input-edit {
+   width: 11rem;
+}
+.modal-samesize-input-filerequest {
+   width: 7rem;
+}
