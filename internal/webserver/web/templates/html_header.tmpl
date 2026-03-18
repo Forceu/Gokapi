@@ -91,7 +91,7 @@
             {{ if .ActiveUser.HasPermissionManageLogs }}
             <a class="nav-link {{ if eq .ActiveView 1 }}active{{ end }}" href="./logs">Status</a>
             {{ end }}
-            {{ if .IsLogoutAvailable }}<a class="nav-link" href="./logout">Logout</a>{{ end }}
+            {{ if .IsLogoutAvailable }}<a class="nav-link" href="#" onclick="doLogout()">Logout</a>{{ end }}
           </nav>
         </div>
       </header>
