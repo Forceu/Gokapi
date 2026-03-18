@@ -104,3 +104,23 @@ function downloadFilesZipWithPresign(ids, filename) {
             console.error('Error:', error);
         });
 }
+
+/**
+ * doLogout
+ *
+ * Called by the Logout link's onclick. Notifies the SharedWorker (if active)
+ * to drop this port – and close the SSE connection if no other tabs remain –
+ * then navigates to ./logout. Using an explicit message here is more precise
+ * than beforeunload, which would fire on every navigation (refresh, back, etc.)
+ * and could prematurely tear down the worker while other tabs are still open.
+ */
+function doLogout(event) {
+    if (typeof sseWorkerPort !== "undefined" && sseWorkerPort !== null) {
+        // "shutdown" tells the worker to close the SSE connection and notify
+        // all other tabs, not just this one, since the session is now invalid
+        // for everyone. Each tab's onmessage handler will redirect to ./login.
+        sseIsShuttingDown = true;
+        sseWorkerPort.postMessage({ type: "shutdown" });
+    }
+    window.location.href = "./logout";
+}

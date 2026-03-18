@@ -65,6 +65,12 @@ func getPaths() []converter {
 		Name:       "Streamsaver JS",
 	})
 	result = append(result, converter{
+		InputPath:  pathPrefix + "js/sse-worker.js",
+		OutputPath: pathPrefix + "js/min/sse-worker.min.js",
+		Type:       "text/javascript",
+		Name:       "SSE Worker JS",
+	})
+	result = append(result, converter{
 		InputPath:  pathPrefix + "js/wasm_exec.js",
 		OutputPath: pathPrefix + "js/min/wasm_exec.min.js",
 		Type:       "text/javascript",

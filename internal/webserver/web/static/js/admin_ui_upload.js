@@ -550,20 +550,86 @@ function setNewDownloadCount(id, downloadCount, downloadsRemaining) {
 }
 
 
+/**
+ * sseWorkerPort holds the active SharedWorker MessagePort so that sseLogout()
+ * in admin_ui_allPages.js can send a "close" message before navigating away.
+ * Null when running in direct-EventSource fallback mode.
+ */
+var sseWorkerPort = null;
+var sseIsShuttingDown = false;
+
+/**
+ * registerChangeHandler
+ *
+ * Uses a SharedWorker to hold a single SSE connection that is shared across
+ * all open tabs. This prevents hitting the browser's per-origin HTTP/1.1
+ * connection limit (typically 6), which would otherwise block new tabs from
+ * receiving updates when many admin pages are open simultaneously.
+ *
+ * Falls back to a direct EventSource when SharedWorker is unavailable
+ * (e.g. Firefox private-browsing mode, or very old browsers).
+ */
 function registerChangeHandler() {
+    if (typeof SharedWorker !== "undefined") {
+        try {
+            const worker = new SharedWorker("./js/sse-worker.js");
+
+            worker.port.onmessage = (event) => {
+                if (event.data.type === "message") {
+                    parseSseData(event.data.data);
+                } else if (event.data.type === "error") {
+                    console.error("SSE worker connection error:", event.data.detail);
+                } else if (event.data.type === "shutdown" && !sseIsShuttingDown) {
+                    // Another tab logged out — the session is gone for everyone.
+                    setTimeout(function() {  
+                   	 window.location.href = "./login";
+		     }, 1000);
+                } else if (event.data.type === "log") {
+                    const { level, message, detail } = event.data;
+                    if (detail) {
+                        console[level](message, detail);
+                    } else {
+                        console[level](message);
+                    }
+                }
+            };
+
+            worker.onerror = (err) => {
+                // Worker itself failed to load – fall back to a direct connection.
+                console.warn("SharedWorker failed, falling back to direct SSE:", err);
+                sseWorkerPort = null;
+                _registerDirectSSE();
+            };
+
+            worker.port.start();
+            sseWorkerPort = worker.port;
+            return;
+        } catch (e) {
+            console.warn("SharedWorker unavailable, falling back to direct SSE:", e);
+        }
+    }
+    _registerDirectSSE();
+}
+
+/**
+ * _registerDirectSSE
+ *
+ * Fallback: open an EventSource directly in this tab. Used when SharedWorker
+ * is not supported or fails to load. Each tab will hold its own connection,
+ * which may hit browser connection limits if many tabs are open.
+ */
+function _registerDirectSSE() {
     const source = new EventSource("./uploadStatus");
     source.onmessage = (event) => {
         parseSseData(event.data);
     };
     source.onerror = (error) => {
-
         // Check for net::ERR_HTTP2_PROTOCOL_ERROR 200 (OK) and ignore it
         if (error.target.readyState !== EventSource.CLOSED) {
             source.close();
         }
-        console.log("Reconnecting to SSE...");
-        // Attempt to reconnect after a delay
-        setTimeout(registerChangeHandler, 5000);
+        console.log("Reconnecting to SSE (direct)...");
+        setTimeout(_registerDirectSSE, 5000);
     };
 }
 
