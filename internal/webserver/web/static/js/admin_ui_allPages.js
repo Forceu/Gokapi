@@ -119,7 +119,6 @@ function doLogout(event) {
         // "shutdown" tells the worker to close the SSE connection and notify
         // all other tabs, not just this one, since the session is now invalid
         // for everyone. Each tab's onmessage handler will redirect to ./login.
-        sseIsShuttingDown = true;
         sseWorkerPort.postMessage({ type: "shutdown" });
     }
     window.location.href = "./logout";

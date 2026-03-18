@@ -10,6 +10,7 @@
 // Will be loaded from [root]/js/min
 const SSE_URL = "../../uploadStatus";
 const RECONNECT_DELAY_MS = 5000;
+const DEBUG_OUTPUT = false;
 
 /** @type {MessagePort[]} */
 const ports = [];
@@ -26,8 +27,22 @@ function broadcast(data) {
     }
 }
 
-
-const DEBUG_OUTPUT = false;
+/**
+ * broadcastExcept sends data to every port except the one that originated
+ * the message, so the sending tab doesn't process its own action twice.
+ * @param {Object} data
+ * @param {MessagePort} senderPort
+ */
+function broadcastExcept(data, senderPort) {
+    for (const port of ports) {
+        if (port === senderPort) continue;
+        try {
+            port.postMessage(data);
+        } catch (_) {
+            // port may have gone away
+        }
+    }
+}
 
 /**
  * broadcastLog forwards a log entry to all connected tabs so it appears in
@@ -109,7 +124,7 @@ function removePort(port) {
  * Used when any tab triggers a logout, since the session is now invalid
  * for all tabs — not just the one the user clicked logout in.
  */
-function shutdown() {
+function shutdown(port) {
     broadcastLog("log", "[sse-worker] Shutdown requested, closing all ports", { totalPorts: ports.length });
     if (reconnectTimer !== null) {
         clearTimeout(reconnectTimer);
@@ -120,7 +135,7 @@ function shutdown() {
         source = null;
     }
     // Notify all tabs so they can react (e.g. redirect to login)
-    broadcast({ type: "shutdown" });
+    broadcastExcept({ type: "shutdown" },port);
     ports.length = 0;
 }
 
@@ -134,7 +149,13 @@ self.onconnect = (event) => {
         if (msg.data && msg.data.type === "close") {
             removePort(port);
         } else if (msg.data && msg.data.type === "shutdown") {
-            shutdown();
+            shutdown(port);
+        } else if (msg.data && msg.data.type === "fileAdded") {
+            // Relay to all other tabs so they can add the row to their table
+            broadcastExcept({ type: "fileAdded", item: msg.data.item }, port);
+        } else if (msg.data && msg.data.type === "fileDeleted") {
+            // Relay to all other tabs so they can remove the row from their table
+            broadcastExcept({ type: "fileDeleted", id: msg.data.id }, port);
         }
     };
 

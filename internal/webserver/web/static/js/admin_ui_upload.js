@@ -255,6 +255,7 @@ function requestFileInfo(fileId, uid) {
     apiFilesListById(fileId)
         .then(data => {
             addRow(data);
+            notifyWorker({ type: "fileAdded", item: data });
             let file = dropzoneGetFile(uid);
             if (file == null) {
                 return;
@@ -491,6 +492,7 @@ function deleteFile(id) {
         .then(data => {
             changeRowCount(false, document.getElementById("row-" + id));
             showToastFileDeletion(id);
+            notifyWorker({ type: "fileDeleted", id: id });
         })
         .catch(error => {
             alert("Unable to delete file: " + error);
@@ -556,7 +558,18 @@ function setNewDownloadCount(id, downloadCount, downloadsRemaining) {
  * Null when running in direct-EventSource fallback mode.
  */
 var sseWorkerPort = null;
-var sseIsShuttingDown = false;
+
+/**
+ * notifyWorker posts a message to the SharedWorker if one is active.
+ * The worker will relay it to all other connected tabs.
+ * Safe to call in fallback (direct SSE) mode — it's a no-op when the port is null.
+ * @param {Object} msg
+ */
+function notifyWorker(msg) {
+    if (sseWorkerPort !== null) {
+        sseWorkerPort.postMessage(msg);
+    }
+}
 
 /**
  * registerChangeHandler
@@ -579,11 +592,24 @@ function registerChangeHandler() {
                     parseSseData(event.data.data);
                 } else if (event.data.type === "error") {
                     console.error("SSE worker connection error:", event.data.detail);
-                } else if (event.data.type === "shutdown" && !sseIsShuttingDown) {
+                } else if (event.data.type === "shutdown") {
                     // Another tab logged out — the session is gone for everyone.
                     setTimeout(function() {  
                    	 window.location.href = "./login";
 		     }, 1000);
+                } else if (event.data.type === "fileAdded") {
+                    // Another tab finished an upload or restored a file — add the
+                    // row if it isn't already present (guard against duplicate IDs).
+                    if (document.getElementById("row-" + sanitizeId(event.data.item.Id)) == null) {
+                        addRow(event.data.item);
+                    }
+                } else if (event.data.type === "fileDeleted") {
+                    // Another tab deleted a file — remove the row silently (no toast,
+                    // since this tab didn't initiate the deletion).
+                    let row = document.getElementById("row-" + sanitizeId(event.data.id));
+                    if (row != null) {
+                        changeRowCount(false, row);
+                    }
                 } else if (event.data.type === "log") {
                     const { level, message, detail } = event.data;
                     if (detail) {
@@ -1018,6 +1044,7 @@ function handleUndo(button) {
     apiFilesRestore(button.dataset.fileid)
         .then(data => {
             addRow(data.FileInfo);
+            notifyWorker({ type: "fileAdded", item: data.FileInfo });
             if (isE2EEnabled) {
                 GokapiE2EDecryptMenu();
             }
