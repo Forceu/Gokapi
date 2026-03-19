@@ -869,12 +869,49 @@ async function apiE2eGet() {
             throw new Error(`Request failed with status: ${response.status}`);
         }
         return await response.text();
-        // return await response.json();
     } catch (error) {
         console.error("Error in apiE2eGet:", error);
         throw error;
     }
 }
+
+
+async function apiE2eMutexLockUnlock(doUnlock) {
+    let apiUrl = './api/e2e/mutex/lock';
+    if (doUnlock) {
+    	apiUrl = './api/e2e/mutex/unlock';
+    }
+    const reqPerm = 'PERM_UPLOAD';
+
+    let token;
+
+    try {
+        token = await getToken(reqPerm, false);
+    } catch (error) {
+        console.error("Unable to gain permission token:", error);
+        throw error;
+    }
+
+    const requestOptions = {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'apikey': token
+        },
+    };
+
+    try {
+        const response = await fetch(apiUrl, requestOptions);
+        if (!response.ok) {
+            throw new Error(`Request failed with status: ${response.status}`);
+        }
+        return await response.text();
+    } catch (error) {
+        console.error("Error in apiE2eMutexLock:", error);
+        throw error;
+    }
+}
+
 
 
 async function apiE2eStore(content) {

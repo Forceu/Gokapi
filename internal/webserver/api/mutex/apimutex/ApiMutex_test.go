@@ -1,4 +1,4 @@
-package apiMutex
+package apimutex
 
 import (
 	"fmt"

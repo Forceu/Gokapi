@@ -365,9 +365,6 @@ Upload a file that expires in 10 days, has no download limit, and is protected b
 
    gokapi-cli upload -f /tmp/example --expiry-days 10 --password abcd
 
-.. warning::
-   To avoid race conditions, do not initiate multiple simultaneous uploads if end-to-end encryption is enabled.
-
    
 Docker
 ---------------------------------

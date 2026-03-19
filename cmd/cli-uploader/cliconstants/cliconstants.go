@@ -1,10 +1,10 @@
 package cliconstants
 
 // MinGokapiVersionInt is the minimum version of the gokapi server that is supported by the cli
-const MinGokapiVersionInt = 20200
+const MinGokapiVersionInt = 20205
 
 // MinGokapiVersionStr is the minimum version of the gokapi server that is supported by the cli
-const MinGokapiVersionStr = "2.2.0"
+const MinGokapiVersionStr = "2.2.5"
 
 // DefaultConfigFileName is the default config file name
 const DefaultConfigFileName = "gokapi-cli.json"

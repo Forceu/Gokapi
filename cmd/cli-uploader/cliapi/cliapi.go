@@ -342,7 +342,7 @@ func DownloadFile(downloadParams cliflags.FlagConfig) error {
 
 // getE2eCipher retrieves the per-file cipher and real filename for an E2E encrypted file
 func getE2eCipher(fileId string) ([]byte, string, error) {
-	e2eInfo, err := GetE2eInfo()
+	e2eInfo, err := GetE2eInfo(true)
 	if err != nil {
 		return nil, "", err
 	}
@@ -483,10 +483,28 @@ func completeChunk(uid, filename string, filesize, realsize int64, useE2e bool, 
 	return parsedResult.FileInfo, nil
 }
 
+func lockUnlockE2eLock(isUnlock bool) error {
+	var url = gokapiUrl + "/e2e/mutex/lock"
+	if isUnlock {
+		url = gokapiUrl + "/e2e/mutex/unlock"
+	}
+	_, err := getUrl(url, []header{}, false)
+	return err
+}
+
 // GetE2eInfo returns the end-to-end encryption information of the Gokapi server for this user
-func GetE2eInfo() (models.E2EInfoPlainText, error) {
+func GetE2eInfo(unlockLock bool) (models.E2EInfoPlainText, error) {
 	var result models.E2EInfoEncrypted
 	var fileInfo models.E2EInfoPlainText
+
+	err := lockUnlockE2eLock(false)
+	if err != nil {
+		return models.E2EInfoPlainText{}, err
+	}
+	if unlockLock {
+		defer lockUnlockE2eLock(true)
+	}
+
 	resultJson, err := getUrl(gokapiUrl+"/e2e/get", []header{}, false)
 	if err != nil {
 		return models.E2EInfoPlainText{}, err
@@ -503,7 +521,8 @@ func GetE2eInfo() (models.E2EInfoPlainText, error) {
 }
 
 func addE2EFileInfo(file models.E2EFile) error {
-	infoPlain, err := GetE2eInfo()
+	infoPlain, err := GetE2eInfo(false)
+	defer lockUnlockE2eLock(true)
 	if err != nil {
 		return err
 	}
@@ -515,6 +534,8 @@ func addE2EFileInfo(file models.E2EFile) error {
 	return setE2eInfo(output)
 }
 
+// setE2eInfo sets the end-to-end encryption information of the Gokapi server for this user
+// it does NOT set a lock itself on the Gokapi server
 func setE2eInfo(input models.E2EInfoEncrypted) error {
 	outputJson, err := json.Marshal(input)
 	if err != nil {
