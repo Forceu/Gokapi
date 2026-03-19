@@ -22,7 +22,8 @@ import (
 	"github.com/forceu/gokapi/internal/storage/chunking/chunkreservation"
 	"github.com/forceu/gokapi/internal/storage/filerequest"
 	"github.com/forceu/gokapi/internal/storage/presign"
-	"github.com/forceu/gokapi/internal/webserver/api/apiMutex"
+	"github.com/forceu/gokapi/internal/webserver/api/mutex/apimutex"
+	"github.com/forceu/gokapi/internal/webserver/api/mutex/e2emutex"
 	"github.com/forceu/gokapi/internal/webserver/authentication/users"
 	"github.com/forceu/gokapi/internal/webserver/errorHandling/errorcodes"
 	"github.com/forceu/gokapi/internal/webserver/fileupload"
@@ -78,8 +79,8 @@ func apiEditFile(w http.ResponseWriter, r requestParser, user models.User) {
 	if !ok {
 		panic("invalid parameter passed")
 	}
-	apiMutex.Lock(apiMutex.TypeMetaData, request.Id)
-	defer apiMutex.Unlock(apiMutex.TypeMetaData, request.Id)
+	apimutex.Lock(apimutex.TypeMetaData, request.Id)
+	defer apimutex.Unlock(apimutex.TypeMetaData, request.Id)
 
 	file, ok := database.GetMetaDataById(request.Id)
 	if !ok {
@@ -166,8 +167,8 @@ func apiModifyApiKey(w http.ResponseWriter, r requestParser, user models.User) {
 	if !ok {
 		panic("invalid parameter passed")
 	}
-	apiMutex.Lock(apiMutex.TypeApiKey, request.KeyId)
-	defer apiMutex.Unlock(apiMutex.TypeApiKey, request.KeyId)
+	apimutex.Lock(apimutex.TypeApiKey, request.KeyId)
+	defer apimutex.Unlock(apimutex.TypeApiKey, request.KeyId)
 
 	apiKeyOwner, apiKey, ok := isValidKeyForEditing(request.KeyId)
 	if !ok {
@@ -304,8 +305,8 @@ func renameApiKeyFriendlyName(id string, newName string) error {
 		newName = "Unnamed key"
 	}
 
-	apiMutex.Lock(apiMutex.TypeApiKey, id)
-	defer apiMutex.Unlock(apiMutex.TypeApiKey, id)
+	apimutex.Lock(apimutex.TypeApiKey, id)
+	defer apimutex.Unlock(apimutex.TypeApiKey, id)
 
 	key, ok := database.GetApiKey(id)
 	if !ok {
@@ -732,8 +733,8 @@ func apiChangeFileOwner(w http.ResponseWriter, r requestParser, user models.User
 		panic("invalid parameter passed")
 	}
 
-	apiMutex.Lock(apiMutex.TypeMetaData, request.Id)
-	defer apiMutex.Unlock(apiMutex.TypeMetaData, request.Id)
+	apimutex.Lock(apimutex.TypeMetaData, request.Id)
+	defer apimutex.Unlock(apimutex.TypeMetaData, request.Id)
 
 	file, ok := storage.GetFile(request.Id)
 	if !ok {
@@ -827,8 +828,8 @@ func apiModifyUser(w http.ResponseWriter, r requestParser, user models.User) {
 		panic("invalid parameter passed")
 	}
 	idStr := strconv.Itoa(request.Id)
-	apiMutex.Lock(apiMutex.TypeUser, idStr)
-	defer apiMutex.Unlock(apiMutex.TypeUser, idStr)
+	apimutex.Lock(apimutex.TypeUser, idStr)
+	defer apimutex.Unlock(apimutex.TypeUser, idStr)
 
 	userEdit, ok := isValidUserForEditing(w, request.Id)
 	if !ok {
@@ -867,8 +868,8 @@ func apiChangeUserRank(w http.ResponseWriter, r requestParser, user models.User)
 		panic("invalid parameter passed")
 	}
 	idStr := strconv.Itoa(request.Id)
-	apiMutex.Lock(apiMutex.TypeUser, idStr)
-	defer apiMutex.Unlock(apiMutex.TypeUser, idStr)
+	apimutex.Lock(apimutex.TypeUser, idStr)
+	defer apimutex.Unlock(apimutex.TypeUser, idStr)
 
 	userEdit, ok := isValidUserForEditing(w, request.Id)
 	if !ok {
@@ -1079,6 +1080,11 @@ func apiLogResetTraffic(w http.ResponseWriter, _ requestParser, _ models.User) {
 }
 
 func apiE2eGet(w http.ResponseWriter, _ requestParser, user models.User) {
+	if !e2emutex.IsLocked(user.Id) {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte("{\"result\":\"error\",\"errormessage\":\"mutex was not acquired or has expired\"}"))
+		return
+	}
 	info := database.GetEnd2EndInfo(user.Id)
 	// If e2e is supported for upload requests at some point, this needs to be changed
 	files := getFilesForUser(user, false)
@@ -1093,6 +1099,11 @@ func apiE2eGet(w http.ResponseWriter, _ requestParser, user models.User) {
 }
 
 func apiE2eSet(w http.ResponseWriter, r requestParser, user models.User) {
+	if !e2emutex.IsLocked(user.Id) {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte("{\"result\":\"error\",\"errormessage\":\"mutex was not acquired or has expired\"}"))
+		return
+	}
 	request, ok := r.(*paramE2eStore)
 	if !ok {
 		panic("invalid parameter passed")
@@ -1100,7 +1111,15 @@ func apiE2eSet(w http.ResponseWriter, r requestParser, user models.User) {
 	database.SaveEnd2EndInfo(request.EncryptedInfo, user.Id)
 	_, _ = w.Write([]byte("{\"result\":\"OK\"}"))
 }
+func apiE2eMutexLock(w http.ResponseWriter, _ requestParser, user models.User) {
+	e2emutex.Lock(user.Id)
+	_, _ = w.Write([]byte("{\"result\":\"OK\"}"))
+}
 
+func apiE2eMutexUnlock(w http.ResponseWriter, _ requestParser, user models.User) {
+	e2emutex.Unlock(user.Id)
+	_, _ = w.Write([]byte("{\"result\":\"OK\"}"))
+}
 func apiURequestDelete(w http.ResponseWriter, r requestParser, user models.User) {
 	request, ok := r.(*paramURequestDelete)
 	if !ok {

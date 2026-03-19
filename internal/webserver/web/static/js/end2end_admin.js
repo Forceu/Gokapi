@@ -33,7 +33,8 @@ function checkIfE2EKeyIsSet() {
 }
 
 function getE2EInfo() {
-    apiE2eGet()
+    apiE2eMutexLockUnlock(false)
+        .then(() => apiE2eGet())
         .then(data => {
             let err = GokapiE2EInfoParse(data);
             if (err === null) {
@@ -49,6 +50,11 @@ function getE2EInfo() {
         })
         .catch(error => {
             displayError("Trying to get E2E info: " + error);
+        })
+        .finally(() => {
+            apiE2eMutexLockUnlock(true).catch(error => {
+                console.error("Failed to release E2E mutex after read: " + error);
+            });
         });
 }
 

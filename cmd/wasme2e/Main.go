@@ -7,16 +7,17 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"github.com/forceu/gokapi/internal/encryption"
-	"github.com/forceu/gokapi/internal/encryption/end2end"
-	"github.com/forceu/gokapi/internal/models"
-	"github.com/secure-io/sio-go"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"strconv"
 	"sync"
 	"syscall/js"
+
+	"github.com/forceu/gokapi/internal/encryption"
+	"github.com/forceu/gokapi/internal/encryption/end2end"
+	"github.com/forceu/gokapi/internal/models"
+	"github.com/secure-io/sio-go"
 )
 
 var fileInfo models.E2EInfoPlainText
@@ -241,7 +242,7 @@ func removeExpiredFiles(encInfo models.E2EInfoEncrypted) []models.E2EFile {
 
 func AddFile(this js.Value, args []js.Value) interface{} {
 	fileMutex.Lock()
-	files := fileInfo.Files
+	defer fileMutex.Unlock()
 	uuid := args[0].String()
 	if uploads[uuid].id != uuid {
 		return jsError("upload id not found")
@@ -249,14 +250,12 @@ func AddFile(this js.Value, args []js.Value) interface{} {
 	id := args[1].String()
 	fileName := args[2].String()
 
-	files = append(files, models.E2EFile{
+	fileInfo.Files = append(fileInfo.Files, models.E2EFile{
 		Uuid:     uuid,
 		Id:       id,
 		Filename: fileName,
 		Cipher:   uploads[uuid].cipher,
 	})
-	fileInfo.Files = files
-	fileMutex.Unlock()
 	delete(uploads, uuid)
 	return nil
 }

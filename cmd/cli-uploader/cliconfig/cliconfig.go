@@ -96,7 +96,7 @@ func CreateLogin() {
 			os.Exit(1)
 		}
 		cliapi.Init(url, apikey, e2ekey)
-		_, err = cliapi.GetE2eInfo()
+		_, err = cliapi.GetE2eInfo(true)
 		if err != nil {
 			if errors.Is(cliapi.ErrE2eKeyIncorrect, err) {
 				fmt.Println("ERROR: Incorrect end-to-end encryption key")
@@ -106,7 +106,6 @@ func CreateLogin() {
 			os.Exit(1)
 		}
 		// TODO check if key has not been generated yet
-		// TODO warn user not to upload e2e simultaneously
 	}
 
 	err = save(url, apikey, e2ekey)

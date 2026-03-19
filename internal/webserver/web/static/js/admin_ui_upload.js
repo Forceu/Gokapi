@@ -261,24 +261,37 @@ function requestFileInfo(fileId, uid) {
                 return;
             }
             if (file.isEndToEndEncrypted === true) {
-                try {
-                    let result = GokapiE2EAddFile(uid, fileId, file.name);
-                    if (result instanceof Error) {
-                        throw result;
-                    }
-                    let info = GokapiE2EInfoEncrypt();
-                    if (info instanceof Error) {
-                        throw info;
-                    }
-                    storeE2EInfo(info);
-                } catch (err) {
-                    file.accepted = false;
-                    dropzoneObject._errorProcessing([file], err);
-                    return;
-                }
-                GokapiE2EDecryptMenu();
+                apiE2eMutexLockUnlock(false)
+                    .then(() => apiE2eGet())
+                    .then(freshData => {
+                        let parseResult = GokapiE2EInfoParse(freshData);
+                        if (parseResult instanceof Error) throw parseResult;
+
+                        let result = GokapiE2EAddFile(uid, fileId, file.name);
+                        if (result instanceof Error) throw result;
+
+                        let info = GokapiE2EInfoEncrypt();
+                        if (info instanceof Error) throw info;
+
+                        return apiE2eStore(info);
+                    })
+                    .then(() => {
+                        GokapiE2EDecryptMenu();
+                        removeFileStatus(uid);
+                    })
+                    .catch(err => {
+                        file.accepted = false;
+                        dropzoneObject._errorProcessing([file], err);
+                        console.error('Error:', err);
+                    })
+                    .finally(() => {
+                        apiE2eMutexLockUnlock(true).catch(error => {
+                            console.error("Failed to release E2E mutex after write: " + error);
+                        });
+                    });
+            } else {
+                removeFileStatus(uid);
             }
-            removeFileStatus(uid);
         })
         .catch(error => {
             let file = dropzoneGetFile(uid);

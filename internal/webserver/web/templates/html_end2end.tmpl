@@ -46,32 +46,42 @@
 
 	}
 	
-	function newKey() {
-	    localStorage.removeItem("e2ekey");
-	    let key;
-	    try {
-		key = GokapiE2EGetNewCipher(true);
-		if (key instanceof Error) {
-		    throw (key);
-		}
-		document.getElementById("decryptionpw").innerText = key;
-		let data = GokapiE2EInfoEncrypt();
-		if (data instanceof Error) {
-		    throw (data);
-		}
-		storeE2EInfo(data);
-	    } catch (err) {
-		displayError(err);
-		return;
+function newKey() {
+    localStorage.removeItem("e2ekey");
+    let key;
+    apiE2eMutexLockUnlock(false)
+        .then(() => {
+            try {
+                key = GokapiE2EGetNewCipher(true);
+                if (key instanceof Error) throw key;
 
-	    }
-	    localStorage.setItem("e2ekey", key);
-	    document.getElementById("downpw").onclick = function() {
-		downloadKey(key);
-	    }
-	    document.getElementById("downpw").disabled = false;
-	    document.getElementById("genbutton").disabled = false;
-	}
+                document.getElementById("decryptionpw").innerText = key;
+
+                let data = GokapiE2EInfoEncrypt();
+                if (data instanceof Error) throw data;
+
+                return apiE2eStore(data);
+            } catch (err) {
+                throw err;
+            }
+        })
+        .then(() => {
+            localStorage.setItem("e2ekey", key);
+            document.getElementById("downpw").onclick = function() {
+                downloadKey(key);
+            }
+            document.getElementById("downpw").disabled = false;
+            document.getElementById("genbutton").disabled = false;
+        })
+        .catch(err => {
+            displayError(err);
+        })
+        .finally(() => {
+            apiE2eMutexLockUnlock(true).catch(error => {
+                console.error("Failed to release E2E mutex after newKey: " + error);
+            });
+        });
+}
 
 	loadWasm(newKey);
 	

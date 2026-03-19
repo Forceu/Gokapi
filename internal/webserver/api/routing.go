@@ -268,6 +268,18 @@ var routes = []apiRoute{
 		execution:     apiE2eSet,
 		RequestParser: &paramE2eStore{},
 	},
+	{
+		Url:           "/e2e/mutex/lock", // not published in API documentation
+		ApiPerm:       models.ApiPermUpload,
+		execution:     apiE2eMutexLock,
+		RequestParser: nil,
+	},
+	{
+		Url:           "/e2e/mutex/unlock", // not published in API documentation
+		ApiPerm:       models.ApiPermUpload,
+		execution:     apiE2eMutexUnlock,
+		RequestParser: nil,
+	},
 }
 
 func getRouting(requestUrl string) (apiRoute, bool) {
