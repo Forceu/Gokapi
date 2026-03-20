@@ -496,21 +496,26 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 	pw := r.PostForm.Get("password")
 	csfr := r.PostForm.Get("csrf-token")
 	failedLogin := false
+	failedCsrf := false
 	if pw != "" && user != "" {
 		ip := logging.GetIpAddress(r)
 		ratelimiter.WaitOnLogin(ip)
-		retrievedUser, validCredentials := authentication.IsCorrectUsernameAndPassword(user, pw, csfr)
+		retrievedUser, validCredentials, validCsfr := authentication.IsCorrectUsernameAndPassword(user, pw, csfr)
 		if validCredentials {
 			logging.LogValidLogin(user)
 			sessionmanager.CreateSession(w, false, 0, retrievedUser.Id)
 			redirect(w, r, "admin")
 			return
 		}
-		logging.LogInvalidLogin(user, ip)
+		if validCsfr {
+			logging.LogInvalidLogin(user, ip)
+		}
+		failedCsrf = !validCsfr
 		failedLogin = true
 	}
 	err = templateFolder.ExecuteTemplate(w, "login", LoginView{
 		IsFailedLogin: failedLogin,
+		IsFailedCsfr:  failedCsrf,
 		User:          user,
 		IsAdminView:   false,
 		PublicName:    configuration.Get().PublicName,
@@ -523,6 +528,7 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 // LoginView contains variables for the login template
 type LoginView struct {
 	IsFailedLogin  bool
+	IsFailedCsfr   bool
 	IsAdminView    bool
 	IsDownloadView bool
 	User           string

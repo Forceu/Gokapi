@@ -20,9 +20,15 @@
 			    </div>
 
 {{ if .IsFailedLogin }}
+	{{ if .IsFailedCsfr }}
+			    <div class="mb-3">
+				<span class="text-danger">The login page was open too long and expired. Please try again.</span>
+			    </div>
+	{{ else }}
 			    <div class="mb-3">
 				<span class="text-danger">Incorrect username or password!</span>
 			    </div>
+	{{ end }}
 {{ end }}
 
 			    <div class="mt-4">

@@ -282,18 +282,18 @@ func isGrantedSession(w http.ResponseWriter, r *http.Request) (models.User, bool
 }
 
 // IsCorrectUsernameAndPassword checks if a provided username and password is correct
-func IsCorrectUsernameAndPassword(username, password, userCsrfToken string) (models.User, bool) {
+func IsCorrectUsernameAndPassword(username, password, userCsrfToken string) (models.User, bool, bool) {
 	if !csrftoken.IsValid(userCsrfToken) {
-		return models.User{}, false
+		return models.User{}, false, false
 	}
 	user, ok := database.GetUserByName(username)
 	if !ok {
-		return models.User{}, false
+		return models.User{}, false, true
 	}
 	if IsEqualStringConstantTime(configuration.HashPasswordCustomSalt(password, authSettings.SaltAdmin), user.Password) {
-		return user, true
+		return user, true, true
 	}
-	return models.User{}, false
+	return models.User{}, false, true
 }
 
 // IsEqualStringConstantTime uses ConstantTimeCompare to prevent timing attack.
