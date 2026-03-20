@@ -352,7 +352,7 @@ func changePassword(w http.ResponseWriter, r *http.Request) {
 			MinPasswordLength: configuration.GetEnvironment().MinLengthPassword,
 			ErrorMessage:      errMessage,
 			CustomContent:     customStaticInfo,
-			CsrfToken:         csrftoken.Generate()})
+			CsrfToken:         csrftoken.Generate(csrftoken.TypeLogin)})
 	helper.CheckIgnoreTimeout(err)
 }
 
@@ -360,7 +360,7 @@ func validateNewPassword(newPassword string, user models.User, userCsrfToken str
 	if len(newPassword) == 0 {
 		return "", user.Password, false
 	}
-	if !csrftoken.IsValid(userCsrfToken) {
+	if !csrftoken.IsValid(csrftoken.TypeLogin, userCsrfToken) {
 		return "Form was not submitted completely", "", false
 	}
 	if len(newPassword) < configuration.GetEnvironment().MinLengthPassword {
@@ -520,7 +520,7 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 		IsAdminView:   false,
 		PublicName:    configuration.Get().PublicName,
 		CustomContent: customStaticInfo,
-		CsrfToken:     csrftoken.Generate(),
+		CsrfToken:     csrftoken.Generate(csrftoken.TypeLogin),
 	})
 	helper.CheckIgnoreTimeout(err)
 }

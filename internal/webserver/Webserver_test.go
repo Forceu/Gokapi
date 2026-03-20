@@ -113,11 +113,11 @@ func TestLogin(t *testing.T) {
 	}
 
 	// POST with wrong username and password shows error
-	postConfig.PostValues = postValues("invalid", "invalid", csrftoken.Generate())
+	postConfig.PostValues = postValues("invalid", "invalid", csrftoken.Generate(csrftoken.TypeLogin))
 	test.HttpPostRequest(t, postConfig)
 
 	// POST with correct username but wrong password shows error
-	postConfig.PostValues = postValues("test", "invalid", csrftoken.Generate())
+	postConfig.PostValues = postValues("test", "invalid", csrftoken.Generate(csrftoken.TypeLogin))
 	test.HttpPostRequest(t, postConfig)
 
 	// POST with correct credentials but invalid CSRF token shows error
@@ -146,7 +146,7 @@ func TestLogin(t *testing.T) {
 	postConfig.IsHtml = false
 	postConfig.ResultCode = http.StatusTemporaryRedirect
 	postConfig.RedirectUrl = "admin"
-	postConfig.PostValues = postValues("test", "adminadmin", csrftoken.Generate())
+	postConfig.PostValues = postValues("test", "adminadmin", csrftoken.Generate(csrftoken.TypeLogin))
 	cookies := test.HttpPostRequest(t, postConfig)
 	session := cookieValue(cookies, "session_token")
 	test.IsNotEqualString(t, session, "")
@@ -273,7 +273,7 @@ func TestLoginCorrect(t *testing.T) {
 		Url:         "http://localhost:53843/login",
 		RedirectUrl: "admin",
 		Method:      "POST",
-		PostValues:  []test.PostBody{{"username", "test"}, {"password", "adminadmin"}, {"csrf-token", csrftoken.Generate()}},
+		PostValues:  []test.PostBody{{"username", "test"}, {"password", "adminadmin"}, {"csrf-token", csrftoken.Generate(csrftoken.TypeLogin)}},
 	})
 }
 
@@ -284,7 +284,7 @@ func TestLoginIncorrectPassword(t *testing.T) {
 		RequiredContent: []string{"Incorrect username or password"},
 		IsHtml:          true,
 		Method:          "POST",
-		PostValues:      []test.PostBody{{"username", "test"}, {"password", "incorrect"}, {"csrf-token", csrftoken.Generate()}},
+		PostValues:      []test.PostBody{{"username", "test"}, {"password", "incorrect"}, {"csrf-token", csrftoken.Generate(csrftoken.TypeLogin)}},
 	})
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://localhost:53843/login",
@@ -301,7 +301,7 @@ func TestLoginIncorrectUsername(t *testing.T) {
 		RequiredContent: []string{"Incorrect username or password"},
 		IsHtml:          true,
 		Method:          "POST",
-		PostValues:      []test.PostBody{{"username", "incorrect"}, {"password", "incorrect"}, {"csrf-token", csrftoken.Generate()}},
+		PostValues:      []test.PostBody{{"username", "incorrect"}, {"password", "incorrect"}, {"csrf-token", csrftoken.Generate(csrftoken.TypeLogin)}},
 	})
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://localhost:53843/login",

@@ -283,7 +283,7 @@ func isGrantedSession(w http.ResponseWriter, r *http.Request) (models.User, bool
 
 // IsCorrectUsernameAndPassword checks if a provided username and password is correct
 func IsCorrectUsernameAndPassword(username, password, userCsrfToken string) (models.User, bool, bool) {
-	if !csrftoken.IsValid(userCsrfToken) {
+	if !csrftoken.IsValid(csrftoken.TypeLogin, userCsrfToken) {
 		return models.User{}, false, false
 	}
 	user, ok := database.GetUserByName(username)

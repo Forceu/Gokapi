@@ -10,7 +10,7 @@ import (
 // resetStateBlockCleanup resets the package-level state between tests.
 func resetStateBlockCleanup() {
 	mutex.Lock()
-	tokens = make(map[string]int64)
+	tokens = make(map[string]csrfToken)
 	mutex.Unlock()
 	cleanupOnce = sync.Once{}
 	cleanupOnce.Do(func() {
@@ -21,7 +21,7 @@ func resetStateBlockCleanup() {
 // TestGenerate_ReturnsNonEmptyToken checks that Generate returns a non-empty token string.
 func TestGenerate_ReturnsNonEmptyToken(t *testing.T) {
 	resetStateBlockCleanup()
-	token := Generate()
+	token := Generate(TypeLogin)
 	if token == "" {
 		t.Error("expected non-empty token, got empty string")
 	}
@@ -30,7 +30,7 @@ func TestGenerate_ReturnsNonEmptyToken(t *testing.T) {
 // TestGenerate_TokenLength checks that the generated token has the expected length (20 chars).
 func TestGenerate_TokenLength(t *testing.T) {
 	resetStateBlockCleanup()
-	token := Generate()
+	token := Generate(TypeLogin)
 	if len(token) != 20 {
 		t.Errorf("expected token length 20, got %d", len(token))
 	}
@@ -39,8 +39,8 @@ func TestGenerate_TokenLength(t *testing.T) {
 // TestGenerate_UniqueTokens checks that two calls produce different tokens.
 func TestGenerate_UniqueTokens(t *testing.T) {
 	resetStateBlockCleanup()
-	token1 := Generate()
-	token2 := Generate()
+	token1 := Generate(TypeLogin)
+	token2 := Generate(TypeLogin)
 	if token1 == token2 {
 		t.Error("expected unique tokens, got identical tokens")
 	}
@@ -49,7 +49,7 @@ func TestGenerate_UniqueTokens(t *testing.T) {
 // TestGenerate_StoresToken checks that the token is stored in the map.
 func TestGenerate_StoresToken(t *testing.T) {
 	resetStateBlockCleanup()
-	token := Generate()
+	token := Generate(TypeLogin)
 	mutex.Lock()
 	_, ok := tokens[token]
 	mutex.Unlock()
@@ -62,12 +62,12 @@ func TestGenerate_StoresToken(t *testing.T) {
 func TestGenerate_ExpiryIsInFuture(t *testing.T) {
 	resetStateBlockCleanup()
 	before := time.Now().Unix()
-	token := Generate()
+	tokenId := Generate(TypeLogin)
 	mutex.Lock()
-	expiry := tokens[token]
+	token := tokens[tokenId]
 	mutex.Unlock()
-	if expiry <= before {
-		t.Errorf("expected expiry > %d, got %d", before, expiry)
+	if token.Expiry <= before {
+		t.Errorf("expected expiry > %d, got %d", before, token.Expiry)
 	}
 }
 
@@ -75,21 +75,21 @@ func TestGenerate_ExpiryIsInFuture(t *testing.T) {
 func TestTTL_ExactExpiry(t *testing.T) {
 	resetStateBlockCleanup()
 	now := time.Now()
-	token := Generate()
+	tokenId := Generate(TypeLogin)
 	mutex.Lock()
-	expiry := tokens[token]
+	token := tokens[tokenId]
 	mutex.Unlock()
 	expected := now.Add(ttl).Unix()
-	if expiry != expected {
-		t.Errorf("expected expiry %d, got %d", expected, expiry)
+	if token.Expiry != expected {
+		t.Errorf("expected expiry %d, got %d", expected, token.Expiry)
 	}
 }
 
 // TestIsValid_ValidToken checks that a freshly generated token is valid.
 func TestIsValid_ValidToken(t *testing.T) {
 	resetStateBlockCleanup()
-	token := Generate()
-	if !IsValid(token) {
+	token := Generate(TypeLogin)
+	if !IsValid(TypeLogin, token) {
 		t.Error("expected IsValid to return true for a fresh token")
 	}
 }
@@ -97,7 +97,7 @@ func TestIsValid_ValidToken(t *testing.T) {
 // TestIsValid_UnknownToken checks that an unknown token is invalid.
 func TestIsValid_UnknownToken(t *testing.T) {
 	resetStateBlockCleanup()
-	if IsValid("nonexistent-token-xyz") {
+	if IsValid(TypeLogin, "nonexistent-token-xyz") {
 		t.Error("expected IsValid to return false for unknown token")
 	}
 }
@@ -105,11 +105,11 @@ func TestIsValid_UnknownToken(t *testing.T) {
 // TestIsValid_SingleUse checks that a token cannot be used twice.
 func TestIsValid_SingleUse(t *testing.T) {
 	resetStateBlockCleanup()
-	token := Generate()
-	if !IsValid(token) {
+	token := Generate(TypeLogin)
+	if !IsValid(TypeLogin, token) {
 		t.Fatal("expected first IsValid to return true")
 	}
-	if IsValid(token) {
+	if IsValid(TypeLogin, token) {
 		t.Error("expected second IsValid to return false — token must be single-use")
 	}
 }
@@ -117,8 +117,8 @@ func TestIsValid_SingleUse(t *testing.T) {
 // TestIsValid_DeletesTokenAfterUse checks that the token is removed from the map after validation.
 func TestIsValid_DeletesTokenAfterUse(t *testing.T) {
 	resetStateBlockCleanup()
-	token := Generate()
-	IsValid(token)
+	token := Generate(TypeLogin)
+	IsValid(TypeLogin, token)
 	mutex.Lock()
 	_, ok := tokens[token]
 	mutex.Unlock()
@@ -132,10 +132,13 @@ func TestIsValid_ExpiredToken(t *testing.T) {
 	resetStateBlockCleanup()
 	token := "test-expired-token"
 	mutex.Lock()
-	tokens[token] = time.Now().Add(-1 * time.Second).Unix()
+	tokens[token] = csrfToken{
+		Type:   TypeLogin,
+		Expiry: time.Now().Add(-1 * time.Second).Unix(),
+	}
 	mutex.Unlock()
 
-	if IsValid(token) {
+	if IsValid(TypeLogin, token) {
 		t.Error("expected IsValid to return false for expired token")
 	}
 
@@ -151,7 +154,7 @@ func TestIsValid_ExpiredToken(t *testing.T) {
 // TestIsValid_EmptyToken checks that an empty token string is handled gracefully.
 func TestIsValid_EmptyToken(t *testing.T) {
 	resetStateBlockCleanup()
-	if IsValid("") {
+	if IsValid(TypeLogin, "") {
 		t.Error("expected IsValid to return false for empty token")
 	}
 }
@@ -161,7 +164,7 @@ func TestIsValid_EmptyToken(t *testing.T) {
 func TestIsValid_TokenExpiresAfterTTL(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		resetStateBlockCleanup()
-		token := Generate()
+		token := Generate(TypeLogin)
 		cleanup(false)
 
 		// Advance fake clock beyond the 5-minute TTL.
@@ -169,7 +172,7 @@ func TestIsValid_TokenExpiresAfterTTL(t *testing.T) {
 		cleanup(false)
 		synctest.Wait()
 
-		if IsValid(token) {
+		if IsValid(TypeLogin, token) {
 			t.Error("expected IsValid to return false after TTL has elapsed")
 		}
 	})
@@ -179,7 +182,7 @@ func TestIsValid_TokenExpiresAfterTTL(t *testing.T) {
 func TestIsValid_TokenStillValidBeforeTTL(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		resetStateBlockCleanup()
-		token := Generate()
+		token := Generate(TypeLogin)
 		cleanup(false)
 
 		// Advance to just before expiry.
@@ -187,7 +190,7 @@ func TestIsValid_TokenStillValidBeforeTTL(t *testing.T) {
 		cleanup(false)
 		synctest.Wait()
 
-		if !IsValid(token) {
+		if !IsValid(TypeLogin, token) {
 			t.Error("expected IsValid to return true just before TTL elapses")
 		}
 	})
@@ -202,7 +205,7 @@ func TestGenerate_ConcurrentSafe(t *testing.T) {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				Generate()
+				Generate(TypeLogin)
 			}()
 		}
 		wg.Wait()
@@ -223,14 +226,14 @@ func TestGenerate_ConcurrentSafe(t *testing.T) {
 func TestIsValid_ConcurrentSafe(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		resetStateBlockCleanup()
-		token := Generate()
+		token := Generate(TypeLogin)
 
 		var wg sync.WaitGroup
 		for i := 0; i < 50; i++ {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				IsValid(token)
+				IsValid(TypeLogin, token)
 			}()
 		}
 		cleanup(false)
@@ -244,9 +247,18 @@ func TestIsValid_ConcurrentSafe(t *testing.T) {
 func TestCleanup_RemovesExpiredTokens(t *testing.T) {
 	resetStateBlockCleanup()
 	mutex.Lock()
-	tokens["expired-1"] = time.Now().Add(-10 * time.Second).Unix()
-	tokens["expired-2"] = time.Now().Add(-5 * time.Second).Unix()
-	tokens["valid-1"] = time.Now().Add(5 * time.Minute).Unix()
+	tokens["expired-1"] = csrfToken{
+		Type:   TypeLogin,
+		Expiry: time.Now().Add(-10 * time.Second).Unix(),
+	}
+	tokens["expired-2"] = csrfToken{
+		Type:   TypeLogin,
+		Expiry: time.Now().Add(-5 * time.Second).Unix(),
+	}
+	tokens["valid-1"] = csrfToken{
+		Type:   TypeLogin,
+		Expiry: time.Now().Add(5 * time.Minute).Unix(),
+	}
 	mutex.Unlock()
 
 	cleanup(false)
@@ -279,6 +291,82 @@ func TestCleanup_EmptyMap(t *testing.T) {
 	cleanup(false)
 }
 
+// TestIsValid_WrongType checks that a token generated for one type is rejected
+// when validated against a different type.
+func TestIsValid_WrongType(t *testing.T) {
+	resetStateBlockCleanup()
+	token := Generate(TypeLogin)
+	if IsValid(TypeApiToken, token) {
+		t.Error("expected IsValid to return false when token type does not match")
+	}
+}
+
+// TestIsValid_WrongType_DeletesToken checks that a type-mismatched token is still
+// consumed (deleted) from the map, preventing reuse with the correct type.
+func TestIsValid_WrongType_DeletesToken(t *testing.T) {
+	resetStateBlockCleanup()
+	token := Generate(TypeLogin)
+	IsValid(TypeApiToken, token)
+	mutex.Lock()
+	_, ok := tokens[token]
+	mutex.Unlock()
+	if ok {
+		t.Error("expected type-mismatched token to be deleted from map after validation attempt")
+	}
+}
+
+// TestIsValid_ApiToken_Valid checks that a token generated for TypeApiToken is
+// accepted when validated with TypeApiToken.
+func TestIsValid_ApiToken_Valid(t *testing.T) {
+	resetStateBlockCleanup()
+	token := Generate(TypeApiToken)
+	if !IsValid(TypeApiToken, token) {
+		t.Error("expected IsValid to return true for a fresh TypeApiToken token")
+	}
+}
+
+// TestIsValid_ApiToken_RejectedAsLogin checks that a TypeApiToken token is rejected
+// when validated as TypeLogin.
+func TestIsValid_ApiToken_RejectedAsLogin(t *testing.T) {
+	resetStateBlockCleanup()
+	token := Generate(TypeApiToken)
+	if IsValid(TypeLogin, token) {
+		t.Error("expected IsValid to return false when TypeApiToken token is validated as TypeLogin")
+	}
+}
+
+// TestIsValid_LoginToken_RejectedAsApiToken checks that a TypeLogin token is rejected
+// when validated as TypeApiToken.
+func TestIsValid_LoginToken_RejectedAsApiToken(t *testing.T) {
+	resetStateBlockCleanup()
+	token := Generate(TypeLogin)
+	if IsValid(TypeApiToken, token) {
+		t.Error("expected IsValid to return false when TypeLogin token is validated as TypeApiToken")
+	}
+}
+
+// TestIsValid_EachTypeIndependent checks that tokens of different types can coexist
+// and each is only accepted for its own type.
+func TestIsValid_EachTypeIndependent(t *testing.T) {
+	resetStateBlockCleanup()
+	loginToken := Generate(TypeLogin)
+	apiToken := Generate(TypeApiToken)
+
+	if IsValid(TypeApiToken, loginToken) {
+		t.Error("expected login token to be rejected when validated as TypeApiToken")
+	}
+	if IsValid(TypeLogin, apiToken) {
+		t.Error("expected api token to be rejected when validated as TypeLogin")
+	}
+	// Both tokens should have been consumed; neither should be reusable.
+	if IsValid(TypeLogin, loginToken) {
+		t.Error("expected login token to be gone after prior validation attempt")
+	}
+	if IsValid(TypeApiToken, apiToken) {
+		t.Error("expected api token to be gone after prior validation attempt")
+	}
+}
+
 // TestCleanup_PeriodicRunsAfterOneHour verifies that the periodic cleanup goroutine
 // re-runs after one hour. The fake clock advances instantly — no real waiting.
 func TestCleanup_PeriodicRunsAfterOneHour(t *testing.T) {
@@ -287,7 +375,10 @@ func TestCleanup_PeriodicRunsAfterOneHour(t *testing.T) {
 
 		// Insert a token that expires in 30 minutes.
 		mutex.Lock()
-		tokens["will-expire"] = time.Now().Add(30 * time.Minute).Unix()
+		tokens["will-expire"] = csrfToken{
+			Type:   TypeLogin,
+			Expiry: time.Now().Add(30 * time.Minute).Unix(),
+		}
 		mutex.Unlock()
 
 		// Start the periodic cleanup goroutine.

@@ -7,16 +7,29 @@ import (
 	"github.com/forceu/gokapi/internal/helper"
 )
 
-var tokens = make(map[string]int64)
+var tokens = make(map[string]csrfToken)
 var mutex sync.Mutex
 var cleanupOnce sync.Once
 
 const ttl = 5 * time.Minute
 
-func Generate() string {
+const (
+	TypeLogin = iota
+	TypeApiToken
+)
+
+type csrfToken struct {
+	Type   int
+	Expiry int64
+}
+
+func Generate(tokenType int) string {
 	token := helper.GenerateRandomString(20)
 	mutex.Lock()
-	tokens[token] = time.Now().Add(ttl).Unix()
+	tokens[token] = csrfToken{
+		Type:   tokenType,
+		Expiry: time.Now().Add(ttl).Unix(),
+	}
 	mutex.Unlock()
 
 	cleanupOnce.Do(func() {
@@ -25,22 +38,25 @@ func Generate() string {
 	return token
 }
 
-func IsValid(token string) bool {
+func IsValid(tokenType int, tokenId string) bool {
 	mutex.Lock()
 	defer mutex.Unlock()
-	expireTime, ok := tokens[token]
+	token, ok := tokens[tokenId]
 	if !ok {
 		return false
 	}
-	delete(tokens, token)
-	return expireTime > time.Now().Unix()
+	delete(tokens, tokenId)
+	if token.Type != tokenType {
+		return false
+	}
+	return token.Expiry > time.Now().Unix()
 }
 
 func cleanup(periodic bool) {
 	mutex.Lock()
-	for token, expireTime := range tokens {
-		if expireTime < time.Now().Unix() {
-			delete(tokens, token)
+	for tokenId, token := range tokens {
+		if token.Expiry < time.Now().Unix() {
+			delete(tokens, tokenId)
 		}
 	}
 	mutex.Unlock()

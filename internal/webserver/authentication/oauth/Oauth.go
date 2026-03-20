@@ -49,7 +49,7 @@ func HandlerLogin(w http.ResponseWriter, r *http.Request) { // If user clicked l
 }
 
 func initLogin(w http.ResponseWriter, r *http.Request, showConsentScreen bool) {
-	state := helper.GenerateRandomString(16)
+	state := helper.GenerateRandomString(32)
 	setCallbackCookie(w, state)
 	prompt := "none"
 	if showConsentScreen {
