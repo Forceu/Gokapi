@@ -69,5 +69,5 @@ func RequireSaveUserOnline(userId int) bool {
 // RequireSaveApiKeyUsage returns false if no write is necessary.
 // To reduce database writes, the entry is only updated if the last timestamp is more than 30 seconds old
 func RequireSaveApiKeyUsage(id string) bool {
-	return cacheStore[TypeUserLastOnline].IsUpdateRequiredString(id, 30)
+	return cacheStore[TypeApiLastUsed].IsUpdateRequiredString(id, 30)
 }
