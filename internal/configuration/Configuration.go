@@ -200,6 +200,8 @@ func SetDeploymentPassword(newPassword string) {
 		fmt.Println("No super-admin user found, but database contains other users. Aborting.")
 		os.Exit(1)
 	}
+	user, _ := database.GetSuperAdmin()
+	database.DeleteAllSessionsByUser(user.Id)
 	save()
 	fmt.Println("New password has been set successfully for user " + serverSettings.Authentication.Username + ".")
 	os.Exit(0)
