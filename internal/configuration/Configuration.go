@@ -116,7 +116,7 @@ func Get() *models.Configuration {
 
 // Save the configuration as a json file
 func save() {
-	file, err := os.OpenFile(parsedEnvironment.ConfigPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+	file, err := os.OpenFile(parsedEnvironment.ConfigPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		fmt.Println("Error writing configuration:", err)
 		os.Exit(1)
@@ -188,7 +188,7 @@ func deleteAllEncryptedStorage() {
 	}
 }
 
-// SetDeploymentPassword sets a new password. This should only be used for non-interactive deployment, but is not enforced
+// SetDeploymentPassword sets a new password. This should only be used for non-interactive deployment but is not enforced
 func SetDeploymentPassword(newPassword string) {
 	if len(newPassword) < parsedEnvironment.MinLengthPassword {
 		fmt.Printf("Password needs to be at least %d characters long\n", parsedEnvironment.MinLengthPassword)
