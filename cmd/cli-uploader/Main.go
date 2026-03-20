@@ -195,7 +195,9 @@ func zipFolder(srcDir, tmpFolder string, showOutput bool) (string, error) {
 			return err
 		}
 
-		progressBar.Describe("Compressing: " + filepath.Base(relPath))
+		if showOutput {
+			progressBar.Describe("Compressing: " + filepath.Base(relPath))
+		}
 		_, err = io.Copy(zipEntry, file)
 		return err
 	})
