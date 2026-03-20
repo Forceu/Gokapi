@@ -2,6 +2,7 @@ package configuration
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
@@ -27,7 +28,6 @@ func TestLoad(t *testing.T) {
 	test.IsEqualString(t, serverSettings.Port, "127.0.0.1:53843")
 	test.IsEqualString(t, serverSettings.Authentication.Username, "test")
 	test.IsEqualString(t, serverSettings.ServerUrl, "http://127.0.0.1:53843/")
-	test.IsEqualString(t, HashPassword("testtest", false), "10340aece68aa4fb14507ae45b05506026f276cf")
 	test.IsEqualBool(t, serverSettings.UseSsl, false)
 
 	_ = os.Setenv("GOKAPI_LENGTH_ID", "20")
@@ -40,19 +40,6 @@ func TestLoad(t *testing.T) {
 	test.IsEqualInt(t, serverSettings.ConfigVersion, configupgrade.CurrentConfigVersion)
 	testconfiguration.Create(false)
 	Load()
-}
-
-func TestHashPassword(t *testing.T) {
-	test.IsEqualString(t, HashPassword("123", false), "423b63a68c68bd7e07b14590927c1e9a473fe035")
-	test.IsEqualString(t, HashPassword("", false), "")
-	test.IsEqualString(t, HashPassword("123", true), "7b30508aa9b233ab4b8a11b2af5816bdb58ca3e7")
-}
-
-func TestHashPasswordCustomSalt(t *testing.T) {
-	test.IsEmpty(t, HashPasswordCustomSalt("", "123"))
-	test.IsEqualString(t, HashPasswordCustomSalt("test", "salt"), "f438229716cab43569496f3a3630b3727524b81b")
-	defer test.ExpectPanic(t)
-	HashPasswordCustomSalt("1234", "")
 }
 
 func TestLoadFromSetup(t *testing.T) {
@@ -100,5 +87,212 @@ func BenchmarkArgon2id(b *testing.B) {
 	salt := []byte(helper.GenerateRandomString(argonSaltLen))
 	for i := 0; i < b.N; i++ {
 		argon2.IDKey([]byte("password"), salt, argonTime, argonMemory, argonThreads, argonKeyLen)
+	}
+}
+
+func TestHashSha1_KnownVector(t *testing.T) {
+	// SHA1("password" + "salt") pre-computed externally for regression
+	got := hashSha1("password", "salt")
+	// echo -n "passwordsalt" | sha1sum
+	want := "c88e9c67041a74e0357befdff93f87dde0904214"
+	if got != want {
+		t.Errorf("hashSha1 = %q, want %q", got, want)
+	}
+}
+
+func TestHashSha1_DifferentSaltsDifferentHashes(t *testing.T) {
+	h1 := hashSha1("password", "salt1")
+	h2 := hashSha1("password", "salt2")
+	if h1 == h2 {
+		t.Error("different salts should produce different hashes")
+	}
+}
+
+func TestHashSha1_DifferentPasswordsDifferentHashes(t *testing.T) {
+	h1 := hashSha1("password1", "salt")
+	h2 := hashSha1("password2", "salt")
+	if h1 == h2 {
+		t.Error("different passwords should produce different hashes")
+	}
+}
+
+func TestHashSha1_OutputIs40Chars(t *testing.T) {
+	got := hashSha1("password", "salt")
+	if len(got) != 40 {
+		t.Errorf("SHA1 hex output should be 40 chars, got %d", len(got))
+	}
+}
+
+// --- HashPassword ---
+
+func TestHashPassword_EmptyPasswordReturnsEmpty(t *testing.T) {
+	got := HashPassword("", false, "")
+	if got != "" {
+		t.Errorf("empty password should return empty string, got %q", got)
+	}
+}
+
+func TestHashPassword_LegacyPanicOnEmptySalt(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("expected panic with empty legacy salt, got none")
+		}
+	}()
+	HashPassword("password", true, "")
+}
+
+func TestHashPassword_LegacyMatchesSha1(t *testing.T) {
+	got := HashPassword("password", true, "mysalt")
+	want := hashSha1("password", "mysalt")
+	if got != want {
+		t.Errorf("legacy hash = %q, want %q", got, want)
+	}
+}
+
+func TestHashPassword_Argon2idFormat(t *testing.T) {
+	got := HashPassword("password", false, "")
+	parts := strings.Split(got, "$")
+	if len(parts) != 3 {
+		t.Fatalf("expected 3 $-separated parts, got %d: %q", len(parts), got)
+	}
+	if parts[0] != "argon2id" {
+		t.Errorf("prefix = %q, want %q", parts[0], "argon2id")
+	}
+	if len(parts[1]) == 0 {
+		t.Error("salt segment should not be empty")
+	}
+	if len(parts[2]) == 0 {
+		t.Error("hash segment should not be empty")
+	}
+}
+
+func TestHashPassword_Argon2idUniqueSaltsEachCall(t *testing.T) {
+	h1 := HashPassword("password", false, "")
+	h2 := HashPassword("password", false, "")
+	if h1 == h2 {
+		t.Error("two calls with same password should produce different hashes (random salt)")
+	}
+}
+
+func TestHashPassword_Argon2idDifferentPasswordsDifferentHashes(t *testing.T) {
+	// Same underlying salt is impossible to force, but hashes should differ
+	h1 := HashPassword("password1", false, "")
+	h2 := HashPassword("password2", false, "")
+	if h1 == h2 {
+		t.Error("different passwords should produce different hashes")
+	}
+}
+
+// --- VerifyPassword ---
+
+func TestVerifyPassword_LegacyCorrectPassword(t *testing.T) {
+	stored := hashSha1("password", "mysalt")
+	ok, needsRehash := VerifyPassword("password", stored, "mysalt")
+	if !ok {
+		t.Error("expected correct legacy password to verify")
+	}
+	if !needsRehash {
+		t.Error("legacy hash should signal needsRehash=true")
+	}
+}
+
+func TestVerifyPassword_LegacyWrongPassword(t *testing.T) {
+	stored := hashSha1("password", "mysalt")
+	ok, needsRehash := VerifyPassword("wrongpassword", stored, "mysalt")
+	if ok {
+		t.Error("wrong password should not verify")
+	}
+	if !needsRehash {
+		t.Error("legacy hash should signal needsRehash=true even on failure")
+	}
+}
+
+func TestVerifyPassword_Argon2idCorrectPassword(t *testing.T) {
+	stored := HashPassword("password", false, "")
+	ok, needsRehash := VerifyPassword("password", stored, "")
+	if !ok {
+		t.Error("correct argon2id password should verify")
+	}
+	if needsRehash {
+		t.Error("argon2id hash should not signal needsRehash")
+	}
+}
+
+func TestVerifyPassword_Argon2idWrongPassword(t *testing.T) {
+	stored := HashPassword("password", false, "")
+	ok, needsRehash := VerifyPassword("wrongpassword", stored, "")
+	if ok {
+		t.Error("wrong password should not verify against argon2id hash")
+	}
+	if needsRehash {
+		t.Error("argon2id hash should not signal needsRehash")
+	}
+}
+
+func TestVerifyPassword_MalformedHashReturnsFalse(t *testing.T) {
+	cases := []string{
+		"",
+		"notahash",
+		"argon2id$onlytwoparts",
+		"wrongprefix$abc$def",
+		"argon2id$notvalidhex!!!$abc123",
+	}
+	for _, stored := range cases {
+		ok, needsRehash := VerifyPassword("password", stored, "")
+		if ok {
+			t.Errorf("malformed hash %q should not verify", stored)
+		}
+		if needsRehash {
+			t.Errorf("malformed hash %q should not signal needsRehash", stored)
+		}
+	}
+}
+
+func TestVerifyPassword_EmptyPasswordNeverVerifies(t *testing.T) {
+	stored := HashPassword("password", false, "")
+	ok, _ := VerifyPassword("", stored, "")
+	if ok {
+		t.Error("empty password should not verify against a real hash")
+	}
+}
+
+// --- Round-trip / migration ---
+
+func TestRoundTrip_Argon2id(t *testing.T) {
+	passwords := []string{"correct horse battery staple", "P@ssw0rd!", "unicode:日本語"}
+	for _, pw := range passwords {
+		stored := HashPassword(pw, false, "")
+		ok, needsRehash := VerifyPassword(pw, stored, "")
+		if !ok {
+			t.Errorf("round-trip failed for password %q", pw)
+		}
+		if needsRehash {
+			t.Errorf("needsRehash should be false for argon2id, password %q", pw)
+		}
+	}
+}
+
+func TestMigration_LegacyToArgon2id(t *testing.T) {
+	// Simulate the on-login rehash migration path
+	const password = "oldpassword"
+	const salt = "legacysalt"
+
+	legacyHash := HashPassword(password, true, salt)
+
+	// User logs in: verify with legacy, then rehash
+	ok, needsRehash := VerifyPassword(password, legacyHash, salt)
+	if !ok || !needsRehash {
+		t.Fatal("legacy verification failed or did not signal rehash")
+	}
+
+	newHash := HashPassword(password, false, "")
+
+	// Subsequent logins use new argon2id hash
+	ok, needsRehash = VerifyPassword(password, newHash, "")
+	if !ok {
+		t.Error("password should verify after migration")
+	}
+	if needsRehash {
+		t.Error("should not need rehash after migration")
 	}
 }

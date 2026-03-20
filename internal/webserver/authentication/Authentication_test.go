@@ -190,11 +190,6 @@ func TestIsLogoutAvailable(t *testing.T) {
 	test.IsEqualBool(t, IsLogoutAvailable(), false)
 }
 
-func TestEqualString(t *testing.T) {
-	test.IsEqualBool(t, IsEqualStringConstantTime("yes", "no"), false)
-	test.IsEqualBool(t, IsEqualStringConstantTime("yes", "yes"), true)
-}
-
 func TestGetUserFromRequest(t *testing.T) {
 	_, r := test.GetRecorder("GET", "/", nil, nil, nil)
 	_, err := GetUserFromRequest(r)

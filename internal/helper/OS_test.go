@@ -77,3 +77,8 @@ func TestCheckIgnoreTimeout(t *testing.T) {
 	defer test.ExpectPanic(t)
 	CheckIgnoreTimeout(errors.New("other"))
 }
+
+func TestEqualString(t *testing.T) {
+	test.IsEqualBool(t, IsEqualStringConstantTime("yes", "no"), false)
+	test.IsEqualBool(t, IsEqualStringConstantTime("yes", "yes"), true)
+}
