@@ -24,6 +24,7 @@ import (
 	"github.com/forceu/gokapi/internal/storage/presign"
 	"github.com/forceu/gokapi/internal/webserver/api/mutex/apimutex"
 	"github.com/forceu/gokapi/internal/webserver/api/mutex/e2emutex"
+	"github.com/forceu/gokapi/internal/webserver/authentication/downloadPasswordToken"
 	"github.com/forceu/gokapi/internal/webserver/authentication/users"
 	"github.com/forceu/gokapi/internal/webserver/errorHandling/errorcodes"
 	"github.com/forceu/gokapi/internal/webserver/fileupload"
@@ -110,6 +111,7 @@ func apiEditFile(w http.ResponseWriter, r requestParser, user models.User) {
 
 	if !request.KeepPassword {
 		file.PasswordHash = configuration.HashPassword(request.Password, false, "")
+		downloadPasswordToken.DeleteAllForFile(file.Id)
 	}
 
 	if file.HotlinkId != "" && !storage.IsAbleHotlink(file) {

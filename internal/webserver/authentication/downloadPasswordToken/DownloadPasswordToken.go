@@ -33,6 +33,16 @@ func Generate(fileId string) string {
 	return token
 }
 
+func DeleteAllForFile(fileId string) {
+	mutex.Lock()
+	for tokenId, token := range tokens {
+		if token.FileId == fileId {
+			delete(tokens, tokenId)
+		}
+	}
+	mutex.Unlock()
+}
+
 func IsValid(tokenId, fileId string) bool {
 	mutex.Lock()
 	defer mutex.Unlock()
