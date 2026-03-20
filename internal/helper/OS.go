@@ -6,6 +6,7 @@ Simplified OS functions
 
 import (
 	"bufio"
+	"crypto/subtle"
 	"log"
 	"os"
 	"syscall"
@@ -96,4 +97,9 @@ func GetFileSize(file *os.File) (int64, error) {
 		return 0, err
 	}
 	return fileInfo.Size(), nil
+}
+
+// IsEqualStringConstantTime uses ConstantTimeCompare to prevent timing attack.
+func IsEqualStringConstantTime(s1, s2 string) bool {
+	return subtle.ConstantTimeCompare([]byte(s1), []byte(s2)) == 1
 }

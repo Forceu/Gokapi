@@ -23,6 +23,7 @@ import (
 	"github.com/forceu/gokapi/internal/logging"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage/filesystem"
+	"golang.org/x/crypto/argon2"
 )
 
 // parsedEnvironment is an object containing the environment variables
@@ -195,7 +196,7 @@ func SetDeploymentPassword(newPassword string) {
 		os.Exit(1)
 	}
 	serverSettings.Authentication.SaltAdmin = helper.GenerateRandomString(30)
-	err := database.EditSuperAdmin(serverSettings.Authentication.Username, hashUserPassword(newPassword))
+	err := database.EditSuperAdmin(serverSettings.Authentication.Username, HashPassword(newPassword, false, ""))
 	if err != nil {
 		fmt.Println("No super-admin user found, but database contains other users. Aborting.")
 		os.Exit(1)
@@ -207,34 +208,88 @@ func SetDeploymentPassword(newPassword string) {
 	os.Exit(0)
 }
 
-// HashPassword hashes a string with SHA1 the file salt or admin user salt
-func HashPassword(password string, useFileSalt bool) string {
-	if useFileSalt {
-		return hashFilePassword(password)
-	}
-	return hashUserPassword(password)
-}
-
-func hashFilePassword(password string) string {
-	return HashPasswordCustomSalt(password, serverSettings.Authentication.SaltFiles)
-}
-
-func hashUserPassword(password string) string {
-	return HashPasswordCustomSalt(password, serverSettings.Authentication.SaltAdmin)
-}
-
-// HashPasswordCustomSalt hashes a password with SHA1 and the provided salt
-func HashPasswordCustomSalt(password, salt string) string {
-	if password == "" {
-		return ""
-	}
-	if salt == "" {
-		panic(errors.New("no salt provided"))
-	}
+// Deprecated: SHA1 is not secure, this is only used for migrating
+// passwords from <v2.2.5 to the current version
+// Will be removed soon.
+func hashSha1(password, salt string) string {
 	pwBytes := []byte(password + salt)
 	hash := sha1.New()
 	hash.Write(pwBytes)
 	return hex.EncodeToString(hash.Sum(nil))
+}
+
+const (
+	argonTime    = 2
+	argonMemory  = 28 * 1024 // 28 MB
+	argonThreads = 1
+	argonKeyLen  = 32
+	argonSaltLen = 16
+)
+
+// HashPassword hashes a password with Argon2id.
+// useOldHash is used for migrating from <v2.2.5 to the current version
+// Will be removed soon.
+// legacySalt is only used for migrating from <v2.2.5 to the current version
+func HashPassword(password string, useOldHash bool, legacySalt string) string {
+	if password == "" {
+		return ""
+	}
+	pwBytes := []byte(password + legacySalt)
+	if useOldHash {
+		if legacySalt == "" {
+			panic(errors.New("no salt provided for legacy hash"))
+		}
+		hash := sha1.New()
+		hash.Write(pwBytes)
+		return hex.EncodeToString(hash.Sum(nil))
+	}
+	// Argon2id: generate a fresh random salt, ignore the global salt
+	randomSalt := []byte(helper.GenerateRandomString(argonSaltLen))
+	hash := argon2.IDKey(
+		[]byte(password),
+		randomSalt,
+		argonTime,
+		argonMemory,
+		argonThreads,
+		argonKeyLen,
+	)
+
+	return fmt.Sprintf("argon2id$%s$%s",
+		hex.EncodeToString(randomSalt),
+		hex.EncodeToString(hash),
+	)
+}
+
+// VerifyPassword checks a plaintext password against a stored hash.
+// If hash is still SHA1, it will check the sha1 hash and return the second parameter as true, to indicate
+// that the hash was generated with the old hash function and requires rehashing
+// Oherwise argon2 will be used and the second parameter will be false
+func VerifyPassword(password, storedHash, legacySalt string) (bool, bool) {
+	if len(storedHash) == 40 {
+		hashedPassword := hashSha1(password, legacySalt)
+		return helper.IsEqualStringConstantTime(hashedPassword, storedHash), true
+	}
+
+	parts := strings.Split(storedHash, "$")
+	if len(parts) != 3 || parts[0] != "argon2id" {
+		return false, false
+	}
+
+	salt, err := hex.DecodeString(parts[1])
+	if err != nil {
+		return false, false
+	}
+
+	hash := argon2.IDKey(
+		[]byte(password),
+		salt,
+		argonTime,
+		argonMemory,
+		argonThreads,
+		argonKeyLen,
+	)
+	hashedPassword := hex.EncodeToString(hash)
+	return helper.IsEqualStringConstantTime(hashedPassword, parts[2]), false
 }
 
 // End2EndReconfigParameters contains values on how to reset E2E, if requested

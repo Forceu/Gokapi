@@ -33,7 +33,6 @@ import (
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage/filesystem/s3filesystem/aws"
-	"github.com/forceu/gokapi/internal/webserver/authentication"
 )
 
 // webserverDir is the embedded version of the "static" folder
@@ -91,8 +90,8 @@ func basicAuth(next http.HandlerFunc) http.HandlerFunc {
 
 		enteredUser, enteredPw, ok := r.BasicAuth()
 		if ok {
-			usernameMatch := authentication.IsEqualStringConstantTime(strings.ToLower(enteredUser), strings.ToLower(credentialUsername))
-			passwordMatch := authentication.IsEqualStringConstantTime(enteredPw, credentialPassword)
+			usernameMatch := helper.IsEqualStringConstantTime(strings.ToLower(enteredUser), strings.ToLower(credentialUsername))
+			passwordMatch := helper.IsEqualStringConstantTime(enteredPw, credentialPassword)
 			if usernameMatch && passwordMatch {
 				next.ServeHTTP(w, r)
 				return
@@ -397,11 +396,8 @@ func parseBasicAuthSettings(result *models.Configuration, authInfo *authSettings
 	}
 	// Password is not displayed in reconf setup, but a placeholder "unc". If this is submitted as a password, the
 	// old password is kept
-	if isInitialSetup {
-		result.Authentication.SaltAdmin = helper.GenerateRandomString(30)
-	}
 	if isInitialSetup || pw != "unc" {
-		authInfo.PasswordInternalAuth = configuration.HashPasswordCustomSalt(pw, result.Authentication.SaltAdmin)
+		authInfo.PasswordInternalAuth = configuration.HashPassword(pw, false, "")
 	}
 	return nil
 }

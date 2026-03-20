@@ -2,8 +2,10 @@ package models
 
 // AuthenticationConfig holds configuration on how to authenticate to Gokapi admin menu
 type AuthenticationConfig struct {
-	Method               int      `json:"Method"`
-	SaltAdmin            string   `json:"SaltAdmin"`
+	Method int `json:"Method"`
+	// deprecated, only used for migration
+	SaltAdmin string `json:"SaltAdmin"`
+	// deprecated, only used for migration
 	SaltFiles            string   `json:"SaltFiles"`
 	Username             string   `json:"Username"`
 	HeaderKey            string   `json:"HeaderKey"`

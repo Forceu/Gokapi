@@ -589,24 +589,13 @@ Contains the server configuration. If you want to deploy Gokapi in multiple inst
 Modifying config.json to deploy without setup
 ====================================================
 
-If you want to deploy Gokapi to multiple instances that contain different data, you have to modify the config.json. Open it and change the following fields:
+If you are deploying Gokapi across multiple instances with different datasets, there is no need to modify the ``config.json`` file anymore. The only time you should update it is when using internal username/password authentication and you want to change the admin username. In that case, simply update the ``Username`` field in the file.
 
-+-----------+------------------------------------------------------------+----------------------+
-| Field     | Operation                                                  | Example              |
-+===========+============================================================+======================+
-| SaltAdmin | Change to empty value                                      | "SaltAdmin": "",     |
-+-----------+------------------------------------------------------------+----------------------+
-| SaltFiles | Change to empty value                                      | "SaltFiles": "",     |
-+-----------+------------------------------------------------------------+----------------------+
-| Username  | Change to the username of your preference,                 | "Username": "admin", |
-|           |                                                            |                      |
-|           | if you are using internal username/password authentication |                      |
-+-----------+------------------------------------------------------------+----------------------+
 
 Setting an admin password
 ====================================================
 
-If you are using internal username/password authentication, run the binary with the parameter ``--deployment-password [YOUR_PASSWORD]``. This sets the password and also generates a new salt for the password. This has to be done before Gokapi is run for the first time on the new instance. Alternatively you can do this on the orchestrating machine and then copy the configuration file and database to the new instance.
+If you are using internal username/password authentication, run the binary with the parameter ``--deployment-password [YOUR_PASSWORD]``. This sets the password in the database. This has to be done before Gokapi is run for the first time on the new instance. Alternatively you can do this on the orchestrating machine and then copy the configuration file and database to the new instance.
 
 If you are using a Docker image, this has to be done by starting a container with the entrypoint ``/app/run.sh``, for example: ::
 
