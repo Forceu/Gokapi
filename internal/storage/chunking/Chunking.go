@@ -155,7 +155,7 @@ func ParseMultipartHeader(header *multipart.FileHeader) (FileHeader, error) {
 }
 
 func getChunkFilePath(id string) string {
-	return configuration.Get().DataDir + "/chunk-" + id
+	return configuration.Get().DataDir + "/chunk-" + sanitiseUuid(id)
 }
 
 func isEnoughSpace(filesize int64) (bool, error) {
@@ -191,7 +191,7 @@ func DeleteChunk(id string) error {
 	if id == "" {
 		return errors.New("empty chunk id provided")
 	}
-	return os.Remove(getChunkFilePath(sanitiseUuid(id)))
+	return os.Remove(getChunkFilePath(id))
 }
 
 // FileExists returns true if a file exists for the given chunk ID
@@ -229,10 +229,10 @@ func allocateFile(info ChunkInfo, maxAllowedSize int64) error {
 		return errors.New("not enough space on server for storing this file - please contact the administrator")
 	}
 	file, err := os.OpenFile(getChunkFilePath(info.UUID), os.O_RDWR|os.O_CREATE, 0600)
-	defer file.Close()
 	if err != nil {
 		return err
 	}
+	defer file.Close()
 	err = file.Truncate(info.TotalFilesizeBytes)
 	return err
 }
@@ -242,10 +242,10 @@ func writeChunk(chunkContent io.Reader, fileHeader *multipart.FileHeader, info C
 		return errors.New("chunksize will be bigger than total filesize from this offset")
 	}
 	file, err := GetFileByChunkId(info.UUID)
-	defer file.Close()
 	if err != nil {
 		return err
 	}
+	defer file.Close()
 	newOffset, err := file.Seek(info.Offset, io.SeekStart)
 	if err != nil {
 		return err

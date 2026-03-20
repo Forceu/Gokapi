@@ -413,6 +413,10 @@
 					
 {{ if not .HasAwsFeature }}
 					<p><br><br><i>This build has been compiled without AWS support, therefore cloud storage is not available.</i></p>
+					
+			  				<input type="hidden" id="storage_sel_image" name="storage_sel_image" value="nochange">
+
+						</select>
 {{ else }}
 
 					<div id="cloudstorage_options" style="visibility: hidden">
