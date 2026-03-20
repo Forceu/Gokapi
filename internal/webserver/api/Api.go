@@ -109,7 +109,7 @@ func apiEditFile(w http.ResponseWriter, r requestParser, user models.User) {
 	}
 
 	if !request.KeepPassword {
-		file.PasswordHash = configuration.HashPassword(request.Password, true)
+		file.PasswordHash = configuration.HashPassword(request.Password, false, "")
 	}
 
 	if file.HotlinkId != "" && !storage.IsAbleHotlink(file) {
@@ -952,7 +952,7 @@ func apiResetPassword(w http.ResponseWriter, r requestParser, user models.User) 
 	password := ""
 	if request.NewPassword {
 		password = helper.GenerateRandomString(configuration.GetEnvironment().MinLengthPassword + 2)
-		userToEdit.Password = configuration.HashPassword(password, false)
+		userToEdit.Password = configuration.HashPassword(password, false, "")
 	}
 	database.DeleteAllSessionsByUser(userToEdit.Id)
 	database.SaveUser(userToEdit, false)

@@ -308,7 +308,7 @@ func createNewMetaData(hash string, fileHeader chunking.FileHeader, userId int, 
 		DownloadsRemaining: params.AllowedDownloads,
 		UnlimitedTime:      params.UnlimitedTime,
 		UnlimitedDownloads: params.UnlimitedDownload,
-		PasswordHash:       configuration.HashPassword(params.Password, true),
+		PasswordHash:       configuration.HashPassword(params.Password, false, ""),
 		UserId:             userId,
 		UploadRequestId:    params.FileRequestId,
 	}
@@ -427,7 +427,7 @@ func DuplicateFile(file models.File, parametersToChange int, newFileName string,
 		newFile.UnlimitedDownloads = fileParameters.UnlimitedDownload
 	}
 	if changePassword {
-		newFile.PasswordHash = configuration.HashPassword(fileParameters.Password, true)
+		newFile.PasswordHash = configuration.HashPassword(fileParameters.Password, false, "")
 	}
 	if changeName {
 		newFile.Name = newFileName

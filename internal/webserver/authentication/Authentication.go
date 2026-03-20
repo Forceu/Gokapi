@@ -2,7 +2,6 @@ package authentication
 
 import (
 	"context"
-	"crypto/subtle"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -282,6 +281,9 @@ func isGrantedSession(w http.ResponseWriter, r *http.Request) (models.User, bool
 }
 
 // IsCorrectUsernameAndPassword checks if a provided username and password is correct
+// Returns true if the user is authenticated, false otherwise
+// Second return value is false if CSRF token is invalid, true otherwise
+// Migrates legacy passwords to the new format
 func IsCorrectUsernameAndPassword(username, password, userCsrfToken string) (models.User, bool, bool) {
 	if !csrftoken.IsValid(csrftoken.TypeLogin, userCsrfToken) {
 		return models.User{}, false, false
@@ -290,15 +292,15 @@ func IsCorrectUsernameAndPassword(username, password, userCsrfToken string) (mod
 	if !ok {
 		return models.User{}, false, true
 	}
-	if IsEqualStringConstantTime(configuration.HashPasswordCustomSalt(password, authSettings.SaltAdmin), user.Password) {
-		return user, true, true
+	isSame, isLegacy := configuration.VerifyPassword(password, user.Password, configuration.Get().Authentication.SaltAdmin)
+	if !isSame {
+		return models.User{}, false, true
 	}
-	return models.User{}, false, true
-}
-
-// IsEqualStringConstantTime uses ConstantTimeCompare to prevent timing attack.
-func IsEqualStringConstantTime(s1, s2 string) bool {
-	return subtle.ConstantTimeCompare([]byte(s1), []byte(s2)) == 1
+	if isLegacy {
+		user.Password = configuration.HashPassword(password, false, "")
+		database.SaveUser(user, false)
+	}
+	return user, true, true
 }
 
 // Logout logs the user out and removes the session

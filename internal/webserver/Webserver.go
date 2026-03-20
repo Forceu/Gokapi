@@ -337,7 +337,10 @@ func changePassword(w http.ResponseWriter, r *http.Request) {
 
 		pw := r.PostForm.Get("newpw")
 		csrf := r.PostForm.Get("csrf-token")
-		errMessage, pwHash, ok = validateNewPassword(pw, user, csrf)
+		pwHash, ok, err = validateNewPassword(pw, user, csrf)
+		if err != nil {
+			errMessage = firstLetterUpper(err.Error())
+		}
 		if ok {
 			user.Password = pwHash
 			user.ResetPassword = false
@@ -356,21 +359,32 @@ func changePassword(w http.ResponseWriter, r *http.Request) {
 	helper.CheckIgnoreTimeout(err)
 }
 
-func validateNewPassword(newPassword string, user models.User, userCsrfToken string) (string, string, bool) {
+// validateNewPassword validates the new password and returns the new password hash if the password is valid.
+// If the password is not valid, it returns an error message and an empty string.
+// If the password is valid, it returns the hash as a string and true.
+func validateNewPassword(newPassword string, user models.User, userCsrfToken string) (string, bool, error) {
 	if len(newPassword) == 0 {
-		return "", user.Password, false
+		return user.Password, false, nil
 	}
 	if !csrftoken.IsValid(csrftoken.TypeLogin, userCsrfToken) {
-		return "Form was not submitted completely", "", false
+		return "", false, errors.New("form was not submitted completely")
 	}
 	if len(newPassword) < configuration.GetEnvironment().MinLengthPassword {
-		return "Password is too short", "", false
+		return "", false, errors.New("password is too short")
 	}
-	newPasswordHash := configuration.HashPassword(newPassword, false)
-	if user.Password == newPasswordHash {
-		return "New password has to be different from the old password", "", false
+	isSame, _ := configuration.VerifyPassword(newPassword, user.Password, "")
+	if isSame {
+		return "", false, errors.New("new password has to be different from the old password")
 	}
-	return "", newPasswordHash, true
+	newPasswordHash := configuration.HashPassword(newPassword, false, "")
+	return newPasswordHash, true, nil
+}
+
+func firstLetterUpper(s string) string {
+	if len(s) == 0 {
+		return s
+	}
+	return strings.ToUpper(string(s[0])) + s[1:]
 }
 
 // Handling of /error
@@ -586,7 +600,14 @@ func showDownload(w http.ResponseWriter, r *http.Request) {
 		ip := logging.GetIpAddress(r)
 		ratelimiter.WaitOnDownloadPassword(ip)
 
-		if configuration.HashPassword(enteredPassword, true) == file.PasswordHash {
+		isValid, isLegacy := configuration.VerifyPassword(enteredPassword, file.PasswordHash, configuration.Get().Authentication.SaltFiles)
+		if isValid {
+			// Migrate legacy passwords to the new format
+			// Will be removed in the future
+			if isLegacy {
+				file.PasswordHash = configuration.HashPassword(enteredPassword, false, "")
+				database.SaveMetaData(file)
+			}
 			writeFilePwCookie(w, file)
 			// redirect so that there is no post data to be resent if user refreshes page
 			redirect(w, r, "d?id="+file.Id)

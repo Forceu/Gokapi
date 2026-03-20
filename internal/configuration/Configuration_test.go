@@ -6,9 +6,11 @@ import (
 
 	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
 	"github.com/forceu/gokapi/internal/configuration/configupgrade"
+	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/test"
 	"github.com/forceu/gokapi/internal/test/testconfiguration"
+	"golang.org/x/crypto/argon2"
 )
 
 func TestMain(m *testing.M) {
@@ -92,4 +94,11 @@ func TestUsesHttps(t *testing.T) {
 	test.IsEqualBool(t, UsesHttps(), false)
 	usesHttps = true
 	test.IsEqualBool(t, UsesHttps(), true)
+}
+
+func BenchmarkArgon2id(b *testing.B) {
+	salt := []byte(helper.GenerateRandomString(argonSaltLen))
+	for i := 0; i < b.N; i++ {
+		argon2.IDKey([]byte("password"), salt, argonTime, argonMemory, argonThreads, argonKeyLen)
+	}
 }
