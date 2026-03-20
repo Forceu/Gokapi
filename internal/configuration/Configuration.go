@@ -93,7 +93,7 @@ func Load() {
 	}
 	helper.CreateDir(serverSettings.DataDir)
 	filesystem.Init(serverSettings.DataDir)
-	logging.Init(parsedEnvironment.DataDir)
+	logging.Init(serverSettings.DataDir)
 }
 
 // ConnectDatabase loads the database that is defined in the configuration

@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -278,10 +279,16 @@ func LogValidLogin(username string) {
 // LogDownload adds a log entry when a download was requested. Non-Blocking
 func LogDownload(file models.File, r *http.Request, saveIp bool) {
 	if saveIp {
-		createLogEntry(categoryDownload, fmt.Sprintf("%s, IP %s, ID %s, Useragent %s", file.Name, GetIpAddress(r), file.Id, r.UserAgent()), false)
+		createLogEntry(categoryDownload, fmt.Sprintf("%s, IP %s, ID %s, Useragent %s", file.Name, GetIpAddress(r), file.Id, sanitiseUserAgent(r)), false)
 	} else {
-		createLogEntry(categoryDownload, fmt.Sprintf("%s, ID %s, Useragent %s", file.Name, file.Id, r.UserAgent()), false)
+		createLogEntry(categoryDownload, fmt.Sprintf("%s, ID %s, Useragent %s", file.Name, file.Id, sanitiseUserAgent(r)), false)
 	}
+}
+
+var regexUserAgent = regexp.MustCompile(`[^A-Za-z0-9/. ;:+(|)_\-,]`)
+
+func sanitiseUserAgent(r *http.Request) string {
+	return regexUserAgent.ReplaceAllString(r.UserAgent(), "")
 }
 
 // LogUpload adds a log entry when an upload was created. Non-Blocking
