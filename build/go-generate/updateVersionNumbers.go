@@ -14,15 +14,18 @@ import (
 )
 
 const fileMain = "../../cmd/gokapi/Main.go"
+const fileApiSpecs = "../../openapi.json"
 const fileMinify = "../../build/go-generate/minifyStaticContent.go"
 const fileVersionConstants = "../../internal/webserver/web/templates/string_constants.tmpl"
 const fileVersionCApi = "../../internal/webserver/api/VersionNumbers.go"
 
 func main() {
 	checkFileExists(fileMain)
+	checkFileExists(fileApiSpecs)
 	checkFileExists(fileMinify)
 	checkFileExists(fileVersionConstants)
 	checkFileExists(fileVersionCApi)
+	updateOpenAPIVersion()
 	writeVersionTemplates()
 	writeMinify()
 	writeApiVersion()
@@ -47,6 +50,36 @@ func writeApiVersion() {
 		os.Exit(1)
 	}
 	fmt.Println("Updated API version template")
+}
+
+func updateOpenAPIVersion() {
+	input, err := os.ReadFile(fileApiSpecs)
+	if err != nil {
+		fmt.Println("FAIL: Updating version API specs")
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	gokapiVersion := parseGokapiVersion()
+	gokapiVersionInt := parseVersionAsInt(gokapiVersion)
+
+	re := regexp.MustCompile(`("version"\s*:\s*")[^"]+(")`)
+	replacement := []byte(fmt.Sprintf(`${1}%s${2}`, gokapiVersion))
+	output := re.ReplaceAll(input, replacement)
+
+	reSchemaStr := regexp.MustCompile(`(?s)("Version"\s*:\s*\{.*?"example"\s*:\s*")[^"]+(")`)
+	output = reSchemaStr.ReplaceAll(output, []byte(`${1}`+gokapiVersion+`${2}`))
+
+	reSchemaInt := regexp.MustCompile(`(?s)("VersionInt"\s*:\s*\{.*?"example"\s*:\s*)\d+`)
+	output = reSchemaInt.ReplaceAll(output, []byte(`${1}`+gokapiVersionInt))
+
+	err = os.WriteFile(fileApiSpecs, output, 0644)
+	if err != nil {
+		fmt.Println("FAIL: Updating version API specs")
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	fmt.Println("Updated API version in openapi.json")
 }
 
 func writeMinify() {

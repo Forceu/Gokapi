@@ -3,7 +3,7 @@
   "info": {
     "title": "Gokapi",
     "description": "[https://github.com/Forceu/Gokapi](https://github.com/Forceu/Gokapi)\n",
-    "version": "1.0"
+    "version": "2.2.5-dev"
   },
   "servers": [
     {
@@ -2566,11 +2566,11 @@
         "properties": {
           "Version": {
             "type": "string",
-            "example": "2.1.0"
+            "example": "2.2.5-dev"
           },
           "VersionInt": {
             "type": "integer",
-            "example": 20100
+            "example": 20205
           },
           "EndToEndEncryptionEnabled": {
             "type": "boolean",
