@@ -122,6 +122,7 @@ func TestLogin(t *testing.T) {
 
 	// POST with correct credentials but invalid CSRF token shows error
 	postConfig.PostValues = postValues("test", "adminadmin", "invalid")
+	postConfig.RequiredContent = []string{"id=\"uname_hidden\"", "The login page was open too long and expired. Please try again."}
 	test.HttpPostRequest(t, postConfig)
 
 	// GET /login with OAuth2 enabled redirects to oauth-login
@@ -283,7 +284,14 @@ func TestLoginIncorrectPassword(t *testing.T) {
 		RequiredContent: []string{"Incorrect username or password"},
 		IsHtml:          true,
 		Method:          "POST",
-		PostValues:      []test.PostBody{{"username", "test"}, {"password", "incorrect"}},
+		PostValues:      []test.PostBody{{"username", "test"}, {"password", "incorrect"}, {"csrf-token", csrftoken.Generate()}},
+	})
+	test.HttpPageResult(t, test.HttpTestConfig{
+		Url:             "http://localhost:53843/login",
+		RequiredContent: []string{"The login page was open too long and expired. Please try again."},
+		IsHtml:          true,
+		Method:          "POST",
+		PostValues:      []test.PostBody{{"username", "test"}, {"password", "incorrect"}, {"csrf-token", "incorrect"}},
 	})
 }
 func TestLoginIncorrectUsername(t *testing.T) {
@@ -293,7 +301,14 @@ func TestLoginIncorrectUsername(t *testing.T) {
 		RequiredContent: []string{"Incorrect username or password"},
 		IsHtml:          true,
 		Method:          "POST",
-		PostValues:      []test.PostBody{{"username", "incorrect"}, {"password", "incorrect"}},
+		PostValues:      []test.PostBody{{"username", "incorrect"}, {"password", "incorrect"}, {"csrf-token", csrftoken.Generate()}},
+	})
+	test.HttpPageResult(t, test.HttpTestConfig{
+		Url:             "http://localhost:53843/login",
+		RequiredContent: []string{"The login page was open too long and expired. Please try again."},
+		IsHtml:          true,
+		Method:          "POST",
+		PostValues:      []test.PostBody{{"username", "incorrect"}, {"password", "incorrect"}, {"csrf-token", "incorrect"}},
 	})
 }
 

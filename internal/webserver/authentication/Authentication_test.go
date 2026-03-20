@@ -75,20 +75,27 @@ func TestIsValid(t *testing.T) {
 }
 
 func TestIsCorrectUsernameAndPassword(t *testing.T) {
-	user, ok := IsCorrectUsernameAndPassword("test", "adminadmin", csrftoken.Generate())
+	user, ok, csfrOk := IsCorrectUsernameAndPassword("test", "adminadmin", csrftoken.Generate())
 	test.IsEqualBool(t, ok, true)
-	user, ok = IsCorrectUsernameAndPassword("Test", "adminadmin", csrftoken.Generate())
+	test.IsEqualBool(t, csfrOk, true)
+
+	user, ok, csfrOk = IsCorrectUsernameAndPassword("Test", "adminadmin", csrftoken.Generate())
 	test.IsEqualBool(t, ok, true)
+	test.IsEqualBool(t, csfrOk, true)
 	test.IsEqualInt(t, user.Id, 5)
-	user, ok = IsCorrectUsernameAndPassword("user", "useruser", csrftoken.Generate())
+	user, ok, csfrOk = IsCorrectUsernameAndPassword("user", "useruser", csrftoken.Generate())
 	test.IsEqualBool(t, ok, true)
+	test.IsEqualBool(t, csfrOk, true)
 	test.IsEqualInt(t, user.Id, 7)
-	_, ok = IsCorrectUsernameAndPassword("test", "wrong", csrftoken.Generate())
+	_, ok, csfrOk = IsCorrectUsernameAndPassword("test", "wrong", csrftoken.Generate())
 	test.IsEqualBool(t, ok, false)
-	_, ok = IsCorrectUsernameAndPassword("invalid", "adminadmin", csrftoken.Generate())
+	test.IsEqualBool(t, csfrOk, true)
+	_, ok, csfrOk = IsCorrectUsernameAndPassword("invalid", "adminadmin", csrftoken.Generate())
 	test.IsEqualBool(t, ok, false)
-	_, ok = IsCorrectUsernameAndPassword("test", "adminadmin", "invalidToken")
+	test.IsEqualBool(t, csfrOk, true)
+	_, ok, csfrOk = IsCorrectUsernameAndPassword("test", "adminadmin", "invalidToken")
 	test.IsEqualBool(t, ok, false)
+	test.IsEqualBool(t, csfrOk, false)
 }
 
 func TestIsAuthenticated(t *testing.T) {
