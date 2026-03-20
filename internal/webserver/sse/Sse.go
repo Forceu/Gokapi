@@ -75,7 +75,7 @@ func publishMessage[d eventData](data d, userId int) {
 	mutex.RLock()
 	for _, channel := range listeners {
 		if channel.UserId == userId {
-			go channel.Reply("event: message\ndata: " + string(message) + "\n\n")
+			channel.Reply("event: message\ndata: " + string(message) + "\n\n")
 		}
 	}
 	mutex.RUnlock()
@@ -122,12 +122,28 @@ func GetStatusSSE(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	replyChannel := make(chan string)
-	shutdownChannel := make(chan bool)
+	// Use a buffered channel so that a burst of publishes does not
+	// immediately block when the handler is busy writing to the client.
+	// The buffer size (64) should comfortably absorb real-world bursts;
+	// items beyond the buffer are dropped by the non-blocking send in
+	// publishMessage, preventing unbounded goroutine growth.
+	replyChannel := make(chan string, 64)
+	shutdownChannel := make(chan bool, 1)
 	channel := listener{
-		Reply:    func(reply string) { replyChannel <- reply },
-		Shutdown: func() { shutdownChannel <- true },
-		UserId:   user.Id,
+		Reply: func(reply string) {
+			select {
+			case replyChannel <- reply:
+			default:
+				// client is too slow, drop the message
+			}
+		},
+		Shutdown: func() {
+			select {
+			case shutdownChannel <- true:
+			default:
+			}
+		},
+		UserId: user.Id,
 	}
 	channelId := helper.GenerateRandomString(20)
 	addListener(channelId, channel)
