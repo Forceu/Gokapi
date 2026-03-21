@@ -13,7 +13,7 @@ import (
 // Write sets headers to either display the file inline or to force download, the content type
 // and if the file is encrypted, the creation timestamp to now
 func Write(file models.File, w http.ResponseWriter, forceDownload, serveDecrypted bool) {
-	encodedName := strings.NewReplacer("+", "%2B").Replace(url.QueryEscape(file.Name))
+	encodedName := strings.NewReplacer("+", "%2B").Replace(url.PathEscape(file.Name))
 	disposition := "attachment"
 	if !forceDownload {
 		disposition = "inline"
