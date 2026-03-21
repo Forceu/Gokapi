@@ -18,6 +18,7 @@ type apiRoute struct {
 	HasWildcard      bool                 // True if the endpoint contains the ID as a sub-URL
 	IsFileRequestApi bool                 // True if the endpoint is used for public uploads
 	AdminOnly        bool                 // True if the endpoint requires admin/superadmin permissions
+	NoJsonResponse   bool                 // True if the endpoint does not always return a JSON response
 	ApiPerm          models.ApiPermission // Required permission to access the endpoint
 	RequestParser    requestParser        // Parser for the supplied parameters
 	execution        apiFunc              // Execution function for the endpoint
@@ -43,17 +44,19 @@ var routes = []apiRoute{
 		RequestParser: nil,
 	},
 	{
-		Url:           "/files/download/",
-		ApiPerm:       models.ApiPermDownload,
-		execution:     apiDownloadSingle,
-		HasWildcard:   true,
-		RequestParser: &paramFilesDownloadSingle{},
+		Url:            "/files/download/",
+		ApiPerm:        models.ApiPermDownload,
+		execution:      apiDownloadSingle,
+		NoJsonResponse: true,
+		HasWildcard:    true,
+		RequestParser:  &paramFilesDownloadSingle{},
 	},
 	{
-		Url:           "/files/downloadzip",
-		ApiPerm:       models.ApiPermDownload,
-		execution:     apiDownloadZip,
-		RequestParser: &paramFilesDownloadZip{},
+		Url:            "/files/downloadzip",
+		ApiPerm:        models.ApiPermDownload,
+		NoJsonResponse: true,
+		execution:      apiDownloadZip,
+		RequestParser:  &paramFilesDownloadZip{},
 	},
 	{
 		Url:           "/files/changeOwner",

@@ -40,13 +40,16 @@ const LengthApiKey = 30
 // Process parses the request and executes the API call or returns an error message to the sender
 func Process(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("cache-control", "no-store")
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	requestUrl := parseRequestUrl(r)
 
 	routing, ok := getRouting(requestUrl)
 	if !ok {
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		sendError(w, http.StatusBadRequest, errorcodes.InvalidUrl, "Invalid request")
 		return
+	}
+	if !routing.NoJsonResponse {
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	}
 	var user models.User
 	user, ok = isAuthorisedForApi(r, routing)
@@ -617,6 +620,7 @@ func apiDownloadSingle(w http.ResponseWriter, r requestParser, user models.User)
 	}
 	file, statusCode, errCode, errMessage := checkDownloadAllowed(request.Id, user)
 	if statusCode != 0 {
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		sendError(w, statusCode, errCode, errMessage)
 		return
 	}
@@ -638,6 +642,7 @@ func apiDownloadZip(w http.ResponseWriter, r requestParser, user models.User) {
 	for _, fileId := range request.Ids {
 		file, statusCode, errCode, errMessage := checkDownloadAllowed(fileId, user)
 		if statusCode != 0 {
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 			sendError(w, statusCode, errCode, errMessage)
 			return
 		}
@@ -676,6 +681,7 @@ func createAndOutputPresignedUrl(ids []string, w http.ResponseWriter, filename s
 	}{"OK", configuration.Get().ServerUrl + "downloadPresigned?key=" + presignUrl.Id}
 	result, err := json.Marshal(response)
 	helper.Check(err)
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	_, _ = w.Write(result)
 }
 

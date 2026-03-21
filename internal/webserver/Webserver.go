@@ -268,7 +268,7 @@ func redirectFromFilename(w http.ResponseWriter, r *http.Request) {
 // Handling of /main.wasm
 func serveDownloadWasm(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Cache-Control", "public, max-age=100800") // 2 days
-	w.Header().Set("content-type", "application/wasm")
+	w.Header().Set("Content-Type", "application/wasm")
 	file, err := wasmDownloadFile.ReadFile("web/main.wasm")
 	helper.Check(err)
 	_, _ = w.Write(file)
@@ -277,7 +277,7 @@ func serveDownloadWasm(w http.ResponseWriter, r *http.Request) {
 // Handling of /e2e.wasm
 func serveE2EWasm(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Cache-Control", "public, max-age=100800") // 2 days
-	w.Header().Set("content-type", "application/wasm")
+	w.Header().Set("Content-Type", "application/wasm")
 	file, err := wasmE2EFile.ReadFile("web/e2e.wasm")
 	helper.Check(err)
 	_, _ = w.Write(file)
@@ -312,6 +312,7 @@ func handleGenerateAuthToken(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	_, _ = w.Write([]byte("{\"key\":\"" + token + "\",\"expiry\":" + strconv.FormatInt(expiry, 10) + "}"))
 }
 
@@ -1107,6 +1108,7 @@ func requireLogin(next http.HandlerFunc, isUiCall, isPwChangeView bool) http.Han
 		}
 		if !isUiCall {
 			w.WriteHeader(http.StatusUnauthorized)
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 			_, _ = io.WriteString(w, "{\"Result\":\"error\",\"ErrorMessage\":\"Not authenticated\"}")
 			return
 		}
