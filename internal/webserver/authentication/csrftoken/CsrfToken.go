@@ -14,8 +14,8 @@ var cleanupOnce sync.Once
 const ttl = 5 * time.Minute
 
 const (
-	TypeLogin = iota
-	TypeApiToken
+	TypeLogin    = iota
+	TypeApiToken // currently not used
 )
 
 type csrfToken struct {
@@ -45,7 +45,7 @@ func IsValid(tokenType int, tokenId string) bool {
 	if !ok {
 		return false
 	}
-	delete(tokens, tokenId)
+	delete(tokens, tokenId) //always deletes token, even if it was wrong type
 	if token.Type != tokenType {
 		return false
 	}
