@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
+
+	"github.com/forceu/gokapi/internal/models"
 )
 
 // OpenAPI specification structures
@@ -23,7 +26,8 @@ type PathItem struct {
 }
 
 type Operation struct {
-	Parameters []Parameter `json:"parameters,omitempty"`
+	Parameters []Parameter           `json:"parameters,omitempty"`
+	Security   []map[string][]string `json:"security,omitempty"`
 }
 
 type Parameter struct {
@@ -57,6 +61,12 @@ func TestOpenAPISpecification(t *testing.T) {
 
 	// 3. Check for extra paths in OpenAPI that don't exist in routes
 	failures = append(failures, validateNoExtraPaths(spec)...)
+
+	// 4. Check that all security scopes are valid API permission names
+	failures = append(failures, validateSecurityScopes(spec)...)
+
+	// 5 & 6. Check that header schema types in OpenAPI match the Go field types
+	failures = append(failures, validateHeaderTypes(spec)...)
 
 	// Report results
 	if len(failures) > 0 {
@@ -283,6 +293,7 @@ type HeaderInfo struct {
 	Required      bool
 	Unpublished   bool
 	SupportBase64 bool
+	GoType        string // "string", "boolean", or "integer"
 }
 
 // extractHeadersFromParser uses reflection to extract header information
@@ -315,11 +326,22 @@ func extractHeadersFromParser(parser requestParser) map[string]HeaderInfo {
 		// Check if supports base64
 		supportBase64 := field.Tag.Get("supportBase64") == "true"
 
+		// Map the Go kind to the OpenAPI type string
+		goType := "string"
+		switch field.Type.Kind() {
+		case reflect.Bool:
+			goType = "boolean"
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+			reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			goType = "integer"
+		}
+
 		headers[headerTag] = HeaderInfo{
 			Name:          headerTag,
 			Required:      required,
 			SupportBase64: supportBase64,
 			Unpublished:   unpublished,
+			GoType:        goType,
 		}
 	}
 
@@ -384,7 +406,172 @@ func extractOpenAPIHeaders(pathItem PathItem) map[string]Parameter {
 	return headers
 }
 
-// Helper test to print all routes and their headers (for debugging)
+// validApiPermissionScopes is the set of recognised security scope strings in OpenAPI.
+// "FileRequest" is a special scope used by the public upload-request endpoints.
+// All others map directly to models.ApiPermission values.
+var validApiPermissionScopes = []string{
+	"VIEW",
+	"UPLOAD",
+	"DELETE",
+	"API_MANAGE",
+	"EDIT",
+	"REPLACE",
+	"MANAGE_USERS",
+	"MANAGE_LOGS",
+	"MANAGE_FILE_REQUESTS",
+	"DOWNLOAD",
+	"SPECIFIC_GUEST_API_KEY",
+}
+
+// apiPermToScope maps each models.ApiPermission value to its expected OpenAPI security scope string.
+var apiPermToScope = map[models.ApiPermission]string{
+	models.ApiPermView:               "VIEW",
+	models.ApiPermUpload:             "UPLOAD",
+	models.ApiPermDelete:             "DELETE",
+	models.ApiPermApiMod:             "API_MANAGE",
+	models.ApiPermEdit:               "EDIT",
+	models.ApiPermReplace:            "REPLACE",
+	models.ApiPermManageUsers:        "MANAGE_USERS",
+	models.ApiPermManageLogs:         "MANAGE_LOGS",
+	models.ApiPermManageFileRequests: "MANAGE_FILE_REQUESTS",
+	models.ApiPermDownload:           "DOWNLOAD",
+}
+
+// validateSecurityScopes checks two things for every non-e2e route:
+//  1. The OpenAPI security block contains the scope that matches the route's ApiPerm.
+//  2. Every scope string present in the OpenAPI spec is a recognised value.
+//
+// This catches wrong scope strings (e.g. "PERM_GUEST_UPLOAD") and routes whose
+// documented permission does not match the permission enforced in Go code.
+func validateSecurityScopes(spec *OpenAPISpec) []string {
+	var failures []string
+
+	for _, route := range routes {
+		if strings.HasPrefix(route.Url, "/e2e/") {
+			continue
+		}
+
+		openAPIPath := findOpenAPIPath(spec, route)
+		if openAPIPath == "" {
+			// Already reported by validateAllRoutesExist
+			continue
+		}
+
+		pathItem := spec.Paths[openAPIPath]
+		operations := map[string]*Operation{
+			"get":    pathItem.Get,
+			"post":   pathItem.Post,
+			"put":    pathItem.Put,
+			"delete": pathItem.Delete,
+			"patch":  pathItem.Patch,
+		}
+
+		for method, op := range operations {
+			if op == nil {
+				continue
+			}
+
+			// Validate that every scope present is a known value
+			for _, secReq := range op.Security {
+				for _, scopes := range secReq {
+					for _, scope := range scopes {
+						if !slices.Contains(validApiPermissionScopes, scope) {
+							failures = append(failures, fmt.Sprintf(
+								"Path %s %s: unknown security scope %q (not a valid API permission)",
+								openAPIPath, method, scope))
+						}
+					}
+				}
+			}
+
+			// Determine the expected scope for this route from the Go ApiPerm value
+			var expectedScope string
+			switch {
+			case route.IsFileRequestApi:
+				// File-request endpoints use a dedicated API key type
+				expectedScope = "SPECIFIC_GUEST_API_KEY"
+			case route.ApiPerm == models.ApiPermNone:
+				// No auth required — there should be no security block
+				if len(op.Security) > 0 {
+					failures = append(failures, fmt.Sprintf(
+						"Route %s %s: expected no security block (ApiPermNone) but OpenAPI defines one",
+						openAPIPath, method))
+				}
+				continue
+			default:
+				scope, ok := apiPermToScope[route.ApiPerm]
+				if !ok {
+					failures = append(failures, fmt.Sprintf(
+						"Route %s %s: no scope mapping defined for ApiPerm value %d",
+						openAPIPath, method, route.ApiPerm))
+					continue
+				}
+				expectedScope = scope
+			}
+
+			// Check that the expected scope appears in the security block
+			found := false
+			for _, secReq := range op.Security {
+				for _, scopes := range secReq {
+					if slices.Contains(scopes, expectedScope) {
+						found = true
+					}
+				}
+			}
+			if !found {
+				failures = append(failures, fmt.Sprintf(
+					"Route %s %s: expected security scope %q (from Go ApiPerm) not found in OpenAPI security block",
+					openAPIPath, method, expectedScope))
+			}
+		}
+	}
+
+	return failures
+}
+
+// validateHeaderTypes checks that the OpenAPI schema type for each header parameter
+// matches the Go field type from the corresponding RequestParser struct.
+// This catches issue 5 (bool field declared as string) and issue 6 (int field declared as string).
+func validateHeaderTypes(spec *OpenAPISpec) []string {
+	var failures []string
+
+	for _, route := range routes {
+		if route.RequestParser == nil {
+			continue
+		}
+		if strings.HasPrefix(route.Url, "/e2e/") {
+			continue
+		}
+
+		expectedHeaders := extractHeadersFromParser(route.RequestParser)
+
+		openAPIPath := findOpenAPIPath(spec, route)
+		if openAPIPath == "" {
+			continue
+		}
+
+		openAPIHeaders := extractOpenAPIHeaders(spec.Paths[openAPIPath])
+
+		for headerName, info := range expectedHeaders {
+			if info.Unpublished {
+				continue
+			}
+			openAPIHeader, exists := openAPIHeaders[strings.ToLower(headerName)]
+			if !exists {
+				// Already reported by validateRequiredHeaders
+				continue
+			}
+			if openAPIHeader.Schema.Type != info.GoType {
+				failures = append(failures, fmt.Sprintf(
+					"Route %s: header %q has Go type %q but OpenAPI schema type is %q",
+					route.Url, headerName, info.GoType, openAPIHeader.Schema.Type))
+			}
+		}
+	}
+
+	return failures
+}
+
 func TestPrintRoutesAndHeaders(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping debug output in short mode")

@@ -59,10 +59,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/VersionInfo"
-                  }
+                  "$ref": "#/components/schemas/VersionInfo"
                 }
               }
             }
@@ -94,10 +91,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ConfigInfo"
-                  }
+                  "$ref": "#/components/schemas/ConfigInfo"
                 }
               }
             }
@@ -549,7 +543,7 @@
         "security": [
           {
             "apikey": [
-              "FileRequest"
+              "SPECIFIC_GUEST_API_KEY"
             ]
           }
         ],
@@ -598,7 +592,7 @@
         "security": [
           {
             "apikey": [
-              "FileRequest"
+              "SPECIFIC_GUEST_API_KEY"
             ]
           }
         ],
@@ -652,7 +646,7 @@
         "security": [
           {
             "apikey": [
-              "FileRequest"
+              "SPECIFIC_GUEST_API_KEY"
             ]
           }
         ],
@@ -703,12 +697,12 @@
           "uploadrequest"
         ],
         "summary": "Finalises uploaded chunks",
-        "description": "Needs to be called after all chunks have been uploaded. Adds the uploaded file to Gokapi. Requires API permission UPLOAD",
+        "description": "Needs to be called after all chunks have been uploaded. Adds the uploaded file to Gokapi. Requires API key associated with the file request",
         "operationId": "chunkurcomplete",
         "security": [
           {
             "apikey": [
-              "FileRequest"
+              "SPECIFIC_GUEST_API_KEY"
             ]
           }
         ],
@@ -864,10 +858,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ServerStatus"
-                  }
+                  "$ref": "#/components/schemas/ServerStatus"
                 }
               }
             }
@@ -936,7 +927,7 @@
           "200": {
             "description": "Operation successful"
           },
-          "404": {
+          "401": {
             "description": "Invalid API key provided for authentication or API key does not have the required permission"
           }
         }
@@ -1372,7 +1363,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UploadResult"
+                  "$ref": "#/components/schemas/File"
                 }
               }
             }
@@ -1607,10 +1598,10 @@
           "200": {
             "description": "Operation successful"
           },
-          "400": {
+          "404": {
             "description": "Invalid ID supplied"
           },
-          "404": {
+          "401": {
             "description": "Invalid API key provided for authentication or API key does not have the required permission"
           }
         }
@@ -1622,12 +1613,12 @@
           "uploadrequest"
         ],
         "summary": "Lists all file requests",
-        "description": "This API call lists all file requests. Requires API permission GUEST_UPLOAD. To view file requests created by a different user, the user needs to have the user permission LIST",
+        "description": "This API call lists all file requests. Requires API permission MANAGE_FILE_REQUESTS. To view file requests created by a different user, the user needs to have the user permission LIST",
         "operationId": "ulist",
         "security": [
           {
             "apikey": [
-              "PERM_GUEST_UPLOAD"
+              "MANAGE_FILE_REQUESTS"
             ]
           }
         ],
@@ -1661,7 +1652,7 @@
           "uploadrequest"
         ],
         "summary": "Get file request by ID",
-        "description": "This API call lists a specific file request. Returns 404 if an invalid ID was passed. Requires API permission GUEST_UPLOAD. To view file requests from a different user, the user needs to have the user permission LIST",
+        "description": "This API call lists a specific file request. Returns 404 if an invalid ID was passed. Requires API permission MANAGE_FILE_REQUESTS. To view file requests from a different user, the user needs to have the user permission LIST",
         "operationId": "ulistbyid",
         "parameters": [
           {
@@ -1677,7 +1668,7 @@
         "security": [
           {
             "apikey": [
-              "PERM_GUEST_UPLOAD"
+              "MANAGE_FILE_REQUESTS"
             ]
           }
         ],
@@ -1710,12 +1701,12 @@
           "uploadrequest"
         ],
         "summary": "Creates a new or saves an existing upload request",
-        "description": "This API call creates a new upload request if the parameter ID is not submitted. If editing a request, only the submitted parameters will be changed. To save a request of a different user, the user requires the user permission EDIT to execute this call. Requires API permission GUEST_UPLOAD",
+        "description": "This API call creates a new upload request if the parameter ID is not submitted. If editing a request, only the submitted parameters will be changed. To save a request of a different user, the user requires the user permission EDIT to execute this call. Requires API permission MANAGE_FILE_REQUESTS",
         "operationId": "uploadrequestsave",
         "security": [
           {
             "apikey": [
-              "PERM_GUEST_UPLOAD"
+              "MANAGE_FILE_REQUESTS"
             ]
           }
         ],
@@ -1816,12 +1807,12 @@
           "uploadrequest"
         ],
         "summary": "Deletes the upload request and all associated files",
-        "description": "This API call deletes the given file requests. If files are associated with the request, they will also be deleted. To delete a request of a different user, the user requires the user permission DELETE to execute this call. Requires API permission GUEST_UPLOAD",
+        "description": "This API call deletes the given file requests. If files are associated with the request, they will also be deleted. To delete a request of a different user, the user requires the user permission DELETE to execute this call. Requires API permission MANAGE_FILE_REQUESTS",
         "operationId": "uploadrequestdelete",
         "security": [
           {
             "apikey": [
-              "PERM_GUEST_UPLOAD"
+              "MANAGE_FILE_REQUESTS"
             ]
           }
         ],
@@ -1924,12 +1915,12 @@
           {
             "name": "userid",
             "in": "header",
-            "description": "The user to change the permission of",
+            "description": "The ID of the user to change the permission of",
             "required": true,
             "style": "simple",
             "explode": false,
             "schema": {
-              "type": "string"
+              "type": "integer"
             }
           },
           {
@@ -2005,12 +1996,12 @@
           {
             "name": "userid",
             "in": "header",
-            "description": "The user to change the rank of",
+            "description": "The ID of the user to change the rank of",
             "required": true,
             "style": "simple",
             "explode": false,
             "schema": {
-              "type": "string"
+              "type": "integer"
             }
           },
           {
@@ -2069,7 +2060,7 @@
             "style": "simple",
             "explode": false,
             "schema": {
-              "type": "string"
+              "type": "integer"
             }
           },
           {
@@ -2080,7 +2071,7 @@
             "style": "simple",
             "explode": false,
             "schema": {
-              "type": "string"
+              "type": "boolean"
             }
           }
         ],
@@ -2123,12 +2114,12 @@
           {
             "name": "userid",
             "in": "header",
-            "description": "The user to be deleted",
+            "description": "The ID of the user to be deleted",
             "required": true,
             "style": "simple",
             "explode": false,
             "schema": {
-              "type": "string"
+              "type": "integer"
             }
           },
           {
