@@ -310,6 +310,7 @@ func createNewMetaData(hash string, fileHeader chunking.FileHeader, userId int, 
 		UnlimitedDownloads: params.UnlimitedDownload,
 		PasswordHash:       configuration.HashPassword(params.Password, false, ""),
 		UserId:             userId,
+		IsPaste:            params.IsPaste,
 		UploadRequestId:    params.FileRequestId,
 	}
 	if params.IsEndToEndEncrypted {

@@ -559,7 +559,7 @@ func showDownload(w http.ResponseWriter, r *http.Request) {
 	addNoCacheHeader(w)
 	keyId := queryUrl(w, r, "id", errorHandling.TypeFileNotFound)
 	file, ok := storage.GetFile(keyId)
-	if !ok || file.IsFileRequest() {
+	if !ok || file.IsFileRequest() || file.IsPaste {
 		redirectOnIncorrectId(w, r, "error")
 		return
 	}
@@ -632,7 +632,7 @@ func showHotlink(w http.ResponseWriter, r *http.Request) {
 	hotlinkId = strings.Replace(hotlinkId, "/h/", "", 1)
 	addNoCacheHeader(w)
 	file, ok := storage.GetFileByHotlink(hotlinkId)
-	if !ok || file.IsFileRequest() {
+	if !ok || file.IsFileRequest() || file.IsPaste {
 		w.Header().Set("Content-Type", "image/svg+xml")
 		_, _ = w.Write(imageExpiredPicture)
 		return
@@ -820,6 +820,9 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 	switch view {
 	case ViewMain:
 		for _, element := range database.GetAllMetadata() {
+			if element.IsFileRequest() || element.IsPaste {
+				continue
+			}
 			if element.UserId != user.Id && !user.HasPermissionListOtherUploads() {
 				continue
 			}
@@ -1066,7 +1069,7 @@ func downloadPresigned(w http.ResponseWriter, r *http.Request) {
 func serveFile(id string, isRootUrl bool, w http.ResponseWriter, r *http.Request) {
 	addNoCacheHeader(w)
 	savedFile, ok := storage.GetFile(id)
-	if !ok || savedFile.IsFileRequest() {
+	if !ok || savedFile.IsFileRequest() || savedFile.IsPaste {
 		if isRootUrl {
 			redirectOnIncorrectId(w, r, "error")
 		} else {

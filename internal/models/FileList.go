@@ -31,6 +31,7 @@ type File struct {
 	Encryption              EncryptionInfo `json:"Encryption" redis:"-"`                          // If the file is encrypted, this stores all info for decrypting
 	UnlimitedDownloads      bool           `json:"UnlimitedDownloads" redis:"UnlimitedDownloads"` // True if the uploader did not limit the downloads
 	UnlimitedTime           bool           `json:"UnlimitedTime" redis:"UnlimitedTime"`           // True if the uploader did not limit the time
+	IsPaste                 bool           `json:"IsPaste" redis:"IsPaste"`                       // True if the file is a displayable text paste
 	InternalRedisEncryption []byte         `redis:"EncryptionRedis"`                              // This field is an internal field, used to store the EncryptionInfo in a Redis Hashmap
 }
 
@@ -59,6 +60,7 @@ type FileApiOutput struct {
 	IsSavedOnLocalStorage        bool   `json:"IsSavedOnLocalStorage"`        // True if the file does not use cloud storage
 	IsPendingDeletion            bool   `json:"IsPendingDeletion"`            // True if the file is about to be deleted
 	IsFileRequest                bool   `json:"IsFileRequest"`                // True if the file belongs to a file request
+	IsPaste                      bool   `json:"IsPaste"`                      // True if the file is a pastebin-style text paste
 	UploaderId                   int    `json:"UploaderId"`                   // The user ID of the uploader
 }
 

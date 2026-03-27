@@ -11,6 +11,7 @@ type UploadParameters struct {
 	UnlimitedDownload   bool
 	UnlimitedTime       bool
 	IsEndToEndEncrypted bool
+	IsPaste             bool
 	Password            string
 	ExternalUrl         string
 	FileRequestId       string
