@@ -99,8 +99,6 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, userId int
 
 	if !fileWithHashExists {
 		if tempFile != nil {
-			err = tempFile.Close()
-			helper.Check(err)
 			err = os.Rename(tempFile.Name(), dataDir+"/"+file.SHA1)
 			helper.Check(err)
 			hasBeenRenamed = true
@@ -119,6 +117,53 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, userId int
 	}
 	database.SaveMetaData(file)
 	return file, nil
+}
+
+// NewPaste creates a new file as a paste in the system. Deduplication is disabled for pastes,
+// therefore a random string is used as the hash instead of a content hash.
+func NewPaste(content []byte, title string, userId int, uploadRequest models.UploadParameters) (models.File, error) {
+	syntheticHeader := &multipart.FileHeader{Size: int64(len(content))}
+	var hasBeenRenamed bool
+	reader, _, tempFile, encInfo := generateHashAndEncrypt(bytes.NewReader(content), syntheticHeader)
+	defer deleteTempFile(tempFile, &hasBeenRenamed)
+
+	hash := "paste-" + helper.GenerateRandomString(30)
+	metaData := createNewMetaData(hash, chunking.FileHeader{
+		Filename:    title,
+		Size:        int64(len(content)),
+		ContentType: "text/plain; charset=utf-8",
+	}, userId, uploadRequest)
+	metaData.Encryption = encInfo
+	dataDir := configuration.Get().DataDir
+
+	if !metaData.IsLocalStorage() {
+		_, err := aws.Upload(reader, metaData)
+		if err != nil {
+			return models.File{}, err
+		}
+		database.SaveMetaData(metaData)
+		return metaData, nil
+	}
+
+	if tempFile != nil {
+		err := os.Rename(tempFile.Name(), dataDir+"/"+metaData.SHA1)
+		if err != nil {
+			return models.File{}, err
+		}
+		hasBeenRenamed = true
+	} else {
+		destinationFile, err := os.OpenFile(dataDir+"/"+metaData.SHA1, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+		if err != nil {
+			return models.File{}, err
+		}
+		defer destinationFile.Close()
+		_, err = io.Copy(destinationFile, reader)
+		if err != nil {
+			return models.File{}, err
+		}
+	}
+	database.SaveMetaData(metaData)
+	return metaData, nil
 }
 
 // isAllowedFileSize returns true if the file is not greater than the allowed filesize
@@ -247,7 +292,6 @@ func getChunkFileHash(file *os.File, isEndToEndEncryted bool) (string, error) {
 }
 
 func encryptChunkFile(file *os.File, metadata *models.File) (*os.File, error) {
-
 	var removeTempFiles = func() {
 		err := file.Close()
 		if err != nil {
@@ -349,9 +393,12 @@ func getEncInfoFromExistingFile(hash string) (models.EncryptionInfo, bool) {
 }
 
 func deleteTempFile(file *os.File, hasBeenRenamed *bool) {
-	if file != nil && !*hasBeenRenamed {
-		err := file.Close()
-		helper.Check(err)
+	if file == nil {
+		return
+	}
+	err := file.Close()
+	helper.Check(err)
+	if !*hasBeenRenamed {
 		err = os.Remove(file.Name())
 		helper.Check(err)
 	}
@@ -449,6 +496,7 @@ func hashFile(input io.Reader, useSalt bool) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	//TODO replace with HMAC
 	if useSalt {
 		hash.Write([]byte(configuration.Get().Authentication.SaltFiles))
 	}

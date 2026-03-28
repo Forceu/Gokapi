@@ -367,16 +367,20 @@ func (p *paramFilesAdd) ProcessParameter(_ *http.Request) error {
 }
 
 type paramPasteAdd struct {
-	PasteContent       string `json:"pasteContent" required:"true"`
-	AllowedDownloads   int    `json:"allowedDownloads"`
-	ExpiryDays         int    `json:"expiryDays"`
-	Password           string `json:"password"`
+	// PasteContent max size 10MB, must never be more than 2048
+	PasteContent       string `postForm:"pasteContent" required:"true" maxPostMb:"10"`
+	Title              string `postForm:"title"`
+	AllowedDownloads   int    `postForm:"allowedDownloads"`
+	ExpiryDays         int    `postForm:"expiryDays"`
+	Password           string `postForm:"password"`
+	IsEndToEnd         bool   `postForm:"isEndToEnd" unpublished:"true"` // not published in API documentation
 	UnlimitedDownloads bool
 	UnlimitedExpiry    bool
-	foundHeaders       map[string]bool
 }
 
 func (p *paramPasteAdd) ProcessParameter(r *http.Request) error {
+	p.UnlimitedExpiry = p.ExpiryDays == 0
+	p.UnlimitedDownloads = p.AllowedDownloads == 0
 	return nil
 }
 

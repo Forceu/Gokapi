@@ -8,6 +8,7 @@ import (
 	"go/token"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -35,9 +36,11 @@ func findDeclaredTypes(filePath string) ([]*ast.TypeSpec, error) {
 
 	// Traverse the AST to find the struct definitions (type declarations)
 	for _, decl := range node.Decls {
-		if genDecl, ok := decl.(*ast.GenDecl); ok && genDecl.Tok == token.TYPE {
+		genDecl, ok := decl.(*ast.GenDecl)
+		if ok && genDecl.Tok == token.TYPE {
 			for _, spec := range genDecl.Specs {
-				if typeSpec, ok := spec.(*ast.TypeSpec); ok {
+				typeSpec, ok := spec.(*ast.TypeSpec)
+				if ok {
 					if strings.HasPrefix(typeSpec.Name.String(), "param") {
 						declaredTypes = append(declaredTypes, typeSpec)
 					}
@@ -51,7 +54,7 @@ func findDeclaredTypes(filePath string) ([]*ast.TypeSpec, error) {
 
 // hasParsableTags returns true if any field has a "header:" or "json:" struct tag.
 func hasParsableTags(fields []*ast.Field) bool {
-	return hasHeaderTags(fields) || hasJsonTags(fields) || hasHttpRequestTags(fields)
+	return hasHeaderTags(fields) || hasJsonTags(fields) || hasHttpRequestTags(fields) || hasPostFormTags(fields)
 }
 
 // hasHeaderTags returns true if any field has a "header:" struct tag.
@@ -84,13 +87,28 @@ func hasJsonTags(fields []*ast.Field) bool {
 	return false
 }
 
-// hasJsonTags returns true if any field has a "isHttpRequest:" struct tag.
+// hasHttpRequestTags returns true if any field has a "isHttpRequest:" struct tag.
 func hasHttpRequestTags(fields []*ast.Field) bool {
 	for _, field := range fields {
 		if field.Tag != nil {
 			tag := field.Tag.Value[1 : len(field.Tag.Value)-1]
 			for _, part := range strings.Split(tag, " ") {
 				if strings.HasPrefix(part, "isHttpRequest:") {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+// hasPostFormTags returns true if any field has a "postForm:" struct tag.
+func hasPostFormTags(fields []*ast.Field) bool {
+	for _, field := range fields {
+		if field.Tag != nil {
+			tag := field.Tag.Value[1 : len(field.Tag.Value)-1]
+			for _, part := range strings.Split(tag, " ") {
+				if strings.HasPrefix(part, "postForm:") {
 					return true
 				}
 			}
@@ -148,6 +166,7 @@ func generateParseRequestMethod(typeName string, fields []*ast.Field) string {
 	needsHeader := hasHeaderTags(fields)
 	needsJson := hasJsonTags(fields)
 	needsHttpRequest := hasHttpRequestTags(fields)
+	needsPostForm := hasPostFormTags(fields)
 
 	// Build preamble: header parsing needs foundHeaders + exists; JSON-only still
 	// needs err for the Decode call.
@@ -157,7 +176,7 @@ func generateParseRequestMethod(typeName string, fields []*ast.Field) string {
 			var exists bool
 			p.foundHeaders = make(map[string]bool)`
 	} else {
-		if needsJson {
+		if needsJson || needsPostForm {
 			preamble = "var err error"
 		}
 	}
@@ -171,6 +190,9 @@ func generateParseRequestMethod(typeName string, fields []*ast.Field) string {
 	}
 	if needsJson {
 		readValues = append(readValues, "JSON")
+	}
+	if needsPostForm {
+		readValues = append(readValues, "POST form")
 	}
 
 	method := fmt.Sprintf(`// ParseRequest reads r and saves the passed %s values in the %s struct
@@ -219,7 +241,8 @@ func generateParseRequestMethod(typeName string, fields []*ast.Field) string {
 		method += fmt.Sprintf(`
 			var jsonBody struct {%s
 			}
-			if err = json.NewDecoder(r.Body).Decode(&jsonBody); err != nil {
+			err = json.NewDecoder(r.Body).Decode(&jsonBody)
+			if err != nil {
 				return err
 			}`, intermediateFields)
 
@@ -241,6 +264,117 @@ func generateParseRequestMethod(typeName string, fields []*ast.Field) string {
 			}
 			method += fmt.Sprintf(`
 			p.%s = jsonBody.%s`, jf.fieldName, jf.fieldName)
+		}
+	}
+
+	// Emit the POST form parsing block.
+	// Each field is limited to defaultPostFormFieldMaxBytes unless the field
+	// carries a maxPostBytes tag specifying a higher limit.
+	// The overall body is also capped at the largest per-field limit before
+	// ParseMultipartForm is called, so oversized requests are rejected early.
+	if needsPostForm {
+		const defaultPostFormFieldMaxBytes = 1024 // 1 KB
+
+		type postFormField struct {
+			fieldName    string
+			formKey      string
+			fieldType    string
+			required     bool
+			maxPostBytes int64 // per-field size limit in bytes
+		}
+		var postFormFields []postFormField
+		for _, field := range fields {
+			if field.Tag == nil {
+				continue
+			}
+			tag := field.Tag.Value[1 : len(field.Tag.Value)-1]
+			tagParts := strings.Split(tag, " ")
+			for _, part := range tagParts {
+				if strings.HasPrefix(part, "postForm:") {
+					formKey := strings.Trim(strings.TrimPrefix(part, "postForm:"), "\"")
+					fieldType := field.Type.(*ast.Ident).Name
+					required := hasRequiredTag(tagParts)
+					fieldMax := int64(defaultPostFormFieldMaxBytes)
+					for _, p2 := range tagParts {
+						if strings.HasPrefix(p2, "maxPostMb:") {
+							raw := strings.Trim(strings.TrimPrefix(p2, "maxPostMb:"), "\"")
+							n, err := strconv.Atoi(raw)
+							if err == nil && n > 0 {
+								fieldMax = int64(n) * 1024 * 1024
+							}
+						}
+					}
+					postFormFields = append(postFormFields, postFormField{
+						fieldName:    field.Names[0].Name,
+						formKey:      formKey,
+						fieldType:    fieldType,
+						required:     required,
+						maxPostBytes: fieldMax,
+					})
+				}
+			}
+		}
+
+		// Derive the total body limit from the largest individual field limit.
+		// This is a conservative upper bound — the per-field checks below are
+		// the authoritative enforcement.
+		var totalLimit int64
+		for _, pf := range postFormFields {
+			if pf.maxPostBytes > totalLimit {
+				totalLimit = pf.maxPostBytes
+			}
+		}
+		method += fmt.Sprintf(`
+			r.Body = http.MaxBytesReader(nil, r.Body, %d)
+			err = r.ParseMultipartForm(int64(configuration.Get().MaxMemory) * 1024 * 1024)
+			if err != nil {
+				return err
+			}`, totalLimit)
+
+		for _, pf := range postFormFields {
+			switch pf.fieldType {
+			case "string":
+				if pf.required {
+					method += fmt.Sprintf(`
+			if r.FormValue(%q) == "" {
+				return fmt.Errorf("post form field \"%s\" is required")
+			}`, pf.formKey, pf.formKey)
+				}
+				method += fmt.Sprintf(`
+			if len(r.FormValue(%q)) > %d {
+				return fmt.Errorf("post form field \"%s\" exceeds maximum length of %d bytes")
+			}
+			p.%s = r.FormValue(%q)`, pf.formKey, pf.maxPostBytes, pf.formKey, pf.maxPostBytes, pf.fieldName, pf.formKey)
+			case "int", "int64":
+				parseExpr := fmt.Sprintf(`strconv.Atoi(r.FormValue(%q))`, pf.formKey)
+				assignExpr := fmt.Sprintf("p.%s", pf.fieldName)
+				if pf.fieldType == "int64" {
+					parseExpr = fmt.Sprintf(`strconv.ParseInt(r.FormValue(%q), 10, 64)`, pf.formKey)
+				}
+				if pf.required {
+					method += fmt.Sprintf(`
+			if r.FormValue(%q) == "" {
+				return fmt.Errorf("post form field \"%s\" is required")
+			}`, pf.formKey, pf.formKey)
+				}
+				method += fmt.Sprintf(`
+			if r.FormValue(%q) != "" {
+				%s, err = %s
+				if err != nil {
+					return fmt.Errorf("invalid value in post form field \"%s\"")
+				}
+			}`, pf.formKey, assignExpr, parseExpr, pf.formKey)
+			case "bool":
+				method += fmt.Sprintf(`
+			if r.FormValue(%q) != "" {
+				p.%s, err = strconv.ParseBool(r.FormValue(%q))
+				if err != nil {
+					return fmt.Errorf("invalid value in post form field \"%s\"")
+				}
+			}`, pf.formKey, pf.fieldName, pf.formKey, pf.formKey)
+			default:
+				panic("unsupported postForm field type: " + pf.fieldType)
+			}
 		}
 	}
 
@@ -388,11 +522,16 @@ func main() {
 	// Conditionally import "encoding/json" only when at least one struct uses
 	// json tags, to avoid an unused-import compile error in the generated file.
 	needsJsonImport := false
+	needsStrconvImport := false
+	needsConfigImport := false
 	for _, typeSpec := range types {
 		if structType, ok := typeSpec.Type.(*ast.StructType); ok {
 			if hasJsonTags(structType.Fields.List) {
 				needsJsonImport = true
-				break
+			}
+			if hasPostFormTags(structType.Fields.List) {
+				needsStrconvImport = true
+				needsConfigImport = true
 			}
 		}
 	}
@@ -401,11 +540,18 @@ func main() {
 	if needsJsonImport {
 		jsonImport = "\n\t\"encoding/json\""
 	}
+	strconvImport := ""
+	if needsStrconvImport {
+		strconvImport = "\n\t\"strconv\""
+	}
+	if needsConfigImport {
+		strconvImport += "\n\t\"github.com/forceu/gokapi/internal/configuration\""
+	}
 
 	output.WriteString(fmt.Sprintf(`// Code generated by updateApiRouting.go - DO NOT EDIT.
 			package api
 			
-			import (%s
+			import (%s%s
 				"encoding/base64"
 				"fmt"
 				"net/http"
@@ -415,7 +561,7 @@ func main() {
 			// Do not modify: This is an automatically generated file created by updateApiRouting.go
 			// It contains the code that is used to parse the headers submitted in an API request
 
-			`, jsonImport))
+			`, jsonImport, strconvImport))
 
 	// Process each struct type
 	for _, typeSpec := range types {

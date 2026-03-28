@@ -1383,7 +1383,7 @@
           "files"
         ],
         "summary": "Creates a new text paste",
-        "description": "Stores a plain-text paste in Gokapi with optional download limit, expiry and password protection. The body must be a JSON object. Requires API permission UPLOAD",
+        "description": "Stores a plain-text paste in Gokapi with optional download limit, expiry and password protection. Requires API permission UPLOAD",
         "operationId": "pasteAdd",
         "security": [
           {
@@ -1395,7 +1395,7 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
+            "multipart/form-data": {
               "schema": {
                 "$ref": "#/components/schemas/PasteAddBody"
               }
@@ -2653,7 +2653,12 @@
         "properties": {
           "pasteContent": {
             "type": "string",
+            "maxLength": 10485760,
             "description": "The plain-text content of the paste"
+          },
+          "title": {
+            "type": "string",
+            "description": "Optional title for the paste"
           },
           "allowedDownloads": {
             "type": "integer",

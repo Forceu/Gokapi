@@ -133,7 +133,7 @@ func CreateUploadConfig(allowedDownloads, expiryDays int, password string, unlim
 	settings := configuration.Get()
 	return models.UploadParameters{
 		AllowedDownloads:    allowedDownloads,
-		Expiry:              expiryDays,
+		ExpiryDays:          expiryDays,
 		ExpiryTimestamp:     time.Now().Add(time.Duration(expiryDays) * time.Hour * 24).Unix(),
 		Password:            password,
 		ExternalUrl:         settings.ServerUrl,

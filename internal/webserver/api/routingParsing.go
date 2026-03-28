@@ -3,9 +3,10 @@ package api
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
+	"github.com/forceu/gokapi/internal/configuration"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -175,26 +176,48 @@ func (p *paramFilesAdd) New() requestParser {
 	return &paramFilesAdd{}
 }
 
-// ParseRequest reads r and saves the passed JSON values in the paramPasteAdd struct
+// ParseRequest reads r and saves the passed POST form values in the paramPasteAdd struct
 // In the end, ProcessParameter() is called
 func (p *paramPasteAdd) ParseRequest(r *http.Request) error {
 	var err error
-	var jsonBody struct {
-		PasteContent     string `json:"pasteContent"`
-		AllowedDownloads int    `json:"allowedDownloads"`
-		ExpiryDays       int    `json:"expiryDays"`
-		Password         string `json:"password"`
-	}
-	if err = json.NewDecoder(r.Body).Decode(&jsonBody); err != nil {
+	r.Body = http.MaxBytesReader(nil, r.Body, 10485760)
+	err = r.ParseMultipartForm(int64(configuration.Get().MaxMemory) * 1024 * 1024)
+	if err != nil {
 		return err
 	}
-	if jsonBody.PasteContent == "" {
-		return fmt.Errorf("json field \"pasteContent\" is required")
+	if r.FormValue("pasteContent") == "" {
+		return fmt.Errorf("post form field \"pasteContent\" is required")
 	}
-	p.PasteContent = jsonBody.PasteContent
-	p.AllowedDownloads = jsonBody.AllowedDownloads
-	p.ExpiryDays = jsonBody.ExpiryDays
-	p.Password = jsonBody.Password
+	if len(r.FormValue("pasteContent")) > 10485760 {
+		return fmt.Errorf("post form field \"pasteContent\" exceeds maximum length of 10485760 bytes")
+	}
+	p.PasteContent = r.FormValue("pasteContent")
+	if len(r.FormValue("title")) > 1024 {
+		return fmt.Errorf("post form field \"title\" exceeds maximum length of 1024 bytes")
+	}
+	p.Title = r.FormValue("title")
+	if r.FormValue("allowedDownloads") != "" {
+		p.AllowedDownloads, err = strconv.Atoi(r.FormValue("allowedDownloads"))
+		if err != nil {
+			return fmt.Errorf("invalid value in post form field \"allowedDownloads\"")
+		}
+	}
+	if r.FormValue("expiryDays") != "" {
+		p.ExpiryDays, err = strconv.Atoi(r.FormValue("expiryDays"))
+		if err != nil {
+			return fmt.Errorf("invalid value in post form field \"expiryDays\"")
+		}
+	}
+	if len(r.FormValue("password")) > 1024 {
+		return fmt.Errorf("post form field \"password\" exceeds maximum length of 1024 bytes")
+	}
+	p.Password = r.FormValue("password")
+	if r.FormValue("isEndToEnd") != "" {
+		p.IsEndToEnd, err = strconv.ParseBool(r.FormValue("isEndToEnd"))
+		if err != nil {
+			return fmt.Errorf("invalid value in post form field \"isEndToEnd\"")
+		}
+	}
 	return p.ProcessParameter(r)
 }
 

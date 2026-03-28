@@ -4,7 +4,7 @@ package models
 type UploadParameters struct {
 	UserId              int
 	AllowedDownloads    int
-	Expiry              int
+	ExpiryDays          int
 	MaxMemory           int
 	ExpiryTimestamp     int64
 	RealSize            int64

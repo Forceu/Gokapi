@@ -43,7 +43,7 @@ func TestParseConfig(t *testing.T) {
 
 	test.IsEqualInt(t, config.AllowedDownloads, 9)
 	test.IsEqualString(t, config.Password, "123")
-	test.IsEqualInt(t, config.Expiry, 5)
+	test.IsEqualInt(t, config.ExpiryDays, 5)
 
 	config, err = parseConfig(data)
 	test.IsNil(t, err)
@@ -54,7 +54,7 @@ func TestParseConfig(t *testing.T) {
 	config, err = parseConfig(data)
 	test.IsNil(t, err)
 	test.IsEqualInt(t, config.AllowedDownloads, 1)
-	test.IsEqualInt(t, config.Expiry, 14)
+	test.IsEqualInt(t, config.ExpiryDays, 14)
 	test.IsEqualBool(t, config.UnlimitedTime, false)
 	test.IsEqualBool(t, config.UnlimitedDownload, false)
 
