@@ -690,6 +690,9 @@ func apiPasteAdd(w http.ResponseWriter, r requestParser, user models.User) {
 	if !ok {
 		panic("invalid parameter passed")
 	}
+	if request.Title == "" {
+		request.Title = "Untitled Paste"
+	}
 	file, err := storage.NewPaste([]byte(request.PasteContent), request.Title, user.Id, models.UploadParameters{
 		UserId:              user.Id,
 		AllowedDownloads:    request.AllowedDownloads,

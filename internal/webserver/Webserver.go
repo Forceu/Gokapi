@@ -113,6 +113,7 @@ func Start() {
 	mux.HandleFunc("/e2eSetup", requireLogin(showE2ESetup, true, false))
 	mux.HandleFunc("/error", showError)
 	mux.HandleFunc("/filerequests", requireLogin(showUploadRequest, true, false))
+	mux.HandleFunc("/paste", requireLogin(showPaste, true, false))
 	mux.HandleFunc("/forgotpw", forgotPassword)
 	mux.HandleFunc("/h/", showHotlink)
 	mux.HandleFunc("/hotlink/", showHotlink) // backward compatibility
@@ -435,6 +436,18 @@ func showUploadRequest(w http.ResponseWriter, r *http.Request) {
 	helper.CheckIgnoreTimeout(err)
 }
 
+// Handling of /paste
+// Lists existing pastes for the current user and provides the paste creation UI
+func showPaste(w http.ResponseWriter, r *http.Request) {
+	user, err := authentication.GetUserFromRequest(r)
+	if err != nil {
+		panic(err)
+	}
+	view := (&AdminView{}).convertGlobalConfig(ViewPaste, user)
+	err = templateFolder.ExecuteTemplate(w, "paste", view)
+	helper.CheckIgnoreTimeout(err)
+}
+
 // Handling of /api
 // If the user is authenticated, this menu lists all uploads and enables uploading new files
 func showApiAdmin(w http.ResponseWriter, r *http.Request) {
@@ -741,6 +754,7 @@ type e2ESetupView struct {
 // AdminView contains parameters for all admin-related pages
 type AdminView struct {
 	Items                 []models.FileApiOutput
+	Pastes                []models.FileApiOutput
 	ApiKeys               []models.ApiKey
 	Users                 []userInfo
 	FileRequests          []models.FileRequest
@@ -804,6 +818,8 @@ const (
 	ViewUsers
 	// ViewFileRequests is the identifier for the file request menu
 	ViewFileRequests
+	// ViewPaste is the identifier for the paste menu
+	ViewPaste
 )
 
 // Converts the globalConfig variable to an AdminView struct to pass the infos to
@@ -868,6 +884,19 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 			}
 			u.Users = append(u.Users, userWithUploads)
 		}
+	case ViewPaste:
+		for _, element := range database.GetAllMetadata() {
+			if !element.IsPaste {
+				continue
+			}
+			if element.UserId != user.Id && !user.HasPermissionListOtherUploads() {
+				continue
+			}
+			fileInfo, err := element.ToFileApiOutput(config.ServerUrl, config.IncludeFilename)
+			helper.Check(err)
+			u.Pastes = append(u.Pastes, fileInfo)
+		}
+		u.Pastes = sortMetaDataApi(u.Pastes)
 	case ViewFileRequests:
 		for _, fileRequest := range filerequest.GetAll() {
 			// Double-checking if the owner of the file request exists

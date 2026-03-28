@@ -1,0 +1,156 @@
+{{ define "paste" }}{{ template "header" . }}
+
+<div class="row">
+  <div class="col">
+    <div id="container" class="card" style="width: 80%">
+      <div class="card-body">
+
+        {{/* ── Title row ── */}}
+        <div class="container">
+          <div class="row mb-4">
+            <div class="col"></div>
+            <div class="col text-center">
+              <h3 class="card-title mb-0">Paste</h3>
+            </div>
+            <div class="col"></div>
+          </div>
+        </div>
+
+        {{/* ── Paste input area ── */}}
+        <div class="mb-3">
+          <textarea id="paste-content" class="form-control bg-dark text-light border-secondary"
+            rows="10" placeholder="Paste your text here…" style="font-family: monospace; resize: vertical;"></textarea>
+        </div>
+
+        {{/* ── Optional title ── */}}
+        <div class="mb-3">
+          <input id="paste-title" type="text" class="form-control bg-dark text-light border-secondary"
+            placeholder="Title (optional)">
+        </div>
+
+        {{/* ── Settings row ── */}}
+        <div class="row g-3 mb-3 align-items-end">
+
+          {{/* Download/view limit */}}
+          <div class="col-auto d-flex align-items-center gap-2">
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input" type="checkbox" id="paste-enable-downloads"
+                onchange="pasteToggleDownloads(this)">
+              <label class="form-check-label text-light" for="paste-enable-downloads">Limit views</label>
+            </div>
+            <input id="paste-downloads" type="number" min="1" value="1"
+              class="form-control form-control-sm bg-dark text-light border-secondary" style="width: 80px;" disabled>
+          </div>
+
+          {{/* Expiry */}}
+          <div class="col-auto d-flex align-items-center gap-2">
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input" type="checkbox" id="paste-enable-expiry"
+                onchange="pasteToggleExpiry(this)">
+              <label class="form-check-label text-light" for="paste-enable-expiry">Expire after</label>
+            </div>
+            <input id="paste-expiry" type="number" min="1" value="14"
+              class="form-control form-control-sm bg-dark text-light border-secondary" style="width: 80px;" disabled>
+            <span class="text-light">days</span>
+          </div>
+
+          {{/* Password */}}
+          <div class="col-auto d-flex align-items-center gap-2">
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input" type="checkbox" id="paste-enable-password"
+                onchange="pasteTogglePassword(this)">
+              <label class="form-check-label text-light" for="paste-enable-password">Password</label>
+            </div>
+            <input id="paste-password" type="password"
+              class="form-control form-control-sm bg-dark text-light border-secondary" style="width: 150px;"
+              placeholder="Password" disabled>
+          </div>
+
+          {{/* Submit */}}
+          <div class="col-auto ms-auto">
+            <button class="btn btn-outline-light" onclick="submitPaste()">
+              <i class="bi bi-clipboard-plus"></i> Create Paste
+            </button>
+          </div>
+
+        </div>
+
+        {{/* ── Toast ── */}}
+        <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+          <div id="paste-toast" class="toast align-items-center text-white border-0" role="alert" aria-live="assertive">
+            <div class="d-flex">
+              <div class="toast-body" id="paste-toast-body">URL copied to clipboard!</div>
+              <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+          </div>
+        </div>
+
+        <hr class="border-secondary">
+
+        {{/* ── Paste table ── */}}
+        <div class="table-responsive">
+          <table class="table table-dark" id="paste-table">
+            <thead>
+              <tr>
+                <th scope="col">Title</th>
+                <th scope="col">Created</th>
+                <th scope="col">Expires</th>
+                <th scope="col">Views remaining</th>
+                {{ if .ActiveUser.HasPermissionListOtherUploads }}
+                <th scope="col">User</th>
+                {{ end }}
+                <th scope="col">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="paste-tbody">
+{{ range .Pastes }}
+              <tr id="pasterow-{{ .Id }}">
+                <td>{{ .Name }}</td>
+                <td><span id="paste-created-{{ .Id }}"></span>
+                  <script>insertDateWithNegative({{ .UploadDate }}, "paste-created-{{ .Id }}", "Unknown");</script>
+                </td>
+                <td><span id="paste-expiry-{{ .Id }}"></span>
+                  <script>
+                    {{ if .UnlimitedTime }}
+                      document.getElementById("paste-expiry-{{ .Id }}").innerText = "Never";
+                    {{ else }}
+                      insertFileRequestExpiry({{ .ExpireAt }}, "paste-expiry-{{ .Id }}");
+                    {{ end }}
+                  </script>
+                </td>
+                <td>
+                  {{ if .UnlimitedDownloads }}Unlimited{{ else }}{{ .DownloadsRemaining }}{{ end }}
+                </td>
+                {{ if $.ActiveUser.HasPermissionListOtherUploads }}
+                <td>{{ (index $.UserMap .UploaderId).Name }}</td>
+                {{ end }}
+                <td>
+                  <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-light btn-sm"
+                      title="Copy URL"
+                      onclick="pasteCopyUrl('{{ .UrlDownload }}', '{{ .Id }}')">
+                      <i class="bi bi-copy"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-danger btn-sm"
+                      title="Delete"
+                      onclick="pasteDelete('{{ .Id }}')">
+                      <i class="bi bi-trash3"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+{{ end }}
+            </tbody>
+          </table>
+        </div>
+
+<script src="./js/min/admin.min.{{ template "js_admin_version"}}.js"></script>
+      </div>
+    </div>
+  </div>
+</div>
+
+{{ template "pagename" "Paste"}}
+{{ template "customjs" .}}
+{{ template "footer" true }}
+{{end}}
