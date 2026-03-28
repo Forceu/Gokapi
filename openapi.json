@@ -1377,6 +1377,51 @@
         }
       }
     },
+    "/files/addPaste": {
+      "post": {
+        "tags": [
+          "files"
+        ],
+        "summary": "Creates a new text paste",
+        "description": "Stores a plain-text paste in Gokapi with optional download limit, expiry and password protection. The body must be a JSON object. Requires API permission UPLOAD",
+        "operationId": "pasteAdd",
+        "security": [
+          {
+            "apikey": [
+              "UPLOAD"
+            ]
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasteAddBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Operation successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing required fields"
+          },
+          "401": {
+            "description": "Invalid API key provided for authentication or API key does not have the required permission"
+          }
+        }
+      }
+    },
     "/auth/create": {
       "post": {
         "tags": [
@@ -2599,6 +2644,30 @@
         },
         "description": "NewUser is the struct used for the result after creating a new API key",
         "x-go-package": "Gokapi/internal/models"
+      },
+      "PasteAddBody": {
+        "required": [
+          "pasteContent"
+        ],
+        "type": "object",
+        "properties": {
+          "pasteContent": {
+            "type": "string",
+            "description": "The plain-text content of the paste"
+          },
+          "allowedDownloads": {
+            "type": "integer",
+            "description": "How many times the paste can be viewed. Unlimited if 0 or omitted"
+          },
+          "expiryDays": {
+            "type": "integer",
+            "description": "How many days the paste will be stored. Default of 14 will be used if omitted. Unlimited if 0 is passed"
+          },
+          "password": {
+            "type": "string",
+            "description": "Password to protect the paste. No password will be used if empty"
+          }
+        }
       },
       "body": {
         "required": [

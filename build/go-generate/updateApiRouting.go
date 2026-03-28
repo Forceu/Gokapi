@@ -49,21 +49,49 @@ func findDeclaredTypes(filePath string) ([]*ast.TypeSpec, error) {
 	return declaredTypes, nil
 }
 
-func hasTags(fields []*ast.Field) bool {
+// hasParsableTags returns true if any field has a "header:" or "json:" struct tag.
+func hasParsableTags(fields []*ast.Field) bool {
+	return hasHeaderTags(fields) || hasJsonTags(fields) || hasHttpRequestTags(fields)
+}
+
+// hasHeaderTags returns true if any field has a "header:" struct tag.
+func hasHeaderTags(fields []*ast.Field) bool {
 	for _, field := range fields {
 		if field.Tag != nil {
-			// Extract the header tag by accessing the field.Tag.Value
-			tag := field.Tag.Value
-			if tag != "" {
-				// Remove backticks
-				tag = tag[1 : len(tag)-1]
+			tag := field.Tag.Value[1 : len(field.Tag.Value)-1]
+			for _, part := range strings.Split(tag, " ") {
+				if strings.HasPrefix(part, "header:") {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
 
-				// Check if the tag has the "header" key and extract its value
-				tagParts := strings.Split(tag, " ")
-				for _, part := range tagParts {
-					if strings.HasPrefix(part, "header:") {
-						return true
-					}
+// hasJsonTags returns true if any field has a "json:" struct tag.
+func hasJsonTags(fields []*ast.Field) bool {
+	for _, field := range fields {
+		if field.Tag != nil {
+			tag := field.Tag.Value[1 : len(field.Tag.Value)-1]
+			for _, part := range strings.Split(tag, " ") {
+				if strings.HasPrefix(part, "json:") {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+// hasJsonTags returns true if any field has a "isHttpRequest:" struct tag.
+func hasHttpRequestTags(fields []*ast.Field) bool {
+	for _, field := range fields {
+		if field.Tag != nil {
+			tag := field.Tag.Value[1 : len(field.Tag.Value)-1]
+			for _, part := range strings.Split(tag, " ") {
+				if strings.HasPrefix(part, "isHttpRequest:") {
+					return true
 				}
 			}
 		}
@@ -97,32 +125,124 @@ func headerExists(headerName string, required, isString, base64Support bool) str
 		base64SupportEntry = ", has base64support"
 	}
 	return fmt.Sprintf("\n"+`
-							// RequestParser header value %s, required: %v%s
-							exists, err = checkHeaderExists(r, %s, %v, %v)
-							if err != nil {
-								return err
-							}
-							p.foundHeaders[%s] = exists`, headerName, required, base64SupportEntry, headerName, required, isString, headerName)
+								// RequestParser header value %s, required: %v%s
+								exists, err = checkHeaderExists(r, %s, %v, %v)
+								if err != nil {
+									return err
+								}
+								p.foundHeaders[%s] = exists`, headerName, required, base64SupportEntry, headerName, required, isString, headerName)
 }
 
 func generateParseRequestMethod(typeName string, fields []*ast.Field) string {
 	// Start generating the ParseRequest method
-	if !hasTags(fields) {
+	if !hasParsableTags(fields) {
 		return fmt.Sprintf(`
-				// ParseRequest parses the header file. As %s has no fields with the
-				// tag header, this method does nothing, except calling ProcessParameter()
+				// ParseRequest parses the header file. As %s has no fields with the tags header,
+				// json or isHttpRequest, this method does nothing except calling ProcessParameter()
 				func (p *%s) ParseRequest(r *http.Request) error {
 					return p.ProcessParameter(r)
 				}
 				%s`, typeName, typeName, writeNewInstanceCode(typeName))
 	}
 
-	method := fmt.Sprintf(`// ParseRequest reads r and saves the passed header values in the %s struct
+	needsHeader := hasHeaderTags(fields)
+	needsJson := hasJsonTags(fields)
+	needsHttpRequest := hasHttpRequestTags(fields)
+
+	// Build preamble: header parsing needs foundHeaders + exists; JSON-only still
+	// needs err for the Decode call.
+	preamble := ""
+	if needsHeader {
+		preamble = `var err error
+			var exists bool
+			p.foundHeaders = make(map[string]bool)`
+	} else {
+		if needsJson {
+			preamble = "var err error"
+		}
+	}
+
+	var readValues []string
+	if needsHttpRequest {
+		readValues = append(readValues, "HTTP request")
+	}
+	if needsHeader {
+		readValues = append(readValues, "header")
+	}
+	if needsJson {
+		readValues = append(readValues, "JSON")
+	}
+
+	method := fmt.Sprintf(`// ParseRequest reads r and saves the passed %s values in the %s struct
 		// In the end, ProcessParameter() is called
 		func (p *%s) ParseRequest(r *http.Request) error {
-			var err error
-			var exists bool
-			p.foundHeaders = make(map[string]bool)`, typeName, typeName)
+			%s`, strings.Join(readValues, " and "), typeName, typeName, preamble)
+
+	// Emit the JSON decode block before individual field assignments.
+	// A single anonymous struct is decoded once; fields are then assigned individually
+	// so that required-field checks and the struct's own field names are preserved.
+	if needsJson {
+		type jsonField struct {
+			fieldName string
+			jsonKey   string
+			fieldType string
+			required  bool
+		}
+		var jsonFields []jsonField
+		for _, field := range fields {
+			if field.Tag == nil {
+				continue
+			}
+			tag := field.Tag.Value[1 : len(field.Tag.Value)-1]
+			for _, part := range strings.Split(tag, " ") {
+				if strings.HasPrefix(part, "json:") {
+					jsonKey := strings.TrimPrefix(part, "json:")
+					jsonKey = strings.Trim(jsonKey, "\"")
+					jsonKey = strings.Split(jsonKey, ",")[0] // strip omitempty etc.
+					fieldType := field.Type.(*ast.Ident).Name
+					required := hasRequiredTag(strings.Split(tag, " "))
+					jsonFields = append(jsonFields, jsonField{
+						fieldName: field.Names[0].Name,
+						jsonKey:   jsonKey,
+						fieldType: fieldType,
+						required:  required,
+					})
+				}
+			}
+		}
+
+		// Build an anonymous intermediate struct matching the JSON shape
+		intermediateFields := ""
+		for _, jf := range jsonFields {
+			intermediateFields += fmt.Sprintf("\n\t\t\t%s %s `json:\"%s\"`", jf.fieldName, jf.fieldType, jf.jsonKey)
+		}
+		method += fmt.Sprintf(`
+			var jsonBody struct {%s
+			}
+			if err = json.NewDecoder(r.Body).Decode(&jsonBody); err != nil {
+				return err
+			}`, intermediateFields)
+
+		// Emit required checks followed by assignment for each json field
+		for _, jf := range jsonFields {
+			if jf.required {
+				switch jf.fieldType {
+				case "string":
+					method += fmt.Sprintf(`
+			if jsonBody.%s == "" {
+				return fmt.Errorf("json field \"%s\" is required")
+			}`, jf.fieldName, jf.jsonKey)
+				case "int", "int64":
+					method += fmt.Sprintf(`
+			if jsonBody.%s == 0 {
+				return fmt.Errorf("json field \"%s\" is required")
+			}`, jf.fieldName, jf.jsonKey)
+				}
+			}
+			method += fmt.Sprintf(`
+			p.%s = jsonBody.%s`, jf.fieldName, jf.fieldName)
+		}
+	}
 
 	// Iterate over the fields and generate parsing logic for those with a header tag
 	for _, field := range fields {
@@ -138,6 +258,9 @@ func generateParseRequestMethod(typeName string, fields []*ast.Field) string {
 				required := hasRequiredTag(tagParts)
 				base64Support := hasBase64Tag(tagParts)
 				for _, part := range tagParts {
+					if strings.HasPrefix(part, "isHttpRequest:") {
+						method += fmt.Sprintf("\np.%s = r", field.Names[0].Name)
+					}
 					if strings.HasPrefix(part, "header:") {
 						// Extract the header name after 'header:'
 						headerName := strings.TrimPrefix(part, "header:")
@@ -262,10 +385,27 @@ func main() {
 
 	var output strings.Builder
 
-	output.WriteString(`// Code generated by updateApiRouting.go - DO NOT EDIT.
+	// Conditionally import "encoding/json" only when at least one struct uses
+	// json tags, to avoid an unused-import compile error in the generated file.
+	needsJsonImport := false
+	for _, typeSpec := range types {
+		if structType, ok := typeSpec.Type.(*ast.StructType); ok {
+			if hasJsonTags(structType.Fields.List) {
+				needsJsonImport = true
+				break
+			}
+		}
+	}
+
+	jsonImport := ""
+	if needsJsonImport {
+		jsonImport = "\n\t\"encoding/json\""
+	}
+
+	output.WriteString(fmt.Sprintf(`// Code generated by updateApiRouting.go - DO NOT EDIT.
 			package api
 			
-			import (
+			import (%s
 				"encoding/base64"
 				"fmt"
 				"net/http"
@@ -275,7 +415,7 @@ func main() {
 			// Do not modify: This is an automatically generated file created by updateApiRouting.go
 			// It contains the code that is used to parse the headers submitted in an API request
 
-			`)
+			`, jsonImport))
 
 	// Process each struct type
 	for _, typeSpec := range types {

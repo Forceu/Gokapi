@@ -685,6 +685,10 @@ func createAndOutputPresignedUrl(ids []string, w http.ResponseWriter, filename s
 	_, _ = w.Write(result)
 }
 
+func apiPasteAdd(w http.ResponseWriter, r requestParser, user models.User) {
+	//TODO
+}
+
 func apiUploadFile(w http.ResponseWriter, r requestParser, user models.User) {
 	request, ok := r.(*paramFilesAdd)
 	if !ok {
