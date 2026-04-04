@@ -305,19 +305,23 @@ type requestParser interface {
 }
 
 type paramFilesListAll struct {
+	WebRequest       *http.Request
 	ShowFileRequests bool `header:"showFileRequests"`
 	foundHeaders     map[string]bool
 }
 
-func (p *paramFilesListAll) ProcessParameter(_ *http.Request) error {
+func (p *paramFilesListAll) ProcessParameter(r *http.Request) error {
+	p.WebRequest = r
 	return nil
 }
 
 type paramFilesListSingle struct {
-	Id string
+	Id         string
+	WebRequest *http.Request
 }
 
 func (p *paramFilesListSingle) ProcessParameter(r *http.Request) error {
+	p.WebRequest = r
 	url := parseRequestUrl(r)
 	p.Id = strings.TrimPrefix(url, "/files/list/")
 	return nil
@@ -366,10 +370,12 @@ func (p *paramFilesAdd) ProcessParameter(r *http.Request) error {
 type paramFilesChangeOwner struct {
 	Id           string `header:"id" required:"true"`
 	NewOwner     int    `header:"newOwner" required:"true"`
+	WebRequest   *http.Request
 	foundHeaders map[string]bool
 }
 
-func (p *paramFilesChangeOwner) ProcessParameter(_ *http.Request) error {
+func (p *paramFilesChangeOwner) ProcessParameter(r *http.Request) error {
+	p.WebRequest = r
 	return nil
 }
 
@@ -383,10 +389,12 @@ type paramFilesDuplicate struct {
 	UnlimitedDownloads bool
 	UnlimitedTime      bool
 	RequestedChanges   int
+	WebRequest         *http.Request
 	foundHeaders       map[string]bool
 }
 
 func (p *paramFilesDuplicate) ProcessParameter(r *http.Request) error {
+	p.WebRequest = r
 	if p.foundHeaders["allowedDownloads"] {
 		p.RequestedChanges |= storage.ParamDownloads
 		if p.AllowedDownloads == 0 {
@@ -419,10 +427,12 @@ type paramFilesModify struct {
 	UnlimitedDownloads bool
 	UnlimitedExpiry    bool
 	IsPasswordSet      bool
+	WebRequest         *http.Request
 	foundHeaders       map[string]bool
 }
 
-func (p *paramFilesModify) ProcessParameter(_ *http.Request) error {
+func (p *paramFilesModify) ProcessParameter(r *http.Request) error {
+	p.WebRequest = r
 	if p.foundHeaders["allowedDownloads"] && p.AllowedDownloads == 0 {
 		p.UnlimitedDownloads = true
 	}
@@ -437,10 +447,14 @@ type paramFilesReplace struct {
 	Id            string `header:"id" required:"true"`
 	IdNewContent  string `header:"idNewContent" required:"true"`
 	DeleteNewFile bool   `header:"deleteNewFile"`
+	WebRequest   *http.Request
 	foundHeaders  map[string]bool
 }
 
-func (p *paramFilesReplace) ProcessParameter(_ *http.Request) error { return nil }
+func (p *paramFilesReplace) ProcessParameter(r *http.Request) error {
+	p.WebRequest = r
+	return nil
+}
 
 type paramFilesDelete struct {
 	Id           string `header:"id" required:"true"`
@@ -452,10 +466,14 @@ func (p *paramFilesDelete) ProcessParameter(_ *http.Request) error { return nil 
 
 type paramFilesRestore struct {
 	Id           string `header:"id" required:"true"`
+	WebRequest   *http.Request
 	foundHeaders map[string]bool
 }
 
-func (p *paramFilesRestore) ProcessParameter(_ *http.Request) error { return nil }
+func (p *paramFilesRestore) ProcessParameter(r *http.Request) error {
+	p.WebRequest = r
+	return nil
+}
 
 type paramAuthCreate struct {
 	FriendlyName     string `header:"friendlyName"`
@@ -680,10 +698,12 @@ type paramChunkComplete struct {
 	UnlimitedDownloads bool
 	UnlimitedTime      bool
 	FileHeader         chunking.FileHeader
+	WebRequest         *http.Request
 	foundHeaders       map[string]bool
 }
 
-func (p *paramChunkComplete) ProcessParameter(_ *http.Request) error {
+func (p *paramChunkComplete) ProcessParameter(r *http.Request) error {
+	p.WebRequest = r
 
 	if !p.foundHeaders["realsize"] {
 		if !p.IsE2E {
@@ -754,10 +774,12 @@ type paramChunkUploadRequestComplete struct {
 	IsNonBlocking bool   `header:"nonblocking"`
 	ApiKey        string `header:"apikey" unpublished:"true"` // not published in API documentation
 	FileHeader    chunking.FileHeader
+	WebRequest    *http.Request
 	foundHeaders  map[string]bool
 }
 
-func (p *paramChunkUploadRequestComplete) ProcessParameter(_ *http.Request) error {
+func (p *paramChunkUploadRequestComplete) ProcessParameter(r *http.Request) error {
+	p.WebRequest = r
 	if p.ContentType == "" {
 		p.ContentType = "application/octet-stream"
 	}
