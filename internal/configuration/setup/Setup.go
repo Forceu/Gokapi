@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -709,8 +710,9 @@ func (v *setupView) loadFromConfig() {
 	v.IsInitialSetup = isInitialSetup
 	if environment.IsDockerInstance() {
 		v.IsDocker = true
-		v.IsDataNotMounted = !isVolumeMounted("/app/data")
-		v.IsConfigNotMounted = !isVolumeMounted("/app/config")
+		env := environment.New()
+		v.IsDataNotMounted = !isVolumeMounted(env.DataDir)
+		v.IsConfigNotMounted = !isVolumeMounted(env.ConfigDir)
 	}
 	v.HasAwsFeature = aws.IsIncludedInBuild
 	v.ProtectedUrls = protectedUrls
@@ -747,7 +749,7 @@ func (v *setupView) loadFromConfig() {
 	v.DatabaseSettings = dbSettings
 }
 
-func isVolumeMounted(path string) bool {
+func isVolumeMounted(dir string) bool {
 	file, err := os.Open("/proc/mounts")
 	if err != nil {
 		fmt.Println(err)
@@ -755,12 +757,25 @@ func isVolumeMounted(path string) bool {
 	}
 	defer file.Close()
 
+	mountPoints := make(map[string]bool)
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := scanner.Text()
 		fields := strings.Fields(line)
-		if len(fields) > 1 && fields[1] == path {
+		if len(fields) > 1 {
+			mountPoints[fields[1]] = true
+		}
+	}
+
+	// Walk up from dir to root, checking if any path component is a mount
+	// point. This handles the case where a user mounts e.g. /mnt_vol and
+	// sets GOKAPI_DATA_DIR=/mnt_vol/data.
+	for check := dir; ; check = filepath.Dir(check) {
+		if mountPoints[check] {
 			return true
+		}
+		if check == "/" || check == "." {
+			break
 		}
 	}
 	return false
