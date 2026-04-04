@@ -1,4 +1,4 @@
-//go:build gogenerate
+//go:build tools
 
 package main
 
@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	minify "github.com/tdewolff/minify/v2"
+	"github.com/tdewolff/minify/v2"
 	"github.com/tdewolff/minify/v2/css"
 	"github.com/tdewolff/minify/v2/js"
 )

@@ -1,4 +1,4 @@
-//go:build gogenerate
+//go:build tools
 
 package main
 
