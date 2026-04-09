@@ -256,8 +256,10 @@ func DownloadFile(downloadParams cliflags.FlagConfig) error {
 	}
 	if downloadParams.FileName == "" {
 		downloadParams.FileName = info.Name
+		downloadParams.FileName = strings.ReplaceAll(downloadParams.FileName, "/", "_")
+		downloadParams.FileName = strings.ReplaceAll(downloadParams.FileName, "\\", "_")
 	}
-	filename := downloadParams.OutputPath + "/" + downloadParams.FileName
+	filename := filepath.Join(downloadParams.OutputPath, filepath.Base(downloadParams.FileName))
 	exists, err := helper.FileExists(filename)
 	if err != nil {
 		fmt.Println("ERROR: Could not check if file already exists")
@@ -334,6 +336,7 @@ func DownloadFile(downloadParams cliflags.FlagConfig) error {
 	}
 	if !downloadParams.JsonOutput {
 		fmt.Println("File downloaded successfully")
+		fmt.Println("File saved to : " + filename)
 	} else {
 		fmt.Println("{\"result\":\"OK\"}")
 	}
