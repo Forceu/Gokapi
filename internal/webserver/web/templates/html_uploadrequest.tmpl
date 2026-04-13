@@ -31,12 +31,12 @@
 {{ if .ActiveUser.HasPermissionListOtherUploads }}
             			<th scope="col">User</th>
 {{ end }}
-                                <th scope="col">Actions</th>
+                                <th scope="col" class="text-end">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="filerequesttable">
                         
-{{ range .FileRequests }}
+{{ range $fileRequest := .FileRequests }}
                             <tr id="row-{{ .Id }}" class="no-bottom-border filerequest-item">
 		                    <td><a href="{{ $.ServerUrl }}publicUpload?id={{ .Id }}&key={{ .ApiKey }}" target="_blank">{{ .Name }}</a></td>
 				    {{ template "uRFileCell" . }}
@@ -50,6 +50,7 @@
 		                    <td id="cell-username-{{ .Id }}">{{(index $.UserMap .UserId).Name}}</td>
 {{ end }}
 		                    <td>
+					<div class="btn-toolbar justify-content-end" role="toolbar">
 		                    	<div class="btn-group" role="group">
                                 {{ template "uRDownloadbutton" . }}
                                 
@@ -62,6 +63,7 @@
                                 
                                 <button id="delete-{{ .Id }}" type="button" class="btn btn-outline-danger btn-sm" onclick="deleteOrShowModal('{{ .Id }}', '{{ .Name }}', {{ .UploadedFiles }})" title="Delete"><i class="bi bi-trash3"></i></button>
                                 	</div>
+                                	</div>
                                 </td>
                             </tr>
 			      <tr id="filelist-{{ .Id }}">
@@ -70,11 +72,11 @@
 			   <div class="p-2">
 
 				    <ul class="list-group list-group-flush">
-				      {{ range .Files }}
-				      <li class="list-group-itemtext-light d-flex align-items-center border-bottom-0  filelist-item ">
+      {{ range .Files }}
+				      <li id="cell-listupload-{{ .Id }}" class="list-group-itemtext-light d-flex align-items-center border-bottom-0  filelist-item ">
 
 					<div class="flex-grow-1 text-truncate">
-					  <a href="#" class="text-decoration-none text-light" onClick="downloadFileWithPresign('{{ .Id }}');">
+					  <a href="#" id="cell-name-{{ .Id }}" class="text-decoration-none text-light" onClick="downloadFileWithPresign('{{ .Id }}');">
 					    {{ .Name }}
 					  </a>
 					</div>
@@ -88,6 +90,17 @@
 						 onClick="downloadFileWithPresign('{{ .Id }}');"
 						title="Download">
 					  <i class="bi bi-download"></i>
+					</button>
+					
+					<button id="button-delete-{{ .Id}}"
+					   type="button"
+					   title="Delete"
+					    {{ if and (ne $.ActiveUser.Id .UserId) (not $.ActiveUser.HasPermissionDeleteOtherUploads) }}
+					    	disabled
+					    {{ end }}
+					   class="btn btn-outline-danger btn-sm"
+					   onclick="deleteFileFr('{{ .Id }}', '{{$fileRequest.Id}}')">
+					   <i class="bi bi-trash3"></i>
 					</button>
 
 				      </li>
@@ -104,6 +117,10 @@
             </div>
         </div>
 	<div id="toastnotification" class="toastnotification" data-default="URL copied to clipboard">Toast Text</div>
+	<div id="toastnotificationUndo" class="toastnotification">
+	  File deleted: <span id="toastFilename"></span>
+  	   <span id="toastUndoButton" class="toast-undo" onclick="handleUndoFr(this)">Restore</span>
+	</div>
     </div>
 </div>
 <script src="./js/min/admin.min.{{ template "js_admin_version"}}.js"></script>
@@ -234,7 +251,7 @@
 
 {{ define "uRFileCell" }}
 	<td>
-	<span title="Uploaded files">{{ .UploadedFiles }}</span>{{ if ne .ReservedUploads 0 }}<span title="Active uploads">+{{.ReservedUploads}}</span>{{end}}{{ if ne .MaxFiles 0 }} / <span title="File limit">{{ .MaxFiles }}</span>{{end}}
+	<span id="totalFiles-fr-{{.Id}}" title="Uploaded files">{{ .UploadedFiles }}</span>{{ if ne .ReservedUploads 0 }}<span title="Active uploads">+{{.ReservedUploads}}</span>{{end}}{{ if ne .MaxFiles 0 }} / <span title="File limit">{{ .MaxFiles }}</span>{{end}}
 	{{ if gt .UploadedFiles 0 }}
 	 <button
 		  class="btn btn-sm btn-link text-light p-0 collapse-toggle"

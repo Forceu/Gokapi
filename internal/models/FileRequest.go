@@ -33,7 +33,7 @@ func (f *FileRequest) Populate(files map[string]File, maxServerSize int) {
 	f.FileIdList = make([]string, 0)
 	f.Files = make([]File, 0)
 	for _, file := range files {
-		if file.UploadRequestId == f.Id {
+		if file.UploadRequestId == f.Id && !file.IsPendingForDeletion() {
 			f.TotalFileSize = f.TotalFileSize + file.SizeBytes
 			f.FileIdList = append(f.FileIdList, file.Id)
 			f.Files = append(f.Files, file)

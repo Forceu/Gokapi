@@ -35,6 +35,104 @@ function deleteOrShowModal(requestId, requestName, count) {
     }
 }
 
+
+function deleteFileFr(id, frId) {
+    document.getElementById("button-delete-" + id).disabled = true;
+    let rowFileEntry = document.getElementById("cell-listupload-"+id);
+    apiFilesDelete(id, 10)
+        .then(data => {
+            changeFileCountFr(frId, -1);
+            removeDownloadFileReference(id, frId);
+		rowFileEntry.classList.add("rowDeleting");
+		setTimeout(() => {
+		    rowFileEntry.remove();
+		}, 290);
+	 showToastFileDeletionFr(id);
+        })
+        .catch(error => {
+            alert("Unable to delete file: " + error);
+            console.error('Error:', error);
+        });
+}
+
+function changeFileCountFr(frId, change) {
+	let countCell = document.getElementById("totalFiles-fr-" + frId);
+	let currentCount = Number(countCell.innerText) || 0;
+	let newCount = currentCount + change;
+	countCell.innerText = newCount;	
+}
+
+function removeDownloadFileReference(fileId, frId) {
+    const btn = document.getElementById(`download-${frId}`);
+    if (!btn) return;
+
+    const currentOnclick = btn.getAttribute('onclick') || '';
+
+    const zipMatch = currentOnclick.match(/downloadFilesZipWithPresign\('([^']*)',\s*'([^']*)'\)/);
+    const singleMatch = currentOnclick.match(/downloadFileWithPresign\('([^']*)'\)/);
+
+    let fileIds = [];
+    let recordName = '';
+
+    if (zipMatch) {
+        fileIds = zipMatch[1].split(',').filter(id => id !== '');
+        recordName = zipMatch[2];
+    } else if (singleMatch) {
+        fileIds = [singleMatch[1]];
+        recordName = btn.dataset.recordName || '';
+    }
+
+    // Remove the deleted file
+    fileIds = fileIds.filter(id => id !== fileId);
+
+    if (fileIds.length === 0) {
+        // No files left — disable button
+        btn.classList.add('disabled');
+        btn.removeAttribute('onclick');
+    } else if (fileIds.length === 1) {
+        // Single file — switch to single download
+        btn.classList.remove('disabled');
+        btn.setAttribute('onclick', `downloadFileWithPresign('${fileIds[0]}');`);
+    } else {
+        // Multiple files — keep zip download
+        btn.classList.remove('disabled');
+        btn.setAttribute('onclick', `downloadFilesZipWithPresign('${fileIds.join(',')}', '${recordName}');`);
+    }
+}
+
+
+function showToastFileDeletionFr(id) {
+    let notification = document.getElementById("toastnotificationUndo");
+    let filename = document.getElementById("cell-name-" + id).innerText;
+    let filenameToast = document.getElementById("toastFilename");
+    let button = document.getElementById("toastUndoButton");
+
+    filenameToast.innerText = filename;
+
+    button.dataset.fileid = id;
+    hideToast();
+    notification.classList.add("show");
+
+    clearTimeout(toastId);
+    toastId = setTimeout(() => {
+        hideFileToast();
+    }, 5000);
+}
+
+
+function handleUndoFr(button) {
+    hideFileToast();
+    apiFilesRestore(button.dataset.fileid)
+        .then(data => {
+            window.location.reload();
+        })
+        .catch(error => {
+            alert("Unable to restore file: " + error);
+            console.error('Error:', error);
+        });
+}
+
+
 function showDeleteFRequestModal(requestId, requestName, count) {
     document.getElementById("deleteModalBodyName").innerText = requestName;
     document.getElementById("deleteModalBodyCount").innerText = count;
