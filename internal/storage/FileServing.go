@@ -725,7 +725,6 @@ func ServeFilesAsZip(files []models.File, filename string, w http.ResponseWriter
 			continue
 		}
 		fileHandler, _, err := getFileHandler(file, configuration.Get().DataDir)
-		defer fileHandler.Close()
 		if err != nil {
 			fmt.Println(err)
 			_, _ = w.Write([]byte("Error getting file handler"))
@@ -735,17 +734,20 @@ func ServeFilesAsZip(files []models.File, filename string, w http.ResponseWriter
 		if file.Encryption.IsEncrypted {
 			if !encryption.IsCorrectKey(file.Encryption, fileHandler) {
 				_, _ = w.Write([]byte("Internal error - Error decrypting file, source data might be damaged or an incorrect key has been used"))
+				_ = fileHandler.Close()
 				return
 			}
 			err = encryption.DecryptReader(file.Encryption, fileHandler, entryWriter)
 			if err != nil {
 				_, _ = w.Write([]byte("Error decrypting file"))
 				fmt.Println(err)
+				_ = fileHandler.Close()
 				return
 			}
 		} else {
 			_, err = io.Copy(entryWriter, fileHandler)
 			helper.Check(err)
+			_ = fileHandler.Close()
 		}
 		downloadstatus.SetComplete(statusId)
 		_ = zipWriter.Flush()
