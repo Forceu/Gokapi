@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -349,7 +350,9 @@ type paramFilesDownloadZip struct {
 }
 
 func (p *paramFilesDownloadZip) ProcessParameter(r *http.Request) error {
-	p.Ids = strings.Split(p.FileIds, ",")
+	ids := strings.Split(p.FileIds, ",")
+	slices.Sort(ids)
+	p.Ids = slices.Compact(ids)
 	p.WebRequest = r
 	return nil
 }
