@@ -32,7 +32,7 @@ jobs:
 
       - name: Cross-compile binaries
         run: |
-          BUILD_FLAGS="-ldflags=-s -w \
+          LDFLAGS="-s -w \
             -X 'github.com/forceu/gokapi/internal/environment.IsDocker=true' \
             -X 'github.com/forceu/gokapi/internal/environment.Builder=Project Docker File' \
             -X 'github.com/forceu/gokapi/internal/environment.BuildTime=$(date)'"
@@ -40,11 +40,11 @@ jobs:
           go generate ./...
 
           declare -A TARGETS=(
-            ["linux/amd64"]="amd64"
-            ["linux/386"]="386"
-            ["linux/arm64"]="arm64"
-            ["linux/arm/v7"]="arm v7"
-            ["linux/arm/v6"]="arm v6"
+            ["linux/amd64"]=""
+            ["linux/386"]=""
+            ["linux/arm64"]=""
+            ["linux/arm/v7"]=""
+            ["linux/arm/v6"]=""
             ["linux/riscv64"]=""
           )
 
@@ -59,7 +59,7 @@ jobs:
             OUT="bin/gokapi-${ARCH}${VARIANT:+-$VARIANT}"
             echo "Building $OUT (GOARCH=$ARCH GOARM=$GOARM)..."
             CGO_ENABLED=0 GOOS=$OS GOARCH=$ARCH GOARM=$GOARM \
-              go build $BUILD_FLAGS -o "$OUT" github.com/forceu/gokapi/cmd/gokapi &
+              go build -ldflags "$LDFLAGS" -o "$OUT" github.com/forceu/gokapi/cmd/gokapi &
           done
           wait
           echo "All binaries built."
