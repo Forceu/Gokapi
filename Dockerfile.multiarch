@@ -12,10 +12,16 @@ RUN apk update && apk add --no-cache su-exec tini ca-certificates curl tzdata &&
 
 COPY dockerentry.sh /app/run.sh
 
-# Copy the pre-built binary that matches this platform
-COPY bin/gokapi-${TARGETARCH}${TARGETVARIANT:+-$TARGETVARIANT} /app/gokapi
+COPY bin/ /tmp/bin/
 
-RUN chmod +x /app/gokapi /app/run.sh
+# Select the correct binary for this platform
+RUN if [ -n "$TARGETVARIANT" ]; then \
+      cp /tmp/bin/gokapi-${TARGETARCH}-${TARGETVARIANT} /app/gokapi; \
+    else \
+      cp /tmp/bin/gokapi-${TARGETARCH} /app/gokapi; \
+    fi && \
+    chmod +x /app/gokapi /app/run.sh && \
+    rm -rf /tmp/bin
 
 WORKDIR /app
 
