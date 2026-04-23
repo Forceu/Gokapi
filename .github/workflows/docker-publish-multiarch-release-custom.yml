@@ -68,13 +68,36 @@ jobs:
           wait
           echo "All binaries built."
 
+
       - name: Build and push multi-arch image
         run: |
           docker buildx create --use --name multiarch-builder
 
-          docker buildx build \
-            --push \
-            --platform linux/386,linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64,linux/riscv64 \
+          declare -A PLATFORMS=(
+            ["linux/amd64"]="gokapi-amd64"
+            ["linux/386"]="gokapi-386"
+            ["linux/arm64"]="gokapi-arm64"
+            ["linux/arm/v7"]="gokapi-arm-v7"
+            ["linux/arm/v6"]="gokapi-arm-v6"
+            ["linux/riscv64"]="gokapi-riscv64"
+          )
+
+          for platform in "${!PLATFORMS[@]}"; do
+            binary="${PLATFORMS[$platform]}"
+            tag="f0rc3/gokapi:latest-dev-${binary}"
+            echo "Building $platform with binary $binary..."
+            docker buildx build \
+              --push \
+              --platform "$platform" \
+              --build-arg BINARY_NAME="$binary" \
+              --tag "$tag" \
+              --file Dockerfile.multiarch \
+              .
+          done
+
+          docker buildx imagetools create \
             --tag f0rc3/gokapi:${{ github.event.inputs.tagname }} \
-            --file Dockerfile.multiarch \
-            .
+            $(for platform in "${!PLATFORMS[@]}"; do
+                binary="${PLATFORMS[$platform]}"
+                echo "f0rc3/gokapi:latest-dev-${binary}"
+              done)
