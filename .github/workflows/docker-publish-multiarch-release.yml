@@ -5,38 +5,80 @@ on:
   release:
     types: [released]
 
-
 permissions:
   contents: read
-
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: oprypin/find-latest-tag@v1
+      - name: Find latest release tag
+        uses: oprypin/find-latest-tag@v1
         with:
-          repository: Forceu/Gokapi 
-          releases-only: true 
+          repository: Forceu/Gokapi
+          releases-only: true
           prefix: 'v'
         id: latestversion
 
-      - name: checkout code
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: install buildx
-        id: buildx
-        uses: crazy-max/ghaction-docker-buildx@v1
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
-          version: latest
-      - name: login to docker hub
+          go-version-file: go.mod
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
         run: echo "${{ secrets.DOCKER_PW }}" | docker login -u "${{ secrets.DOCKER_USER }}" --password-stdin
-      - name: build the image
+
+      - name: Cross-compile binaries
         run: |
-          docker buildx build --tag f0rc3/gokapi:latest --platform linux/386,linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64 .
-      - name: push the image
+          BUILD_FLAGS="-ldflags=-s -w \
+            -X 'github.com/forceu/gokapi/internal/environment.IsDocker=true' \
+            -X 'github.com/forceu/gokapi/internal/environment.Builder=Project Docker File' \
+            -X 'github.com/forceu/gokapi/internal/environment.BuildTime=$(date)'"
+
+          go generate ./...
+
+          declare -A TARGETS=(
+            ["linux/amd64"]=""
+            ["linux/386"]=""
+            ["linux/arm64"]=""
+            ["linux/arm/v7"]=""
+            ["linux/arm/v6"]=""
+            ["linux/riscv64"]=""
+          )
+
+          for platform in "${!TARGETS[@]}"; do
+            OS="${platform%%/*}"
+            REST="${platform#*/}"
+            ARCH="${REST%%/*}"
+            VARIANT="${REST##*/}"
+            [ "$VARIANT" = "$ARCH" ] && VARIANT=""
+            GOARM=""
+            [ -n "$VARIANT" ] && GOARM="${VARIANT//v/}"
+            OUT="bin/gokapi-${ARCH}${VARIANT:+-$VARIANT}"
+            echo "Building $OUT (GOARCH=$ARCH GOARM=$GOARM)..."
+            CGO_ENABLED=0 GOOS=$OS GOARCH=$ARCH GOARM=$GOARM \
+              go build $BUILD_FLAGS -o "$OUT" github.com/forceu/gokapi/cmd/gokapi &
+          done
+          wait
+          echo "All binaries built."
+
+      - name: Build and push multi-arch image (latest + version tag)
         run: |
-          docker buildx build --push --tag f0rc3/gokapi:latest --platform linux/386,linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64 .
-          docker buildx build --push --tag f0rc3/gokapi:${{ steps.latestversion.outputs.tag }} --platform linux/386,linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64 .
+          docker buildx create --use --name multiarch-builder
+
+          docker buildx build \
+            --push \
+            --platform linux/386,linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64,linux/riscv64 \
+            --tag f0rc3/gokapi:latest \
+            --tag f0rc3/gokapi:${{ steps.latestversion.outputs.tag }} \
+            --file Dockerfile.multiarch \
+            .

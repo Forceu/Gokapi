@@ -28,4 +28,4 @@ jobs:
         run: echo "${{ secrets.DOCKER_PW }}" | docker login -u "${{ secrets.DOCKER_USER }}" --password-stdin
       - name: build and push the image
         run: |
-          docker buildx build -f Dockerfile.cli-tool --push --tag f0rc3/gokapi-cli:${{ github.event.inputs.tagname }} --platform linux/386,linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64 .
+          docker buildx build -f Dockerfile.cli-tool --push --tag f0rc3/gokapi-cli:${{ github.event.inputs.tagname }} --platform linux/386,linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64,linux/arm64,linux/riscv64 .

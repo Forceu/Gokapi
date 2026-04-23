@@ -1,4 +1,4 @@
-FROM golang:1.26.1-alpine AS build_base
+FROM golang:1.26.2-alpine AS build_base
 
 ## Usage:
 ## docker build . -f Dockerfile.cli-tool -t gokapi-cli
@@ -12,7 +12,7 @@ COPY . /compile
 
 RUN cd /compile && go generate ./... && CGO_ENABLED=0 go build -ldflags="-s -w -X 'github.com/forceu/gokapi/internal/environment.IsDocker=true' -X 'github.com/forceu/gokapi/internal/environment.Builder=Project Docker File' -X 'github.com/forceu/gokapi/internal/environment.BuildTime=$(date)'" -o /compile/gokapi-cli github.com/forceu/gokapi/cmd/cli-uploader
 
-FROM alpine:3.19
+FROM alpine:3.23
 
 COPY --from=build_base /compile/gokapi-cli /app/gokapi-cli
 WORKDIR /app

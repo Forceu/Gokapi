@@ -1,0 +1,25 @@
+## Used by Github workflow for publishing Docker image.
+
+FROM alpine:3.23
+
+# Passed in automatically by buildx for each platform
+ARG TARGETARCH
+ARG TARGETVARIANT
+
+RUN addgroup -S gokapi && adduser -S gokapi -G gokapi
+RUN apk update && apk add --no-cache su-exec tini ca-certificates curl tzdata && \
+    mkdir /app && touch /app/.isdocker
+
+COPY dockerentry.sh /app/run.sh
+
+# Copy the pre-built binary that matches this platform
+COPY bin/gokapi-${TARGETARCH}${TARGETVARIANT:+-$TARGETVARIANT} /app/gokapi
+
+RUN chmod +x /app/gokapi /app/run.sh
+
+WORKDIR /app
+
+ENTRYPOINT ["/sbin/tini", "--"]
+CMD ["/app/run.sh"]
+HEALTHCHECK --interval=10s --timeout=5s --retries=3 \
+  CMD curl --fail http://127.0.0.1:53842 || exit 1
