@@ -79,20 +79,30 @@ jobs:
 
           for platform in "${!PLATFORMS[@]}"; do
             binary="${PLATFORMS[$platform]}"
-            tag="f0rc3/gokapi:latest-dev-${binary}"
             echo "Building $platform with binary $binary..."
             docker buildx build \
               --push \
               --platform "$platform" \
               --build-arg BINARY_NAME="$binary" \
-              --tag "$tag" \
+              --tag "f0rc3/gokapi:tmp-dev-${binary}" \
               --file Dockerfile.multiarch \
               .
           done
 
           docker buildx imagetools create \
             --tag f0rc3/gokapi:latest-dev \
-            $(for platform in "${!PLATFORMS[@]}"; do
-                binary="${PLATFORMS[$platform]}"
-                echo "f0rc3/gokapi:latest-dev-${binary}"
+            $(for binary in "${PLATFORMS[@]}"; do
+                echo "f0rc3/gokapi:tmp-dev-${binary}"
               done)
+
+          # Delete intermediate tags
+          TOKEN=$(curl -s -X POST \
+            -H "Content-Type: application/json" \
+            -d "{\"username\": \"${{ secrets.DOCKER_USER }}\", \"password\": \"${{ secrets.DOCKER_PW }}\"}" \
+            https://hub.docker.com/v2/users/login/ | jq -r .token)
+
+          for binary in "${PLATFORMS[@]}"; do
+            curl -s -X DELETE \
+              -H "Authorization: JWT ${TOKEN}" \
+              "https://hub.docker.com/v2/repositories/f0rc3/gokapi/tags/tmp-dev-${binary}/"
+          done
