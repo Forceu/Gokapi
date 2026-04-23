@@ -2,25 +2,16 @@
 
 FROM alpine:3.23
 
-# Passed in automatically by buildx for each platform
-ARG TARGETARCH
-ARG TARGETVARIANT
+ARG BINARY_NAME
 
 RUN addgroup -S gokapi && adduser -S gokapi -G gokapi
 RUN apk update && apk add --no-cache su-exec tini ca-certificates curl tzdata && \
     mkdir /app && touch /app/.isdocker
 
 COPY dockerentry.sh /app/run.sh
-COPY bin/ /tmp/bin/
+COPY bin/${BINARY_NAME} /app/gokapi
 
-# Select the correct binary for this platform
-RUN if [ -n "$TARGETVARIANT" ]; then \
-      cp /tmp/bin/gokapi-${TARGETARCH}-${TARGETVARIANT} /app/gokapi; \
-    else \
-      cp /tmp/bin/gokapi-${TARGETARCH} /app/gokapi; \
-    fi && \
-    chmod +x /app/gokapi /app/run.sh && \
-    rm -rf /tmp/bin
+RUN chmod +x /app/gokapi /app/run.sh
 
 WORKDIR /app
 
