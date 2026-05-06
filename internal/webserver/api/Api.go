@@ -596,7 +596,7 @@ func apiListSingle(w http.ResponseWriter, r requestParser, user models.User) {
 	if !ok {
 		panic("invalid parameter passed")
 	}
-	file, ok := storage.GetFile(request.Id)
+	file, ok := storage.GetFile(request.Id, false)
 	if !ok {
 		sendError(w, http.StatusNotFound, errorcodes.NotFound, "File not found")
 		return
@@ -618,7 +618,7 @@ func apiDownloadSingle(w http.ResponseWriter, r requestParser, user models.User)
 	if !ok {
 		panic("invalid parameter passed")
 	}
-	file, statusCode, errCode, errMessage := checkDownloadAllowed(request.Id, user)
+	file, statusCode, errCode, errMessage := checkDownloadAllowed(request.Id, user, request.IncreaseCounter)
 	if statusCode != 0 {
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		sendError(w, statusCode, errCode, errMessage)
@@ -626,7 +626,7 @@ func apiDownloadSingle(w http.ResponseWriter, r requestParser, user models.User)
 	}
 	if !request.PresignUrl {
 		forceDecryption := file.Encryption.IsEncrypted && !file.Encryption.IsEndToEndEncrypted
-		storage.ServeFile(file, w, request.WebRequest, true, request.IncreaseCounter, forceDecryption)
+		storage.ServeFile(file, w, request.WebRequest, true, forceDecryption)
 		return
 	}
 	createAndOutputPresignedUrl([]string{file.Id}, w, "")
@@ -640,7 +640,7 @@ func apiDownloadZip(w http.ResponseWriter, r requestParser, user models.User) {
 	requestedFiles := make([]models.File, 0)
 	requestedFileIds := make([]string, 0)
 	for _, fileId := range request.Ids {
-		file, statusCode, errCode, errMessage := checkDownloadAllowed(fileId, user)
+		file, statusCode, errCode, errMessage := checkDownloadAllowed(fileId, user, false)
 		if statusCode != 0 {
 			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 			sendError(w, statusCode, errCode, errMessage)
@@ -656,8 +656,8 @@ func apiDownloadZip(w http.ResponseWriter, r requestParser, user models.User) {
 	createAndOutputPresignedUrl(requestedFileIds, w, request.Filename)
 }
 
-func checkDownloadAllowed(fileId string, user models.User) (models.File, int, int, string) {
-	file, ok := storage.GetFile(fileId)
+func checkDownloadAllowed(fileId string, user models.User, increaseCounter bool) (models.File, int, int, string) {
+	file, ok := storage.GetFile(fileId, increaseCounter)
 	if !ok {
 		return models.File{}, http.StatusNotFound, errorcodes.NotFound, "file not found"
 	}
@@ -709,7 +709,7 @@ func apiDuplicateFile(w http.ResponseWriter, r requestParser, user models.User) 
 	if !ok {
 		panic("invalid parameter passed")
 	}
-	file, ok := storage.GetFile(request.Id)
+	file, ok := storage.GetFile(request.Id, false)
 	if !ok {
 		sendError(w, http.StatusNotFound, errorcodes.NotFound, "Invalid id provided.")
 		return
@@ -744,7 +744,7 @@ func apiChangeFileOwner(w http.ResponseWriter, r requestParser, user models.User
 	apimutex.Lock(apimutex.TypeMetaData, request.Id)
 	defer apimutex.Unlock(apimutex.TypeMetaData, request.Id)
 
-	file, ok := storage.GetFile(request.Id)
+	file, ok := storage.GetFile(request.Id, false)
 	if !ok {
 		sendError(w, http.StatusNotFound, errorcodes.NotFound, "Invalid id provided.")
 		return
@@ -768,7 +768,7 @@ func apiReplaceFile(w http.ResponseWriter, r requestParser, user models.User) {
 	if !ok {
 		panic("invalid parameter passed")
 	}
-	fileOriginal, ok := storage.GetFile(request.Id)
+	fileOriginal, ok := storage.GetFile(request.Id, false)
 	if !ok {
 		sendError(w, http.StatusNotFound, errorcodes.NotFound, "Invalid id provided.")
 		return
@@ -782,7 +782,7 @@ func apiReplaceFile(w http.ResponseWriter, r requestParser, user models.User) {
 		sendError(w, http.StatusBadRequest, errorcodes.UnsupportedFile, "Cannot replace a file request upload")
 		return
 	}
-	fileNewContent, ok := storage.GetFile(request.IdNewContent)
+	fileNewContent, ok := storage.GetFile(request.IdNewContent, false)
 	if !ok {
 		sendError(w, http.StatusNotFound, errorcodes.NotFound, "Invalid id provided.")
 		return

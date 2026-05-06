@@ -1687,12 +1687,12 @@ func TestFileReplace(t *testing.T) {
 	test.IsEqualString(t, file.Size, newFile.Size)
 	test.IsEqualInt64(t, file.SizeBytes, newFile.SizeBytes)
 	test.IsEqual(t, file.Encryption, newFile.Encryption)
-	_, ok = storage.GetFile(newFile.Id)
+	_, ok = storage.GetFile(newFile.Id, false)
 	test.IsEqualBool(t, ok, true)
 	testReplaceFileCall(t, apiKey.Id, originalFile.Id, newFile.Id, true, 200, "")
 
-	_, ok = storage.GetFile(originalFile.Id)
+	_, ok = storage.GetFile(originalFile.Id, false)
 	test.IsEqualBool(t, ok, true)
-	_, ok = storage.GetFile(newFile.Id)
+	_, ok = storage.GetFile(newFile.Id, false)
 	test.IsEqualBool(t, ok, false)
 }

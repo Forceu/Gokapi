@@ -247,7 +247,7 @@ type redirectValues struct {
 func redirectFromFilename(w http.ResponseWriter, r *http.Request) {
 	addNoCacheHeader(w)
 	id := r.PathValue("id")
-	file, ok := storage.GetFile(id)
+	file, ok := storage.GetFile(id, false)
 	if !ok {
 		redirect(w, r, "../../error")
 		return
@@ -558,7 +558,7 @@ type LoginView struct {
 func showDownload(w http.ResponseWriter, r *http.Request) {
 	addNoCacheHeader(w)
 	keyId := queryUrl(w, r, "id", errorHandling.TypeFileNotFound)
-	file, ok := storage.GetFile(keyId)
+	file, ok := storage.GetFile(keyId, false)
 	if !ok || file.IsFileRequest() {
 		redirectOnIncorrectId(w, r, "error")
 		return
@@ -631,13 +631,13 @@ func showHotlink(w http.ResponseWriter, r *http.Request) {
 	hotlinkId := strings.Replace(r.URL.Path, "/hotlink/", "", 1)
 	hotlinkId = strings.Replace(hotlinkId, "/h/", "", 1)
 	addNoCacheHeader(w)
-	file, ok := storage.GetFileByHotlink(hotlinkId)
+	file, ok := storage.GetFileByHotlink(hotlinkId, true)
 	if !ok || file.IsFileRequest() {
 		w.Header().Set("Content-Type", "image/svg+xml")
 		_, _ = w.Write(imageExpiredPicture)
 		return
 	}
-	storage.ServeFile(file, w, r, false, true, false)
+	storage.ServeFile(file, w, r, false, false)
 }
 
 // Checks if a file is associated with the GET parameter from the current URL
@@ -1045,7 +1045,7 @@ func downloadPresigned(w http.ResponseWriter, r *http.Request) {
 	}
 	files := make([]models.File, 0)
 	for _, file := range presignedUrl.FileIds {
-		storedFile, ok := storage.GetFile(file)
+		storedFile, ok := storage.GetFile(file, false)
 		if !ok {
 			responseError(w, storage.ErrorFileNotFound)
 			return
@@ -1057,7 +1057,7 @@ func downloadPresigned(w http.ResponseWriter, r *http.Request) {
 	if len(files) == 1 {
 		file := files[0]
 		forceDecryption := file.Encryption.IsEncrypted && !file.Encryption.IsEndToEndEncrypted
-		storage.ServeFile(file, w, r, true, false, forceDecryption)
+		storage.ServeFile(file, w, r, true, forceDecryption)
 		return
 	}
 	storage.ServeFilesAsZip(files, presignedUrl.Filename, w, r)
@@ -1065,7 +1065,7 @@ func downloadPresigned(w http.ResponseWriter, r *http.Request) {
 
 func serveFile(id string, isRootUrl bool, w http.ResponseWriter, r *http.Request) {
 	addNoCacheHeader(w)
-	savedFile, ok := storage.GetFile(id)
+	savedFile, ok := storage.GetFile(id, true)
 	if !ok || savedFile.IsFileRequest() {
 		if isRootUrl {
 			redirectOnIncorrectId(w, r, "error")
@@ -1084,7 +1084,7 @@ func serveFile(id string, isRootUrl bool, w http.ResponseWriter, r *http.Request
 			return
 		}
 	}
-	storage.ServeFile(savedFile, w, r, true, true, false)
+	storage.ServeFile(savedFile, w, r, true, false)
 }
 
 func requireLogin(next http.HandlerFunc, isUiCall, isPwChangeView bool) http.HandlerFunc {

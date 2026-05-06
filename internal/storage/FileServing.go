@@ -32,6 +32,7 @@ import (
 	"github.com/forceu/gokapi/internal/storage/filesystem"
 	"github.com/forceu/gokapi/internal/storage/filesystem/s3filesystem/aws"
 	"github.com/forceu/gokapi/internal/storage/processingstatus"
+	"github.com/forceu/gokapi/internal/webserver/api/mutex/apimutex"
 	"github.com/forceu/gokapi/internal/webserver/downloadstatus"
 	"github.com/forceu/gokapi/internal/webserver/headers"
 	"github.com/forceu/gokapi/internal/webserver/sse"
@@ -371,11 +372,11 @@ const (
 // If delete is true, the NEW file will be deleted.
 // Replacing e2e encrypted files is NOT possible
 func ReplaceFile(fileId, newFileContentId string, delete bool) (models.File, error) {
-	file, ok := GetFile(fileId)
+	file, ok := GetFile(fileId, false)
 	if !ok {
 		return models.File{}, ErrorFileNotFound
 	}
-	newFileContent, ok := GetFile(newFileContentId)
+	newFileContent, ok := GetFile(newFileContentId, false)
 	if !ok {
 		return models.File{}, ErrorFileNotFound
 	}
@@ -575,11 +576,13 @@ func isVideoFile(filename, contentType string) bool {
 
 // GetFile gets the file by id. Returns (empty File, false) if invalid / expired file
 // or (file, true) if valid file
-func GetFile(id string) (models.File, bool) {
+func GetFile(id string, increaseCounter bool) (models.File, bool) {
 	var emptyResult = models.File{}
 	if id == "" {
 		return emptyResult, false
 	}
+	apimutex.Lock(apimutex.TypeMetaData, id)
+	defer apimutex.Unlock(apimutex.TypeMetaData, id)
 	file, ok := database.GetMetaDataById(id)
 	if !ok {
 		return emptyResult, false
@@ -596,6 +599,12 @@ func GetFile(id string) (models.File, bool) {
 	if !FileExists(file, configuration.Get().DataDir) {
 		return emptyResult, false
 	}
+	if increaseCounter {
+		file.DownloadCount = file.DownloadCount + 1
+		file.DownloadsRemaining = file.DownloadsRemaining - 1
+		database.IncreaseDownloadCount(file.Id, !file.UnlimitedDownloads)
+		go sse.PublishDownloadCount(file)
+	}
 	return file, true
 }
 
@@ -605,7 +614,7 @@ func checkIfValidAws(file models.File) bool {
 
 // GetFileByHotlink gets the file by hotlink id. Returns (empty File, false) if invalid / expired file
 // or (file, true) if valid file
-func GetFileByHotlink(id string) (models.File, bool) {
+func GetFileByHotlink(id string, increaseCounter bool) (models.File, bool) {
 	var emptyResult = models.File{}
 	if id == "" {
 		return emptyResult, false
@@ -614,17 +623,11 @@ func GetFileByHotlink(id string) (models.File, bool) {
 	if !ok {
 		return emptyResult, false
 	}
-	return GetFile(fileId)
+	return GetFile(fileId, increaseCounter)
 }
 
 // ServeFile subtracts a download allowance and serves the file to the browser
-func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDownload, increaseCounter, forceDecryption bool) {
-	if increaseCounter {
-		file.DownloadsRemaining = file.DownloadsRemaining - 1
-		file.DownloadCount = file.DownloadCount + 1
-		database.IncreaseDownloadCount(file.Id, !file.UnlimitedDownloads)
-		go sse.PublishDownloadCount(file)
-	}
+func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDownload, forceDecryption bool) {
 	logging.LogDownload(file, r, configuration.Get().SaveIp)
 	go serverstats.AddTraffic(uint64(file.SizeBytes))
 
@@ -888,7 +891,7 @@ func cleanInvalidFileRequests() {
 func cleanHotlinks() {
 	hotlinks := database.GetAllHotlinks()
 	for _, hotlink := range hotlinks {
-		_, ok := GetFileByHotlink(hotlink)
+		_, ok := GetFileByHotlink(hotlink, false)
 		if !ok {
 			database.DeleteHotlink(hotlink)
 		}
