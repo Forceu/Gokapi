@@ -73,6 +73,8 @@ type Database interface {
 	DeleteMetaData(id string)
 	// IncreaseDownloadCount increases the download count of a file, preventing race conditions
 	IncreaseDownloadCount(id string, decreaseRemainingDownloads bool)
+	// GetDownloadsRemaining returns the remaining downloads of a file that does not implement UnlimitedDownloads
+	GetDownloadsRemaining(id string) int
 
 	// GetSession returns the session with the given ID or false if not a valid ID
 	GetSession(id string) (models.Session, bool)

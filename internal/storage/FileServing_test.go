@@ -43,10 +43,10 @@ func TestMain(m *testing.M) {
 var idNewFile string
 
 func TestGetFile(t *testing.T) {
-	_, result := GetFile("invalid", false)
+	_, result := GetFile("invalid")
 	test.IsEqualBool(t, result, false)
 
-	file, result := GetFile("Wzol7LyY2QVczXynJtVo", false)
+	file, result := GetFile("Wzol7LyY2QVczXynJtVo")
 	fmt.Println(configuration.Get().DataDir)
 	fmt.Println(configuration.Get().DatabaseUrl)
 	test.IsEqualBool(t, result, true)
@@ -54,9 +54,9 @@ func TestGetFile(t *testing.T) {
 	test.IsEqualString(t, file.Name, "smallfile2")
 	test.IsEqualString(t, file.Size, "8 B")
 	test.IsEqualInt(t, file.DownloadsRemaining, 1)
-	_, result = GetFile("deletedfile1234", false)
+	_, result = GetFile("deletedfile1234")
 	test.IsEqualBool(t, result, false)
-	_, result = GetFile("", false)
+	_, result = GetFile("")
 	test.IsEqualBool(t, result, false)
 	file = models.File{
 		Id:                 "testget",
@@ -66,7 +66,7 @@ func TestGetFile(t *testing.T) {
 		UnlimitedTime:      true,
 	}
 	database.SaveMetaData(file)
-	_, result = GetFile(file.Id, false)
+	_, result = GetFile(file.Id)
 	test.IsEqualBool(t, result, false)
 
 	// Test pending deletion - file should not be retrievable when pending deletion
@@ -79,12 +79,12 @@ func TestGetFile(t *testing.T) {
 		PendingDeletion:    time.Now().Add(time.Hour).Unix(),
 	}
 	database.SaveMetaData(pendingFile)
-	_, result = GetFile(pendingFile.Id, false)
+	_, result = GetFile(pendingFile.Id)
 	test.IsEqualBool(t, result, false)
 	// Clean up - cancel pending deletion to allow normal retrieval
 	pendingFile.PendingDeletion = 0
 	database.SaveMetaData(pendingFile)
-	_, result = GetFile(pendingFile.Id, false)
+	_, result = GetFile(pendingFile.Id)
 	test.IsEqualBool(t, result, true)
 	// Clean up test data
 	database.DeleteMetaData(pendingFile.Id)
@@ -120,11 +120,11 @@ func TestGetEncInfoFromExistingFile(t *testing.T) {
 }
 
 func TestGetFileByHotlink(t *testing.T) {
-	_, result := GetFileByHotlink("invalid", false)
+	_, result := GetFileByHotlink("invalid")
 	test.IsEqualBool(t, result, false)
-	_, result = GetFileByHotlink("", false)
+	_, result = GetFileByHotlink("")
 	test.IsEqualBool(t, result, false)
-	file, ok := GetFileByHotlink("PhSs6mFtf8O5YGlLMfNw9rYXx9XRNkzCnJZpQBi7inunv3Z4A.jpg", false)
+	file, ok := GetFileByHotlink("PhSs6mFtf8O5YGlLMfNw9rYXx9XRNkzCnJZpQBi7inunv3Z4A.jpg")
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualString(t, file.Id, "n1tSTAGj8zan9KaT4u6p")
 	test.IsEqualString(t, file.Name, "picture.jpg")
@@ -569,12 +569,12 @@ func TestDuplicateFile(t *testing.T) {
 }
 
 func TestServeFile(t *testing.T) {
-	file, result := GetFile(idNewFile, true)
+	file, result := GetFile(idNewFile)
 	test.IsEqualBool(t, result, true)
 	r := httptest.NewRequest("GET", "/", nil)
 	w := httptest.NewRecorder()
-	ServeFile(file, w, r, true, false)
-	_, result = GetFile(idNewFile, false)
+	ServeFile(file, w, r, true, true, false, false)
+	_, result = GetFile(idNewFile)
 	test.IsEqualBool(t, result, false)
 
 	test.IsEqualString(t, w.Result().Header.Get("Content-Disposition"), "attachment; filename=\"test.dat\"; filename*=UTF-8''test.dat")
@@ -592,9 +592,9 @@ func TestServeFile(t *testing.T) {
 		test.IsEqualBool(t, ok, true)
 		r = httptest.NewRequest("GET", "/", nil)
 		w = httptest.NewRecorder()
-		file, result = GetFile("awsTest1234567890123", true)
+		file, result = GetFile("awsTest1234567890123")
 		test.IsEqualBool(t, result, true)
-		ServeFile(file, w, r, false, false)
+		ServeFile(file, w, r, false, true, false, false)
 		if aws.IsMockApi {
 			test.ResponseBodyContains(t, w, "https://redirect.url")
 		} else {
@@ -619,7 +619,7 @@ func TestServeFile(t *testing.T) {
 	file.Encryption.Nonce = nonce
 	r = httptest.NewRequest("GET", "/", nil)
 	w = httptest.NewRecorder()
-	ServeFile(file, w, r, true, false)
+	ServeFile(file, w, r, true, true, false, false)
 	test.ResponseBodyContains(t, w, "Error decrypting file")
 }
 
@@ -650,7 +650,7 @@ func TestCleanUp(t *testing.T) {
 	test.IsEqualString(t, files["unlimitedTime"].Name, "unlimitedTime")
 	test.IsEqualString(t, files["n1tSTAGj8zan9KaT4u6p"].Name, "picture.jpg")
 
-	file, _ := GetFile("n1tSTAGj8zan9KaT4u6p", false)
+	file, _ := GetFile("n1tSTAGj8zan9KaT4u6p")
 	file.DownloadsRemaining = 0
 	database.SaveMetaData(file)
 
@@ -663,7 +663,7 @@ func TestCleanUp(t *testing.T) {
 	test.IsEqualString(t, files["e4TjE7CokWK0giiLNxDL"].Name, "smallfile2")
 	test.IsEqualString(t, files["wefffewhtrhhtrhtrhtr"].Name, "smallfile3")
 
-	file, _ = GetFile("Wzol7LyY2QVczXynJtVo", false)
+	file, _ = GetFile("Wzol7LyY2QVczXynJtVo")
 	file.DownloadsRemaining = 0
 	database.SaveMetaData(file)
 
@@ -676,10 +676,10 @@ func TestCleanUp(t *testing.T) {
 	test.IsEqualString(t, files["e4TjE7CokWK0giiLNxDL"].Name, "smallfile2")
 	test.IsEqualString(t, files["wefffewhtrhhtrhtrhtr"].Name, "smallfile3")
 
-	file, _ = GetFile("e4TjE7CokWK0giiLNxDL", false)
+	file, _ = GetFile("e4TjE7CokWK0giiLNxDL")
 	file.DownloadsRemaining = 0
 	database.SaveMetaData(file)
-	file, _ = GetFile("wefffewhtrhhtrhtrhtr", false)
+	file, _ = GetFile("wefffewhtrhhtrhtrhtr")
 	file.DownloadsRemaining = 0
 	database.SaveMetaData(file)
 
@@ -858,7 +858,7 @@ func TestReplaceFile(t *testing.T) {
 	database.SaveMetaData(originalFile)
 	_, ok := database.GetMetaDataById(originalFile.Id)
 	test.IsEqualBool(t, ok, true)
-	_, ok = GetFile(originalFile.Id, false)
+	_, ok = GetFile(originalFile.Id)
 	test.IsEqualBool(t, ok, true)
 	database.SaveMetaData(newFile)
 	_, ok = database.GetMetaDataById(newFile.Id)
@@ -875,7 +875,7 @@ func TestReplaceFile(t *testing.T) {
 
 	_, err = ReplaceFile(originalFile.Id, newFile.Id, false)
 	test.IsNil(t, err)
-	file, ok := GetFile(originalFile.Id, false)
+	file, ok := GetFile(originalFile.Id)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualString(t, file.Name, newFile.Name)
 	test.IsEqualString(t, file.SHA1, newFile.SHA1)
@@ -884,12 +884,12 @@ func TestReplaceFile(t *testing.T) {
 	test.IsEqualString(t, file.Size, newFile.Size)
 	test.IsEqualInt64(t, file.SizeBytes, newFile.SizeBytes)
 	test.IsEqual(t, file.Encryption, newFile.Encryption)
-	_, ok = GetFile(newFile.Id, false)
+	_, ok = GetFile(newFile.Id)
 	test.IsEqualBool(t, ok, true)
 
 	_, err = ReplaceFile(originalFile.Id, newFile.Id, true)
-	_, ok = GetFile(originalFile.Id, false)
+	_, ok = GetFile(originalFile.Id)
 	test.IsEqualBool(t, ok, true)
-	_, ok = GetFile(newFile.Id, false)
+	_, ok = GetFile(newFile.Id)
 	test.IsEqualBool(t, ok, false)
 }

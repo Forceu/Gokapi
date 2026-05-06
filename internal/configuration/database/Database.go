@@ -221,9 +221,14 @@ func DeleteMetaData(id string) {
 	db.DeleteMetaData(id)
 }
 
-// IncreaseDownloadCount increases the download count of a file, preventing race conditions
+// IncreaseDownloadCount increases the download count of a file atomically
 func IncreaseDownloadCount(id string, decreaseRemainingDownloads bool) {
 	db.IncreaseDownloadCount(id, decreaseRemainingDownloads)
+}
+
+// GetDownloadsRemaining returns the remaining downloads of a file that does not implement UnlimitedDownloads
+func GetDownloadsRemaining(id string) int {
+	return db.GetDownloadsRemaining(id)
 }
 
 // Session Section

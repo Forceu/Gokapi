@@ -372,11 +372,11 @@ const (
 // If delete is true, the NEW file will be deleted.
 // Replacing e2e encrypted files is NOT possible
 func ReplaceFile(fileId, newFileContentId string, delete bool) (models.File, error) {
-	file, ok := GetFile(fileId, false)
+	file, ok := GetFile(fileId)
 	if !ok {
 		return models.File{}, ErrorFileNotFound
 	}
-	newFileContent, ok := GetFile(newFileContentId, false)
+	newFileContent, ok := GetFile(newFileContentId)
 	if !ok {
 		return models.File{}, ErrorFileNotFound
 	}
@@ -576,13 +576,11 @@ func isVideoFile(filename, contentType string) bool {
 
 // GetFile gets the file by id. Returns (empty File, false) if invalid / expired file
 // or (file, true) if valid file
-func GetFile(id string, increaseCounter bool) (models.File, bool) {
+func GetFile(id string) (models.File, bool) {
 	var emptyResult = models.File{}
 	if id == "" {
 		return emptyResult, false
 	}
-	apimutex.Lock(apimutex.TypeMetaData, id)
-	defer apimutex.Unlock(apimutex.TypeMetaData, id)
 	file, ok := database.GetMetaDataById(id)
 	if !ok {
 		return emptyResult, false
@@ -599,12 +597,6 @@ func GetFile(id string, increaseCounter bool) (models.File, bool) {
 	if !FileExists(file, configuration.Get().DataDir) {
 		return emptyResult, false
 	}
-	if increaseCounter {
-		file.DownloadCount = file.DownloadCount + 1
-		file.DownloadsRemaining = file.DownloadsRemaining - 1
-		database.IncreaseDownloadCount(file.Id, !file.UnlimitedDownloads)
-		go sse.PublishDownloadCount(file)
-	}
 	return file, true
 }
 
@@ -614,7 +606,7 @@ func checkIfValidAws(file models.File) bool {
 
 // GetFileByHotlink gets the file by hotlink id. Returns (empty File, false) if invalid / expired file
 // or (file, true) if valid file
-func GetFileByHotlink(id string, increaseCounter bool) (models.File, bool) {
+func GetFileByHotlink(id string) (models.File, bool) {
 	var emptyResult = models.File{}
 	if id == "" {
 		return emptyResult, false
@@ -623,11 +615,30 @@ func GetFileByHotlink(id string, increaseCounter bool) (models.File, bool) {
 	if !ok {
 		return emptyResult, false
 	}
-	return GetFile(fileId, increaseCounter)
+	return GetFile(fileId)
 }
 
 // ServeFile subtracts a download allowance and serves the file to the browser
-func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDownload, forceDecryption bool) {
+// Returns false if the file expired during the request (most likely race condition due to parallel downloads, requires recheckExpiry)
+func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDownload, increaseCounter, forceDecryption, recheckExpiry bool) bool {
+	apimutex.Lock(apimutex.TypeMetaData, file.Id)
+	if recheckExpiry {
+		if !file.UnlimitedDownloads {
+			file.DownloadsRemaining = database.GetDownloadsRemaining(file.Id)
+		}
+		if IsExpiredFile(file, time.Now().Unix()) {
+			apimutex.Unlock(apimutex.TypeMetaData, file.Id)
+			return false
+		}
+	}
+	if increaseCounter {
+		file.DownloadsRemaining = file.DownloadsRemaining - 1
+		file.DownloadCount = file.DownloadCount + 1
+		database.IncreaseDownloadCount(file.Id, !file.UnlimitedDownloads)
+		go sse.PublishDownloadCount(file)
+	}
+	apimutex.Unlock(apimutex.TypeMetaData, file.Id)
+
 	logging.LogDownload(file, r, configuration.Get().SaveIp)
 	go serverstats.AddTraffic(uint64(file.SizeBytes))
 
@@ -641,19 +652,19 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 		if isBlocking {
 			downloadstatus.SetComplete(statusId)
 		}
-		return
+		return true
 	}
 	fileHandler, _, err := getFileHandler(file, configuration.Get().DataDir)
 	defer fileHandler.Close()
 	if err != nil {
 		fmt.Println(err)
 		_, _ = w.Write([]byte("Error getting file handler"))
-		return
+		return true
 	}
 	if file.Encryption.IsEncrypted && !file.RequiresClientDecryption() {
 		if !encryption.IsCorrectKey(file.Encryption, fileHandler) {
 			_, _ = w.Write([]byte("Internal error - Error decrypting file, source data might be damaged or an incorrect key has been used"))
-			return
+			return true
 		}
 	}
 	statusId := downloadstatus.SetDownload(file)
@@ -663,12 +674,13 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 		if err != nil {
 			_, _ = w.Write([]byte("Error decrypting file"))
 			fmt.Println(err)
-			return
+			return true
 		}
 	} else {
 		http.ServeContent(w, r, file.Name, time.Now(), fileHandler)
 	}
 	downloadstatus.SetComplete(statusId)
+	return true
 }
 
 // Returns the filename if unique or a new filename in the format "Name (x).ext"
@@ -891,7 +903,7 @@ func cleanInvalidFileRequests() {
 func cleanHotlinks() {
 	hotlinks := database.GetAllHotlinks()
 	for _, hotlink := range hotlinks {
-		_, ok := GetFileByHotlink(hotlink, false)
+		_, ok := GetFileByHotlink(hotlink)
 		if !ok {
 			database.DeleteHotlink(hotlink)
 		}

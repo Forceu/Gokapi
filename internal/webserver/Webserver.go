@@ -247,7 +247,7 @@ type redirectValues struct {
 func redirectFromFilename(w http.ResponseWriter, r *http.Request) {
 	addNoCacheHeader(w)
 	id := r.PathValue("id")
-	file, ok := storage.GetFile(id, false)
+	file, ok := storage.GetFile(id)
 	if !ok {
 		redirect(w, r, "../../error")
 		return
@@ -558,7 +558,7 @@ type LoginView struct {
 func showDownload(w http.ResponseWriter, r *http.Request) {
 	addNoCacheHeader(w)
 	keyId := queryUrl(w, r, "id", errorHandling.TypeFileNotFound)
-	file, ok := storage.GetFile(keyId, false)
+	file, ok := storage.GetFile(keyId)
 	if !ok || file.IsFileRequest() {
 		redirectOnIncorrectId(w, r, "error")
 		return
@@ -631,13 +631,19 @@ func showHotlink(w http.ResponseWriter, r *http.Request) {
 	hotlinkId := strings.Replace(r.URL.Path, "/hotlink/", "", 1)
 	hotlinkId = strings.Replace(hotlinkId, "/h/", "", 1)
 	addNoCacheHeader(w)
-	file, ok := storage.GetFileByHotlink(hotlinkId, true)
+	file, ok := storage.GetFileByHotlink(hotlinkId)
 	if !ok || file.IsFileRequest() {
 		w.Header().Set("Content-Type", "image/svg+xml")
 		_, _ = w.Write(imageExpiredPicture)
 		return
 	}
-	storage.ServeFile(file, w, r, false, false)
+	validFile := storage.ServeFile(file, w, r, false, true, false, true)
+	if !validFile {
+		// Only called if the file has already expired during the expiry check of storage.ServeFile()
+		w.Header().Set("Content-Type", "image/svg+xml")
+		_, _ = w.Write(imageExpiredPicture)
+		return
+	}
 }
 
 // Checks if a file is associated with the GET parameter from the current URL
@@ -1045,7 +1051,7 @@ func downloadPresigned(w http.ResponseWriter, r *http.Request) {
 	}
 	files := make([]models.File, 0)
 	for _, file := range presignedUrl.FileIds {
-		storedFile, ok := storage.GetFile(file, false)
+		storedFile, ok := storage.GetFile(file)
 		if !ok {
 			responseError(w, storage.ErrorFileNotFound)
 			return
@@ -1057,7 +1063,7 @@ func downloadPresigned(w http.ResponseWriter, r *http.Request) {
 	if len(files) == 1 {
 		file := files[0]
 		forceDecryption := file.Encryption.IsEncrypted && !file.Encryption.IsEndToEndEncrypted
-		storage.ServeFile(file, w, r, true, forceDecryption)
+		storage.ServeFile(file, w, r, true, false, forceDecryption, false)
 		return
 	}
 	storage.ServeFilesAsZip(files, presignedUrl.Filename, w, r)
@@ -1065,7 +1071,8 @@ func downloadPresigned(w http.ResponseWriter, r *http.Request) {
 
 func serveFile(id string, isRootUrl bool, w http.ResponseWriter, r *http.Request) {
 	addNoCacheHeader(w)
-	savedFile, ok := storage.GetFile(id, true)
+	savedFile, ok := storage.GetFile(id)
+
 	if !ok || savedFile.IsFileRequest() {
 		if isRootUrl {
 			redirectOnIncorrectId(w, r, "error")
@@ -1084,7 +1091,16 @@ func serveFile(id string, isRootUrl bool, w http.ResponseWriter, r *http.Request
 			return
 		}
 	}
-	storage.ServeFile(savedFile, w, r, true, false)
+	validFile := storage.ServeFile(savedFile, w, r, true, true, false, true)
+	if !validFile {
+		// Only called if the file has already expired during the expiry check of storage.ServeFile()
+		if isRootUrl {
+			redirectOnIncorrectId(w, r, "error")
+		} else {
+			redirectOnIncorrectId(w, r, "../../error")
+		}
+		return
+	}
 }
 
 func requireLogin(next http.HandlerFunc, isUiCall, isPwChangeView bool) http.HandlerFunc {

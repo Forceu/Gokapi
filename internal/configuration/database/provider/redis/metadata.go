@@ -3,10 +3,11 @@ package redis
 import (
 	"bytes"
 	"encoding/gob"
+	"strings"
+
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	redigo "github.com/gomodule/redigo/redis"
-	"strings"
 )
 
 const (
@@ -86,10 +87,19 @@ func (p DatabaseProvider) DeleteMetaData(id string) {
 	p.deleteKey(prefixMetaData + id)
 }
 
-// IncreaseDownloadCount increases the download count of a file, preventing race conditions
+// IncreaseDownloadCount increases the download count of a file atomically
 func (p DatabaseProvider) IncreaseDownloadCount(id string, decreaseRemainingDownloads bool) {
 	if decreaseRemainingDownloads {
 		p.decreaseHashmapIntField(prefixMetaData+id, "DownloadsRemaining")
 	}
 	p.increaseHashmapIntField(prefixMetaData+id, "DownloadCount")
+}
+
+// GetDownloadsRemaining returns the remaining downloads of a file that does not implement UnlimitedDownloads
+func (p DatabaseProvider) GetDownloadsRemaining(id string) int {
+	file, ok := p.GetMetaDataById(id)
+	if !ok {
+		return 0
+	}
+	return file.DownloadsRemaining
 }
