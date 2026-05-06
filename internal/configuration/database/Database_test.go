@@ -213,6 +213,7 @@ func TestMetaData(t *testing.T) {
 		UnlimitedTime:      true,
 	}
 	runAllTypesNoOutput(t, func() { SaveMetaData(file) })
+	runAllTypesCompareOutput(t, func() any { return GetDownloadsRemaining(file.Id) }, 2)
 	runAllTypesCompareTwoOutputs(t, func() (any, any) { return GetMetaDataById("testid") }, file, true)
 	runAllTypesCompareOutput(t, func() any { return GetAllMetadata() }, map[string]models.File{"testid": file})
 	runAllTypesNoOutput(t, func() { DeleteMetaData("testid") })

@@ -113,6 +113,7 @@ func TestMetaData(t *testing.T) {
 	dbInstance.SaveMetaData(models.File{
 		Id:                 "test3",
 		Name:               "test3",
+		DownloadsRemaining: 4,
 		UnlimitedDownloads: false,
 		UnlimitedTime:      true,
 	})
@@ -120,6 +121,9 @@ func TestMetaData(t *testing.T) {
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, file.UnlimitedDownloads, false)
 	test.IsEqualBool(t, file.UnlimitedTime, true)
+	test.IsEqualInt(t, file.DownloadsRemaining, 4)
+	remaining := dbInstance.GetDownloadsRemaining(file.Id)
+	test.IsEqualInt(t, remaining, 4)
 	dbInstance.Close()
 	defer test.ExpectPanic(t)
 	_ = dbInstance.GetAllMetadata()
