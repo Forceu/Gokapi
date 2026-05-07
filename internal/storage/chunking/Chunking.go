@@ -115,7 +115,7 @@ func ParseFileHeader(r *http.Request) (FileHeader, error) {
 func parseContentType(r *http.Request, sanitisedName string) string {
 	contentType := r.PostForm.Get("filecontenttype")
 	if contentType != "" {
-		return contentType
+		return helper.SanitiseContentType(contentType)
 	}
 	fileExt := strings.ToLower(filepath.Ext(sanitisedName))
 	switch fileExt {

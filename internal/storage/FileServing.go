@@ -708,6 +708,7 @@ func ServeFilesAsZip(files []models.File, filename string, w http.ResponseWriter
 	if filename == "" {
 		filename = "Gokapi"
 	}
+	filename = helper.SanitiseFilename(filename)
 	w.Header().Set("Content-Type", "application/zip")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s.zip\"", filename))
 	w.WriteHeader(http.StatusOK)
