@@ -718,6 +718,7 @@ func (p *paramChunkComplete) ProcessParameter(_ *http.Request) error {
 		}
 	}
 
+	p.FileName = helper.SanitiseFilename(p.FileName)
 	p.ContentType = helper.SanitiseContentType(p.ContentType)
 	p.FileHeader = chunking.FileHeader{
 		Filename:    p.FileName,

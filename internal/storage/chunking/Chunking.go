@@ -152,7 +152,7 @@ func ParseMultipartHeader(header *multipart.FileHeader) (FileHeader, error) {
 	return FileHeader{
 		Filename:    helper.SanitiseFilename(header.Filename),
 		Size:        header.Size,
-		ContentType: header.Header.Get("Content-Type"),
+		ContentType: helper.SanitiseContentType(header.Header.Get("Content-Type")),
 	}, nil
 }
 

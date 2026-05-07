@@ -57,7 +57,7 @@ var regexContent = regexp.MustCompile(`[^a-zA-Z0-9/\-\+\.]+`)
 // or returns default when too long or too short
 func SanitiseContentType(contentType string) string {
 	if len(contentType) > 100 || len(strings.TrimSpace(contentType)) < 2 {
-		return contentType[0:100] + "application/octet-stream"
+		return "application/octet-stream"
 	}
 	return regexContent.ReplaceAllString(contentType, "")
 }
