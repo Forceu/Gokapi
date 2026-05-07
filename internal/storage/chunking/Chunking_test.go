@@ -138,7 +138,7 @@ func TestParseContentType(t *testing.T) {
 		strings.NewReader(data.Encode()))
 	err := r.ParseForm()
 	test.IsNil(t, err)
-	contentType := parseContentType(r)
+	contentType := parseContentType(r, "test.unknown")
 	test.IsEqualString(t, contentType, "test/unknown")
 
 	data.Set("filecontenttype", "")
@@ -147,7 +147,7 @@ func TestParseContentType(t *testing.T) {
 		strings.NewReader(data.Encode()))
 	err = r.ParseForm()
 	test.IsNil(t, err)
-	contentType = parseContentType(r)
+	contentType = parseContentType(r, "test.unknown")
 	test.IsEqualString(t, contentType, "application/octet-stream")
 
 	for _, imageExt := range imageFileExtensions {
@@ -157,7 +157,7 @@ func TestParseContentType(t *testing.T) {
 			strings.NewReader(data.Encode()))
 		err = r.ParseForm()
 		test.IsNil(t, err)
-		contentType = parseContentType(r)
+		contentType = parseContentType(r, "test"+imageExt)
 		test.IsNotEqualString(t, contentType, "application/octet-stream")
 		test.IsNotEqualString(t, contentType, "")
 		test.IsEqualBool(t, strings.Contains(contentType, "image/"), true)
