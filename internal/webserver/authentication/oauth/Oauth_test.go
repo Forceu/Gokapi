@@ -241,7 +241,7 @@ func TestHandlerLogin(t *testing.T) {
 		test.IsEqualInt(t, rr.Code, http.StatusFound)
 		location := rr.Header().Get("Location")
 		test.IsNotEmpty(t, location)
-		test.IsEqualBool(t, containsString(location, "prompt=consent"), true)
+		test.IsEqualBool(t, containsString(location, "prompt=login, true)
 		test.IsEqualBool(t, len(rr.Result().Cookies()) > 0, true)
 	})
 }
@@ -273,7 +273,7 @@ func TestHandlerCallback_LoginRequired(t *testing.T) {
 
 			// Should re-initiate login with consent
 			test.IsEqualInt(t, rr.Code, http.StatusFound)
-			test.IsEqualBool(t, containsString(rr.Header().Get("Location"), "prompt=consent"), true)
+			test.IsEqualBool(t, containsString(rr.Header().Get("Location"), "prompt=login, true)
 		})
 	}
 }

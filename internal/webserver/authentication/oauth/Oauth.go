@@ -53,7 +53,7 @@ func initLogin(w http.ResponseWriter, r *http.Request, showConsentScreen bool) {
 	setCallbackCookie(w, state)
 	prompt := "none"
 	if showConsentScreen {
-		prompt = "consent"
+		prompt = "login"
 	}
 	http.Redirect(w, r, config.AuthCodeURL(state)+"&prompt="+prompt, http.StatusFound)
 }
