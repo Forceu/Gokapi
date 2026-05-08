@@ -22,6 +22,96 @@ func TestGenerateRandomString(t *testing.T) {
 	test.IsEqualBool(t, len(GenerateRandomString(100)) == 100, true)
 }
 
+func TestSanitiseContentType(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		// ── Valid types — must pass through unchanged ──────────────────────
+		{
+			name:  "plain type",
+			input: "text/plain",
+			want:  "text/plain",
+		},
+		{
+			name:  "type with charset parameter",
+			input: "text/html; charset=utf-8",
+			want:  "text/html charset=utf-8", // semicolon and space are stripped
+		},
+		{
+			name:  "application/octet-stream",
+			input: "application/octet-stream",
+			want:  "application/octet-stream",
+		},
+		{
+			name:  "image type with plus",
+			input: "image/svg+xml",
+			want:  "image/svg+xml",
+		},
+		{
+			name:  "type with dot",
+			input: "application/vnd.ms-excel",
+			want:  "application/vnd.ms-excel",
+		},
+
+		// ── Injection characters stripped ──────────────────────────────────
+		{
+			name:  "CRLF injection attempt",
+			input: "text/plain\r\nX-Evil: header",
+			want:  "text/plainX-Evil header",
+		},
+		{
+			name:  "null byte stripped",
+			input: "text/plain\x00evil",
+			want:  "text/plainevil",
+		},
+		{
+			name:  "angle brackets stripped",
+			input: "text/<script>",
+			want:  "text/script",
+		},
+		{
+			name:  "quotes stripped",
+			input: `application/"json"`,
+			want:  "application/json",
+		},
+
+		// ── Fallback to application/octet-stream ──────────────────────────
+		{
+			// too short (< 2 non-space chars) → must return default, NOT panic
+			name:  "empty string",
+			input: "",
+			want:  "application/octet-stream",
+		},
+		{
+			name:  "single character",
+			input: "x",
+			want:  "application/octet-stream",
+		},
+		{
+			name:  "whitespace only",
+			input: "   ",
+			want:  "application/octet-stream",
+		},
+		{
+			// exactly 101 characters → over the 100-char limit
+			name:  "over 100 chars returns default not a concat",
+			input: "test/octet-stream-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+			want:  "application/octet-stream",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := SanitiseContentType(tt.input)
+			if got != tt.want {
+				t.Errorf("SanitiseContentType(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestSanitiseFilename(t *testing.T) {
 	tests := []struct {
 		name  string

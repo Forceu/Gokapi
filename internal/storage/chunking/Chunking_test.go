@@ -363,3 +363,107 @@ func sha1sumFile(filename string) string {
 	sha.Write(filecontent)
 	return hex.EncodeToString(sha.Sum(nil))
 }
+
+func TestParseFileHeaderSanitisation(t *testing.T) {
+	// Path traversal in filename must be neutralised.
+	data := url.Values{}
+	data.Set("filename", "../../etc/passwd")
+	data.Set("filecontenttype", "text/plain")
+	data.Set("filesize", "100")
+	_, r := test.GetRecorder("POST", "/uploadComplete", nil, []test.Header{
+		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
+		strings.NewReader(data.Encode()))
+	header, err := ParseFileHeader(r)
+	test.IsNil(t, err)
+	test.IsEqualBool(t, strings.Contains(header.Filename, ".."), false)
+	test.IsEqualBool(t, strings.Contains(header.Filename, "/"), false)
+
+	// CRLF in filename must be stripped so it cannot inject HTTP headers.
+	data.Set("filename", "file.txt\r\nX-Evil: injected")
+	_, r = test.GetRecorder("POST", "/uploadComplete", nil, []test.Header{
+		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
+		strings.NewReader(data.Encode()))
+	header, err = ParseFileHeader(r)
+	test.IsNil(t, err)
+	test.IsEqualBool(t, strings.Contains(header.Filename, "\r"), false)
+	test.IsEqualBool(t, strings.Contains(header.Filename, "\n"), false)
+	test.IsEqualBool(t, strings.Contains(header.Filename, "X-Evil"), false)
+
+	// Null byte in filename must be stripped.
+	data.Set("filename", "file\x00.txt")
+	_, r = test.GetRecorder("POST", "/uploadComplete", nil, []test.Header{
+		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
+		strings.NewReader(data.Encode()))
+	header, err = ParseFileHeader(r)
+	test.IsNil(t, err)
+	test.IsEqualBool(t, strings.Contains(header.Filename, "\x00"), false)
+
+	// CRLF in content-type (supplied via filecontenttype form field)
+	// must be sanitised before being stored.
+	data.Set("filename", "safe.txt")
+	data.Set("filecontenttype", "text/plain\r\nX-Injected: evil")
+	_, r = test.GetRecorder("POST", "/uploadComplete", nil, []test.Header{
+		{Name: "Content-type", Value: "application/x-www-form-urlencoded"}},
+		strings.NewReader(data.Encode()))
+	header, err = ParseFileHeader(r)
+	test.IsNil(t, err)
+	test.IsEqualBool(t, strings.Contains(header.ContentType, "\r"), false)
+	test.IsEqualBool(t, strings.Contains(header.ContentType, "\n"), false)
+	test.IsEqualBool(t, strings.Contains(header.ContentType, "X-Injected"), false)
+}
+
+func TestParseMultipartHeaderSanitisation(t *testing.T) {
+	// Filename with path traversal must be sanitised.
+	mimeHeader := make(textproto.MIMEHeader)
+	mimeHeader.Set("Content-Type", "text/plain")
+	traversalHeader := multipart.FileHeader{
+		Filename: "../../etc/passwd",
+		Size:     42,
+		Header:   mimeHeader,
+	}
+	header, err := ParseMultipartHeader(&traversalHeader)
+	test.IsNil(t, err)
+	test.IsEqualBool(t, strings.Contains(header.Filename, ".."), false)
+	test.IsEqualBool(t, strings.Contains(header.Filename, "/"), false)
+
+	// CRLF in filename must be stripped.
+	mimeHeader = make(textproto.MIMEHeader)
+	mimeHeader.Set("Content-Type", "text/plain")
+	crlfFilenameHeader := multipart.FileHeader{
+		Filename: "report.pdf\r\nSet-Cookie: session=evil",
+		Size:     10,
+		Header:   mimeHeader,
+	}
+	header, err = ParseMultipartHeader(&crlfFilenameHeader)
+	test.IsNil(t, err)
+	test.IsEqualBool(t, strings.Contains(header.Filename, "\r"), false)
+	test.IsEqualBool(t, strings.Contains(header.Filename, "\n"), false)
+	test.IsEqualBool(t, strings.Contains(header.Filename, "Set-Cookie"), false)
+
+	// Content-Type with CRLF injection must be sanitised.
+	// This covers the missing SanitiseContentType call in ParseMultipartHeader.
+	mimeHeader = make(textproto.MIMEHeader)
+	mimeHeader.Set("Content-Type", "text/plain\r\nX-Injected: evil")
+	crlfContentTypeHeader := multipart.FileHeader{
+		Filename: "safe.txt",
+		Size:     10,
+		Header:   mimeHeader,
+	}
+	header, err = ParseMultipartHeader(&crlfContentTypeHeader)
+	test.IsNil(t, err)
+	test.IsEqualBool(t, strings.Contains(header.ContentType, "\r"), false)
+	test.IsEqualBool(t, strings.Contains(header.ContentType, "\n"), false)
+	test.IsEqualBool(t, strings.Contains(header.ContentType, "X-Injected"), false)
+
+	// Null byte in Content-Type must be stripped.
+	mimeHeader = make(textproto.MIMEHeader)
+	mimeHeader.Set("Content-Type", "text/plain\x00evil")
+	nullByteHeader := multipart.FileHeader{
+		Filename: "safe.txt",
+		Size:     10,
+		Header:   mimeHeader,
+	}
+	header, err = ParseMultipartHeader(&nullByteHeader)
+	test.IsNil(t, err)
+	test.IsEqualBool(t, strings.Contains(header.ContentType, "\x00"), false)
+}

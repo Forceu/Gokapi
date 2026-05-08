@@ -51,7 +51,7 @@ func cleanRandomString(input string) string {
 	return regexRandomString.ReplaceAllString(input, "")
 }
 
-var regexContent = regexp.MustCompile(`[^a-zA-Z0-9/\-\+\.]+`)
+var regexContent = regexp.MustCompile(`[^a-zA-Z0-9/ \-=\+\.]+`)
 
 // SanitiseContentType removes invalid characters from the contentType string
 // or returns default when too long or too short
