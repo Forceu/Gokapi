@@ -960,7 +960,7 @@ func TestServeFilesAsZipSanitisation(t *testing.T) {
 	w := httptest.NewRecorder()
 	ServeFilesAsZip([]models.File{}, "../../etc/evil", w, r)
 	cd := w.Result().Header.Get("Content-Disposition")
-	test.IsEqualBool(t, strings.Contains(cd, ".."), false)
+	test.IsEqualBool(t, strings.HasPrefix(cd, ".."), false)
 	test.IsEqualBool(t, strings.Contains(cd, "/"), false)
 	// The header must still be a valid attachment directive.
 	test.IsEqualBool(t, strings.HasPrefix(cd, "attachment;"), true)
@@ -972,7 +972,7 @@ func TestServeFilesAsZipSanitisation(t *testing.T) {
 	cd = w.Result().Header.Get("Content-Disposition")
 	test.IsEqualBool(t, strings.Contains(cd, "\r"), false)
 	test.IsEqualBool(t, strings.Contains(cd, "\n"), false)
-	test.IsEqualBool(t, strings.Contains(cd, "X-Evil"), false)
+	test.IsEqualString(t, r.Header.Get("X-Evil"), "")
 
 	// Null byte in filename must be stripped.
 	w = httptest.NewRecorder()

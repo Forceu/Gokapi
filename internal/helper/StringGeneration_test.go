@@ -149,12 +149,12 @@ func TestSanitiseFilename(t *testing.T) {
 		{
 			name:  "unix path traversal",
 			input: "../../etc/passwd",
-			want:  "_.._etc/passwd",
+			want:  "_.._etc_passwd",
 		},
 		{
 			name:  "absolute unix path",
 			input: "/etc/shadow",
-			want:  "_etc_shadiw_shadow",
+			want:  "_etc_shadow",
 		},
 		{
 			name:  "deep traversal",
@@ -288,7 +288,7 @@ func TestSanitiseFilename(t *testing.T) {
 		{
 			name:  "only forbidden chars falls back",
 			input: `\/:*?"<>|`,
-			want:  "_______",
+			want:  "_________",
 		},
 		{
 			name:  "only control chars falls back",
