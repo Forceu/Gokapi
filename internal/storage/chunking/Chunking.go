@@ -75,10 +75,10 @@ func ParseChunkInfo(r *http.Request, isApiCall bool) (ChunkInfo, error) {
 	return info, nil
 }
 
+var regexUuidInput = regexp.MustCompile("[^a-zA-Z0-9-]")
+
 func sanitiseUuid(input string) string {
-	reg, err := regexp.Compile("[^a-zA-Z0-9-]")
-	helper.Check(err)
-	return reg.ReplaceAllString(input, "_")
+	return regexUuidInput.ReplaceAllString(input, "_")
 }
 
 // ParseFileHeader parses the formdata and returns a FileHeader
@@ -87,11 +87,11 @@ func ParseFileHeader(r *http.Request) (FileHeader, error) {
 	if err != nil {
 		return FileHeader{}, err
 	}
-	name := r.PostForm.Get("filename")
+	name := helper.SanitiseFilename(r.PostForm.Get("filename"))
 	if name == "" {
-		return FileHeader{}, errors.New("empty filename provided")
+		return FileHeader{}, errors.New("empty or invalid filename provided")
 	}
-	contentType := parseContentType(r)
+	contentType := parseContentType(r, name)
 	size := r.PostForm.Get("filesize")
 	if size == "" {
 		return FileHeader{}, errors.New("empty size provided")
@@ -110,12 +110,14 @@ func ParseFileHeader(r *http.Request) (FileHeader, error) {
 	}, nil
 }
 
-func parseContentType(r *http.Request) string {
+// parseContentType determines the MIME type from the form field or, as a
+// fallback, from the extension of the already-sanitised filename.
+func parseContentType(r *http.Request, sanitisedName string) string {
 	contentType := r.PostForm.Get("filecontenttype")
 	if contentType != "" {
-		return contentType
+		return helper.SanitiseContentType(contentType)
 	}
-	fileExt := strings.ToLower(filepath.Ext(r.PostForm.Get("filename")))
+	fileExt := strings.ToLower(filepath.Ext(sanitisedName))
 	switch fileExt {
 	case ".jpg", ".jpeg":
 		contentType = "image/jpeg"
@@ -148,9 +150,9 @@ func ParseMultipartHeader(header *multipart.FileHeader) (FileHeader, error) {
 		return FileHeader{}, errors.New("empty content-type provided")
 	}
 	return FileHeader{
-		Filename:    header.Filename,
+		Filename:    helper.SanitiseFilename(header.Filename),
 		Size:        header.Size,
-		ContentType: header.Header.Get("Content-Type"),
+		ContentType: helper.SanitiseContentType(header.Header.Get("Content-Type")),
 	}, nil
 }
 

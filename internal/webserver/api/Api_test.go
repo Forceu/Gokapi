@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -1695,4 +1696,154 @@ func TestFileReplace(t *testing.T) {
 	test.IsEqualBool(t, ok, true)
 	_, ok = storage.GetFile(newFile.Id)
 	test.IsEqualBool(t, ok, false)
+}
+
+func TestChunkCompleteSanitisation(t *testing.T) {
+	apiKey := generateNewKey(false, idUser, "", "")
+	apiKey.GrantPermission(models.ApiPermUpload)
+	database.SaveApiKey(apiKey)
+
+	dangerousCases := []struct {
+		name        string
+		filename    string
+		contentType string
+	}{
+		{
+			name:        "path traversal in filename",
+			filename:    "../../etc/passwd",
+			contentType: "text/plain",
+		},
+		{
+			name:        "CRLF injection in filename",
+			filename:    "upload.txt\r\nSet-Cookie: session=evil",
+			contentType: "text/plain",
+		},
+		{
+			name:        "null byte in filename",
+			filename:    "file\x00.txt",
+			contentType: "text/plain",
+		},
+		{
+			name:        "CRLF injection in content-type",
+			filename:    "upload.txt",
+			contentType: "text/plain\r\nX-Injected: evil",
+		},
+		{
+			name:        "null byte in content-type",
+			filename:    "upload.txt",
+			contentType: "text/plain\x00evil",
+		},
+	}
+
+	for _, tc := range dangerousCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Write a temporary chunk file for the upload to succeed.
+			chunkUUID := "sanitisetest123"
+			err := os.WriteFile("test/data/chunk-"+chunkUUID, []byte("testcontent"), 0600)
+			test.IsNil(t, err)
+
+			w, r := test.GetRecorder("POST", "/api/chunk/complete", nil, []test.Header{
+				{Name: "apikey", Value: apiKey.Id},
+				{Name: "uuid", Value: chunkUUID},
+				{Name: "filename", Value: tc.filename},
+				{Name: "filesize", Value: "11"},
+				{Name: "contenttype", Value: tc.contentType},
+			}, nil)
+			Process(w, r)
+			test.IsEqualInt(t, w.Code, 200)
+
+			// Parse the returned file metadata.
+			result := struct {
+				FileInfo models.FileApiOutput `json:"FileInfo"`
+			}{}
+			err = json.Unmarshal(w.Body.Bytes(), &result)
+			test.IsNil(t, err)
+
+			// The stored filename must not contain any dangerous sequences.
+			storedName := result.FileInfo.Name
+			test.IsEqualBool(t, strings.HasPrefix(storedName, ".."), false)
+			test.IsEqualBool(t, strings.Contains(storedName, "\r"), false)
+			test.IsEqualBool(t, strings.Contains(storedName, "\n"), false)
+			test.IsEqualBool(t, strings.Contains(storedName, "\x00"), false)
+		})
+	}
+}
+
+func TestChunkUploadRequestCompleteSanitisation(t *testing.T) {
+	apiKey := generateNewKey(false, idUser, "", "")
+	apiKey.GrantPermission(models.ApiPermUpload)
+	database.SaveApiKey(apiKey)
+
+	// paramChunkUploadRequestComplete already calls both sanitisers.
+	// Verify end-to-end that dangerous filenames and content-types submitted
+	// through /chunk/upload-request/complete are cleaned before storage.
+	p := &paramChunkUploadRequestComplete{}
+	p.foundHeaders = map[string]bool{}
+	p.FileName = "../../etc/passwd\r\nSet-Cookie: x=1"
+	p.ContentType = "text/plain\r\nX-Evil: header"
+	p.FileSize = 10
+	err := p.ProcessParameter(nil)
+	test.IsNil(t, err)
+
+	test.IsEqualBool(t, strings.HasPrefix(p.FileName, ".."), false)
+	test.IsEqualBool(t, strings.Contains(p.FileName, "\r"), false)
+	test.IsEqualBool(t, strings.Contains(p.FileName, "\n"), false)
+	test.IsEqualBool(t, strings.Contains(p.ContentType, "\r"), false)
+	test.IsEqualBool(t, strings.Contains(p.ContentType, "\n"), false)
+	// Sanitised values must propagate into FileHeader.
+	test.IsEqualString(t, p.FileHeader.Filename, p.FileName)
+	test.IsEqualString(t, p.FileHeader.ContentType, p.ContentType)
+}
+
+func TestFilesDuplicateSanitisation(t *testing.T) {
+	apiKey := generateNewKey(false, idUser, "", "")
+	apiKey.GrantPermission(models.ApiPermUpload)
+	database.SaveApiKey(apiKey)
+
+	const apiUrl = "/files/duplicate"
+
+	// Path traversal in the new filename for a duplicate must be sanitised.
+	w, r := getRecorder(apiUrl, apiKey.Id, []test.Header{
+		{Name: "id", Value: idFileUser},
+		{Name: "filename", Value: "../../etc/shadow"},
+	})
+	Process(w, r)
+	test.IsEqualInt(t, w.Code, 200)
+	var output models.FileApiOutput
+	err := json.Unmarshal(w.Body.Bytes(), &output)
+	test.IsNil(t, err)
+	test.IsEqualBool(t, strings.HasPrefix(output.Name, ".."), false)
+	test.IsEqualBool(t, strings.Contains(output.Name, "/"), false)
+
+	// CRLF in the duplicate filename must be stripped.
+	w, r = getRecorder(apiUrl, apiKey.Id, []test.Header{
+		{Name: "id", Value: idFileUser},
+		{Name: "filename", Value: "file.txt\r\nX-Evil: injected"},
+	})
+	Process(w, r)
+	test.IsEqualInt(t, w.Code, 200)
+	err = json.Unmarshal(w.Body.Bytes(), &output)
+	test.IsNil(t, err)
+	test.IsEqualBool(t, strings.Contains(output.Name, "\r"), false)
+	test.IsEqualBool(t, strings.Contains(output.Name, "\n"), false)
+}
+
+func TestChunkCompleteSanitisationUnit(t *testing.T) {
+	p := &paramChunkComplete{}
+	p.foundHeaders = map[string]bool{"realsize": true}
+	p.RealSize = 10
+	p.FileSize = 10
+	p.AllowedDownloads = 1
+	p.ExpiryDays = 14
+	p.ContentType = "text/plain"
+	p.FileName = "../../etc/passwd\r\nSet-Cookie: x=1"
+
+	err := p.ProcessParameter(nil)
+	test.IsNil(t, err)
+
+	// The FileHeader must receive the sanitised filename, not the raw one.
+	test.IsEqualString(t, p.FileHeader.Filename, p.FileName)
+	test.IsEqualBool(t, strings.HasPrefix(p.FileHeader.Filename, ".."), false)
+	test.IsEqualBool(t, strings.Contains(p.FileHeader.Filename, "\r"), false)
+	test.IsEqualBool(t, strings.Contains(p.FileHeader.Filename, "\n"), false)
 }

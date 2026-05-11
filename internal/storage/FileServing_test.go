@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"net/textproto"
 	"os"
+	"strings"
 	"testing"
 	"testing/synctest"
 	"time"
@@ -949,4 +950,46 @@ func TestParallelDownloads(t *testing.T) {
 		test.IsEqualInt(t, successCount, allowedDownloads)
 		test.IsEqualInt(t, failureCount, workers-allowedDownloads)
 	})
+}
+
+func TestServeFilesAsZipSanitisation(t *testing.T) {
+	r := httptest.NewRequest("GET", "/", nil)
+
+	// Path traversal in the zip filename must be neutralised before it
+	// reaches the Content-Disposition header.
+	w := httptest.NewRecorder()
+	ServeFilesAsZip([]models.File{}, "../../etc/evil", w, r)
+	cd := w.Result().Header.Get("Content-Disposition")
+	test.IsEqualBool(t, strings.HasPrefix(cd, ".."), false)
+	test.IsEqualBool(t, strings.Contains(cd, "/"), false)
+	// The header must still be a valid attachment directive.
+	test.IsEqualBool(t, strings.HasPrefix(cd, "attachment;"), true)
+
+	// CRLF in the zip filename must be stripped so it cannot split the
+	// HTTP response and inject arbitrary headers.
+	w = httptest.NewRecorder()
+	ServeFilesAsZip([]models.File{}, "bundle\r\nX-Evil: injected", w, r)
+	cd = w.Result().Header.Get("Content-Disposition")
+	test.IsEqualBool(t, strings.Contains(cd, "\r"), false)
+	test.IsEqualBool(t, strings.Contains(cd, "\n"), false)
+	test.IsEqualString(t, r.Header.Get("X-Evil"), "")
+
+	// Null byte in filename must be stripped.
+	w = httptest.NewRecorder()
+	ServeFilesAsZip([]models.File{}, "file\x00name", w, r)
+	cd = w.Result().Header.Get("Content-Disposition")
+	test.IsEqualBool(t, strings.Contains(cd, "\x00"), false)
+
+	// An empty filename must fall back to "Gokapi" (the hardcoded default)
+	// so the Content-Disposition header is always well-formed.
+	w = httptest.NewRecorder()
+	ServeFilesAsZip([]models.File{}, "", w, r)
+	cd = w.Result().Header.Get("Content-Disposition")
+	test.IsEqualBool(t, strings.Contains(cd, "Gokapi"), true)
+
+	// A clean filename must be preserved exactly (plus the .zip suffix).
+	w = httptest.NewRecorder()
+	ServeFilesAsZip([]models.File{}, "my-archive", w, r)
+	cd = w.Result().Header.Get("Content-Disposition")
+	test.IsEqualBool(t, strings.Contains(cd, "my-archive.zip"), true)
 }
