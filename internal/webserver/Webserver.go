@@ -761,6 +761,7 @@ type AdminView struct {
 	IsUserTabAvailable    bool
 	EndToEndEncryption    bool
 	IncludeFilename       bool
+	DefaultZipName        string
 	IsInternalAuth        bool
 	ShowApiMenu           bool
 	ShowDeprecationNotice bool
@@ -912,6 +913,7 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 	u.MaxParallelUploads = config.MaxParallelUploads
 	u.ChunkSize = config.ChunkSize
 	u.IncludeFilename = config.IncludeFilename
+	u.DefaultZipName = configuration.GetEnvironment().DefaultZipName
 	return u
 }
 

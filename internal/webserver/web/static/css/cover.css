@@ -834,6 +834,17 @@ tr.no-bottom-border td {
     filter: invert(1) brightness(0.6);
 }
 
+/* ── Zip archive name template input ────────────────────────────── */
+
+.upload-option-zip-input {
+    font-size: 0.8rem;
+}
+
+.upload-option-zip-input::placeholder {
+    color: #6c757d;
+    opacity: 1;
+}
+
 
 .modal-samesize-input-edit {
    width: 11rem;
