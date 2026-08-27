@@ -82,6 +82,12 @@ Available environment variables
 +-------------------------------------+----------------------------------------------------------------------------------------+-----------------+-----------------------------+
 | GOKAPI_DATA_DIR                     | Sets the directory for the data                                                        | Yes             | data                        |
 +-------------------------------------+----------------------------------------------------------------------------------------+-----------------+-----------------------------+
+| GOKAPI_DEFAULT_ZIP_NAME             | Sets the default name template used when compressing an upload into a zip              | No              | gokapi-upload-%Y%m%d-%H%M%S |
+|                                     |                                                                                        |                 |                             |
+|                                     | archive in the browser. Supports strftime-style date tokens, e.g.                      |                 |                             |
+|                                     |                                                                                        |                 |                             |
+|                                     | %Y %m %d %H %M %S. The .zip extension is added automatically.                          |                 |                             |
++-------------------------------------+----------------------------------------------------------------------------------------+-----------------+-----------------------------+
 | GOKAPI_DISABLE_API_MENU             | Disables the API menu and generation of API keys for non-admin users                   | No              | false                       |
 +-------------------------------------+----------------------------------------------------------------------------------------+-----------------+-----------------------------+
 | GOKAPI_DISABLE_CORS_CHECK           | Disables the CORS check on startup and during setup, if set to true                    | No              | false                       |

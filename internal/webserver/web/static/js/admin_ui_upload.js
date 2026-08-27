@@ -23,6 +23,12 @@ function initDropzone() {
         init: function() {
             dropzoneObject = this;
             this.on("addedfile", file => {
+                // If zip grouping is enabled, buffer the file and compress a batch
+                // into a single archive instead of uploading files individually.
+                // handleZipAddedFile() returns true if it took ownership of the file.
+                if (typeof handleZipAddedFile === "function" && handleZipAddedFile(file)) {
+                    return;
+                }
                 file.upload.uuid = getUuid();
                 saveUploadDefaults();
                 addFileProgress(file);
