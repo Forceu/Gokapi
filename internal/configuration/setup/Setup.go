@@ -3,6 +3,7 @@ package setup
 import (
 	"bufio"
 	"context"
+	"crypto/subtle"
 	"embed"
 	"encoding/json"
 	"errors"
@@ -33,6 +34,7 @@ import (
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage/filesystem/s3filesystem/aws"
+	"github.com/forceu/gokapi/internal/webserver/ratelimiter"
 )
 
 // webserverDir is the embedded version of the "static" folder
@@ -51,6 +53,7 @@ var srv http.Server
 var isInitialSetup = true
 var credentialUsername string
 var credentialPassword string
+var credentialAWSTest string
 
 // debugDisableAuth can be set to true for testing purposes. It will disable the
 // password requirement for accessing the setup page
@@ -60,6 +63,13 @@ const debugDisableAuth = false
 func RunIfFirstStart() {
 	if !configuration.Exists() {
 		isInitialSetup = true
+		credentialAWSTest = helper.GenerateRandomString(10)
+		fmt.Println()
+		fmt.Println("###################################################################")
+		fmt.Println("Use the following password for testing the AWS configuration:")
+		fmt.Println("Password:  " + credentialAWSTest)
+		fmt.Println("###################################################################")
+		fmt.Println()
 		startSetupWebserver()
 	}
 }
@@ -90,6 +100,7 @@ func basicAuth(next http.HandlerFunc) http.HandlerFunc {
 
 		enteredUser, enteredPw, ok := r.BasicAuth()
 		if ok {
+			ratelimiter.WaitOnSetupLogin()
 			usernameMatch := helper.IsEqualStringConstantTime(strings.ToLower(enteredUser), strings.ToLower(credentialUsername))
 			passwordMatch := helper.IsEqualStringConstantTime(enteredPw, credentialPassword)
 			if usernameMatch && passwordMatch {
@@ -97,8 +108,7 @@ func basicAuth(next http.HandlerFunc) http.HandlerFunc {
 				return
 			}
 		}
-		time.Sleep(time.Second)
-		w.Header().Set("WWW-Authenticate", `Basic realm="restricted", charset="UTF-8"`)
+		w.Header().Set("WWW-Authenticate", `Basic realm="Please enter the credentials shown in the console output", charset="UTF-8"`)
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 	}
 }
@@ -826,23 +836,45 @@ func verifyPortNumber(port int) int {
 }
 
 type testAwsRequest struct {
-	Bucket      string `json:"bucket"`
-	Region      string `json:"region"`
-	ApiKey      string `json:"apikey"`
-	ApiSecret   string `json:"apisecret"`
-	Endpoint    string `json:"endpoint"`
-	GokapiUrl   string `json:"exturl"`
-	EnvProvided bool   `json:"isEnvProvided"`
+	Bucket        string `json:"bucket"`
+	Region        string `json:"region"`
+	ApiKey        string `json:"apikey"`
+	ApiSecret     string `json:"apisecret"`
+	Endpoint      string `json:"endpoint"`
+	GokapiUrl     string `json:"exturl"`
+	SetupPassword string `json:"setupPassword"`
+	EnvProvided   bool   `json:"isEnvProvided"`
+}
+
+type awsTestResponse struct {
+	Code   int    `json:"code"`
+	Result string `json:"result"`
 }
 
 // Handling of /testaws
 func handleTestAws(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 	decoder := json.NewDecoder(r.Body)
 	var t testAwsRequest
 	err := decoder.Decode(&t)
 	if err != nil {
-		_, _ = w.Write([]byte("Error: " + err.Error()))
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(awsTestResponse{
+			Code:   http.StatusBadRequest,
+			Result: "Invalid JSON provided",
+		})
 		return
+	}
+	if isInitialSetup {
+		ratelimiter.WaitOnSetupLogin()
+		if t.SetupPassword == "" || subtle.ConstantTimeCompare([]byte(t.SetupPassword), []byte(credentialAWSTest)) != 1 {
+			w.WriteHeader(http.StatusUnauthorized)
+			_ = json.NewEncoder(w).Encode(awsTestResponse{
+				Code:   http.StatusUnauthorized,
+				Result: "Invalid AWS test password provided",
+			})
+			return
+		}
 	}
 	var awsConfig models.AwsConfig
 
@@ -870,7 +902,11 @@ func handleTestAws(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !ok {
-		_, _ = w.Write([]byte("Error: Invalid or incomplete credentials provided"))
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(awsTestResponse{
+			Code:   http.StatusBadRequest,
+			Result: "Invalid or incomplete credentials provided",
+		})
 		return
 	}
 	aws.Init(awsConfig)
@@ -881,10 +917,18 @@ func handleTestAws(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !ok {
-		_, _ = w.Write([]byte("Test OK. WARNING: CORS settings do not allow encrypted downloads."))
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(awsTestResponse{
+			Code:   http.StatusOK,
+			Result: "Test OK. WARNING: CORS settings do not allow encrypted downloads.",
+		})
 		return
 	}
-	_, _ = w.Write([]byte("All tests OK."))
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(awsTestResponse{
+		Code:   http.StatusOK,
+		Result: "All tests OK.",
+	})
 }
 
 const (
@@ -902,28 +946,35 @@ func handleAwsError(w http.ResponseWriter, err error, operation int) {
 	case awsOperationCors:
 		prefix = "Could not get CORS settings. "
 	}
+	var response awsTestResponse
+
 	if isAwsErr {
+		response.Code = http.StatusBadRequest
 		code := awsErr.Code()
 		switch code {
 		case s3.ErrCodeNoSuchBucket:
-			_, _ = w.Write([]byte("Invalid bucket or regions provided, bucket does not exist."))
+			response.Result = "Invalid bucket or regions provided, bucket does not exist."
 		case "Forbidden":
-			_, _ = w.Write([]byte("Unable to log in, invalid credentials."))
+			response.Result = "Invalid credentials provided, check bucket and region."
 		case "RequestError":
-			_, _ = w.Write([]byte("Unable to connect to server, check endpoint."))
+			response.Result = "Unable to connect to server, check endpoint."
 		case "SerializationError":
-			_, _ = w.Write([]byte("Invalid response received by server, check endpoint."))
+			response.Result = "Invalid response received by server, check endpoint."
 		case "NotFound":
 			if operation == awsOperationCors {
-				_, _ = w.Write([]byte("Login OK, but could not check bucket CORS settings."))
-
+				response.Code = http.StatusOK
+				response.Result = "Login OK, but could not check bucket CORS settings."
 			} else {
-				_, _ = w.Write([]byte("The requested resource could not be found, check endpoint"))
+				response.Result = "The requested resource could not be found, check endpoint."
 			}
 		default:
-			_, _ = w.Write([]byte(prefix + "Error " + awsErr.Code() + ": " + err.Error()))
+			response.Result = prefix + "Error " + awsErr.Code() + ": " + err.Error()
 		}
 	} else {
-		_, _ = w.Write([]byte(prefix + "Error: " + err.Error()))
+		response.Code = http.StatusInternalServerError
+		response.Result = prefix + "Error: " + err.Error()
 	}
+
+	w.WriteHeader(response.Code)
+	_ = json.NewEncoder(w).Encode(response)
 }

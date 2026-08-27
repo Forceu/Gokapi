@@ -16,6 +16,7 @@ var failedLoginLimiter = newLimiter()
 var failedIdLimiter = newLimiter()
 var failedDownloadPasswordLimiter = newLimiter()
 var failedApiKeyLimiter = newLimiter()
+var failedSetupLogin = newLimiter()
 
 // isUnitTest must be false and is only set to true for running test units
 // If true, rate limiting is disabled
@@ -49,6 +50,12 @@ func newLimiter() *store {
 // Three attempts without limiting, thereafter one attempt every 3 seconds
 func WaitOnLogin(ip string) {
 	_ = failedLoginLimiter.Get(ip, 1, 9).WaitN(context.Background(), 3)
+}
+
+// WaitOnSetupLogin blocks the current goroutine until the rate limiter allows a request
+// Three attempts without limiting, thereafter one attempt every 1 second
+func WaitOnSetupLogin() {
+	_ = failedSetupLogin.Get("setup", 1, 15).WaitN(context.Background(), 1)
 }
 
 // WaitOnApiAuthentication blocks the current goroutine until the rate limiter allows a request
