@@ -1,37 +1,37 @@
 {{define "e2esetup"}}{{template "header" .}}
 
- 
+
 	<script src="./js/min/end2end_admin.min.{{ template "js_e2eversion"}}.js"></script>
 	<script src="./js/min/streamsaver.min.js"></script>
 	<script src="./js/min/wasm_exec.min.js"></script>
 	<script src="./js/min/admin.min.{{ template "js_admin_version"}}.js"></script>
 	<script>
-		document.title = "Gokapi - E2E Setup";
+		document.title = "{{.PublicName}} - " + t("e2e_page_title");
 	</script>
-	
-{{ if not .HasBeenSetup }}	
+
+{{ if not .HasBeenSetup }}
       <div class="row">
         <div class="col">
 		<div class="card" style="width: 50%;">
 		  <div class="card-body">
-		    <h2 class="card-title">End-to-End Encryption Setup</h2>
+		    <h2 class="card-title">{{ .Lang.T "e2e_title" }}</h2>
 		    <br><br>
-		    <p class="card-text">Your password for decryption is:<br>
-			<b><kbd id="decryptionpw">Generating.......</kbd></b> <button type="button" id="downpw" class="btn btn-outline-light btn-sm" disabled><i class="bi bi-download"></i></button></p>
+		    <p class="card-text">{{ .Lang.T "e2e_password_intro" }}<br>
+			<b><kbd id="decryptionpw">{{ .Lang.T "e2e_generating" }}</kbd></b> <button type="button" id="downpw" class="btn btn-outline-light btn-sm" disabled><i class="bi bi-download"></i></button></p>
 			<div id="errordiv" style="display:none">
 				<span id="errormessage" style="color:red"></span>
 				<br>
 				<br>
 			</div>
-		    <b>Save this password to a secure location, without it you will not be able to decrypt/share your files if your browser data gets deleted or you login from a different machine! This password will only be shown once.</b>
-		    <br><br>If you need to reset the password, run the Gokapi setup again.
-		    <br><br><button type="button" id="genbutton" class="btn btn-light" disabled onclick="window.location='./admin';">Continue</button>
+		    <b>{{ .Lang.T "e2e_password_warning" }}</b>
+		    <br><br>{{ .Lang.T "e2e_reset_hint" }}
+		    <br><br><button type="button" id="genbutton" class="btn btn-light" disabled onclick="window.location='./admin';">{{ .Lang.T "btn_continue" }}</button>
 		    </div>
 		  </div>
 		</div>
 	    </div>
-	    
-    
+
+
     <script>
 	function downloadKey(key) {
 	    const uInt8 = new TextEncoder().encode(key)
@@ -45,7 +45,7 @@
 	    writer.close()
 
 	}
-	
+
 function newKey() {
     localStorage.removeItem("e2ekey");
     let key;
@@ -84,17 +84,17 @@ function newKey() {
 }
 
 	loadWasm(newKey);
-	
+
     </script>
-    
-{{ else }}	    
+
+{{ else }}
       <div class="row">
         <div class="col">
 		<div class="card" style="width: 50%;">
 		  <div class="card-body">
-		    <h2 class="card-title">End-to-End Encryption Setup</h2>
+		    <h2 class="card-title">{{ .Lang.T "e2e_title" }}</h2>
 		    <br><br>
-		    <p class="card-text">End-to-end encryption has been set up, however no key was found on the local machine. Please enter the password in the text field below. If you do not know the decryption password, please re-run the Gokapi setup to reset the password.</p>
+		    <p class="card-text">{{ .Lang.T "e2e_existing_setup" }}</p>
 		      <div class="mb-3"><br>
     			<input type="password" class="form-control" id="password" name="password">
 			<div id="errordiv" style="display:none">
@@ -102,14 +102,14 @@ function newKey() {
 				<span id="errormessage" style="color:red"></span>
 				<br>
 			</div>
-		    <br><br><button type="button"  id="enterpwbutton" class="btn btn-light"  onclick="saveKey()" >Save</button>
+		    <br><br><button type="button"  id="enterpwbutton" class="btn btn-light"  onclick="saveKey()" >{{ .Lang.T "btn_save" }}</button>
   			</div>
 		  </div>
 		</div>
 	    </div>
     </div>
-    
-    
+
+
     <script>
 	function saveKey() {
 	    localStorage.removeItem("e2ekey");
@@ -118,7 +118,7 @@ function newKey() {
 
 	    let output = GokapiE2ESetCipher(key);
 	    if (output instanceof Error) {
-		localStorage.removeItem("e2ekey"); 
+		localStorage.removeItem("e2ekey");
 		document.getElementById("password").value = "";
 		displayError(output);
 		return;
@@ -126,14 +126,14 @@ function newKey() {
 	    window.location = './admin';
 
 	}
-	
+
 	loadWasm(function() {
 	    document.getElementById("enterpwbutton").disabled = false;
 	});
-	
+
     </script>
 {{ end }}
 {{ template "pagename" "E2EGeneration"}}
 {{ template "customjs" .}}
-{{template "footer" true}}    
+{{template "footer_version" . }}
 {{end}}

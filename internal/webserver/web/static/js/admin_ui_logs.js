@@ -14,7 +14,7 @@ function filterLogs(tag) {
 
 function setTrafficInfo(totalTraffic, recordingSince) {
     insertReadableSizeTwoOutputs(totalTraffic, 'totalTraffic', 'totalTrafficUnit');
-    document.getElementById('cardTraffic').title= "Traffic since "+formatUnixTimestamp(recordingSince);
+    document.getElementById('cardTraffic').title = t("logs_traffic_since", formatUnixTimestamp(recordingSince));
 }
 
 function setMemoryUsage(used, total) {
@@ -31,24 +31,30 @@ function setDiskUsage(used, total) {
 
 
 function formatDuration(seconds) {
+    // "key" is used internally and must not be translated, "label" is displayed
     const units = [{
-            label: "y",
+            key: "y",
+            label: t("duration_years"),
             value: 31536000
         },
         {
-            label: "d",
+            key: "d",
+            label: t("duration_days"),
             value: 86400
         },
         {
-            label: "h",
+            key: "h",
+            label: t("duration_hours"),
             value: 3600
         },
         {
-            label: "m",
+            key: "m",
+            label: t("duration_minutes"),
             value: 60
         },
         {
-            label: "s",
+            key: "s",
+            label: t("duration_seconds"),
             value: 1
         },
     ];
@@ -56,8 +62,8 @@ function formatDuration(seconds) {
     let startIndex = units.findIndex(unit => seconds >= unit.value);
 
     // If everything is below 1 minute, force start at minutes
-    if (startIndex === -1 || units[startIndex].label === "s") {
-        startIndex = units.findIndex(u => u.label === "m");
+    if (startIndex === -1 || units[startIndex].key === "s") {
+        startIndex = units.findIndex(u => u.key === "m");
     }
 
     const first = units[startIndex];
@@ -129,7 +135,7 @@ async function loadLogs(timestamp) {
     } catch (error) {
         lastLogUpdate = 0;
         console.error("Failed to load logs:", error);
-        textarea.value = "Error loading logs. See console for details.";
+        textarea.value = t("logs_load_error");
     }
 }
 
@@ -180,7 +186,7 @@ function deleteLogs() {
     if (cutoff == "none" || cutoff == "") {
         return;
     }
-    if (!confirm("Do you want to delete the selected logs?")) {
+    if (!confirm(t("logs_confirm_delete"))) {
         document.getElementById('deleteLogs').selectedIndex = 0;
         return;
     }
@@ -209,14 +215,14 @@ function deleteLogs() {
             location.reload();
         })
         .catch(error => {
-            alert("Unable to delete logs: " + error);
+            alert(t("error_unable_delete_logs", error));
             console.error('Error:', error);
         });
 }
 
 
 function resetTrafficStat() {
-    if (!confirm("Do you want to reset the traffic statistics?")) {
+    if (!confirm(t("logs_confirm_reset_traffic"))) {
         return;
     }
 
@@ -225,7 +231,7 @@ function resetTrafficStat() {
             location.reload();
         })
         .catch(error => {
-            alert("Unable to reset stats: " + error);
+            alert(t("error_unable_reset_stats", error));
             console.error('Error:', error);
         });
 }

@@ -8,7 +8,7 @@
 		    <div class="col">
 		    </div>
 		    <div class="col text-center">
-		      <h3 class="card-title mb-0">File Requests</h3>
+		      <h3 class="card-title mb-0">{{ .Lang.T "fr_title" }}</h3>
 		    </div>
 		    <div class="col text-end">
 		      <button id="button-newfr" class="btn btn-outline-light" onclick="newFileRequest()">
@@ -17,57 +17,57 @@
 		    </div>
 		  </div>
 		</div>
-		
+
                 <br>
                 <div class="table-responsive">
                     <table class="table table-dark ">
                         <thead>
                             <tr>
-                                <th scope="col">Name</th>
-                                <th scope="col">Uploaded Files</th>
-                                <th scope="col">Total Size</th>
-                                <th scope="col">Last Upload</th>
-                                <th scope="col">Expiry</th>
+                                <th scope="col">{{ .Lang.T "fr_col_name" }}</th>
+                                <th scope="col">{{ .Lang.T "fr_col_uploaded_files" }}</th>
+                                <th scope="col">{{ .Lang.T "fr_col_total_size" }}</th>
+                                <th scope="col">{{ .Lang.T "fr_col_last_upload" }}</th>
+                                <th scope="col">{{ .Lang.T "fr_col_expiry" }}</th>
 {{ if .ActiveUser.HasPermissionListOtherUploads }}
-            			<th scope="col">User</th>
+            			<th scope="col">{{ .Lang.T "fr_col_user" }}</th>
 {{ end }}
-                                <th scope="col" class="text-end">Actions</th>
+                                <th scope="col" class="text-end">{{ .Lang.T "fr_col_actions" }}</th>
                             </tr>
                         </thead>
                         <tbody id="filerequesttable">
-                        
+
 {{ range $fileRequest := .FileRequests }}
                             <tr id="row-{{ .Id }}" class="no-bottom-border filerequest-item">
-		                    <td><a href="{{ $.ServerUrl }}publicUpload?id={{ .Id }}&key={{ .ApiKey }}" target="_blank">{{ .Name }}</a></td>
-				    {{ template "uRFileCell" . }}
-		                    <td>{{ .GetReadableTotalSize }}</td>
+	                    <td><a href="{{ $.ServerUrl }}publicUpload?id={{ .Id }}&key={{ .ApiKey }}" target="_blank">{{ .Name }}</a></td>
+			    {{ template "uRFileCell" (newFileRequestContext . $.Lang) }}
+	                    <td>{{ .GetReadableTotalSize }}</td>
             			    <td><span id="cell-lastupdate-{{ .Id }}"></span></td>
-				       <script>insertDateWithNegative({{ .LastUpload }}, "cell-lastupdate-{{ .Id }}", "None");</script>
+			       <script>insertDateWithNegative({{ .LastUpload }}, "cell-lastupdate-{{ .Id }}", {{ $.Lang.T "generic_none" }});</script>
             			    <td><span id="cell-expiry-{{ .Id }}"></span></td>
-				       <script>insertFileRequestExpiry({{ .Expiry }}, "cell-expiry-{{ .Id }}");</script>
-		                    
+			       <script>insertFileRequestExpiry({{ .Expiry }}, "cell-expiry-{{ .Id }}");</script>
+
 {{ if $.ActiveUser.HasPermissionListOtherUploads }}
-		                    <td id="cell-username-{{ .Id }}">{{(index $.UserMap .UserId).Name}}</td>
+	                    <td id="cell-username-{{ .Id }}">{{(index $.UserMap .UserId).Name}}</td>
 {{ end }}
-		                    <td>
-					<div class="btn-toolbar justify-content-end" role="toolbar">
-		                    	<div class="btn-group" role="group">
-                                {{ template "uRDownloadbutton" . }}
-                                
-                                
-                                <button id="copy-{{ .Id }}" type="button" data-clipboard-text="{{ $.ServerUrl }}publicUpload?id={{ .Id }}&key={{ .ApiKey }}" class="copyurl btn btn-outline-light btn-sm" onclick="showToast(1000);" title="Copy URL"><i class="bi bi-copy"></i></button>
-                                
-		                        <button id="edit-{{ .Id }}" type="button" title="Edit request" class="btn btn-outline-light btn-sm" onclick="editFileRequest('{{ .Id }}', '{{ .Name }}', {{ .MaxFiles }}, {{ .MaxSize }}, {{ .Expiry }}, '{{ .Notes }}')">
-		                        	<i class="bi bi-pencil"></i></button>
-                                
-                                
-                                <button id="delete-{{ .Id }}" type="button" class="btn btn-outline-danger btn-sm" onclick="deleteOrShowModal('{{ .Id }}', '{{ .Name }}', {{ .UploadedFiles }})" title="Delete"><i class="bi bi-trash3"></i></button>
+	                    <td>
+				<div class="btn-toolbar justify-content-end" role="toolbar">
+	                    	<div class="btn-group" role="group">
+                                {{ template "uRDownloadbutton" (newFileRequestContext . $.Lang) }}
+
+
+                                <button id="copy-{{ .Id }}" type="button" data-clipboard-text="{{ $.ServerUrl }}publicUpload?id={{ .Id }}&key={{ .ApiKey }}" class="copyurl btn btn-outline-light btn-sm" onclick="showToast(1000);" title="{{ $.Lang.T "btn_copy_url" }}"><i class="bi bi-copy"></i></button>
+
+	                        <button id="edit-{{ .Id }}" type="button" title="{{ $.Lang.T "fr_edit_request" }}" class="btn btn-outline-light btn-sm" onclick="editFileRequest('{{ .Id }}', '{{ .Name }}', {{ .MaxFiles }}, {{ .MaxSize }}, {{ .Expiry }}, '{{ .Notes }}')">
+	                        	<i class="bi bi-pencil"></i></button>
+
+
+                                <button id="delete-{{ .Id }}" type="button" class="btn btn-outline-danger btn-sm" onclick="deleteOrShowModal('{{ .Id }}', '{{ .Name }}', {{ .UploadedFiles }})" title="{{ $.Lang.T "btn_delete" }}"><i class="bi bi-trash3"></i></button>
                                 	</div>
                                 	</div>
                                 </td>
                             </tr>
 			      <tr id="filelist-{{ .Id }}">
-			  <td colspan="7" class="p-0">                      
+			  <td colspan="7" class="p-0">
 			<div id="collapse-filelist-{{ .Id }}" class="collapse bg-dark">
 			   <div class="p-2">
 
@@ -88,13 +88,13 @@
 
 					<button class="btn btn-outline-light btn-sm"
 						 onClick="downloadFileWithPresign('{{ .Id }}');"
-						title="Download">
+						title="{{ $.Lang.T "btn_download" }}">
 					  <i class="bi bi-download"></i>
 					</button>
-					
+
 					<button id="button-delete-{{ .Id}}"
 					   type="button"
-					   title="Delete"
+					   title="{{ $.Lang.T "btn_delete" }}"
 					    {{ if and (ne $.ActiveUser.Id .UserId) (not $.ActiveUser.HasPermissionDeleteOtherUploads) }}
 					    	disabled
 					    {{ end }}
@@ -116,10 +116,10 @@
                 </div>
             </div>
         </div>
-	<div id="toastnotification" class="toastnotification" data-default="URL copied to clipboard">Toast Text</div>
+	<div id="toastnotification" class="toastnotification" data-default="{{ .Lang.T "toast_url_copied" }}">Toast Text</div>
 	<div id="toastnotificationUndo" class="toastnotification">
-	  File deleted: <span id="toastFilename"></span>
-  	   <span id="toastUndoButton" class="toast-undo" onclick="handleUndoFr(this)">Restore</span>
+	  {{ .Lang.T "toast_file_deleted" }} <span id="toastFilename"></span>
+  	   <span id="toastUndoButton" class="toast-undo" onclick="handleUndoFr(this)">{{ .Lang.T "toast_restore" }}</span>
 	</div>
     </div>
 </div>
@@ -130,18 +130,18 @@
 	var canViewOtherRequests = {{.ActiveUser.HasPermissionListOtherUploads}};
 	var limitMaxSize = {{.FileRequestMaxSize}};
 	var limitMaxFiles = {{.FileRequestMaxFiles}};
-	
+
 </script>
 
 
 
-{{ template "urequest_modal_confirm" }}
-{{ template "urequest_modal_addedit" }}
-        
+{{ template "urequest_modal_confirm" . }}
+{{ template "urequest_modal_addedit" . }}
+
 {{ template "pagename" "UploadRequest"}}
 {{ template "customjs" .}}
 
-{{ template "footer" true }}
+{{ template "footer_version" . }}
 {{ end }}
 
 
@@ -151,15 +151,14 @@
 	  <div class="modal-dialog gokapi-dialog">
 	    <div class="modal-content gokapi-dialog">
 	      <div class="modal-header">
-		<h5 class="modal-title">Delete File Request</h5>
+		<h5 class="modal-title">{{ .Lang.T "fr_delete_title" }}</h5>
 	      </div>
 	      <div class="modal-body">
-		<p>Are you sure you want to delete the filerequest &quot;<span id="deleteModalBodyName" class="fw-bold"></span>&quot;?<br><br>
-		This also permanently deletes <span id="deleteModalBodyCount" class="fw-bold"></span> associated file(s) and cannot be undone.</p>
+		<p>{{ .Lang.H "fr_delete_confirm" }}</p>
 		</div>
 	      <div class="modal-footer">
-		<button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
-		<button type="button" id="buttonDelete" class="btn btn-danger">Delete</button>
+		<button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">{{ .Lang.T "btn_cancel" }}</button>
+		<button type="button" id="buttonDelete" class="btn btn-danger">{{ .Lang.T "btn_delete" }}</button>
 	      </div>
 	    </div>
 	  </div>
@@ -172,7 +171,7 @@
 	  <div class="modal-dialog  modal-lg gokapi-dialog">
 	    <div class="modal-content gokapi-dialog">
 	      <div class="modal-header">
-		<h1 class="modal-title fs-5" id="m_urequestlabel">Title</h1>
+		<h1 class="modal-title fs-5" id="m_urequestlabel">{{ .Lang.T "fr_modal_title" }}</h1>
 	      </div>
 	      <div class="modal-body">
 		<div class="input-group mb-3">
@@ -180,54 +179,54 @@
 	     	 <div class="input-group-text">
   			<input type="checkbox" style="visibility: hidden" aria-hidden="true">
 		</div>
-		  <span class="input-group-text modal-samesize-input-filerequest" id="mTitle">Title</span>
-		  <input type="text" id="mFriendlyName" class="form-control" placeholder="Friendly name" aria-label="Friendly name" aria-describedby="mTitle">
+		  <span class="input-group-text modal-samesize-input-filerequest" id="mTitle">{{ .Lang.T "fr_modal_title" }}</span>
+		  <input type="text" id="mFriendlyName" class="form-control" placeholder="{{ .Lang.T "fr_modal_friendly_name" }}" aria-label="{{ .Lang.T "fr_modal_friendly_name" }}" aria-describedby="mTitle">
 		</div>
 
 		<div class="input-group mb-3">
 		  <div class="input-group-text">
-      			<input type="checkbox" id="mc_maxfiles"  aria-label="Max files" title="Max files"  data-toggle-target="mi_maxfiles" onchange="handleEditCheckboxChange(this)">
+      			<input type="checkbox" id="mc_maxfiles"  aria-label="{{ .Lang.T "fr_modal_max_files" }}" title="{{ .Lang.T "fr_modal_max_files" }}"  data-toggle-target="mi_maxfiles" onchange="handleEditCheckboxChange(this)">
    		 </div>
-		  <span class="input-group-text modal-samesize-input-filerequest" id="mMaxFiles">Max Files</span>
-		  <input type="number" min="1" id="mi_maxfiles" onChange="checkMaxNumber(this)" disabled class="form-control" aria-label="Max Files" aria-describedby="mMaxFiles" data-allow-regular-paste>
+		  <span class="input-group-text modal-samesize-input-filerequest" id="mMaxFiles">{{ .Lang.T "fr_modal_max_files" }}</span>
+		  <input type="number" min="1" id="mi_maxfiles" onChange="checkMaxNumber(this)" disabled class="form-control" aria-label="{{ .Lang.T "fr_modal_max_files" }}" aria-describedby="mMaxFiles" data-allow-regular-paste>
 		</div>
 
 		<div class="input-group mb-3">
 		  <div class="input-group-text">
-      			<input type="checkbox" id="mc_maxsize"  aria-label="Max Size" title="Max Size" 
+      			<input type="checkbox" id="mc_maxsize"  aria-label="{{ .Lang.T "fr_modal_max_size" }}" title="{{ .Lang.T "fr_modal_max_size" }}"
       			 data-toggle-target="mi_maxsize" onchange="handleEditCheckboxChange(this)">
    		 </div>
-		  <span class="input-group-text modal-samesize-input-filerequest" id="tMaxSize">Max Size</span>
-		  <input type="number" min="1" id="mi_maxsize"  onChange="checkMaxNumber(this)" disabled class="form-control" aria-label="Max Size" aria-describedby="tMaxSize" data-allow-regular-paste>
+		  <span class="input-group-text modal-samesize-input-filerequest" id="tMaxSize">{{ .Lang.T "fr_modal_max_size" }}</span>
+		  <input type="number" min="1" id="mi_maxsize"  onChange="checkMaxNumber(this)" disabled class="form-control" aria-label="{{ .Lang.T "fr_modal_max_size" }}" aria-describedby="tMaxSize" data-allow-regular-paste>
 		  <span class="input-group-text">MB</span>
 		</div>
-		
+
 		<div class="input-group mb-3">
 		  <div class="input-group-text">
-      			<input id="mc_expiry" type="checkbox" aria-label="Expiry" title="Expiry"  data-toggle-target="mi_expiry" data-timestamp="" onchange="handleEditCheckboxChange(this)" >
+      			<input id="mc_expiry" type="checkbox" aria-label="{{ .Lang.T "fr_modal_expiry" }}" title="{{ .Lang.T "fr_modal_expiry" }}"  data-toggle-target="mi_expiry" data-timestamp="" onchange="handleEditCheckboxChange(this)" >
    		 </div>
-		  <span class="input-group-text modal-samesize-input-filerequest" id="edit_expdate">Expiry</span>
-		  <input type="text" id="mi_expiry" disabled class="form-control" aria-label="Expiry" aria-describedby="edit_expdate"  data-allow-regular-paste>
+		  <span class="input-group-text modal-samesize-input-filerequest" id="edit_expdate">{{ .Lang.T "fr_modal_expiry" }}</span>
+		  <input type="text" id="mi_expiry" disabled class="form-control" aria-label="{{ .Lang.T "fr_modal_expiry" }}" aria-describedby="edit_expdate"  data-allow-regular-paste>
 		</div>
-		
+
 		<div class="input-group mb-3">
 	         <!-- Hidden checkbox to have same spacing -->
 	     	 <div class="input-group-text">
   			<input type="checkbox" style="visibility: hidden" aria-hidden="true">
 		</div>
-		  <span class="input-group-text modal-samesize-input-filerequest" id="mdNotes">Notes</span>
-		  <input type="text" id="mNotes" class="form-control" placeholder="Notes about the request" aria-label="Notes" aria-describedby="mdNotes">
+		  <span class="input-group-text modal-samesize-input-filerequest" id="mdNotes">{{ .Lang.T "fr_modal_notes" }}</span>
+		  <input type="text" id="mNotes" class="form-control" placeholder="{{ .Lang.T "fr_modal_notes_placeholder" }}" aria-label="{{ .Lang.T "fr_modal_notes" }}" aria-describedby="mdNotes">
 		</div>
 	      </div>
 	      <input type="hidden" id="freqId" value="" />
 {{ if .EndToEndEncryption }}
 <div class="callout callout-info">
-  Uploaded files are not end-to-end encrypted and will be stored in plain text on the server
+  {{ .Lang.T "fr_modal_e2e_notice" }}
 </div>
 {{ end }}
 	      <div class="modal-footer">
-		<button type="button" class="btn btn-outline-light"  aria-label="Cancel" data-bs-dismiss="modal">Close</button>
-		<button type="button" class="btn btn-primary" data-fileid="" id="b_fr_save" onclick="">Save</button>
+		<button type="button" class="btn btn-outline-light"  aria-label="{{ .Lang.T "btn_cancel" }}" data-bs-dismiss="modal">{{ .Lang.T "btn_close" }}</button>
+		<button type="button" class="btn btn-primary" data-fileid="" id="b_fr_save" onclick="">{{ .Lang.T "btn_save" }}</button>
 	      </div>
 	    </div>
 	  </div>
@@ -237,13 +236,13 @@
 
 
 {{ define "uRDownloadbutton" }}
-	{{ if eq .UploadedFiles 0 }}
-		<button id="download-{{ .Id }}" type="button" class="btn btn-outline-light btn-sm disabled" title="Download all"><i class="bi bi-download"></i></button>
+	{{ if eq .Request.UploadedFiles 0 }}
+		<button id="download-{{ .Request.Id }}" type="button" class="btn btn-outline-light btn-sm disabled" title="{{ .Lang.T "fr_download_all" }}"><i class="bi bi-download"></i></button>
 	{{ else }}
-		{{ if eq .UploadedFiles 1 }}
-			<button id="download-{{ .Id }}" type="button" class="btn btn-outline-light btn-sm" onclick="downloadFileWithPresign('{{ (index .FileIdList 0) }}');" title="Download all"><i class="bi bi-download"></i></button>
+		{{ if eq .Request.UploadedFiles 1 }}
+			<button id="download-{{ .Request.Id }}" type="button" class="btn btn-outline-light btn-sm" onclick="downloadFileWithPresign('{{ (index .Request.FileIdList 0) }}');" title="{{ .Lang.T "fr_download_all" }}"><i class="bi bi-download"></i></button>
 		{{ else }}
-			<button id="download-{{ .Id }}" type="button" class="btn btn-outline-light btn-sm" onclick="downloadFilesZipWithPresign('{{ .GetFilesAsString }}', '{{ .Name }}');" title="Download all"><i class="bi bi-download"></i></button>
+			<button id="download-{{ .Request.Id }}" type="button" class="btn btn-outline-light btn-sm" onclick="downloadFilesZipWithPresign('{{ .Request.GetFilesAsString }}', '{{ .Request.Name }}');" title="{{ .Lang.T "fr_download_all" }}"><i class="bi bi-download"></i></button>
 	{{ end }}
 	{{ end }}
 {{ end }}
@@ -251,17 +250,17 @@
 
 {{ define "uRFileCell" }}
 	<td>
-	<span id="totalFiles-fr-{{.Id}}" title="Uploaded files">{{ .UploadedFiles }}</span>{{ if ne .ReservedUploads 0 }}<span title="Active uploads">+{{.ReservedUploads}}</span>{{end}}{{ if ne .MaxFiles 0 }} / <span title="File limit">{{ .MaxFiles }}</span>{{end}}
-	{{ if gt .UploadedFiles 0 }}
+	<span id="totalFiles-fr-{{.Request.Id}}" title="{{ .Lang.T "fr_uploaded_files" }}">{{ .Request.UploadedFiles }}</span>{{ if ne .Request.ReservedUploads 0 }}<span title="{{ .Lang.T "fr_active_uploads" }}">+{{.Request.ReservedUploads}}</span>{{end}}{{ if ne .Request.MaxFiles 0 }} / <span title="{{ .Lang.T "fr_file_limit" }}">{{ .Request.MaxFiles }}</span>{{end}}
+	{{ if gt .Request.UploadedFiles 0 }}
 	 <button
 		  class="btn btn-sm btn-link text-light p-0 collapse-toggle"
 		  data-bs-toggle="collapse"
-		  data-bs-target="#collapse-filelist-{{ .Id }}"
+		  data-bs-target="#collapse-filelist-{{ .Request.Id }}"
 		  aria-expanded="false"
-		  title = "Expand / Collapse"
-		  aria-controls="collapse-filelist-{{ .Id }}">
+		  title = "{{ .Lang.T "fr_expand_collapse" }}"
+		  aria-controls="collapse-filelist-{{ .Request.Id }}">
 		  <i class="bi bi-chevron-down"></i>
 		</button>
 	{{end}}
-	</td> 
+	</td>
 {{ end }}

@@ -1,12 +1,12 @@
-{{define "forgotpw"}}{{ template "header" . }} 
+{{define "forgotpw"}}{{ template "header" . }}
       <div class="row">
         <div class="col">
 		<div id="container" class="card" style="width: 35em">
 		  <div class="card-body">
-		    <h3 class="card-title">Forgot password</h3>
+		    <h3 class="card-title">{{ .Lang.T "forgotpw_title" }}</h3>
 		    <br>
 		    <p class="card-text">
-			If you forgot your user password, please ask your administrator to reset it.<br><br>To reset an administrator password, restart the server with the argument <code class="text-nowrap">--reconfigure</code> and change it in the authentication section.
+			{{ .Lang.H "forgotpw_text" }}
 		    </p><br>
 		  </div>
 		</div>
@@ -14,5 +14,5 @@
    	 </div>
 {{ template "pagename" "ForgotPw"}}
 {{ template "customjs" .}}
-{{ template "footer" }}
+{{ template "footer" . }}
 {{end}}

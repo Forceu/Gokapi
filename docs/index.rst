@@ -19,6 +19,7 @@ Key features:
 * **CLI tool** — upload and download files directly from the command line
 * **REST API** — full API for scripting and third-party integrations
 * **Easy customisation** — change the look with plain CSS and JavaScript, no recompilation needed
+* **Multiple languages** — the interface is translated and picks the right language for each visitor automatically
 
 
 Contents
