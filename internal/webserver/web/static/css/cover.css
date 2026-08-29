@@ -694,12 +694,33 @@ tr.no-bottom-border td {
         border: 1px solid #333;
         border-radius: 1rem;
         box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        /* Removed the transform/hover effect */
         max-width: 450px;
         width: 100%;
         background: #1e1e1e; 
         color: #e0e0e0;
     }
+    .paste-card {
+        border: 1px solid #333;
+        border-radius: 1rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        min-width: 300px;
+        width: 80%;
+        background: #1e1e1e; 
+        color: #e0e0e0;
+    }
+    
+    
+   @media (max-width: 767px) {
+    .paste-card {
+        width: 100%;
+        min-width: unset;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+        box-shadow: none;
+    }
+}
+    
     .icon-container {
         width: 70px;
         height: 70px;
@@ -840,4 +861,8 @@ tr.no-bottom-border td {
 }
 .modal-samesize-input-filerequest {
    width: 7rem;
+}
+
+.placeholder-white::placeholder {
+    color: #6c757d;
 }

@@ -86,7 +86,7 @@ jobs:
               --push \
               --platform "$platform" \
               --build-arg BINARY_NAME="$binary" \
-              --tag "f0rc3/gokapi:tmp-${binary}" \
+              --tag "f0rc3/gokapi:tmp-${{ github.event.inputs.tagname }}-${binary}" \
               --file Dockerfile.multiarch \
               .
           done
@@ -95,7 +95,7 @@ jobs:
             --tag f0rc3/gokapi:${{ github.event.inputs.tagname }} \
             $(for platform in "${!PLATFORMS[@]}"; do
                 binary="${PLATFORMS[$platform]}"
-                echo "f0rc3/gokapi:tmp-${binary}"
+                echo "f0rc3/gokapi:tmp-${{ github.event.inputs.tagname }}-${binary}"
               done)
 
           # Delete intermediate tags
@@ -107,5 +107,5 @@ jobs:
           for binary in "${PLATFORMS[@]}"; do
             curl -s -X DELETE \
               -H "Authorization: JWT ${TOKEN}" \
-              "https://hub.docker.com/v2/repositories/f0rc3/gokapi/tags/tmp-${binary}/"
+              "https://hub.docker.com/v2/repositories/f0rc3/gokapi/tags/tmp-${{ github.event.inputs.tagname }}-${binary}/"
           done

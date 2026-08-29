@@ -43,7 +43,7 @@ func TestParseConfig(t *testing.T) {
 
 	test.IsEqualInt(t, config.AllowedDownloads, 9)
 	test.IsEqualString(t, config.Password, "123")
-	test.IsEqualInt(t, config.Expiry, 5)
+	test.IsEqualInt(t, config.ExpiryDays, 5)
 
 	config, err = parseConfig(data)
 	test.IsNil(t, err)
@@ -54,8 +54,8 @@ func TestParseConfig(t *testing.T) {
 	config, err = parseConfig(data)
 	test.IsNil(t, err)
 	test.IsEqualInt(t, config.AllowedDownloads, 1)
-	test.IsEqualInt(t, config.Expiry, 14)
-	test.IsEqualBool(t, config.UnlimitedTime, false)
+	test.IsEqualInt(t, config.ExpiryDays, 0)
+	test.IsEqualBool(t, config.UnlimitedTime, true)
 	test.IsEqualBool(t, config.UnlimitedDownload, false)
 
 	data.allowedDownloads = "0"
@@ -92,7 +92,7 @@ func TestProcess(t *testing.T) {
 	test.IsEqualString(t, result.FileInfo.UrlHotlink, "http://127.0.0.1:53843/downloadFile?id="+result.FileInfo.Id)
 	test.IsEqualString(t, result.FileInfo.Name, "testFile")
 	test.IsEqualString(t, result.FileInfo.Size, "11 B")
-	test.IsEqualBool(t, result.FileInfo.UnlimitedTime, false)
+	test.IsEqualBool(t, result.FileInfo.UnlimitedTime, true)
 	test.IsEqualBool(t, result.FileInfo.UnlimitedDownloads, false)
 	test.IsEqualInt(t, result.FileInfo.UploaderId, 9)
 }

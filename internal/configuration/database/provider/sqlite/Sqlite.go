@@ -22,7 +22,7 @@ type DatabaseProvider struct {
 }
 
 // DatabaseSchemeVersion contains the version number to be expected from the current database. If lower, an upgrade will be performed
-const DatabaseSchemeVersion = 15
+const DatabaseSchemeVersion = 16
 
 // New returns an instance
 func New(dbConfig models.DbConnection) (DatabaseProvider, error) {
@@ -110,9 +110,14 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 			}
 		}
 	}
-	// < v2.2.5
+	// < v2.3.0-dev
 	if currentDbVersion < 15 {
 		p.DeleteAllSessions()
+	}
+	// < v2.3.0
+	if currentDbVersion < 16 {
+		err := p.rawSqlite(`ALTER TABLE FileMetaData ADD COLUMN "IsPaste" INTEGER NOT NULL DEFAULT 0;`)
+		helper.Check(err)
 	}
 }
 
@@ -225,6 +230,7 @@ func (p DatabaseProvider) createNewDatabase() error {
 			"UploadDate"	INTEGER NOT NULL,
 			"PendingDeletion"	INTEGER NOT NULL,
 			"UploadRequestId"	TEXT NOT NULL,
+			"IsPaste"	INTEGER NOT NULL DEFAULT 0,
 			PRIMARY KEY("Id")
 		);
 		CREATE TABLE "Hotlinks" (

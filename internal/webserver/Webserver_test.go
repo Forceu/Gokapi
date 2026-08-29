@@ -433,10 +433,12 @@ func TestDownloadCorrectPassword(t *testing.T) {
 	t.Parallel()
 	// Submit download page correct password
 	cookies := test.HttpPageResult(t, test.HttpTestConfig{
-		Url:         "http://127.0.0.1:53843/d?id=jpLXGJKigM4hjtA6T6sN2",
-		RedirectUrl: "d?id=jpLXGJKigM4hjtA6T6sN2",
-		Method:      "POST",
-		PostValues:  []test.PostBody{{"password", "123"}},
+		Url:             "http://127.0.0.1:53843/d?id=jpLXGJKigM4hjtA6T6sN2",
+		ResultCode:      200,
+		Method:          "POST",
+		IsHtml:          true,
+		RequiredContent: []string{"smallfile", "./downloadFile?id=jpLXGJKigM4hjtA6T6sN2"},
+		PostValues:      []test.PostBody{{"password", "123"}},
 	})
 	pwCookie := ""
 	for _, cookie := range cookies {

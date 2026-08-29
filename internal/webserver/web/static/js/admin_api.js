@@ -1026,3 +1026,56 @@ async function apiURequestSave(id, name, maxfiles, maxsize, expiry, notes) {
         throw error;
     }
 }
+
+// /files/addPaste
+
+async function apiAddPaste(content, title, allowedDownloads, expiryDays, password) {
+    const apiUrl = './api/files/addPaste';
+    const reqPerm = 'PERM_UPLOAD';
+
+    let token;
+    try {
+        token = await getToken(reqPerm, false);
+    } catch (error) {
+        console.error("Unable to gain permission token:", error);
+        throw error;
+    }
+
+    const formData = new FormData();
+    formData.append("pasteContent", content);
+    if (title) {
+        formData.append("title", title);
+    }
+    formData.append("allowedDownloads", allowedDownloads);
+    formData.append("expiryDays", expiryDays);
+    if (password) {
+        formData.append("password", password);
+    }
+
+    const requestOptions = {
+        method: 'POST',
+        headers: {
+            'apikey': token,
+        },
+        body: formData,
+    };
+
+    try {
+        const response = await fetch(apiUrl, requestOptions);
+        if (!response.ok) {
+            let errorMessage;
+            try {
+                const errorResponse = await response.json();
+                errorMessage = errorResponse.ErrorMessage || `Request failed with status: ${response.status}`;
+            } catch {
+                const errorText = await response.text();
+                errorMessage = errorText || `Request failed with status: ${response.status}`;
+            }
+            throw new Error(errorMessage);
+        }
+        return await response.json();
+    } catch (error) {
+        console.error("Error in apiAddPaste:", error);
+        throw error;
+    }
+}

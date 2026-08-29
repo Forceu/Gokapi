@@ -30,6 +30,7 @@ type schemaMetaData struct {
 	UploadDate         int64
 	PendingDeletion    int64
 	UploadRequestId    string
+	IsPaste            int
 }
 
 func (rowData schemaMetaData) ToFileModel() (models.File, error) {
@@ -53,6 +54,7 @@ func (rowData schemaMetaData) ToFileModel() (models.File, error) {
 		UploadDate:         rowData.UploadDate,
 		PendingDeletion:    rowData.PendingDeletion,
 		UploadRequestId:    rowData.UploadRequestId,
+		IsPaste:            rowData.IsPaste == 1,
 	}
 
 	buf := bytes.NewBuffer(rowData.Encryption)
@@ -72,7 +74,8 @@ func (p DatabaseProvider) GetAllMetadata() map[string]models.File {
 		err = rows.Scan(&rowData.Id, &rowData.Name, &rowData.Size, &rowData.SHA1, &rowData.ExpireAt, &rowData.SizeBytes,
 			&rowData.DownloadsRemaining, &rowData.DownloadCount, &rowData.PasswordHash, &rowData.HotlinkId, &rowData.ContentType,
 			&rowData.AwsBucket, &rowData.Encryption, &rowData.UnlimitedDownloads, &rowData.UnlimitedTime, &rowData.UserId,
-			&rowData.UploadDate, &rowData.PendingDeletion, &rowData.UploadRequestId)
+			&rowData.UploadDate, &rowData.PendingDeletion, &rowData.UploadRequestId, &rowData.IsPaste)
+		helper.Check(err)
 		helper.Check(err)
 		var metaData models.File
 		metaData, err = rowData.ToFileModel()
@@ -92,7 +95,7 @@ func (p DatabaseProvider) GetMetaDataById(id string) (models.File, bool) {
 		&rowData.DownloadsRemaining, &rowData.DownloadCount, &rowData.PasswordHash,
 		&rowData.HotlinkId, &rowData.ContentType, &rowData.AwsBucket, &rowData.Encryption,
 		&rowData.UnlimitedDownloads, &rowData.UnlimitedTime, &rowData.UserId, &rowData.UploadDate,
-		&rowData.PendingDeletion, &rowData.UploadRequestId)
+		&rowData.PendingDeletion, &rowData.UploadRequestId, &rowData.IsPaste)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return result, false
@@ -132,6 +135,9 @@ func (p DatabaseProvider) SaveMetaData(file models.File) {
 	if file.UnlimitedTime {
 		newData.UnlimitedTime = 1
 	}
+	if file.IsPaste {
+		newData.IsPaste = 1
+	}
 
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
@@ -141,12 +147,12 @@ func (p DatabaseProvider) SaveMetaData(file models.File) {
 
 	_, err = p.sqliteDb.Exec(`INSERT OR REPLACE INTO FileMetaData (Id, Name, Size, SHA1, ExpireAt, SizeBytes, 
                                    DownloadsRemaining, DownloadCount, PasswordHash, HotlinkId, ContentType, AwsBucket, Encryption,
-                                   UnlimitedDownloads, UnlimitedTime, UserId, UploadDate, PendingDeletion, UploadRequestId)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)`,
+                                   UnlimitedDownloads, UnlimitedTime, UserId, UploadDate, PendingDeletion, UploadRequestId, IsPaste)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		newData.Id, newData.Name, newData.Size, newData.SHA1, newData.ExpireAt, newData.SizeBytes,
 		newData.DownloadsRemaining, newData.DownloadCount, newData.PasswordHash, newData.HotlinkId, newData.ContentType,
 		newData.AwsBucket, newData.Encryption, newData.UnlimitedDownloads, newData.UnlimitedTime, newData.UserId, newData.UploadDate,
-		newData.PendingDeletion, newData.UploadRequestId)
+		newData.PendingDeletion, newData.UploadRequestId, newData.IsPaste)
 	helper.Check(err)
 }
 

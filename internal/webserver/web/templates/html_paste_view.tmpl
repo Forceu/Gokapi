@@ -1,0 +1,82 @@
+{{define "paste_view"}}{{template "header" .}}
+
+<div class="container-fluid download-wrapper p-0 p-sm-4">
+    <div class="paste-card card">
+        <div class="card-body p-3 p-sm-5">
+
+            <div class="text-center mb-4">
+                    <h4 id="pastename" class="card-title filename-text mb-3">{{ .Name }}</h4>
+
+            </div>
+
+            <div id="errordiv" class="mb-3" style="display:none">
+                <div class="alert alert-danger bg-danger text-white border-0" role="alert">
+                    <div id="errormessage" class="small"></div>
+                </div>
+            </div>
+
+            <div id="pastecontent" class="position-relative">
+                <button id="copybutton" class="btn btn-sm btn-secondary position-absolute top-0 end-0 m-2" type="button" onclick="CopyToClipboard();" title="Copy to clipboard">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-clipboard" viewBox="0 0 16 16">
+                        <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
+                        <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
+                    </svg>
+                    <span id="copylabel">Copy</span>
+                </button>
+                <pre id="pastetext" class="paste-content"><code id="pastecode">{{ .PasteContent }}</code></pre>
+            </div>
+
+            <div id="buttondiv" class="d-grid gap-2 mt-3">
+                <a class="btn btn-outline-secondary" href="#TODO">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-download me-1" viewBox="0 0 16 16">
+                        <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                        <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                    </svg>
+                    Download Raw
+                </a>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<style>
+.paste-content {
+    background-color: #1e1e2e;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 0.375rem;
+    padding: 1.25rem 1rem 1rem;
+    margin: 0;
+    max-height: 70vh;
+    overflow: auto;
+    font-size: 0.875rem;
+    text-align: start;
+    line-height: 1.6;
+    white-space: pre;
+    tab-size: 4;
+}
+</style>
+
+
+        <script>
+        function CopyToClipboard() {
+            const text = document.getElementById("pastecode").textContent;
+            navigator.clipboard.writeText(text).then(function() {
+                const label = document.getElementById("copylabel");
+                label.textContent = "Copied!";
+                setTimeout(function() { label.textContent = "Copy"; }, 2000);
+            }).catch(function(err) {
+                displayError("Could not copy to clipboard: " + err);
+            });
+        }
+
+        if (typeof hljs !== "undefined") {
+            hljs.highlightElement(document.getElementById("pastecode"));
+        }
+        </script>
+
+{{ template "pagename" "PublicPaste"}}
+{{ template "customjs" .}}
+
+{{template "footer"}}
+{{end}}

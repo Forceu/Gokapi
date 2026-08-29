@@ -4,7 +4,9 @@ package api
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/forceu/gokapi/internal/configuration"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -39,8 +41,8 @@ func (p *paramFilesListAll) New() requestParser {
 	return &paramFilesListAll{}
 }
 
-// ParseRequest parses the header file. As paramFilesListSingle has no fields with the
-// tag header, this method does nothing, except calling ProcessParameter()
+// ParseRequest parses the header file. As paramFilesListSingle has no fields with the tags header,
+// json or isHttpRequest, this method does nothing except calling ProcessParameter()
 func (p *paramFilesListSingle) ParseRequest(r *http.Request) error {
 	return p.ProcessParameter(r)
 }
@@ -50,12 +52,13 @@ func (p *paramFilesListSingle) New() requestParser {
 	return &paramFilesListSingle{}
 }
 
-// ParseRequest reads r and saves the passed header values in the paramFilesDownloadSingle struct
+// ParseRequest reads r and saves the passed HTTP request and header values in the paramFilesDownloadSingle struct
 // In the end, ProcessParameter() is called
 func (p *paramFilesDownloadSingle) ParseRequest(r *http.Request) error {
 	var err error
 	var exists bool
 	p.foundHeaders = make(map[string]bool)
+	p.WebRequest = r
 
 	// RequestParser header value "increaseCounter", required: false
 	exists, err = checkHeaderExists(r, "increaseCounter", false, false)
@@ -91,7 +94,7 @@ func (p *paramFilesDownloadSingle) New() requestParser {
 	return &paramFilesDownloadSingle{}
 }
 
-// ParseRequest reads r and saves the passed header values in the paramFilesDownloadZip struct
+// ParseRequest reads r and saves the passed HTTP request and header values in the paramFilesDownloadZip struct
 // In the end, ProcessParameter() is called
 func (p *paramFilesDownloadZip) ParseRequest(r *http.Request) error {
 	var err error
@@ -151,6 +154,7 @@ func (p *paramFilesDownloadZip) ParseRequest(r *http.Request) error {
 		}
 	}
 
+	p.WebRequest = r
 	return p.ProcessParameter(r)
 }
 
@@ -159,15 +163,67 @@ func (p *paramFilesDownloadZip) New() requestParser {
 	return &paramFilesDownloadZip{}
 }
 
-// ParseRequest parses the header file. As paramFilesAdd has no fields with the
-// tag header, this method does nothing, except calling ProcessParameter()
+// ParseRequest reads r and saves the passed HTTP request values in the paramFilesAdd struct
+// In the end, ProcessParameter() is called
 func (p *paramFilesAdd) ParseRequest(r *http.Request) error {
+
+	p.Request = r
 	return p.ProcessParameter(r)
 }
 
 // New returns a new instance of paramFilesAdd struct
 func (p *paramFilesAdd) New() requestParser {
 	return &paramFilesAdd{}
+}
+
+// ParseRequest reads r and saves the passed POST form values in the paramPasteAdd struct
+// In the end, ProcessParameter() is called
+func (p *paramPasteAdd) ParseRequest(r *http.Request) error {
+	var err error
+	r.Body = http.MaxBytesReader(nil, r.Body, 10485760)
+	err = r.ParseMultipartForm(int64(configuration.Get().MaxMemory) * 1024 * 1024)
+	if err != nil {
+		return err
+	}
+	if r.FormValue("pasteContent") == "" {
+		return fmt.Errorf("post form field \"pasteContent\" is required")
+	}
+	if len(r.FormValue("pasteContent")) > 10485760 {
+		return fmt.Errorf("post form field \"pasteContent\" exceeds maximum length of 10485760 bytes")
+	}
+	p.PasteContent = r.FormValue("pasteContent")
+	if len(r.FormValue("title")) > 1024 {
+		return fmt.Errorf("post form field \"title\" exceeds maximum length of 1024 bytes")
+	}
+	p.Title = r.FormValue("title")
+	if r.FormValue("allowedDownloads") != "" {
+		p.AllowedDownloads, err = strconv.Atoi(r.FormValue("allowedDownloads"))
+		if err != nil {
+			return fmt.Errorf("invalid value in post form field \"allowedDownloads\"")
+		}
+	}
+	if r.FormValue("expiryDays") != "" {
+		p.ExpiryDays, err = strconv.Atoi(r.FormValue("expiryDays"))
+		if err != nil {
+			return fmt.Errorf("invalid value in post form field \"expiryDays\"")
+		}
+	}
+	if len(r.FormValue("password")) > 1024 {
+		return fmt.Errorf("post form field \"password\" exceeds maximum length of 1024 bytes")
+	}
+	p.Password = r.FormValue("password")
+	if r.FormValue("isEndToEnd") != "" {
+		p.IsEndToEnd, err = strconv.ParseBool(r.FormValue("isEndToEnd"))
+		if err != nil {
+			return fmt.Errorf("invalid value in post form field \"isEndToEnd\"")
+		}
+	}
+	return p.ProcessParameter(r)
+}
+
+// New returns a new instance of paramPasteAdd struct
+func (p *paramPasteAdd) New() requestParser {
+	return &paramPasteAdd{}
 }
 
 // ParseRequest reads r and saves the passed header values in the paramFilesChangeOwner struct
@@ -813,8 +869,8 @@ func (p *paramUserResetPw) New() requestParser {
 	return &paramUserResetPw{}
 }
 
-// ParseRequest parses the header file. As paramE2eStore has no fields with the
-// tag header, this method does nothing, except calling ProcessParameter()
+// ParseRequest parses the header file. As paramE2eStore has no fields with the tags header,
+// json or isHttpRequest, this method does nothing except calling ProcessParameter()
 func (p *paramE2eStore) ParseRequest(r *http.Request) error {
 	return p.ProcessParameter(r)
 }
@@ -824,7 +880,7 @@ func (p *paramE2eStore) New() requestParser {
 	return &paramE2eStore{}
 }
 
-// ParseRequest reads r and saves the passed header values in the paramLogsDelete struct
+// ParseRequest reads r and saves the passed HTTP request and header values in the paramLogsDelete struct
 // In the end, ProcessParameter() is called
 func (p *paramLogsDelete) ParseRequest(r *http.Request) error {
 	var err error
@@ -844,6 +900,7 @@ func (p *paramLogsDelete) ParseRequest(r *http.Request) error {
 		}
 	}
 
+	p.Request = r
 	return p.ProcessParameter(r)
 }
 
@@ -880,9 +937,11 @@ func (p *paramLogsGet) New() requestParser {
 	return &paramLogsGet{}
 }
 
-// ParseRequest parses the header file. As paramChunkAdd has no fields with the
-// tag header, this method does nothing, except calling ProcessParameter()
+// ParseRequest reads r and saves the passed HTTP request values in the paramChunkAdd struct
+// In the end, ProcessParameter() is called
 func (p *paramChunkAdd) ParseRequest(r *http.Request) error {
+
+	p.Request = r
 	return p.ProcessParameter(r)
 }
 
@@ -891,12 +950,13 @@ func (p *paramChunkAdd) New() requestParser {
 	return &paramChunkAdd{}
 }
 
-// ParseRequest reads r and saves the passed header values in the paramChunkUploadRequestAdd struct
+// ParseRequest reads r and saves the passed HTTP request and header values in the paramChunkUploadRequestAdd struct
 // In the end, ProcessParameter() is called
 func (p *paramChunkUploadRequestAdd) ParseRequest(r *http.Request) error {
 	var err error
 	var exists bool
 	p.foundHeaders = make(map[string]bool)
+	p.Request = r
 
 	// RequestParser header value "fileRequestId", required: true
 	exists, err = checkHeaderExists(r, "fileRequestId", true, true)
@@ -906,6 +966,16 @@ func (p *paramChunkUploadRequestAdd) ParseRequest(r *http.Request) error {
 	p.foundHeaders["fileRequestId"] = exists
 	if exists {
 		p.FileRequestId = r.Header.Get("fileRequestId")
+	}
+
+	// RequestParser header value "apikey", required: false
+	exists, err = checkHeaderExists(r, "apikey", false, true)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["apikey"] = exists
+	if exists {
+		p.ApiKey = r.Header.Get("apikey")
 	}
 
 	return p.ProcessParameter(r)
@@ -1337,8 +1407,8 @@ func (p *paramURequestSave) New() requestParser {
 	return &paramURequestSave{}
 }
 
-// ParseRequest parses the header file. As paramURequestListSingle has no fields with the
-// tag header, this method does nothing, except calling ProcessParameter()
+// ParseRequest parses the header file. As paramURequestListSingle has no fields with the tags header,
+// json or isHttpRequest, this method does nothing except calling ProcessParameter()
 func (p *paramURequestListSingle) ParseRequest(r *http.Request) error {
 	return p.ProcessParameter(r)
 }
