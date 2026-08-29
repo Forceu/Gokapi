@@ -75,6 +75,45 @@ func TestStaticDirs(t *testing.T) {
 	})
 }
 
+func TestContentSecurityPolicy(t *testing.T) {
+	const defaultPolicy = "frame-ancestors 'none'; object-src 'none'; base-uri 'self'"
+	const serviceWorkerPolicy = "frame-ancestors 'self'; object-src 'none'; base-uri 'self'"
+
+	testCases := []struct {
+		path           string
+		expectedPolicy string
+	}{
+		{path: "/index", expectedPolicy: defaultPolicy},
+		{path: "/css/cover.css", expectedPolicy: defaultPolicy},
+		{path: "/admin", expectedPolicy: defaultPolicy},
+		{path: "/api/files/list", expectedPolicy: defaultPolicy},
+		{path: "/main.wasm", expectedPolicy: defaultPolicy},
+		{path: "/serviceworker/index.html?stream=1", expectedPolicy: serviceWorkerPolicy},
+		{path: "/serviceworker/sw.js", expectedPolicy: defaultPolicy},
+		{path: "/not-found", expectedPolicy: defaultPolicy},
+	}
+
+	client := &http.Client{
+		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.path, func(t *testing.T) {
+			response, err := client.Get("http://localhost:53843" + testCase.path)
+			if err != nil {
+				t.Fatalf("request failed: %v", err)
+			}
+			response.Body.Close()
+
+			actualPolicy := response.Header.Get("Content-Security-Policy")
+			if actualPolicy != testCase.expectedPolicy {
+				t.Errorf("Content-Security-Policy = %q, want %q", actualPolicy, testCase.expectedPolicy)
+			}
+		})
+	}
+}
+
 func postValues(username, password, csrf string) []test.PostBody {
 	return []test.PostBody{
 		{Key: "username", Value: username},

@@ -34,6 +34,7 @@ import (
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage/filesystem/s3filesystem/aws"
+	"github.com/forceu/gokapi/internal/webserver/headers"
 	"github.com/forceu/gokapi/internal/webserver/ratelimiter"
 )
 
@@ -128,7 +129,7 @@ func startSetupWebserver() {
 		Addr:         ":" + port,
 		ReadTimeout:  2 * time.Minute,
 		WriteTimeout: 2 * time.Minute,
-		Handler:      mux,
+		Handler:      headers.ContentSecurityPolicy(mux),
 	}
 	if debugDisableAuth {
 		srv.Addr = "127.0.0.1:" + port
