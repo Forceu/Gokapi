@@ -299,6 +299,17 @@ func TestRunConfigModification(t *testing.T) {
 	finish := make(chan bool)
 	go func() {
 		waitForServer(t, true)
+		response, err := http.Get("http://localhost:53842/setup/start")
+		if err != nil {
+			t.Errorf("requesting setup page: %v", err)
+		} else {
+			response.Body.Close()
+			expectedPolicy := "frame-ancestors 'none'; object-src 'none'; base-uri 'self'"
+			actualPolicy := response.Header.Get("Content-Security-Policy")
+			if actualPolicy != expectedPolicy {
+				t.Errorf("Content-Security-Policy = %q, want %q", actualPolicy, expectedPolicy)
+			}
+		}
 		test.HttpPageResult(t, test.HttpTestConfig{
 			Url:             "http://localhost:53842/setup/start",
 			IsHtml:          false,
