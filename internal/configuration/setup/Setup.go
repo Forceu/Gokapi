@@ -22,8 +22,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/s3"
+	smithy "github.com/aws/smithy-go"
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/cloudconfig"
 	"github.com/forceu/gokapi/internal/configuration/configupgrade"
@@ -937,7 +936,7 @@ const (
 )
 
 func handleAwsError(w http.ResponseWriter, err error, operation int) {
-	var awsErr awserr.Error
+	var awsErr smithy.APIError
 	isAwsErr := errors.As(err, &awsErr)
 	var prefix string
 	switch operation {
@@ -950,9 +949,9 @@ func handleAwsError(w http.ResponseWriter, err error, operation int) {
 
 	if isAwsErr {
 		response.Code = http.StatusBadRequest
-		code := awsErr.Code()
+		code := awsErr.ErrorCode()
 		switch code {
-		case s3.ErrCodeNoSuchBucket:
+		case "NoSuchBucket":
 			response.Result = "Invalid bucket or regions provided, bucket does not exist."
 		case "Forbidden":
 			response.Result = "Invalid credentials provided, check bucket and region."
@@ -968,7 +967,7 @@ func handleAwsError(w http.ResponseWriter, err error, operation int) {
 				response.Result = "The requested resource could not be found, check endpoint."
 			}
 		default:
-			response.Result = prefix + "Error " + awsErr.Code() + ": " + err.Error()
+			response.Result = prefix + "Error " + awsErr.ErrorCode() + ": " + err.Error()
 		}
 	} else {
 		response.Code = http.StatusInternalServerError
