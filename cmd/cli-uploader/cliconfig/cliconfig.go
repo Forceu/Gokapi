@@ -50,16 +50,16 @@ func CreateLogin() {
 	vstr, vint, err := cliapi.GetVersion()
 	if err != nil {
 		fmt.Println()
-		if errors.Is(cliapi.ErrUnauthorised, err) {
+		if errors.Is(err, cliapi.ErrUnauthorised) {
 			fmt.Println("ERROR: Unauthorised API key")
 			os.Exit(1)
 		}
-		if errors.Is(cliapi.ErrNotFound, err) {
+		if errors.Is(err, cliapi.ErrNotFound) {
 			fmt.Println("ERROR: API not found")
 			fmt.Println("The provided URL does not respond to API calls as expected. You most likely entered an incorrect URL.")
 			os.Exit(1)
 		}
-		if errors.Is(cliapi.ErrInvalidRequest, err) {
+		if errors.Is(err, cliapi.ErrInvalidRequest) {
 			fmt.Println("ERROR: API does not support Gokapi CLI")
 			fmt.Println("This is most likely caused by an old Gokapi version. Please make sure that your Gokapi instance is running v2.1.0 or newer.")
 			os.Exit(1)
@@ -78,7 +78,7 @@ func CreateLogin() {
 	_, _, isE2E, err := cliapi.GetConfig()
 	if err != nil {
 		fmt.Println("FAIL")
-		if errors.Is(cliapi.ErrUnauthorised, err) {
+		if errors.Is(err, cliapi.ErrUnauthorised) {
 			fmt.Println("ERROR: API key does not have the permission to upload new files.")
 		} else {
 			fmt.Println(err)
@@ -98,7 +98,7 @@ func CreateLogin() {
 		cliapi.Init(url, apikey, e2ekey)
 		_, err = cliapi.GetE2eInfo(true)
 		if err != nil {
-			if errors.Is(cliapi.ErrE2eKeyIncorrect, err) {
+			if errors.Is(err, cliapi.ErrE2eKeyIncorrect) {
 				fmt.Println("ERROR: Incorrect end-to-end encryption key")
 			} else {
 				fmt.Println(err)
