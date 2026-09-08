@@ -21,7 +21,9 @@ func TestMain(m *testing.M) {
 func TestGetType(t *testing.T) {
 	test.IsEqualString(t, getType(dbabstraction.TypeSqlite), "SQLite")
 	test.IsEqualString(t, getType(dbabstraction.TypeRedis), "Redis")
-	test.IsEqualString(t, getType(2), "Invalid")
+	test.IsEqualString(t, getType(dbabstraction.TypeMariaDb), "MariaDB")
+	test.IsEqualString(t, getType(dbabstraction.TypePostgres), "PostgreSQL")
+	test.IsEqualString(t, getType(4), "Invalid")
 }
 
 var exitCode int
