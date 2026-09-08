@@ -133,20 +133,21 @@ Database
    If you choose Redis, **you must enable Redis persistence** before storing any data (e.g. add ``save 1 1`` to your ``redis.conf``). Without persistence, all data is lost on a Redis restart.
 
 .. warning::
-   The Redis password is stored in plain text in the configuration file and will be visible if you re-run setup.
+   The Redis, MariaDB/MySQL, and PostgreSQL passwords are stored in plain text in the configuration file and will be visible if you re-run setup.
 
-By default Gokapi uses SQLite, which is fine for most deployments. Use Redis if:
+By default Gokapi uses SQLite, which is fine for most deployments. Use Redis, MariaDB/MySQL, or PostgreSQL if:
 
 * you expect high download/upload traffic, or
 * your SQLite database lives on a slow disk (e.g. a network share or SD card).
 
 Settings:
 
-* **Type of database** — SQLite or Redis.
+* **Type of database** — SQLite, Redis, MariaDB/MySQL, or PostgreSQL.
 * **Database location** — path to the SQLite file.
-* **Database host** — host and port for Redis (e.g. ``127.0.0.1:6379``).
+* **Database host** — host and port for Redis (e.g. ``127.0.0.1:6379``), MariaDB/MySQL (e.g. ``127.0.0.1:3306``), or PostgreSQL (e.g. ``127.0.0.1:5432``).
 * **Key prefix** *(optional)* — added to all Redis keys; useful when sharing a Redis instance with other applications.
-* **Username / Password** *(optional)* — Redis authentication credentials.
+* **Database name** — the MariaDB/MySQL or PostgreSQL database to use; it must already exist.
+* **Username / Password** — Redis authentication is optional; MariaDB/MySQL and PostgreSQL require a username (password is technically optional but strongly recommended).
 * **Use SSL** — enables TLS for the Redis connection.
 
 .. _setup_webserver:

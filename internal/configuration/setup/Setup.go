@@ -374,6 +374,60 @@ func parseDatabaseSettings(result *models.Configuration, formObjects *[]jsonForm
 		dbUrl.RawQuery = query.Encode()
 		result.DatabaseUrl = dbUrl.String()
 		return nil
+	case dbabstraction.TypeMariaDb:
+		host, err := getFormValueString(formObjects, "mariadb_location")
+		if err != nil {
+			return err
+		}
+		dbName, err := getFormValueString(formObjects, "mariadb_dbname")
+		if err != nil {
+			return err
+		}
+		mUser, err := getFormValueString(formObjects, "mariadb_user")
+		if err != nil {
+			return err
+		}
+		mPassword, err := getFormValueString(formObjects, "mariadb_password")
+		if err != nil {
+			return err
+		}
+		dbUrl := url.URL{
+			Scheme: "mariadb",
+			Host:   host,
+			Path:   "/" + dbName,
+		}
+		if mUser != "" || mPassword != "" {
+			dbUrl.User = url.UserPassword(mUser, mPassword)
+		}
+		result.DatabaseUrl = dbUrl.String()
+		return nil
+	case dbabstraction.TypePostgres:
+		host, err := getFormValueString(formObjects, "postgres_location")
+		if err != nil {
+			return err
+		}
+		dbName, err := getFormValueString(formObjects, "postgres_dbname")
+		if err != nil {
+			return err
+		}
+		pUser, err := getFormValueString(formObjects, "postgres_user")
+		if err != nil {
+			return err
+		}
+		pPassword, err := getFormValueString(formObjects, "postgres_password")
+		if err != nil {
+			return err
+		}
+		dbUrl := url.URL{
+			Scheme: "postgres",
+			Host:   host,
+			Path:   "/" + dbName,
+		}
+		if pUser != "" || pPassword != "" {
+			dbUrl.User = url.UserPassword(pUser, pPassword)
+		}
+		result.DatabaseUrl = dbUrl.String()
+		return nil
 	default:
 		return errors.New("unsupported database selected")
 	}
@@ -382,7 +436,9 @@ func parseDatabaseSettings(result *models.Configuration, formObjects *[]jsonForm
 // checkForAllDbValues tests if all values were passed, even if they were not required for this particular database
 // This is done to ensure that no invalid form was passed and makes testing easier
 func checkForAllDbValues(formObjects *[]jsonFormObject) error {
-	expectedValues := []string{"dbtype_sel", "sqlite_location", "redis_location", "redis_prefix", "redis_user", "redis_password"}
+	expectedValues := []string{"dbtype_sel", "sqlite_location", "redis_location", "redis_prefix", "redis_user", "redis_password",
+		"mariadb_location", "mariadb_dbname", "mariadb_user", "mariadb_password",
+		"postgres_location", "postgres_dbname", "postgres_user", "postgres_password"}
 	for _, value := range expectedValues {
 		_, err := getFormValueString(formObjects, value)
 		if err != nil {
