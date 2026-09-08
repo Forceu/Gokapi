@@ -8,6 +8,7 @@ import (
 	"net/textproto"
 	"net/url"
 	"os"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -271,10 +272,17 @@ func TestGetFileByChunkId(t *testing.T) {
 	file, err := GetFileByChunkId("testchunk")
 	test.IsEqualString(t, file.Name(), "test/data/chunk-testchunk")
 	test.IsNil(t, err)
-	err = os.Chmod("test/data/chunk-testchunk", 0222)
-	_, err = GetFileByChunkId("testchunk")
-	test.IsNotNil(t, err)
-	err = os.Remove(file.Name())
+	err = file.Close()
+	test.IsNil(t, err)
+	if runtime.GOOS != "windows" {
+		// Windows has no POSIX permission bits, so chmod cannot simulate an
+		// unreadable file there the way it can on Unix-like systems.
+		err = os.Chmod("test/data/chunk-testchunk", 0222)
+		test.IsNil(t, err)
+		_, err = GetFileByChunkId("testchunk")
+		test.IsNotNil(t, err)
+	}
+	err = os.Remove("test/data/chunk-testchunk")
 	test.IsNil(t, err)
 }
 

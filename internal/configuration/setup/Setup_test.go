@@ -729,7 +729,11 @@ func TestIsErrorAddressAlreadyInUse(t *testing.T) {
 	l, err := net.Listen("tcp", "127.0.0.1:19888")
 	test.IsNil(t, err)
 	srv2 := http.Server{
-		Addr: ":19888",
+		// Must bind to the exact same address as the listener above, not just
+		// the same port on all interfaces - on Windows, binding to the
+		// wildcard address does not reliably conflict with an existing
+		// listener bound to a specific address on the same port.
+		Addr: "127.0.0.1:19888",
 	}
 	httpError := make(chan error)
 	go func() {
