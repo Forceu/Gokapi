@@ -450,6 +450,28 @@ func TestParseUrl(t *testing.T) {
 	output, err = ParseUrl("redis://tuser:tpw@127.0.0.1:1234/?ssl=true&prefix=tpref", false)
 	test.IsNil(t, err)
 	test.IsEqual(t, output, expectedOutput)
+
+	expectedOutput = models.DbConnection{
+		HostUrl:      "127.0.0.1:3306",
+		Username:     "tuser",
+		Password:     "tpw",
+		DatabaseName: "gokapi",
+		Type:         dbabstraction.TypeMariaDb,
+	}
+	output, err = ParseUrl("mariadb://tuser:tpw@127.0.0.1:3306/gokapi", false)
+	test.IsNil(t, err)
+	test.IsEqual(t, output, expectedOutput)
+
+	expectedOutput = models.DbConnection{
+		HostUrl:      "127.0.0.1:5432",
+		Username:     "tuser",
+		Password:     "tpw",
+		DatabaseName: "gokapi",
+		Type:         dbabstraction.TypePostgres,
+	}
+	output, err = ParseUrl("postgres://tuser:tpw@127.0.0.1:5432/gokapi", false)
+	test.IsNil(t, err)
+	test.IsEqual(t, output, expectedOutput)
 }
 
 func TestMigration(t *testing.T) {

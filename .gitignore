@@ -16,3 +16,4 @@ custom/
 *.secret
 gokapi-cli
 gokapi-cli.json
+test_debian13.txt

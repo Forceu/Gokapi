@@ -234,13 +234,21 @@ func TestInitialSetup(t *testing.T) {
 }
 
 type dbFormTest struct {
-	DatabaseType   string `form:"dbtype_sel"`
-	SqliteLocation string `form:"sqlite_location"`
-	RedisLocation  string `form:"redis_location"`
-	RedisPrefix    string `form:"redis_prefix"`
-	RedisUser      string `form:"redis_user"`
-	RedisPw        string `form:"redis_password"`
-	RedisUseSsl    string `form:"redis_ssl_sel"`
+	DatabaseType    string `form:"dbtype_sel"`
+	SqliteLocation  string `form:"sqlite_location"`
+	RedisLocation   string `form:"redis_location"`
+	RedisPrefix     string `form:"redis_prefix"`
+	RedisUser       string `form:"redis_user"`
+	RedisPw         string `form:"redis_password"`
+	RedisUseSsl     string `form:"redis_ssl_sel"`
+	MariadbLocation  string `form:"mariadb_location"`
+	MariadbDbName    string `form:"mariadb_dbname"`
+	MariadbUser      string `form:"mariadb_user"`
+	MariadbPw        string `form:"mariadb_password"`
+	PostgresLocation string `form:"postgres_location"`
+	PostgresDbName   string `form:"postgres_dbname"`
+	PostgresUser     string `form:"postgres_user"`
+	PostgresPw       string `form:"postgres_password"`
 }
 
 func generateDbFormValues(input dbFormTest) []jsonFormObject {
@@ -287,6 +295,32 @@ func TestParseDatabaseSettings(t *testing.T) {
 		RedisUseSsl:   "1",
 	})
 	expected = "redis://testuser:testpw@127.0.0.1:1234?prefix=pre_&ssl=true"
+	err = parseDatabaseSettings(&output, &input)
+	test.IsNil(t, err)
+	test.IsEqualString(t, output.DatabaseUrl, expected)
+
+	input = generateDbFormValues(dbFormTest{
+		DatabaseType:    "2",
+		MariadbLocation: "127.0.0.1:3306",
+		MariadbDbName:   "gokapi",
+		MariadbUser:     "testuser",
+		MariadbPw:       "testpw",
+		RedisUseSsl:     "0",
+	})
+	expected = "mariadb://testuser:testpw@127.0.0.1:3306/gokapi"
+	err = parseDatabaseSettings(&output, &input)
+	test.IsNil(t, err)
+	test.IsEqualString(t, output.DatabaseUrl, expected)
+
+	input = generateDbFormValues(dbFormTest{
+		DatabaseType:     "3",
+		PostgresLocation: "127.0.0.1:5432",
+		PostgresDbName:   "gokapi",
+		PostgresUser:     "testuser",
+		PostgresPw:       "testpw",
+		RedisUseSsl:      "0",
+	})
+	expected = "postgres://testuser:testpw@127.0.0.1:5432/gokapi"
 	err = parseDatabaseSettings(&output, &input)
 	test.IsNil(t, err)
 	test.IsEqualString(t, output.DatabaseUrl, expected)
@@ -555,6 +589,14 @@ type setupValues struct {
 	RedisUser                     setupEntry `form:"redis_user"`
 	RedisPw                       setupEntry `form:"redis_password"`
 	RedisUseSsl                   setupEntry `form:"redis_ssl_sel" isBool:"true"`
+	MariadbLocation               setupEntry `form:"mariadb_location"`
+	MariadbDbName                 setupEntry `form:"mariadb_dbname"`
+	MariadbUser                   setupEntry `form:"mariadb_user"`
+	MariadbPw                     setupEntry `form:"mariadb_password"`
+	PostgresLocation              setupEntry `form:"postgres_location"`
+	PostgresDbName                setupEntry `form:"postgres_dbname"`
+	PostgresUser                  setupEntry `form:"postgres_user"`
+	PostgresPw                    setupEntry `form:"postgres_password"`
 }
 
 func (s *setupValues) init() {

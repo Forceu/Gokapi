@@ -82,12 +82,32 @@ test-specific:
 
 .PHONY: test-all
 test-all:
-	@echo Testing all tags 
+	@echo Testing all tags
 	@echo
 	go generate ./...
 	go test ./... -parallel 8 --tags=test,noaws
 	go test ./... -parallel 8 --tags=test,awsmock
 	GOKAPI_AWS_BUCKET="gokapi" GOKAPI_AWS_REGION="eu-central-1" GOKAPI_AWS_KEY="keyid" GOKAPI_AWS_KEY_SECRET="secret" go test ./... -parallel 8 --tags=test,awstest
+
+.PHONY: test-mariadb
+# Requires a real, reachable MariaDB/MySQL server. Configure with:
+#   GOKAPI_MARIADB_HOST, GOKAPI_MARIADB_DBNAME, GOKAPI_MARIADB_USER, GOKAPI_MARIADB_PASSWORD
+# The target database's tables are dropped and recreated on every run - use a disposable database.
+test-mariadb:
+	@echo Testing MariaDB provider against a real server
+	@echo
+	go generate ./...
+	go test $(GOPACKAGE)/internal/configuration/database/provider/mariadb/... -count=1 -v --tags=test,mariadbtest
+
+.PHONY: test-postgres
+# Requires a real, reachable PostgreSQL server. Configure with:
+#   GOKAPI_POSTGRES_HOST, GOKAPI_POSTGRES_DBNAME, GOKAPI_POSTGRES_USER, GOKAPI_POSTGRES_PASSWORD
+# The target database's tables are dropped and recreated on every run - use a disposable database.
+test-postgres:
+	@echo Testing PostgreSQL provider against a real server
+	@echo
+	go generate ./...
+	go test $(GOPACKAGE)/internal/configuration/database/provider/postgres/... -count=1 -v --tags=test,postgrestest
 
 .PHONY: update-changelog
 update-changelog:
