@@ -100,12 +100,14 @@ func CreateLogin() {
 		if err != nil {
 			if errors.Is(cliapi.ErrE2eKeyIncorrect, err) {
 				fmt.Println("ERROR: Incorrect end-to-end encryption key")
+			} else if errors.Is(err, cliapi.ErrE2eNotSetUp) {
+				fmt.Println("ERROR: End-to-end encryption has not been set up on the server yet.")
+				fmt.Println("Please complete the E2E setup in the Gokapi web interface first, then try again.")
 			} else {
 				fmt.Println(err)
 			}
 			os.Exit(1)
 		}
-		// TODO check if key has not been generated yet
 	}
 
 	err = save(url, apikey, e2ekey)
