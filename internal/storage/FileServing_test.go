@@ -625,6 +625,37 @@ func TestServeFile(t *testing.T) {
 	test.ResponseBodyContains(t, w, "Error decrypting file")
 }
 
+func TestServeFileAwsErrorHandling(t *testing.T) {
+	if !aws.IsIncludedInBuild {
+		t.Skip("AWS support not included in build")
+	}
+	testconfiguration.EnableS3()
+	config, ok := cloudconfig.Load()
+	test.IsEqualBool(t, ok, true)
+	ok = aws.Init(config.Aws)
+	test.IsEqualBool(t, ok, true)
+
+	// A file with an AWS bucket set, but never actually uploaded, causes aws.ServeFile to
+	// return an error. ServeFile must handle that gracefully instead of panicking.
+	file := models.File{
+		Id:        "awsErrorHandlingTest1",
+		Name:      "aws error handling test",
+		AwsBucket: "gokapi-test",
+		SHA1:      "nonexistentAwsObjectSha1",
+		ExpireAt:  time.Now().Add(time.Hour).Unix(),
+		SizeBytes: 10,
+	}
+	database.SaveMetaData(file)
+
+	r := httptest.NewRequest("GET", "/", nil)
+	w := httptest.NewRecorder()
+	ServeFile(file, w, r, false, true, false, false)
+	test.ResponseBodyContains(t, w, "Error serving file")
+
+	database.DeleteMetaData(file.Id)
+	testconfiguration.DisableS3()
+}
+
 func TestCleanUp(t *testing.T) {
 	files := database.GetAllMetadata()
 	downloadstatus.DeleteAll()
