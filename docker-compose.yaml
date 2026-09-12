@@ -1,4 +1,3 @@
-version: '3.3'
 services:
   gokapi:
     image: f0rc3/gokapi:latest

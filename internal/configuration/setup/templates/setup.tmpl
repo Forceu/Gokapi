@@ -495,41 +495,76 @@
 			</div>
 
 <script>
+
 function TestAWS(button, isManual) {
-	button.disabled=true;
-	button.innerHTML="Connecting...";
 
-	var xhr = new XMLHttpRequest();
-	xhr.onreadystatechange = function() {
-		if (this.readyState === XMLHttpRequest.DONE) {
-			if (this.status == 200) {
-				button.innerHTML="Test configuration";
-				button.disabled=false;
-				alert(xhr.responseText);
-		    	} else {
-				alert("Unable to connect to Gokapi server");
-			}
-		}
-	};
+    button.disabled = true;
+{{ if .IsInitialSetup }}
+    if (sessionStorage.getItem("awstestpw") == null || sessionStorage.getItem("awstestpw") == "") {
+        let pw = window.prompt("To test the AWS connection, a password is required.\nPlease enter the password that is displayed in the console output.", "");
+        if (pw == "" || pw == null) {
+    	    button.disabled = false;
+            return;
+        }
+        sessionStorage.setItem("awstestpw", pw);
 
-	xhr.open("POST", "./testaws", true);
-	xhr.setRequestHeader('Content-Type', 'application/json');
-	if (isManual) {
-		xhr.send(JSON.stringify({
-		    bucket: document.getElementById("s3_bucket").value,
-		    region: document.getElementById("s3_region").value,
-		    apikey: document.getElementById("s3_api").value,
-		    apisecret: document.getElementById("s3_secret").value,
-		    endpoint: document.getElementById("s3_endpoint").value,
-		    isEnvProvided: false
-		}));
-	} else {
-		xhr.send(JSON.stringify({
-		    isEnvProvided: true
-		}));
-	}
+    }
+{{ end }}
+
+    button.innerHTML = "Connecting...";
+
+    var xhr = new XMLHttpRequest();
+    xhr.onreadystatechange = function() {
+        if (this.readyState === XMLHttpRequest.DONE) {
+            button.innerHTML = "Test configuration";
+            button.disabled = false;
+
+            let response = {};
+            try {
+                response = JSON.parse(xhr.responseText);
+            } catch (e) {
+                response = {
+                    result: "Error: Could not parse server response."
+                };
+            }
+
+
+            switch (this.status) {
+                case 200:
+                    alert(response.result || "Test OK.");
+                    break;
+                case 401:
+                    sessionStorage.setItem("awstestpw", "");
+                    alert("Incorrect AWS Test Password.\nPlease enter the password that is displayed in the console output.");
+                    break;
+                default:
+                    const errorMessage = response.result || "An unexpected error occurred";
+                    alert(`Error: ${errorMessage}`);
+            }
+        }
+    };
+
+    xhr.open("POST", "./testaws", true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    if (isManual) {
+        xhr.send(JSON.stringify({
+            bucket: document.getElementById("s3_bucket").value,
+            region: document.getElementById("s3_region").value,
+            apikey: document.getElementById("s3_api").value,
+            apisecret: document.getElementById("s3_secret").value,
+            endpoint: document.getElementById("s3_endpoint").value,
+            setupPassword: sessionStorage.getItem("awstestpw"),
+            isEnvProvided: false
+        }));
+    } else {
+        xhr.send(JSON.stringify({
+            setupPassword: sessionStorage.getItem("awstestpw"),
+            isEnvProvided: true
+        }));
+    }
 
 }
+
 </script>
 			
 
