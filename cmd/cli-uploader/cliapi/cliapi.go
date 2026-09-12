@@ -49,6 +49,9 @@ var ErrFileTooBig = errors.New("file too big")
 // ErrE2eKeyIncorrect is returned when the e2e key is incorrect
 var ErrE2eKeyIncorrect = errors.New("e2e key incorrect")
 
+// ErrE2eNotSetUp is returned when end-to-end encryption has not been set up on the server yet
+var ErrE2eNotSetUp = errors.New("e2e has not been set up on the server")
+
 // Init initialises the API client with the given url and key.
 // The key is used for authentication.
 // The end2endKey is used for end-to-end encryption.
@@ -152,7 +155,6 @@ func UploadFile(uploadParams cliflags.FlagConfig) (models.FileApiOutput, error) 
 	if err != nil {
 		return models.FileApiOutput{}, err
 	}
-	// TODO check for 401
 
 	if len(e2eKey) == 0 || !isE2e || uploadParams.DisableE2e {
 		isE2e = false
@@ -445,6 +447,9 @@ func uploadChunk(f io.Reader, uuid string, offset, chunkSize, filesize int64, pr
 		return err
 	}
 	response := string(bodyContent)
+	if resp.StatusCode == http.StatusUnauthorized {
+		return ErrUnauthorised
+	}
 	if resp.StatusCode != http.StatusOK {
 		return errors.New("failed to upload chunk: status code " + strconv.Itoa(resp.StatusCode) + ", response: " + response)
 	}
@@ -515,6 +520,9 @@ func GetE2eInfo(unlockLock bool) (models.E2EInfoPlainText, error) {
 	err = json.Unmarshal([]byte(resultJson), &result)
 	if err != nil {
 		return models.E2EInfoPlainText{}, err
+	}
+	if !result.HasBeenSetUp() {
+		return models.E2EInfoPlainText{}, ErrE2eNotSetUp
 	}
 	fileInfo, err = end2end.DecryptData(result, e2eKey)
 	if err != nil {
