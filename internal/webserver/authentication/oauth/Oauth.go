@@ -89,11 +89,11 @@ func isLoginRequired(r *http.Request) bool {
 func HandlerCallback(w http.ResponseWriter, r *http.Request) {
 	state, err := r.Cookie(authentication.CookieOauth)
 	if err != nil {
-		errorHandling.RedirectToOAuthErrorPage(w, r, "Parameter state was not provided", err)
+		errorHandling.RedirectToOAuthErrorPage(w, r, "errorpage_oauth_no_state", err)
 		return
 	}
 	if r.URL.Query().Get("state") != state.Value {
-		errorHandling.RedirectToOAuthErrorPage(w, r, "Parameter state did not match", err)
+		errorHandling.RedirectToOAuthErrorPage(w, r, "errorpage_oauth_state_mismatch", err)
 		return
 	}
 
@@ -108,18 +108,17 @@ func HandlerCallback(w http.ResponseWriter, r *http.Request) {
 
 	oauth2Token, err := config.Exchange(ctx, r.URL.Query().Get("code"))
 	if err != nil {
-		errorHandling.RedirectToOAuthErrorPage(w, r, "Failed to exchange token", err)
+		errorHandling.RedirectToOAuthErrorPage(w, r, "errorpage_oauth_exchange_failed", err)
 		return
 	}
 
 	userInfo, err := provider.UserInfo(ctx, oauth2.StaticTokenSource(oauth2Token))
 	if err != nil {
-		errorHandling.RedirectToOAuthErrorPage(w, r, "Failed to get user info", err)
+		errorHandling.RedirectToOAuthErrorPage(w, r, "errorpage_oauth_userinfo_failed", err)
 		return
 	}
 	if userInfo.Email == "" {
-		errorHandling.RedirectToOAuthErrorPage(w, r, "An empty email address was provided.\nPlease make sure that you have your"+
-			" email address set in your authentication user backend.", nil)
+		errorHandling.RedirectToOAuthErrorPage(w, r, "errorpage_oauth_no_email", nil)
 		return
 	}
 	info := authentication.OAuthUserInfo{
@@ -129,7 +128,7 @@ func HandlerCallback(w http.ResponseWriter, r *http.Request) {
 	}
 	err = authentication.CheckOauthUserAndRedirect(w, r, info)
 	if err != nil {
-		errorHandling.RedirectToOAuthErrorPage(w, r, "Failed to continue with login: ", err)
+		errorHandling.RedirectToOAuthErrorPage(w, r, "errorpage_oauth_login_failed", err)
 	}
 }
 

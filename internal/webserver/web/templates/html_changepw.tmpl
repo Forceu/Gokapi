@@ -1,21 +1,21 @@
-{{define "changepw"}}{{ template "header" . }} 
+{{define "changepw"}}{{ template "header" . }}
       <div class="row">
         <div class="col">
 		<div id="container" class="card" style="width: 25em">
 		  <div class="card-body">
-		    <h2 class="card-title">Change Password</h2>
+		    <h2 class="card-title">{{ .Lang.T "changepw_title" }}</h2>
 		    <br>
-		    <p class="card-text"> A password change has been requested.<br>Please enter a new password.<br><br>
+		    <p class="card-text"> {{ .Lang.H "changepw_text" }}<br><br>
 			<form method="post" action="./changePassword" id="form" name="form" onSubmit="return submitForm()">
 			    <div class="mb-3">
-				<input type="password" class="form-control mx-auto" style="max-width: 300px;" 
-				       required minlength="{{.MinPasswordLength}}" placeholder="New Password" 
+				<input type="password" class="form-control mx-auto" style="max-width: 300px;"
+				       required minlength="{{.MinPasswordLength}}" placeholder="{{ .Lang.T "changepw_new_password" }}"
 				       id="newpw" name="newpw" autocomplete="new-password">
 			    </div>
 
 			    <div class="mb-3">
-				<input type="password" class="form-control mx-auto" style="max-width: 300px;" 
-				       required minlength="{{.MinPasswordLength}}" placeholder="Confirm New Password" 
+				<input type="password" class="form-control mx-auto" style="max-width: 300px;"
+				       required minlength="{{.MinPasswordLength}}" placeholder="{{ .Lang.T "changepw_confirm_password" }}"
 				       id="newpw_c" name="newpw_c" onchange="checkSame()" autocomplete="new-password">
 			    </div>
 				<input type="hidden" id="csrf-token" name="csrf-token" value="{{.CsrfToken}}">
@@ -25,12 +25,12 @@
 {{ end }}
 
 			    <div id="pwnotsame" class="text-warning" style="display: none; margin-top:1em">
-				Passwords do not match
+				{{ .Lang.T "changepw_not_matching" }}
 			    </div>
 
 			    <div class="mt-4">
 				<button type="submit" id="submitbutton" class="btn btn-primary w-100 mx-auto" style="max-width: 300px;">
-				    Change Password
+				    {{ .Lang.T "changepw_title" }}
 				</button>
 			    </div>
 			</form>
@@ -70,5 +70,5 @@ function submitForm() {
 </script>
 {{ template "pagename" "ChangePw"}}
 {{ template "customjs" .}}
-{{ template "footer" }}
+{{ template "footer" . }}
 {{end}}

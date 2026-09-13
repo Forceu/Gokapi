@@ -22,7 +22,7 @@ function deleteFileRequest(requestId) {
             }, 290);
         })
         .catch(error => {
-            alert("Unable to delete file request: " + error);
+            alert(t("error_unable_delete_file_request", error));
             console.error('Error:', error);
         });
 }
@@ -50,7 +50,7 @@ function deleteFileFr(id, frId) {
 	 showToastFileDeletionFr(id);
         })
         .catch(error => {
-            alert("Unable to delete file: " + error);
+            alert(t("error_unable_delete_file", error));
             console.error('Error:', error);
         });
 }
@@ -127,7 +127,7 @@ function handleUndoFr(button) {
             window.location.reload();
         })
         .catch(error => {
-            alert("Unable to restore file: " + error);
+            alert(t("error_unable_restore_file", error));
             console.error('Error:', error);
         });
 }
@@ -147,7 +147,7 @@ function showDeleteFRequestModal(requestId, requestName, count) {
 
 function newFileRequest() {
     loadFileRequestDefaults();
-    document.getElementById("m_urequestlabel").innerText = "New File Request";
+    document.getElementById("m_urequestlabel").innerText = t("fr_new_title");
     $('#addEditModal').modal('show');
 
     document.getElementById("b_fr_save").onclick = function() {
@@ -207,7 +207,7 @@ function setModalValues(id, name, maxFiles, maxSize, expiry, notes) {
         }
         checkbox.checked = true;
         checkbox.disabled = true;
-        checkbox.title = "Only admins can set this to unlimited";
+        checkbox.title = t("fr_admins_only_unlimited");
         checkbox.value = "1";
         document.getElementById("mi_maxfiles").setAttribute("max", limitMaxFiles);
     } else {
@@ -224,7 +224,7 @@ function setModalValues(id, name, maxFiles, maxSize, expiry, notes) {
         }
         checkbox.checked = true;
         checkbox.disabled = true;
-        checkbox.title = "Only admins can set this to unlimited";
+        checkbox.title = t("fr_admins_only_unlimited");
         checkbox.value = "1";
         document.getElementById("mi_maxsize").setAttribute("max", limitMaxSize);
     } else {
@@ -272,7 +272,7 @@ function setModalValues(id, name, maxFiles, maxSize, expiry, notes) {
 
 function editFileRequest(id, name, maxFiles, maxSize, expiry, notes) {
     setModalValues(id, name, maxFiles, maxSize, expiry, notes);
-    document.getElementById("m_urequestlabel").innerText = "Edit File Request";
+    document.getElementById("m_urequestlabel").innerText = t("fr_edit_title");
     $('#addEditModal').modal('show');
 
     document.getElementById("b_fr_save").onclick = function() {
@@ -308,7 +308,7 @@ function saveFileRequest() {
             insertOrReplaceFileRequest(data);
         })
         .catch(error => {
-            alert("Unable to save file request: " + error);
+            alert(t("error_unable_save_file_request", error));
             console.error('Error:', error);
             document.getElementById("b_fr_save").disabled = false;
         });
@@ -389,7 +389,7 @@ function createFileRequestRow(jsonResult, user) {
     // Total size
     tr.appendChild(tdText(getReadableSize(jsonResult.totalfilesize)));
     // Last upload
-    tr.appendChild(tdText(formatTimestampWithNegative(jsonResult.lastupload, "None")));
+    tr.appendChild(tdText(formatTimestampWithNegative(jsonResult.lastupload, t("generic_none"))));
     // Expiry
     tr.appendChild(tdText(formatFileRequestExpiry(jsonResult.expiry)));
     // Optional user column
@@ -410,7 +410,7 @@ function createFileRequestRow(jsonResult, user) {
     downloadBtn.id = `download-${jsonResult.id}`;
     downloadBtn.type = "button";
     downloadBtn.className = "btn btn-outline-light btn-sm";
-    downloadBtn.title = "Download all";
+    downloadBtn.title = t("fr_download_all");
 
     if (jsonResult.uploadedfiles == 0) {
         downloadBtn.classList.add("disabled");
@@ -424,7 +424,7 @@ function createFileRequestRow(jsonResult, user) {
     copyBtn.id = `copy-${jsonResult.id}`;
     copyBtn.type = "button";
     copyBtn.className = "copyurl btn btn-outline-light btn-sm";
-    copyBtn.title = "Copy URL";
+    copyBtn.title = t("btn_copy_url");
     copyBtn.setAttribute("data-clipboard-text", publicUrl);
     copyBtn.onclick = () =>
         showToast(1000);
@@ -437,7 +437,7 @@ function createFileRequestRow(jsonResult, user) {
     editBtn.id = `edit-${jsonResult.id}`;
     editBtn.type = "button";
     editBtn.className = "btn btn-outline-light btn-sm";
-    editBtn.title = "Edit request";
+    editBtn.title = t("fr_edit_request");
     editBtn.onclick = () =>
         editFileRequest(jsonResult.id, jsonResult.name, jsonResult.maxfiles, jsonResult.maxsize, jsonResult.expiry, jsonResult.notes);
 
@@ -448,7 +448,7 @@ function createFileRequestRow(jsonResult, user) {
     deleteBtn.id = `delete-${jsonResult.id}`;
     deleteBtn.type = "button";
     deleteBtn.className = "btn btn-outline-danger btn-sm";
-    deleteBtn.title = "Delete";
+    deleteBtn.title = t("btn_delete");
     deleteBtn.onclick = () =>
         deleteOrShowModal(jsonResult.id, jsonResult.name, jsonResult.uploadedfiles);
 

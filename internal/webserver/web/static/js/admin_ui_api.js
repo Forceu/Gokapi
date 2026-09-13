@@ -42,7 +42,7 @@ function changeApiPermission(userId, permission, buttonId) {
                 indicator.classList.add("perm-notgranted");
             }
             indicator.classList.remove("perm-processing");
-            alert("Unable to set permission: " + error);
+            alert(t("error_unable_set_permission", error));
             console.error('Error:', error);
         });
 }
@@ -59,7 +59,7 @@ function deleteApiKey(apiKey) {
             }, 290);
         })
         .catch(error => {
-            alert("Unable to delete API key: " + error);
+            alert(t("error_unable_delete_api_key", error));
             console.error('Error:', error);
         });
 }
@@ -74,7 +74,7 @@ function newApiKey() {
             document.getElementById("button-newapi").disabled = false;
         })
         .catch(error => {
-            alert("Unable to create API key: " + error);
+            alert(t("error_unable_create_api_key", error));
             console.error('Error:', error);
         });
 }
@@ -99,7 +99,7 @@ function addFriendlyNameChange(apiKey) {
         allowEdit = false;
         let newName = input.value;
         if (newName == "") {
-            newName = "Unnamed key";
+            newName = t("api_unnamed_key");
         }
         cell.innerText = newName;
 
@@ -107,7 +107,7 @@ function addFriendlyNameChange(apiKey) {
 
         apiAuthFriendlyName(apiKey, newName)
             .catch(error => {
-                alert("Unable to save name: " + error);
+                alert(t("error_unable_save_name", error));
                 console.error('Error:', error);
             });
     };
@@ -158,14 +158,14 @@ function addRowApi(apiKey, publicId) {
     cellButtons.classList.add("newApiKey");
 
 
-    cellFriendlyName.innerText = "Unnamed key";
+    cellFriendlyName.innerText = t("api_unnamed_key");
     cellFriendlyName.id = "friendlyname-" + publicId;
     cellFriendlyName.onclick = function() {
         addFriendlyNameChange(publicId);
     };
     cellId.innerText = apiKey;
     cellId.classList.add("font-monospace");
-    cellLastUsed.innerText = "Never";
+    cellLastUsed.innerText = t("generic_never");
 
 
     const btnGroup = document.createElement("div");
@@ -177,7 +177,7 @@ function addRowApi(apiKey, publicId) {
     const copyButton = document.createElement('button');
     copyButton.type = 'button';
     copyButton.dataset.clipboardText = apiKey;
-    copyButton.title = 'Copy API Key';
+    copyButton.title = t("api_copy_key");
     copyButton.className = 'copyurl btn btn-outline-light btn-sm';
     copyButton.setAttribute('onclick', 'showToast(1000)');
 
@@ -188,7 +188,7 @@ function addRowApi(apiKey, publicId) {
     const deleteButton = document.createElement('button');
     deleteButton.type = 'button';
     deleteButton.id = `delete-${publicId}`;
-    deleteButton.title = 'Delete';
+    deleteButton.title = t("btn_delete");
     deleteButton.className = 'btn btn-outline-danger btn-sm';
     deleteButton.setAttribute('onclick', `deleteApiKey('${publicId}')`);
 
@@ -205,61 +205,61 @@ function addRowApi(apiKey, publicId) {
             perm: 'PERM_VIEW',
             icon: 'bi-eye',
             granted: true,
-            title: 'List Uploads'
+            title: t("apiperm_view")
         },
         {
             perm: 'PERM_UPLOAD',
             icon: 'bi-file-earmark-plus',
             granted: true,
-            title: 'Upload'
+            title: t("apiperm_upload")
         },
         {
             perm: 'PERM_EDIT',
             icon: 'bi-pencil',
             granted: true,
-            title: 'Edit Uploads'
+            title: t("apiperm_edit")
         },
         {
             perm: 'PERM_DELETE',
             icon: 'bi-trash3',
             granted: true,
-            title: 'Delete Uploads'
+            title: t("apiperm_delete")
         },
         {
             perm: 'PERM_REPLACE',
             icon: 'bi-recycle',
             granted: false,
-            title: 'Replace Uploads'
+            title: t("apiperm_replace")
         },
         {
             perm: 'PERM_DOWNLOAD',
             icon: 'bi-box-arrow-in-down',
             granted: false,
-            title: 'Download Files'
+            title: t("apiperm_download")
         },
         {
             perm: 'PERM_MANAGE_FILE_REQUESTS',
             icon: 'bi-file-earmark-arrow-up',
             granted: false,
-            title: 'Manage File Requests'
+            title: t("apiperm_file_requests")
         },
         {
             perm: 'PERM_MANAGE_USERS',
             icon: 'bi-people',
             granted: false,
-            title: 'Manage Users'
+            title: t("apiperm_users")
         },
         {
             perm: 'PERM_MANAGE_LOGS',
             icon: 'bi-card-list',
             granted: false,
-            title: 'Manage System Logs'
+            title: t("apiperm_logs")
         },
         {
             perm: 'PERM_API_MOD',
             icon: 'bi-sliders2',
             granted: false,
-            title: 'Manage API Keys'
+            title: t("apiperm_api")
         }
     ];
 

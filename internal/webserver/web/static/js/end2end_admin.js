@@ -4,7 +4,7 @@ function displayError(err) {
 
     errorMessageEl.innerText = "";
     const bold = document.createElement("b");
-    bold.innerText = "Error: ";
+    bold.innerText = t("error_prefix");
     const message = document.createTextNode(err.toString().replace(/^Error:/gi, ""));
 
     errorMessageEl.appendChild(bold);
@@ -26,8 +26,8 @@ function checkIfE2EKeyIsSet() {
             }
             getE2EInfo();
             dropzoneObject.enable();
-            document.getElementById("uploadBoxTitle").innerText = "Drag & drop files here";
-            document.getElementById("uploadBoxSubtitle").innerText = "or paste or click to upload with end-to-end encryption";
+            document.getElementById("uploadBoxTitle").innerText = t("upload_dragdrop");
+            document.getElementById("uploadBoxSubtitle").innerText = t("upload_dragdrop_sub_e2e");
         });
     }
 }
@@ -44,12 +44,12 @@ function getE2EInfo() {
                 if (err.message === "cipher: message authentication failed") {
                     invalidCipherRedirectConfim();
                 } else {
-                    displayError("Trying to get E2E info: " + data);
+                    displayError(t("e2e_error_get_info", data));
                 }
             }
         })
         .catch(error => {
-            displayError("Trying to get E2E info: " + error);
+            displayError(t("e2e_error_get_info", error));
         })
         .finally(() => {
             apiE2eMutexLockUnlock(true).catch(error => {
@@ -62,13 +62,13 @@ function getE2EInfo() {
 function storeE2EInfo(data) {
     apiE2eStore(data)
         .catch(error => {
-            displayError("Trying to store E2E info: " + error);
+            displayError(t("e2e_error_store_info", error));
         });
 }
 
 
 function invalidCipherRedirectConfim() {
-    if (confirm('It appears that an invalid end-to-end encryption key has been entered. Would you like to enter the correct one?')) {
+    if (confirm(t("e2e_invalid_key_confirm"))) {
         window.location = './e2eSetup';
     }
 }

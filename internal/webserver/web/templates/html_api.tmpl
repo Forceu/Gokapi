@@ -8,7 +8,7 @@
 		    <div class="col">
 		    </div>
 		    <div class="col text-center">
-		      <h3 class="card-title mb-0">API Keys</h3>
+		      <h3 class="card-title mb-0">{{ .Lang.T "api_title" }}</h3>
 		    </div>
 		    <div class="col text-end">
 		      <button id="button-newapi" class="btn btn-outline-light" onclick="newApiKey()">
@@ -17,18 +17,18 @@
 		    </div>
 		  </div>
 		</div>
-		
-                Please visit the <a target="_blank" href="./apidocumentation">API documentation</a> for more information about the API.<br>Click on the API key name to give it a new name. Permissions can be changed by clicking on them.
+
+                {{ .Lang.H "api_hint" }}
                 <br>
                 <br>
                 <div class="table-responsive">
                     <table class="table table-dark">
                         <thead>
                             <tr>
-                                <th scope="col">Name</th>
-                                <th scope="col">API Key</th>
-                                <th scope="col">Last Used</th>
-            			<th scope="col">Permissions
+                                <th scope="col">{{ .Lang.T "api_col_name" }}</th>
+                                <th scope="col">{{ .Lang.T "api_col_key" }}</th>
+                                <th scope="col">{{ .Lang.T "api_col_last_used" }}</th>
+            			<th scope="col">{{ .Lang.T "api_col_permissions" }}
                                     <button type="button"
                                         class="btn btn-sm btn-link text-white-50 p-0 ms-1 align-baseline"
                                         id="apiPermLegendBtn"
@@ -39,28 +39,28 @@
                                         data-bs-content='
                                             <table class="table table-sm table-dark mb-0" style="font-size:0.85em">
                                               <tbody>
-                                                <tr><td><i class="bi bi-eye"></i></td><td>List uploads</td></tr>
-                                                <tr><td><i class="bi bi-file-earmark-plus"></i></td><td>Upload files</td></tr>
-                                                <tr><td><i class="bi bi-pencil"></i></td><td>Edit uploads</td></tr>
-                                                <tr><td><i class="bi bi-trash3"></i></td><td>Delete uploads</td></tr>
-                                                <tr><td><i class="bi bi-recycle"></i></td><td>Replace uploads</td></tr>
-                                                <tr><td><i class="bi bi-box-arrow-in-down"></i></td><td>Download files</td></tr>
-                                                <tr><td><i class="bi bi-file-earmark-arrow-up"></i></td><td>Manage file requests</td></tr>
-                                                <tr><td><i class="bi bi-people"></i></td><td>Manage users</td></tr>
-                                                <tr><td><i class="bi bi-card-list"></i></td><td>Manage system logs</td></tr>
-                                                <tr><td><i class="bi bi-sliders2"></i></td><td>Manage API keys</td></tr>
+                                                <tr><td><i class="bi bi-eye"></i></td><td>{{ .Lang.T "apiperm_view" }}</td></tr>
+                                                <tr><td><i class="bi bi-file-earmark-plus"></i></td><td>{{ .Lang.T "apiperm_upload" }}</td></tr>
+                                                <tr><td><i class="bi bi-pencil"></i></td><td>{{ .Lang.T "apiperm_edit" }}</td></tr>
+                                                <tr><td><i class="bi bi-trash3"></i></td><td>{{ .Lang.T "apiperm_delete" }}</td></tr>
+                                                <tr><td><i class="bi bi-recycle"></i></td><td>{{ .Lang.T "apiperm_replace" }}</td></tr>
+                                                <tr><td><i class="bi bi-box-arrow-in-down"></i></td><td>{{ .Lang.T "apiperm_download" }}</td></tr>
+                                                <tr><td><i class="bi bi-file-earmark-arrow-up"></i></td><td>{{ .Lang.T "apiperm_file_requests" }}</td></tr>
+                                                <tr><td><i class="bi bi-people"></i></td><td>{{ .Lang.T "apiperm_users" }}</td></tr>
+                                                <tr><td><i class="bi bi-card-list"></i></td><td>{{ .Lang.T "apiperm_logs" }}</td></tr>
+                                                <tr><td><i class="bi bi-sliders2"></i></td><td>{{ .Lang.T "apiperm_api" }}</td></tr>
                                               </tbody>
                                             </table>'
-                                        title="Permission Legend"
+                                        title="{{ .Lang.T "perm_legend_title" }}"
                                         tabindex="0"
-                                        aria-label="Show permission legend">
+                                        aria-label="{{ .Lang.T "perm_legend_show" }}">
                                         <i class="bi bi-question-circle"></i>
                                     </button>
                                 </th>
 {{ if .ActiveUser.HasPermissionManageApi }}
-            			<th scope="col">User</th>
+            			<th scope="col">{{ .Lang.T "api_col_user" }}</th>
 {{ end }}
-                                <th scope="col">Actions</th>
+                                <th scope="col">{{ .Lang.T "api_col_actions" }}</th>
                             </tr>
                         </thead>
                         <tbody id="apitable">
@@ -71,32 +71,32 @@
             			<td><span id="cell-lastused-{{ .PublicId }}"></span></td>
 				   <script>insertDateWithNegative({{ .LastUsed }}, "cell-lastused-{{ .PublicId }}");</script>
                                             <td class="prevent-select">
-						<i id="perm_view_{{ .PublicId }}" class="bi bi-eye {{if not .HasPermissionView}}perm-notgranted{{else}}perm-granted{{end}}" title="List Uploads" onclick='changeApiPermission("{{ .PublicId }}","PERM_VIEW", "perm_view_{{ .PublicId }}");'></i>
-						
-						<i id="perm_upload_{{ .PublicId }}" class="bi bi-file-earmark-plus {{if not .HasPermissionUpload}}perm-notgranted{{else}}perm-granted{{end}}" title="Upload" onclick='changeApiPermission("{{ .PublicId }}","PERM_UPLOAD", "perm_upload_{{ .PublicId }}");'></i>
-						
-						<i id="perm_edit_{{ .PublicId }}" class="bi bi-pencil {{if not .HasPermissionEdit}}perm-notgranted{{else}}perm-granted{{end}}" title="Edit Uploads" onclick='changeApiPermission("{{ .PublicId }}","PERM_EDIT", "perm_edit_{{ .PublicId }}");'></i>
-						
-						<i id="perm_delete_{{ .PublicId }}" class="bi bi-trash3 {{if not .HasPermissionDelete}}perm-notgranted{{else}}perm-granted{{end}}" title="Delete Uploads" onclick='changeApiPermission("{{ .PublicId }}","PERM_DELETE", "perm_delete_{{ .PublicId }}");'></i>
-						
-						
-						<i id="perm_replace_{{ .PublicId }}" class="bi bi-recycle {{if not (index $.UserMap .UserId).HasPermissionReplace}}perm-unavailable perm-nochange{{ else }}{{if not .HasPermissionReplace}}perm-notgranted{{else}}perm-granted{{end}}{{end}}" title="Replace Uploads" onclick='changeApiPermission("{{ .PublicId }}","PERM_REPLACE", "perm_replace_{{ .PublicId }}");'></i>
-						
-						<i id="perm_download_{{ .PublicId }}" class="bi bi-box-arrow-in-down {{if not .HasPermissionDownload}}perm-notgranted{{else}}perm-granted{{end}}" title="Download Files" onclick='changeApiPermission("{{ .PublicId }}","PERM_DOWNLOAD", "perm_download_{{ .PublicId }}");'></i>
-			
-						
-						<i id="perm_manage_file_requests_{{ .PublicId }}" class="bi bi-file-earmark-arrow-up {{if not (index $.UserMap .UserId).HasPermissionCreateFileRequests}}perm-unavailable perm-nochange{{ else }}{{if not .HasPermissionManageFileRequests}}perm-notgranted{{else}}perm-granted{{end}}{{end}}" title="Manage File Requests" onclick='changeApiPermission("{{ .PublicId }}","PERM_MANAGE_FILE_REQUESTS", "perm_manage_file_requests_{{ .PublicId }}");'></i>
-						
-						<i id="perm_users_{{ .PublicId }}" class="bi bi-people {{if not (index $.UserMap .UserId).HasPermissionManageUsers}}perm-unavailable perm-nochange{{ else }}{{if not .HasPermissionManageUsers}}perm-notgranted{{else}}perm-granted{{end}}{{end}}" title="Manage Users" onclick='changeApiPermission("{{ .PublicId }}","PERM_MANAGE_USERS", "perm_users_{{ .PublicId }}");'></i>
-						
-						<i id="perm_logs_{{ .PublicId }}" class="bi bi-card-list {{if not (index $.UserMap .UserId).HasPermissionManageLogs}}perm-unavailable perm-nochange{{ else }}{{if not .HasPermissionManageLogs}}perm-notgranted{{else}}perm-granted{{end}}{{end}}" title="Manage System Logs" onclick='changeApiPermission("{{ .PublicId }}","PERM_MANAGE_LOGS", "perm_logs_{{ .PublicId }}");'></i>
-						
-						<i id="perm_api_{{ .PublicId }}" class="bi bi-sliders2 {{if not .HasPermissionApiMod}}perm-notgranted{{else}}perm-granted{{end}}" title="Manage API Keys" onclick='changeApiPermission("{{ .PublicId }}","PERM_API_MOD", "perm_api_{{ .PublicId }}");'></i>
+						<i id="perm_view_{{ .PublicId }}" class="bi bi-eye {{if not .HasPermissionView}}perm-notgranted{{else}}perm-granted{{end}}" title="{{ $.Lang.T "apiperm_view" }}" onclick='changeApiPermission("{{ .PublicId }}","PERM_VIEW", "perm_view_{{ .PublicId }}");'></i>
+
+						<i id="perm_upload_{{ .PublicId }}" class="bi bi-file-earmark-plus {{if not .HasPermissionUpload}}perm-notgranted{{else}}perm-granted{{end}}" title="{{ $.Lang.T "apiperm_upload" }}" onclick='changeApiPermission("{{ .PublicId }}","PERM_UPLOAD", "perm_upload_{{ .PublicId }}");'></i>
+
+						<i id="perm_edit_{{ .PublicId }}" class="bi bi-pencil {{if not .HasPermissionEdit}}perm-notgranted{{else}}perm-granted{{end}}" title="{{ $.Lang.T "apiperm_edit" }}" onclick='changeApiPermission("{{ .PublicId }}","PERM_EDIT", "perm_edit_{{ .PublicId }}");'></i>
+
+						<i id="perm_delete_{{ .PublicId }}" class="bi bi-trash3 {{if not .HasPermissionDelete}}perm-notgranted{{else}}perm-granted{{end}}" title="{{ $.Lang.T "apiperm_delete" }}" onclick='changeApiPermission("{{ .PublicId }}","PERM_DELETE", "perm_delete_{{ .PublicId }}");'></i>
+
+
+						<i id="perm_replace_{{ .PublicId }}" class="bi bi-recycle {{if not (index $.UserMap .UserId).HasPermissionReplace}}perm-unavailable perm-nochange{{ else }}{{if not .HasPermissionReplace}}perm-notgranted{{else}}perm-granted{{end}}{{end}}" title="{{ $.Lang.T "apiperm_replace" }}" onclick='changeApiPermission("{{ .PublicId }}","PERM_REPLACE", "perm_replace_{{ .PublicId }}");'></i>
+
+						<i id="perm_download_{{ .PublicId }}" class="bi bi-box-arrow-in-down {{if not .HasPermissionDownload}}perm-notgranted{{else}}perm-granted{{end}}" title="{{ $.Lang.T "apiperm_download" }}" onclick='changeApiPermission("{{ .PublicId }}","PERM_DOWNLOAD", "perm_download_{{ .PublicId }}");'></i>
+
+
+						<i id="perm_manage_file_requests_{{ .PublicId }}" class="bi bi-file-earmark-arrow-up {{if not (index $.UserMap .UserId).HasPermissionCreateFileRequests}}perm-unavailable perm-nochange{{ else }}{{if not .HasPermissionManageFileRequests}}perm-notgranted{{else}}perm-granted{{end}}{{end}}" title="{{ $.Lang.T "apiperm_file_requests" }}" onclick='changeApiPermission("{{ .PublicId }}","PERM_MANAGE_FILE_REQUESTS", "perm_manage_file_requests_{{ .PublicId }}");'></i>
+
+						<i id="perm_users_{{ .PublicId }}" class="bi bi-people {{if not (index $.UserMap .UserId).HasPermissionManageUsers}}perm-unavailable perm-nochange{{ else }}{{if not .HasPermissionManageUsers}}perm-notgranted{{else}}perm-granted{{end}}{{end}}" title="{{ $.Lang.T "apiperm_users" }}" onclick='changeApiPermission("{{ .PublicId }}","PERM_MANAGE_USERS", "perm_users_{{ .PublicId }}");'></i>
+
+						<i id="perm_logs_{{ .PublicId }}" class="bi bi-card-list {{if not (index $.UserMap .UserId).HasPermissionManageLogs}}perm-unavailable perm-nochange{{ else }}{{if not .HasPermissionManageLogs}}perm-notgranted{{else}}perm-granted{{end}}{{end}}" title="{{ $.Lang.T "apiperm_logs" }}" onclick='changeApiPermission("{{ .PublicId }}","PERM_MANAGE_LOGS", "perm_logs_{{ .PublicId }}");'></i>
+
+						<i id="perm_api_{{ .PublicId }}" class="bi bi-sliders2 {{if not .HasPermissionApiMod}}perm-notgranted{{else}}perm-granted{{end}}" title="{{ $.Lang.T "apiperm_api" }}" onclick='changeApiPermission("{{ .PublicId }}","PERM_API_MOD", "perm_api_{{ .PublicId }}");'></i>
             				</td>
 {{ if $.ActiveUser.HasPermissionManageApi }}
             			 <td>{{(index $.UserMap .UserId).Name}}</td>
 {{ end }}
-                                <td><button id="delete-{{ .PublicId }}" type="button" class="btn btn-outline-danger btn-sm" onclick="deleteApiKey('{{ .PublicId }}')" title="Delete"><i class="bi bi-trash3"></i></button></td>
+                                <td><button id="delete-{{ .PublicId }}" type="button" class="btn btn-outline-danger btn-sm" onclick="deleteApiKey('{{ .PublicId }}')" title="{{ $.Lang.T "btn_delete" }}"><i class="bi bi-trash3"></i></button></td>
                             </tr>
 {{ end }}
                         </tbody>
@@ -104,7 +104,7 @@
                 </div>
             </div>
         </div>
-	<div id="toastnotification" class="toastnotification" data-default="API key copied to clipboard">Toast Text</div>
+	<div id="toastnotification" class="toastnotification" data-default="{{ .Lang.T "toast_api_key_copied" }}">Toast Text</div>
     </div>
 </div>
 <script src="./js/min/admin.min.{{ template "js_admin_version"}}.js"></script>
@@ -124,9 +124,9 @@
 	})();
 </script>
 
-        
+
 {{ template "pagename" "ApiOverview"}}
 {{ template "customjs" .}}
 
-{{ template "footer" true }}
+{{ template "footer_version" . }}
 {{ end }}

@@ -16,6 +16,16 @@ If you find a security vulnerability, please **do not** open a public issue. Ins
 - **Tests:** If you add a feature, please add a corresponding test in the relevant `_test.go` file.
 - **Documentation:** Update the `README.md` or `/docs` if you change application behaviours or procedures.
 
+## Translations
+Translations live in `internal/languages/translations/` as one JSON file per language, named after its ISO 639-1 code (e.g. `de.json`).
+
+- To add a language, copy `en.json`, set `language_name` to the name of the language in that language itself, and translate the values. Keys must stay unchanged.
+- Keep placeholders such as `{0}`, `_TOTAL_`, `_MAX_` and `{{filesize}}` intact — they are substituted at runtime.
+- A few values contain HTML. Keep the tags and any `id` attributes; translate only the surrounding text.
+- Partial translations are fine: missing or empty keys fall back to English, so no label will ever render blank.
+
+`en.json` is the source of truth. When you add a new user-facing string, add the key there — the other languages will fall back to it until they are updated. See the [Languages section](https://gokapi.readthedocs.io/en/latest/advanced.html#languages) of the documentation for more detail.
+
 ## Submitting a PR
 - Ensure your PR description follows our [PR Template](.github/PULL_REQUEST_TEMPLATE.md).
 - Keep PRs focused. If you have two unrelated fixes, please open two PRs.
