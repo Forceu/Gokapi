@@ -17,6 +17,8 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"path"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -35,6 +37,7 @@ import (
 	"github.com/forceu/gokapi/internal/storage"
 	"github.com/forceu/gokapi/internal/storage/filerequest"
 	"github.com/forceu/gokapi/internal/storage/presign"
+	"github.com/forceu/gokapi/internal/thumbnail"
 	"github.com/forceu/gokapi/internal/webserver/api"
 	"github.com/forceu/gokapi/internal/webserver/authentication"
 	"github.com/forceu/gokapi/internal/webserver/authentication/csrftoken"
@@ -109,6 +112,7 @@ func Start() {
 	mux.HandleFunc("/changePassword", requireLogin(changePassword, true, true))
 	mux.HandleFunc("/d", showDownload)
 	mux.HandleFunc("/downloadFile", downloadFile)
+	mux.HandleFunc("/thumbnail", downloadOGThumbnailImage)
 	mux.HandleFunc("/downloadPresigned", requireLogin(downloadPresigned, false, false))
 	mux.HandleFunc("/e2eSetup", requireLogin(showE2ESetup, true, false))
 	mux.HandleFunc("/error", showError)
@@ -552,6 +556,51 @@ type LoginView struct {
 	CustomContent  customStatic
 }
 
+func formatAvailability(expiryUnix int64) string {
+	now := time.Now().UTC()
+	expiry := time.Unix(expiryUnix, 0).UTC()
+
+	if expiry.Before(now) {
+		return "expired"
+	}
+
+	diff := expiry.Sub(now)
+
+	minute := time.Minute
+	hour := time.Hour
+	day := 24 * hour
+	week := 7 * day
+	month := 4 * week
+
+	switch {
+	case diff >= month:
+		m := int(diff / month)
+		return pluralize(m, "month")
+	case diff >= week:
+		w := int(diff / week)
+		return pluralize(w, "week")
+	case diff >= day:
+		d := int(diff / day)
+		return pluralize(d, "day")
+	case diff >= hour:
+		h := int(diff / hour)
+		return pluralize(h, "hour")
+	default:
+		m := int(diff / minute)
+		if m < 1 {
+			m = 1
+		}
+		return pluralize(m, "minute")
+	}
+}
+
+func pluralize(value int, unit string) string {
+	if value == 1 {
+		return fmt.Sprintf("1 %s", unit)
+	}
+	return fmt.Sprintf("%d %ss", value, unit)
+}
+
 // Handling of /d
 // Checks if a file exists for the submitted ID
 // If it exists, a download form is shown, or a password needs to be entered.
@@ -566,6 +615,8 @@ func showDownload(w http.ResponseWriter, r *http.Request) {
 
 	config := configuration.Get()
 
+	ogThumbnailURL := path.Join(config.ServerUrl, "thumbnail") + "?id=" + keyId
+
 	view := DownloadView{
 		Name:               file.Name,
 		Size:               file.Size,
@@ -576,6 +627,8 @@ func showDownload(w http.ResponseWriter, r *http.Request) {
 		BaseUrl:            config.ServerUrl,
 		IsFailedLogin:      false,
 		UsesHttps:          configuration.UsesHttps(),
+		AvailableForString: formatAvailability(file.ExpireAt),
+		OGThumbnailURL:     ogThumbnailURL,
 		CustomContent:      customStaticInfo,
 	}
 
@@ -734,6 +787,8 @@ type DownloadView struct {
 	EndToEndEncryption   bool
 	UsesHttps            bool
 	CustomContent        customStatic
+	AvailableForString   string
+	OGThumbnailURL       string
 }
 
 type e2ESetupView struct {
@@ -1033,6 +1088,74 @@ func downloadFileWithNameInUrl(w http.ResponseWriter, r *http.Request) {
 func downloadFile(w http.ResponseWriter, r *http.Request) {
 	id := queryUrl(w, r, "id", errorHandling.TypeFileNotFound)
 	serveFile(id, true, w, r)
+}
+
+type inMemoryResponseWriter struct {
+	buf       *bytes.Buffer
+	headerMap http.Header
+}
+
+func (i *inMemoryResponseWriter) Header() http.Header {
+	return i.headerMap
+}
+
+func (i *inMemoryResponseWriter) Write(b []byte) (int, error) {
+	return i.buf.Write(b)
+}
+
+func (i *inMemoryResponseWriter) WriteHeader(_ int) {
+	// noop
+}
+
+func newInMemoryResponseWriter() *inMemoryResponseWriter {
+	return &inMemoryResponseWriter{
+		buf:       &bytes.Buffer{},
+		headerMap: make(http.Header),
+	}
+}
+
+// Handling of /thumbnail
+// Outputs the thumbnail file to the user if it is an image but scales it down
+func downloadOGThumbnailImage(w http.ResponseWriter, r *http.Request) {
+	id := queryUrl(w, r, "id", errorHandling.TypeFileNotFound)
+
+	addNoCacheHeader(w)
+	savedFile, ok := storage.GetFile(id)
+
+	supportedThumbnailContentTypes := []string{
+		"image/jpeg",
+		"image/jpg",
+		"image/png",
+	}
+
+	if savedFile.SizeBytes > 20*1024*1024 || !slices.Contains(supportedThumbnailContentTypes, savedFile.ContentType) {
+		// TODO no image
+		return
+	}
+
+	wInMem := newInMemoryResponseWriter()
+
+	if !ok || savedFile.IsFileRequest() {
+		redirectOnIncorrectId(w, r, "../../error")
+		return
+	}
+	if savedFile.PasswordHash != "" {
+		if !(isValidPwCookie(r, savedFile)) {
+			redirect(w, r, "../../d?id="+savedFile.Id)
+			return
+		}
+	}
+	storage.ServeFile(savedFile, wInMem, r, true, false, false)
+
+	err := thumbnail.ProcessMinify(wInMem.buf, w)
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte("could not load thumbnail image"))
+		return
+	}
+
+	w.Header().Set("Content-Type", "image/jpeg")
 }
 
 // Handling of /downloadPresigned
