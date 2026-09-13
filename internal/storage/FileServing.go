@@ -100,8 +100,6 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, userId int
 
 	if !fileWithHashExists {
 		if tempFile != nil {
-			err = tempFile.Close()
-			helper.Check(err)
 			err = os.Rename(tempFile.Name(), dataDir+"/"+file.SHA1)
 			helper.Check(err)
 			hasBeenRenamed = true
@@ -120,6 +118,53 @@ func NewFile(fileContent io.Reader, fileHeader *multipart.FileHeader, userId int
 	}
 	database.SaveMetaData(file)
 	return file, nil
+}
+
+// NewPaste creates a new file as a paste in the system. Deduplication is disabled for pastes,
+// therefore a random string is used as the hash instead of a content hash.
+func NewPaste(content []byte, title string, userId int, uploadRequest models.UploadParameters) (models.File, error) {
+	syntheticHeader := &multipart.FileHeader{Size: int64(len(content))}
+	var hasBeenRenamed bool
+	reader, _, tempFile, encInfo := generateHashAndEncrypt(bytes.NewReader(content), syntheticHeader)
+	defer deleteTempFile(tempFile, &hasBeenRenamed)
+
+	hash := "paste-" + helper.GenerateRandomString(30)
+	metaData := createNewMetaData(hash, chunking.FileHeader{
+		Filename:    title,
+		Size:        int64(len(content)),
+		ContentType: "text/plain; charset=utf-8",
+	}, userId, uploadRequest)
+	metaData.Encryption = encInfo
+	dataDir := configuration.Get().DataDir
+
+	if !metaData.IsLocalStorage() {
+		_, err := aws.Upload(reader, metaData)
+		if err != nil {
+			return models.File{}, err
+		}
+		database.SaveMetaData(metaData)
+		return metaData, nil
+	}
+
+	if tempFile != nil {
+		err := os.Rename(tempFile.Name(), dataDir+"/"+metaData.SHA1)
+		if err != nil {
+			return models.File{}, err
+		}
+		hasBeenRenamed = true
+	} else {
+		destinationFile, err := os.OpenFile(dataDir+"/"+metaData.SHA1, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+		if err != nil {
+			return models.File{}, err
+		}
+		defer destinationFile.Close()
+		_, err = io.Copy(destinationFile, reader)
+		if err != nil {
+			return models.File{}, err
+		}
+	}
+	database.SaveMetaData(metaData)
+	return metaData, nil
 }
 
 // isAllowedFileSize returns true if the file is not greater than the allowed filesize
@@ -248,7 +293,6 @@ func getChunkFileHash(file *os.File, isEndToEndEncryted bool) (string, error) {
 }
 
 func encryptChunkFile(file *os.File, metadata *models.File) (*os.File, error) {
-
 	var removeTempFiles = func() {
 		err := file.Close()
 		if err != nil {
@@ -311,6 +355,7 @@ func createNewMetaData(hash string, fileHeader chunking.FileHeader, userId int, 
 		UnlimitedDownloads: params.UnlimitedDownload,
 		PasswordHash:       configuration.HashPassword(params.Password, false, ""),
 		UserId:             userId,
+		IsPaste:            params.IsPaste,
 		UploadRequestId:    params.FileRequestId,
 	}
 	if params.IsEndToEndEncrypted {
@@ -349,9 +394,12 @@ func getEncInfoFromExistingFile(hash string) (models.EncryptionInfo, bool) {
 }
 
 func deleteTempFile(file *os.File, hasBeenRenamed *bool) {
-	if file != nil && !*hasBeenRenamed {
-		err := file.Close()
-		helper.Check(err)
+	if file == nil {
+		return
+	}
+	err := file.Close()
+	helper.Check(err)
+	if !*hasBeenRenamed {
 		err = os.Remove(file.Name())
 		helper.Check(err)
 	}
@@ -449,6 +497,7 @@ func hashFile(input io.Reader, useSalt bool) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	//TODO replace with HMAC
 	if useSalt {
 		hash.Write([]byte(configuration.Get().Authentication.SaltFiles))
 	}
@@ -618,9 +667,9 @@ func GetFileByHotlink(id string) (models.File, bool) {
 	return GetFile(fileId)
 }
 
-// ServeFile subtracts a download allowance and serves the file to the browser
-// Returns false if the file expired during the request (most likely race condition due to parallel downloads, requires recheckExpiry)
-func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDownload, increaseCounter, forceDecryption, recheckExpiry bool) bool {
+// tryAcquireDownload locks the file and subtracts a download allowance.
+// Returns (file, true) if the file is valid and the download is allowed, (file, false) if the file is expired or the download is not allowed
+func tryAcquireDownload(file models.File, recheckExpiry, increaseCounter bool) (models.File, bool) {
 	apimutex.Lock(apimutex.TypeMetaData, file.Id)
 	if recheckExpiry {
 		if !file.UnlimitedDownloads {
@@ -628,7 +677,7 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 		}
 		if IsExpiredFile(file, time.Now().Unix()) {
 			apimutex.Unlock(apimutex.TypeMetaData, file.Id)
-			return false
+			return file, false
 		}
 	}
 	if increaseCounter {
@@ -638,9 +687,24 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 		go sse.PublishDownloadCount(file)
 	}
 	apimutex.Unlock(apimutex.TypeMetaData, file.Id)
+	return file, true
+}
 
+func publishDownloadStatistics(file models.File, r *http.Request) {
 	logging.LogDownload(file, r, configuration.Get().SaveIp)
 	go serverstats.AddTraffic(uint64(file.SizeBytes))
+}
+
+// ServeFile subtracts a download allowance and serves the file to the browser
+// Returns false if the file expired during the request (most likely race condition due to parallel downloads, requires recheckExpiry)
+func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDownload, increaseCounter, forceDecryption, recheckExpiry bool) bool {
+	var isAllowed bool
+	file, isAllowed = tryAcquireDownload(file, recheckExpiry, increaseCounter)
+	if !isAllowed {
+		return false
+	}
+
+	publishDownloadStatistics(file, r)
 
 	if !file.IsLocalStorage() {
 		// If non-blocking, we are not setting a download complete status as there is no reliable way to
@@ -683,6 +747,31 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 	return true
 }
 
+var ErrFileExpired = errors.New("file has expired")
+
+// ServePaste subtracts a download allowance and returns the Paste content
+// Returns false if the file expired during the request (most likely race condition due to parallel downloads, requires recheckExpiry)
+func ServePaste(file models.File, r *http.Request, increaseCounter, recheckExpiry bool) (string, error) {
+	var isAllowed bool
+	file, isAllowed = tryAcquireDownload(file, recheckExpiry, increaseCounter)
+	if !isAllowed {
+		return "", ErrFileExpired
+	}
+
+	publishDownloadStatistics(file, r)
+
+	fileHandler, _, err := getFileHandler(file, configuration.Get().DataDir)
+	defer fileHandler.Close()
+	if err != nil {
+		return "", err
+	}
+	content, err := io.ReadAll(fileHandler)
+	if err != nil {
+		return "", err
+	}
+	return string(content), nil
+}
+
 // Returns the filename if unique or a new filename in the format "Name (x).ext"
 func makeFilenameUnique(filename string, nameMap *map[string]bool) string {
 	ext := filepath.Ext(filename)
@@ -713,7 +802,6 @@ func ServeFilesAsZip(files []models.File, filename string, w http.ResponseWriter
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s.zip\"", filename))
 	w.WriteHeader(http.StatusOK)
 
-	saveIp := configuration.Get().SaveIp
 	zipWriter := zip.NewWriter(w)
 	defer zipWriter.Close()
 	filenames := make(map[string]bool)
@@ -726,8 +814,7 @@ func ServeFilesAsZip(files []models.File, filename string, w http.ResponseWriter
 		}
 		entryWriter, err := zipWriter.CreateHeader(header)
 		helper.Check(err)
-		logging.LogDownload(file, r, saveIp)
-		go serverstats.AddTraffic(uint64(file.SizeBytes))
+		publishDownloadStatistics(file, r)
 		if !file.IsLocalStorage() {
 			statusId := downloadstatus.SetDownload(file)
 			err = aws.Stream(entryWriter, file)

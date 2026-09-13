@@ -4,13 +4,14 @@ package models
 type UploadParameters struct {
 	UserId              int
 	AllowedDownloads    int
-	Expiry              int
+	ExpiryDays          int
 	MaxMemory           int
 	ExpiryTimestamp     int64
 	RealSize            int64
 	UnlimitedDownload   bool
 	UnlimitedTime       bool
 	IsEndToEndEncrypted bool
+	IsPaste             bool
 	Password            string
 	ExternalUrl         string
 	FileRequestId       string

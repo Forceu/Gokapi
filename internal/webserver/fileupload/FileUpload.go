@@ -133,7 +133,7 @@ func CreateUploadConfig(allowedDownloads, expiryDays int, password string, unlim
 	settings := configuration.Get()
 	return models.UploadParameters{
 		AllowedDownloads:    allowedDownloads,
-		Expiry:              expiryDays,
+		ExpiryDays:          expiryDays,
 		ExpiryTimestamp:     time.Now().Add(time.Duration(expiryDays) * time.Hour * 24).Unix(),
 		Password:            password,
 		ExternalUrl:         settings.ServerUrl,
@@ -161,7 +161,7 @@ func parseConfig(values formOrHeader) (models.UploadParameters, error) {
 	}
 	expiryDaysInt, err := strconv.Atoi(expiryDays)
 	if err != nil {
-		expiryDaysInt = 14
+		expiryDaysInt = 0
 	}
 
 	unlimitedDownload := values.Get("isUnlimitedDownload") == "true"

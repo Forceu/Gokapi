@@ -79,6 +79,7 @@
           <h1>{{.PublicName}}</h1>
           <nav class="nav nav-masthead justify-content-center">
             <a class="nav-link {{ if eq .ActiveView 0}}active{{ end }}" href="./admin">Upload</a>
+            <a class="nav-link {{ if eq .ActiveView 5 }}active{{ end }}" href="./paste">Paste</a>
             {{ if .ActiveUser.HasPermissionCreateFileRequests }}
             <a class="nav-link {{ if eq .ActiveView 4 }}active{{ end }}" href="./filerequests">File Requests</a>
             {{ end }}

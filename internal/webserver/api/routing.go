@@ -99,6 +99,12 @@ var routes = []apiRoute{
 		RequestParser: &paramFilesAdd{},
 	},
 	{
+		Url:           "/files/addPaste",
+		ApiPerm:       models.ApiPermUpload,
+		execution:     apiPasteAdd,
+		RequestParser: &paramPasteAdd{},
+	},
+	{
 		Url:           "/files/delete",
 		ApiPerm:       models.ApiPermDelete,
 		execution:     apiDeleteFile,
@@ -327,14 +333,13 @@ func (p *paramFilesListSingle) ProcessParameter(r *http.Request) error {
 
 type paramFilesDownloadSingle struct {
 	Id              string
-	WebRequest      *http.Request
-	IncreaseCounter bool `header:"increaseCounter"`
-	PresignUrl      bool `header:"presignUrl"`
+	WebRequest      *http.Request `isHttpRequest:"true"`
+	IncreaseCounter bool          `header:"increaseCounter"`
+	PresignUrl      bool          `header:"presignUrl"`
 	foundHeaders    map[string]bool
 }
 
 func (p *paramFilesDownloadSingle) ProcessParameter(r *http.Request) error {
-	p.WebRequest = r
 	url := parseRequestUrl(r)
 	p.Id = strings.TrimPrefix(url, "/files/download/")
 	return nil
@@ -342,11 +347,11 @@ func (p *paramFilesDownloadSingle) ProcessParameter(r *http.Request) error {
 
 type paramFilesDownloadZip struct {
 	Ids             []string
-	WebRequest      *http.Request
-	FileIds         string `header:"ids" required:"true"`
-	Filename        string `header:"filename" supportBase64:"true"`
-	IncreaseCounter bool   `header:"increaseCounter"`
-	PresignUrl      bool   `header:"presignUrl"`
+	FileIds         string        `header:"ids" required:"true"`
+	Filename        string        `header:"filename" supportBase64:"true"`
+	IncreaseCounter bool          `header:"increaseCounter"`
+	PresignUrl      bool          `header:"presignUrl"`
+	WebRequest      *http.Request `isHttpRequest:"true"`
 	foundHeaders    map[string]bool
 }
 
@@ -359,11 +364,28 @@ func (p *paramFilesDownloadZip) ProcessParameter(r *http.Request) error {
 }
 
 type paramFilesAdd struct {
-	Request *http.Request
+	Request *http.Request `isHttpRequest:"true"`
 }
 
-func (p *paramFilesAdd) ProcessParameter(r *http.Request) error {
-	p.Request = r
+func (p *paramFilesAdd) ProcessParameter(_ *http.Request) error {
+	return nil
+}
+
+type paramPasteAdd struct {
+	// PasteContent max size 10MB, must never be more than 2048
+	PasteContent       string `postForm:"pasteContent" required:"true" maxPostMb:"10"`
+	Title              string `postForm:"title"`
+	AllowedDownloads   int    `postForm:"allowedDownloads"`
+	ExpiryDays         int    `postForm:"expiryDays"`
+	Password           string `postForm:"password"`
+	IsEndToEnd         bool   `postForm:"isEndToEnd" unpublished:"true"` // not published in API documentation
+	UnlimitedDownloads bool
+	UnlimitedExpiry    bool
+}
+
+func (p *paramPasteAdd) ProcessParameter(r *http.Request) error {
+	p.UnlimitedExpiry = p.ExpiryDays == 0
+	p.UnlimitedDownloads = p.AllowedDownloads == 0
 	return nil
 }
 
@@ -624,13 +646,12 @@ func (p *paramE2eStore) ProcessParameter(r *http.Request) error {
 }
 
 type paramLogsDelete struct {
-	Timestamp    int64 `header:"timestamp"`
-	Request      *http.Request
+	Timestamp    int64         `header:"timestamp"`
+	Request      *http.Request `isHttpRequest:"true"`
 	foundHeaders map[string]bool
 }
 
-func (p *paramLogsDelete) ProcessParameter(r *http.Request) error {
-	p.Request = r
+func (p *paramLogsDelete) ProcessParameter(_ *http.Request) error {
 	return nil
 }
 
@@ -644,11 +665,10 @@ func (p *paramLogsGet) ProcessParameter(_ *http.Request) error {
 }
 
 type paramChunkAdd struct {
-	Request *http.Request
+	Request *http.Request `isHttpRequest:"true"`
 }
 
-func (p *paramChunkAdd) ProcessParameter(r *http.Request) error {
-	p.Request = r
+func (p *paramChunkAdd) ProcessParameter(_ *http.Request) error {
 	return nil
 }
 
@@ -657,13 +677,13 @@ func (p *paramChunkAdd) GetRequest() *http.Request {
 }
 
 type paramChunkUploadRequestAdd struct {
-	Request       *http.Request
-	FileRequestId string `header:"fileRequestId" required:"true"`
+	Request       *http.Request `isHttpRequest:"true"`
+	FileRequestId string        `header:"fileRequestId" required:"true"`
+	ApiKey        string        `header:"apikey" unpublished:"true"` // not published in API documentation
 	foundHeaders  map[string]bool
 }
 
-func (p *paramChunkUploadRequestAdd) ProcessParameter(r *http.Request) error {
-	p.Request = r
+func (p *paramChunkUploadRequestAdd) ProcessParameter(_ *http.Request) error {
 	return nil
 }
 func (p *paramChunkUploadRequestAdd) GetRequest() *http.Request {

@@ -173,7 +173,7 @@ func createRawTestFile(content []byte) (multipart.FileHeader, models.UploadParam
 	}
 	request := models.UploadParameters{
 		AllowedDownloads: 1,
-		Expiry:           999,
+		ExpiryDays:       999,
 		ExpiryTimestamp:  2147483600,
 		MaxMemory:        10,
 	}
@@ -264,7 +264,7 @@ func TestNewFile(t *testing.T) {
 	}
 	request = models.UploadParameters{
 		AllowedDownloads: 1,
-		Expiry:           999,
+		ExpiryDays:       999,
 		ExpiryTimestamp:  2147483600,
 		MaxMemory:        10,
 	}
@@ -297,7 +297,7 @@ func TestNewFile(t *testing.T) {
 	}
 	request = models.UploadParameters{
 		AllowedDownloads: 1,
-		Expiry:           999,
+		ExpiryDays:       999,
 		ExpiryTimestamp:  2147483600,
 		MaxMemory:        10,
 	}
@@ -355,7 +355,7 @@ func TestNewFile(t *testing.T) {
 		}
 		request = models.UploadParameters{
 			AllowedDownloads: 1,
-			Expiry:           999,
+			ExpiryDays:       999,
 			ExpiryTimestamp:  2147483600,
 			MaxMemory:        10,
 		}
@@ -478,7 +478,7 @@ func TestDuplicateFile(t *testing.T) {
 
 	uploadRequest := models.UploadParameters{
 		AllowedDownloads:  5,
-		Expiry:            5,
+		ExpiryDays:        5,
 		ExpiryTimestamp:   200000,
 		Password:          "1234",
 		UnlimitedDownload: true,

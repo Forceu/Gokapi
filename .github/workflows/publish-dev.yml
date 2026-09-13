@@ -1,4 +1,4 @@
-name: Build Core Docker - Custom Dev 
+name: Build Core Docker - Dev Release
 
 on:
   workflow_dispatch:

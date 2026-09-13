@@ -102,12 +102,14 @@ func Start() {
 	loadExpiryImage()
 
 	mux.Handle("/", filesystemHandler(webserverDir))
-	mux.HandleFunc("/auth/token", requireLogin(handleGenerateAuthToken, false, false))
 	mux.HandleFunc("/admin", requireLogin(showAdminMenu, true, false))
 	mux.HandleFunc("/api/", processApi)
 	mux.HandleFunc("/apiKeys", requireLogin(showApiAdmin, true, false))
+	mux.HandleFunc("/auth/token", requireLogin(handleGenerateAuthToken, false, false))
 	mux.HandleFunc("/changePassword", requireLogin(changePassword, true, true))
 	mux.HandleFunc("/d", showDownload)
+	mux.HandleFunc("/d/{id}/{filename}", redirectFromFilename)
+	mux.HandleFunc("/dh/{id}/{filename}", downloadFileWithNameInUrl)
 	mux.HandleFunc("/downloadFile", downloadFile)
 	mux.HandleFunc("/downloadPresigned", requireLogin(downloadPresigned, false, false))
 	mux.HandleFunc("/e2eSetup", requireLogin(showE2ESetup, true, false))
@@ -118,16 +120,16 @@ func Start() {
 	mux.HandleFunc("/hotlink/", showHotlink) // backward compatibility
 	mux.HandleFunc("/index", showIndex)
 	mux.HandleFunc("/login", showLogin)
-	mux.HandleFunc("/logs", requireLogin(showLogs, true, false))
 	mux.HandleFunc("/logout", doLogout)
+	mux.HandleFunc("/logs", requireLogin(showLogs, true, false))
+	mux.HandleFunc("/paste", requireLogin(showPaste, true, false))
 	mux.HandleFunc("/publicUpload", showPublicUpload)
 	mux.HandleFunc("/uploadChunk", requireLogin(uploadChunk, false, false))
 	mux.HandleFunc("/uploadStatus", requireLogin(sse.GetStatusSSE, false, false))
 	mux.HandleFunc("/users", requireLogin(showUserAdmin, true, false))
+	mux.HandleFunc("/view", showPasteContent)
 	mux.Handle("/main.wasm", gziphandler.GzipHandler(http.HandlerFunc(serveDownloadWasm)))
 	mux.Handle("/e2e.wasm", gziphandler.GzipHandler(http.HandlerFunc(serveE2EWasm)))
-	mux.HandleFunc("/d/{id}/{filename}", redirectFromFilename)
-	mux.HandleFunc("/dh/{id}/{filename}", downloadFileWithNameInUrl)
 
 	addMuxForCustomContent(mux)
 
@@ -435,6 +437,18 @@ func showUploadRequest(w http.ResponseWriter, r *http.Request) {
 	helper.CheckIgnoreTimeout(err)
 }
 
+// Handling of /paste
+// Lists existing pastes for the current user and provides the paste creation UI
+func showPaste(w http.ResponseWriter, r *http.Request) {
+	user, err := authentication.GetUserFromRequest(r)
+	if err != nil {
+		panic(err)
+	}
+	view := (&AdminView{}).convertGlobalConfig(ViewPaste, user)
+	err = templateFolder.ExecuteTemplate(w, "paste", view)
+	helper.CheckIgnoreTimeout(err)
+}
+
 // Handling of /api
 // If the user is authenticated, this menu lists all uploads and enables uploading new files
 func showApiAdmin(w http.ResponseWriter, r *http.Request) {
@@ -552,6 +566,57 @@ type LoginView struct {
 	CustomContent  customStatic
 }
 
+// requirePasswordView checks if it is required to display the password view for this file.
+// If a password needs to be entered, isRequired will be true and showPasswordView() must be called
+// redirectRequired is true if a correct password was entered, but a redirect is required to prevent
+// a confirmation dialog when refreshing the page
+func requirePasswordView(file models.File, w http.ResponseWriter, r *http.Request) (isRequired, isIncorrectAttempt bool) {
+	if file.PasswordHash == "" {
+		return false, false
+	}
+	if isValidPwCookie(r, file) {
+		return false, false
+	}
+	_ = r.ParseForm()
+	enteredPassword := r.PostForm.Get("password")
+	if enteredPassword == "" {
+		return true, false
+	}
+
+	ip := logging.GetIpAddress(r)
+	ratelimiter.WaitOnDownloadPassword(ip)
+
+	isValid, isLegacy := configuration.VerifyPassword(enteredPassword, file.PasswordHash, configuration.Get().Authentication.SaltFiles)
+	if isValid {
+		// Migrate legacy passwords to the new format
+		// Will be removed in the future
+		if isLegacy {
+			file.PasswordHash = configuration.HashPassword(enteredPassword, false, "")
+			database.SaveMetaData(file)
+		}
+		writeFilePwCookie(w, file)
+		return false, false
+	}
+	return true, true
+}
+
+func showPasswordView(file models.File, w http.ResponseWriter, wasIncorrectAttempt bool) {
+	config := configuration.Get()
+	view := DownloadView{
+		Id:             file.Id,
+		IsDownloadView: true,
+		IsPasswordView: true,
+		IsPaste:        file.IsPaste,
+		PublicName:     config.PublicName,
+		BaseUrl:        config.ServerUrl,
+		IsFailedLogin:  wasIncorrectAttempt,
+		UsesHttps:      configuration.UsesHttps(),
+		CustomContent:  customStaticInfo,
+	}
+	err := templateFolder.ExecuteTemplate(w, "download_password", view)
+	helper.CheckIgnoreTimeout(err)
+}
+
 // Handling of /d
 // Checks if a file exists for the submitted ID
 // If it exists, a download form is shown, or a password needs to be entered.
@@ -559,7 +624,7 @@ func showDownload(w http.ResponseWriter, r *http.Request) {
 	addNoCacheHeader(w)
 	keyId := queryUrl(w, r, "id", errorHandling.TypeFileNotFound)
 	file, ok := storage.GetFile(keyId)
-	if !ok || file.IsFileRequest() {
+	if !ok || file.IsFileRequest() || file.IsPaste {
 		redirectOnIncorrectId(w, r, "error")
 		return
 	}
@@ -588,40 +653,56 @@ func showDownload(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if file.PasswordHash != "" && !isValidPwCookie(r, file) {
-		_ = r.ParseForm()
-		enteredPassword := r.PostForm.Get("password")
-		if enteredPassword == "" {
-			view.IsPasswordView = true
-			err := templateFolder.ExecuteTemplate(w, "download_password", view)
-			helper.CheckIgnoreTimeout(err)
-			return
-		}
-
-		ip := logging.GetIpAddress(r)
-		ratelimiter.WaitOnDownloadPassword(ip)
-
-		isValid, isLegacy := configuration.VerifyPassword(enteredPassword, file.PasswordHash, configuration.Get().Authentication.SaltFiles)
-		if isValid {
-			// Migrate legacy passwords to the new format
-			// Will be removed in the future
-			if isLegacy {
-				file.PasswordHash = configuration.HashPassword(enteredPassword, false, "")
-				database.SaveMetaData(file)
-			}
-			writeFilePwCookie(w, file)
-			// redirect so that there is no post data to be resent if user refreshes page
-			redirect(w, r, "d?id="+file.Id)
-			return
-		}
-		view.IsFailedLogin = true
-		view.IsPasswordView = true
-		err := templateFolder.ExecuteTemplate(w, "download_password", view)
-		helper.CheckIgnoreTimeout(err)
+	isPwRequired, isIncorrectAttempt := requirePasswordView(file, w, r)
+	if isPwRequired {
+		showPasswordView(file, w, isIncorrectAttempt)
 		return
 	}
 
 	err := templateFolder.ExecuteTemplate(w, "download", view)
+	helper.CheckIgnoreTimeout(err)
+}
+
+// Handling of /view
+// Hotlinks an image or returns a static error image if image has expired
+func showPasteContent(w http.ResponseWriter, r *http.Request) {
+	addNoCacheHeader(w)
+	keyId := queryUrl(w, r, "id", errorHandling.TypeFileNotFound)
+	file, ok := storage.GetFile(keyId)
+	if !ok || !file.IsPaste {
+		redirectOnIncorrectId(w, r, "error")
+		return
+	}
+
+	isPwRequired, isIncorrectAttempt := requirePasswordView(file, w, r)
+	if isPwRequired {
+		showPasswordView(file, w, isIncorrectAttempt)
+		return
+	}
+
+	content, err := storage.ServePaste(file, r, true, true)
+	if err != nil {
+		if !errors.Is(err, storage.ErrFileExpired) {
+			fmt.Println("Error serving paste content: " + err.Error())
+			redirectOnIncorrectId(w, r, "error")
+			return
+		}
+	}
+
+	config := configuration.Get()
+	err = templateFolder.ExecuteTemplate(w, "paste_view", pasteDisplayView{
+		IsAdminView:    false,
+		IsDownloadView: true,
+		BaseUrl:        config.ServerUrl,
+		PublicName:     config.PublicName,
+		PasteContent:   content,
+		Name:           file.Name,
+		Size:           file.Size,
+		Id:             file.Id,
+		Cipher:         file.Encryption.DecryptionKey,
+		IsPasswordView: false,
+		CustomContent:  customStatic{},
+	})
 	helper.CheckIgnoreTimeout(err)
 }
 
@@ -632,7 +713,7 @@ func showHotlink(w http.ResponseWriter, r *http.Request) {
 	hotlinkId = strings.Replace(hotlinkId, "/h/", "", 1)
 	addNoCacheHeader(w)
 	file, ok := storage.GetFileByHotlink(hotlinkId)
-	if !ok || file.IsFileRequest() {
+	if !ok || file.IsFileRequest() || file.IsPaste {
 		w.Header().Set("Content-Type", "image/svg+xml")
 		_, _ = w.Write(imageExpiredPicture)
 		return
@@ -733,6 +814,7 @@ type DownloadView struct {
 	ClientSideDecryption bool
 	EndToEndEncryption   bool
 	UsesHttps            bool
+	IsPaste              bool
 	CustomContent        customStatic
 }
 
@@ -747,6 +829,7 @@ type e2ESetupView struct {
 // AdminView contains parameters for all admin-related pages
 type AdminView struct {
 	Items                 []models.FileApiOutput
+	Pastes                []models.FileApiOutput
 	ApiKeys               []models.ApiKey
 	Users                 []userInfo
 	FileRequests          []models.FileRequest
@@ -810,6 +893,8 @@ const (
 	ViewUsers
 	// ViewFileRequests is the identifier for the file request menu
 	ViewFileRequests
+	// ViewPaste is the identifier for the paste menu
+	ViewPaste
 )
 
 // Converts the globalConfig variable to an AdminView struct to pass the infos to
@@ -826,6 +911,9 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 	switch view {
 	case ViewMain:
 		for _, element := range database.GetAllMetadata() {
+			if element.IsFileRequest() || element.IsPaste {
+				continue
+			}
 			if element.UserId != user.Id && !user.HasPermissionListOtherUploads() {
 				continue
 			}
@@ -871,6 +959,19 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 			}
 			u.Users = append(u.Users, userWithUploads)
 		}
+	case ViewPaste:
+		for _, element := range database.GetAllMetadata() {
+			if !element.IsPaste {
+				continue
+			}
+			if element.UserId != user.Id && !user.HasPermissionListOtherUploads() {
+				continue
+			}
+			fileInfo, err := element.ToFileApiOutput(config.ServerUrl, config.IncludeFilename)
+			helper.Check(err)
+			u.Pastes = append(u.Pastes, fileInfo)
+		}
+		u.Pastes = sortMetaDataApi(u.Pastes)
 	case ViewFileRequests:
 		for _, fileRequest := range filerequest.GetAll() {
 			// Double-checking if the owner of the file request exists
@@ -1073,7 +1174,7 @@ func serveFile(id string, isRootUrl bool, w http.ResponseWriter, r *http.Request
 	addNoCacheHeader(w)
 	savedFile, ok := storage.GetFile(id)
 
-	if !ok || savedFile.IsFileRequest() {
+	if !ok || savedFile.IsFileRequest() || savedFile.IsPaste {
 		if isRootUrl {
 			redirectOnIncorrectId(w, r, "error")
 		} else {
@@ -1193,18 +1294,6 @@ type genericView struct {
 	CustomContent     customStatic
 }
 
-// A view containing parameters for an oauth error
-type oauthErrorView struct {
-	IsAdminView          bool
-	IsDownloadView       bool
-	PublicName           string
-	IsAuthDenied         bool
-	ErrorGenericMessage  string
-	ErrorProvidedName    string
-	ErrorProvidedMessage string
-	CustomContent        customStatic
-}
-
 // A view containing parameters for the public upload page
 type publicUploadView struct {
 	IsAdminView    bool
@@ -1214,4 +1303,20 @@ type publicUploadView struct {
 	MaxServerSize  int
 	CustomContent  customStatic
 	FileRequest    *models.FileRequest
+}
+
+// A view containing parameters for the public upload page
+type pasteDisplayView struct {
+	IsAdminView        bool
+	IsDownloadView     bool
+	EndToEndEncryption bool
+	BaseUrl            string
+	PublicName         string
+	PasteContent       string
+	Name               string
+	Size               string
+	Id                 string
+	Cipher             []byte
+	IsPasswordView     bool
+	CustomContent      customStatic
 }

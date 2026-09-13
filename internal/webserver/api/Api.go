@@ -686,6 +686,34 @@ func createAndOutputPresignedUrl(ids []string, w http.ResponseWriter, filename s
 	_, _ = w.Write(result)
 }
 
+func apiPasteAdd(w http.ResponseWriter, r requestParser, user models.User, _ models.ApiKey) {
+	request, ok := r.(*paramPasteAdd)
+	if !ok {
+		panic("invalid parameter passed")
+	}
+	if request.Title == "" {
+		request.Title = "Untitled Paste"
+	}
+	file, err := storage.NewPaste([]byte(request.PasteContent), request.Title, user.Id, models.UploadParameters{
+		UserId:              user.Id,
+		AllowedDownloads:    request.AllowedDownloads,
+		ExpiryDays:          request.ExpiryDays,
+		ExpiryTimestamp:     time.Now().Add(time.Duration(request.ExpiryDays) * time.Hour * 24).Unix(),
+		MaxMemory:           configuration.Get().MaxMemory,
+		UnlimitedDownload:   request.UnlimitedDownloads,
+		UnlimitedTime:       request.UnlimitedExpiry,
+		IsEndToEndEncrypted: request.IsEndToEnd,
+		IsPaste:             true,
+		Password:            request.Password,
+		ExternalUrl:         configuration.Get().ServerUrl,
+	})
+	if err != nil {
+		sendError(w, http.StatusBadRequest, errorcodes.UnspecifiedError, err.Error())
+		return
+	}
+	outputFileApiInfo(w, file)
+}
+
 func apiUploadFile(w http.ResponseWriter, r requestParser, user models.User, _ models.ApiKey) {
 	request, ok := r.(*paramFilesAdd)
 	if !ok {
