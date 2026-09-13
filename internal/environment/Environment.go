@@ -77,6 +77,10 @@ type Environment struct {
 	UseCloudFlare bool `env:"USE_CLOUDFLARE" envDefault:"false"`
 	// Sets the webserver port
 	WebserverPort int `env:"PORT" envDefault:"53842" onlyPositive:"true" persistent:"true"`
+	// Sets the default name template used when compressing an upload into a zip
+	// archive in the browser. Supports strftime-style date tokens, e.g.
+	// %Y %m %d %H %M %S. The .zip extension is added automatically.
+	DefaultZipName string `env:"DEFAULT_ZIP_NAME" envDefault:"gokapi-upload-%Y%m%d-%H%M%S"`
 	// Allow hotlinking of videos. Note: Due to buffering, playing a video might count as
 	// multiple downloads. It is only recommended to use video hotlinking for uploads with
 	// unlimited downloads enabled

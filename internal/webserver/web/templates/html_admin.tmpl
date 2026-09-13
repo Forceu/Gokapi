@@ -88,6 +88,34 @@
 		           data-allow-regular-paste>
 		  </div>
 
+		  <div class="upload-option-card" id="zipOptionCard">
+		    <div class="upload-option-header">
+		      <div class="d-flex align-items-center gap-2">
+		        <i class="bi bi-file-zip upload-option-icon"></i>
+		        <span class="upload-option-label">Zip Archive</span>
+		      </div>
+		      <div class="form-check form-switch mb-0">
+{{ if .EndToEndEncryption }}
+		        <input class="form-check-input upload-option-toggle" type="checkbox" role="switch"
+		               name="enableZip" id="enableZip" disabled
+		               title="Compressing into a zip archive is not available for end-to-end encrypted uploads"
+		               aria-label="Compress files into zip archive">
+{{ else }}
+		        <input class="form-check-input upload-option-toggle" type="checkbox" role="switch"
+		               name="enableZip" id="enableZip" checked
+		               aria-label="Compress files into zip archive">
+{{ end }}
+		      </div>
+		    </div>
+		    <input type="text" class="form-control admin-input upload-option-input-group upload-option-zip-input"
+		           name="zipNameTemplate" id="zipNameTemplate"
+		           value=""
+		           placeholder="Archive name (e.g. gokapi-upload-%Y%m%d-%H%M%S)"
+		           title="Name of the generated archive. Supports date tokens: %Y year, %m month, %d day, %H hour, %M minute, %S second. The .zip extension is added automatically."
+		           aria-label="Zip archive name template"
+		           data-allow-regular-paste>
+		  </div>
+
 		</div>
 <div id="errordiv" class="alert alert-danger" style="display:none">
   <span id="errormessage" ></span>
@@ -204,7 +232,9 @@
 	registerChangeHandler();
 		
 	var canReplaceOwnFiles = {{.ActiveUser.HasPermissionReplace}};
+	var defaultZipNameTemplate = {{ .DefaultZipName }};
 	setUploadDefaults();
+	initZipDefaults();
 	
 {{ if .ShowDeprecationNotice }}
 	showDeprecationNotice();
