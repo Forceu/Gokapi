@@ -488,6 +488,8 @@ func generateHashAndEncrypt(fileContent io.Reader, fileHeader *multipart.FileHea
 		helper.Check(err)
 		err = encryption.Encrypt(&encInfo, tempFile, tempFileEnc)
 		helper.Check(err)
+		err = tempFile.Close()
+		helper.Check(err)
 		err = os.Remove(tempFile.Name())
 		helper.Check(err)
 		hash.Write([]byte(configuration.Get().Authentication.SaltFiles))

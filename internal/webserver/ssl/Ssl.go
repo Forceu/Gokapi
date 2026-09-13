@@ -65,6 +65,7 @@ func getDaysRemaining() int {
 	certificate, _ := GetCertificateLocations()
 	file, err := os.Open(certificate)
 	helper.Check(err)
+	defer file.Close()
 	certContent, err := io.ReadAll(file)
 	helper.Check(err)
 	pemContent, _ := pem.Decode(certContent)
