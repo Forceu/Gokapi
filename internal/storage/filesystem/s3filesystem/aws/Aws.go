@@ -12,13 +12,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	smithy "github.com/aws/smithy-go"
 	"github.com/forceu/gokapi/internal/encryption"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/webserver/headers"
@@ -82,22 +81,27 @@ func IsValidLogin(config models.AwsConfig) (bool, error) {
 	return true, nil
 }
 
-func createSession() *session.Session {
-	s3Config := &aws.Config{
-		Credentials:      credentials.NewStaticCredentials(awsConfig.KeyId, awsConfig.KeySecret, ""),
-		Endpoint:         aws.String(awsConfig.Endpoint),
-		Region:           aws.String(awsConfig.Region),
-		S3ForcePathStyle: aws.Bool(true),
+// createClient builds a fresh S3 client from the current awsConfig, pointing it at the
+// (potentially S3-compatible, e.g. Backblaze B2) endpoint using forced path-style addressing.
+func createClient() *s3.Client {
+	cfg, err := config.LoadDefaultConfig(context.Background(),
+		config.WithRegion(awsConfig.Region),
+		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(awsConfig.KeyId, awsConfig.KeySecret, "")),
+	)
+	if err != nil {
+		panic(err)
 	}
-	return session.Must(session.NewSession(s3Config))
+	return s3.NewFromConfig(cfg, func(o *s3.Options) {
+		o.BaseEndpoint = aws.String(awsConfig.Endpoint)
+		o.UsePathStyle = true
+	})
 }
 
 // Upload uploads a file to AWS
 func Upload(input io.Reader, file models.File) (string, error) {
-	sess := createSession()
-	uploader := s3manager.NewUploader(sess)
+	uploader := manager.NewUploader(createClient())
 
-	result, err := uploader.Upload(&s3manager.UploadInput{
+	result, err := uploader.Upload(context.Background(), &s3.PutObjectInput{
 		Bucket: aws.String(file.AwsBucket),
 		Key:    aws.String(file.SHA1),
 		Body:   input,
@@ -110,9 +114,8 @@ func Upload(input io.Reader, file models.File) (string, error) {
 
 // download downloads a file from AWS, used for testing
 func download(writer io.WriterAt, file models.File) (int64, error) {
-	sess := createSession()
-	downloader := s3manager.NewDownloader(sess)
-	size, err := downloader.Download(writer, &s3.GetObjectInput{
+	downloader := manager.NewDownloader(createClient())
+	size, err := downloader.Download(context.Background(), writer, &s3.GetObjectInput{
 		Bucket: aws.String(file.AwsBucket),
 		Key:    aws.String(file.SHA1),
 	})
@@ -124,10 +127,9 @@ func download(writer io.WriterAt, file models.File) (int64, error) {
 
 // Stream downloads a file from AWS sequentially, used for saving to a Zip file
 func Stream(writer io.Writer, file models.File) error {
-	sess := createSession()
-	s3svc := s3.New(sess)
+	svc := createClient()
 
-	obj, err := s3svc.GetObject(&s3.GetObjectInput{
+	obj, err := svc.GetObject(context.Background(), &s3.GetObjectInput{
 		Bucket: aws.String(file.AwsBucket),
 		Key:    aws.String(file.SHA1),
 	})
@@ -136,12 +138,10 @@ func Stream(writer io.Writer, file models.File) error {
 	}
 	defer obj.Body.Close()
 
-	var reader io.Reader = obj.Body
-
 	if file.Encryption.IsEncrypted {
 		return encryption.DecryptReader(file.Encryption, obj.Body, writer)
 	}
-	_, err = io.Copy(writer, reader)
+	_, err = io.Copy(writer, obj.Body)
 	return err
 }
 
@@ -158,8 +158,8 @@ func ServeFile(w http.ResponseWriter, r *http.Request, file models.File, forceDo
 }
 
 func getPresignedUrl(file models.File, forceDownload bool) (string, error) {
-	sess := createSession()
-	s3svc := s3.New(sess)
+	svc := createClient()
+	presignClient := s3.NewPresignClient(svc)
 
 	dispositionType := "inline"
 	if forceDownload {
@@ -168,15 +168,18 @@ func getPresignedUrl(file models.File, forceDownload bool) (string, error) {
 	// Use RFC 6266 format to support UTF-8 filenames and avoid encoding errors.
 	contentDisposition := fmt.Sprintf("%s; filename*=UTF-8''%s", dispositionType, url.PathEscape(file.Name))
 
-	req, _ := s3svc.GetObjectRequest(&s3.GetObjectInput{
+	req, err := presignClient.PresignGetObject(context.Background(), &s3.GetObjectInput{
 		Bucket:                     aws.String(file.AwsBucket),
 		Key:                        aws.String(file.SHA1),
 		ResponseContentDisposition: aws.String(contentDisposition),
 		ResponseCacheControl:       aws.String("no-store"),
 		ResponseContentType:        aws.String(file.ContentType),
-	})
+	}, s3.WithPresignExpires(15*time.Second))
+	if err != nil {
+		return "", err
+	}
 
-	return req.Presign(15 * time.Second)
+	return req.URL, nil
 }
 
 // redirectToDownload creates a presigned link that is valid for 15 seconds and redirects the
@@ -209,11 +212,10 @@ func proxyDownload(w http.ResponseWriter, file models.File, forceDownload bool) 
 }
 
 func serveDecryptedFile(w http.ResponseWriter, file models.File) error {
-	sess := createSession()
-	s3svc := s3.New(sess)
+	svc := createClient()
 
 	// 1. Get the object from S3
-	obj, err := s3svc.GetObject(&s3.GetObjectInput{
+	obj, err := svc.GetObject(context.Background(), &s3.GetObjectInput{
 		Bucket: aws.String(file.AwsBucket),
 		Key:    aws.String(file.SHA1),
 	})
@@ -249,27 +251,23 @@ func FileExists(file models.File) (bool, int64, error) {
 }
 
 func fileExists(bucket, filename string) (bool, int64, error) {
-	sess := createSession()
-	svc := s3.New(sess)
+	svc := createClient()
 
 	ctx, cancelCtx := getTimeoutContext()
 	defer cancelCtx()
 
-	info, err := svc.HeadObjectWithContext(ctx, &s3.HeadObjectInput{
+	info, err := svc.HeadObject(ctx, &s3.HeadObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(filename),
 	})
 
 	if err != nil {
-		var aerr awserr.Error
-		ok := errors.As(err, &aerr)
-		if ok {
-			if aerr.Code() == "NotFound" {
-				return false, 0, nil
-			}
-			if aerr.Code() == request.CanceledErrorCode {
-				return false, 0, errors.New("Timeout - could not connect to " + *svc.Config.Endpoint)
-			}
+		var apiErr smithy.APIError
+		if errors.As(err, &apiErr) && apiErr.ErrorCode() == "NotFound" {
+			return false, 0, nil
+		}
+		if errors.Is(err, context.DeadlineExceeded) {
+			return false, 0, errors.New("Timeout - could not connect to " + awsConfig.Endpoint)
 		}
 		return false, 0, err
 	}
@@ -278,13 +276,12 @@ func fileExists(bucket, filename string) (bool, int64, error) {
 
 // DeleteObject deletes a file from S3
 func DeleteObject(file models.File) (bool, error) {
-	sess := createSession()
-	svc := s3.New(sess)
+	svc := createClient()
 
 	ctx, cancelCtx := getTimeoutContext()
 	defer cancelCtx()
 
-	_, err := svc.DeleteObjectWithContext(ctx, &s3.DeleteObjectInput{
+	_, err := svc.DeleteObject(ctx, &s3.DeleteObjectInput{
 		Bucket: aws.String(file.AwsBucket),
 		Key:    aws.String(file.SHA1),
 	})
@@ -297,8 +294,7 @@ func DeleteObject(file models.File) (bool, error) {
 
 // IsCorsCorrectlySet returns true if CORS rules allow download from Gokapi
 func IsCorsCorrectlySet(bucket, gokapiUrl string) (bool, error) {
-	sess := createSession()
-	svc := s3.New(sess)
+	svc := createClient()
 	input := &s3.GetBucketCorsInput{
 		Bucket: aws.String(bucket),
 	}
@@ -306,12 +302,11 @@ func IsCorsCorrectlySet(bucket, gokapiUrl string) (bool, error) {
 	ctx, cancelCtx := getTimeoutContext()
 	defer cancelCtx()
 
-	result, err := svc.GetBucketCorsWithContext(ctx, input)
+	result, err := svc.GetBucketCors(ctx, input)
 	if err != nil {
-		var aerr awserr.Error
-		ok := errors.As(err, &aerr)
-		if ok && (aerr.Code() == "NoSuchCORSConfiguration" ||
-			aerr.Code() == "NoSuchCorsConfiguration") {
+		var apiErr smithy.APIError
+		if errors.As(err, &apiErr) && (apiErr.ErrorCode() == "NoSuchCORSConfiguration" ||
+			apiErr.ErrorCode() == "NoSuchCorsConfiguration") {
 			return false, nil
 		}
 		return false, err
@@ -319,10 +314,10 @@ func IsCorsCorrectlySet(bucket, gokapiUrl string) (bool, error) {
 
 	for _, rule := range result.CORSRules {
 		for _, origin := range rule.AllowedOrigins {
-			if *origin == "*" {
+			if origin == "*" {
 				return true, nil
 			}
-			if strings.HasPrefix(gokapiUrl, *origin) {
+			if strings.HasPrefix(gokapiUrl, origin) {
 				return true, nil
 			}
 		}
