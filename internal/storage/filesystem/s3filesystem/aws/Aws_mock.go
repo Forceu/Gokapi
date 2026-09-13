@@ -12,10 +12,12 @@ import (
 	"strings"
 
 	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/webserver/headers"
 )
 
 var uploadedFiles []models.File
 var isCorrectLogin bool
+var awsConfig models.AwsConfig
 
 const (
 	region     = "mock-region-1"
@@ -32,6 +34,7 @@ const IsMockApi = true
 
 // Init reads the credentials for AWS
 func Init(config models.AwsConfig) bool {
+	awsConfig = config
 	if !isValidCredentials() {
 		return false
 	}
@@ -57,6 +60,7 @@ func IsValidLogin(config models.AwsConfig) (bool, error) {
 
 // LogOut resets the credentials
 func LogOut() {
+	awsConfig = models.AwsConfig{}
 	isCorrectLogin = false
 }
 
@@ -131,8 +135,30 @@ func isUploaded(file models.File) bool {
 // ServeFile either redirects the user to a pre-signed download url (default) or downloads the file and serves it as a proxy (depending
 // on configuration). Returns true if blocking operation (in order to set download status) or false if non-blocking.
 func ServeFile(w http.ResponseWriter, r *http.Request, file models.File, forceDownload bool, forceDecryption bool) (bool, error) {
-	// TODO implement proxy as well
+	if awsConfig.ProxyDownload {
+		return true, proxyDownload(w, file, forceDownload)
+	}
 	return false, RedirectToDownload(w, r, file, forceDownload)
+}
+
+// proxyDownload simulates streaming the file content through the server, mirroring the
+// real AWS implementation's proxy-download mode. The content is read from a local test
+// fixture at "data/<sha1>", the same convention used by Stream().
+func proxyDownload(w http.ResponseWriter, file models.File, forceDownload bool) error {
+	if !isValidCredentials() {
+		return errors.New("invalid credentials / invalid bucket / invalid region")
+	}
+	if !isUploaded(file) {
+		return errors.New("file not found")
+	}
+	data, err := os.Open("data/" + file.SHA1)
+	if err != nil {
+		return err
+	}
+	defer data.Close()
+	headers.Write(file, w, forceDownload, false)
+	_, err = io.Copy(w, data)
+	return err
 }
 
 // RedirectToDownload creates a presigned link that is valid for 15 seconds and redirects the
