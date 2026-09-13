@@ -647,8 +647,10 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 		// confirm that the file has been completely downloaded. It expires automatically after 24 hours.
 		statusId := downloadstatus.SetDownload(file)
 		isBlocking, err := aws.ServeFile(w, r, file, forceDownload, forceDecryption)
-		// TODO chances are high that an error is returned here, we should consider proper output
-		helper.Check(err)
+		if err != nil {
+			fmt.Println(err)
+			_, _ = w.Write([]byte("Error serving file"))
+		}
 		if isBlocking {
 			downloadstatus.SetComplete(statusId)
 		}
