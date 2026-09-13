@@ -50,8 +50,6 @@ import (
 	"github.com/forceu/gokapi/internal/webserver/ssl"
 )
 
-// TODO add 404 handler
-
 // staticFolderEmbedded is the embedded version of the "static" folder
 // This contains JS files, CSS, images etc
 //
@@ -175,8 +173,39 @@ func filesystemHandler(webserverDir fs.FS) http.HandlerFunc {
 			return
 		}
 		addCacheHeader(w)
-		http.FileServer(http.FS(webserverDir)).ServeHTTP(w, r)
+		nfw := &notFoundInterceptor{ResponseWriter: w}
+		http.FileServer(http.FS(webserverDir)).ServeHTTP(nfw, r)
+		if nfw.intercepted {
+			// The response was cached as servable content above; a 404 means that
+			// assumption was wrong, so undo it before showing the error page.
+			w.Header().Del("cdn-cache-control")
+			w.Header().Del("Cloudflare-CDN-Cache-Control")
+			w.Header().Del("cache-control")
+			errorHandling.RedirectGenericErrorPage(w, r, errorHandling.TypeFileNotFound)
+		}
 	}
+}
+
+// notFoundInterceptor suppresses http.FileServer's built-in 404 response, so that a
+// styled Gokapi error page can be shown instead of the plain stdlib fallback page.
+type notFoundInterceptor struct {
+	http.ResponseWriter
+	intercepted bool
+}
+
+func (nfw *notFoundInterceptor) WriteHeader(statusCode int) {
+	if statusCode == http.StatusNotFound {
+		nfw.intercepted = true
+		return
+	}
+	nfw.ResponseWriter.WriteHeader(statusCode)
+}
+
+func (nfw *notFoundInterceptor) Write(b []byte) (int, error) {
+	if nfw.intercepted {
+		return len(b), nil
+	}
+	return nfw.ResponseWriter.Write(b)
 }
 
 func handleFavicon(w http.ResponseWriter, r *http.Request) {
