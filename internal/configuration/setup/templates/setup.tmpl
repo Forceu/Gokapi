@@ -118,9 +118,11 @@
 {{ end }}
 
 							  <label for="dbtype_sel">Type of database</label>
-						<select name="dbtype_sel" id="dbtype_sel"  style="width:350px;" class="select form-control"  onChange="dbChanged()">	
+						<select name="dbtype_sel" id="dbtype_sel"  style="width:350px;" class="select form-control"  onChange="dbChanged()">
 								<option value="0" selected>SQLite</option>
 								<option value="1">Redis</option>
+								<option value="2">MariaDB / MySQL</option>
+								<option value="3">PostgreSQL</option>
 
 						</select><br>
 						<div id="divsqlite">
@@ -131,16 +133,36 @@
 							<label for="redis_location">Database host:</label>
 							<input type="text" class="form-control" id="redis_location" name="redis_location" value="127.0.0.1:6379" placeholder="Database host" required><br>
 							<label for="redis_prefix">Key prefix:</label>
-							<input type="text" class="form-control" id="redis_prefix" name="redis_prefix" value="gokapi_" placeholder="(optional)"><br>				
+							<input type="text" class="form-control" id="redis_prefix" name="redis_prefix" value="gokapi_" placeholder="(optional)"><br>
 							<label for="redis_user">Username:</label>
-							<input type="text" class="form-control" id="redis_user" name="redis_user" value="" placeholder="(optional)"><br>				
+							<input type="text" class="form-control" id="redis_user" name="redis_user" value="" placeholder="(optional)"><br>
 							<label for="redis_password">Password (stored in plain text):</label>
-							<input type="text" class="form-control" id="redis_password" name="redis_password" value="" placeholder="(optional)"><br>				
+							<input type="text" class="form-control" id="redis_password" name="redis_password" value="" placeholder="(optional)"><br>
 							<label for="redis_ssl_sel">Use SSL</label>
 							<select name="redis_ssl_sel" id="redis_ssl_sel" style="width:350px;" class="select form-control">
 								<option value="0" selected>No</option>
 								<option value="1">Yes</option>
 							</select>
+						</div>
+						<div id="divmariadb" style="display: none;">
+							<label for="mariadb_location">Database host (host:port):</label>
+							<input type="text" class="form-control" id="mariadb_location" name="mariadb_location" value="127.0.0.1:3306" placeholder="Database host" required><br>
+							<label for="mariadb_dbname">Database name:</label>
+							<input type="text" class="form-control" id="mariadb_dbname" name="mariadb_dbname" value="gokapi" placeholder="Database name" required><br>
+							<label for="mariadb_user">Username:</label>
+							<input type="text" class="form-control" id="mariadb_user" name="mariadb_user" value="" placeholder="Username" required><br>
+							<label for="mariadb_password">Password (stored in plain text):</label>
+							<input type="text" class="form-control" id="mariadb_password" name="mariadb_password" value="" placeholder="Password"><br>
+						</div>
+						<div id="divpostgres" style="display: none;">
+							<label for="postgres_location">Database host (host:port):</label>
+							<input type="text" class="form-control" id="postgres_location" name="postgres_location" value="127.0.0.1:5432" placeholder="Database host" required><br>
+							<label for="postgres_dbname">Database name:</label>
+							<input type="text" class="form-control" id="postgres_dbname" name="postgres_dbname" value="gokapi" placeholder="Database name" required><br>
+							<label for="postgres_user">Username:</label>
+							<input type="text" class="form-control" id="postgres_user" name="postgres_user" value="" placeholder="Username" required><br>
+							<label for="postgres_password">Password (stored in plain text):</label>
+							<input type="text" class="form-control" id="postgres_password" name="postgres_password" value="" placeholder="Password"><br>
 						</div>
 					</div>
 				</div>
@@ -800,6 +822,18 @@ function TestAWS(button, isManual) {
 
 	{{ if eq .DatabaseSettings.Type 0}}
 				document.getElementById("sqlite_location").value = {{.DatabaseSettings.HostUrl}};
+	{{ else if eq .DatabaseSettings.Type 2}}
+				document.getElementById("dbtype_sel").selectedIndex = 2;
+				document.getElementById("mariadb_location").value = {{.DatabaseSettings.HostUrl}};
+				document.getElementById("mariadb_dbname").value = {{.DatabaseSettings.DatabaseName}};
+				document.getElementById("mariadb_user").value = {{.DatabaseSettings.Username}};
+				document.getElementById("mariadb_password").value = {{.DatabaseSettings.Password}};
+	{{ else if eq .DatabaseSettings.Type 3}}
+				document.getElementById("dbtype_sel").selectedIndex = 3;
+				document.getElementById("postgres_location").value = {{.DatabaseSettings.HostUrl}};
+				document.getElementById("postgres_dbname").value = {{.DatabaseSettings.DatabaseName}};
+				document.getElementById("postgres_user").value = {{.DatabaseSettings.Username}};
+				document.getElementById("postgres_password").value = {{.DatabaseSettings.Password}};
 	{{ else }}
 				document.getElementById("dbtype_sel").selectedIndex = 1;
 				document.getElementById("redis_location").value = {{.DatabaseSettings.HostUrl}};
@@ -1094,15 +1128,14 @@ function TestAWS(button, isManual) {
 			function dbChanged() {
 				let divSqlite = document.getElementById("divsqlite");
 				let divRedis = document.getElementById("divredis");
+				let divMariadb = document.getElementById("divmariadb");
+				let divPostgres = document.getElementById("divpostgres");
 				let dbType = document.getElementById("dbtype_sel").value;
-				
-				if (dbType == "0") {
-					divSqlite.style.display = "block";
-					divRedis.style.display = "none";
-				} else {
-					divSqlite.style.display = "none";
-					divRedis.style.display = "block";
-				}
+
+				divSqlite.style.display = dbType == "0" ? "block" : "none";
+				divRedis.style.display = dbType == "1" ? "block" : "none";
+				divMariadb.style.display = dbType == "2" ? "block" : "none";
+				divPostgres.style.display = dbType == "3" ? "block" : "none";
 			}
 				
 				

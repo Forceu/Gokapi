@@ -216,12 +216,14 @@ For Docker users, the command is:
 Database URL format
 ---------------------------------
 
-Database URLs must start with either ``sqlite://`` or ``redis://``.
+Database URLs must start with ``sqlite://``, ``redis://``, ``mariadb://`` or ``postgres://``.
 
 
 For SQLite, the path to the database follows the prefix. No additional options are allowed.
 
 For Redis, the URL can include authentication credentials (username and password), an optional prefix for keys, and parameter to use SSL.
+
+For MariaDB/MySQL and PostgreSQL, the URL can include authentication credentials and must include the database name. The target database must already exist.
 
 
 Redis URL Format
@@ -231,12 +233,42 @@ A Redis URL has the following structure:
 ::
 
  redis://[username:password@]host[:port][?options]
- 
+
 * username: (optional) The username for authentication.
 * password: (optional) The password for authentication.
 * host: (required) The address of the Redis server.
 * port: (optional) The port of the Redis server (default is 6379).
 * options: (optional) Additional options such as SSL (``ssl=true``) and key prefix (``prefix=``).
+
+
+MariaDB / MySQL URL Format
+---------------------------------
+
+A MariaDB/MySQL URL has the following structure:
+::
+
+ mariadb://[username:password@]host[:port]/database
+
+* username: (optional) The username for authentication.
+* password: (optional) The password for authentication.
+* host: (required) The address of the MariaDB/MySQL server.
+* port: (optional) The port of the server (default is 3306).
+* database: (required) The name of the database to use.
+
+
+PostgreSQL URL Format
+---------------------------------
+
+A PostgreSQL URL has the following structure:
+::
+
+ postgres://[username:password@]host[:port]/database
+
+* username: (optional) The username for authentication.
+* password: (optional) The password for authentication.
+* host: (required) The address of the PostgreSQL server.
+* port: (optional) The port of the server (default is 5432).
+* database: (required) The name of the database to use.
 
 
 Examples
@@ -261,6 +293,20 @@ Migrating Redis (``127.0.0.1:6379, User: test, Password: 1234, Prefix: gokapi_, 
 ::
 
  gokapi migrate-database --source "redis://test:1234@127.0.0.1:6379?prefix=gokapi_&ssl=true" --destination sqlite://./data/gokapi.sqlite
+
+Migrating SQLite (``./data/gokapi.sqlite``) to PostgreSQL (``127.0.0.1:5432, Database: gokapi, User: gokapi, Password: secret``):
+
+
+::
+
+ gokapi migrate-database --source sqlite://./data/gokapi.sqlite --destination "postgres://gokapi:secret@127.0.0.1:5432/gokapi"
+
+Migrating MariaDB (``127.0.0.1:3306, Database: gokapi, User: gokapi, Password: secret``) to PostgreSQL (``127.0.0.1:5432, Database: gokapi, User: gokapi, Password: secret``):
+
+
+::
+
+ gokapi migrate-database --source "mariadb://gokapi:secret@127.0.0.1:3306/gokapi" --destination "postgres://gokapi:secret@127.0.0.1:5432/gokapi"
 
 
 
