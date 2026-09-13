@@ -637,6 +637,9 @@ func TestServeFileAwsErrorHandling(t *testing.T) {
 
 	// A file with an AWS bucket set, but never actually uploaded, causes aws.ServeFile to
 	// return an error. ServeFile must handle that gracefully instead of panicking.
+	// forceDecryption is set to true so aws.ServeFile takes the serveDecryptedFile path,
+	// which calls s3.GetObject directly instead of just presigning a redirect URL - only
+	// that path actually contacts S3 and surfaces the missing-object error.
 	file := models.File{
 		Id:        "awsErrorHandlingTest1",
 		Name:      "aws error handling test",
@@ -649,7 +652,7 @@ func TestServeFileAwsErrorHandling(t *testing.T) {
 
 	r := httptest.NewRequest("GET", "/", nil)
 	w := httptest.NewRecorder()
-	ServeFile(file, w, r, false, true, false, false)
+	ServeFile(file, w, r, false, true, true, false)
 	test.ResponseBodyContains(t, w, "Error serving file")
 
 	database.DeleteMetaData(file.Id)
