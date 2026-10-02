@@ -462,13 +462,14 @@
 								<input type="text" class="form-control" id="s3_region" name="s3_region" placeholder="Region Name" required data-min="1" data-validate="validateMinLength">
 							</div><br><br>
 							<div class="col-sm-8">
+							  <p>Leave both key fields blank to use the AWS credential provider chain (for example, an IAM role). Otherwise, provide both fields.</p>
 							  <label for="s3_api">API Key:</label>
-								<input type="text" class="form-control" id="s3_api" name="s3_api" placeholder="API Key" required data-min="1" data-validate="validateMinLength">
+								<input type="text" class="form-control" id="s3_api" name="s3_api" placeholder="API Key (optional)" data-validate="validateS3Credentials">
 							</div><br><br>
 							
 							<div class="col-sm-8">
 							  <label for="s3_secret">API Key Secret:</label>
-								<input type="text" class="form-control" id="s3_secret" name="s3_secret" placeholder="API Key Secret" required data-min="1" data-validate="validateMinLength">
+								<input type="text" class="form-control" id="s3_secret" name="s3_secret" placeholder="API Key Secret (optional)" data-validate="validateS3Credentials">
 							</div><br><br>
 							<div class="col-sm-8">
 							  <label for="s3_endpoint">Endpoint:</label>
@@ -918,6 +919,13 @@ function TestAWS(button, isManual) {
 			function parseAndSetDbString(input) {
 			}
 			
+			function validateS3Credentials(el) {
+				return {
+					status: Boolean(document.getElementById("s3_api").value) === Boolean(document.getElementById("s3_secret").value),
+					msg: "Provide both key fields, or leave both blank to use the AWS credential provider chain"
+				};
+			}
+
 			function validateMinLength(el) {
 				let value = el.val();
 				let retValue = {};

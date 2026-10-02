@@ -291,12 +291,24 @@ Required fields:
 +-----------+-----------------------------------------------+-----------------------+-----------------------------------+
 | Region    | Region name                                   | Yes                   | eu-central-1                      |
 +-----------+-----------------------------------------------+-----------------------+-----------------------------------+
-| KeyId     | API key ID                                    | Yes                   | keyname123456789                  |
+| KeyId     | API key ID                                    | For static keys       | keyname123456789                  |
 +-----------+-----------------------------------------------+-----------------------+-----------------------------------+
-| KeySecret | API key secret                                | Yes                   | verysecret123                     |
+| KeySecret | API key secret                                | For static keys       | verysecret123                     |
 +-----------+-----------------------------------------------+-----------------------+-----------------------------------+
 | Endpoint  | Custom endpoint. Leave blank for AWS S3.      | Only for Backblaze B2 | s3.eu-central-001.backblazeb2.com |
 +-----------+-----------------------------------------------+-----------------------+-----------------------------------+
+
+To use an IAM role or the AWS SDK credential provider chain, leave **both**
+``KeyId`` and ``KeySecret`` blank. Bucket and region are still required. This
+works with the setup form, ``cloudconfig.yml``, or ``GOKAPI_AWS_BUCKET`` and
+``GOKAPI_AWS_REGION`` environment variables. Providing only one key is invalid.
+
+The SDK can obtain temporary credentials from an EC2 instance profile, an ECS
+task role, EKS web identity, a shared credentials file, or standard AWS
+``AWS_ACCESS_KEY_ID``, ``AWS_SECRET_ACCESS_KEY``, and ``AWS_SESSION_TOKEN``
+environment variables. Explicit Gokapi keys keep their existing precedence.
+Grant the role access to the bucket and use **Test configuration** before
+finishing setup. Gokapi does not write resolved role credentials to its config.
 
 If you plan to use end-to-end encryption with cloud storage, configure your bucket's CORS rules to allow requests from your Gokapi URL.
 
