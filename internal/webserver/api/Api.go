@@ -567,18 +567,21 @@ func apiList(w http.ResponseWriter, r requestParser, user models.User, _ models.
 	if !ok {
 		panic("invalid parameter passed")
 	}
-	validFiles := getFilesForUser(user, request.ShowFileRequests)
+	validFiles := getFilesForUser(user, request.ShowFileRequests, false)
 	result, err := json.Marshal(validFiles)
 	helper.Check(err)
 	_, _ = w.Write(result)
 }
 
-func getFilesForUser(user models.User, includeUploadRequests bool) []models.FileApiOutput {
+func getFilesForUser(user models.User, includeUploadRequests, onlyEndToEndEncryptedFiles bool) []models.FileApiOutput {
 	var validFiles []models.FileApiOutput
 	timeNow := time.Now().Unix()
 	config := configuration.Get()
 	for _, element := range database.GetAllMetadata() {
 		if !includeUploadRequests && element.IsFileRequest() {
+			continue
+		}
+		if onlyEndToEndEncryptedFiles && !element.Encryption.IsEndToEndEncrypted {
 			continue
 		}
 		if element.UserId == user.Id || user.HasPermission(models.UserPermListOtherUploads) {
@@ -1098,7 +1101,7 @@ func apiE2eGet(w http.ResponseWriter, _ requestParser, user models.User, _ model
 	}
 	info := database.GetEnd2EndInfo(user.Id)
 	// If e2e is supported for upload requests at some point, this needs to be changed
-	files := getFilesForUser(user, false)
+	files := getFilesForUser(user, false, true)
 	ids := make([]string, len(files))
 	for i, file := range files {
 		ids[i] = file.Id
