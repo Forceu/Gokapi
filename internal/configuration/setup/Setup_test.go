@@ -757,3 +757,24 @@ func TestIsErrorAddressAlreadyInUse(t *testing.T) {
 	test.IsEqualBool(t, isErrorAddressAlreadyInUse(err), false)
 	l.Close()
 }
+
+func TestCloudConfigCredentialModes(t *testing.T) {
+	for _, tc := range []struct {
+		key, secret string
+		valid       bool
+	}{
+		{"", "", true}, {"key", "secret", true}, {"key", "", false}, {"", "secret", false},
+	} {
+		form := []jsonFormObject{
+			{Name: "storage_sel_proxy", Value: "proxy"},
+			{Name: "s3_bucket", Value: "bucket"}, {Name: "s3_region", Value: "region"},
+			{Name: "s3_api", Value: tc.key}, {Name: "s3_secret", Value: tc.secret},
+			{Name: "s3_endpoint", Value: ""},
+		}
+		config, err := getCloudConfig(&form)
+		test.IsEqualBool(t, err == nil, tc.valid)
+		if tc.valid {
+			test.IsEqualBool(t, config.Aws.IsAllProvided(), true)
+		}
+	}
+}

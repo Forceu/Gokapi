@@ -247,8 +247,7 @@ func parseFlags(result Environment) Environment {
 func (e *Environment) IsAwsProvided() bool {
 	return e.AwsBucket != "" &&
 		e.AwsRegion != "" &&
-		e.AwsKeyId != "" &&
-		e.AwsKeySecret != ""
+		((e.AwsKeyId == "" && e.AwsKeySecret == "") || (e.AwsKeyId != "" && e.AwsKeySecret != ""))
 }
 
 // GetConfigPaths returns the config paths to config files and the directory containing the files. The following results are returned:
