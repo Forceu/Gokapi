@@ -872,6 +872,12 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 			u.Users = append(u.Users, userWithUploads)
 		}
 	case ViewFileRequests:
+		// Limits must be set regardless of existing file requests, otherwise a non-admin
+		// user without any file requests is shown no limits in the UI
+		if !user.IsAdmin() {
+			u.FileRequestMaxFiles = configuration.GetEnvironment().MaxFilesGuestUpload
+			u.FileRequestMaxSize = configuration.GetEnvironment().MaxSizeGuestUploadMb
+		}
 		for _, fileRequest := range filerequest.GetAll() {
 			// Double-checking if the owner of the file request exists
 			// If the user was manually deleted from the database, this could lead to a crash
@@ -885,10 +891,6 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 			}
 			fileRequest.Files = sortMetaData(fileRequest.Files)
 			u.FileRequests = append(u.FileRequests, fileRequest)
-			if !user.IsAdmin() {
-				u.FileRequestMaxFiles = configuration.GetEnvironment().MaxFilesGuestUpload
-				u.FileRequestMaxSize = configuration.GetEnvironment().MaxSizeGuestUploadMb
-			}
 		}
 	}
 

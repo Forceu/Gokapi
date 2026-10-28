@@ -671,3 +671,20 @@ func TestServeWasmE2E(t *testing.T) {
 		IsHtml: false,
 	})
 }
+
+func TestConvertGlobalConfigFileRequestLimits(t *testing.T) {
+	env := configuration.GetEnvironment()
+	// Non-admin user without any file requests must still receive the server limits
+	user := models.User{Id: 9999, UserLevel: models.UserLevelUser}
+	view := (&AdminView{}).convertGlobalConfig(ViewFileRequests, user)
+	test.IsEqualInt(t, len(view.FileRequests), 0)
+	test.IsEqualInt(t, view.FileRequestMaxFiles, env.MaxFilesGuestUpload)
+	test.IsEqualInt(t, view.FileRequestMaxSize, env.MaxSizeGuestUploadMb)
+	test.IsEqualBool(t, view.FileRequestMaxFiles > 0, true)
+	test.IsEqualBool(t, view.FileRequestMaxSize > 0, true)
+
+	user.UserLevel = models.UserLevelAdmin
+	view = (&AdminView{}).convertGlobalConfig(ViewFileRequests, user)
+	test.IsEqualInt(t, view.FileRequestMaxFiles, 0)
+	test.IsEqualInt(t, view.FileRequestMaxSize, 0)
+}
