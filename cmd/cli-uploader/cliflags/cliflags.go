@@ -105,6 +105,8 @@ func GetUploadParameters(mode int) FlagConfig {
 			result.Directory = getParameter(&i)
 		case "-t":
 			fallthrough
+		case "--tmpfolder":
+			fallthrough
 		case "--tempfolder":
 			result.TmpFolder = getParameter(&i)
 		case "-n":
