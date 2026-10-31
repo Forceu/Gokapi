@@ -156,7 +156,7 @@ Webserver
 
 * **Bind to localhost** — only accept connections from the local machine. Enable this when running behind a reverse proxy.
 * **Use SSL** — generates a self-signed certificate. Use this only if you are *not* behind a reverse proxy. Gokapi must be restarted to renew the certificate.
-* **Save IP** — logs the downloader's IP address. This may not be GDPR-compliant depending on your jurisdiction.
+* **Save IP** — logs the downloader's IP address, including failed download password attempts. This may not be GDPR-compliant depending on your jurisdiction.
 * **Include filename in download URL** — appends the filename to download links, e.g. ``/d/1234/Report.pdf`` instead of ``/d?id=1234``.
 * **Public Name** — shown in the page title; use your company or service name.
 * **Webserver Port** — the port Gokapi listens on.
@@ -429,3 +429,12 @@ The ``DOCKER_NONROOT`` environment variable is deprecated. To migrate to ``docke
      -p 127.0.0.1:53842:53842 -e TZ=UTC f0rc3/gokapi:latest
 
 Replace ``gokapi`` with your actual container name if different. Replace ``$(id -u):$(id -g)`` with explicit IDs if you want a specific user. Ensure the bind-mount directories are owned by that user.
+
+Failed download password attempts
+--------------------------------
+
+Rejected passwords for protected download links are recorded in the existing
+``auth`` log category with the file ID and sanitised User-Agent. The client IP
+is included only when **Save IP** is enabled and uses the existing trusted proxy
+settings. Submitted passwords are never included. Opening the password prompt
+without submitting a password does not produce a failure event.

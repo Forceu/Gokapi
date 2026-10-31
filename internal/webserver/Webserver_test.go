@@ -15,6 +15,7 @@ import (
 
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/configuration/database"
+	"github.com/forceu/gokapi/internal/logging"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage/processingstatus"
 	"github.com/forceu/gokapi/internal/test"
@@ -408,6 +409,15 @@ func TestDownloadPageIncorrectPassword(t *testing.T) {
 		Method:          "POST",
 		PostValues:      []test.PostBody{{"password", "incorrect"}},
 	})
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		content, _ := logging.GetAll()
+		if strings.Contains(content, "[auth] Invalid download password for file ID jpLXGJKigM4hjtA6T6sN") {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Error("missing failed password audit entry")
 }
 
 func TestDownloadIncorrectPasswordCookie(t *testing.T) {
