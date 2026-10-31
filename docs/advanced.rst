@@ -13,6 +13,7 @@ This page is a reference for users who have already completed the initial setup.
 * **Tuning upload performance or RAM usage** — :ref:`chunksizes`
 * **Deploying without running setup interactively** — :ref:`autodeployment`
 * **Changing the look and feel** — :ref:`customising`
+* **Changing the interface language or adding a translation** — :ref:`languages`
 
 ----
 
@@ -618,3 +619,38 @@ If you want to change the layout (e.g. add your company logo or add/disable cert
 6. Restart the server. If the folders exist, the server will now add the local files.
 
 Optional: If you require further changes or want to embedded the changes permanently, you can clone the source code and then modify the templates in ``internal/webserver/web/templates``. Afterwards run ``make`` to build a new binary with these changes.
+
+
+.. _languages:
+
+********************************
+Languages
+********************************
+
+The web interface is available in several languages. No configuration is required — Gokapi picks the language for every request on its own.
+
+How the language is selected
+--------------------------------
+
+Gokapi uses the first match from this list:
+
+1. The language the visitor picked from the selector in the top-right corner of the page. The choice is stored in a cookie named ``gokapi_language`` and applies to that browser only.
+2. The ``Accept-Language`` header sent by the browser. Regional variants are matched against the base language, so a browser requesting ``de-AT`` will be served the German translation.
+3. English, if neither of the above matches an available translation.
+
+Adding a translation
+--------------------------------
+
+Translations are plain JSON files in ``internal/languages/translations/``, one file per language, named after its `ISO 639-1 <https://en.wikipedia.org/wiki/List_of_ISO_639_language_codes>`_ code — for example ``de.json`` for German. To add one:
+
+1. Copy ``en.json`` to a new file named after the language code, e.g. ``fr.json``.
+2. Set the key ``language_name`` to the name of the language written in that language itself (e.g. ``Français``). This is the text shown in the selector.
+3. Translate the remaining values. Leave the keys unchanged.
+4. Run ``make`` to build a new binary. The translation is embedded into the binary and appears in the selector automatically — no registration step is needed.
+
+A few rules when translating:
+
+* **Placeholders such as** ``{0}`` **and** ``{1}`` **must be kept.** They are replaced at runtime with a filename, a number, an error message and similar. ``"Unable to delete file: {0}"`` in French becomes ``"Impossible de supprimer le fichier : {0}"``.
+* **A few values contain HTML** — links, ``<br>``, or ``<span>`` elements that are filled in by JavaScript. Keep the tags and especially any ``id`` attributes intact, and translate only the text around them.
+* **The placeholders** ``_TOTAL_``, ``_MAX_``, ``{{filesize}}`` **and** ``{{maxFilesize}}`` belong to the table and upload components and must also be left as they are.
+* **Incomplete translations are fine.** Any key that is missing or left empty falls back to the English text, so a partial translation will not produce blank labels. This also means an existing translation keeps working after Gokapi adds new strings.

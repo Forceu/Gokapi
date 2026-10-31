@@ -12,6 +12,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"html"
 	"html/template"
 	"io"
 	"io/fs"
@@ -29,6 +30,7 @@ import (
 	"github.com/forceu/gokapi/internal/encryption"
 	"github.com/forceu/gokapi/internal/environment"
 	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/languages"
 	"github.com/forceu/gokapi/internal/logging"
 	"github.com/forceu/gokapi/internal/logging/serverstats"
 	"github.com/forceu/gokapi/internal/models"
@@ -85,8 +87,8 @@ var templateFolder *template.Template
 // customStaticInfo is passed to all templates, so custom CSS or JS can be embedded
 var customStaticInfo customStatic
 
-// imageExpiredPicture is sent for an expired hotlink
-var imageExpiredPicture []byte
+// imageExpiredPicture is sent for an expired hotlink, indexed by language code
+var imageExpiredPicture map[string][]byte
 
 // srv is the web server that is used for this module
 var srv http.Server
@@ -184,15 +186,36 @@ func handleFavicon(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(icon)
 }
 
+// loadExpiryImage renders the image that is shown for expired hotlinks. As the
+// image is static apart from the text, one version per available language is
+// rendered on startup instead of rendering it for every request.
 func loadExpiryImage() {
 	svgTemplate, err := templatetext.ParseFS(templateFolderEmbedded, "web/templates/expired_file_svg.tmpl")
 	helper.Check(err)
-	var buf bytes.Buffer
-	err = svgTemplate.Execute(&buf, struct {
-		PublicName string
-	}{PublicName: configuration.Get().PublicName})
-	helper.Check(err)
-	imageExpiredPicture = buf.Bytes()
+	imageExpiredPicture = make(map[string][]byte)
+	for _, language := range languages.GetAvailable() {
+		var buf bytes.Buffer
+		// The template is a text template, therefore the values need to be
+		// escaped manually so that the SVG stays valid
+		err = svgTemplate.Execute(&buf, struct {
+			PublicName  string
+			ExpiredText string
+		}{
+			PublicName:  html.EscapeString(configuration.Get().PublicName),
+			ExpiredText: html.EscapeString(languages.Get(language.Code).T("hotlink_expired")),
+		})
+		helper.Check(err)
+		imageExpiredPicture[language.Code] = buf.Bytes()
+	}
+}
+
+// getExpiryImage returns the image for expired hotlinks in the language of the request
+func getExpiryImage(r *http.Request) []byte {
+	image, ok := imageExpiredPicture[languages.FromRequest(r).Code]
+	if !ok {
+		return imageExpiredPicture[languages.DefaultCode]
+	}
+	return image
 }
 
 // Shutdown closes the webserver gracefully
@@ -212,6 +235,7 @@ func initTemplates(templateFolderEmbedded embed.FS) {
 
 	funcMap := template.FuncMap{
 		"newAdminButtonContext": newAdminButtonContext,
+		"newFileRequestContext": newFileRequestContext,
 	}
 	if helper.FolderExists("templates") {
 		fmt.Println("Found folder 'templates', using local folder instead of internal template folder")
@@ -241,6 +265,7 @@ type redirectValues struct {
 	PublicName       string
 	BaseUrl          string
 	PasswordRequired bool
+	Lang             languages.Translator
 }
 
 // Handling of /id/?/? - used when filename shall be displayed, will redirect to the regular download URL
@@ -261,7 +286,8 @@ func redirectFromFilename(w http.ResponseWriter, r *http.Request) {
 		Size:             file.Size,
 		PublicName:       config.PublicName,
 		BaseUrl:          config.ServerUrl,
-		PasswordRequired: file.PasswordHash != ""})
+		PasswordRequired: file.PasswordHash != "",
+		Lang:             languages.FromRequest(r)})
 	helper.CheckIgnoreTimeout(err)
 }
 
@@ -292,7 +318,8 @@ func doLogout(w http.ResponseWriter, r *http.Request) {
 func showIndex(w http.ResponseWriter, r *http.Request) {
 	err := templateFolder.ExecuteTemplate(w, "index", genericView{RedirectUrl: configuration.Get().RedirectUrl,
 		PublicName:    configuration.Get().PublicName,
-		CustomContent: customStaticInfo})
+		CustomContent: customStaticInfo,
+		Lang:          languages.FromRequest(r)})
 	helper.CheckIgnoreTimeout(err)
 }
 
@@ -319,6 +346,7 @@ func handleGenerateAuthToken(w http.ResponseWriter, r *http.Request) {
 // Handling of /changePassword
 func changePassword(w http.ResponseWriter, r *http.Request) {
 	var errMessage string
+	translator := languages.FromRequest(r)
 	user, err := authentication.GetUserFromRequest(r)
 	if err != nil {
 		panic(err)
@@ -331,7 +359,7 @@ func changePassword(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Println("Invalid form data sent to server for /changePassword")
 		fmt.Println(err)
-		errMessage = "Invalid form data sent"
+		errMessage = translator.T("changepw_error_form")
 	} else {
 		var ok bool
 		var pwHash string
@@ -340,7 +368,7 @@ func changePassword(w http.ResponseWriter, r *http.Request) {
 		csrf := r.PostForm.Get("csrf-token")
 		pwHash, ok, err = validateNewPassword(pw, user, csrf)
 		if err != nil {
-			errMessage = firstLetterUpper(err.Error())
+			errMessage = translator.T(passwordErrorKey(err))
 		}
 		if ok {
 			user.Password = pwHash
@@ -356,8 +384,32 @@ func changePassword(w http.ResponseWriter, r *http.Request) {
 			MinPasswordLength: configuration.GetEnvironment().MinLengthPassword,
 			ErrorMessage:      errMessage,
 			CustomContent:     customStaticInfo,
+			Lang:              translator,
 			CsrfToken:         csrftoken.Generate(csrftoken.TypeLogin)})
 	helper.CheckIgnoreTimeout(err)
+}
+
+var (
+	// errPasswordCsrfInvalid is returned if the CSRF token of the password change form was invalid
+	errPasswordCsrfInvalid = errors.New("form was not submitted completely")
+	// errPasswordTooShort is returned if the new password is shorter than the required minimum length
+	errPasswordTooShort = errors.New("password is too short")
+	// errPasswordUnchanged is returned if the new password is identical to the old one
+	errPasswordUnchanged = errors.New("new password has to be different from the old password")
+)
+
+// passwordErrorKey returns the translation key for an error returned by validateNewPassword
+func passwordErrorKey(err error) string {
+	switch {
+	case errors.Is(err, errPasswordCsrfInvalid):
+		return "changepw_error_csrf"
+	case errors.Is(err, errPasswordTooShort):
+		return "changepw_error_too_short"
+	case errors.Is(err, errPasswordUnchanged):
+		return "changepw_error_same"
+	default:
+		return "changepw_error_form"
+	}
 }
 
 // validateNewPassword validates the new password and returns the new password hash if the password is valid.
@@ -368,24 +420,17 @@ func validateNewPassword(newPassword string, user models.User, userCsrfToken str
 		return user.Password, false, nil
 	}
 	if !csrftoken.IsValid(csrftoken.TypeLogin, userCsrfToken) {
-		return "", false, errors.New("form was not submitted completely")
+		return "", false, errPasswordCsrfInvalid
 	}
 	if len(newPassword) < configuration.GetEnvironment().MinLengthPassword {
-		return "", false, errors.New("password is too short")
+		return "", false, errPasswordTooShort
 	}
 	isSame, _ := configuration.VerifyPassword(newPassword, user.Password, "")
 	if isSame {
-		return "", false, errors.New("new password has to be different from the old password")
+		return "", false, errPasswordUnchanged
 	}
 	newPasswordHash := configuration.HashPassword(newPassword, false, "")
 	return newPasswordHash, true, nil
-}
-
-func firstLetterUpper(s string) string {
-	if len(s) == 0 {
-		return s
-	}
-	return strings.ToUpper(string(s[0])) + s[1:]
 }
 
 // Handling of /error
@@ -399,15 +444,17 @@ func showError(w http.ResponseWriter, r *http.Request) {
 		displayedError.CardWidth = "25rem"
 	}
 
+	translator := languages.FromRequest(r)
 	err := templateFolder.ExecuteTemplate(w, "error", genericView{
 		ErrorId:           displayedError.ErrorId,
 		ErrorCardWidth:    displayedError.CardWidth,
 		IsGenericError:    displayedError.IsGeneric,
-		ErrorTitle:        displayedError.Title,
-		ErrorMessage:      displayedError.Message,
+		ErrorTitle:        displayedError.GetTitle(translator),
+		ErrorMessage:      displayedError.GetMessage(translator),
 		ErrorOauthMessage: displayedError.OAuthProviderMessage,
 		PublicName:        configuration.Get().PublicName,
-		CustomContent:     customStaticInfo})
+		CustomContent:     customStaticInfo,
+		Lang:              translator})
 	helper.CheckIgnoreTimeout(err)
 }
 
@@ -415,7 +462,8 @@ func showError(w http.ResponseWriter, r *http.Request) {
 func forgotPassword(w http.ResponseWriter, r *http.Request) {
 	err := templateFolder.ExecuteTemplate(w, "forgotpw", genericView{
 		PublicName:    configuration.Get().PublicName,
-		CustomContent: customStaticInfo})
+		CustomContent: customStaticInfo,
+		Lang:          languages.FromRequest(r)})
 	helper.CheckIgnoreTimeout(err)
 }
 
@@ -425,7 +473,7 @@ func showUploadRequest(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		panic(err)
 	}
-	view := (&AdminView{}).convertGlobalConfig(ViewFileRequests, userId)
+	view := (&AdminView{}).convertGlobalConfig(ViewFileRequests, userId, languages.FromRequest(r))
 
 	if !view.ActiveUser.HasPermissionCreateFileRequests() {
 		redirect(w, r, "admin")
@@ -442,7 +490,7 @@ func showApiAdmin(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		panic(err)
 	}
-	view := (&AdminView{}).convertGlobalConfig(ViewAPI, userId)
+	view := (&AdminView{}).convertGlobalConfig(ViewAPI, userId, languages.FromRequest(r))
 
 	if configuration.GetEnvironment().DisableApiMenu && !view.ActiveUser.IsAdmin() {
 		redirect(w, r, "admin")
@@ -460,7 +508,7 @@ func showUserAdmin(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		panic(err)
 	}
-	view := (&AdminView{}).convertGlobalConfig(ViewUsers, userId)
+	view := (&AdminView{}).convertGlobalConfig(ViewUsers, userId, languages.FromRequest(r))
 	if !view.ActiveUser.HasPermissionManageUsers() || configuration.Get().Authentication.Method == models.AuthenticationDisabled {
 		redirect(w, r, "admin")
 		return
@@ -480,7 +528,7 @@ func processApi(w http.ResponseWriter, r *http.Request) {
 func showLogin(w http.ResponseWriter, r *http.Request) {
 	_, ok, err := authentication.IsAuthenticated(w, r)
 	if err != nil {
-		errorHandling.RedirectToErrorPage(w, r, "Unable to log in", "The following error was raised: "+err.Error(), errorHandling.WidthDefault)
+		errorHandling.RedirectToErrorPage(w, r, "errorpage_login_failed_title", "errorpage_login_failed_text", err.Error(), errorHandling.WidthDefault)
 		return
 	}
 	if ok {
@@ -488,8 +536,8 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if configuration.Get().Authentication.Method == models.AuthenticationHeader {
-		errorHandling.RedirectToErrorPage(w, r, "Unauthorised",
-			"No login information was sent from the authentication provider.", errorHandling.WidthDefault)
+		errorHandling.RedirectToErrorPage(w, r, "errorpage_no_login_info_title",
+			"errorpage_no_login_info_text", "", errorHandling.WidthDefault)
 		return
 	}
 	if configuration.Get().Authentication.Method == models.AuthenticationOAuth2 {
@@ -536,6 +584,7 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 		PublicName:    configuration.Get().PublicName,
 		CustomContent: customStaticInfo,
 		CsrfToken:     csrftoken.Generate(csrftoken.TypeLogin),
+		Lang:          languages.FromRequest(r),
 	})
 	helper.CheckIgnoreTimeout(err)
 }
@@ -550,6 +599,7 @@ type LoginView struct {
 	PublicName     string
 	CsrfToken      string
 	CustomContent  customStatic
+	Lang           languages.Translator
 }
 
 // Handling of /d
@@ -577,6 +627,7 @@ func showDownload(w http.ResponseWriter, r *http.Request) {
 		IsFailedLogin:      false,
 		UsesHttps:          configuration.UsesHttps(),
 		CustomContent:      customStaticInfo,
+		Lang:               languages.FromRequest(r),
 	}
 
 	if file.RequiresClientDecryption() {
@@ -634,14 +685,14 @@ func showHotlink(w http.ResponseWriter, r *http.Request) {
 	file, ok := storage.GetFileByHotlink(hotlinkId)
 	if !ok || file.IsFileRequest() {
 		w.Header().Set("Content-Type", "image/svg+xml")
-		_, _ = w.Write(imageExpiredPicture)
+		_, _ = w.Write(getExpiryImage(r))
 		return
 	}
 	validFile := storage.ServeFile(file, w, r, false, true, false, true)
 	if !validFile {
 		// Only called if the file has already expired during the expiry check of storage.ServeFile()
 		w.Header().Set("Content-Type", "image/svg+xml")
-		_, _ = w.Write(imageExpiredPicture)
+		_, _ = w.Write(getExpiryImage(r))
 		return
 	}
 }
@@ -673,7 +724,7 @@ func showAdminMenu(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	view := (&AdminView{}).convertGlobalConfig(ViewMain, user)
+	view := (&AdminView{}).convertGlobalConfig(ViewMain, user, languages.FromRequest(r))
 	if len(configuration.GetEnvironment().ActiveDeprecations) > 0 {
 		if user.IsSuperAdmin() {
 			view.ShowDeprecationNotice = true
@@ -691,7 +742,7 @@ func showLogs(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		panic(err)
 	}
-	view := (&AdminView{}).convertGlobalConfig(ViewLogs, user)
+	view := (&AdminView{}).convertGlobalConfig(ViewLogs, user, languages.FromRequest(r))
 	if !view.ActiveUser.HasPermissionManageLogs() {
 		redirect(w, r, "admin")
 		return
@@ -714,7 +765,8 @@ func showE2ESetup(w http.ResponseWriter, r *http.Request) {
 	err = templateFolder.ExecuteTemplate(w, "e2esetup", e2ESetupView{
 		HasBeenSetup:  e2einfo.HasBeenSetUp(),
 		PublicName:    configuration.Get().PublicName,
-		CustomContent: customStaticInfo})
+		CustomContent: customStaticInfo,
+		Lang:          languages.FromRequest(r)})
 	helper.CheckIgnoreTimeout(err)
 }
 
@@ -734,6 +786,7 @@ type DownloadView struct {
 	EndToEndEncryption   bool
 	UsesHttps            bool
 	CustomContent        customStatic
+	Lang                 languages.Translator
 }
 
 type e2ESetupView struct {
@@ -742,6 +795,7 @@ type e2ESetupView struct {
 	HasBeenSetup   bool
 	PublicName     string
 	CustomContent  customStatic
+	Lang           languages.Translator
 }
 
 // AdminView contains parameters for all admin-related pages
@@ -786,6 +840,7 @@ type AdminView struct {
 	TotalTraffic          uint64
 
 	CustomContent customStatic
+	Lang          languages.Translator
 }
 
 // getUserMap needs to return the map with pointers; otherwise template cannot call
@@ -814,7 +869,7 @@ const (
 
 // Converts the globalConfig variable to an AdminView struct to pass the infos to
 // the admin template
-func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
+func (u *AdminView) convertGlobalConfig(view int, user models.User, translator languages.Translator) *AdminView {
 	var metaDataList []models.FileApiOutput
 	var apiKeyList []models.ApiKey
 
@@ -823,6 +878,7 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 	u.ActiveUser = user
 	u.UserMap = getUserMap()
 	u.CustomContent = customStaticInfo
+	u.Lang = translator
 	switch view {
 	case ViewMain:
 		for _, element := range database.GetAllMetadata() {
@@ -989,6 +1045,7 @@ func showPublicUpload(w http.ResponseWriter, r *http.Request) {
 		ChunkSize:     config.ChunkSize,
 		MaxServerSize: config.MaxFileSizeMB,
 		FileRequest:   &request,
+		Lang:          languages.FromRequest(r),
 		CustomContent: customStaticInfo,
 	}
 
@@ -1108,7 +1165,7 @@ func requireLogin(next http.HandlerFunc, isUiCall, isPwChangeView bool) http.Han
 		addNoCacheHeader(w)
 		user, isLoggedIn, err := authentication.IsAuthenticated(w, r)
 		if err != nil {
-			errorHandling.RedirectToErrorPage(w, r, "Unable to log in", "The following error was raised: "+err.Error(), errorHandling.WidthDefault)
+			errorHandling.RedirectToErrorPage(w, r, "errorpage_login_failed_title", "errorpage_login_failed_text", err.Error(), errorHandling.WidthDefault)
 			return
 		}
 		if isLoggedIn {
@@ -1135,11 +1192,22 @@ func requireLogin(next http.HandlerFunc, isUiCall, isPwChangeView bool) http.Han
 type adminButtonContext struct {
 	CurrentFile models.FileApiOutput
 	ActiveUser  *models.User
+	Lang        languages.Translator
 }
 
 // Used internally in templates to create buttons with user context
-func newAdminButtonContext(file models.FileApiOutput, user models.User) adminButtonContext {
-	return adminButtonContext{CurrentFile: file, ActiveUser: &user}
+func newAdminButtonContext(file models.FileApiOutput, user models.User, translator languages.Translator) adminButtonContext {
+	return adminButtonContext{CurrentFile: file, ActiveUser: &user, Lang: translator}
+}
+
+type fileRequestContext struct {
+	Request *models.FileRequest
+	Lang    languages.Translator
+}
+
+// Used internally in templates to render parts of a file request with the current language
+func newFileRequestContext(request models.FileRequest, translator languages.Translator) fileRequestContext {
+	return fileRequestContext{Request: &request, Lang: translator}
 }
 
 // Write a cookie if the user has entered a correct password for a password-protected file
@@ -1191,6 +1259,7 @@ type genericView struct {
 	ErrorId           int
 	MinPasswordLength int
 	CustomContent     customStatic
+	Lang              languages.Translator
 }
 
 // A view containing parameters for an oauth error
@@ -1203,6 +1272,7 @@ type oauthErrorView struct {
 	ErrorProvidedName    string
 	ErrorProvidedMessage string
 	CustomContent        customStatic
+	Lang                 languages.Translator
 }
 
 // A view containing parameters for the public upload page
@@ -1214,4 +1284,5 @@ type publicUploadView struct {
 	MaxServerSize  int
 	CustomContent  customStatic
 	FileRequest    *models.FileRequest
+	Lang           languages.Translator
 }

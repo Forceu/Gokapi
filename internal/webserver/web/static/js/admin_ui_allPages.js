@@ -69,7 +69,7 @@ function downloadFileWithPresign(id) {
     apiFilesListDownloadSingle(id)
         .then(data => {
             if (!data.hasOwnProperty("downloadUrl")) {
-                throw new Error("Unable to get presigned key");
+                throw new Error(t("error_presign"));
             }
             const a = document.createElement('a');
             a.href = data.downloadUrl;
@@ -80,7 +80,7 @@ function downloadFileWithPresign(id) {
             a.remove();
         })
         .catch(error => {
-            alert("Unable to download: " + error);
+            alert(t("error_unable_download", error));
             console.error('Error:', error);
         });
 }
@@ -89,7 +89,7 @@ function downloadFilesZipWithPresign(ids, filename) {
     apiFilesListDownloadZip(ids, filename)
         .then(data => {
             if (!data.hasOwnProperty("downloadUrl")) {
-                throw new Error("Unable to get presigned key");
+                throw new Error(t("error_presign"));
             }
             const a = document.createElement('a');
             a.href = data.downloadUrl;
@@ -100,7 +100,7 @@ function downloadFilesZipWithPresign(ids, filename) {
             a.remove();
         })
         .catch(error => {
-            alert("Unable to download: " + error);
+            alert(t("error_unable_download", error));
             console.error('Error:', error);
         });
 }

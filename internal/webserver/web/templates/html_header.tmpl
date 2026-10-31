@@ -1,10 +1,11 @@
 {{define "header"}}<!doctype html>
-<html lang="en" class="h-100">
+<html lang="{{.Lang.Code}}" class="h-100">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
 
+	<script>var gokapiTranslations = {{ .Lang.Js }};</script>
 	<script src="./assets/dist/js/jquery.min.js"></script>
 	<script src="./assets/dist/js/bootstrap.bundle.min.js"></script>
 	<link href="./assets/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -16,7 +17,7 @@
 	<link href="./assets/dist/icons/bootstrap-icons.min.css" rel="stylesheet">
 	<script src="./js/min/all_public.min.js"></script>
 {{ if .IsAdminView }}
-        <title>{{.PublicName}} Admin</title>
+        <title>{{.PublicName}} {{ .Lang.T "nav_admin_title" }}</title>
 	<script src="./assets/dist/js/dropzone.min.js?v={{ template "js_dropzone_version"}}"></script>
 	<script src="./assets/dist/js/clipboard.min.js"></script>
 	<script src="./assets/dist/js/datatables.min.js"></script>
@@ -40,17 +41,17 @@
 {{ else }}
    {{ if .IsDownloadView }}
        {{ if .IsPasswordView }}
-          <title>{{.PublicName}}: Password required</title>
+          <title>{{.PublicName}}: {{ .Lang.T "downloadpw_title" }}</title>
 	  <meta name="title" content="{{.PublicName}}">
-    	  <meta name="description" content="Password required">
-    	  
+    	  <meta name="description" content="{{ .Lang.T "downloadpw_title" }}">
+
     	  <meta property="og:title" content="{{.PublicName}}"/>
-  	  <meta property="og:description" content="Password required"/>
+  	  <meta property="og:description" content="{{ .Lang.T "downloadpw_title" }}"/>
        {{ else }}
           <title>{{.PublicName}}: {{.Name}}</title>
 	  <meta name="title" content="{{.PublicName}}: {{.Name}}">
     	  <meta name="description" content="{{.Size}}">
-    	  
+
     	  <meta property="og:title" content="{{.Name}}"/>
   	  <meta property="og:description" content="{{.Size}}"/>
        {{end }}
@@ -66,37 +67,41 @@
   </head>
   <body class="d-flex h-100 text-center text-white bg-dark">
 {{ if .IsAdminView }}
+<div style="position:fixed;top:0.5rem;right:0.75rem;z-index:9999;display:flex;align-items:center;gap:0.5rem;">
    {{ if .IsUserTabAvailable }}
-<div style="position:fixed;top:0.5rem;right:0.75rem;z-index:9999;">
   <span class="badge bg-secondary opacity-75">
     <i class="bi bi-person-fill"></i> {{.ActiveUser.Name}}
   </span>
-</div>
   {{ end }}
+  {{ template "language_selector" . }}
+</div>
   <div class="d-flex w-100 h-100 p-3 mx-auto flex-column">
       <header class="masthead mb-auto">
         <div  style="max-width: 80em;  margin: 0 auto;"  class="inner">
           <h1>{{.PublicName}}</h1>
           <nav class="nav nav-masthead justify-content-center">
-            <a class="nav-link {{ if eq .ActiveView 0}}active{{ end }}" href="./admin">Upload</a>
+            <a class="nav-link {{ if eq .ActiveView 0}}active{{ end }}" href="./admin">{{ .Lang.T "nav_upload" }}</a>
             {{ if .ActiveUser.HasPermissionCreateFileRequests }}
-            <a class="nav-link {{ if eq .ActiveView 4 }}active{{ end }}" href="./filerequests">File Requests</a>
+            <a class="nav-link {{ if eq .ActiveView 4 }}active{{ end }}" href="./filerequests">{{ .Lang.T "nav_file_requests" }}</a>
             {{ end }}
             {{ if and .ActiveUser.HasPermissionManageUsers .IsUserTabAvailable }}
-            <a class="nav-link {{ if eq .ActiveView 3 }}active{{ end }}" href="./users">Users</a>
+            <a class="nav-link {{ if eq .ActiveView 3 }}active{{ end }}" href="./users">{{ .Lang.T "nav_users" }}</a>
             {{ end }}
             {{ if .ShowApiMenu }}
-            <a class="nav-link {{ if eq .ActiveView 2 }}active{{ end }}" href="./apiKeys">API</a>
+            <a class="nav-link {{ if eq .ActiveView 2 }}active{{ end }}" href="./apiKeys">{{ .Lang.T "nav_api" }}</a>
             {{ end }}
             {{ if .ActiveUser.HasPermissionManageLogs }}
-            <a class="nav-link {{ if eq .ActiveView 1 }}active{{ end }}" href="./logs">Status</a>
+            <a class="nav-link {{ if eq .ActiveView 1 }}active{{ end }}" href="./logs">{{ .Lang.T "nav_status" }}</a>
             {{ end }}
-            {{ if .IsLogoutAvailable }}<a class="nav-link" href="#" onclick="doLogout()">Logout</a>{{ end }}
+            {{ if .IsLogoutAvailable }}<a class="nav-link" href="#" onclick="doLogout()">{{ .Lang.T "nav_logout" }}</a>{{ end }}
           </nav>
         </div>
       </header>
   <main style="margin-top: 2rem">
 {{ else }}
+<div style="position:fixed;top:0.5rem;right:0.75rem;z-index:9999;">
+  {{ template "language_selector" . }}
+</div>
   <div class="d-flex w-100 h-100 p-3 mx-auto flex-column">
   <header class="mb-auto">
     <div>
@@ -107,3 +112,16 @@
 {{ end }}
 {{end}}
 
+{{define "language_selector"}}
+{{ if gt (len .Lang.Available) 1 }}
+  <select class="form-select form-select-sm bg-dark text-white-50 border-secondary"
+          style="width:auto;padding-top:0.1rem;padding-bottom:0.1rem;font-size:0.8rem;"
+          aria-label="{{ .Lang.T "generic_language" }}"
+          title="{{ .Lang.T "generic_language" }}"
+          onchange="setLanguage(this.value)">
+{{ range .Lang.Available }}
+    <option value="{{ .Code }}" {{ if eq .Code $.Lang.Code }}selected{{ end }}>{{ .Name }}</option>
+{{ end }}
+  </select>
+{{ end }}
+{{end}}

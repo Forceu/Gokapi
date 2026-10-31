@@ -1,12 +1,12 @@
 {{ define "logs" }}{{ template "header" . }}
 
 <div class="container-fluid py-4" style="max-width: 1200px;">
-    
+
     <div class="row g-3 mb-4">
         <div class="col-6 col-lg-2">
             <div class="card stat-card border-0 shadow-sm h-100">
                 <div class="card-body p-3">
-                    <div class="text-muted small text-uppercase fw-bold mb-1">Uptime</div>
+                    <div class="text-muted small text-uppercase fw-bold mb-1">{{ .Lang.T "logs_uptime" }}</div>
                     <div class="h5 mb-0 text-light"><span id="uptime"></span></div>
                 </div>
             </div>
@@ -15,7 +15,7 @@
         <div class="col-6 col-lg-2">
             <div class="card stat-card border-0 shadow-sm h-100">
                 <div class="card-body p-3">
-                    <div class="text-muted small text-uppercase fw-bold mb-1">CPU Load</div>
+                    <div class="text-muted small text-uppercase fw-bold mb-1">{{ .Lang.T "logs_cpu_load" }}</div>
                     <div class="h5 mb-2 text-light" id="labelCpu">{{ .CpuLoad}}%</div>
                     <div class="progress progress-stat">
                         <div class="progress-bar" id="barCpu" style="width: {{ .CpuLoad}}%"></div>
@@ -27,7 +27,7 @@
         <div class="col-6 col-lg-2">
             <div class="card stat-card border-0 shadow-sm h-100">
                 <div class="card-body p-3">
-                    <div class="text-muted small text-uppercase fw-bold mb-1">Memory Usage</div>
+                    <div class="text-muted small text-uppercase fw-bold mb-1">{{ .Lang.T "logs_memory_usage" }}</div>
                     <div class="h5 mb-2 text-light text-nowrap"><span id="usedMemory"></span> / <span id="totalMemory"></span> <span id="memoryUnit" class="small opacity-50"></span></div>
                     <div class="progress progress-stat">
                         <div class="progress-bar" id="barMemory" style="width: {{.MemoryUsagePercent}}%"></div>
@@ -39,7 +39,7 @@
         <div class="col-6 col-lg-2">
             <div class="card stat-card border-0 shadow-sm h-100">
                 <div class="card-body p-3">
-                    <div class="text-muted small text-uppercase fw-bold mb-1">Disk Usage</div>
+                    <div class="text-muted small text-uppercase fw-bold mb-1">{{ .Lang.T "logs_disk_usage" }}</div>
                     <div class="h5 mb-2 text-light text-nowrap"><span id="usedDisk"></span> / <span id="totalDisk"></span> <span id="diskUnit" class="small opacity-50"></span></div>
                     <div class="progress progress-stat">
                         <div class="progress-bar" id="barDisk" style="width: {{.DiskUsagePercent}}%"></div>
@@ -51,9 +51,9 @@
 	<div class="col-6 col-lg-2">
 		    <div class="card stat-card border-0 shadow-sm h-100">
 		        <div class="card-body p-3" id="cardTraffic">
-		            <div class="text-muted small text-uppercase fw-bold mb-1">Data Served</div>
+		            <div class="text-muted small text-uppercase fw-bold mb-1">{{ .Lang.T "logs_data_served" }}</div>
 		            <div class="h5 mb-0 text-light" >
-		                <span id="totalTraffic"></span> 
+		                <span id="totalTraffic"></span>
 		                <span id="totalTrafficUnit" class="small opacity-50"></span>
 		            </div>
 		        </div>
@@ -63,8 +63,8 @@
         <div class="col-6 col-lg-2">
             <div class="card stat-card border-0 shadow-sm h-100">
                 <div class="card-body p-3">
-                    <div class="text-muted small text-uppercase fw-bold mb-1">Uploaded Files</div>
-                    <div class="h5 mb-0 text-light"><span id="labelActiveFiles"> {{ .TotalFiles }}</span> <span class="small opacity-50">Total</span></div>
+                    <div class="text-muted small text-uppercase fw-bold mb-1">{{ .Lang.T "logs_uploaded_files" }}</div>
+                    <div class="h5 mb-0 text-light"><span id="labelActiveFiles"> {{ .TotalFiles }}</span> <span class="small opacity-50">{{ .Lang.T "generic_total" }}</span></div>
                 </div>
             </div>
         </div>
@@ -73,18 +73,18 @@
     <div class="card border-0 shadow-lg bg-dark overflow-hidden">
         <div class="card-header bg-dark border-bottom border-secondary py-3 d-flex align-items-center justify-content-between">
             <div class="d-flex align-items-center">
-                <h6 class="mb-0 fw-bold text-light me-3">System Logs</h6>
+                <h6 class="mb-0 fw-bold text-light me-3">{{ .Lang.T "logs_system_logs" }}</h6>
             </div>
         </div>
-        
+
         <div class="card-body p-0 bg-black">
-            <textarea 
-                class="form-control bg-black text-info font-monospace border-0 p-4" 
-                id="logviewer" 
-                rows="20" 
-                readonly 
+            <textarea
+                class="form-control bg-black text-info font-monospace border-0 p-4"
+                id="logviewer"
+                rows="20"
+                readonly
                 style="resize: none; font-size: 0.85rem; line-height: 1.5; outline: none; border-radius: 0;">
-                	Loading...
+                	{{ .Lang.T "generic_loading" }}
             </textarea>
         </div>
 
@@ -92,40 +92,40 @@
             <div class="row g-2 align-items-center">
                 <div class="col-md-5">
                     <div class="input-group input-group-sm">
-                        <span class="input-group-text input-group-text-dark">Filter</span>
+                        <span class="input-group-text input-group-text-dark">{{ .Lang.T "logs_filter" }}</span>
                         <select id="logFilter" class="form-select log-dark-input" onchange="filterLogs(this.value)">
-                            <option value="all">All Events</option>
-                            <option value="warning">Warnings</option>
-                            <option value="auth">Authentication</option>
-                            <option value="upload">Uploads</option>
-                            <option value="edit">Modifications</option>
-                            <option value="download">Downloads</option>
-                            <option value="info">Info</option>
+                            <option value="all">{{ .Lang.T "logs_filter_all" }}</option>
+                            <option value="warning">{{ .Lang.T "logs_filter_warning" }}</option>
+                            <option value="auth">{{ .Lang.T "logs_filter_auth" }}</option>
+                            <option value="upload">{{ .Lang.T "logs_filter_upload" }}</option>
+                            <option value="edit">{{ .Lang.T "logs_filter_edit" }}</option>
+                            <option value="download">{{ .Lang.T "logs_filter_download" }}</option>
+                            <option value="info">{{ .Lang.T "logs_filter_info" }}</option>
                         </select>
                     </div>
                 </div>
-                
+
                 <div class="col-md-2"></div>
 
                 <div class="col-md-5">
                     <div class="d-flex gap-2 justify-content-md-end">
 {{ if or (eq .ActiveUser.UserLevel 0) (eq .ActiveUser.UserLevel 1) }}
-			    <button class="btn btn-sm btn-outline-light text-nowrap" title="Reset the traffic statistic" onclick="resetTrafficStat()">
-                                Reset Traffic
+			    <button class="btn btn-sm btn-outline-light text-nowrap" title="{{ .Lang.T "logs_reset_traffic_title" }}" onclick="resetTrafficStat()">
+                                {{ .Lang.T "logs_reset_traffic" }}
                             </button>
-                            
+
                             <div class="vr bg-secondary mx-2 opacity-50"></div>
 
 
                         <select id="deleteLogsSel" class="form-select form-select-sm log-dark-input w-auto">
-                            <option value="none">Delete Logs...</option>
-                            <option value="30">Older than 30 days</option>
-                            <option value="14">Older than 14 days</option>
-                            <option value="7">Older than 7 days</option>
-                            <option value="2">Older than 2 days</option>
-                            <option value="all">Delete all logs</option>
+                            <option value="none">{{ .Lang.T "logs_delete_select" }}</option>
+                            <option value="30">{{ .Lang.T "logs_delete_30" }}</option>
+                            <option value="14">{{ .Lang.T "logs_delete_14" }}</option>
+                            <option value="7">{{ .Lang.T "logs_delete_7" }}</option>
+                            <option value="2">{{ .Lang.T "logs_delete_2" }}</option>
+                            <option value="all">{{ .Lang.T "logs_delete_all" }}</option>
                         </select>
-                        <button class="btn btn-sm btn-outline-light px-3" onclick="deleteLogs()">Execute</button>
+                        <button class="btn btn-sm btn-outline-light px-3" onclick="deleteLogs()">{{ .Lang.T "logs_execute" }}</button>
 {{ end }}
                     </div>
                 </div>
@@ -137,13 +137,13 @@
 <script src="./js/min/admin.min.{{ template "js_admin_version"}}.js"></script>
 <script>
 
-  
+
     const POLL_INTERVAL_S = 10;
-    
+
     var logContent = '';
     var lastLogUpdate = 0;
     var currentUptime = {{.Uptime}};
-    
+
     setPercentageBar("barCpu", {{ .CpuLoad}});
     setPercentageBar("barDisk", {{ .DiskUsage}}, {{.DiskTotal}});
     setPercentageBar("barMemory", {{.MemoryUsage}}, {{.MemoryTotal}});
@@ -151,13 +151,13 @@
     setDiskUsage({{.DiskUsage}}, {{.DiskTotal}});
     setTrafficInfo({{.TotalTraffic}}, {{.TrafficSince}});
     document.getElementById('uptime').innerText = formatDuration(currentUptime);
-    
+
     addUptime();
     pollInfo();
-    
+
 </script>
 
 {{ template "pagename" "LogOverview"}}
 {{ template "customjs" .}}
-{{ template "footer" true}}
+{{ template "footer_version" . }}
 {{ end }}

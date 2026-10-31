@@ -6,19 +6,19 @@
     <div class="col-lg-8">
       <div class="card bg-dark text-white">
         <div class="card-body">
-          <h3 class="card-title text-center mb-4">Upload Files</h3>
+          <h3 class="card-title text-center mb-4">{{ .Lang.T "pu_title" }}</h3>
 {{ if ne .FileRequest.Notes "" }}
           <div class="info-box">
-            <h6>Note</h6>
+            <h6>{{ .Lang.T "pu_note" }}</h6>
             <p class="mb-0">{{.FileRequest.Notes}}</p>
           </div>
 {{ end }}
 {{ if .FileRequest.HasRestrictions }}
           <div class="info-box">
-            <h6>Upload restrictions</h6>
+            <h6>{{ .Lang.T "pu_restrictions" }}</h6>
             <ul>
     {{ if not (.FileRequest.IsUnlimitedTime) }}
-              <li>Upload possible until: <strong>
+              <li>{{ .Lang.T "pu_restriction_until" }} <strong>
                   <span id="expirydate">{{ .FileRequest.Expiry }}</span>
                 </strong>
               </li>
@@ -27,7 +27,7 @@
               </script>
    {{ end }}
    {{ if or (not (.FileRequest.IsUnlimitedSize)) (lt .FileRequest.CombinedMaxSize 5000) }}
-              <li>Maximum file size: <strong>
+              <li>{{ .Lang.T "pu_restriction_max_size" }} <strong>
                   <span id="maxfilesize"></span>
                 </strong>
               </li>
@@ -36,21 +36,21 @@
               </script>
    {{ end }}
        {{ if not (.FileRequest.IsUnlimitedFiles) }}
-              <li>Maximum number of files: <strong>{{ .FileRequest.FilesRemaining }}</strong>
+              <li>{{ .Lang.T "pu_restriction_max_files" }} <strong>{{ .FileRequest.FilesRemaining }}</strong>
               </li>
        {{ end }}
             </ul>
           </div>
 {{ end }}
           <label for="fileInput" id="uploadBox" class="upload-box text-center w-100">
-            <p class="mb-2 fs-5">Drag & drop files here</p>
-            <p class="mb-0 opacity-75">or paste or click to select</p>
+            <p class="mb-2 fs-5">{{ .Lang.T "pu_dragdrop" }}</p>
+            <p class="mb-0 opacity-75">{{ .Lang.T "pu_dragdrop_sub" }}</p>
             <input type="file" id="fileInput" class="d-none" multiple>
           </label>
           <div id="fileList" class="pu-file-list"></div>
           <div class="text-center mt-4">
             <button class="btn btn-upload-custom" disabled onClick="initUpload();" id="uploadbutton">
-		  Upload Files
+		  {{ .Lang.T "pu_upload_button" }}
 	    </button>
           </div>
         </div>
@@ -65,13 +65,13 @@
   <div class="modal-dialog gokapi-dialog">
     <div class="modal-content gokapi-dialog">
       <div class="modal-header">
-        <h2 class="modal-title fs-5" id="errorModalLabel">Unable to upload</h2>
+        <h2 class="modal-title fs-5" id="errorModalLabel">{{ .Lang.T "pu_error_title" }}</h2>
       </div>
       <div class="modal-body">
         <span id="span-modal-error"></span>
       </div>
       <div class="modal-footer">
-        <button type="button" data-bs-dismiss="modal" data-bs-target="#errorModal" class="btn btn-primary">Continue</button>
+        <button type="button" data-bs-dismiss="modal" data-bs-target="#errorModal" class="btn btn-primary">{{ .Lang.T "btn_continue" }}</button>
       </div>
     </div>
   </div>
@@ -82,10 +82,10 @@
   <div class="modal-dialog gokapi-dialog">
     <div class="modal-content gokapi-dialog">
       <div class="modal-header">
-        <h2 class="modal-title fs-5" id="allUModalLabel">Success</h2>
+        <h2 class="modal-title fs-5" id="allUModalLabel">{{ .Lang.T "pu_success_title" }}</h2>
       </div>
       <div class="modal-body">
-        All files have been successfully uploaded. No further files can be uploaded anymore. You can close this page now.
+        {{ .Lang.T "pu_success_text" }}
       </div>
       <div class="modal-footer">
       </div>
@@ -126,5 +126,5 @@ setUnload();
 
 {{ template "pagename" "PublicUpload"}}
 {{ template "customjs" .}}
-{{ template "footer"}}
+{{ template "footer" . }}
 {{end}}

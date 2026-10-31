@@ -22,14 +22,14 @@ function changeUserPermission(userId, permission, buttonId) {
     if (permission == "PERM_REPLACE_OTHER" && !wasGranted) {
         hasNotPermissionReplace = document.getElementById("perm_replace_" + userId).classList.contains("perm-notgranted");
         if (hasNotPermissionReplace) {
-            showToast(2000, "Also granting permission to replace own files");
+            showToast(2000, t("toast_also_granting_replace"));
             changeUserPermission(userId, "PERM_REPLACE", "perm_replace_" + userId);
         }
     }
     if (permission == "PERM_REPLACE" && wasGranted) {
         hasPermissionReplaceOthers = document.getElementById("perm_replace_other_" + userId).classList.contains("perm-granted");
         if (hasPermissionReplaceOthers) {
-            showToast(2000, "Also revoking permission to replace files of other users");
+            showToast(2000, t("toast_also_revoking_replace"));
             changeUserPermission(userId, "PERM_REPLACE_OTHER", "perm_replace_other_" + userId);
         }
     }
@@ -51,7 +51,7 @@ function changeUserPermission(userId, permission, buttonId) {
                 indicator.classList.add("perm-notgranted");
             }
             indicator.classList.remove("perm-processing");
-            alert("Unable to set permission: " + error);
+            alert(t("error_unable_set_permission", error));
             console.error('Error:', error);
         });
 }
@@ -72,7 +72,7 @@ function changeRank(userId, newRank, buttonId) {
         })
         .catch(error => {
             indicator.disabled = false;
-            alert("Unable to change rank: " + error);
+            alert(t("error_unable_change_rank", error));
             console.error('Error:', error);
         });
 }
@@ -95,7 +95,7 @@ function showDeleteUserModal(userId, userEmail) {
                 }, 290);
             })
             .catch(error => {
-                alert("Unable to delete user: " + error);
+                alert(t("error_unable_delete_user", error));
                 console.error('Error:', error);
             });
     };
@@ -138,7 +138,7 @@ function resetPw(userid, newPw) {
         .then(data => {
             if (!newPw) {
                 $('#resetPasswordModal').modal('hide');
-                showToast(1000, 'Password change requirement set successfully')
+                showToast(1000, t("toast_pw_change_required_set"))
                 return;
             }
             button.style.display = 'none';
@@ -150,11 +150,11 @@ function resetPw(userid, newPw) {
             document.getElementById("copypwclip").onclick = function() {
                 // For some reason ClipboardJs is not working on the user PW reset modal, even when initilising again. Manually writing to clipboard
                 navigator.clipboard.writeText(data.password);
-                showToast(1000, "Password copied to clipboard");
+                showToast(1000, t("toast_password_copied"));
             }
         })
         .catch(error => {
-            alert("Unable to reset user password: " + error);
+            alert(t("error_unable_reset_password", error));
             console.error('Error:', error);
             button.disabled = false;
         });
@@ -178,10 +178,10 @@ function addNewUser() {
             })
             .catch(error => {
                 if (error.message == "duplicate") {
-                    alert("A user already exists with that name");
+                    alert(t("error_user_exists"));
                     button.disabled = false;
                 } else {
-                    alert("Unable to create user: " + error);
+                    alert(t("error_unable_create_user", error));
                     console.error('Error:', error);
                     button.disabled = false;
                 }
@@ -196,7 +196,7 @@ const PermissionDefinitions = [
         key: "UserPermGuestUploads",
         bit: 1 << 8,
         icon: "bi bi-box-arrow-in-down",
-        title: "Create file requests",
+        title: t("userperm_file_requests"),
         htmlId: userid => `perm_guest_upload_${userid}`,
         apiName: "PERM_GUEST_UPLOAD"
     },
@@ -204,7 +204,7 @@ const PermissionDefinitions = [
         key: "UserPermReplaceUploads",
         bit: 1 << 0,
         icon: "bi bi-recycle",
-        title: "Replace own uploads",
+        title: t("userperm_replace_own"),
         htmlId: userid => `perm_replace_${userid}`,
         apiName: "PERM_REPLACE"
     },
@@ -212,7 +212,7 @@ const PermissionDefinitions = [
         key: "UserPermListOtherUploads",
         bit: 1 << 1,
         icon: "bi bi-eye",
-        title: "List other uploads",
+        title: t("userperm_list_other"),
         htmlId: userid => `perm_list_${userid}`,
         apiName: "PERM_LIST"
     },
@@ -220,7 +220,7 @@ const PermissionDefinitions = [
         key: "UserPermEditOtherUploads",
         bit: 1 << 2,
         icon: "bi bi-pencil",
-        title: "Edit other uploads",
+        title: t("userperm_edit_other"),
         htmlId: userid => `perm_edit_${userid}`,
         apiName: "PERM_EDIT"
     },
@@ -228,7 +228,7 @@ const PermissionDefinitions = [
         key: "UserPermDeleteOtherUploads",
         bit: 1 << 4,
         icon: "bi bi-trash3",
-        title: "Delete other uploads",
+        title: t("userperm_delete_other"),
         htmlId: userid => `perm_delete_${userid}`,
         apiName: "PERM_DELETE"
     },
@@ -236,7 +236,7 @@ const PermissionDefinitions = [
         key: "UserPermReplaceOtherUploads",
         bit: 1 << 3,
         icon: "bi bi-arrow-left-right",
-        title: "Replace other uploads",
+        title: t("userperm_replace_other"),
         htmlId: userid => `perm_replace_other_${userid}`,
         apiName: "PERM_REPLACE_OTHER"
     },
@@ -244,7 +244,7 @@ const PermissionDefinitions = [
         key: "UserPermManageLogs",
         bit: 1 << 5,
         icon: "bi bi-card-list",
-        title: "Manage system logs",
+        title: t("userperm_logs"),
         htmlId: userid => `perm_logs_${userid}`,
         apiName: "PERM_LOGS"
     },
@@ -252,7 +252,7 @@ const PermissionDefinitions = [
         key: "UserPermManageUsers",
         bit: 1 << 7,
         icon: "bi bi-people",
-        title: "Manage users",
+        title: t("userperm_users"),
         htmlId: userid => `perm_users_${userid}`,
         apiName: "PERM_USERS"
     },
@@ -260,7 +260,7 @@ const PermissionDefinitions = [
         key: "UserPermManageApiKeys",
         bit: 1 << 6,
         icon: "bi bi-sliders2",
-        title: "Manage all API keys",
+        title: t("userperm_api"),
         htmlId: userid => `perm_api_${userid}`,
         apiName: "PERM_API"
     }
@@ -294,8 +294,8 @@ function addRowUser(userid, name, permissions) {
 
 
     cellName.innerText = name;
-    cellGroup.innerText = "User";
-    cellLastOnline.innerText = "Never";
+    cellGroup.innerText = t("userlevel_user");
+    cellLastOnline.innerText = t("generic_never");
     cellUploads.innerText = "0";
 
     // Create one button group
@@ -309,7 +309,7 @@ function addRowUser(userid, name, permissions) {
         btnResetPw.id = `pwchange-${userid}`;
         btnResetPw.type = "button";
         btnResetPw.className = "btn btn-outline-light btn-sm";
-        btnResetPw.title = "Reset Password";
+        btnResetPw.title = t("users_reset_password");
         btnResetPw.onclick = () => showResetPwModal(userid, name);
         btnResetPw.innerHTML = `<i class="bi bi-key-fill"></i>`;
         btnGroup.appendChild(btnResetPw);
@@ -320,7 +320,7 @@ function addRowUser(userid, name, permissions) {
     btnPromote.id = `changeRank_${userid}`;
     btnPromote.type = "button";
     btnPromote.className = "btn btn-outline-light btn-sm";
-    btnPromote.title = "Promote User";
+    btnPromote.title = t("users_promote");
     if (isAdmin) {
         btnPromote.onclick = () => changeRank(userid, 'ADMIN', `changeRank_${userid}`);
     } else {
@@ -334,7 +334,7 @@ function addRowUser(userid, name, permissions) {
     btnDelete.id = `delete-${userid}`;
     btnDelete.type = "button";
     btnDelete.className = "btn btn-outline-danger btn-sm";
-    btnDelete.title = "Delete";
+    btnDelete.title = t("btn_delete");
     btnDelete.onclick = () => showDeleteUserModal(userid, name);
     btnDelete.innerHTML = `<i class="bi bi-trash3"></i>`;
     btnGroup.appendChild(btnDelete);
@@ -379,7 +379,7 @@ function addRowUser(userid, name, permissions) {
 function sanitizeUserId(id) {
     const numericId = id.toString().trim();
     if (!/^\d+$/.test(numericId)) {
-        throw new Error("Invalid ID: must contain only digits.");
+        throw new Error(t("error_invalid_id"));
     }
     return numericId;
 }

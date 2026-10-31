@@ -1,8 +1,22 @@
+{{/* Both footer templates expect the current view as their argument, so that
+     the text can be translated. "footer_version" additionally displays the
+     Gokapi version and is used on the pages that require a login. */}}
 {{define "footer"}}
   </main>
 
   <footer class="mt-auto text-white-50">
-          <p> Powered by <a href="https://github.com/Forceu/Gokapi" target="_blank" rel="noopener noreferrer">Gokapi {{if eq . true }}v{{template "version"}}{{end}}</a></p>
+          <p> {{ .Lang.T "footer_powered_by" }} <a href="https://github.com/Forceu/Gokapi" target="_blank" rel="noopener noreferrer">Gokapi</a></p>
+  </footer>
+</div>
+  </body>
+</html>
+{{end}}
+
+{{define "footer_version"}}
+  </main>
+
+  <footer class="mt-auto text-white-50">
+          <p> {{ .Lang.T "footer_powered_by" }} <a href="https://github.com/Forceu/Gokapi" target="_blank" rel="noopener noreferrer">Gokapi v{{template "version"}}</a></p>
   </footer>
 </div>
   </body>

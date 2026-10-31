@@ -1,3 +1,41 @@
+/**
+ * t returns the translated string for the given key.
+ *
+ * The translations are provided by the server as the global variable
+ * gokapiTranslations, which is defined in the header template. Any additional
+ * arguments replace the placeholders {0}, {1}, ... in the string. If the key is
+ * unknown, the key itself is returned, so that a missing translation is easy to
+ * spot.
+ *
+ * @param {string} key
+ * @param {...*} args
+ * @returns {string}
+ */
+function t(key, ...args) {
+    let result = key;
+    if (typeof gokapiTranslations !== "undefined" && gokapiTranslations !== null &&
+        Object.prototype.hasOwnProperty.call(gokapiTranslations, key)) {
+        result = gokapiTranslations[key];
+    }
+    for (let i = 0; i < args.length; i++) {
+        result = result.split("{" + i + "}").join(args[i]);
+    }
+    return result;
+}
+
+/**
+ * setLanguage stores the language selected by the user in a cookie and reloads
+ * the page, so that the server renders it in the new language. No path is set,
+ * which means that the cookie is scoped to the directory Gokapi is hosted in.
+ *
+ * @param {string} code ISO 639-1 language code
+ */
+function setLanguage(code) {
+    document.cookie = "gokapi_language=" + encodeURIComponent(code) +
+        ";max-age=31536000;samesite=lax";
+    window.location.reload();
+}
+
 function getUuid() {
     // Native UUID, not available in insecure environment
     if (typeof crypto !== "undefined" && crypto.randomUUID) {
@@ -53,7 +91,7 @@ function formatUnixTimestamp(unixTimestamp) {
 
 function formatTimestampWithNegative(unixTimestamp, negative) {
     if (negative === undefined) {
-        negative = "Never";
+        negative = t("generic_never");
     }
     if (unixTimestamp == 0) {
         return negative;
@@ -71,7 +109,7 @@ function insertDateWithNegative(unixTimestamp, id, negative) {
 
 function insertLastOnlineDate(unixTimestamp, id) {
     if ((Date.now() / 1000) - 120 < unixTimestamp) {
-        document.getElementById(id).innerText = "Online";
+        document.getElementById(id).innerText = t("generic_online");
         return;
     }
     insertDateWithNegative(unixTimestamp, id);
@@ -79,10 +117,10 @@ function insertLastOnlineDate(unixTimestamp, id) {
 
 function formatFileRequestExpiry(unixTimestamp) {
     if (unixTimestamp == 0) {
-        return "Never";
+        return t("generic_never");
     }
     if ((Date.now() / 1000) > unixTimestamp) {
-        return "Expired";
+        return t("generic_expired");
     }
     return formatUnixTimestamp(unixTimestamp);
 }

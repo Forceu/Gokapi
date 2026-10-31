@@ -1,45 +1,45 @@
-{{define "login"}}{{ template "header" . }} 
+{{define "login"}}{{ template "header" . }}
       <div class="row">
         <div class="col">
 		<div id="container" class="card" style="width: 20em">
 		  <div class="card-body">
-		    <h1 class="card-title">Login</h1>
+		    <h1 class="card-title">{{ .Lang.T "login_title" }}</h1>
 		    <br>
 		    <p class="card-text">
 			<form method="post" action="./login" id="form" name="form" onSubmit="submitForm()">
 			    <div class="mb-3">
-				<input type="text" class="form-control mx-auto" style="max-width: 300px;" 
-				       autocomplete="username" placeholder="Username" value="{{.User}}" id="username">
+				<input type="text" class="form-control mx-auto" style="max-width: 300px;"
+				       autocomplete="username" placeholder="{{ .Lang.T "login_username" }}" value="{{.User}}" id="username">
 				<input type="hidden" id="uname_hidden" name="username">
 			    </div>
 
 			    <div class="mb-3">
-				<input type="password" class="form-control mx-auto" style="max-width: 300px;" 
-				       autocomplete="current-password" placeholder="Password" id="password">
+				<input type="password" class="form-control mx-auto" style="max-width: 300px;"
+				       autocomplete="current-password" placeholder="{{ .Lang.T "login_password" }}" id="password">
 				<input type="hidden" id="pw_hidden" name="password">
 			    </div>
 
 {{ if .IsFailedLogin }}
 	{{ if .IsFailedCsfr }}
 			    <div class="mb-3">
-				<span class="text-danger">The login page was open too long and expired. Please try again.</span>
+				<span class="text-danger">{{ .Lang.T "login_expired" }}</span>
 			    </div>
 	{{ else }}
 			    <div class="mb-3">
-				<span class="text-danger">Incorrect username or password!</span>
+				<span class="text-danger">{{ .Lang.T "login_incorrect" }}</span>
 			    </div>
 	{{ end }}
 {{ end }}
 
 			    <div class="mt-4">
 				<button type="submit" id="submitbutton" class="btn btn-primary w-100 mx-auto" style="max-width: 300px;">
-				    Login
+				    {{ .Lang.T "login_title" }}
 				</button>
 			    </div>
 				<input type="hidden" id="csrf-token" name="csrf-token" value="{{.CsrfToken}}">
 			</form>
 			<br><br>
-			<a href="./forgotpw">Forgot password</a></p>
+			<a href="./forgotpw">{{ .Lang.T "login_forgot_password" }}</a></p>
 		  </div>
 		</div>
 	    </div>
@@ -56,5 +56,5 @@ function submitForm(){
 </script>
 {{ template "pagename" "Login"}}
 {{ template "customjs" .}}
-{{ template "footer" }}
+{{ template "footer" . }}
 {{end}}
