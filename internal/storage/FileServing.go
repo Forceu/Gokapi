@@ -384,6 +384,7 @@ func ReplaceFile(fileId, newFileContentId string, delete bool) (models.File, err
 		return models.File{}, ErrorReplaceE2EFile
 	}
 
+	previousContent := file
 	file.Name = newFileContent.Name
 	file.Size = newFileContent.Size
 	file.SHA1 = newFileContent.SHA1
@@ -392,10 +393,25 @@ func ReplaceFile(fileId, newFileContentId string, delete bool) (models.File, err
 	file.SizeBytes = newFileContent.SizeBytes
 	file.Encryption = newFileContent.Encryption
 	database.SaveMetaData(file)
+	deleteUnreferencedSource(previousContent)
 	if delete {
 		DeleteFile(newFileContent.Id, true)
 	}
 	return file, nil
+}
+
+// deleteUnreferencedSource deletes the stored data of a file that no metadata entry points at anymore.
+// CleanUp only reaches sources that are still referenced by an entry, so the content a replaced file
+// used to hold would otherwise stay in storage for good.
+func deleteUnreferencedSource(file models.File) {
+	for _, metadata := range database.GetAllMetadata() {
+		if metadata.SHA1 == file.SHA1 {
+			return
+		}
+	}
+	if FileExists(file, configuration.Get().DataDir) {
+		deleteSource(file, configuration.Get().DataDir)
+	}
 }
 
 func isChangeRequested(parametersToChange, parameter int) bool {
