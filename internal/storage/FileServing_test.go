@@ -9,8 +9,8 @@ import (
 	"net/textproto"
 	"os"
 	"strings"
+	"sync"
 	"testing"
-	"testing/synctest"
 	"time"
 
 	"github.com/forceu/gokapi/internal/configuration"
@@ -18,6 +18,7 @@ import (
 	"github.com/forceu/gokapi/internal/configuration/database"
 	"github.com/forceu/gokapi/internal/encryption"
 	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/logging/serverstats"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage/chunking"
 	"github.com/forceu/gokapi/internal/storage/filesystem/s3filesystem/aws"
@@ -30,6 +31,13 @@ func TestMain(m *testing.M) {
 	testconfiguration.Create(true)
 	configuration.Load()
 	configuration.ConnectDatabase()
+	// Initialise the traffic-stats save timer before any test calls ServeFile, so that
+	// no test's background AddTraffic call sees a zero-value LastUpdate (which reads as
+	// "5+ minutes since the last save") and triggers a real, unawaited SQLite write. Left
+	// uninitialised, a write can still be in flight when TestParallelDownloads starts,
+	// where it can collide with the mutex-serialized IncreaseDownloadCount writes and
+	// livelock SQLite's busy-handler retry loop under synctest's deterministic fake clock.
+	serverstats.Init()
 	var testserver *httptest.Server
 	if testconfiguration.UseMockS3Server() {
 		testserver = testconfiguration.StartS3TestServer()
@@ -918,38 +926,45 @@ func TestParallelDownloads(t *testing.T) {
 	}
 	database.SaveMetaData(singleDownloadFile)
 
-	synctest.Test(t, func(t *testing.T) {
-		const workers = 50
-		results := make(chan bool, workers)
+	const workers = 50
+	results := make(chan bool, workers)
+	var wg sync.WaitGroup
 
-		for i := 0; i < workers; i++ {
-			go func() {
-				w := httptest.NewRecorder()
-				r := httptest.NewRequest("GET", "/"+singleDownloadFile.Id, nil)
+	for i := 0; i < workers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			w := httptest.NewRecorder()
+			r := httptest.NewRequest("GET", "/"+singleDownloadFile.Id, nil)
 
-				// The mutex inside ServeFile should serialize the decrement logic.
-				success := ServeFile(singleDownloadFile, w, r, false, true, false, true)
-				results <- success
-			}()
+			// The mutex inside ServeFile should serialize the decrement logic.
+			success := ServeFile(singleDownloadFile, w, r, false, true, false, true)
+			results <- success
+		}()
+	}
+
+	// A plain WaitGroup is used here rather than testing/synctest: this test spawns
+	// real goroutines that hit the real SQLite database, and synctest's deterministic
+	// fake clock has no way to gracefully coexist with unpredictable real-world I/O
+	// delays (e.g. antivirus briefly locking the database file on write) - a single
+	// external stall can turn into an apparent livelock, since retries governed by the
+	// fake clock can spin far faster than the real delay actually resolves.
+	wg.Wait()
+	close(results)
+
+	var successCount int
+	var failureCount int
+
+	for res := range results {
+		if res {
+			successCount++
+		} else {
+			failureCount++
 		}
+	}
 
-		synctest.Wait()
-		close(results)
-
-		var successCount int
-		var failureCount int
-
-		for res := range results {
-			if res {
-				successCount++
-			} else {
-				failureCount++
-			}
-		}
-
-		test.IsEqualInt(t, successCount, allowedDownloads)
-		test.IsEqualInt(t, failureCount, workers-allowedDownloads)
-	})
+	test.IsEqualInt(t, successCount, allowedDownloads)
+	test.IsEqualInt(t, failureCount, workers-allowedDownloads)
 }
 
 func TestServeFilesAsZipSanitisation(t *testing.T) {

@@ -42,13 +42,13 @@ func TestLocalStorageDriver_Init(t *testing.T) {
 		FilePrefix: "tpref",
 	})
 	test.IsEqualBool(t, ok, true)
-	test.IsEqualString(t, driver.getPath(), "test/")
+	test.IsEqualString(t, driver.getPath(), "test"+string(os.PathSeparator))
 	ok = driver.Init(Config{
-		DataPath:   "test2/",
+		DataPath:   "test2" + string(os.PathSeparator),
 		FilePrefix: "",
 	})
 	test.IsEqualBool(t, ok, true)
-	test.IsEqualString(t, driver.getPath(), "test2/")
+	test.IsEqualString(t, driver.getPath(), "test2"+string(os.PathSeparator))
 	defer test.ExpectPanic(t)
 	driver.Init(struct {
 		invalid string
@@ -72,7 +72,7 @@ func TestLocalStorageDriver_IsAvailable(t *testing.T) {
 func TestGetDataPath(t *testing.T) {
 	driver := getTestDriver(t)
 	initDriver(t, driver)
-	test.IsEqualString(t, driver.getPath(), "test/data/")
+	test.IsEqualString(t, driver.getPath(), "test/data"+string(os.PathSeparator))
 	driver.dataPath = ""
 	defer test.ExpectPanic(t)
 	driver.getPath()
