@@ -16,7 +16,7 @@ After you have started the Gokapi server, log in with your credentials by going 
 There you can list and manage files and upload new files. You will also see three fields:
 
  - *Allowed downloads* lets you set how many times a file can be downloaded before it gets deleted
- - *Expiry in days* lets you set after how many days a file gets deleted latest
+ - *Expiry in days* lets you set after how many days a file gets deleted latest. If the server sets a maximum lifetime with ``GOKAPI_MAX_EXPIRY_SECONDS``, files cannot be stored for longer or without a time limit, and files uploaded through file requests expire after that time
  - *Password* lets you set a password that a user needs to enter before downloading the file. Please note that the file on the storage server is not encrypted.
 
 Uploading new files

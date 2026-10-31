@@ -102,6 +102,16 @@ Available environment variables
 +-------------------------------------+----------------------------------------------------------------------------------------+-----------------+-----------------------------+
 | GOKAPI_LOG_STDOUT                   | Also outputs all log file entries to the console output, if set to true                | No              | false                       |
 +-------------------------------------+----------------------------------------------------------------------------------------+-----------------+-----------------------------+
+| GOKAPI_MAX_EXPIRY_SECONDS           | Sets the maximum time in seconds that a file is stored before it expires               | No              | 0                           |
+|                                     |                                                                                        |                 |                             |
+|                                     | Applies to all users including admins: uploads, file request uploads, edits and        |                 |                             |
+|                                     |                                                                                        |                 |                             |
+|                                     | duplicates. A longer or unlimited expiry is refused, the default expiry is reduced     |                 |                             |
+|                                     |                                                                                        |                 |                             |
+|                                     | to this value and files uploaded through file requests expire after this time          |                 |                             |
+|                                     |                                                                                        |                 |                             |
+|                                     | Set to 0 to disable the limit                                                          |                 |                             |
++-------------------------------------+----------------------------------------------------------------------------------------+-----------------+-----------------------------+
 | GOKAPI_MAX_FILESIZE                 | Sets the maximum allowed file size in MB                                               | Yes             | 102400                      |
 |                                     |                                                                                        |                 |                             |
 |                                     | Default 102400 = 100GB                                                                 |                 |                             |

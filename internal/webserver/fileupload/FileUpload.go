@@ -2,6 +2,7 @@ package fileupload
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -19,6 +20,9 @@ import (
 
 const minChunkSize = 5 * 1024 * 1024
 const minChunkSizeLowMaxChunk = 1 * 1024 * 1024
+
+// ErrorExpiryTooLong is returned when the requested expiry exceeds the server's maximum (GOKAPI_MAX_EXPIRY_SECONDS)
+var ErrorExpiryTooLong = errors.New("expiry exceeds the server's maximum")
 
 // ProcessCompleteFile processes a file upload request
 // This is only used when a complete file is uploaded through the API with /files/add
@@ -146,11 +150,40 @@ func CreateUploadConfig(allowedDownloads, expiryDays int, password string, unlim
 	}
 }
 
+// CheckMaxExpiry returns an error wrapping ErrorExpiryTooLong if the server limits the lifetime of files
+// and the given expiry is unlimited or later than the limit allows
+func CheckMaxExpiry(unlimitedTime bool, expiryTimestamp int64) error {
+	maxSeconds := configuration.GetEnvironment().MaxExpirySeconds
+	if maxSeconds == 0 {
+		return nil
+	}
+	if unlimitedTime || expiryTimestamp > time.Now().Unix()+maxSeconds {
+		return fmt.Errorf("%w of %d seconds", ErrorExpiryTooLong, maxSeconds)
+	}
+	return nil
+}
+
+// CapToMaxExpiry reduces an expiry that was not chosen by the uploader (the default expiry, or the
+// unlimited expiry of file request uploads) to the server's maximum lifetime of files, if one is set
+func CapToMaxExpiry(config *models.UploadParameters) {
+	maxSeconds := configuration.GetEnvironment().MaxExpirySeconds
+	if maxSeconds == 0 {
+		return
+	}
+	maxTimestamp := time.Now().Unix() + maxSeconds
+	if config.UnlimitedTime || config.ExpiryTimestamp > maxTimestamp {
+		config.UnlimitedTime = false
+		config.ExpiryTimestamp = maxTimestamp
+	}
+}
+
 func parseConfig(values formOrHeader) (models.UploadParameters, error) {
 	fileRequestId := values.Get("fileRequestId")
 	if fileRequestId != "" {
-		return CreateUploadConfig(0, 0, "",
-			true, true, false, 0, fileRequestId), nil
+		config := CreateUploadConfig(0, 0, "",
+			true, true, false, 0, fileRequestId)
+		CapToMaxExpiry(&config)
+		return config, nil
 	}
 	allowedDownloads := values.Get("allowedDownloads")
 	expiryDays := values.Get("expiryDays")
@@ -159,13 +192,18 @@ func parseConfig(values formOrHeader) (models.UploadParameters, error) {
 	if err != nil {
 		allowedDownloadsInt = 1
 	}
+	isExpiryRequested := true
 	expiryDaysInt, err := strconv.Atoi(expiryDays)
 	if err != nil {
 		expiryDaysInt = 14
+		isExpiryRequested = false
 	}
 
 	unlimitedDownload := values.Get("isUnlimitedDownload") == "true"
 	unlimitedTime := values.Get("isUnlimitedTime") == "true"
+	if unlimitedTime {
+		isExpiryRequested = true
+	}
 
 	if allowedDownloadsInt == 0 {
 		unlimitedDownload = true
@@ -184,7 +222,16 @@ func parseConfig(values formOrHeader) (models.UploadParameters, error) {
 			return models.UploadParameters{}, err
 		}
 	}
-	return CreateUploadConfig(allowedDownloadsInt, expiryDaysInt, password, unlimitedTime, unlimitedDownload, isEnd2End, realSize, ""), nil
+	config := CreateUploadConfig(allowedDownloadsInt, expiryDaysInt, password, unlimitedTime, unlimitedDownload, isEnd2End, realSize, "")
+	if !isExpiryRequested {
+		CapToMaxExpiry(&config)
+		return config, nil
+	}
+	err = CheckMaxExpiry(config.UnlimitedTime, config.ExpiryTimestamp)
+	if err != nil {
+		return models.UploadParameters{}, err
+	}
+	return config, nil
 }
 
 type formOrHeader interface {

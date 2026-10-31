@@ -83,23 +83,25 @@ func GetVersion() (string, int, error) {
 	return parsedResult.Version, parsedResult.VersionInt, nil
 }
 
-// GetConfig returns the upload configuration of the Gokapi server
-func GetConfig() (int, int, bool, error) {
+// GetConfig returns the upload configuration of the Gokapi server: the maximum file size, the chunk size,
+// whether end-to-end encryption is enabled and the maximum expiry in seconds (0 if unlimited)
+func GetConfig() (int, int, bool, int64, error) {
 	result, err := getUrl(gokapiUrl+"/info/config", []header{}, false)
 	if err != nil {
-		return 0, 0, false, err
+		return 0, 0, false, 0, err
 	}
 	type expectedFormat struct {
 		MaxFilesize               int
 		MaxChunksize              int
+		MaxExpirySeconds          int64
 		EndToEndEncryptionEnabled bool
 	}
 	var parsedResult expectedFormat
 	err = json.Unmarshal([]byte(result), &parsedResult)
 	if err != nil {
-		return 0, 0, false, err
+		return 0, 0, false, 0, err
 	}
-	return parsedResult.MaxFilesize, parsedResult.MaxChunksize, parsedResult.EndToEndEncryptionEnabled, nil
+	return parsedResult.MaxFilesize, parsedResult.MaxChunksize, parsedResult.EndToEndEncryptionEnabled, parsedResult.MaxExpirySeconds, nil
 }
 
 func getUrl(url string, headers []header, longTimeout bool) (string, error) {
@@ -151,7 +153,7 @@ func UploadFile(uploadParams cliflags.FlagConfig) (models.FileApiOutput, error) 
 		os.Exit(4)
 	}
 	defer file.Close()
-	maxSize, chunkSize, isE2e, err := GetConfig()
+	maxSize, chunkSize, isE2e, maxExpirySeconds, err := GetConfig()
 	if err != nil {
 		return models.FileApiOutput{}, err
 	}
@@ -192,7 +194,7 @@ func UploadFile(uploadParams cliflags.FlagConfig) (models.FileApiOutput, error) 
 				return models.FileApiOutput{}, err
 			}
 		}
-		metaData, err := completeChunk(uuid, "Encrypted File", sizeBytes, realSize, true, uploadParams, progressBar)
+		metaData, err := completeChunk(uuid, "Encrypted File", sizeBytes, realSize, true, uploadParams, maxExpirySeconds, progressBar)
 		if err != nil {
 			return models.FileApiOutput{}, err
 		}
@@ -219,7 +221,7 @@ func UploadFile(uploadParams cliflags.FlagConfig) (models.FileApiOutput, error) 
 			return models.FileApiOutput{}, err
 		}
 	}
-	metaData, err := completeChunk(uuid, nameToBase64(file, uploadParams), sizeBytes, realSize, false, uploadParams, progressBar)
+	metaData, err := completeChunk(uuid, nameToBase64(file, uploadParams), sizeBytes, realSize, false, uploadParams, maxExpirySeconds, progressBar)
 	if err != nil {
 		return models.FileApiOutput{}, err
 	}
@@ -459,7 +461,7 @@ func uploadChunk(f io.Reader, uuid string, offset, chunkSize, filesize int64, pr
 	return nil
 }
 
-func completeChunk(uid, filename string, filesize, realsize int64, useE2e bool, uploadParams cliflags.FlagConfig, progressBar *progressbar.ProgressBar) (models.FileApiOutput, error) {
+func completeChunk(uid, filename string, filesize, realsize int64, useE2e bool, uploadParams cliflags.FlagConfig, maxExpirySeconds int64, progressBar *progressbar.ProgressBar) (models.FileApiOutput, error) {
 	type expectedFormat struct {
 		FileInfo models.FileApiOutput `json:"FileInfo"`
 	}
@@ -469,17 +471,20 @@ func completeChunk(uid, filename string, filesize, realsize int64, useE2e bool, 
 	if !uploadParams.JsonOutput {
 		fmt.Println("Finalising...")
 	}
-	result, err := getUrl(gokapiUrl+"/chunk/complete", []header{
+	headers := []header{
 		{"uuid", uid},
 		{"filename", filename},
 		{"filesize", strconv.FormatInt(filesize, 10)},
 		{"realsize", strconv.FormatInt(realsize, 10)},
 		{"isE2E", strconv.FormatBool(useE2e)},
 		{"allowedDownloads", strconv.Itoa(uploadParams.ExpiryDownloads)},
-		{"expiryDays", strconv.Itoa(uploadParams.ExpiryDays)},
 		{"password", uploadParams.Password},
 		{"contenttype", "application/octet-stream"},
-	}, true)
+	}
+	if isExpiryHeaderRequired(uploadParams, maxExpirySeconds) {
+		headers = append(headers, header{"expiryDays", strconv.Itoa(uploadParams.ExpiryDays)})
+	}
+	result, err := getUrl(gokapiUrl+"/chunk/complete", headers, true)
 	if err != nil {
 		return models.FileApiOutput{}, err
 	}
@@ -489,6 +494,12 @@ func completeChunk(uid, filename string, filesize, realsize int64, useE2e bool, 
 		return models.FileApiOutput{}, err
 	}
 	return parsedResult.FileInfo, nil
+}
+
+// isExpiryHeaderRequired returns false if the server limits the expiry and the user did not set one,
+// so that the server's default applies instead of the CLI's default of unlimited, which would be refused
+func isExpiryHeaderRequired(uploadParams cliflags.FlagConfig, maxExpirySeconds int64) bool {
+	return maxExpirySeconds == 0 || uploadParams.IsExpiryDaysSet
 }
 
 func lockUnlockE2eLock(isUnlock bool) error {
