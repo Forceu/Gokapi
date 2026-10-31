@@ -3,6 +3,7 @@ package fileupload
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/forceu/gokapi/internal/configuration"
 	"github.com/forceu/gokapi/internal/models"
@@ -185,6 +187,98 @@ func getFileUploadRecorder(addChunkInfo bool) *http.Request {
 		r.Header.Add("password", "123")
 	}
 	return r
+}
+
+// setMaxExpiry sets GOKAPI_MAX_EXPIRY_SECONDS for the duration of the test
+func setMaxExpiry(t *testing.T, seconds string) {
+	t.Helper()
+	test.IsNil(t, os.Setenv("GOKAPI_MAX_EXPIRY_SECONDS", seconds))
+	configuration.Load()
+	t.Cleanup(func() {
+		_ = os.Unsetenv("GOKAPI_MAX_EXPIRY_SECONDS")
+		configuration.Load()
+	})
+}
+
+// isInSecondsFromNow returns true if timestamp is now + seconds, allowing for the time the test took
+func isInSecondsFromNow(timestamp, seconds int64) bool {
+	expected := time.Now().Unix() + seconds
+	return timestamp >= expected-2 && timestamp <= expected
+}
+
+func TestCheckMaxExpiry(t *testing.T) {
+	now := time.Now().Unix()
+	test.IsNil(t, CheckMaxExpiry(true, 0))
+	test.IsNil(t, CheckMaxExpiry(false, now+10*365*24*3600))
+
+	setMaxExpiry(t, "3600")
+	err := CheckMaxExpiry(true, 0)
+	test.IsEqualBool(t, errors.Is(err, ErrorExpiryTooLong), true)
+	test.IsEqualString(t, err.Error(), "expiry exceeds the server's maximum of 3600 seconds")
+	err = CheckMaxExpiry(false, time.Now().Unix()+3601)
+	test.IsEqualBool(t, errors.Is(err, ErrorExpiryTooLong), true)
+	test.IsNil(t, CheckMaxExpiry(false, time.Now().Unix()+3600))
+	test.IsNil(t, CheckMaxExpiry(false, time.Now().Unix()+60))
+}
+
+func TestCapToMaxExpiry(t *testing.T) {
+	config := CreateUploadConfig(1, 0, "", true, false, false, 0, "")
+	CapToMaxExpiry(&config)
+	test.IsEqualBool(t, config.UnlimitedTime, true)
+
+	setMaxExpiry(t, "3600")
+	CapToMaxExpiry(&config)
+	test.IsEqualBool(t, config.UnlimitedTime, false)
+	test.IsEqualBool(t, isInSecondsFromNow(config.ExpiryTimestamp, 3600), true)
+
+	config = CreateUploadConfig(1, 14, "", false, false, false, 0, "")
+	CapToMaxExpiry(&config)
+	test.IsEqualBool(t, isInSecondsFromNow(config.ExpiryTimestamp, 3600), true)
+
+	config.ExpiryTimestamp = time.Now().Unix() + 60
+	CapToMaxExpiry(&config)
+	test.IsEqualBool(t, isInSecondsFromNow(config.ExpiryTimestamp, 60), true)
+
+	// A limit longer than the default expiry keeps the default
+	setMaxExpiry(t, "2592000")
+	config = CreateUploadConfig(1, 14, "", false, false, false, 0, "")
+	CapToMaxExpiry(&config)
+	test.IsEqualBool(t, config.UnlimitedTime, false)
+	test.IsEqualBool(t, isInSecondsFromNow(config.ExpiryTimestamp, 14*24*3600), true)
+}
+
+func TestParseConfigMaxExpiry(t *testing.T) {
+	config, err := parseConfig(url.Values{"fileRequestId": {"request"}})
+	test.IsNil(t, err)
+	test.IsEqualBool(t, config.UnlimitedTime, true)
+	config, err = parseConfig(url.Values{"expiryDays": {"0"}})
+	test.IsNil(t, err)
+	test.IsEqualBool(t, config.UnlimitedTime, true)
+
+	setMaxExpiry(t, "3600")
+	for _, values := range []url.Values{
+		{"expiryDays": {"1"}},
+		{"expiryDays": {"0"}},
+		{"isUnlimitedTime": {"true"}},
+	} {
+		_, err = parseConfig(values)
+		test.IsEqualBool(t, errors.Is(err, ErrorExpiryTooLong), true)
+	}
+	for _, values := range []url.Values{
+		{},
+		{"expiryDays": {"invalid"}},
+		{"fileRequestId": {"request"}},
+	} {
+		config, err = parseConfig(values)
+		test.IsNil(t, err)
+		test.IsEqualBool(t, config.UnlimitedTime, false)
+		test.IsEqualBool(t, isInSecondsFromNow(config.ExpiryTimestamp, 3600), true)
+	}
+
+	setMaxExpiry(t, "86400")
+	config, err = parseConfig(url.Values{"expiryDays": {"1"}})
+	test.IsNil(t, err)
+	test.IsEqualBool(t, isInSecondsFromNow(config.ExpiryTimestamp, 86400), true)
 }
 
 type testData struct {
