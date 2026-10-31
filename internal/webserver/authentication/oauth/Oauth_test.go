@@ -2,8 +2,10 @@ package oauth
 
 import (
 	"context"
+	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -36,11 +38,12 @@ func TestMain(m *testing.M) {
 // mockOIDCServer is a self-contained fake OIDC provider.
 // It serves the discovery document, JWKS, token, and userinfo endpoints.
 type mockOIDCServer struct {
-	server      *httptest.Server
-	privateKey  *rsa.PrivateKey
-	userEmail   string
-	userSubject string
-	tokenValid  bool
+	server       *httptest.Server
+	privateKey   *rsa.PrivateKey
+	userEmail    string
+	userSubject  string
+	tokenValid   bool
+	idTokenEmail any
 }
 
 func newMockOIDCServer() *mockOIDCServer {
@@ -121,20 +124,30 @@ func (m *mockOIDCServer) handleUserinfo(w http.ResponseWriter, r *http.Request) 
 	_ = json.NewEncoder(w).Encode(info)
 }
 
-// buildIDToken builds a minimal unsigned-style ID token. Since our tests
-// don't verify the signature path (we rely on the userinfo endpoint), we
-// use a simple base64-encoded JSON payload wrapped in a fake JWT envelope.
+// buildIDToken builds a valid signed ID token with RS256.
 func (m *mockOIDCServer) buildIDToken() string {
 	header := base64.RawURLEncoding.EncodeToString([]byte(`{"alg":"RS256","kid":"test-key"}`))
+	var email any = m.userEmail
+	if m.idTokenEmail != nil {
+		email = m.idTokenEmail
+	}
 	payload, _ := json.Marshal(map[string]any{
 		"iss":   m.server.URL,
 		"sub":   m.userSubject,
-		"email": m.userEmail,
+		"email": email,
 		"aud":   []string{"test-client"},
 		"iat":   time.Now().Unix(),
 		"exp":   time.Now().Add(time.Hour).Unix(),
 	})
-	return header + "." + base64.RawURLEncoding.EncodeToString(payload) + ".fakesig"
+	unsignedToken := header + "." + base64.RawURLEncoding.EncodeToString(payload)
+	h := sha256.New()
+	h.Write([]byte(unsignedToken))
+	digest := h.Sum(nil)
+	sig, err := rsa.SignPKCS1v15(rand.Reader, m.privateKey, crypto.SHA256, digest)
+	if err != nil {
+		return unsignedToken + ".fakesig"
+	}
+	return unsignedToken + "." + base64.RawURLEncoding.EncodeToString(sig)
 }
 
 func TestInit_WithoutGroupScope(t *testing.T) {
@@ -306,11 +319,40 @@ func TestHandlerCallback_EmptyEmail(t *testing.T) {
 	defer mock.Close()
 	initWithMock(mock)
 	mock.userEmail = "" // userinfo will return empty email
+	mock.idTokenEmail = "" // ID token will also have empty email
 
 	rr := httptest.NewRecorder()
 	HandlerCallback(rr, newRequest("/oauth-callback?state=mystate&code=validcode", "mystate"))
 
 	test.IsEqualInt(t, rr.Code, http.StatusTemporaryRedirect)
+	test.IsNotEmpty(t, rr.Header().Get("Location"))
+}
+
+func TestHandlerCallback_EmailFromIDToken(t *testing.T) {
+	mock := newMockOIDCServer()
+	defer mock.Close()
+	mock.userEmail = ""                      // userinfo endpoint returns empty email (like AD FS)
+	mock.idTokenEmail = "adfsuser@example.com" // ID token contains the email
+	initWithMock(mock)
+
+	rr := httptest.NewRecorder()
+	HandlerCallback(rr, newRequest("/oauth-callback?state=mystate&code=validcode", "mystate"))
+
+	test.IsEqualBool(t, rr.Code == http.StatusTemporaryRedirect || rr.Code == http.StatusFound, true)
+	test.IsNotEmpty(t, rr.Header().Get("Location"))
+}
+
+func TestHandlerCallback_EmailFromIDToken_Array(t *testing.T) {
+	mock := newMockOIDCServer()
+	defer mock.Close()
+	mock.userEmail = ""                                // userinfo endpoint returns empty email (like AD FS)
+	mock.idTokenEmail = []string{"adfsuser@example.com"} // ID token contains email as array
+	initWithMock(mock)
+
+	rr := httptest.NewRecorder()
+	HandlerCallback(rr, newRequest("/oauth-callback?state=mystate&code=validcode", "mystate"))
+
+	test.IsEqualBool(t, rr.Code == http.StatusTemporaryRedirect || rr.Code == http.StatusFound, true)
 	test.IsNotEmpty(t, rr.Header().Get("Location"))
 }
 
