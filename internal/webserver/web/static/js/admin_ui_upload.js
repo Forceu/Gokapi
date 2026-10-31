@@ -163,7 +163,32 @@ function setUploadDefaults() {
     if (defaultUnlimitedTime) {
         document.getElementById("expiryDays").disabled = true;
     }
+    if (maxExpirySeconds > 0) {
+        applyMaxExpiryToUpload();
+    }
+}
 
+// The server limits the expiry (GOKAPI_MAX_EXPIRY_SECONDS): files cannot be stored without a time limit
+// and the expiry in days cannot be longer than the maximum
+function applyMaxExpiryToUpload() {
+    const enableTimeLimit = document.getElementById("enableTimeLimit");
+    const expiryDays = document.getElementById("expiryDays");
+    const maxDays = Math.floor(maxExpirySeconds / 86400);
+
+    enableTimeLimit.checked = true;
+    enableTimeLimit.disabled = true;
+    if (maxDays < 1) {
+        // The maximum cannot be entered in days. An empty value is not sent,
+        // so the server applies its default, which is the maximum
+        expiryDays.value = "";
+        expiryDays.disabled = true;
+        return;
+    }
+    expiryDays.disabled = false;
+    expiryDays.max = maxDays;
+    if (expiryDays.value === "" || Number(expiryDays.value) > maxDays) {
+        expiryDays.value = maxDays;
+    }
 }
 
 function saveUploadDefaults() {
@@ -406,10 +431,21 @@ function showEditModal(filename, id, downloads, expiry, password, unlimitedown, 
         $('body').append(myClone);
     });
 
+    let maxExpiryTimestamp = 0;
+    if (maxExpirySeconds > 0) {
+        // The server limits the expiry: files cannot be stored without a time limit
+        maxExpiryTimestamp = Math.floor(Date.now() / 1000) + maxExpirySeconds;
+        if (unlimitedtime || expiry > maxExpiryTimestamp) {
+            expiry = maxExpiryTimestamp;
+        }
+        unlimitedtime = false;
+        document.getElementById("mc_expiry").parentElement.classList.add("d-none");
+    }
+
     document.getElementById("m_filenamelabel").innerText = filename;
     document.getElementById("mc_expiry").setAttribute("data-timestamp", expiry);
     document.getElementById("mb_save").setAttribute('data-fileid', id);
-    createCalendar("mi_edit_expiry", expiry);
+    createCalendar("mi_edit_expiry", expiry, maxExpiryTimestamp);
 
     if (unlimitedown) {
         document.getElementById("mi_edit_down").value = "1";

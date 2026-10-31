@@ -96,6 +96,13 @@ func apiEditFile(w http.ResponseWriter, r requestParser, user models.User, _ mod
 		sendError(w, http.StatusUnauthorized, errorcodes.NoPermission, "No permission to edit file.")
 		return
 	}
+	if request.UnlimitedExpiry || request.ExpiryTimestamp != 0 {
+		err := fileupload.CheckMaxExpiry(request.UnlimitedExpiry, request.ExpiryTimestamp)
+		if err != nil {
+			sendError(w, http.StatusBadRequest, errorcodes.ExpiryTooLong, err.Error())
+			return
+		}
+	}
 	if request.UnlimitedDownloads {
 		file.UnlimitedDownloads = true
 	} else {
@@ -493,6 +500,15 @@ func apiChunkComplete(w http.ResponseWriter, r requestParser, user models.User, 
 		request.IsE2E,
 		request.FileSize,
 		"")
+	if request.IsExpirySet {
+		err := fileupload.CheckMaxExpiry(uploadParams.UnlimitedTime, uploadParams.ExpiryTimestamp)
+		if err != nil {
+			sendError(w, http.StatusBadRequest, errorcodes.ExpiryTooLong, err.Error())
+			return
+		}
+	} else {
+		fileupload.CapToMaxExpiry(&uploadParams)
+	}
 	if request.IsNonBlocking {
 		go doBlockingPartCompleteChunk(nil, request.Uuid, request.FileHeader, user, uploadParams)
 		_, _ = io.WriteString(w, "{\"result\":\"OK\"}")
@@ -529,6 +545,7 @@ func apiChunkUploadRequestComplete(w http.ResponseWriter, r requestParser, user 
 	uploadParams := fileupload.CreateUploadConfig(0,
 		0, "", true, true,
 		false, request.FileSize, fileRequest.Id)
+	fileupload.CapToMaxExpiry(&uploadParams)
 	if request.IsNonBlocking {
 		go doBlockingPartCompleteChunk(nil, request.Uuid, request.FileHeader, user, uploadParams)
 		_, _ = io.WriteString(w, "{\"result\":\"OK\"}")
@@ -550,12 +567,14 @@ func apiConfigInfo(w http.ResponseWriter, _ requestParser, _ models.User, _ mode
 	type configInfo struct {
 		MaxFilesize               int
 		MaxChunksize              int
+		MaxExpirySeconds          int64
 		EndToEndEncryptionEnabled bool
 	}
 	config := configuration.Get()
 	result, err := json.Marshal(configInfo{
 		MaxFilesize:               config.MaxFileSizeMB,
 		MaxChunksize:              config.ChunkSize,
+		MaxExpirySeconds:          configuration.GetEnvironment().MaxExpirySeconds,
 		EndToEndEncryptionEnabled: config.Encryption.Level == encryption.EndToEndEncryption,
 	})
 	helper.Check(err)
@@ -702,6 +721,10 @@ func apiUploadFile(w http.ResponseWriter, r requestParser, user models.User, _ m
 
 	request.Request.Body = http.MaxBytesReader(w, request.Request.Body, maxUpload)
 	err := fileupload.ProcessCompleteFile(w, request.Request, user.Id, configuration.Get().MaxMemory)
+	if errors.Is(err, fileupload.ErrorExpiryTooLong) {
+		sendError(w, http.StatusBadRequest, errorcodes.ExpiryTooLong, err.Error())
+		return
+	}
 	if err != nil {
 		sendError(w, http.StatusBadRequest, errorcodes.UnspecifiedError, err.Error())
 		return
@@ -731,6 +754,20 @@ func apiDuplicateFile(w http.ResponseWriter, r requestParser, user models.User, 
 		0,     // is not being used by storage.DuplicateFile
 		"")
 	uploadConfig.UserId = user.Id
+	if request.RequestedChanges&storage.ParamExpiry != 0 {
+		err := fileupload.CheckMaxExpiry(uploadConfig.UnlimitedTime, uploadConfig.ExpiryTimestamp)
+		if err != nil {
+			sendError(w, http.StatusBadRequest, errorcodes.ExpiryTooLong, err.Error())
+			return
+		}
+	} else {
+		err := fileupload.CheckMaxExpiry(file.UnlimitedTime, file.ExpireAt)
+		if err != nil {
+			sendError(w, http.StatusBadRequest, errorcodes.ExpiryTooLong,
+				"expiry of the original file: "+err.Error()+", expiryDays has to be set")
+			return
+		}
+	}
 	newFile, err := storage.DuplicateFile(file, request.RequestedChanges, request.FileName, uploadConfig)
 	if err != nil {
 		sendError(w, http.StatusInternalServerError, errorcodes.InternalServer, err.Error())

@@ -64,6 +64,18 @@ func TestEnvLoad(t *testing.T) {
 	os.Unsetenv("GOKAPI_MAX_FILESIZE")
 }
 
+func TestMaxExpirySeconds(t *testing.T) {
+	env := New()
+	test.IsEqualInt64(t, env.MaxExpirySeconds, 0)
+	os.Setenv("GOKAPI_MAX_EXPIRY_SECONDS", "3600")
+	env = New()
+	test.IsEqualInt64(t, env.MaxExpirySeconds, 3600)
+	os.Setenv("GOKAPI_MAX_EXPIRY_SECONDS", "-5")
+	env = New()
+	test.IsEqualInt64(t, env.MaxExpirySeconds, 0)
+	os.Unsetenv("GOKAPI_MAX_EXPIRY_SECONDS")
+}
+
 func TestIsAwsProvided(t *testing.T) {
 	os.Unsetenv("GOKAPI_AWS_BUCKET")
 	os.Unsetenv("GOKAPI_AWS_REGION")

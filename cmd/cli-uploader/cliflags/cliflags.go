@@ -43,6 +43,7 @@ type FlagConfig struct {
 	ExpiryDays      int
 	ExpiryDownloads int
 	Password        string
+	IsExpiryDaysSet bool
 }
 
 // Parse parses the command line arguments and returns the mode.
@@ -91,6 +92,7 @@ func GetUploadParameters(mode int) FlagConfig {
 			fallthrough
 		case "--expiry-days":
 			result.ExpiryDays = requireInt(getParameter(&i))
+			result.IsExpiryDaysSet = true
 		case "-d":
 			fallthrough
 		case "--expiry-downloads":
@@ -296,7 +298,7 @@ func printUsage(exitCode int) {
 	fmt.Println("  -c, --configuration <path>      Path to configuration file (default: gokapi-cli.json)")
 	fmt.Println("  -j, --json                      Output the result in JSON only")
 	fmt.Println("  -x, --disable-e2e               Disable end-to-end encryption")
-	fmt.Println("  -e, --expiry-days <int>         Set file expiry in days (default: unlimited)")
+	fmt.Println("  -e, --expiry-days <int>         Set file expiry in days (default: unlimited, or the server's maximum if set)")
 	fmt.Println("  -d, --expiry-downloads <int>    Set max allowed downloads (default: unlimited)")
 	fmt.Println("  -p, --password <string>         Set a password for the file")
 	fmt.Println("  -n, --name <string>             Change final filename for uploaded file")

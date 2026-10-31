@@ -60,6 +60,12 @@ type Environment struct {
 	// for all users
 	// Default 10240 = 10GB
 	MaxSizeGuestUploadMb int `env:"MAX_SIZE_GUESTUPLOAD" envDefault:"10240" onlyPositive:"true"`
+	// Sets the maximum time in seconds that a file is stored before it expires
+	// Applies to all users including admins: uploads, file request uploads, edits and
+	// duplicates. A longer or unlimited expiry is refused, the default expiry is reduced
+	// to this value and files uploaded through file requests expire after this time
+	// Set to 0 to disable the limit
+	MaxExpirySeconds int64 `env:"MAX_EXPIRY_SECONDS" envDefault:"0" onlyPositive:"true"`
 	// Set the number of chunks that are uploaded in parallel for a single file
 	MaxParallelUploads int `env:"MAX_PARALLEL_UPLOADS" envDefault:"3" onlyPositive:"true" persistent:"true"`
 	// Sets the minimum free space on the disk in MB for accepting an upload

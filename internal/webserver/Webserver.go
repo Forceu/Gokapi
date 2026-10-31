@@ -775,6 +775,7 @@ type AdminView struct {
 	CpuLoad               int
 	MemoryUsagePercent    int
 	DiskUsagePercent      int
+	MaxExpirySeconds      int64
 	DataServed            int64
 	Uptime                int64
 	TimeNow               int64
@@ -905,6 +906,7 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 	u.IsAdminView = true
 	u.ActiveView = view
 	u.MaxFileSize = config.MaxFileSizeMB
+	u.MaxExpirySeconds = configuration.GetEnvironment().MaxExpirySeconds
 	u.IsLogoutAvailable = authentication.IsLogoutAvailable()
 	u.ShowApiMenu = showApiMenu
 	u.IsUserTabAvailable = config.Authentication.Method != models.AuthenticationDisabled
