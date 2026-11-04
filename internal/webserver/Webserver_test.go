@@ -74,6 +74,14 @@ func TestStaticDirs(t *testing.T) {
 		RequiredContent: []string{".btn-secondary:hover"},
 	})
 }
+func TestStaticFileNotFound(t *testing.T) {
+	t.Parallel()
+	test.HttpPageResult(t, test.HttpTestConfig{
+		Url:                "http://localhost:53843/this/file/does/not/exist.xyz",
+		RedirectUrl:        "error",
+		IgnoreRedirectParm: true,
+	})
+}
 
 func postValues(username, password, csrf string) []test.PostBody {
 	return []test.PostBody{
