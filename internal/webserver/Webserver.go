@@ -552,6 +552,51 @@ type LoginView struct {
 	CustomContent  customStatic
 }
 
+func formatAvailability(expiryUnix int64) string {
+	now := time.Now().UTC()
+	expiry := time.Unix(expiryUnix, 0).UTC()
+
+	if expiry.Before(now) {
+		return "expired"
+	}
+
+	diff := expiry.Sub(now)
+
+	minute := time.Minute
+	hour := time.Hour
+	day := 24 * hour
+	week := 7 * day
+	month := 4 * week
+
+	switch {
+	case diff >= month:
+		m := int(diff / month)
+		return pluralize(m, "month")
+	case diff >= week:
+		w := int(diff / week)
+		return pluralize(w, "week")
+	case diff >= day:
+		d := int(diff / day)
+		return pluralize(d, "day")
+	case diff >= hour:
+		h := int(diff / hour)
+		return pluralize(h, "hour")
+	default:
+		m := int(diff / minute)
+		if m < 1 {
+			m = 1
+		}
+		return pluralize(m, "minute")
+	}
+}
+
+func pluralize(value int, unit string) string {
+	if value == 1 {
+		return fmt.Sprintf("1 %s", unit)
+	}
+	return fmt.Sprintf("%d %ss", value, unit)
+}
+
 // Handling of /d
 // Checks if a file exists for the submitted ID
 // If it exists, a download form is shown, or a password needs to be entered.
@@ -576,6 +621,7 @@ func showDownload(w http.ResponseWriter, r *http.Request) {
 		BaseUrl:            config.ServerUrl,
 		IsFailedLogin:      false,
 		UsesHttps:          configuration.UsesHttps(),
+		AvailableForString: formatAvailability(file.ExpireAt),
 		CustomContent:      customStaticInfo,
 	}
 
@@ -734,6 +780,7 @@ type DownloadView struct {
 	EndToEndEncryption   bool
 	UsesHttps            bool
 	CustomContent        customStatic
+	AvailableForString   string
 }
 
 type e2ESetupView struct {
