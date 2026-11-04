@@ -614,6 +614,7 @@ func showDownload(w http.ResponseWriter, r *http.Request) {
 			redirect(w, r, "d?id="+file.Id)
 			return
 		}
+		logging.LogInvalidDownloadPassword(file.Id, r, configuration.Get().SaveIp)
 		view.IsFailedLogin = true
 		view.IsPasswordView = true
 		err := templateFolder.ExecuteTemplate(w, "download_password", view)

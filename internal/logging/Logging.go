@@ -271,6 +271,15 @@ func LogInvalidLogin(username, ip string) {
 	createLogEntry(categoryAuth, fmt.Sprintf("Invalid login for user %s by IP %s", username, ip), false)
 }
 
+// LogInvalidDownloadPassword records a rejected download password without the submitted password. Non-blocking.
+func LogInvalidDownloadPassword(fileId string, r *http.Request, saveIp bool) {
+	text := fmt.Sprintf("Invalid download password for file ID %s", fileId)
+	if saveIp {
+		text += fmt.Sprintf(", IP %s", GetIpAddress(r))
+	}
+	createLogEntry(categoryAuth, fmt.Sprintf("%s, Useragent %s", text, sanitiseUserAgent(r)), false)
+}
+
 // LogValidLogin adds a log entry to indicate that a login was successful. Non-blocking
 func LogValidLogin(username string) {
 	createLogEntry(categoryAuth, fmt.Sprintf("%s logged in sucessfully", username), false)
