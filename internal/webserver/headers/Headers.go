@@ -17,7 +17,7 @@ func Write(file models.File, w http.ResponseWriter, forceDownload, serveDecrypte
 	disposition := "attachment"
 	if !forceDownload {
 		disposition = "inline"
-		w.Header().Set("Content-Security-Policy", "sandbox")
+		w.Header().Add("Content-Security-Policy", "sandbox")
 	}
 
 	w.Header().Set("Content-Disposition", disposition+"; filename=\""+file.Name+"\"; filename*=UTF-8''"+encodedName)
