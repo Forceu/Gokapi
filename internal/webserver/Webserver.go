@@ -872,8 +872,6 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 			u.Users = append(u.Users, userWithUploads)
 		}
 	case ViewFileRequests:
-		// Limits must be set regardless of existing file requests, otherwise a non-admin
-		// user without any file requests is shown no limits in the UI
 		if !user.IsAdmin() {
 			u.FileRequestMaxFiles = configuration.GetEnvironment().MaxFilesGuestUpload
 			u.FileRequestMaxSize = configuration.GetEnvironment().MaxSizeGuestUploadMb
