@@ -139,6 +139,15 @@
             "description": "Increase counter if set to true"
           },
           {
+            "name": "isFileRequestId",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "If true, the passed ID is treated as a File Request ID and all files from the file request are downloaded. Only a single ID can be supplied when isFileRequestId is true"
+          },
+          {
             "name": "presignUrl",
             "in": "header",
             "required": false,

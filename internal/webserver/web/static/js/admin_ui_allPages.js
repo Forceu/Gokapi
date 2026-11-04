@@ -85,8 +85,8 @@ function downloadFileWithPresign(id) {
         });
 }
 
-function downloadFilesZipWithPresign(ids, filename) {
-    apiFilesListDownloadZip(ids, filename)
+function downloadFilesZipWithPresign(ids, isFilerequest, filename) {
+    apiFilesListDownloadZip(ids, isFilerequest, filename)
         .then(data => {
             if (!data.hasOwnProperty("downloadUrl")) {
                 throw new Error("Unable to get presigned key");

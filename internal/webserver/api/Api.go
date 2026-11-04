@@ -643,15 +643,27 @@ func apiDownloadZip(w http.ResponseWriter, r requestParser, user models.User, _ 
 	}
 	requestedFiles := make([]models.File, 0)
 	requestedFileIds := make([]string, 0)
-	for _, fileId := range request.Ids {
-		file, statusCode, errCode, errMessage := checkDownloadAllowed(fileId, user)
-		if statusCode != 0 {
-			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-			sendError(w, statusCode, errCode, errMessage)
+	if request.IsFileRequestId {
+		fRequest, fRequestFound := database.GetFileRequest(request.Ids[0])
+		if !fRequestFound {
+			sendError(w, http.StatusNotFound, errorcodes.NotFound, "Filerequest not found")
 			return
 		}
-		requestedFiles = append(requestedFiles, file)
-		requestedFileIds = append(requestedFileIds, file.Id)
+		for _, file := range filerequest.GetAllFiles(fRequest) {
+			requestedFiles = append(requestedFiles, file)
+			requestedFileIds = append(requestedFileIds, file.Id)
+		}
+	} else {
+		for _, fileId := range request.Ids {
+			file, statusCode, errCode, errMessage := checkDownloadAllowed(fileId, user)
+			if statusCode != 0 {
+				w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+				sendError(w, statusCode, errCode, errMessage)
+				return
+			}
+			requestedFiles = append(requestedFiles, file)
+			requestedFileIds = append(requestedFileIds, file.Id)
+		}
 	}
 	if !request.PresignUrl {
 		storage.ServeFilesAsZip(requestedFiles, request.Filename, w, request.WebRequest)

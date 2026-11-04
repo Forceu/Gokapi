@@ -151,6 +151,19 @@ func (p *paramFilesDownloadZip) ParseRequest(r *http.Request) error {
 		}
 	}
 
+	// RequestParser header value "isFileRequestId", required: false
+	exists, err = checkHeaderExists(r, "isFileRequestId", false, false)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["isFileRequestId"] = exists
+	if exists {
+		p.IsFileRequestId, err = parseHeaderBool(r, "isFileRequestId")
+		if err != nil {
+			return fmt.Errorf("invalid value in header isFileRequestId supplied")
+		}
+	}
+
 	return p.ProcessParameter(r)
 }
 

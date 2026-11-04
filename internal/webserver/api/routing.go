@@ -347,6 +347,7 @@ type paramFilesDownloadZip struct {
 	Filename        string `header:"filename" supportBase64:"true"`
 	IncreaseCounter bool   `header:"increaseCounter"`
 	PresignUrl      bool   `header:"presignUrl"`
+	IsFileRequestId bool   `header:"isFileRequestId"`
 	foundHeaders    map[string]bool
 }
 

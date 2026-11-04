@@ -38,7 +38,7 @@
                         
 {{ range $fileRequest := .FileRequests }}
                             <tr id="row-{{ .Id }}" class="no-bottom-border filerequest-item">
-		                    <td><a href="{{ $.ServerUrl }}publicUpload?id={{ .Id }}&key={{ .ApiKey }}" target="_blank">{{ .Name }}</a></td>
+		                    <td><a id="rqName-{{ .Id }}" href="{{ $.ServerUrl }}publicUpload?id={{ .Id }}&key={{ .ApiKey }}" target="_blank">{{ .Name }}</a></td>
 				    {{ template "uRFileCell" . }}
 		                    <td>{{ .GetReadableTotalSize }}</td>
             			    <td><span id="cell-lastupdate-{{ .Id }}"></span></td>
@@ -61,7 +61,7 @@
 		                        	<i class="bi bi-pencil"></i></button>
                                 
                                 
-                                <button id="delete-{{ .Id }}" type="button" class="btn btn-outline-danger btn-sm" onclick="deleteOrShowModal('{{ .Id }}', '{{ .Name }}', {{ .UploadedFiles }})" title="Delete"><i class="bi bi-trash3"></i></button>
+                                <button id="delete-{{ .Id }}" type="button" class="btn btn-outline-danger btn-sm" onclick="deleteOrShowModal('{{ .Id }}', '{{ .Name }}')" title="Delete"><i class="bi bi-trash3"></i></button>
                                 	</div>
                                 	</div>
                                 </td>
@@ -243,7 +243,7 @@
 		{{ if eq .UploadedFiles 1 }}
 			<button id="download-{{ .Id }}" type="button" class="btn btn-outline-light btn-sm" onclick="downloadFileWithPresign('{{ (index .FileIdList 0) }}');" title="Download all"><i class="bi bi-download"></i></button>
 		{{ else }}
-			<button id="download-{{ .Id }}" type="button" class="btn btn-outline-light btn-sm" onclick="downloadFilesZipWithPresign('{{ .GetFilesAsString }}', '{{ .Name }}');" title="Download all"><i class="bi bi-download"></i></button>
+			<button id="download-{{ .Id }}" type="button" class="btn btn-outline-light btn-sm" onclick="downloadFilesZipWithPresign('{{ .Id }}', true, '{{ .Name }}');" title="Download all"><i class="bi bi-download"></i></button>
 	{{ end }}
 	{{ end }}
 {{ end }}

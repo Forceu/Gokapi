@@ -78,9 +78,9 @@ func WaitOnFailedId(r *http.Request) {
 }
 
 // IsAllowedNewUuid returns true if a new uuid is not rate-limited
-// Four initial requests are allowed without rate limiting, thereafter one every second
+// Seven initial requests are allowed without rate limiting, thereafter one every second
 func IsAllowedNewUuid(key string) bool {
-	return newUuidLimiter.Get(key, 1, 4).Allow()
+	return newUuidLimiter.Get(key, 1, 7).Allow()
 }
 
 // Get returns the rate limiter for the given key

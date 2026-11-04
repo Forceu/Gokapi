@@ -363,7 +363,7 @@ async function apiFilesListDownloadSingle(fileId) {
 }
 
 
-async function apiFilesListDownloadZip(fileIds, filename) {
+async function apiFilesListDownloadZip(fileIds, isFilerequest, filename) {
     const apiUrl = './api/files/downloadzip';
     const reqPerm = 'PERM_DOWNLOAD';
 
@@ -383,6 +383,7 @@ async function apiFilesListDownloadZip(fileIds, filename) {
             'apikey': token,
             'ids': fileIds,
             'filename': 'base64:' + Base64.encode(filename),
+            'isFileRequestId': isFilerequest,
             'presignUrl': true
         },
     };
