@@ -81,6 +81,7 @@ func TestUploadToAws(t *testing.T) {
 	location, err := Upload(file, testFile)
 	test.IsNil(t, err)
 	test.IsNotEmpty(t, location)
+	file.Close()
 	os.Remove("test")
 }
 
@@ -93,6 +94,7 @@ func TestDownloadFromAws(t *testing.T) {
 	test.FileExists(t, "test")
 	content, _ := os.ReadFile("test")
 	test.IsEqualString(t, string(content), "testfile-content")
+	file.Close()
 	os.Remove("test")
 }
 
