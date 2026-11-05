@@ -173,6 +173,12 @@ func apiModifyApiKey(w http.ResponseWriter, r requestParser, user models.User, _
 	if !ok {
 		panic("invalid parameter passed")
 	}
+
+	if configuration.GetEnvironment().DisableApiMenu && !user.IsAdmin() {
+		sendError(w, http.StatusForbidden, errorcodes.NoPermission, "User API keys are disabled for this instance")
+		return
+	}
+
 	apimutex.Lock(apimutex.TypeApiKey, request.KeyId)
 	defer apimutex.Unlock(apimutex.TypeApiKey, request.KeyId)
 
