@@ -588,6 +588,9 @@ func getCloudConfig(formObjects *[]jsonFormObject) (*cloudconfig.CloudConfig, er
 	if err != nil {
 		return nil, err
 	}
+	if (awsConfig.Aws.KeyId == "") != (awsConfig.Aws.KeySecret == "") {
+		return nil, errors.New("provide both S3 key fields, or leave both blank to use the AWS credential provider chain")
+	}
 	return &awsConfig, nil
 }
 
