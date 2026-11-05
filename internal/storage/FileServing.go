@@ -748,6 +748,11 @@ func ServeFilesAsZip(files []models.File, filename string, w http.ResponseWriter
 		}
 		statusId := downloadstatus.SetDownload(file)
 		if file.Encryption.IsEncrypted {
+			if file.Encryption.IsEndToEndEncrypted {
+				_, _ = w.Write([]byte("Internal error - Cannot download end to end encrypted files"))
+				_ = fileHandler.Close()
+				return
+			}
 			if !encryption.IsCorrectKey(file.Encryption, fileHandler) {
 				_, _ = w.Write([]byte("Internal error - Error decrypting file, source data might be damaged or an incorrect key has been used"))
 				_ = fileHandler.Close()

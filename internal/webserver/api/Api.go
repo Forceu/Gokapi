@@ -652,10 +652,26 @@ func apiDownloadZip(w http.ResponseWriter, r requestParser, user models.User, _ 
 	if request.IsFileRequestId {
 		fRequest, fRequestFound := database.GetFileRequest(request.Ids[0])
 		if !fRequestFound {
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 			sendError(w, http.StatusNotFound, errorcodes.NotFound, "Filerequest not found")
 			return
 		}
+		if fRequest.UserId != user.Id && !user.HasPermission(models.UserPermListOtherUploads) {
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+			sendError(w, http.StatusUnauthorized, errorcodes.NoPermission, "No permission to download file request")
+			return
+		}
 		for _, file := range filerequest.GetAllFiles(fRequest) {
+			if file.UserId != user.Id && !user.HasPermission(models.UserPermListOtherUploads) {
+				w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+				sendError(w, http.StatusUnauthorized, errorcodes.NoPermission, "No permission to download file request")
+				return
+			}
+			if file.Encryption.IsEndToEndEncrypted {
+				w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+				sendError(w, http.StatusBadRequest, errorcodes.EndToEndNotSupported, "End to end encryption is not supported")
+				return
+			}
 			requestedFiles = append(requestedFiles, file)
 			requestedFileIds = append(requestedFileIds, file.Id)
 		}
@@ -665,6 +681,11 @@ func apiDownloadZip(w http.ResponseWriter, r requestParser, user models.User, _ 
 			if statusCode != 0 {
 				w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 				sendError(w, statusCode, errCode, errMessage)
+				return
+			}
+			if file.Encryption.IsEndToEndEncrypted {
+				w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+				sendError(w, http.StatusBadRequest, errorcodes.EndToEndNotSupported, "End to end encryption is not supported")
 				return
 			}
 			requestedFiles = append(requestedFiles, file)
