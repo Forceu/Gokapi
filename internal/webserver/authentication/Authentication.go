@@ -185,6 +185,17 @@ func extractOauthGroups(userInfo OAuthUserClaims, groupScope string) ([]string, 
 	// Extract the "groups" field
 	groupsInterface, ok := data[groupScope]
 	if !ok {
+		// Fallback: check standard group claim keys (e.g. AD FS uses "group", Azure/Keycloak use "groups")
+		candidateKeys := []string{"group", "groups", "http://schemas.xmlsoap.org/claims/Group", "http://schemas.microsoft.com/ws/2008/06/identity/claims/groups"}
+		for _, key := range candidateKeys {
+			if g, exists := data[key]; exists {
+				groupsInterface = g
+				ok = true
+				break
+			}
+		}
+	}
+	if !ok {
 		return nil, fmt.Errorf("claim %s was not passed on", groupScope)
 	}
 
@@ -193,6 +204,8 @@ func extractOauthGroups(userInfo OAuthUserClaims, groupScope string) ([]string, 
 	switch v := groupsInterface.(type) {
 	case string:
 		groups = append(groups, v)
+	case []string:
+		groups = append(groups, v...)
 	case []any:
 		for _, group := range v {
 			groupString, isValid := group.(string)
@@ -224,7 +237,7 @@ func CheckOauthUserAndRedirect(w http.ResponseWriter, r *http.Request, userInfo 
 	var groups []string
 	var err error
 
-	if authSettings.OAuthGroupScope != "" {
+	if authSettings.OAuthGroupScope != "" && len(authSettings.OAuthGroups) > 0 {
 		groups, err = extractOauthGroups(userInfo.ClaimsSent, authSettings.OAuthGroupScope)
 		if err != nil {
 			return err
