@@ -198,7 +198,8 @@ const PermissionDefinitions = [
         icon: "bi bi-box-arrow-in-down",
         title: "Create file requests",
         htmlId: userid => `perm_guest_upload_${userid}`,
-        apiName: "PERM_GUEST_UPLOAD"
+        apiName: "PERM_GUEST_UPLOAD",
+        disabled: false
     },
     {
         key: "UserPermReplaceUploads",
@@ -206,7 +207,8 @@ const PermissionDefinitions = [
         icon: "bi bi-recycle",
         title: "Replace own uploads",
         htmlId: userid => `perm_replace_${userid}`,
-        apiName: "PERM_REPLACE"
+        apiName: "PERM_REPLACE",
+        disabled: false
     },
     {
         key: "UserPermListOtherUploads",
@@ -214,7 +216,8 @@ const PermissionDefinitions = [
         icon: "bi bi-eye",
         title: "List other uploads",
         htmlId: userid => `perm_list_${userid}`,
-        apiName: "PERM_LIST"
+        apiName: "PERM_LIST",
+        disabled: false
     },
     {
         key: "UserPermEditOtherUploads",
@@ -222,7 +225,8 @@ const PermissionDefinitions = [
         icon: "bi bi-pencil",
         title: "Edit other uploads",
         htmlId: userid => `perm_edit_${userid}`,
-        apiName: "PERM_EDIT"
+        apiName: "PERM_EDIT",
+        disabled: false
     },
     {
         key: "UserPermDeleteOtherUploads",
@@ -230,7 +234,8 @@ const PermissionDefinitions = [
         icon: "bi bi-trash3",
         title: "Delete other uploads",
         htmlId: userid => `perm_delete_${userid}`,
-        apiName: "PERM_DELETE"
+        apiName: "PERM_DELETE",
+        disabled: false
     },
     {
         key: "UserPermReplaceOtherUploads",
@@ -238,7 +243,8 @@ const PermissionDefinitions = [
         icon: "bi bi-arrow-left-right",
         title: "Replace other uploads",
         htmlId: userid => `perm_replace_other_${userid}`,
-        apiName: "PERM_REPLACE_OTHER"
+        apiName: "PERM_REPLACE_OTHER",
+        disabled: false
     },
     {
         key: "UserPermManageLogs",
@@ -246,7 +252,8 @@ const PermissionDefinitions = [
         icon: "bi bi-card-list",
         title: "Manage system logs",
         htmlId: userid => `perm_logs_${userid}`,
-        apiName: "PERM_LOGS"
+        apiName: "PERM_LOGS",
+        disabled: false
     },
     {
         key: "UserPermManageUsers",
@@ -254,7 +261,8 @@ const PermissionDefinitions = [
         icon: "bi bi-people",
         title: "Manage users",
         htmlId: userid => `perm_users_${userid}`,
-        apiName: "PERM_USERS"
+        apiName: "PERM_USERS",
+        disabled: true
     },
     {
         key: "UserPermManageApiKeys",
@@ -262,7 +270,8 @@ const PermissionDefinitions = [
         icon: "bi bi-sliders2",
         title: "Manage all API keys",
         htmlId: userid => `perm_api_${userid}`,
-        apiName: "PERM_API"
+        apiName: "PERM_API",
+        disabled: false
     }
 ];
 
@@ -351,7 +360,7 @@ function addRowUser(userid, name, permissions) {
         }
         const id = perm.htmlId(userid);
         let nochangeClass = "";
-        if (!hasPermission(userPermissions, perm.bit)) {
+        if (!hasPermission(userPermissions, perm.bit) || perm.disabled) {
             nochangeClass = "perm-nochange";
         }
         

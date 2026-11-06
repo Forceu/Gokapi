@@ -113,6 +113,21 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 	// < v2.2.5
 	if currentDbVersion < 15 {
 		p.DeleteAllSessions()
+		users := p.GetAllUsers()
+		apiKeys := p.GetAllApiKeys()
+		// Removes ManageUsers Permission from regular users, as they have to be admins now
+		for _, user := range users {
+			if user.UserLevel == models.UserLevelUser && user.HasPermission(models.UserPermManageUsers) {
+				user.RemovePermission(models.UserPermManageUsers)
+				p.SaveUser(user, false)
+				for _, apiKey := range apiKeys {
+					if apiKey.UserId == user.Id && apiKey.HasPermission(models.ApiPermManageUsers) {
+						apiKey.RemovePermission(models.ApiPermManageUsers)
+						p.SaveApiKey(apiKey)
+					}
+				}
+			}
+		}
 	}
 }
 

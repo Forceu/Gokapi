@@ -82,7 +82,7 @@
 		
 		<i id="perm_logs_{{ .User.Id }}" class="bi bi-card-list {{if not .User.HasPermissionManageLogs}}perm-notgranted{{else}}perm-granted{{end}} {{if or (not $.ActiveUser.HasPermissionManageLogs) (or (.User.IsSuperAdmin) (eq .User.Id $.ActiveUser.Id))}}perm-nochange{{end}}" title="Manage system logs" onclick='changeUserPermission("{{ .User.Id }}","PERM_LOGS", "perm_logs_{{ .User.Id }}");'></i>
 
-		<i id="perm_users_{{ .User.Id }}" class="bi bi-people {{if not .User.HasPermissionManageUsers}}perm-notgranted{{else}}perm-granted{{end}} {{if or (not $.ActiveUser.HasPermissionManageUsers) (or (.User.IsSuperAdmin) (eq .User.Id $.ActiveUser.Id))}}perm-nochange{{end}}" title="Manage users" onclick='changeUserPermission("{{ .User.Id }}","PERM_USERS", "perm_users_{{ .User.Id }}");'></i>
+		<i id="perm_users_{{ .User.Id }}" class="bi bi-people {{if not .User.HasPermissionManageUsers}}perm-notgranted{{else}}perm-granted{{end}} {{if or (not $.ActiveUser.HasPermissionManageUsers) (or (not .User.IsAdmin) (eq .User.Id $.ActiveUser.Id))}}perm-nochange{{end}}" title="Manage users" onclick='changeUserPermission("{{ .User.Id }}","PERM_USERS", "perm_users_{{ .User.Id }}");'></i>
 
 		<i id="perm_api_{{ .User.Id }}" class="bi bi-sliders2 {{if not .User.HasPermissionManageApi}}perm-notgranted{{else}}perm-granted{{end}} {{if or (not $.ActiveUser.HasPermissionManageApi) (or (.User.IsSuperAdmin) (eq .User.Id $.ActiveUser.Id))}}perm-nochange{{end}}" title="Manage all API keys" onclick='changeUserPermission("{{ .User.Id }}","PERM_API", "perm_api_{{ .User.Id }}");'></i>
 		
