@@ -290,6 +290,7 @@ func IsCorrectUsernameAndPassword(username, password, userCsrfToken string) (mod
 	}
 	user, ok := database.GetUserByName(username)
 	if !ok {
+		doDummyHash()
 		return models.User{}, false, true
 	}
 	isSame, isLegacy := configuration.VerifyPassword(password, user.Password, configuration.Get().Authentication.SaltAdmin)
@@ -301,6 +302,16 @@ func IsCorrectUsernameAndPassword(username, password, userCsrfToken string) (mod
 		database.SaveUser(user, false)
 	}
 	return user, true, true
+}
+
+var dummyHash string
+
+// doDummyHash prevents Timing-Based User Enumeration by hashing a random string if a user does not exist
+func doDummyHash() {
+	if dummyHash == "" {
+		dummyHash = configuration.HashPassword(helper.GenerateRandomString(20), false, "")
+	}
+	configuration.VerifyPassword("ThisIsADummyHash", dummyHash, "")
 }
 
 // Logout logs the user out and removes the session
