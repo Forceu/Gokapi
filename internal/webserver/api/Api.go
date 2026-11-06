@@ -900,6 +900,10 @@ func apiModifyUser(w http.ResponseWriter, r requestParser, user models.User, _ m
 		sendError(w, http.StatusBadRequest, errorcodes.NoPermission, "Cannot grant rights the user does not have")
 		return
 	}
+	if request.GrantPermission && request.Permission == models.UserPermManageUsers && userEdit.UserLevel == models.UserLevelUser {
+		sendError(w, http.StatusBadRequest, errorcodes.ResourceCanNotBeEdited, "Cannot grant manage user permission to non-admin user")
+		return
+	}
 	logging.LogUserEdit(userEdit, user)
 	if request.GrantPermission {
 		if !userEdit.HasPermission(request.Permission) {
