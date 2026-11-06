@@ -102,13 +102,21 @@ func GetConfig() (int, int, bool, error) {
 	return parsedResult.MaxFilesize, parsedResult.MaxChunksize, parsedResult.EndToEndEncryptionEnabled, nil
 }
 
+func stripApiKeyOnRedirect(req *http.Request, via []*http.Request) error {
+	if len(via) > 0 && req.URL.Host != via[0].URL.Host {
+		req.Header.Del("apikey")
+	}
+	return nil
+}
+
 func getUrl(url string, headers []header, longTimeout bool) (string, error) {
 	timeout := 30 * time.Second
 	if longTimeout {
 		timeout = 30 * time.Minute
 	}
 	client := &http.Client{
-		Timeout: timeout,
+		Timeout:       timeout,
+		CheckRedirect: stripApiKeyOnRedirect,
 	}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -232,7 +240,6 @@ func DownloadFile(downloadParams cliflags.FlagConfig) error {
 
 	info, err := getFileInfo(downloadParams.DownloadId)
 	if err != nil {
-		fmt.Println("ERROR: Could not get file info or file does not exist")
 		return err
 	}
 
@@ -285,7 +292,8 @@ func DownloadFile(downloadParams cliflags.FlagConfig) error {
 	}
 	req.Header.Add("apikey", apiKey)
 
-	client := &http.Client{}
+	client := &http.Client{
+		CheckRedirect: stripApiKeyOnRedirect}
 	resp, err := client.Do(req)
 	if err != nil {
 		return err
@@ -436,12 +444,15 @@ func uploadChunk(f io.Reader, uuid string, offset, chunkSize, filesize int64, pr
 	r.ContentLength = dataSize
 	r.Header.Set("Content-Type", writer.FormDataContentType())
 	r.Header.Set("apikey", apiKey)
-	client := &http.Client{}
+	client := &http.Client{
+		CheckRedirect: stripApiKeyOnRedirect,
+	}
 	resp, err := client.Do(r)
-
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
+
 	bodyContent, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
