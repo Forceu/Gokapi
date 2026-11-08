@@ -25,7 +25,8 @@ func IsValidSession(w http.ResponseWriter, r *http.Request, isOauth bool, OAuthR
 	if err == nil {
 		sessionString := cookie.Value
 		if sessionString != "" {
-			session, ok := database.GetSession(sessionString)
+			// Hash session string so it is not stored in plain text in the database
+			session, ok := database.GetSession(helper.Sha256Sum(sessionString))
 			if ok {
 				user, userExists := database.GetUser(session.UserId)
 				if !userExists {
@@ -63,7 +64,7 @@ func CreateSession(w http.ResponseWriter, isOauth bool, OAuthRecheckInterval int
 	}
 
 	sessionString := helper.GenerateRandomString(lengthSessionId)
-	database.SaveSession(sessionString, models.Session{
+	database.SaveSession(helper.Sha256Sum(sessionString), models.Session{
 		RenewAt:    time.Now().Add(12 * time.Hour).Unix(),
 		ValidUntil: timeExpiry.Unix(),
 		UserId:     userId,
@@ -75,7 +76,7 @@ func CreateSession(w http.ResponseWriter, isOauth bool, OAuthRecheckInterval int
 func LogoutSession(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("session_token")
 	if err == nil {
-		database.DeleteSession(cookie.Value)
+		database.DeleteSession(helper.Sha256Sum(cookie.Value))
 	}
 	writeSessionCookie(w, "", time.Now())
 }

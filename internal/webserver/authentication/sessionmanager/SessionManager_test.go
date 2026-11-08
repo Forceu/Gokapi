@@ -1,16 +1,18 @@
 package sessionmanager
 
 import (
-	"github.com/forceu/gokapi/internal/configuration"
-	"github.com/forceu/gokapi/internal/configuration/database"
-	"github.com/forceu/gokapi/internal/models"
-	"github.com/forceu/gokapi/internal/test"
-	"github.com/forceu/gokapi/internal/test/testconfiguration"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/forceu/gokapi/internal/configuration"
+	"github.com/forceu/gokapi/internal/configuration/database"
+	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/models"
+	"github.com/forceu/gokapi/internal/test"
+	"github.com/forceu/gokapi/internal/test/testconfiguration"
 )
 
 var newSession string
@@ -90,7 +92,7 @@ func TestCreateSession(t *testing.T) {
 	w, _, _, _ = getRecorder(nil)
 	CreateSession(w, true, 20, 50)
 	cookies = w.Result().Cookies()
-	newOauthSession := cookies[0].Value
+	newOauthSession := helper.Sha256Sum(cookies[0].Value)
 
 	var session models.Session
 	session, ok = database.GetSession(newOauthSession)

@@ -212,37 +212,37 @@ func DisableS3() {
 }
 
 func writeTestSessions() {
-	database.SaveSession("validsession", models.Session{
+	database.SaveSession(helper.Sha256Sum("validsession"), models.Session{
 		RenewAt:    2147483645,
 		ValidUntil: 2147483646,
 		UserId:     7,
 	})
-	database.SaveSession("logoutsession", models.Session{
+	database.SaveSession(helper.Sha256Sum("logoutsession"), models.Session{
 		RenewAt:    2147483645,
 		ValidUntil: 2147483646,
 		UserId:     7,
 	})
-	database.SaveSession("logoutsession2", models.Session{
+	database.SaveSession(helper.Sha256Sum("logoutsession2"), models.Session{
 		RenewAt:    2147483645,
 		ValidUntil: 2147483646,
 		UserId:     7,
 	})
-	database.SaveSession("needsRenewal", models.Session{
+	database.SaveSession(helper.Sha256Sum("needsRenewal"), models.Session{
 		RenewAt:    0,
 		ValidUntil: 2147483646,
 		UserId:     7,
 	})
-	database.SaveSession("expiredsession", models.Session{
+	database.SaveSession(helper.Sha256Sum("expiredsession"), models.Session{
 		RenewAt:    0,
 		ValidUntil: 0,
 		UserId:     7,
 	})
-	database.SaveSession("validSessionInvalidUser", models.Session{
+	database.SaveSession(helper.Sha256Sum("validSessionInvalidUser"), models.Session{
 		RenewAt:    2147483645,
 		ValidUntil: 2147483645,
 		UserId:     5000,
 	})
-	database.SaveSession("validSessionInvalidUser", models.Session{
+	database.SaveSession(helper.Sha256Sum("validSessionInvalidUser"), models.Session{
 		RenewAt:    2147483645,
 		ValidUntil: 2147483645,
 		UserId:     5000,
