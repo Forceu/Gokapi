@@ -390,8 +390,10 @@ your log entries:
 .. code-block:: ini
 
     [Definition]
-    # Matches the timestamp format, [auth] category tag, and client IP address
-    failregex = ^[A-Za-z]{3}, \d{2} [A-Za-z]{3} \d{4} \d{2}:\d{2}:\d{2} \w+\s+\[auth\] Invalid login by IP <HOST>$
+    # Escape % signs as %% for fail2ban config parsing
+    datepattern = ^%%a, %%d %%b %%Y %%H:%%M:%%S UTC
+    # Matches the exact RFC1123 timestamp, the [auth] tag, and captures the IP
+    failregex = ^[A-Z][a-z]{2}, \d{2} [A-Z][a-z]{2} \d{4} \d{2}:\d{2}:\d{2} UTC\s+\[auth\] Invalid login by IP <HOST>$
     ignoreregex =
 
 Jail Configuration
