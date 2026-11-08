@@ -1822,7 +1822,7 @@
           {
             "apikey": [
               "MANAGE_FILE_REQUESTS",
-              "DELETE",
+              "DELETE"
             ]
           }
         ],
