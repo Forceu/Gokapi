@@ -53,7 +53,11 @@ func Process(w http.ResponseWriter, r *http.Request) {
 	}
 	var user models.User
 	var apiKey models.ApiKey
-	user, apiKey, ok = isAuthorisedForApi(r, routing)
+	var err error
+	err, user, apiKey, ok = isAuthorisedForApi(r, routing)
+	if err != nil {
+		sendError(w, http.StatusTooManyRequests, errorcodes.RateLimited, "Too many requests. Please wait a couple of minutes")
+	}
 	if !ok {
 		sendError(w, http.StatusUnauthorized, errorcodes.InvalidApiKey, "Unauthorized")
 		return
@@ -67,7 +71,7 @@ func Process(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	parser := routing.RequestParser.New()
-	err := parser.ParseRequest(r)
+	err = parser.ParseRequest(r)
 	if err != nil {
 		sendError(w, http.StatusBadRequest, errorcodes.CannotParse, err.Error())
 		return
@@ -1316,18 +1320,20 @@ func apiUploadRequestListSingle(w http.ResponseWriter, r requestParser, user mod
 	_, _ = w.Write(result)
 }
 
-func isAuthorisedForApi(r *http.Request, routing apiRoute) (models.User, models.ApiKey, bool) {
+func isAuthorisedForApi(r *http.Request, routing apiRoute) (error, models.User, models.ApiKey, bool) {
 	keyId := r.Header.Get("apikey")
-	ratelimiter.WaitOnApiAuthentication(logging.GetIpAddress(r))
+	if !ratelimiter.WaitOnApiAuthentication(r.Context(), logging.GetIpAddress(r)) {
+		return errors.New("Too many attempts. Please try again later."), models.User{}, models.ApiKey{}, false
+	}
 	user, apiKey, ok := isValidApiKey(keyId, true, routing.ApiPerm)
 	if !ok {
-		return models.User{}, models.ApiKey{}, false
+		return nil, models.User{}, models.ApiKey{}, false
 	}
 	// Returns false if a public upload key is used for non-public api call or vice versa
 	if routing.IsFileRequestApi != apiKey.IsUploadRequestKey() {
-		return models.User{}, models.ApiKey{}, false
+		return nil, models.User{}, models.ApiKey{}, false
 	}
-	return user, apiKey, true
+	return nil, user, apiKey, true
 }
 
 func sendError(w http.ResponseWriter, statusCode, errorCode int, errorMessage string) {

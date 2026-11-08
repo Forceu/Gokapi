@@ -228,11 +228,6 @@ func redirect(w http.ResponseWriter, r *http.Request, url string) {
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 }
 
-func redirectOnIncorrectId(w http.ResponseWriter, r *http.Request, url string) {
-	ratelimiter.WaitOnFailedId(r)
-	redirect(w, r, url)
-}
-
 type redirectValues struct {
 	FileId           string
 	RedirectUrl      string
@@ -522,7 +517,10 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 	failedCsrf := false
 	if pw != "" && user != "" {
 		ip := logging.GetIpAddress(r)
-		ratelimiter.WaitOnLogin(ip)
+		if !ratelimiter.WaitOnLogin(r.Context(), ip) {
+			http.Error(w, "Too many attempts. Please try again later.", http.StatusTooManyRequests)
+			return
+		}
 		retrievedUser, validCredentials, validCsfr := authentication.IsCorrectUsernameAndPassword(user, pw, csfr)
 		if validCredentials {
 			logging.LogValidLogin(user)
@@ -565,10 +563,14 @@ type LoginView struct {
 // If it exists, a download form is shown, or a password needs to be entered.
 func showDownload(w http.ResponseWriter, r *http.Request) {
 	addNoCacheHeader(w)
+	if !ratelimiter.WaitOnFileId(r.Context(), logging.GetIpAddress(r)) {
+		http.Error(w, "Too many attempts", http.StatusTooManyRequests)
+		return
+	}
 	keyId := queryUrl(w, r, "id", errorHandling.TypeFileNotFound)
 	file, ok := storage.GetFile(keyId)
 	if !ok || file.IsFileRequest() {
-		redirectOnIncorrectId(w, r, "error")
+		redirect(w, r, "error")
 		return
 	}
 
@@ -607,7 +609,10 @@ func showDownload(w http.ResponseWriter, r *http.Request) {
 		}
 
 		ip := logging.GetIpAddress(r)
-		ratelimiter.WaitOnDownloadPassword(ip)
+		if !ratelimiter.WaitOnDownloadPassword(r.Context(), ip) {
+			http.Error(w, "Too many attempts. Please try again later.", http.StatusTooManyRequests)
+			return
+		}
 
 		isValid, isLegacy := configuration.VerifyPassword(enteredPassword, file.PasswordHash, configuration.Get().Authentication.SaltFiles)
 		if isValid {
@@ -1079,13 +1084,17 @@ func downloadPresigned(w http.ResponseWriter, r *http.Request) {
 
 func serveFile(id string, isRootUrl bool, w http.ResponseWriter, r *http.Request) {
 	addNoCacheHeader(w)
+	if !ratelimiter.WaitOnFileId(r.Context(), logging.GetIpAddress(r)) {
+		http.Error(w, "Too many attempts", http.StatusTooManyRequests)
+		return
+	}
 	savedFile, ok := storage.GetFile(id)
 
 	if !ok || savedFile.IsFileRequest() {
 		if isRootUrl {
-			redirectOnIncorrectId(w, r, "error")
+			redirect(w, r, "error")
 		} else {
-			redirectOnIncorrectId(w, r, "../../error")
+			redirect(w, r, "../../error")
 		}
 		return
 	}
@@ -1103,9 +1112,9 @@ func serveFile(id string, isRootUrl bool, w http.ResponseWriter, r *http.Request
 	if !validFile {
 		// Only called if the file has already expired during the expiry check of storage.ServeFile()
 		if isRootUrl {
-			redirectOnIncorrectId(w, r, "error")
+			redirect(w, r, "error")
 		} else {
-			redirectOnIncorrectId(w, r, "../../error")
+			redirect(w, r, "../../error")
 		}
 		return
 	}

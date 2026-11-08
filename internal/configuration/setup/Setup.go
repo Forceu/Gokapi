@@ -101,7 +101,10 @@ func basicAuth(next http.HandlerFunc) http.HandlerFunc {
 
 		enteredUser, enteredPw, ok := r.BasicAuth()
 		if ok {
-			ratelimiter.WaitOnSetupLogin()
+			if !ratelimiter.WaitOnSetupLogin(r.Context()) {
+				http.Error(w, "Too many attempts. Please try again later.", http.StatusTooManyRequests)
+				return
+			}
 			usernameMatch := helper.IsEqualStringConstantTime(strings.ToLower(enteredUser), strings.ToLower(credentialUsername))
 			passwordMatch := helper.IsEqualStringConstantTime(enteredPw, credentialPassword)
 			if usernameMatch && passwordMatch {
@@ -876,7 +879,10 @@ func handleTestAws(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if isInitialSetup {
-		ratelimiter.WaitOnSetupLogin()
+		if !ratelimiter.WaitOnSetupLogin(r.Context()) {
+			http.Error(w, "Too many attempts. Please try again later.", http.StatusTooManyRequests)
+			return
+		}
 		if t.SetupPassword == "" || subtle.ConstantTimeCompare([]byte(t.SetupPassword), []byte(credentialAWSTest)) != 1 {
 			w.WriteHeader(http.StatusUnauthorized)
 			_ = json.NewEncoder(w).Encode(awsTestResponse{
