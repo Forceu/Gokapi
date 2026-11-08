@@ -13,8 +13,17 @@ import (
 	"github.com/forceu/gokapi/internal/models"
 )
 
-// If no login occurred during this time, the admin session will be deleted. Default 30 days
-const cookieLifeAdmin = 30 * 24 * time.Hour
+// After that time a session ID will be rotated
+const renewalTime = 12 * time.Hour
+
+// If no login occurred during this time, the admin session will be deleted. Default 7 days
+const sessionLifetime = 7 * 24 * time.Hour
+
+// After that time the user is forced to log in again, even if the session was active the whole time
+// If the user has not been using the session for at least 4 hours and the expiry would be in the next
+// 48 hours: The session will expire to have a graceful logout experience
+const forceLoginAfter = 32 * 24 * time.Hour
+
 const lengthSessionId = 60
 
 // IsValidSession checks if the user is submitting a valid session token
@@ -26,13 +35,15 @@ func IsValidSession(w http.ResponseWriter, r *http.Request, isOauth bool, OAuthR
 		sessionString := cookie.Value
 		if sessionString != "" {
 			// Hash session string so it is not stored in plain text in the database
-			session, ok := database.GetSession(helper.Sha256Sum(sessionString))
+			sessionId := helper.Sha256Sum(sessionString)
+			session, ok := database.GetSession(sessionId)
 			if ok {
 				user, userExists := database.GetUser(session.UserId)
 				if !userExists {
+					database.DeleteSession(sessionId)
 					return models.User{}, false
 				}
-				return user, useSession(w, sessionString, session, isOauth, OAuthRecheckInterval)
+				return user, useSession(w, sessionId, session, isOauth, OAuthRecheckInterval, user)
 			}
 		}
 	}
@@ -43,30 +54,60 @@ func IsValidSession(w http.ResponseWriter, r *http.Request, isOauth bool, OAuthR
 // if it has been used for more than an hour to limit session hijacking
 // Returns true if session is still valid
 // Returns false if session is invalid (and deletes it)
-func useSession(w http.ResponseWriter, id string, session models.Session, isOauth bool, OAuthRecheckInterval int) bool {
-	if session.ValidUntil < time.Now().Unix() {
+func useSession(w http.ResponseWriter, id string, session models.Session, isOauth bool, OAuthRecheckInterval int, user models.User) bool {
+	if hasSessionExpired(session, user) {
 		database.DeleteSession(id)
 		return false
 	}
 	if session.RenewAt < time.Now().Unix() {
-		CreateSession(w, isOauth, OAuthRecheckInterval, session.UserId)
+		CreateSession(w, isOauth, OAuthRecheckInterval, session.UserId, session.Expiry)
 		database.DeleteSession(id)
 	}
-	go database.UpdateUserLastOnline(session.UserId)
+	go database.UpdateUserLastOnline(user.Id)
 	return true
 }
 
-// CreateSession creates a new session - called after login with correct username / password
-func CreateSession(w http.ResponseWriter, isOauth bool, OAuthRecheckInterval int, userId int) {
-	timeExpiry := time.Now().Add(cookieLifeAdmin)
+func hasSessionExpired(session models.Session, user models.User) bool {
+	now := time.Now()
+	if session.ValidUntil < now.Unix() {
+		return true
+	}
+	if session.Expiry < now.Unix() {
+		return true
+	}
+	// Graceful logout: if the user has been away for a while and the hard limit
+	// is near, end the session now instead of cutting them off mid-work later
+	if session.Expiry < now.Add(48*time.Hour).Unix() &&
+		user.LastOnline < now.Add(-4*time.Hour).Unix() {
+		return true
+	}
+	return false
+}
+
+// CreateSession creates a new session - called after login with correct username / password or other successful authentication method
+func CreateSession(w http.ResponseWriter, isOauth bool, OAuthRecheckInterval, userId int, forcedExpiry int64) {
+	renewAt := time.Now().Add(renewalTime)
+	timeExpiry := time.Now().Add(sessionLifetime)
+	timeMaxLife := time.Now().Add(forceLoginAfter)
 	if isOauth {
 		timeExpiry = time.Now().Add(time.Duration(OAuthRecheckInterval) * time.Hour)
+		timeMaxLife = time.Now().Add(time.Duration(OAuthRecheckInterval) * time.Hour)
+	}
+	if forcedExpiry > 0 {
+		forcedExpiryTime := time.Unix(forcedExpiry, 0)
+		if timeExpiry.After(forcedExpiryTime) {
+			timeExpiry = forcedExpiryTime
+		}
+		if timeMaxLife.After(forcedExpiryTime) {
+			timeMaxLife = forcedExpiryTime
+		}
 	}
 
 	sessionString := helper.GenerateRandomString(lengthSessionId)
 	database.SaveSession(helper.Sha256Sum(sessionString), models.Session{
-		RenewAt:    time.Now().Add(12 * time.Hour).Unix(),
+		RenewAt:    renewAt.Unix(),
 		ValidUntil: timeExpiry.Unix(),
+		Expiry:     timeMaxLife.Unix(),
 		UserId:     userId,
 	})
 	writeSessionCookie(w, sessionString, timeExpiry)

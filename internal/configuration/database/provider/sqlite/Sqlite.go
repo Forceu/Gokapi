@@ -22,7 +22,7 @@ type DatabaseProvider struct {
 }
 
 // DatabaseSchemeVersion contains the version number to be expected from the current database. If lower, an upgrade will be performed
-const DatabaseSchemeVersion = 15
+const DatabaseSchemeVersion = 16
 
 // New returns an instance
 func New(dbConfig models.DbConnection) (DatabaseProvider, error) {
@@ -110,7 +110,7 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 			}
 		}
 	}
-	// < v2.2.5
+	// < v2.2.5-dev1
 	if currentDbVersion < 15 {
 		p.DeleteAllSessions()
 		users := p.GetAllUsers()
@@ -128,6 +128,12 @@ func (p DatabaseProvider) Upgrade(currentDbVersion int) {
 				}
 			}
 		}
+	}
+	// < v2.2.5-dev2
+	if currentDbVersion < 16 {
+		p.DeleteAllSessions()
+		err := p.rawSqlite(`ALTER TABLE Sessions ADD COLUMN "Expiry" INTEGER NOT NULL DEFAULT 0;`)
+		helper.Check(err)
 	}
 }
 
@@ -252,6 +258,7 @@ func (p DatabaseProvider) createNewDatabase() error {
 			"RenewAt"	INTEGER NOT NULL,
 			"ValidUntil"	INTEGER NOT NULL,
 			"UserId"	INTEGER NOT NULL,
+			"Expiry"	INTEGER NOT NULL,
 			PRIMARY KEY("Id")
 		) WITHOUT ROWID;
 		CREATE TABLE "Users" (

@@ -14,13 +14,14 @@ type schemaSessions struct {
 	RenewAt    int64
 	ValidUntil int64
 	UserId     int
+	Expiry     int64
 }
 
 // GetSession returns the session with the given ID or false if not a valid ID
 func (p DatabaseProvider) GetSession(id string) (models.Session, bool) {
 	var rowResult schemaSessions
 	row := p.sqliteDb.QueryRow("SELECT * FROM Sessions WHERE Id = ?", id)
-	err := row.Scan(&rowResult.Id, &rowResult.RenewAt, &rowResult.ValidUntil, &rowResult.UserId)
+	err := row.Scan(&rowResult.Id, &rowResult.RenewAt, &rowResult.ValidUntil, &rowResult.UserId, &rowResult.Expiry)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return models.Session{}, false
@@ -32,6 +33,7 @@ func (p DatabaseProvider) GetSession(id string) (models.Session, bool) {
 		RenewAt:    rowResult.RenewAt,
 		ValidUntil: rowResult.ValidUntil,
 		UserId:     rowResult.UserId,
+		Expiry:     rowResult.Expiry,
 	}
 	return result, true
 }
@@ -43,10 +45,11 @@ func (p DatabaseProvider) SaveSession(id string, session models.Session) {
 		RenewAt:    session.RenewAt,
 		ValidUntil: session.ValidUntil,
 		UserId:     session.UserId,
+		Expiry:     session.Expiry,
 	}
 
-	_, err := p.sqliteDb.Exec("INSERT OR REPLACE INTO Sessions (Id, RenewAt, ValidUntil, UserId) VALUES (?, ?, ?, ?)",
-		newData.Id, newData.RenewAt, newData.ValidUntil, newData.UserId)
+	_, err := p.sqliteDb.Exec("INSERT OR REPLACE INTO Sessions (Id, RenewAt, ValidUntil, UserId, Expiry) VALUES (?, ?, ?, ?, ?)",
+		newData.Id, newData.RenewAt, newData.ValidUntil, newData.UserId, newData.Expiry)
 	helper.Check(err)
 }
 

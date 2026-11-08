@@ -75,7 +75,7 @@ func TestIsValidSession(t *testing.T) {
 
 func TestCreateSession(t *testing.T) {
 	w, _, _, _ := getRecorder(nil)
-	CreateSession(w, false, 1, 5)
+	CreateSession(w, false, 1, 5, 0)
 	cookies := w.Result().Cookies()
 	test.IsEqualInt(t, len(cookies), 1)
 	test.IsEqualString(t, cookies[0].Name, "session_token")
@@ -90,7 +90,7 @@ func TestCreateSession(t *testing.T) {
 	test.IsEqualInt(t, user.Id, 5)
 
 	w, _, _, _ = getRecorder(nil)
-	CreateSession(w, true, 20, 50)
+	CreateSession(w, true, 20, 50, 0)
 	cookies = w.Result().Cookies()
 	newOauthSession := helper.Sha256Sum(cookies[0].Value)
 

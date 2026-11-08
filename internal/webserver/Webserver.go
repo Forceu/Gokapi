@@ -524,7 +524,7 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 		retrievedUser, validCredentials, validCsfr := authentication.IsCorrectUsernameAndPassword(user, pw, csfr)
 		if validCredentials {
 			logging.LogValidLogin(retrievedUser.Name)
-			sessionmanager.CreateSession(w, false, 0, retrievedUser.Id)
+			sessionmanager.CreateSession(w, false, 0, retrievedUser.Id, 0)
 			redirect(w, r, "admin")
 			return
 		}
