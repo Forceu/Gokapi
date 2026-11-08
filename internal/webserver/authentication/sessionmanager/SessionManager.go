@@ -29,7 +29,7 @@ func IsValidSession(w http.ResponseWriter, r *http.Request, isOauth bool, OAuthR
 			if ok {
 				user, userExists := database.GetUser(session.UserId)
 				if !userExists {
-					return user, false
+					return models.User{}, false
 				}
 				return user, useSession(w, sessionString, session, isOauth, OAuthRecheckInterval)
 			}
@@ -56,7 +56,6 @@ func useSession(w http.ResponseWriter, id string, session models.Session, isOaut
 }
 
 // CreateSession creates a new session - called after login with correct username / password
-// If sessions parameter is nil, it will be loaded from config
 func CreateSession(w http.ResponseWriter, isOauth bool, OAuthRecheckInterval int, userId int) {
 	timeExpiry := time.Now().Add(cookieLifeAdmin)
 	if isOauth {
