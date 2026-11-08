@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/forceu/gokapi/internal/environment"
+	"github.com/forceu/gokapi/internal/environment/cloudflare"
 	"github.com/forceu/gokapi/internal/environment/deprecation"
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
@@ -39,11 +40,11 @@ func Init(filePath string) {
 	env := environment.New()
 	outputToStdout = env.LogToStdout
 	useCloudflare = env.UseCloudFlare
-	parseTrustedProxies(env.TrustedProxies, !env.DisableDockerTrustedProxy)
+	parseTrustedProxies(env.TrustedProxies, !env.DisableDockerTrustedProxy, env.DisableCloudflareDownload)
 }
 
 // parseTrustedProxies processes the raw strings into net.IP and net.IPNet objects
-func parseTrustedProxies(proxies []string, useDockerSubnet bool) {
+func parseTrustedProxies(proxies []string, useDockerSubnet, disableCloudflareDownload bool) {
 	parsedTrustedIPs = nil
 	parsedTrustedCIDRs = nil
 
@@ -51,6 +52,15 @@ func parseTrustedProxies(proxies []string, useDockerSubnet bool) {
 		subnet, err := getDockerSubnet()
 		if err == nil {
 			parsedTrustedCIDRs = append(parsedTrustedCIDRs, subnet)
+		}
+	}
+
+	if useCloudflare && !disableCloudflareDownload {
+		cloudflareRanges, err := cloudflare.GetIpRanges()
+		if err != nil {
+			fmt.Println("Failed to get Cloudflare IP ranges:", err)
+		} else {
+			proxies = append(proxies, cloudflareRanges...)
 		}
 	}
 
@@ -425,47 +435,46 @@ func isTrustedProxy(ip net.IP) bool {
 
 // GetIpAddress returns the IP address of the requester
 func GetIpAddress(r *http.Request) string {
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		host = r.RemoteAddr
+	}
+	host, _, _ = strings.Cut(host, "%") // strip IPv6 zone
+
+	peerIP := net.ParseIP(host)
+	if peerIP == nil {
+		return host // e.g. unix socket
+	}
+	peer := peerIP.String()
+
+	if !isTrustedProxy(peerIP) {
+		return peer
+	}
 
 	if useCloudflare {
-		cfIp := r.Header.Get("CF-Connecting-IP")
-		if cfIp != "" {
-			return cfIp
+		ip := net.ParseIP(strings.TrimSpace(r.Header.Get("CF-Connecting-IP")))
+		if ip != nil {
+			return ip.String()
 		}
 	}
 
-	ip, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		ip = r.RemoteAddr
-	}
-
-	// Clean up if it is an IPv6 zone
-	netIP := net.ParseIP(ip)
-
-	// Check if the immediate connector is a Trusted Proxy and if yes, use their header for IP
-	// Otherwise this returns the actual IP used for the connection
-	if netIP != nil && isTrustedProxy(netIP) {
-
-		// Check X-Forwarded-For
-		// Ideally, use the last IP in the list if a proxy appends to it
-		xff := r.Header.Get("X-FORWARDED-FOR")
-		if xff != "" {
-			ips := strings.Split(xff, ",")
-			// Iterate from right to left, skip trusted proxies
-			for i := len(ips) - 1; i >= 0; i-- {
-				ipXff := strings.TrimSpace(ips[i])
-				parsedIP := net.ParseIP(ipXff)
-				if parsedIP != nil && !isTrustedProxy(parsedIP) {
-					return ipXff
-				}
+	xff := strings.Join(r.Header.Values("X-Forwarded-For"), ",")
+	if xff != "" {
+		ips := strings.Split(xff, ",")
+		for i := len(ips) - 1; i >= 0; i-- {
+			parsed := net.ParseIP(strings.TrimSpace(ips[i]))
+			if parsed == nil {
+				break // nothing further left can be trusted
+			}
+			if !isTrustedProxy(parsed) {
+				return parsed.String()
 			}
 		}
-
-		// Fallback to X-Real-Ip if XFF fails
-		xri := r.Header.Get("X-REAL-IP")
-		if net.ParseIP(xri) != nil {
-			return xri
-		}
 	}
 
-	return ip
+	xri := net.ParseIP(strings.TrimSpace(r.Header.Get("X-Real-IP")))
+	if xri != nil {
+		return xri.String()
+	}
+	return peer
 }
