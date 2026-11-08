@@ -277,8 +277,8 @@ func LogUserCreation(modifiedUser, userEditor models.User) {
 }
 
 // LogInvalidLogin adds a log entry to indicate that an invalid login was attempted. Non-blocking
-func LogInvalidLogin(username, ip string) {
-	createLogEntry(categoryAuth, fmt.Sprintf("Invalid login for user %s by IP %s", username, ip), false)
+func LogInvalidLogin(ip string) {
+	createLogEntry(categoryAuth, fmt.Sprintf("Invalid login by IP %s", ip), false)
 }
 
 // LogValidLogin adds a log entry to indicate that a login was successful. Non-blocking

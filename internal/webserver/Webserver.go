@@ -523,13 +523,13 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 		}
 		retrievedUser, validCredentials, validCsfr := authentication.IsCorrectUsernameAndPassword(user, pw, csfr)
 		if validCredentials {
-			logging.LogValidLogin(user)
+			logging.LogValidLogin(retrievedUser.Name)
 			sessionmanager.CreateSession(w, false, 0, retrievedUser.Id)
 			redirect(w, r, "admin")
 			return
 		}
 		if validCsfr {
-			logging.LogInvalidLogin(user, ip)
+			logging.LogInvalidLogin(ip)
 		}
 		failedCsrf = !validCsfr
 		failedLogin = true
