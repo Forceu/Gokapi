@@ -382,12 +382,45 @@ function createFileRequestRow(jsonResult, user) {
 
     // Name
     tr.appendChild(tdLink(jsonResult.name, publicUrl, `rqName-${jsonResult.id}`));
-    // Uploaded files / Max files
-    if (jsonResult.maxfiles == 0) {
-        tr.appendChild(tdText(jsonResult.uploadedfiles));
-    } else {
-        tr.appendChild(tdText(`${jsonResult.uploadedfiles} / ${jsonResult.maxfiles}`));
+
+    // Uploaded files / Max files / Expand Toggle (Disregarding reserved uploads)
+    const tdFiles = document.createElement("td");
+
+    // Uploaded files span
+    const uploadedSpan = document.createElement("span");
+    uploadedSpan.id = `totalFiles-fr-${jsonResult.id}`;
+    uploadedSpan.title = "Uploaded files";
+    uploadedSpan.textContent = jsonResult.uploadedfiles;
+    tdFiles.appendChild(uploadedSpan);
+
+    // Max files limit (if not 0)
+    if (jsonResult.maxfiles != 0) {
+        tdFiles.appendChild(document.createTextNode(" / "));
+        const maxSpan = document.createElement("span");
+        maxSpan.title = "File limit";
+        maxSpan.textContent = jsonResult.maxfiles;
+        tdFiles.appendChild(maxSpan);
     }
+
+    // Expand / Collapse button (if uploaded files > 0)
+    if (jsonResult.uploadedfiles > 0) {
+        tdFiles.appendChild(document.createTextNode(" ")); 
+
+        const collapseBtn = document.createElement("button");
+        collapseBtn.type = "button";
+        collapseBtn.className = "btn btn-sm btn-link text-light p-0 collapse-toggle";
+        collapseBtn.setAttribute("data-bs-toggle", "collapse");
+        collapseBtn.setAttribute("data-bs-target", `#collapse-filelist-${jsonResult.id}`);
+        collapseBtn.setAttribute("aria-expanded", "false");
+        collapseBtn.setAttribute("aria-controls", `collapse-filelist-${jsonResult.id}`);
+        collapseBtn.title = "Expand / Collapse";
+
+        collapseBtn.appendChild(icon("bi-chevron-down"));
+        tdFiles.appendChild(collapseBtn);
+    }
+
+    tr.appendChild(tdFiles);
+
     // Total size
     tr.appendChild(tdText(getReadableSize(jsonResult.totalfilesize)));
     // Last upload
@@ -425,7 +458,6 @@ function createFileRequestRow(jsonResult, user) {
 
     downloadBtn.appendChild(icon("bi-download"));
 
-
     // Copy
     const copyBtn = document.createElement("button");
     copyBtn.id = `copy-${jsonResult.id}`;
@@ -436,7 +468,6 @@ function createFileRequestRow(jsonResult, user) {
     copyBtn.onclick = () => showToast(1000);
 
     copyBtn.appendChild(icon("bi-copy"));
-
 
     // Edit
     const editBtn = document.createElement("button");
@@ -464,5 +495,6 @@ function createFileRequestRow(jsonResult, user) {
     toolbar.appendChild(group);
     td.appendChild(toolbar);
     tr.appendChild(td);
+    
     return tr;
 }

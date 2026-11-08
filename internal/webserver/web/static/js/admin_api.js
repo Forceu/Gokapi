@@ -955,7 +955,7 @@ async function apiE2eStore(content) {
 
 async function apiURequestDelete(id) {
     const apiUrl = './api/uploadrequest/delete';
-    const reqPerm = 'PERM_MANAGE_FILE_REQUESTS';
+    const reqPerm = 'PERM_MANAGE_FILE_REQUESTS,PERM_DELETE';
 
     let token;
 

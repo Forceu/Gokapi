@@ -203,7 +203,7 @@ var routes = []apiRoute{
 	},
 	{
 		Url:           "/uploadrequest/delete",
-		ApiPerm:       models.ApiPermManageFileRequests,
+		ApiPerm:       models.ApiPermManageFileRequests | models.ApiPermDelete,
 		execution:     apiURequestDelete,
 		RequestParser: &paramURequestDelete{},
 	},

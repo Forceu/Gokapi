@@ -302,10 +302,18 @@ func handleGenerateAuthToken(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 	permString := r.Header.Get("permission")
-	permission, err := models.ApiPermissionFromString(permString)
-	if err != nil {
-		http.Error(w, "Invalid permission", http.StatusBadRequest)
-		return
+	var permission models.ApiPermission
+	for _, perm := range strings.Split(permString, ",") {
+		perm = strings.TrimSpace(perm)
+		if perm == "" {
+			continue
+		}
+		parsedPerm, errParsing := models.ApiPermissionFromString(perm)
+		if errParsing != nil {
+			http.Error(w, "Invalid permission", http.StatusBadRequest)
+			return
+		}
+		permission = permission | parsedPerm
 	}
 	token, expiry, err := tokengeneration.Generate(user, permission)
 	if err != nil {

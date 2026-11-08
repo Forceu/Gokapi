@@ -1816,12 +1816,13 @@
           "uploadrequest"
         ],
         "summary": "Deletes the upload request and all associated files",
-        "description": "This API call deletes the given file requests. If files are associated with the request, they will also be deleted. To delete a request of a different user, the user requires the user permission DELETE to execute this call. Requires API permission MANAGE_FILE_REQUESTS",
+        "description": "This API call deletes the given file requests. If files are associated with the request, they will also be deleted. To delete a request of a different user, the user requires the user permission DELETE to execute this call. Requires API permission MANAGE_FILE_REQUESTS and DELETE",
         "operationId": "uploadrequestdelete",
         "security": [
           {
             "apikey": [
-              "MANAGE_FILE_REQUESTS"
+              "MANAGE_FILE_REQUESTS",
+              "DELETE",
             ]
           }
         ],
