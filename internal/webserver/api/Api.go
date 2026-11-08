@@ -187,6 +187,10 @@ func apiModifyApiKey(w http.ResponseWriter, r requestParser, user models.User, _
 		sendError(w, http.StatusNotFound, errorcodes.NotFound, "Invalid key ID provided.")
 		return
 	}
+	if apiKey.IsSystemKey {
+		sendError(w, http.StatusForbidden, errorcodes.NoPermission, "Token API keys cannot be modified")
+		return
+	}
 	if apiKeyOwner.Id != user.Id && !user.HasPermission(models.UserPermManageApiKeys) {
 		sendError(w, http.StatusUnauthorized, errorcodes.NoPermission, "No permission to delete this API key")
 		return
