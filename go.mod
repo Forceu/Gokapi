@@ -2,6 +2,8 @@ module github.com/forceu/gokapi
 
 go 1.26.0
 
+toolchain go1.26.11
+
 require (
 	github.com/Kodeworks/golang-image-ico v0.0.0-20141118225523-73f0f4cfade9
 	github.com/NYTimes/gziphandler v1.1.1
