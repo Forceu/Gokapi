@@ -2,6 +2,7 @@ module github.com/forceu/gokapi
 
 go 1.26.0
 
+// The Docker and release builds in .github/workflows use this Go version.
 toolchain go1.26.11
 
 require (
