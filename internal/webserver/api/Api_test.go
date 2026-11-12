@@ -1851,6 +1851,60 @@ func TestFilesDuplicateSanitisation(t *testing.T) {
 	test.IsEqualBool(t, strings.Contains(output.Name, "\n"), false)
 }
 
+func TestChunkCompleteUploadDefaults(t *testing.T) {
+    env := configuration.GetEnvironment()
+    cases := []struct {
+        name               string
+        headers            map[string]bool
+        downloads          int
+        expiry             int
+        expectedDownloads  int
+        expectedExpiry     int
+        unlimitedDownloads bool
+        unlimitedTime      bool
+    }{
+        {
+            name: "omitted parameters",
+            headers: map[string]bool{},
+            expectedDownloads: env.DefaultDownloads,
+            expectedExpiry: env.DefaultExpiryDays,
+            unlimitedDownloads: env.DefaultDownloads == 0,
+            unlimitedTime: env.DefaultExpiryDays == 0 || env.DefaultExpiryDays > 100000,
+        },
+        {
+            name: "explicit unlimited",
+            headers: map[string]bool{"allowedDownloads": true, "expiryDays": true},
+            unlimitedDownloads: true,
+            unlimitedTime: true,
+        },
+        {
+            name: "explicit limits",
+            headers: map[string]bool{"allowedDownloads": true, "expiryDays": true},
+            downloads: 7,
+            expiry: 21,
+            expectedDownloads: 7,
+            expectedExpiry: 21,
+        },
+    }
+    for _, tc := range cases {
+        t.Run(tc.name, func(t *testing.T) {
+            p := &paramChunkComplete{
+                foundHeaders: tc.headers,
+                AllowedDownloads: tc.downloads,
+                ExpiryDays: tc.expiry,
+                FileSize: 10,
+                FileName: "test.txt",
+            }
+            err := p.ProcessParameter(nil)
+            test.IsNil(t, err)
+            test.IsEqualInt(t, p.AllowedDownloads, tc.expectedDownloads)
+            test.IsEqualInt(t, p.ExpiryDays, tc.expectedExpiry)
+            test.IsEqualBool(t, p.UnlimitedDownloads, tc.unlimitedDownloads)
+            test.IsEqualBool(t, p.UnlimitedTime, tc.unlimitedTime)
+        })
+    }
+}
+
 func TestChunkCompleteSanitisationUnit(t *testing.T) {
 	p := &paramChunkComplete{}
 	p.foundHeaders = map[string]bool{"realsize": true}
