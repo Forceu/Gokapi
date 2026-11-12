@@ -45,6 +45,7 @@ import (
 	"github.com/forceu/gokapi/internal/webserver/errorHandling"
 	"github.com/forceu/gokapi/internal/webserver/favicon"
 	"github.com/forceu/gokapi/internal/webserver/fileupload"
+	"github.com/forceu/gokapi/internal/webserver/headers"
 	"github.com/forceu/gokapi/internal/webserver/ratelimiter"
 	"github.com/forceu/gokapi/internal/webserver/sse"
 	"github.com/forceu/gokapi/internal/webserver/ssl"
@@ -142,7 +143,7 @@ func Start() {
 		Addr:         configuration.Get().Port,
 		ReadTimeout:  timeOutWebserverRead,
 		WriteTimeout: timeOutWebserverWrite,
-		Handler:      mux,
+		Handler:      headers.ContentSecurityPolicyWithStreamSaver(mux),
 	}
 	infoMessage := "Webserver can be accessed at " + configuration.Get().ServerUrl + "admin\nPress CTRL+C to stop Gokapi"
 	if strings.Contains(configuration.Get().ServerUrl, "127.0.0.1") {
