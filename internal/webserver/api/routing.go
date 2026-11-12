@@ -702,7 +702,8 @@ func (p *paramChunkComplete) ProcessParameter(_ *http.Request) error {
 		if p.foundHeaders["allowedDownloads"] {
 			p.UnlimitedDownloads = true
 		} else {
-			p.AllowedDownloads = 1
+			p.AllowedDownloads = configuration.GetEnvironment().DefaultDownloads
+			p.UnlimitedDownloads = p.AllowedDownloads == 0
 		}
 	}
 
@@ -710,7 +711,8 @@ func (p *paramChunkComplete) ProcessParameter(_ *http.Request) error {
 		if p.foundHeaders["expiryDays"] {
 			p.UnlimitedTime = true
 		} else {
-			p.ExpiryDays = 14
+			p.ExpiryDays = configuration.GetEnvironment().DefaultExpiryDays
+			p.UnlimitedTime = p.ExpiryDays == 0 || p.ExpiryDays > 100000
 		}
 	} else {
 		if p.ExpiryDays > 100000 {
