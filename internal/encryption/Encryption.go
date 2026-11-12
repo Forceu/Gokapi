@@ -169,7 +169,7 @@ func createDecryptReader(encInfo models.EncryptionInfo, input io.Reader) (*sio.D
 	return stream.DecryptReader(input, nonce, nil), nil
 }
 
-// DecryptReader modifies a reader so it can decrypt encrypted files
+// DecryptReader modifies a reader so it can decrypt encrypted files and copies the output
 func DecryptReader(encInfo models.EncryptionInfo, input io.Reader, output io.Writer) error {
 	reader, err := createDecryptReader(encInfo, input)
 	if err != nil {

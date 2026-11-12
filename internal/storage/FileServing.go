@@ -178,14 +178,19 @@ func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, userId int
 	metaData := createNewMetaData(hash, fileHeader, userId, uploadRequest)
 	fileExists := FileExists(metaData, configuration.Get().DataDir)
 	if fileExists {
-		fileExists = copyEncryptionInfo(&metaData)
-		err = file.Close()
-		if err != nil {
-			return models.File{}, err
-		}
-		err = os.Remove(file.Name())
-		if err != nil {
-			return models.File{}, err
+		if copyEncryptionInfo(&metaData) {
+			// Duplicate with compatible encryption: the uploaded chunk is redundant
+			err = file.Close()
+			if err != nil {
+				return models.File{}, err
+			}
+			err = os.Remove(file.Name())
+			if err != nil {
+				return models.File{}, err
+			}
+		} else {
+			// Stale file was removed, so the chunk has to be stored
+			fileExists = false
 		}
 	}
 
@@ -210,6 +215,12 @@ func NewFileFromChunk(chunkId string, fileHeader chunking.FileHeader, userId int
 			err = filesystem.ActiveStorageSystem.MoveToFilesystem(fileToMove, metaData)
 		}
 		if err != nil {
+			// The encrypted temp file is not owned by the chunk handling in the caller,
+			// so it has to be cleaned up here. The plain chunk is deleted by the caller.
+			if fileToMove != file {
+				_ = fileToMove.Close()
+				_ = os.Remove(fileToMove.Name())
+			}
 			return models.File{}, err
 		}
 	}
@@ -248,50 +259,43 @@ func getChunkFileHash(file *os.File, isEndToEndEncryted bool) (string, error) {
 }
 
 func encryptChunkFile(file *os.File, metadata *models.File) (*os.File, error) {
-
-	var removeTempFiles = func() {
-		err := file.Close()
-		if err != nil {
-			fmt.Println("Warning: cannot close plain-text file")
-			fmt.Println(err)
-		}
-		err = os.Remove(file.Name())
-		if err != nil {
-			fmt.Println("Warning: cannot remove plain-text file")
-			fmt.Println(err)
-		}
-
+	removePlain := func() {
+		_ = file.Close()
+		_ = os.Remove(file.Name())
 	}
-
 	_, err := file.Seek(0, io.SeekStart)
 	if err != nil {
-		removeTempFiles()
+		removePlain()
 		return nil, err
 	}
 	tempFileEnc, err := os.CreateTemp(configuration.Get().DataDir, "upload")
 	if err != nil {
-		removeTempFiles()
+		removePlain()
+		return nil, err
+	}
+	fail := func(err error) (*os.File, error) {
+		_ = tempFileEnc.Close()
+		_ = os.Remove(tempFileEnc.Name())
+		removePlain()
 		return nil, err
 	}
 	encInfo := metadata.Encryption
 	err = encryption.Encrypt(&encInfo, file, tempFileEnc)
 	if err != nil {
-		removeTempFiles()
-		return nil, err
+		return fail(err)
 	}
 	_, err = tempFileEnc.Seek(0, io.SeekStart)
 	if err != nil {
-		removeTempFiles()
-		return nil, err
+		return fail(err)
 	}
 	metadata.Encryption = encInfo
 	err = file.Close()
 	if err != nil {
-		return nil, err
+		return fail(err)
 	}
 	err = os.Remove(file.Name())
 	if err != nil {
-		return nil, err
+		return fail(err)
 	}
 	return tempFileEnc, nil
 }
@@ -488,6 +492,7 @@ func generateHashAndEncrypt(fileContent io.Reader, fileHeader *multipart.FileHea
 		helper.Check(err)
 		err = encryption.Encrypt(&encInfo, tempFile, tempFileEnc)
 		helper.Check(err)
+		_ = tempFile.Close()
 		err = os.Remove(tempFile.Name())
 		helper.Check(err)
 		hash.Write([]byte(configuration.Get().Authentication.SaltFiles))
@@ -655,12 +660,12 @@ func ServeFile(file models.File, w http.ResponseWriter, r *http.Request, forceDo
 		return true
 	}
 	fileHandler, _, err := getFileHandler(file, configuration.Get().DataDir)
-	defer fileHandler.Close()
 	if err != nil {
 		fmt.Println(err)
 		_, _ = w.Write([]byte("Error getting file handler"))
 		return true
 	}
+	defer fileHandler.Close()
 	if file.Encryption.IsEncrypted && !file.RequiresClientDecryption() {
 		if !encryption.IsCorrectKey(file.Encryption, fileHandler) {
 			_, _ = w.Write([]byte("Internal error - Error decrypting file, source data might be damaged or an incorrect key has been used"))
@@ -725,58 +730,46 @@ func ServeFilesAsZip(files []models.File, filename string, w http.ResponseWriter
 			Modified: time.Unix(file.UploadDate, 0),
 		}
 		entryWriter, err := zipWriter.CreateHeader(header)
-		helper.Check(err)
-		logging.LogDownload(file, r, saveIp)
-		go serverstats.AddTraffic(uint64(file.SizeBytes))
-		if !file.IsLocalStorage() {
-			statusId := downloadstatus.SetDownload(file)
-			err = aws.Stream(entryWriter, file)
-			helper.Check(err)
-			downloadstatus.SetComplete(statusId)
-			_ = zipWriter.Flush()
-			flushingWriter, ok := w.(http.Flusher)
-			if ok {
-				flushingWriter.Flush()
-			}
-			continue
-		}
-		fileHandler, _, err := getFileHandler(file, configuration.Get().DataDir)
 		if err != nil {
 			fmt.Println(err)
-			_, _ = w.Write([]byte("Error getting file handler"))
 			return
 		}
+		logging.LogDownload(file, r, saveIp)
+		go serverstats.AddTraffic(uint64(file.SizeBytes))
 		statusId := downloadstatus.SetDownload(file)
-		if file.Encryption.IsEncrypted {
-			if file.Encryption.IsEndToEndEncrypted {
-				_, _ = w.Write([]byte("Internal error - Cannot download end to end encrypted files"))
-				_ = fileHandler.Close()
-				return
-			}
-			if !encryption.IsCorrectKey(file.Encryption, fileHandler) {
-				_, _ = w.Write([]byte("Internal error - Error decrypting file, source data might be damaged or an incorrect key has been used"))
-				_ = fileHandler.Close()
-				return
-			}
-			err = encryption.DecryptReader(file.Encryption, fileHandler, entryWriter)
-			if err != nil {
-				_, _ = w.Write([]byte("Error decrypting file"))
-				fmt.Println(err)
-				_ = fileHandler.Close()
-				return
-			}
-		} else {
-			_, err = io.Copy(entryWriter, fileHandler)
-			helper.Check(err)
-			_ = fileHandler.Close()
+		err = writeZipEntry(entryWriter, file)
+		downloadstatus.SetComplete(statusId) // always
+		if err != nil {
+			fmt.Println(err)
+			return
 		}
-		downloadstatus.SetComplete(statusId)
 		_ = zipWriter.Flush()
-		flushingWriter, ok := w.(http.Flusher)
-		if ok {
-			flushingWriter.Flush()
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
 		}
 	}
+}
+
+func writeZipEntry(w io.Writer, file models.File) error {
+	if !file.IsLocalStorage() {
+		return aws.Stream(w, file)
+	}
+	fh, _, err := getFileHandler(file, configuration.Get().DataDir)
+	if err != nil {
+		return err
+	}
+	defer fh.Close()
+	if file.Encryption.IsEncrypted {
+		if file.Encryption.IsEndToEndEncrypted {
+			return errors.New("cannot download end to end encrypted files")
+		}
+		if !encryption.IsCorrectKey(file.Encryption, fh) {
+			return errors.New("cannot decrypt file, data damaged or wrong key")
+		}
+		return encryption.DecryptReader(file.Encryption, fh, w)
+	}
+	_, err = io.Copy(w, fh)
+	return err
 }
 
 func getFileHandler(file models.File, dataDir string) (*os.File, int64, error) {
@@ -786,6 +779,7 @@ func getFileHandler(file models.File, dataDir string) (*os.File, int64, error) {
 	}
 	size, err := helper.GetFileSize(fileHandler)
 	if err != nil {
+		_ = fileHandler.Close()
 		return nil, 0, err
 	}
 	return fileHandler, size, nil

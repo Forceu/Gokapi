@@ -136,7 +136,7 @@
 
 
 {{ template "urequest_modal_confirm" }}
-{{ template "urequest_modal_addedit" }}
+{{ template "urequest_modal_addedit" . }}
         
 {{ template "pagename" "UploadRequest"}}
 {{ template "customjs" .}}
@@ -218,13 +218,14 @@
 		  <span class="input-group-text modal-samesize-input-filerequest" id="mdNotes">Notes</span>
 		  <input type="text" id="mNotes" class="form-control" placeholder="Notes about the request" aria-label="Notes" aria-describedby="mdNotes">
 		</div>
+{{ if .EndToEndEncryption }}
+		<div class="alert alert-warning d-flex align-items-start gap-2 mb-0 py-2 small" role="note">
+		  <div>Files uploaded through a file request are <strong>not</strong> end-to-end encrypted and are stored in plain text on the server.</div>
+		</div>
+{{ end }}
 	      </div>
 	      <input type="hidden" id="freqId" value="" />
-{{ if .EndToEndEncryption }}
-<div class="callout callout-info">
-  Uploaded files are not end-to-end encrypted and will be stored in plain text on the server
-</div>
-{{ end }}
+
 	      <div class="modal-footer">
 		<button type="button" class="btn btn-outline-light"  aria-label="Cancel" data-bs-dismiss="modal">Close</button>
 		<button type="button" class="btn btn-primary" data-fileid="" id="b_fr_save" onclick="">Save</button>
