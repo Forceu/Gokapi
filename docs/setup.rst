@@ -52,7 +52,7 @@ Choose the binary that matches your system:
 Unstable version
 """"""""""""""""
 
-Only recommended if you are comfortable with the command line. Requires Go 1.25 or newer.
+Only recommended if you are comfortable with the command line. Requires Go 1.26 or newer. An older Go (1.21 or later) downloads the right version by itself, unless ``GOTOOLCHAIN=local`` is set.
 
 .. code-block:: bash
 
