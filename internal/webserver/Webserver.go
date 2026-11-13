@@ -781,6 +781,8 @@ type AdminView struct {
 	ActiveView            int
 	ChunkSize             int
 	MaxParallelUploads    int
+	DefaultDownloads      int
+	DefaultExpiryDays     int
 	MinLengthPassword     int
 	FileRequestMaxFiles   int
 	FileRequestMaxSize    int
@@ -923,6 +925,8 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 	u.IsUserTabAvailable = config.Authentication.Method != models.AuthenticationDisabled
 	u.EndToEndEncryption = config.Encryption.Level == encryption.EndToEndEncryption
 	u.MaxParallelUploads = config.MaxParallelUploads
+	u.DefaultDownloads = configuration.GetEnvironment().DefaultDownloads
+	u.DefaultExpiryDays = configuration.GetEnvironment().DefaultExpiryDays
 	u.ChunkSize = config.ChunkSize
 	u.IncludeFilename = config.IncludeFilename
 	return u

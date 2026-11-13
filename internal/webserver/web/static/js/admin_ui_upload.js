@@ -136,12 +136,12 @@ function addFileProgress(file) {
 }
 
 
-function setUploadDefaults() {
-    let defaultDownloads = getLocalStorageWithDefault("defaultDownloads", 1);
-    let defaultExpiry = getLocalStorageWithDefault("defaultExpiry", 14);
+function setUploadDefaults(serverDownloads = 1, serverExpiry = 14) {
+    let defaultDownloads = getLocalStorageWithDefault("defaultDownloads", serverDownloads || 1);
+    let defaultExpiry = getLocalStorageWithDefault("defaultExpiry", serverExpiry || 14);
     let defaultPassword = getLocalStorageWithDefault("defaultPassword", "");
-    let defaultUnlimitedDownloads = getLocalStorageWithDefault("defaultUnlimitedDownloads", false) === "true";
-    let defaultUnlimitedTime = getLocalStorageWithDefault("defaultUnlimitedTime", false) === "true";
+    let defaultUnlimitedDownloads = getLocalStorageWithDefault("defaultUnlimitedDownloads", String(serverDownloads === 0)) === "true";
+    let defaultUnlimitedTime = getLocalStorageWithDefault("defaultUnlimitedTime", String(serverExpiry === 0)) === "true";
 
     document.getElementById("allowedDownloads").value = defaultDownloads;
     document.getElementById("expiryDays").value = defaultExpiry;

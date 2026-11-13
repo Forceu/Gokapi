@@ -34,6 +34,10 @@ type Environment struct {
 	DisableApiMenu bool `env:"DISABLE_API_MENU" envDefault:"false"`
 	// Disables the CORS check on startup and during setup, if set to true
 	DisableCorsCheck bool `env:"DISABLE_CORS_CHECK" envDefault:"false"`
+	// Default allowed downloads when an upload does not specify a limit (0 = unlimited)
+	DefaultDownloads int `env:"DEFAULT_DOWNLOADS" envDefault:"1" onlyPositive:"true"`
+	// Default file expiration in days when an upload does not specify it (0 = unlimited)
+	DefaultExpiryDays int `env:"DEFAULT_EXPIRY_DAYS" envDefault:"14" onlyPositive:"true"`
 	// Disables automatically adding Docker subnet to trusted proxies, if set to true
 	DisableDockerTrustedProxy bool `env:"DISABLE_DOCKER_TRUSTED_PROXY" envDefault:"false"`
 	// Sets the size of chunks that are uploaded in MB
