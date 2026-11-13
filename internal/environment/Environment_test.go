@@ -86,3 +86,19 @@ func TestGetConfigPaths(t *testing.T) {
 	test.IsEqualString(t, configFile, "test2")
 	test.IsEqualString(t, awsConfig, "test/cloudconfig.yml")
 }
+
+func TestAwsEnvironmentCredentialModes(t *testing.T) {
+	for _, tc := range []struct {
+		key, secret string
+		valid       bool
+	}{
+		{"", "", true}, {"key", "secret", true}, {"key", "", false}, {"", "secret", false},
+	} {
+		t.Setenv("GOKAPI_AWS_BUCKET", "bucket")
+		t.Setenv("GOKAPI_AWS_REGION", "region")
+		t.Setenv("GOKAPI_AWS_KEY", tc.key)
+		t.Setenv("GOKAPI_AWS_KEY_SECRET", tc.secret)
+		env := New()
+		test.IsEqualBool(t, env.IsAwsProvided(), tc.valid)
+	}
+}
