@@ -116,7 +116,7 @@ func redirectToError(w http.ResponseWriter, r *http.Request, displayedError Disp
 	cleanupOnce.Do(func() {
 		go cleanup(true)
 	})
-	http.Redirect(w, r, "./error?e="+token, http.StatusTemporaryRedirect)
+	helper.RedirectRelative(w, "./error?e="+token)
 }
 
 func Get(r *http.Request) DisplayedError {

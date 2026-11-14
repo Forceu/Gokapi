@@ -225,7 +225,7 @@ func initTemplates(templateFolderEmbedded embed.FS) {
 
 // Sends a redirect HTTP output to the client. Variable url is used to redirect to ./url
 func redirect(w http.ResponseWriter, r *http.Request, url string) {
-	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+	helper.RedirectRelative(w, url)
 }
 
 type redirectValues struct {
