@@ -154,7 +154,7 @@ func TestLogin(t *testing.T) {
 
 	// POST with correct credentials but invalid CSRF token shows error
 	postConfig.PostValues = postValues("test", "adminadmin", "invalid")
-	postConfig.RequiredContent = []string{"id=\"uname_hidden\"", "The login page was open too long and expired. Please try again."}
+	postConfig.RequiredContent = []string{"id=\"uname_hidden\"", "The login session expired due to inactivity. Please try again."}
 	test.HttpPostRequest(t, postConfig)
 
 	// GET /login with OAuth2 enabled redirects to oauth-login
@@ -327,7 +327,7 @@ func TestLoginIncorrectPassword(t *testing.T) {
 	cookies, token = generateCsrfCookieAndToken(csrftoken.TypeLogin)
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://localhost:53843/login",
-		RequiredContent: []string{"The login page was open too long and expired. Please try again."},
+		RequiredContent: []string{"The login session expired due to inactivity. Please try again."},
 		IsHtml:          true,
 		Method:          "POST",
 		Cookies:         cookies,
@@ -348,7 +348,7 @@ func TestLoginIncorrectUsername(t *testing.T) {
 	cookies, token = generateCsrfCookieAndToken(csrftoken.TypeLogin)
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://localhost:53843/login",
-		RequiredContent: []string{"The login page was open too long and expired. Please try again."},
+		RequiredContent: []string{"The login session expired due to inactivity. Please try again."},
 		IsHtml:          true,
 		Method:          "POST",
 		Cookies:         cookies,
@@ -357,7 +357,7 @@ func TestLoginIncorrectUsername(t *testing.T) {
 	cookies, token = generateCsrfCookieAndToken(csrftoken.TypeLogin)
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://localhost:53843/login",
-		RequiredContent: []string{"The login page was open too long and expired. Please try again."},
+		RequiredContent: []string{"The login session expired due to inactivity. Please try again."},
 		IsHtml:          true,
 		Method:          "POST",
 		PostValues:      []test.PostBody{{"username", "incorrect"}, {"password", "incorrect"}, {"csrf-token", token}},
