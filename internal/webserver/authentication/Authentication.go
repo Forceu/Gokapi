@@ -237,7 +237,7 @@ func CheckOauthUserAndRedirect(w http.ResponseWriter, r *http.Request, userInfo 
 		}
 		if ok {
 			sessionmanager.CreateSession(w, true, authSettings.OAuthRecheckInterval, user.Id, 0)
-			http.Redirect(w, r, "admin", http.StatusTemporaryRedirect)
+			helper.RedirectRelative(w, "admin")
 			return nil
 		}
 	}
@@ -320,9 +320,9 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 		sessionmanager.LogoutSession(w, r)
 	}
 	if authSettings.Method == models.AuthenticationOAuth2 {
-		http.Redirect(w, r, "login?consent=true", http.StatusTemporaryRedirect)
+		helper.RedirectRelative(w, "login?consent=true")
 	} else {
-		http.Redirect(w, r, "login", http.StatusTemporaryRedirect)
+		helper.RedirectRelative(w, "login")
 	}
 }
 
