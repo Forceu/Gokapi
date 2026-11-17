@@ -52,7 +52,7 @@ Choose the binary that matches your system:
 Unstable version
 """"""""""""""""
 
-Only recommended if you are comfortable with the command line. Requires Go 1.25 or newer.
+Only recommended if you are comfortable with the command line. Requires Go 1.27.4 or newer.
 
 .. code-block:: bash
 
