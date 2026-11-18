@@ -239,7 +239,9 @@ func copyEncryptionInfo(metaData *models.File) bool {
 	previousEncryption, ok := getEncInfoFromExistingFile(metaData.SHA1)
 	if !ok && encryptionLevel != encryption.NoEncryption && encryptionLevel != encryption.EndToEndEncryption {
 		err := os.Remove(configuration.Get().DataDir + "/" + metaData.SHA1)
-		helper.Check(err)
+		if err != nil {
+			fmt.Println("Error removing file", err)
+		}
 		return false
 	}
 	metaData.Encryption = previousEncryption

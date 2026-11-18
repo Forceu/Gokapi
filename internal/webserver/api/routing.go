@@ -672,7 +672,7 @@ func (p *paramChunkUploadRequestAdd) GetRequest() *http.Request {
 }
 
 type paramChunkComplete struct {
-	Uuid               string `header:"uuid" required:"true"`
+	Uuid               string `header:"uuid" maxlength:"100" required:"true"`
 	FileName           string `header:"filename" required:"true" supportBase64:"true"`
 	FileSize           int64  `header:"filesize" required:"true"`
 	RealSize           int64  `header:"realsize" unpublished:"true"` // not published in API documentation
@@ -739,7 +739,7 @@ func (p *paramChunkReserve) ProcessParameter(_ *http.Request) error {
 
 type paramChunkUnreserve struct {
 	Id           string `header:"id" required:"true"`
-	Uuid         string `header:"uuid" required:"true"`
+	Uuid         string `header:"uuid" maxlength:"100" required:"true"`
 	foundHeaders map[string]bool
 }
 
@@ -748,7 +748,7 @@ func (p *paramChunkUnreserve) ProcessParameter(_ *http.Request) error {
 }
 
 type paramChunkUploadRequestComplete struct {
-	Uuid          string `header:"uuid" required:"true"`
+	Uuid          string `header:"uuid" maxlength:"100" required:"true"`
 	FileName      string `header:"filename" required:"true" supportBase64:"true"`
 	FileRequestId string `header:"fileRequestId" required:"true"`
 	FileSize      int64  `header:"filesize" required:"true"`

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -57,6 +58,7 @@ func Process(w http.ResponseWriter, r *http.Request) {
 	err, user, apiKey, ok = isAuthorisedForApi(r, routing)
 	if err != nil {
 		sendError(w, http.StatusTooManyRequests, errorcodes.RateLimited, "Too many requests. Please wait a couple of minutes")
+		return
 	}
 	if !ok {
 		sendError(w, http.StatusUnauthorized, errorcodes.InvalidApiKey, "Unauthorized")
@@ -508,11 +510,23 @@ func apiChunkComplete(w http.ResponseWriter, r requestParser, user models.User, 
 		request.FileSize,
 		"")
 	if request.IsNonBlocking {
-		go doBlockingPartCompleteChunk(nil, request.Uuid, request.FileHeader, user, uploadParams)
+		doNonBlockingPartCompleteChunk(nil, request.Uuid, request.FileHeader, user, uploadParams)
 		_, _ = io.WriteString(w, "{\"result\":\"OK\"}")
 		return
 	}
 	doBlockingPartCompleteChunk(w, request.Uuid, request.FileHeader, user, uploadParams)
+}
+
+func doNonBlockingPartCompleteChunk(w http.ResponseWriter, uuid string, fileHeader chunking.FileHeader, user models.User, uploadParameters models.UploadParameters) {
+	go func() {
+		defer func() {
+			rec := recover()
+			if rec != nil {
+				log.Printf("panic during chunk completion: %v", rec)
+			}
+		}()
+		doBlockingPartCompleteChunk(w, uuid, fileHeader, user, uploadParameters)
+	}()
 }
 
 func doBlockingPartCompleteChunk(w http.ResponseWriter, uuid string, fileHeader chunking.FileHeader, user models.User, uploadParameters models.UploadParameters) {
@@ -544,7 +558,7 @@ func apiChunkUploadRequestComplete(w http.ResponseWriter, r requestParser, user 
 		0, "", true, true,
 		false, request.FileSize, fileRequest.Id)
 	if request.IsNonBlocking {
-		go doBlockingPartCompleteChunk(nil, request.Uuid, request.FileHeader, user, uploadParams)
+		doNonBlockingPartCompleteChunk(nil, request.Uuid, request.FileHeader, user, uploadParams)
 		_, _ = io.WriteString(w, "{\"result\":\"OK\"}")
 		return
 	}
