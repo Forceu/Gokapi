@@ -18,6 +18,8 @@ const fileApiSpecs = "../../openapi.json"
 const fileMinify = "../../build/go-generate/minifyStaticContent.go"
 const fileVersionConstants = "../../internal/webserver/web/templates/string_constants.tmpl"
 const fileVersionCApi = "../../internal/webserver/api/VersionNumbers.go"
+const fileSetupDoc = "../../docs/setup.rst"
+const fileGoMod = "../../go.mod"
 
 func main() {
 	checkFileExists(fileMain)
@@ -25,10 +27,51 @@ func main() {
 	checkFileExists(fileMinify)
 	checkFileExists(fileVersionConstants)
 	checkFileExists(fileVersionCApi)
+	checkFileExists(fileSetupDoc)
 	updateOpenAPIVersion()
 	writeVersionTemplates()
 	writeMinify()
 	writeApiVersion()
+	writeGoVersion()
+}
+
+func writeGoVersion() {
+	modBytes, err := os.ReadFile(fileGoMod)
+	if err != nil {
+		fmt.Println("FAIL: Updating Go version in setup documentation")
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	// Extract Go version from go.mod
+	modRe := regexp.MustCompile(`(?m)^go\s+([0-9]+\.[0-9]+(?:\.[0-9]+)?)`)
+	match := modRe.FindSubmatch(modBytes)
+	if match == nil {
+		fmt.Println("FAIL: Updateing Go version in setup documentation")
+		fmt.Println("Go version not found in go.mod")
+		os.Exit(1)
+	}
+	goVersion := string(match[1])
+	newPhrase := fmt.Sprintf(" Requires Go %s or newer.", goVersion)
+
+	// Read and replace in setup.rst
+	rstBytes, err := os.ReadFile(fileSetupDoc)
+	if err != nil {
+		fmt.Println("FAIL: Updating Go version in setup documentation")
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	rstRe := regexp.MustCompile(` Requires Go [0-9]+\.[0-9]+(?:\.[0-9]+)? or newer\.`)
+	updated := rstRe.ReplaceAll(rstBytes, []byte(newPhrase))
+
+	err = os.WriteFile(fileSetupDoc, updated, 0644)
+	if err != nil {
+		fmt.Println("FAIL: Updating Go version in setup documentation")
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	fmt.Println("Updated Go version in setup documentation")
 }
 
 func writeVersionTemplates() {

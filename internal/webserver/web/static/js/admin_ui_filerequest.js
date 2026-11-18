@@ -27,7 +27,8 @@ function deleteFileRequest(requestId) {
         });
 }
 
-function deleteOrShowModal(requestId, requestName, count) {
+function deleteOrShowModal(requestId, requestName) {
+    const count = getFileRequestUploadCount(requestId);
     if (count === 0) {
         deleteFileRequest(requestId);
     } else {
@@ -42,12 +43,12 @@ function deleteFileFr(id, frId) {
     apiFilesDelete(id, 10)
         .then(data => {
             changeFileCountFr(frId, -1);
-            removeDownloadFileReference(id, frId);
-		rowFileEntry.classList.add("rowDeleting");
+	    rowFileEntry.classList.add("rowDeleting");
 		setTimeout(() => {
 		    rowFileEntry.remove();
 		}, 290);
-	 showToastFileDeletionFr(id);
+            updateDownloadButton(frId);
+	    showToastFileDeletionFr(id);
         })
         .catch(error => {
             alert("Unable to delete file: " + error);
@@ -57,47 +58,47 @@ function deleteFileFr(id, frId) {
 
 function changeFileCountFr(frId, change) {
 	let countCell = document.getElementById("totalFiles-fr-" + frId);
-	let currentCount = Number(countCell.innerText) || 0;
-	let newCount = currentCount + change;
+	let newCount = getFileRequestUploadCount(frId) + change;
 	countCell.innerText = newCount;	
 }
 
-function removeDownloadFileReference(fileId, frId) {
+function getFileRequestUploadCount(frId) {
+	let countCell = document.getElementById("totalFiles-fr-" + frId);
+	return Number(countCell.innerText) || 0;
+}
+
+function updateDownloadButton(frId) {
     const btn = document.getElementById(`download-${frId}`);
     if (!btn) return;
+    
+    const frName = document.getElementById(`rqName-${frId}`).innerText || '';
+    
+    let countCell = document.getElementById("totalFiles-fr-" + frId);
+    let currentCount = Number(countCell.innerText) || 0;
 
     const currentOnclick = btn.getAttribute('onclick') || '';
 
-    const zipMatch = currentOnclick.match(/downloadFilesZipWithPresign\('([^']*)',\s*'([^']*)'\)/);
-    const singleMatch = currentOnclick.match(/downloadFileWithPresign\('([^']*)'\)/);
-
-    let fileIds = [];
-    let recordName = '';
-
-    if (zipMatch) {
-        fileIds = zipMatch[1].split(',').filter(id => id !== '');
-        recordName = zipMatch[2];
-    } else if (singleMatch) {
-        fileIds = [singleMatch[1]];
-        recordName = btn.dataset.recordName || '';
-    }
-
-    // Remove the deleted file
-    fileIds = fileIds.filter(id => id !== fileId);
-
-    if (fileIds.length === 0) {
+    if (currentCount === 0) {
         // No files left — disable button
         btn.classList.add('disabled');
         btn.removeAttribute('onclick');
-    } else if (fileIds.length === 1) {
+    } else if (currentCount === 1) {
         // Single file — switch to single download
         btn.classList.remove('disabled');
-        btn.setAttribute('onclick', `downloadFileWithPresign('${fileIds[0]}');`);
+        let fileId = getFileIdsForFilerequest(frId)[0];
+        btn.setAttribute('onclick', `downloadFileWithPresign('${fileId}');`);
     } else {
         // Multiple files — keep zip download
         btn.classList.remove('disabled');
-        btn.setAttribute('onclick', `downloadFilesZipWithPresign('${fileIds.join(',')}', '${recordName}');`);
+        btn.setAttribute('onclick', `downloadFilesZipWithPresign('${frId}', true, '${frName}');`);
     }
+}
+
+function getFileIdsForFilerequest(fileRequestId) {
+    const items = document.querySelectorAll(`#collapse-filelist-${fileRequestId} .filelist-item:not(.rowDeleting)`);
+    return Array.from(items)
+        .map(item => item.id.replace("cell-listupload-", ""))
+        .filter(id => id); // Filter out any empty strings just in case
 }
 
 
@@ -356,11 +357,12 @@ function createFileRequestRow(jsonResult, user) {
         return td;
     }
 
-    function tdLink(text, href) {
+    function tdLink(text, href, id) {
         const td = document.createElement("td");
         const a = document.createElement("a");
         a.textContent = text;
         a.href = href;
+        a.id = id;
         a.target = "_blank";
         td.appendChild(a);
         return td;
@@ -379,13 +381,46 @@ function createFileRequestRow(jsonResult, user) {
     tr.className = "filerequest-item";
 
     // Name
-    tr.appendChild(tdLink(jsonResult.name, publicUrl));
-    // Uploaded files / Max files
-    if (jsonResult.maxfiles == 0) {
-        tr.appendChild(tdText(jsonResult.uploadedfiles));
-    } else {
-        tr.appendChild(tdText(`${jsonResult.uploadedfiles} / ${jsonResult.maxfiles}`));
+    tr.appendChild(tdLink(jsonResult.name, publicUrl, `rqName-${jsonResult.id}`));
+
+    // Uploaded files / Max files / Expand Toggle (Disregarding reserved uploads)
+    const tdFiles = document.createElement("td");
+
+    // Uploaded files span
+    const uploadedSpan = document.createElement("span");
+    uploadedSpan.id = `totalFiles-fr-${jsonResult.id}`;
+    uploadedSpan.title = "Uploaded files";
+    uploadedSpan.textContent = jsonResult.uploadedfiles;
+    tdFiles.appendChild(uploadedSpan);
+
+    // Max files limit (if not 0)
+    if (jsonResult.maxfiles != 0) {
+        tdFiles.appendChild(document.createTextNode(" / "));
+        const maxSpan = document.createElement("span");
+        maxSpan.title = "File limit";
+        maxSpan.textContent = jsonResult.maxfiles;
+        tdFiles.appendChild(maxSpan);
     }
+
+    // Expand / Collapse button (if uploaded files > 0)
+    if (jsonResult.uploadedfiles > 0) {
+        tdFiles.appendChild(document.createTextNode(" ")); 
+
+        const collapseBtn = document.createElement("button");
+        collapseBtn.type = "button";
+        collapseBtn.className = "btn btn-sm btn-link text-light p-0 collapse-toggle";
+        collapseBtn.setAttribute("data-bs-toggle", "collapse");
+        collapseBtn.setAttribute("data-bs-target", `#collapse-filelist-${jsonResult.id}`);
+        collapseBtn.setAttribute("aria-expanded", "false");
+        collapseBtn.setAttribute("aria-controls", `collapse-filelist-${jsonResult.id}`);
+        collapseBtn.title = "Expand / Collapse";
+
+        collapseBtn.appendChild(icon("bi-chevron-down"));
+        tdFiles.appendChild(collapseBtn);
+    }
+
+    tr.appendChild(tdFiles);
+
     // Total size
     tr.appendChild(tdText(getReadableSize(jsonResult.totalfilesize)));
     // Last upload
@@ -401,9 +436,14 @@ function createFileRequestRow(jsonResult, user) {
     // Buttons
     const td = document.createElement("td");
 
+    // Add btn-toolbar with justify-content-end to push buttons to the right
+    const toolbar = document.createElement("div");
+    toolbar.className = "btn-toolbar justify-content-end";
+    toolbar.setAttribute("role", "toolbar");
+
     const group = document.createElement("div");
     group.className = "btn-group";
-    group.role = "group";
+    group.setAttribute("role", "group");
 
     // Download
     const downloadBtn = document.createElement("button");
@@ -418,7 +458,6 @@ function createFileRequestRow(jsonResult, user) {
 
     downloadBtn.appendChild(icon("bi-download"));
 
-
     // Copy
     const copyBtn = document.createElement("button");
     copyBtn.id = `copy-${jsonResult.id}`;
@@ -426,11 +465,9 @@ function createFileRequestRow(jsonResult, user) {
     copyBtn.className = "copyurl btn btn-outline-light btn-sm";
     copyBtn.title = "Copy URL";
     copyBtn.setAttribute("data-clipboard-text", publicUrl);
-    copyBtn.onclick = () =>
-        showToast(1000);
+    copyBtn.onclick = () => showToast(1000);
 
     copyBtn.appendChild(icon("bi-copy"));
-
 
     // Edit
     const editBtn = document.createElement("button");
@@ -450,12 +487,14 @@ function createFileRequestRow(jsonResult, user) {
     deleteBtn.className = "btn btn-outline-danger btn-sm";
     deleteBtn.title = "Delete";
     deleteBtn.onclick = () =>
-        deleteOrShowModal(jsonResult.id, jsonResult.name, jsonResult.uploadedfiles);
+        deleteOrShowModal(jsonResult.id, jsonResult.name);
 
     deleteBtn.appendChild(icon("bi-trash3"));
 
     group.append(downloadBtn, copyBtn, editBtn, deleteBtn);
-    td.appendChild(group);
+    toolbar.appendChild(group);
+    td.appendChild(toolbar);
     tr.appendChild(td);
+    
     return tr;
 }

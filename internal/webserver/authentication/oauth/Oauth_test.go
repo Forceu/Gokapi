@@ -10,8 +10,10 @@ import (
 	"math/big"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -23,6 +25,8 @@ import (
 	"github.com/forceu/gokapi/internal/webserver/authentication"
 	"golang.org/x/oauth2"
 )
+
+const testVerifier = "test-verifier"
 
 func TestMain(m *testing.M) {
 	testconfiguration.Create(false)
@@ -41,6 +45,11 @@ type mockOIDCServer struct {
 	userEmail   string
 	userSubject string
 	tokenValid  bool
+
+	// Recorded token endpoint activity (guarded by mu, as the server runs in its own goroutine)
+	mu               sync.Mutex
+	tokenRequests    int
+	lastCodeVerifier string
 }
 
 func newMockOIDCServer() *mockOIDCServer {
@@ -65,6 +74,20 @@ func newMockOIDCServer() *mockOIDCServer {
 
 func (m *mockOIDCServer) URL() string { return m.server.URL }
 func (m *mockOIDCServer) Close()      { m.server.Close() }
+
+// TokenRequestCount returns how many requests reached the token endpoint.
+func (m *mockOIDCServer) TokenRequestCount() int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.tokenRequests
+}
+
+// LastCodeVerifier returns the code_verifier received by the last token request.
+func (m *mockOIDCServer) LastCodeVerifier() string {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.lastCodeVerifier
+}
 
 func (m *mockOIDCServer) handleDiscovery(w http.ResponseWriter, r *http.Request) {
 	base := m.server.URL
@@ -98,8 +121,22 @@ func (m *mockOIDCServer) handleJWKS(w http.ResponseWriter, r *http.Request) {
 }
 
 func (m *mockOIDCServer) handleToken(w http.ResponseWriter, r *http.Request) {
+	_ = r.ParseForm()
+	verifier := r.PostForm.Get("code_verifier")
+
+	m.mu.Lock()
+	m.tokenRequests++
+	m.lastCodeVerifier = verifier
+	m.mu.Unlock()
+
 	if !m.tokenValid {
 		http.Error(w, `{"error":"invalid_grant"}`, http.StatusBadRequest)
+		return
+	}
+	// A PKCE-enforcing provider rejects a code exchange without a verifier.
+	// This makes the success tests fail if VerifierOption is ever dropped.
+	if verifier == "" {
+		http.Error(w, `{"error":"invalid_grant","error_description":"code_verifier missing"}`, http.StatusBadRequest)
 		return
 	}
 	resp := map[string]any{
@@ -200,23 +237,59 @@ func initWithMock(m *mockOIDCServer) {
 }
 
 // newRequest builds a test request, optionally attaching the OAuth state cookie.
-func newRequest(url, stateValue string) *http.Request {
-	req := httptest.NewRequest("GET", url, nil)
+// If a state value is given, the PKCE verifier cookie is attached as well, as a
+// real browser would send both after a regular login redirect.
+func newRequest(reqURL, stateValue string) *http.Request {
+	req := httptest.NewRequest("GET", reqURL, nil)
 	if stateValue != "" {
 		req.AddCookie(&http.Cookie{Name: authentication.CookieOauth, Value: stateValue})
+		req.AddCookie(&http.Cookie{Name: cookieOauthVerifier, Value: testVerifier})
 	}
 	return req
+}
+
+// newRequestWithoutVerifier builds a test request with the state cookie only.
+func newRequestWithoutVerifier(reqURL, stateValue string) *http.Request {
+	req := httptest.NewRequest("GET", reqURL, nil)
+	req.AddCookie(&http.Cookie{Name: authentication.CookieOauth, Value: stateValue})
+	return req
+}
+
+// findCookie returns the first cookie with the given name from the response.
+func findCookie(rr *httptest.ResponseRecorder, name string) *http.Cookie {
+	for _, c := range rr.Result().Cookies() {
+		if c.Name == name {
+			return c
+		}
+	}
+	return nil
+}
+
+// isCookieCleared reports whether the response expires the named cookie.
+func isCookieCleared(rr *httptest.ResponseRecorder, name string) bool {
+	c := findCookie(rr, name)
+	return c != nil && c.Value == "" && c.MaxAge < 0
 }
 
 // --- Tests ---
 
 func TestSetCallbackCookie(t *testing.T) {
 	w, _ := test.GetRecorder("GET", "/", nil, nil, nil)
-	setCallbackCookie(w, "test-value")
+	setCallbackCookie(w, "test-key", "test-value")
 	cookies := w.Result().Cookies()
 	test.IsEqualInt(t, len(cookies), 1)
-	test.IsEqualString(t, cookies[0].Name, authentication.CookieOauth)
+	test.IsEqualString(t, cookies[0].Name, "test-key")
 	test.IsEqualString(t, cookies[0].Value, "test-value")
+}
+
+func TestClearCallbackCookie(t *testing.T) {
+	rr := httptest.NewRecorder()
+	clearCallbackCookie(rr, "test-key")
+	cookies := rr.Result().Cookies()
+	test.IsEqualInt(t, len(cookies), 1)
+	test.IsEqualString(t, cookies[0].Name, "test-key")
+	test.IsEqualString(t, cookies[0].Value, "")
+	test.IsEqualBool(t, cookies[0].MaxAge < 0, true)
 }
 
 func TestHandlerLogin(t *testing.T) {
@@ -246,6 +319,48 @@ func TestHandlerLogin(t *testing.T) {
 	})
 }
 
+func TestHandlerLogin_SendsPKCEChallenge(t *testing.T) {
+	config.ClientID = "test-client"
+	config.Endpoint.AuthURL = "https://example.com/auth"
+
+	rr := httptest.NewRecorder()
+	HandlerLogin(rr, httptest.NewRequest("GET", "/login", nil))
+
+	location, err := url.Parse(rr.Header().Get("Location"))
+	test.IsNil(t, err)
+	query := location.Query()
+
+	test.IsEqualString(t, query.Get("code_challenge_method"), "S256")
+	test.IsNotEmpty(t, query.Get("code_challenge"))
+
+	verifierCookie := findCookie(rr, cookieOauthVerifier)
+	test.IsEqualBool(t, verifierCookie != nil, true)
+	test.IsNotEmpty(t, verifierCookie.Value)
+
+	// The challenge sent to the provider must be derived from the verifier stored in the cookie
+	test.IsEqualString(t, query.Get("code_challenge"), oauth2.S256ChallengeFromVerifier(verifierCookie.Value))
+
+	// The state cookie must match the state sent to the provider
+	stateCookie := findCookie(rr, authentication.CookieOauth)
+	test.IsEqualBool(t, stateCookie != nil, true)
+	test.IsEqualString(t, query.Get("state"), stateCookie.Value)
+}
+
+func TestHandlerLogin_VerifierIsUniquePerLogin(t *testing.T) {
+	config.ClientID = "test-client"
+	config.Endpoint.AuthURL = "https://example.com/auth"
+
+	rr1 := httptest.NewRecorder()
+	HandlerLogin(rr1, httptest.NewRequest("GET", "/login", nil))
+	rr2 := httptest.NewRecorder()
+	HandlerLogin(rr2, httptest.NewRequest("GET", "/login", nil))
+
+	v1 := findCookie(rr1, cookieOauthVerifier)
+	v2 := findCookie(rr2, cookieOauthVerifier)
+	test.IsEqualBool(t, v1 != nil && v2 != nil, true)
+	test.IsEqualBool(t, v1.Value != v2.Value, true)
+}
+
 func TestHandlerCallback_MissingStateCookie(t *testing.T) {
 	rr := httptest.NewRecorder()
 	// No cookie — state cookie is absent entirely
@@ -263,29 +378,75 @@ func TestHandlerCallback_StateMismatch(t *testing.T) {
 	test.IsNotEmpty(t, rr.Header().Get("Location"))
 }
 
+func TestHandlerCallback_MissingVerifierCookie(t *testing.T) {
+	mock := newMockOIDCServer()
+	defer mock.Close()
+	initWithMock(mock)
+
+	rr := httptest.NewRecorder()
+	HandlerCallback(rr, newRequestWithoutVerifier("/oauth-callback?state=mystate&code=validcode", "mystate"))
+
+	// Must redirect to the error page and must never contact the token endpoint
+	test.IsEqualInt(t, rr.Code, http.StatusTemporaryRedirect)
+	test.IsNotEmpty(t, rr.Header().Get("Location"))
+	test.IsEqualInt(t, mock.TokenRequestCount(), 0)
+}
+
+func TestHandlerCallback_EmptyVerifierCookie(t *testing.T) {
+	mock := newMockOIDCServer()
+	defer mock.Close()
+	initWithMock(mock)
+
+	req := newRequestWithoutVerifier("/oauth-callback?state=mystate&code=validcode", "mystate")
+	req.AddCookie(&http.Cookie{Name: cookieOauthVerifier, Value: ""})
+	rr := httptest.NewRecorder()
+	HandlerCallback(rr, req)
+
+	test.IsEqualInt(t, rr.Code, http.StatusTemporaryRedirect)
+	test.IsNotEmpty(t, rr.Header().Get("Location"))
+	test.IsEqualInt(t, mock.TokenRequestCount(), 0)
+}
+
 func TestHandlerCallback_LoginRequired(t *testing.T) {
 	for _, errCode := range []string{"login_required", "interaction_required"} {
 		t.Run(errCode, func(t *testing.T) {
 			config.Endpoint.AuthURL = "https://example.com/auth"
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/oauth-callback?state=mystate&error=%s", errCode)
-			HandlerCallback(rr, newRequest(url, "mystate"))
+			reqURL := fmt.Sprintf("/oauth-callback?state=mystate&error=%s", errCode)
+			HandlerCallback(rr, newRequest(reqURL, "mystate"))
 
-			// Should re-initiate login with consent
+			// Should re-initiate login with account selection (initLogin redirects with 302)
 			test.IsEqualInt(t, rr.Code, http.StatusFound)
 			test.IsEqualBool(t, containsString(rr.Header().Get("Location"), "prompt=select_account"), true)
 		})
 	}
 }
+
 func TestHandlerCallback_ConsentRequired(t *testing.T) {
 	config.Endpoint.AuthURL = "https://example.com/auth"
 	rr := httptest.NewRecorder()
-	url := "/oauth-callback?state=mystate&error=consent_required"
-	HandlerCallback(rr, newRequest(url, "mystate"))
+	reqURL := "/oauth-callback?state=mystate&error=consent_required"
+	HandlerCallback(rr, newRequest(reqURL, "mystate"))
 
-	// Should re-initiate login with consent
+	// Should re-initiate login with consent (initLogin redirects with 302)
 	test.IsEqualInt(t, rr.Code, http.StatusFound)
 	test.IsEqualBool(t, containsString(rr.Header().Get("Location"), "prompt=consent"), true)
+}
+
+func TestHandlerCallback_RetryIssuesFreshPKCEChallenge(t *testing.T) {
+	config.Endpoint.AuthURL = "https://example.com/auth"
+	rr := httptest.NewRecorder()
+	HandlerCallback(rr, newRequest("/oauth-callback?state=mystate&error=consent_required", "mystate"))
+
+	// A restarted login must carry a new state, a new verifier and a matching challenge
+	newVerifier := findCookie(rr, cookieOauthVerifier)
+	test.IsEqualBool(t, newVerifier != nil, true)
+	test.IsNotEmpty(t, newVerifier.Value)
+	test.IsEqualBool(t, newVerifier.Value != testVerifier, true)
+
+	location, err := url.Parse(rr.Header().Get("Location"))
+	test.IsNil(t, err)
+	test.IsEqualString(t, location.Query().Get("code_challenge"), oauth2.S256ChallengeFromVerifier(newVerifier.Value))
 }
 
 func TestHandlerCallback_TokenExchangeFailure(t *testing.T) {
@@ -299,6 +460,13 @@ func TestHandlerCallback_TokenExchangeFailure(t *testing.T) {
 
 	test.IsEqualInt(t, rr.Code, http.StatusTemporaryRedirect)
 	test.IsNotEmpty(t, rr.Header().Get("Location"))
+	// The exchange must have been attempted (i.e. we did not bail out earlier).
+	// With AuthStyleAutoDetect, the oauth2 library retries a failed request once
+	// with the other client authentication style, so 1 or 2 requests are expected.
+	test.IsEqualBool(t, mock.TokenRequestCount() >= 1, true)
+	// State and verifier are single-use, even if the exchange fails
+	test.IsEqualBool(t, isCookieCleared(rr, authentication.CookieOauth), true)
+	test.IsEqualBool(t, isCookieCleared(rr, cookieOauthVerifier), true)
 }
 
 func TestHandlerCallback_EmptyEmail(t *testing.T) {
@@ -312,6 +480,8 @@ func TestHandlerCallback_EmptyEmail(t *testing.T) {
 
 	test.IsEqualInt(t, rr.Code, http.StatusTemporaryRedirect)
 	test.IsNotEmpty(t, rr.Header().Get("Location"))
+	// Token exchange succeeded, so the failure must come from the empty email, not from PKCE
+	test.IsEqualInt(t, mock.TokenRequestCount(), 1)
 }
 
 func TestHandlerCallback_Success(t *testing.T) {
@@ -325,6 +495,14 @@ func TestHandlerCallback_Success(t *testing.T) {
 	// Valid flow completes — should redirect somewhere (admin or error-auth depending on auth config)
 	test.IsEqualBool(t, rr.Code == http.StatusTemporaryRedirect || rr.Code == http.StatusFound, true)
 	test.IsNotEmpty(t, rr.Header().Get("Location"))
+
+	// The PKCE verifier from the cookie must have been sent to the token endpoint
+	test.IsEqualInt(t, mock.TokenRequestCount(), 1)
+	test.IsEqualString(t, mock.LastCodeVerifier(), testVerifier)
+
+	// State and verifier cookies must be expired after use
+	test.IsEqualBool(t, isCookieCleared(rr, authentication.CookieOauth), true)
+	test.IsEqualBool(t, isCookieCleared(rr, cookieOauthVerifier), true)
 }
 
 func TestIsLoginRequired(t *testing.T) {

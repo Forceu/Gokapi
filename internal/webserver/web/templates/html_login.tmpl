@@ -22,7 +22,7 @@
 {{ if .IsFailedLogin }}
 	{{ if .IsFailedCsfr }}
 			    <div class="mb-3">
-				<span class="text-danger">The login page was open too long and expired. Please try again.</span>
+				<span class="text-danger">The login session expired due to inactivity. Please try again.</span>
 			    </div>
 	{{ else }}
 			    <div class="mb-3">

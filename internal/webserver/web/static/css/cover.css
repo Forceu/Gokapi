@@ -68,6 +68,7 @@ a:hover {
     float: none;
     margin-bottom: 10px;
     border: 2px solid rgb(51, 57, 63);
+    overflow: hidden;
 }
 
 .card-body {

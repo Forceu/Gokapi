@@ -363,7 +363,7 @@ async function apiFilesListDownloadSingle(fileId) {
 }
 
 
-async function apiFilesListDownloadZip(fileIds, filename) {
+async function apiFilesListDownloadZip(fileIds, isFilerequest, filename) {
     const apiUrl = './api/files/downloadzip';
     const reqPerm = 'PERM_DOWNLOAD';
 
@@ -383,6 +383,7 @@ async function apiFilesListDownloadZip(fileIds, filename) {
             'apikey': token,
             'ids': fileIds,
             'filename': 'base64:' + Base64.encode(filename),
+            'isFileRequestId': isFilerequest,
             'presignUrl': true
         },
     };
@@ -954,7 +955,7 @@ async function apiE2eStore(content) {
 
 async function apiURequestDelete(id) {
     const apiUrl = './api/uploadrequest/delete';
-    const reqPerm = 'PERM_MANAGE_FILE_REQUESTS';
+    const reqPerm = 'PERM_MANAGE_FILE_REQUESTS,PERM_DELETE';
 
     let token;
 

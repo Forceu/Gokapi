@@ -339,7 +339,7 @@ func checkResponse(t MockT, response *http.Response, config HttpTestConfig) {
 	content, err := io.ReadAll(response.Body)
 	IsNil(t, err)
 	if config.IsHtml && !bytes.Contains(content, []byte("</html>")) {
-		t.Errorf(config.Url + ": Incorrect response, no HTML tag")
+		t.Errorf("%s: Incorrect response, no HTML tag", config.Url)
 	}
 	if config.RedirectUrl != "" {
 		location := response.Header.Get("Location")
@@ -352,12 +352,12 @@ func checkResponse(t MockT, response *http.Response, config HttpTestConfig) {
 	}
 	for _, requiredString := range config.RequiredContent {
 		if !bytes.Contains(content, []byte(requiredString)) {
-			t.Errorf(config.Url + ": Incorrect response. Got:\n" + string(content))
+			t.Errorf("%s: Incorrect response. Got:\n%s", config.Url, string(content))
 		}
 	}
 	for _, excludedString := range config.ExcludedContent {
 		if bytes.Contains(content, []byte(excludedString)) {
-			t.Errorf(config.Url + ": Incorrect response. Got:\n" + string(content))
+			t.Errorf("%s: Incorrect response. Got:\n%s", config.Url, string(content))
 		}
 	}
 }
