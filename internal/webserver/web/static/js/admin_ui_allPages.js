@@ -30,10 +30,11 @@ function hideToast() {
 
 var calendarInstance = null;
 
-function createCalendar(element, timestamp) {
+// maxTimestamp is optional, no later date can be selected if it is set
+function createCalendar(element, timestamp, maxTimestamp) {
     const expiryDate = new Date(timestamp * 1000);
 
-    calendarInstance = flatpickr(document.getElementById(element), {
+    let options = {
         enableTime: true,
         dateFormat: 'U', // Unix timestamp
         altInput: true,
@@ -42,7 +43,11 @@ function createCalendar(element, timestamp) {
         time_24hr: true,
         defaultDate: expiryDate,
         minDate: 'today',
-    });
+    };
+    if (maxTimestamp) {
+        options.maxDate = new Date(maxTimestamp * 1000);
+    }
+    calendarInstance = flatpickr(document.getElementById(element), options);
 }
 
 

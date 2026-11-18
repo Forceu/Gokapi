@@ -684,6 +684,7 @@ type paramChunkComplete struct {
 	IsNonBlocking      bool   `header:"nonblocking"`
 	UnlimitedDownloads bool
 	UnlimitedTime      bool
+	IsExpirySet        bool
 	FileHeader         chunking.FileHeader
 	foundHeaders       map[string]bool
 }
@@ -706,8 +707,9 @@ func (p *paramChunkComplete) ProcessParameter(_ *http.Request) error {
 		}
 	}
 
+	p.IsExpirySet = p.foundHeaders["expiryDays"]
 	if p.ExpiryDays == 0 {
-		if p.foundHeaders["expiryDays"] {
+		if p.IsExpirySet {
 			p.UnlimitedTime = true
 		} else {
 			p.ExpiryDays = 14

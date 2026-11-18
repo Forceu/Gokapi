@@ -41,4 +41,6 @@ const (
 	UnsupportedFile
 	// ResourceCanNotBeEdited is returned when a resource cannot be edited
 	ResourceCanNotBeEdited
+	// ExpiryTooLong is returned when an expiry exceeds the server's maximum (GOKAPI_MAX_EXPIRY_SECONDS)
+	ExpiryTooLong
 )

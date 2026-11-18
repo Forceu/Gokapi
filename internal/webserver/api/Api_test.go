@@ -19,6 +19,7 @@ import (
 	"github.com/forceu/gokapi/internal/helper"
 	"github.com/forceu/gokapi/internal/models"
 	"github.com/forceu/gokapi/internal/storage"
+	"github.com/forceu/gokapi/internal/storage/filerequest"
 	"github.com/forceu/gokapi/internal/test"
 	"github.com/forceu/gokapi/internal/test/testconfiguration"
 	"github.com/forceu/gokapi/internal/webserver/ratelimiter"
@@ -1869,4 +1870,257 @@ func TestChunkCompleteSanitisationUnit(t *testing.T) {
 	test.IsEqualBool(t, strings.HasPrefix(p.FileHeader.Filename, ".."), false)
 	test.IsEqualBool(t, strings.Contains(p.FileHeader.Filename, "\r"), false)
 	test.IsEqualBool(t, strings.Contains(p.FileHeader.Filename, "\n"), false)
+}
+
+const responseExpiryTooLong = `{"Result":"error","ErrorMessage":"expiry exceeds the server's maximum of 3600 seconds","ErrorCode":20}`
+
+// setMaxExpiry sets GOKAPI_MAX_EXPIRY_SECONDS for the duration of the test
+func setMaxExpiry(t *testing.T, seconds string) {
+	t.Helper()
+	test.IsNil(t, os.Setenv("GOKAPI_MAX_EXPIRY_SECONDS", seconds))
+	configuration.Load()
+	t.Cleanup(func() {
+		_ = os.Unsetenv("GOKAPI_MAX_EXPIRY_SECONDS")
+		configuration.Load()
+	})
+}
+
+// isInSecondsFromNow returns true if timestamp is now + seconds, allowing for the time the test took
+func isInSecondsFromNow(timestamp, seconds int64) bool {
+	expected := time.Now().Unix() + seconds
+	return timestamp >= expected-2 && timestamp <= expected
+}
+
+// createTestChunk stores a chunk with a size of 13 bytes, as if it had been uploaded
+func createTestChunk(t *testing.T, uuid string) {
+	t.Helper()
+	err := os.WriteFile(configuration.Get().DataDir+"/chunk-"+uuid, []byte("chunktestfile"), 0600)
+	test.IsNil(t, err)
+}
+
+// getFileInfo parses a response containing a models.Result
+func getFileInfo(t *testing.T, w *httptest.ResponseRecorder) models.FileApiOutput {
+	t.Helper()
+	var result models.Result
+	err := json.Unmarshal(w.Body.Bytes(), &result)
+	test.IsNil(t, err)
+	return result.FileInfo
+}
+
+// saveTestFile stores a file, which expires at expireAt or never if expireAt is 0
+func saveTestFile(id string, expireAt int64) models.File {
+	file := models.File{
+		Id:                 id,
+		Name:               id + "Name",
+		SHA1:               "e017693e4a04a59d0b0f400fe98177fe7ee13cf7",
+		ExpireAt:           expireAt,
+		UnlimitedDownloads: true,
+		UnlimitedTime:      expireAt == 0,
+		UserId:             idSuperAdmin,
+	}
+	database.SaveMetaData(file)
+	return file
+}
+
+func TestMaxExpiryChunkComplete(t *testing.T) {
+	// The limit also applies to admins
+	apiKey := generateNewKey(true, idSuperAdmin, "", "")
+	apiKey.GrantPermission(models.ApiPermUpload)
+	database.SaveApiKey(apiKey)
+	headers := []test.Header{
+		{Name: "uuid", Value: "maxexpirychunk"},
+		{Name: "filename", Value: "maxexpiry.upload"},
+		{Name: "filesize", Value: "13"}}
+
+	setMaxExpiry(t, "3600")
+	createTestChunk(t, "maxexpirychunk")
+	for _, expiryDays := range []string{"0", "30", "100001"} {
+		w, r := getRecorder("/chunk/complete", apiKey.Id, append(headers, test.Header{Name: "expiryDays", Value: expiryDays}))
+		Process(w, r)
+		test.IsEqualInt(t, w.Code, 400)
+		test.ResponseBodyIs(t, w, responseExpiryTooLong)
+	}
+	w, r := getRecorder("/chunk/complete", apiKey.Id, headers)
+	Process(w, r)
+	test.IsEqualInt(t, w.Code, 200)
+	file := getFileInfo(t, w)
+	test.IsEqualBool(t, file.UnlimitedTime, false)
+	test.IsEqualBool(t, isInSecondsFromNow(file.ExpireAt, 3600), true)
+
+	// An expiry of exactly the limit is accepted
+	setMaxExpiry(t, "86400")
+	createTestChunk(t, "maxexpirychunk")
+	w, r = getRecorder("/chunk/complete", apiKey.Id, append(headers, test.Header{Name: "expiryDays", Value: "1"}))
+	Process(w, r)
+	test.IsEqualInt(t, w.Code, 200)
+	test.IsEqualBool(t, isInSecondsFromNow(getFileInfo(t, w).ExpireAt, 86400), true)
+
+	// A limit longer than the default expiry of 14 days keeps the default
+	setMaxExpiry(t, "2592000")
+	createTestChunk(t, "maxexpirychunk")
+	w, r = getRecorder("/chunk/complete", apiKey.Id, headers)
+	Process(w, r)
+	test.IsEqualInt(t, w.Code, 200)
+	test.IsEqualBool(t, isInSecondsFromNow(getFileInfo(t, w).ExpireAt, 14*24*3600), true)
+}
+
+func uploadFileWithExpiry(t *testing.T, apiKey, expiryDays string) *httptest.ResponseRecorder {
+	var postValues []test.PostBody
+	if expiryDays != "" {
+		postValues = append(postValues, test.PostBody{Key: "expiryDays", Value: expiryDays})
+	}
+	body, contentType := test.FileToMultipartFormBody(t, test.HttpTestConfig{
+		UploadFileName:  "test/fileupload.jpg",
+		UploadFieldName: "file",
+		PostValues:      postValues,
+	})
+	w, r := getRecorderWithBody("/files/add", apiKey, "POST", []test.Header{}, body)
+	r.Header.Set("Content-Type", contentType)
+	Process(w, r)
+	return w
+}
+
+func TestMaxExpiryFilesAdd(t *testing.T) {
+	apiKey := generateNewKey(true, idSuperAdmin, "", "")
+	apiKey.GrantPermission(models.ApiPermUpload)
+	database.SaveApiKey(apiKey)
+
+	w := uploadFileWithExpiry(t, apiKey.Id, "0")
+	test.IsEqualInt(t, w.Code, 200)
+	test.IsEqualBool(t, getFileInfo(t, w).UnlimitedTime, true)
+
+	setMaxExpiry(t, "3600")
+	for _, expiryDays := range []string{"0", "30"} {
+		w = uploadFileWithExpiry(t, apiKey.Id, expiryDays)
+		test.IsEqualInt(t, w.Code, 400)
+		test.ResponseBodyIs(t, w, responseExpiryTooLong)
+	}
+	w = uploadFileWithExpiry(t, apiKey.Id, "")
+	test.IsEqualInt(t, w.Code, 200)
+	file := getFileInfo(t, w)
+	test.IsEqualBool(t, file.UnlimitedTime, false)
+	test.IsEqualBool(t, isInSecondsFromNow(file.ExpireAt, 3600), true)
+}
+
+func TestMaxExpiryFilesModify(t *testing.T) {
+	apiKey := generateNewKey(true, idSuperAdmin, "", "")
+	apiKey.GrantPermission(models.ApiPermEdit)
+	database.SaveApiKey(apiKey)
+	saveTestFile("maxExpiryModify", 0)
+
+	setMaxExpiry(t, "3600")
+	for _, expiry := range []int64{0, time.Now().Unix() + 7200} {
+		w, r := getRecorder("/files/modify", apiKey.Id, []test.Header{
+			{Name: "id", Value: "maxExpiryModify"},
+			{Name: "expiryTimestamp", Value: strconv.FormatInt(expiry, 10)}})
+		Process(w, r)
+		test.IsEqualInt(t, w.Code, 400)
+		test.ResponseBodyIs(t, w, responseExpiryTooLong)
+	}
+	file, ok := database.GetMetaDataById("maxExpiryModify")
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualBool(t, file.UnlimitedTime, true)
+
+	expiry := time.Now().Unix() + 1800
+	w, r := getRecorder("/files/modify", apiKey.Id, []test.Header{
+		{Name: "id", Value: "maxExpiryModify"},
+		{Name: "expiryTimestamp", Value: strconv.FormatInt(expiry, 10)}})
+	Process(w, r)
+	test.IsEqualInt(t, w.Code, 200)
+	file, ok = database.GetMetaDataById("maxExpiryModify")
+	test.IsEqualBool(t, ok, true)
+	test.IsEqualBool(t, file.UnlimitedTime, false)
+	test.IsEqualInt64(t, file.ExpireAt, expiry)
+}
+
+func TestMaxExpiryFilesDuplicate(t *testing.T) {
+	apiKey := generateNewKey(true, idSuperAdmin, "", "")
+	apiKey.GrantPermission(models.ApiPermUpload)
+	database.SaveApiKey(apiKey)
+	saveTestFile("maxExpiryUnlimited", 0)
+	saveTestFile("maxExpiryShort", time.Now().Unix()+600)
+
+	setMaxExpiry(t, "3600")
+	w, r := getRecorder("/files/duplicate", apiKey.Id, []test.Header{{Name: "id", Value: "maxExpiryUnlimited"}})
+	Process(w, r)
+	test.IsEqualInt(t, w.Code, 400)
+	test.ResponseBodyIs(t, w, `{"Result":"error","ErrorMessage":"expiry of the original file: expiry exceeds the server's maximum of 3600 seconds, expiryDays has to be set","ErrorCode":20}`)
+
+	for _, expiryDays := range []string{"0", "30"} {
+		w, r = getRecorder("/files/duplicate", apiKey.Id, []test.Header{
+			{Name: "id", Value: "maxExpiryShort"},
+			{Name: "expiryDays", Value: expiryDays}})
+		Process(w, r)
+		test.IsEqualInt(t, w.Code, 400)
+		test.ResponseBodyIs(t, w, responseExpiryTooLong)
+	}
+
+	// The original's expiry is within the limit and is kept
+	w, r = getRecorder("/files/duplicate", apiKey.Id, []test.Header{{Name: "id", Value: "maxExpiryShort"}})
+	Process(w, r)
+	test.IsEqualInt(t, w.Code, 200)
+	var newFile models.FileApiOutput
+	test.IsNil(t, json.Unmarshal(w.Body.Bytes(), &newFile))
+	test.IsEqualBool(t, isInSecondsFromNow(newFile.ExpireAt, 600), true)
+
+	setMaxExpiry(t, "86400")
+	w, r = getRecorder("/files/duplicate", apiKey.Id, []test.Header{
+		{Name: "id", Value: "maxExpiryUnlimited"},
+		{Name: "expiryDays", Value: "1"}})
+	Process(w, r)
+	test.IsEqualInt(t, w.Code, 200)
+	test.IsNil(t, json.Unmarshal(w.Body.Bytes(), &newFile))
+	test.IsEqualBool(t, newFile.UnlimitedTime, false)
+	test.IsEqualBool(t, isInSecondsFromNow(newFile.ExpireAt, 86400), true)
+}
+
+func TestMaxExpiryUploadRequestComplete(t *testing.T) {
+	user, ok := database.GetUser(idSuperAdmin)
+	test.IsEqualBool(t, ok, true)
+	fileRequest := filerequest.New(user)
+	apiKey := generateNewKey(false, idSuperAdmin, "", fileRequest.Id)
+	fileRequest.ApiKey = apiKey.Id
+	database.SaveFileRequest(fileRequest)
+	headers := []test.Header{
+		{Name: "uuid", Value: "maxexpiryrequest"},
+		{Name: "filename", Value: "maxexpiry.request"},
+		{Name: "fileRequestId", Value: fileRequest.Id},
+		{Name: "filesize", Value: "13"}}
+
+	createTestChunk(t, "maxexpiryrequest")
+	w, r := getRecorder("/uploadrequest/chunk/complete", apiKey.Id, headers)
+	Process(w, r)
+	test.IsEqualInt(t, w.Code, 200)
+	test.IsEqualBool(t, getFileInfo(t, w).UnlimitedTime, true)
+
+	setMaxExpiry(t, "3600")
+	createTestChunk(t, "maxexpiryrequest")
+	w, r = getRecorder("/uploadrequest/chunk/complete", apiKey.Id, headers)
+	Process(w, r)
+	test.IsEqualInt(t, w.Code, 200)
+	file := getFileInfo(t, w)
+	test.IsEqualBool(t, file.UnlimitedTime, false)
+	test.IsEqualBool(t, isInSecondsFromNow(file.ExpireAt, 3600), true)
+}
+
+func TestMaxExpiryConfigInfo(t *testing.T) {
+	apiKey := generateNewKey(true, idSuperAdmin, "", "")
+	apiKey.GrantPermission(models.ApiPermUpload)
+	database.SaveApiKey(apiKey)
+	result := struct {
+		MaxExpirySeconds int64
+	}{}
+
+	w, r := getRecorder("/info/config", apiKey.Id, []test.Header{})
+	Process(w, r)
+	test.IsEqualInt(t, w.Code, 200)
+	test.IsNil(t, json.Unmarshal(w.Body.Bytes(), &result))
+	test.IsEqualInt64(t, result.MaxExpirySeconds, 0)
+
+	setMaxExpiry(t, "3600")
+	w, r = getRecorder("/info/config", apiKey.Id, []test.Header{})
+	Process(w, r)
+	test.IsEqualInt(t, w.Code, 200)
+	test.IsNil(t, json.Unmarshal(w.Body.Bytes(), &result))
+	test.IsEqualInt64(t, result.MaxExpirySeconds, 3600)
 }

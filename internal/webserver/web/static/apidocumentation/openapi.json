@@ -496,7 +496,7 @@
           {
             "name": "expiryDays",
             "in": "header",
-            "description": "How many days the file will be stored. Default of 14 will be used if empty. Unlimited if 0 is passed.",
+            "description": "How many days the file will be stored. Default of 14 will be used if empty. Unlimited if 0 is passed. If the server sets a maximum expiry (GOKAPI_MAX_EXPIRY_SECONDS), values above it and unlimited are refused and the default is reduced to the maximum.",
             "required": false,
             "schema": {
               "type": "integer"
@@ -1026,7 +1026,7 @@
             "name": "expiryDays",
             "in": "header",
             "required": false,
-            "description": "How many days the file will be stored. Original value from web interface will be used if empty. Unlimited if 0 is passed.",
+            "description": "How many days the file will be stored. Original value from web interface will be used if empty. Unlimited if 0 is passed. If the server sets a maximum expiry (GOKAPI_MAX_EXPIRY_SECONDS), values above it and unlimited are refused, and an empty value is refused if the original value exceeds the maximum.",
             "schema": {
               "type": "integer"
             }
@@ -1181,7 +1181,7 @@
             "schema": {
               "type": "integer"
             },
-            "description": "Unix timestamp of the file expiration date. Unlimited if 0 is passed."
+            "description": "Unix timestamp of the file expiration date. Unlimited if 0 is passed. If the server sets a maximum expiry (GOKAPI_MAX_EXPIRY_SECONDS), values above it and unlimited are refused."
           },
           {
             "name": "password",
@@ -2590,6 +2590,11 @@
           "MaxChunksize": {
             "type": "integer",
             "example": 40
+          },
+          "MaxExpirySeconds": {
+            "type": "integer",
+            "description": "The maximum time in seconds that a file can be stored before it expires (GOKAPI_MAX_EXPIRY_SECONDS). 0 if there is no limit",
+            "example": 0
           }
         },
         "description": "ConfigInfo is the struct used for returning configuration data"
@@ -2627,7 +2632,7 @@
           },
           "expiryDays": {
             "type": "integer",
-            "description": "How many days the file will be stored. Default of 14 will be used if empty. Unlimited if 0 is passed."
+            "description": "How many days the file will be stored. Default of 14 will be used if empty. Unlimited if 0 is passed. If the server sets a maximum expiry (GOKAPI_MAX_EXPIRY_SECONDS), values above it and unlimited are refused and the default is reduced to the maximum."
           },
           "password": {
             "type": "string",

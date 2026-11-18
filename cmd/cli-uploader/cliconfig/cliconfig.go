@@ -75,7 +75,7 @@ func CreateLogin() {
 	}
 	fmt.Print("OK\nDownloading configuration...")
 
-	_, _, isE2E, err := cliapi.GetConfig()
+	_, _, isE2E, _, err := cliapi.GetConfig()
 	if err != nil {
 		fmt.Println("FAIL")
 		if errors.Is(err, cliapi.ErrUnauthorised) {
