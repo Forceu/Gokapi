@@ -477,7 +477,9 @@ function createFileRequestRow(jsonResult, user) {
     editBtn.title = "Edit request";
     editBtn.onclick = () =>
         editFileRequest(jsonResult.id, jsonResult.name, jsonResult.maxfiles, jsonResult.maxsize, jsonResult.expiry, jsonResult.notes);
-
+    if (user != userName && !canEditOtherRequests) {
+    	editBtn.disabled = true;
+    }
     editBtn.appendChild(icon("bi-pencil"));
 
     // Delete
@@ -488,7 +490,9 @@ function createFileRequestRow(jsonResult, user) {
     deleteBtn.title = "Delete";
     deleteBtn.onclick = () =>
         deleteOrShowModal(jsonResult.id, jsonResult.name);
-
+    if (user != userName && !canDeleteOtherRequests) {
+    	deleteBtn.disabled = true;
+    }
     deleteBtn.appendChild(icon("bi-trash3"));
 
     group.append(downloadBtn, copyBtn, editBtn, deleteBtn);

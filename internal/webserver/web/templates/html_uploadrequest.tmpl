@@ -56,12 +56,22 @@
                                 
                                 
                                 <button id="copy-{{ .Id }}" type="button" data-clipboard-text="{{ $.ServerUrl }}publicUpload?id={{ .Id }}&key={{ .ApiKey }}" class="copyurl btn btn-outline-light btn-sm" onclick="showToast(1000);" title="Copy URL"><i class="bi bi-copy"></i></button>
-                                
+
+{{ if and (ne $.ActiveUser.Id .UserId) (not $.ActiveUser.HasPermissionEditOtherUploads) }}
+ 					<button id="edit-{{ .Id }}" type="button" title="Edit request" disabled class="btn btn-outline-light btn-sm">
+		                        	<i class="bi bi-pencil"></i></button>
+{{ else }}
 		                        <button id="edit-{{ .Id }}" type="button" title="Edit request" class="btn btn-outline-light btn-sm" onclick="editFileRequest('{{ .Id }}', '{{ .Name }}', {{ .MaxFiles }}, {{ .MaxSize }}, {{ .Expiry }}, '{{ .Notes }}')">
 		                        	<i class="bi bi-pencil"></i></button>
+{{ end }}                                
                                 
-                                
-                                <button id="delete-{{ .Id }}" type="button" class="btn btn-outline-danger btn-sm" onclick="deleteOrShowModal('{{ .Id }}', '{{ .Name }}')" title="Delete"><i class="bi bi-trash3"></i></button>
+
+{{ if and (ne $.ActiveUser.Id .UserId) (not $.ActiveUser.HasPermissionDeleteOtherUploads) }}
+ 					<button id="delete-{{ .Id }}" type="button" class="btn btn-outline-danger btn-sm" disabled title="Delete"><i class="bi bi-trash3"></i></button>
+{{ else }}
+ 					<button id="delete-{{ .Id }}" type="button" class="btn btn-outline-danger btn-sm" onclick="deleteOrShowModal('{{ .Id }}', '{{ .Name }}')" title="Delete"><i class="bi bi-trash3"></i></button>
+{{ end }}
+                               
                                 	</div>
                                 	</div>
                                 </td>
@@ -128,6 +138,8 @@
 	var userName = "{{.ActiveUser.Name}}";
 	var baseUrl = "{{.ServerUrl}}";
 	var canViewOtherRequests = {{.ActiveUser.HasPermissionListOtherUploads}};
+	var canEditOtherRequests = {{.ActiveUser.HasPermissionEditOtherUploads}};
+	var canDeleteOtherRequests = {{.ActiveUser.HasPermissionDeleteOtherUploads}};
 	var limitMaxSize = {{.FileRequestMaxSize}};
 	var limitMaxFiles = {{.FileRequestMaxFiles}};
 	

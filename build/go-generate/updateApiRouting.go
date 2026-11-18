@@ -208,7 +208,7 @@ func generateParseRequestMethod(typeName string, fields []*ast.Field) string {
 									}
 								`, field.Names[0].Name, maxLength, strings.Trim(headerName, "\""))
 							}
-							
+
 						case "bool":
 							method += headerExists(headerName, required, false, false)
 							method += fmt.Sprintf(`
