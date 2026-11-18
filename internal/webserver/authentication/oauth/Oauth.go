@@ -19,6 +19,8 @@ var config oauth2.Config
 var ctx context.Context
 var provider *oidc.Provider
 
+const cookieOauthVerifier = "gokapi_oauth_verifier"
+
 // Init starts the oauth connection
 func Init(baseUrl string, credentials models.AuthenticationConfig) {
 	var err error
@@ -61,7 +63,9 @@ func HandlerLogin(w http.ResponseWriter, r *http.Request) {
 
 func initLogin(w http.ResponseWriter, r *http.Request, screenType int) {
 	state := helper.GenerateRandomString(32)
-	setCallbackCookie(w, state)
+	verifier := oauth2.GenerateVerifier()
+	setCallbackCookie(w, authentication.CookieOauth, state)
+	setCallbackCookie(w, cookieOauthVerifier, verifier)
 	var prompt string
 	switch screenType {
 	case promptSilent:
@@ -73,7 +77,11 @@ func initLogin(w http.ResponseWriter, r *http.Request, screenType int) {
 	default:
 		panic("invalid screen type")
 	}
-	http.Redirect(w, r, config.AuthCodeURL(state)+"&prompt="+prompt, http.StatusFound)
+	authURL := config.AuthCodeURL(state,
+		oauth2.S256ChallengeOption(verifier),
+		oauth2.SetAuthURLParam("prompt", prompt),
+	)
+	http.Redirect(w, r, authURL, http.StatusFound)
 }
 
 func isConsentRequired(r *http.Request) bool {
@@ -97,6 +105,12 @@ func HandlerCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	verifier, err := r.Cookie(cookieOauthVerifier)
+	if err != nil || verifier.Value == "" {
+		errorHandling.RedirectToOAuthErrorPage(w, r, "PKCE verifier was not provided", err)
+		return
+	}
+
 	if isConsentRequired(r) {
 		initLogin(w, r, promptConsent)
 		return
@@ -105,8 +119,10 @@ func HandlerCallback(w http.ResponseWriter, r *http.Request) {
 		initLogin(w, r, promptSelectAccount)
 		return
 	}
-
-	oauth2Token, err := config.Exchange(ctx, r.URL.Query().Get("code"))
+	// State and verifier are single-use
+	clearCallbackCookie(w, authentication.CookieOauth)
+	clearCallbackCookie(w, cookieOauthVerifier)
+	oauth2Token, err := config.Exchange(ctx, r.URL.Query().Get("code"), oauth2.VerifierOption(verifier.Value))
 	if err != nil {
 		errorHandling.RedirectToOAuthErrorPage(w, r, "Failed to exchange token", err)
 		return
@@ -133,13 +149,23 @@ func HandlerCallback(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func setCallbackCookie(w http.ResponseWriter, value string) {
+func setCallbackCookie(w http.ResponseWriter, name, value string) {
 	c := &http.Cookie{
-		Name:     authentication.CookieOauth,
+		Name:     name,
 		Value:    value,
 		MaxAge:   int(time.Hour.Seconds()),
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
 	}
 	http.SetCookie(w, c)
+}
+
+func clearCallbackCookie(w http.ResponseWriter, name string) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     name,
+		Value:    "",
+		MaxAge:   -1,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	})
 }
