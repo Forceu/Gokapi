@@ -79,3 +79,40 @@ func TestAddDownload(t *testing.T) {
 	content, _ = os.ReadFile("test/log.txt")
 	test.IsEqualBool(t, strings.Contains(string(content), "2.2.2.2"), false)
 }
+
+func TestLogInvalidDownloadPassword(t *testing.T) {
+	for _, saveIp := range []bool{false, true} {
+		id := "audit-without-ip"
+		if saveIp {
+			id = "audit-with-ip"
+		}
+		r := httptest.NewRequest("POST", "/d?id="+id, strings.NewReader("password=never-log-this-secret"))
+		r.RemoteAddr = "192.0.2.42:1234"
+		r.Header.Set("X-Forwarded-For", "198.51.100.99")
+		r.Header.Set("User-Agent", "TestAgent\r\n[auth] injected")
+		LogInvalidDownloadPassword(id, r, saveIp)
+		// Log entries are written asynchronously, as with successful downloads.
+		deadline := time.Now().Add(2 * time.Second)
+		var entry string
+		for time.Now().Before(deadline) {
+			content, _ := os.ReadFile(logPath)
+			for _, line := range strings.Split(string(content), "\n") {
+				if strings.Contains(line, "Invalid download password for file ID "+id) {
+					entry = line
+				}
+			}
+			if entry != "" {
+				break
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+		if entry == "" {
+			t.Fatal("missing failed download password audit entry")
+		}
+		test.IsEqualBool(t, strings.Contains(entry, "[auth] Invalid download password"), true)
+		test.IsEqualBool(t, strings.Contains(entry, "192.0.2.42"), saveIp)
+		test.IsEqualBool(t, strings.Contains(entry, "198.51.100.99"), false)
+		test.IsEqualBool(t, strings.Contains(entry, "never-log-this-secret"), false)
+		test.IsEqualBool(t, strings.Contains(entry, "Useragent TestAgentauth injected"), true)
+	}
+}
