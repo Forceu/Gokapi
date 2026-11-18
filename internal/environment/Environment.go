@@ -73,8 +73,15 @@ type Environment struct {
 	// List is comma separated; entries can be fixed IPs ("10.0.0.1, 10.0.0.2")
 	// and subnets ("10.0.0.0/24")
 	TrustedProxies []string `env:"TRUSTED_PROXIES" envSeparator:"," envDefault:"127.0.0.1"`
-	// Set this to true if you are using Cloudflare
+	// Set this to true if you are using Cloudflare. This will automatically download the Cloudflare IP ranges,
+	// unless you have set GOKAPI_DISABLE_CLOUDFLARE_DOWNLOAD to true.
+	//
+	// When using GOKAPI_USE_CLOUDFLARE, Gokapi parses the CF-Connecting-IP header set by Cloudflare to
+	// retrieve the IP address of the client.
 	UseCloudFlare bool `env:"USE_CLOUDFLARE" envDefault:"false"`
+	// Set this to true if you want to disable the automatic download of Cloudflare IP ranges and set the range
+	// manually.
+	DisableCloudflareDownload bool `env:"DISABLE_CLOUDFLARE_DOWNLOAD" envDefault:"false"`
 	// Sets the webserver port
 	WebserverPort int `env:"PORT" envDefault:"53842" onlyPositive:"true" persistent:"true"`
 	// Allow hotlinking of videos. Note: Due to buffering, playing a video might count as

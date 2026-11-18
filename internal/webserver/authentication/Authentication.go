@@ -236,8 +236,8 @@ func CheckOauthUserAndRedirect(w http.ResponseWriter, r *http.Request, userInfo 
 			return errCreate
 		}
 		if ok {
-			sessionmanager.CreateSession(w, true, authSettings.OAuthRecheckInterval, user.Id)
-			http.Redirect(w, r, "admin", http.StatusTemporaryRedirect)
+			sessionmanager.CreateSession(w, true, authSettings.OAuthRecheckInterval, user.Id, 0)
+			helper.RedirectRelative(w, "admin")
 			return nil
 		}
 	}
@@ -284,12 +284,13 @@ func isGrantedSession(w http.ResponseWriter, r *http.Request) (models.User, bool
 // Returns true if the user is authenticated, false otherwise
 // Second return value is false if CSRF token is invalid, true otherwise
 // Migrates legacy passwords to the new format
-func IsCorrectUsernameAndPassword(username, password, userCsrfToken string) (models.User, bool, bool) {
-	if !csrftoken.IsValid(csrftoken.TypeLogin, userCsrfToken) {
+func IsCorrectUsernameAndPassword(r *http.Request, username, password, userCsrfToken string) (models.User, bool, bool) {
+	if !csrftoken.IsValid(r, csrftoken.TypeLogin, userCsrfToken) {
 		return models.User{}, false, false
 	}
 	user, ok := database.GetUserByName(username)
 	if !ok {
+		doDummyHash()
 		return models.User{}, false, true
 	}
 	isSame, isLegacy := configuration.VerifyPassword(password, user.Password, configuration.Get().Authentication.SaltAdmin)
@@ -303,15 +304,25 @@ func IsCorrectUsernameAndPassword(username, password, userCsrfToken string) (mod
 	return user, true, true
 }
 
+var dummyHash string
+
+// doDummyHash prevents Timing-Based User Enumeration by hashing a random string if a user does not exist
+func doDummyHash() {
+	if dummyHash == "" {
+		dummyHash = configuration.HashPassword(helper.GenerateRandomString(20), false, "")
+	}
+	configuration.VerifyPassword("ThisIsADummyHash", dummyHash, "")
+}
+
 // Logout logs the user out and removes the session
 func Logout(w http.ResponseWriter, r *http.Request) {
 	if authSettings.Method == models.AuthenticationInternal || authSettings.Method == models.AuthenticationOAuth2 {
 		sessionmanager.LogoutSession(w, r)
 	}
 	if authSettings.Method == models.AuthenticationOAuth2 {
-		http.Redirect(w, r, "login?consent=true", http.StatusTemporaryRedirect)
+		helper.RedirectRelative(w, "login?consent=true")
 	} else {
-		http.Redirect(w, r, "login", http.StatusTemporaryRedirect)
+		helper.RedirectRelative(w, "login")
 	}
 }
 

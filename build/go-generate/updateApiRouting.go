@@ -10,6 +10,7 @@ import (
 	"go/token"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -81,6 +82,32 @@ func hasRequiredTag(tags []string) bool {
 		}
 	}
 	return false
+}
+
+func hasMaxLengthTag(tags []string) bool {
+	// Check if the tag contains "maxlength:X"
+	for _, tag := range tags {
+		if strings.HasPrefix(tag, "maxlength") {
+			return true
+		}
+	}
+	return false
+}
+func getMaxLengthTag(tags []string) (int, bool) {
+	for _, tag := range tags {
+		if strings.HasPrefix(tag, "maxlength") {
+			content := strings.TrimPrefix(tag, "maxlength:")
+			content = strings.Trim(content, "\"")
+			parsedLength, err := strconv.Atoi(content)
+			if err != nil {
+				fmt.Println("ERROR: Cannot parse maxlength tag")
+				return 0, false
+			}
+			return parsedLength, true
+		}
+	}
+	fmt.Println("ERROR: No maxlength tag found")
+	return 0, false
 }
 
 func hasBase64Tag(tags []string) bool {
@@ -170,7 +197,18 @@ func generateParseRequestMethod(typeName string, fields []*ast.Field) string {
 									}
 								`, field.Names[0].Name, headerName, field.Names[0].Name, field.Names[0].Name, field.Names[0].Name)
 							}
-
+							if hasMaxLengthTag(tagParts) {
+								maxLength, ok := getMaxLengthTag(tagParts)
+								if !ok {
+									panic("Cannot parse maxlength tag")
+								}
+								method += fmt.Sprintf(`
+									if (len(p.%s) > %d) {
+										return fmt.Errorf("header %s is too long")
+									}
+								`, field.Names[0].Name, maxLength, strings.Trim(headerName, "\""))
+							}
+							
 						case "bool":
 							method += headerExists(headerName, required, false, false)
 							method += fmt.Sprintf(`

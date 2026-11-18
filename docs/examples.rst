@@ -368,3 +368,62 @@ Gokapi Configuration
 |                           |                                                                   |                                                                             |
 |                           | automatically create a new account or restore a deleted one       |                                                                             |
 +---------------------------+-------------------------------------------------------------------+-----------------------------------------------------------------------------+
+
+
+
+
+
+
+*********************************
+Fail2Ban  Configuration
+*********************************
+
+Since usernames are omitted from failure logs to comply with privacy regulations, 
+Fail2ban tracks failed login attempts strictly using the client's IP address. 
+
+Filter Definition
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Create a new filter file at ``/etc/fail2ban/filter.d/gokapi.conf`` to match 
+your log entries:
+
+.. code-block:: ini
+
+    [Definition]
+    # Escape % signs as %% for fail2ban config parsing
+    datepattern = ^%%a, %%d %%b %%Y %%H:%%M:%%S UTC
+    # Matches the exact RFC1123 timestamp, the [auth] tag, and captures the IP
+    failregex = ^[A-Z][a-z]{2}, \d{2} [A-Z][a-z]{2} \d{4} \d{2}:\d{2}:\d{2} UTC\s+\[auth\] Invalid login by IP <HOST>$
+    ignoreregex =
+
+Jail Configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Add the following jail configuration to your ``/etc/fail2ban/jail.local`` 
+file to activate the filter and point it to your log file:
+
+.. code-block:: ini
+
+    [gokapi]
+    enabled = true
+    # If Gokapi does not run on port 80 or 443, change the port below
+    port = http,https
+    logpath = /path/to/gokapi/data/log.txt
+    maxretry = 5
+    findtime = 600
+    bantime = 3600
+
+Verification
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Apply your new configuration by restarting the Fail2ban service:
+
+.. code-block:: bash
+
+    sudo systemctl restart fail2ban
+
+You can test that your regex matches your actual log file without waiting for a ban by running:
+
+.. code-block:: bash
+
+    sudo fail2ban-regex /path/to/your/gokapi/logs/app.log /etc/fail2ban/filter.d/gokapi.conf
