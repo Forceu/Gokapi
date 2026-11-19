@@ -1,10 +1,11 @@
 package downloadstatus
 
 import (
-	"github.com/forceu/gokapi/internal/helper"
-	"github.com/forceu/gokapi/internal/models"
 	"sync"
 	"time"
+
+	"github.com/forceu/gokapi/internal/helper"
+	"github.com/forceu/gokapi/internal/models"
 )
 
 var statusMap = make(map[string]models.DownloadStatus)
@@ -28,12 +29,14 @@ func SetComplete(downloadStatusId string) {
 
 // Clean removes all expires status objects
 func Clean() {
+	statusMutex.Lock()
 	now := time.Now().Unix()
-	for _, item := range statusMap {
+	for id, item := range statusMap {
 		if item.ExpireAt < now {
-			SetComplete(item.Id)
+			delete(statusMap, id)
 		}
 	}
+	statusMutex.Unlock()
 }
 
 // newDownloadStatus initialises a new DownloadStatus item

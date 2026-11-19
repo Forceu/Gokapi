@@ -175,6 +175,17 @@ func TestAddTrailingSlash(t *testing.T) {
 	test.IsEqualString(t, addTrailingSlash("test2/"), "test2/")
 }
 
+func TestIsPathMounted(t *testing.T) {
+	mounts := strings.NewReader("overlay / overlay rw 0 0\n/dev/vda /mnt_vol ext4 rw 0 0\n")
+	test.IsEqualBool(t, isPathMounted(mounts, "/mnt_vol/data"), true)
+
+	mounts = strings.NewReader("overlay / overlay rw 0 0\n/dev/vdb /app/data ext4 rw 0 0\n")
+	test.IsEqualBool(t, isPathMounted(mounts, "data"), true)
+
+	mounts = strings.NewReader("overlay / overlay rw 0 0\n")
+	test.IsEqualBool(t, isPathMounted(mounts, "/mnt_vol/data"), false)
+}
+
 func TestError(t *testing.T) {
 	w := httptest.NewRecorder()
 	outputError(w, errors.New("test error"))

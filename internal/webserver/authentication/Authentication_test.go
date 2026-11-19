@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/forceu/gokapi/internal/configuration"
@@ -74,26 +76,46 @@ func TestIsValid(t *testing.T) {
 	test.IsNil(t, err)
 }
 
+func generateCsrfToken(tokenType int) (*http.Request, string) {
+	w := httptest.NewRecorder()
+	token := csrftoken.Generate(w, tokenType)
+
+	form := url.Values{"csrf_token": {token}}
+	r := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(form.Encode()))
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	for _, c := range w.Result().Cookies() {
+		r.AddCookie(c)
+	}
+	return r, token
+}
+
 func TestIsCorrectUsernameAndPassword(t *testing.T) {
-	user, ok, csfrOk := IsCorrectUsernameAndPassword("test", "adminadmin", csrftoken.Generate(csrftoken.TypeLogin))
+	r, csrfToken := generateCsrfToken(csrftoken.TypeLogin)
+	user, ok, csfrOk := IsCorrectUsernameAndPassword(r, "test", "adminadmin", csrfToken)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, csfrOk, true)
 
-	user, ok, csfrOk = IsCorrectUsernameAndPassword("Test", "adminadmin", csrftoken.Generate(csrftoken.TypeLogin))
+	r, csrfToken = generateCsrfToken(csrftoken.TypeLogin)
+	user, ok, csfrOk = IsCorrectUsernameAndPassword(r, "Test", "adminadmin", csrfToken)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, csfrOk, true)
 	test.IsEqualInt(t, user.Id, 5)
-	user, ok, csfrOk = IsCorrectUsernameAndPassword("user", "useruser", csrftoken.Generate(csrftoken.TypeLogin))
+	r, csrfToken = generateCsrfToken(csrftoken.TypeLogin)
+	user, ok, csfrOk = IsCorrectUsernameAndPassword(r, "user", "useruser", csrfToken)
 	test.IsEqualBool(t, ok, true)
 	test.IsEqualBool(t, csfrOk, true)
 	test.IsEqualInt(t, user.Id, 7)
-	_, ok, csfrOk = IsCorrectUsernameAndPassword("test", "wrong", csrftoken.Generate(csrftoken.TypeLogin))
+	r, csrfToken = generateCsrfToken(csrftoken.TypeLogin)
+	_, ok, csfrOk = IsCorrectUsernameAndPassword(r, "test", "wrong", csrfToken)
 	test.IsEqualBool(t, ok, false)
 	test.IsEqualBool(t, csfrOk, true)
-	_, ok, csfrOk = IsCorrectUsernameAndPassword("invalid", "adminadmin", csrftoken.Generate(csrftoken.TypeLogin))
+	r, csrfToken = generateCsrfToken(csrftoken.TypeLogin)
+	_, ok, csfrOk = IsCorrectUsernameAndPassword(r, "invalid", "adminadmin", csrfToken)
 	test.IsEqualBool(t, ok, false)
 	test.IsEqualBool(t, csfrOk, true)
-	_, ok, csfrOk = IsCorrectUsernameAndPassword("test", "adminadmin", "invalidToken")
+	r, csrfToken = generateCsrfToken(csrftoken.TypeLogin)
+	_, ok, csfrOk = IsCorrectUsernameAndPassword(r, "test", "adminadmin", "invalidToken")
 	test.IsEqualBool(t, ok, false)
 	test.IsEqualBool(t, csfrOk, false)
 }
