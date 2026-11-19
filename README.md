@@ -26,6 +26,18 @@
 
 ---
 
+## Configurable upload defaults
+
+Set these optional environment variables to change the defaults for new uploads:
+
+```yaml
+environment:
+  GOKAPI_DEFAULT_DOWNLOADS: "10"
+  GOKAPI_DEFAULT_EXPIRY_DAYS: "30"
+```
+
+The defaults are 1 download and 14 days when the variables are unset. Set either variable to `0` for an unlimited number of downloads or no expiration. These values apply to uploads through the web interface and API requests that omit the corresponding parameter. Explicit upload limits take precedence, and the web interface keeps any existing preferences stored in the browser.
+
 ## Getting Started
 
 You can deploy Gokapi in seconds using Docker or directly on your system.
