@@ -123,6 +123,10 @@ To create a new request, click the *Plus* icon at the top right. To modify an ex
 
 .. note::
    By default, non-admin users are limited to requesting up to 100 files with a maximum total size of 10 GB per File Request. To change or remove these limits, set ``GOKAPI_MAX_FILES_GUESTUPLOAD`` and ``GOKAPI_MAX_SIZE_GUESTUPLOAD``. See :ref:`availenvvar` for details.
+   
+   
+.. note::
+   Viewing other users' file requests requires permission ``VIEW_OTHERS`` and provides a read-only overview plus file downloads. Viewing the URL or editing the request also requires permission ``EDIT_OTHERS``.
 
 
 

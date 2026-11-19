@@ -1622,7 +1622,7 @@
           "uploadrequest"
         ],
         "summary": "Lists all file requests",
-        "description": "This API call lists all file requests. Requires API permission MANAGE_FILE_REQUESTS. To view file requests created by a different user, the user needs to have the user permission LIST",
+        "description": "This API call lists all file requests. Requires API permission MANAGE_FILE_REQUESTS. If the API key does not have permission EDIT, the public API key is blanked. To view file requests from a different user, the user needs to have the user permission LIST. If the user does not have the permission EDIT_OTHERS, the public API key is blanked",
         "operationId": "ulist",
         "security": [
           {
@@ -1661,7 +1661,7 @@
           "uploadrequest"
         ],
         "summary": "Get file request by ID",
-        "description": "This API call lists a specific file request. Returns 404 if an invalid ID was passed. Requires API permission MANAGE_FILE_REQUESTS. To view file requests from a different user, the user needs to have the user permission LIST",
+        "description": "This API call lists a specific file request. Returns 404 if an invalid ID was passed. Requires API permission MANAGE_FILE_REQUESTS. If the API key does not have permission EDIT, the public API key is blanked. To view file requests from a different user, the user needs to have the user permission LIST. If the user does not have the permission EDIT_OTHERS, the public API key is blanked",
         "operationId": "ulistbyid",
         "parameters": [
           {

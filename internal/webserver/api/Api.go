@@ -1302,10 +1302,13 @@ func apiURequestSave(w http.ResponseWriter, r requestParser, user models.User, _
 	_, _ = w.Write(result)
 }
 
-func apiUploadRequestList(w http.ResponseWriter, _ requestParser, user models.User, _ models.ApiKey) {
+func apiUploadRequestList(w http.ResponseWriter, _ requestParser, user models.User, apiKey models.ApiKey) {
 	userRequests := make([]models.FileRequest, 0)
 	for _, request := range filerequest.GetAll() {
 		if request.UserId == user.Id || user.HasPermission(models.UserPermListOtherUploads) {
+			if shouldRedactApiKey(request, user, apiKey) {
+				request.ApiKey = ""
+			}
 			userRequests = append(userRequests, request)
 		}
 	}
@@ -1314,7 +1317,18 @@ func apiUploadRequestList(w http.ResponseWriter, _ requestParser, user models.Us
 	_, _ = w.Write(result)
 }
 
-func apiUploadRequestListSingle(w http.ResponseWriter, r requestParser, user models.User, _ models.ApiKey) {
+// shouldRedactApiKey checks if the API key for public file requests should be blanked
+func shouldRedactApiKey(fileRequest models.FileRequest, user models.User, apiKey models.ApiKey) bool {
+	if !apiKey.HasPermission(models.ApiPermEdit) {
+		return true
+	}
+	if fileRequest.UserId != user.Id && !user.HasPermission(models.UserPermEditOtherUploads) {
+		return true
+	}
+	return false
+}
+
+func apiUploadRequestListSingle(w http.ResponseWriter, r requestParser, user models.User, apiKey models.ApiKey) {
 	request, ok := r.(*paramURequestListSingle)
 	if !ok {
 		panic("invalid parameter passed")
@@ -1328,6 +1342,9 @@ func apiUploadRequestListSingle(w http.ResponseWriter, r requestParser, user mod
 	if uploadRequest.UserId != user.Id && !user.HasPermission(models.UserPermListOtherUploads) {
 		sendError(w, http.StatusUnauthorized, errorcodes.NoPermission, "No permission to show this upload request")
 		return
+	}
+	if shouldRedactApiKey(uploadRequest, user, apiKey) {
+		uploadRequest.ApiKey = ""
 	}
 	result, err := json.Marshal(uploadRequest)
 	helper.Check(err)

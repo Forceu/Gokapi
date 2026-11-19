@@ -38,7 +38,11 @@
                         
 {{ range $fileRequest := .FileRequests }}
                             <tr id="row-{{ .Id }}" class="no-bottom-border filerequest-item">
+{{ if and (ne $.ActiveUser.Id .UserId) (not $.ActiveUser.HasPermissionEditOtherUploads) }}
+		                    <td>{{ .Name }}</td>
+{{ else }}
 		                    <td><a id="rqName-{{ .Id }}" href="{{ $.ServerUrl }}publicUpload?id={{ .Id }}&key={{ .ApiKey }}" target="_blank">{{ .Name }}</a></td>
+{{ end }}
 				    {{ template "uRFileCell" . }}
 		                    <td>{{ .GetReadableTotalSize }}</td>
             			    <td><span id="cell-lastupdate-{{ .Id }}"></span></td>
