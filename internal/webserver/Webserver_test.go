@@ -7,7 +7,10 @@ import (
 	"encoding/json"
 	"errors"
 	"html/template"
+	"log"
 	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -100,6 +103,31 @@ func cookieValue(cookies []*http.Cookie, name string) string {
 	return ""
 }
 
+func generateCsrfToken(tokenType int) (*http.Request, string) {
+	w := httptest.NewRecorder()
+	token := csrftoken.Generate(w, tokenType)
+
+	form := url.Values{"csrf_token": {token}}
+	r := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(form.Encode()))
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	for _, c := range w.Result().Cookies() {
+		r.AddCookie(c)
+	}
+	return r, token
+}
+
+func generateCsrfCookieAndToken(tokenType int) ([]test.Cookie, string) {
+	r, token := generateCsrfToken(tokenType)
+	cookieValue, err := r.Cookie("gokapi_csrf")
+	if err != nil {
+		log.Fatal(err)
+	}
+	cookies := make([]test.Cookie, 0)
+	cookies = append(cookies, test.Cookie{Name: cookieValue.Name, Value: cookieValue.Value})
+	return cookies, token
+}
+
 func TestLogin(t *testing.T) {
 	const loginUrl = "http://localhost:53843/login"
 
@@ -121,16 +149,20 @@ func TestLogin(t *testing.T) {
 	}
 
 	// POST with wrong username and password shows error
-	postConfig.PostValues = postValues("invalid", "invalid", csrftoken.Generate(csrftoken.TypeLogin))
+	cookies, token := generateCsrfCookieAndToken(csrftoken.TypeLogin)
+	postConfig.PostValues = postValues("invalid", "invalid", token)
+	postConfig.Cookies = cookies
 	test.HttpPostRequest(t, postConfig)
 
 	// POST with correct username but wrong password shows error
-	postConfig.PostValues = postValues("test", "invalid", csrftoken.Generate(csrftoken.TypeLogin))
+	cookies, token = generateCsrfCookieAndToken(csrftoken.TypeLogin)
+	postConfig.PostValues = postValues("test", "invalid", token)
+	postConfig.Cookies = cookies
 	test.HttpPostRequest(t, postConfig)
 
 	// POST with correct credentials but invalid CSRF token shows error
 	postConfig.PostValues = postValues("test", "adminadmin", "invalid")
-	postConfig.RequiredContent = []string{"id=\"uname_hidden\"", "The login page was open too long and expired. Please try again."}
+	postConfig.RequiredContent = []string{"id=\"uname_hidden\"", "The login session expired due to inactivity. Please try again."}
 	test.HttpPostRequest(t, postConfig)
 
 	// GET /login with OAuth2 enabled redirects to oauth-login
@@ -149,14 +181,16 @@ func TestLogin(t *testing.T) {
 	authentication.Init(configuration.Get().Authentication)
 
 	// POST with valid credentials returns a redirect to admin and sets a session cookie
+	cookies, token = generateCsrfCookieAndToken(csrftoken.TypeLogin)
 	postConfig.RequiredContent = nil
 	postConfig.ExcludedContent = nil
 	postConfig.IsHtml = false
 	postConfig.ResultCode = http.StatusTemporaryRedirect
 	postConfig.RedirectUrl = "admin"
-	postConfig.PostValues = postValues("test", "adminadmin", csrftoken.Generate(csrftoken.TypeLogin))
-	cookies := test.HttpPostRequest(t, postConfig)
-	session := cookieValue(cookies, "session_token")
+	postConfig.PostValues = postValues("test", "adminadmin", token)
+	postConfig.Cookies = cookies
+	cookiesPost := test.HttpPostRequest(t, postConfig)
+	session := cookieValue(cookiesPost, "session_token")
 	test.IsNotEqualString(t, session, "")
 
 	// Visiting /login with a valid session redirects to admin
@@ -277,46 +311,64 @@ func TestForgotPw(t *testing.T) {
 
 func TestLoginCorrect(t *testing.T) {
 	t.Parallel()
+	cookies, token := generateCsrfCookieAndToken(csrftoken.TypeLogin)
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:         "http://localhost:53843/login",
 		RedirectUrl: "admin",
 		Method:      "POST",
-		PostValues:  []test.PostBody{{"username", "test"}, {"password", "adminadmin"}, {"csrf-token", csrftoken.Generate(csrftoken.TypeLogin)}},
+		Cookies:     cookies,
+		PostValues:  []test.PostBody{{"username", "test"}, {"password", "adminadmin"}, {"csrf-token", token}},
 	})
 }
 
 func TestLoginIncorrectPassword(t *testing.T) {
 	t.Parallel()
+	cookies, token := generateCsrfCookieAndToken(csrftoken.TypeLogin)
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://localhost:53843/login",
 		RequiredContent: []string{"Incorrect username or password"},
 		IsHtml:          true,
 		Method:          "POST",
-		PostValues:      []test.PostBody{{"username", "test"}, {"password", "incorrect"}, {"csrf-token", csrftoken.Generate(csrftoken.TypeLogin)}},
+		Cookies:         cookies,
+		PostValues:      []test.PostBody{{"username", "test"}, {"password", "incorrect"}, {"csrf-token", token}},
 	})
+	cookies, token = generateCsrfCookieAndToken(csrftoken.TypeLogin)
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://localhost:53843/login",
-		RequiredContent: []string{"The login page was open too long and expired. Please try again."},
+		RequiredContent: []string{"The login session expired due to inactivity. Please try again."},
 		IsHtml:          true,
 		Method:          "POST",
+		Cookies:         cookies,
 		PostValues:      []test.PostBody{{"username", "test"}, {"password", "incorrect"}, {"csrf-token", "incorrect"}},
 	})
 }
 func TestLoginIncorrectUsername(t *testing.T) {
 	t.Parallel()
+	cookies, token := generateCsrfCookieAndToken(csrftoken.TypeLogin)
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://localhost:53843/login",
 		RequiredContent: []string{"Incorrect username or password"},
 		IsHtml:          true,
 		Method:          "POST",
-		PostValues:      []test.PostBody{{"username", "incorrect"}, {"password", "incorrect"}, {"csrf-token", csrftoken.Generate(csrftoken.TypeLogin)}},
+		Cookies:         cookies,
+		PostValues:      []test.PostBody{{"username", "incorrect"}, {"password", "incorrect"}, {"csrf-token", token}},
 	})
+	cookies, token = generateCsrfCookieAndToken(csrftoken.TypeLogin)
 	test.HttpPageResult(t, test.HttpTestConfig{
 		Url:             "http://localhost:53843/login",
-		RequiredContent: []string{"The login page was open too long and expired. Please try again."},
+		RequiredContent: []string{"The login session expired due to inactivity. Please try again."},
 		IsHtml:          true,
 		Method:          "POST",
+		Cookies:         cookies,
 		PostValues:      []test.PostBody{{"username", "incorrect"}, {"password", "incorrect"}, {"csrf-token", "incorrect"}},
+	})
+	cookies, token = generateCsrfCookieAndToken(csrftoken.TypeLogin)
+	test.HttpPageResult(t, test.HttpTestConfig{
+		Url:             "http://localhost:53843/login",
+		RequiredContent: []string{"The login session expired due to inactivity. Please try again."},
+		IsHtml:          true,
+		Method:          "POST",
+		PostValues:      []test.PostBody{{"username", "incorrect"}, {"password", "incorrect"}, {"csrf-token", token}},
 	})
 }
 
@@ -678,4 +730,21 @@ func TestServeWasmE2E(t *testing.T) {
 		Url:    "http://localhost:53843/e2e.wasm",
 		IsHtml: false,
 	})
+}
+
+func TestConvertGlobalConfigFileRequestLimits(t *testing.T) {
+	env := configuration.GetEnvironment()
+	// Non-admin user without any file requests must still receive the server limits
+	user := models.User{Id: 9999, UserLevel: models.UserLevelUser}
+	view := (&AdminView{}).convertGlobalConfig(ViewFileRequests, user)
+	test.IsEqualInt(t, len(view.FileRequests), 0)
+	test.IsEqualInt(t, view.FileRequestMaxFiles, env.MaxFilesGuestUpload)
+	test.IsEqualInt(t, view.FileRequestMaxSize, env.MaxSizeGuestUploadMb)
+	test.IsEqualBool(t, view.FileRequestMaxFiles > 0, true)
+	test.IsEqualBool(t, view.FileRequestMaxSize > 0, true)
+
+	user.UserLevel = models.UserLevelAdmin
+	view = (&AdminView{}).convertGlobalConfig(ViewFileRequests, user)
+	test.IsEqualInt(t, view.FileRequestMaxFiles, 0)
+	test.IsEqualInt(t, view.FileRequestMaxSize, 0)
 }

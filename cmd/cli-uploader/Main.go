@@ -59,7 +59,7 @@ func processUpload(mode int) {
 	result, err := cliapi.UploadFile(uploadParam)
 	if err != nil {
 		fmt.Println()
-		if errors.Is(cliapi.ErrUnauthorised, err) {
+		if errors.Is(err, cliapi.ErrUnauthorised) {
 			fmt.Println("ERROR: Unauthorised API key. Please re-run login or make sure that the API key has the permission to upload files.")
 		} else {
 			fmt.Println("ERROR: Could not upload file")
@@ -88,8 +88,8 @@ func processDownload() {
 	err := cliapi.DownloadFile(uploadParam)
 	if err != nil {
 		fmt.Println()
-		if errors.Is(cliapi.ErrUnauthorised, err) {
-			fmt.Println("ERROR: Unauthorised API key. Please re-run login or make sure that the API key has the permission to download files.")
+		if errors.Is(err, cliapi.ErrUnauthorised) {
+			fmt.Println("ERROR: Unauthorised API key. Please re-run login or make sure that the API key has the permission to list and to download files.")
 		} else {
 			fmt.Println("ERROR: Could not download file")
 			fmt.Println(err)

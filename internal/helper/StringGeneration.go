@@ -6,6 +6,7 @@ Generates / annotates strings
 
 import (
 	cryptorand "crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
 	"regexp"
@@ -94,4 +95,10 @@ func SanitiseFilename(name string) string {
 	name = strings.TrimLeft(name, ".")
 
 	return strings.TrimSpace(name)
+}
+
+func Sha256Sum(input string) string {
+	hasher := sha256.New()
+	hasher.Write([]byte(input))
+	return base64.URLEncoding.EncodeToString(hasher.Sum(nil))
 }

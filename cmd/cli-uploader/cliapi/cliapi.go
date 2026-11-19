@@ -49,6 +49,9 @@ var ErrFileTooBig = errors.New("file too big")
 // ErrE2eKeyIncorrect is returned when the e2e key is incorrect
 var ErrE2eKeyIncorrect = errors.New("e2e key incorrect")
 
+// ErrE2eNotSetUp is returned when end-to-end encryption has not been set up on the server yet
+var ErrE2eNotSetUp = errors.New("e2e has not been set up on the server")
+
 // Init initialises the API client with the given url and key.
 // The key is used for authentication.
 // The end2endKey is used for end-to-end encryption.
@@ -99,13 +102,21 @@ func GetConfig() (int, int, bool, error) {
 	return parsedResult.MaxFilesize, parsedResult.MaxChunksize, parsedResult.EndToEndEncryptionEnabled, nil
 }
 
+func stripApiKeyOnRedirect(req *http.Request, via []*http.Request) error {
+	if len(via) > 0 && req.URL.Host != via[0].URL.Host {
+		req.Header.Del("apikey")
+	}
+	return nil
+}
+
 func getUrl(url string, headers []header, longTimeout bool) (string, error) {
 	timeout := 30 * time.Second
 	if longTimeout {
 		timeout = 30 * time.Minute
 	}
 	client := &http.Client{
-		Timeout: timeout,
+		Timeout:       timeout,
+		CheckRedirect: stripApiKeyOnRedirect,
 	}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -152,7 +163,6 @@ func UploadFile(uploadParams cliflags.FlagConfig) (models.FileApiOutput, error) 
 	if err != nil {
 		return models.FileApiOutput{}, err
 	}
-	// TODO check for 401
 
 	if len(e2eKey) == 0 || !isE2e || uploadParams.DisableE2e {
 		isE2e = false
@@ -230,7 +240,6 @@ func DownloadFile(downloadParams cliflags.FlagConfig) error {
 
 	info, err := getFileInfo(downloadParams.DownloadId)
 	if err != nil {
-		fmt.Println("ERROR: Could not get file info or file does not exist")
 		return err
 	}
 
@@ -283,7 +292,8 @@ func DownloadFile(downloadParams cliflags.FlagConfig) error {
 	}
 	req.Header.Add("apikey", apiKey)
 
-	client := &http.Client{}
+	client := &http.Client{
+		CheckRedirect: stripApiKeyOnRedirect}
 	resp, err := client.Do(req)
 	if err != nil {
 		return err
@@ -434,17 +444,23 @@ func uploadChunk(f io.Reader, uuid string, offset, chunkSize, filesize int64, pr
 	r.ContentLength = dataSize
 	r.Header.Set("Content-Type", writer.FormDataContentType())
 	r.Header.Set("apikey", apiKey)
-	client := &http.Client{}
+	client := &http.Client{
+		CheckRedirect: stripApiKeyOnRedirect,
+	}
 	resp, err := client.Do(r)
-
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
+
 	bodyContent, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
 	response := string(bodyContent)
+	if resp.StatusCode == http.StatusUnauthorized {
+		return ErrUnauthorised
+	}
 	if resp.StatusCode != http.StatusOK {
 		return errors.New("failed to upload chunk: status code " + strconv.Itoa(resp.StatusCode) + ", response: " + response)
 	}
@@ -515,6 +531,9 @@ func GetE2eInfo(unlockLock bool) (models.E2EInfoPlainText, error) {
 	err = json.Unmarshal([]byte(resultJson), &result)
 	if err != nil {
 		return models.E2EInfoPlainText{}, err
+	}
+	if !result.HasBeenSetUp() {
+		return models.E2EInfoPlainText{}, ErrE2eNotSetUp
 	}
 	fileInfo, err = end2end.DecryptData(result, e2eKey)
 	if err != nil {

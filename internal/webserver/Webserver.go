@@ -254,12 +254,7 @@ func initTemplates(templateFolderEmbedded embed.FS) {
 
 // Sends a redirect HTTP output to the client. Variable url is used to redirect to ./url
 func redirect(w http.ResponseWriter, r *http.Request, url string) {
-	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
-}
-
-func redirectOnIncorrectId(w http.ResponseWriter, r *http.Request, url string) {
-	ratelimiter.WaitOnFailedId(r)
-	redirect(w, r, url)
+	helper.RedirectRelative(w, url)
 }
 
 type redirectValues struct {
@@ -331,10 +326,18 @@ func handleGenerateAuthToken(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 	permString := r.Header.Get("permission")
-	permission, err := models.ApiPermissionFromString(permString)
-	if err != nil {
-		http.Error(w, "Invalid permission", http.StatusBadRequest)
-		return
+	var permission models.ApiPermission
+	for _, perm := range strings.Split(permString, ",") {
+		perm = strings.TrimSpace(perm)
+		if perm == "" {
+			continue
+		}
+		parsedPerm, errParsing := models.ApiPermissionFromString(perm)
+		if errParsing != nil {
+			http.Error(w, "Invalid permission", http.StatusBadRequest)
+			return
+		}
+		permission = permission | parsedPerm
 	}
 	token, expiry, err := tokengeneration.Generate(user, permission)
 	if err != nil {
@@ -367,7 +370,7 @@ func changePassword(w http.ResponseWriter, r *http.Request) {
 
 		pw := r.PostForm.Get("newpw")
 		csrf := r.PostForm.Get("csrf-token")
-		pwHash, ok, err = validateNewPassword(pw, user, csrf)
+		pwHash, ok, err = validateNewPassword(r, pw, user, csrf)
 		if err != nil {
 			errMessage = firstLetterUpper(err.Error())
 		}
@@ -385,18 +388,18 @@ func changePassword(w http.ResponseWriter, r *http.Request) {
 			MinPasswordLength: configuration.GetEnvironment().MinLengthPassword,
 			ErrorMessage:      errMessage,
 			CustomContent:     customStaticInfo,
-			CsrfToken:         csrftoken.Generate(csrftoken.TypeLogin)})
+			CsrfToken:         csrftoken.Generate(w, csrftoken.TypeLogin)})
 	helper.CheckIgnoreTimeout(err)
 }
 
 // validateNewPassword validates the new password and returns the new password hash if the password is valid.
 // If the password is not valid, it returns an error message and an empty string.
 // If the password is valid, it returns the hash as a string and true.
-func validateNewPassword(newPassword string, user models.User, userCsrfToken string) (string, bool, error) {
+func validateNewPassword(r *http.Request, newPassword string, user models.User, userCsrfToken string) (string, bool, error) {
 	if len(newPassword) == 0 {
 		return user.Password, false, nil
 	}
-	if !csrftoken.IsValid(csrftoken.TypeLogin, userCsrfToken) {
+	if !csrftoken.IsValid(r, csrftoken.TypeLogin, userCsrfToken) {
 		return "", false, errors.New("form was not submitted completely")
 	}
 	if len(newPassword) < configuration.GetEnvironment().MinLengthPassword {
@@ -543,16 +546,19 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 	failedCsrf := false
 	if pw != "" && user != "" {
 		ip := logging.GetIpAddress(r)
-		ratelimiter.WaitOnLogin(ip)
-		retrievedUser, validCredentials, validCsfr := authentication.IsCorrectUsernameAndPassword(user, pw, csfr)
+		if !ratelimiter.WaitOnLogin(r.Context(), ip) {
+			http.Error(w, "Too many attempts. Please try again later.", http.StatusTooManyRequests)
+			return
+		}
+		retrievedUser, validCredentials, validCsfr := authentication.IsCorrectUsernameAndPassword(r, user, pw, csfr)
 		if validCredentials {
-			logging.LogValidLogin(user)
-			sessionmanager.CreateSession(w, false, 0, retrievedUser.Id)
+			logging.LogValidLogin(retrievedUser.Name)
+			sessionmanager.CreateSession(w, false, 0, retrievedUser.Id, 0)
 			redirect(w, r, "admin")
 			return
 		}
 		if validCsfr {
-			logging.LogInvalidLogin(user, ip)
+			logging.LogInvalidLogin(ip)
 		}
 		failedCsrf = !validCsfr
 		failedLogin = true
@@ -564,7 +570,7 @@ func showLogin(w http.ResponseWriter, r *http.Request) {
 		IsAdminView:   false,
 		PublicName:    configuration.Get().PublicName,
 		CustomContent: customStaticInfo,
-		CsrfToken:     csrftoken.Generate(csrftoken.TypeLogin),
+		CsrfToken:     csrftoken.Generate(w, csrftoken.TypeLogin),
 	})
 	helper.CheckIgnoreTimeout(err)
 }
@@ -586,10 +592,14 @@ type LoginView struct {
 // If it exists, a download form is shown, or a password needs to be entered.
 func showDownload(w http.ResponseWriter, r *http.Request) {
 	addNoCacheHeader(w)
+	if !ratelimiter.WaitOnFileId(r.Context(), logging.GetIpAddress(r)) {
+		http.Error(w, "Too many attempts", http.StatusTooManyRequests)
+		return
+	}
 	keyId := queryUrl(w, r, "id", errorHandling.TypeFileNotFound)
 	file, ok := storage.GetFile(keyId)
 	if !ok || file.IsFileRequest() {
-		redirectOnIncorrectId(w, r, "error")
+		redirect(w, r, "error")
 		return
 	}
 
@@ -628,7 +638,10 @@ func showDownload(w http.ResponseWriter, r *http.Request) {
 		}
 
 		ip := logging.GetIpAddress(r)
-		ratelimiter.WaitOnDownloadPassword(ip)
+		if !ratelimiter.WaitOnDownloadPassword(r.Context(), ip) {
+			http.Error(w, "Too many attempts. Please try again later.", http.StatusTooManyRequests)
+			return
+		}
 
 		isValid, isLegacy := configuration.VerifyPassword(enteredPassword, file.PasswordHash, configuration.Get().Authentication.SaltFiles)
 		if isValid {
@@ -901,6 +914,10 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 			u.Users = append(u.Users, userWithUploads)
 		}
 	case ViewFileRequests:
+		if !user.IsAdmin() {
+			u.FileRequestMaxFiles = configuration.GetEnvironment().MaxFilesGuestUpload
+			u.FileRequestMaxSize = configuration.GetEnvironment().MaxSizeGuestUploadMb
+		}
 		for _, fileRequest := range filerequest.GetAll() {
 			// Double-checking if the owner of the file request exists
 			// If the user was manually deleted from the database, this could lead to a crash
@@ -914,10 +931,6 @@ func (u *AdminView) convertGlobalConfig(view int, user models.User) *AdminView {
 			}
 			fileRequest.Files = sortMetaData(fileRequest.Files)
 			u.FileRequests = append(u.FileRequests, fileRequest)
-			if !user.IsAdmin() {
-				u.FileRequestMaxFiles = configuration.GetEnvironment().MaxFilesGuestUpload
-				u.FileRequestMaxSize = configuration.GetEnvironment().MaxSizeGuestUploadMb
-			}
 		}
 	}
 
@@ -1100,13 +1113,17 @@ func downloadPresigned(w http.ResponseWriter, r *http.Request) {
 
 func serveFile(id string, isRootUrl bool, w http.ResponseWriter, r *http.Request) {
 	addNoCacheHeader(w)
+	if !ratelimiter.WaitOnFileId(r.Context(), logging.GetIpAddress(r)) {
+		http.Error(w, "Too many attempts", http.StatusTooManyRequests)
+		return
+	}
 	savedFile, ok := storage.GetFile(id)
 
 	if !ok || savedFile.IsFileRequest() {
 		if isRootUrl {
-			redirectOnIncorrectId(w, r, "error")
+			redirect(w, r, "error")
 		} else {
-			redirectOnIncorrectId(w, r, "../../error")
+			redirect(w, r, "../../error")
 		}
 		return
 	}
@@ -1124,9 +1141,9 @@ func serveFile(id string, isRootUrl bool, w http.ResponseWriter, r *http.Request
 	if !validFile {
 		// Only called if the file has already expired during the expiry check of storage.ServeFile()
 		if isRootUrl {
-			redirectOnIncorrectId(w, r, "error")
+			redirect(w, r, "error")
 		} else {
-			redirectOnIncorrectId(w, r, "../../error")
+			redirect(w, r, "../../error")
 		}
 		return
 	}

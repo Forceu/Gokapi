@@ -438,7 +438,7 @@ var apiPermToScope = map[models.ApiPermission]string{
 }
 
 // validateSecurityScopes checks two things for every non-e2e route:
-//  1. The OpenAPI security block contains the scope that matches the route's ApiPerm.
+//  1. The OpenAPI security block contains the scopes that match the route's ApiPerm bitmask.
 //  2. Every scope string present in the OpenAPI spec is a recognised value.
 //
 // This catches wrong scope strings (e.g. "PERM_GUEST_UPLOAD") and routes whose
@@ -484,12 +484,13 @@ func validateSecurityScopes(spec *OpenAPISpec) []string {
 				}
 			}
 
-			// Determine the expected scope for this route from the Go ApiPerm value
-			var expectedScope string
+			// Determine the expected scopes for this route from the Go ApiPerm bitmask
+			var expectedScopes []string
+
 			switch {
 			case route.IsFileRequestApi:
 				// File-request endpoints use a dedicated API key type
-				expectedScope = "SPECIFIC_GUEST_API_KEY"
+				expectedScopes = []string{"SPECIFIC_GUEST_API_KEY"}
 			case route.ApiPerm == models.ApiPermNone:
 				// No auth required — there should be no security block
 				if len(op.Security) > 0 {
@@ -499,29 +500,37 @@ func validateSecurityScopes(spec *OpenAPISpec) []string {
 				}
 				continue
 			default:
-				scope, ok := apiPermToScope[route.ApiPerm]
-				if !ok {
+				// Iterate through all known permissions to see which bits are set in the bitmask
+				for perm, scopeName := range apiPermToScope {
+					// Check if this permission bit is present in the route's bitmask
+					if (route.ApiPerm & perm) == perm {
+						expectedScopes = append(expectedScopes, scopeName)
+					}
+				}
+
+				if len(expectedScopes) == 0 {
 					failures = append(failures, fmt.Sprintf(
-						"Route %s %s: no scope mapping defined for ApiPerm value %d",
+						"Route %s %s: no scope mapping defined for ApiPerm bitmask value %d",
 						openAPIPath, method, route.ApiPerm))
 					continue
 				}
-				expectedScope = scope
 			}
 
-			// Check that the expected scope appears in the security block
-			found := false
-			for _, secReq := range op.Security {
-				for _, scopes := range secReq {
-					if slices.Contains(scopes, expectedScope) {
-						found = true
+			// Check that ALL expected scopes appear in the OpenAPI security requirements
+			for _, expectedScope := range expectedScopes {
+				found := false
+				for _, secReq := range op.Security {
+					for _, scopes := range secReq {
+						if slices.Contains(scopes, expectedScope) {
+							found = true
+						}
 					}
 				}
-			}
-			if !found {
-				failures = append(failures, fmt.Sprintf(
-					"Route %s %s: expected security scope %q (from Go ApiPerm) not found in OpenAPI security block",
-					openAPIPath, method, expectedScope))
+				if !found {
+					failures = append(failures, fmt.Sprintf(
+						"Route %s %s: expected security scope %q (from bitmask ApiPerm) not found in OpenAPI security block",
+						openAPIPath, method, expectedScope))
+				}
 			}
 		}
 	}

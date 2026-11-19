@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -53,7 +54,12 @@ func Process(w http.ResponseWriter, r *http.Request) {
 	}
 	var user models.User
 	var apiKey models.ApiKey
-	user, apiKey, ok = isAuthorisedForApi(r, routing)
+	var err error
+	err, user, apiKey, ok = isAuthorisedForApi(r, routing)
+	if err != nil {
+		sendError(w, http.StatusTooManyRequests, errorcodes.RateLimited, "Too many requests. Please wait a couple of minutes")
+		return
+	}
 	if !ok {
 		sendError(w, http.StatusUnauthorized, errorcodes.InvalidApiKey, "Unauthorized")
 		return
@@ -67,7 +73,7 @@ func Process(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	parser := routing.RequestParser.New()
-	err := parser.ParseRequest(r)
+	err = parser.ParseRequest(r)
 	if err != nil {
 		sendError(w, http.StatusBadRequest, errorcodes.CannotParse, err.Error())
 		return
@@ -173,12 +179,22 @@ func apiModifyApiKey(w http.ResponseWriter, r requestParser, user models.User, _
 	if !ok {
 		panic("invalid parameter passed")
 	}
+
+	if configuration.GetEnvironment().DisableApiMenu && !user.IsAdmin() {
+		sendError(w, http.StatusForbidden, errorcodes.NoPermission, "User API keys are disabled for this instance")
+		return
+	}
+
 	apimutex.Lock(apimutex.TypeApiKey, request.KeyId)
 	defer apimutex.Unlock(apimutex.TypeApiKey, request.KeyId)
 
 	apiKeyOwner, apiKey, ok := isValidKeyForEditing(request.KeyId)
 	if !ok {
 		sendError(w, http.StatusNotFound, errorcodes.NotFound, "Invalid key ID provided.")
+		return
+	}
+	if apiKey.IsSystemKey {
+		sendError(w, http.StatusForbidden, errorcodes.NoPermission, "Token API keys cannot be modified")
 		return
 	}
 	if apiKeyOwner.Id != user.Id && !user.HasPermission(models.UserPermManageApiKeys) {
@@ -494,11 +510,23 @@ func apiChunkComplete(w http.ResponseWriter, r requestParser, user models.User, 
 		request.FileSize,
 		"")
 	if request.IsNonBlocking {
-		go doBlockingPartCompleteChunk(nil, request.Uuid, request.FileHeader, user, uploadParams)
+		doNonBlockingPartCompleteChunk(nil, request.Uuid, request.FileHeader, user, uploadParams)
 		_, _ = io.WriteString(w, "{\"result\":\"OK\"}")
 		return
 	}
 	doBlockingPartCompleteChunk(w, request.Uuid, request.FileHeader, user, uploadParams)
+}
+
+func doNonBlockingPartCompleteChunk(w http.ResponseWriter, uuid string, fileHeader chunking.FileHeader, user models.User, uploadParameters models.UploadParameters) {
+	go func() {
+		defer func() {
+			rec := recover()
+			if rec != nil {
+				log.Printf("panic during chunk completion: %v", rec)
+			}
+		}()
+		doBlockingPartCompleteChunk(w, uuid, fileHeader, user, uploadParameters)
+	}()
 }
 
 func doBlockingPartCompleteChunk(w http.ResponseWriter, uuid string, fileHeader chunking.FileHeader, user models.User, uploadParameters models.UploadParameters) {
@@ -530,7 +558,7 @@ func apiChunkUploadRequestComplete(w http.ResponseWriter, r requestParser, user 
 		0, "", true, true,
 		false, request.FileSize, fileRequest.Id)
 	if request.IsNonBlocking {
-		go doBlockingPartCompleteChunk(nil, request.Uuid, request.FileHeader, user, uploadParams)
+		doNonBlockingPartCompleteChunk(nil, request.Uuid, request.FileHeader, user, uploadParams)
 		_, _ = io.WriteString(w, "{\"result\":\"OK\"}")
 		return
 	}
@@ -567,18 +595,21 @@ func apiList(w http.ResponseWriter, r requestParser, user models.User, _ models.
 	if !ok {
 		panic("invalid parameter passed")
 	}
-	validFiles := getFilesForUser(user, request.ShowFileRequests)
+	validFiles := getFilesForUser(user, request.ShowFileRequests, false)
 	result, err := json.Marshal(validFiles)
 	helper.Check(err)
 	_, _ = w.Write(result)
 }
 
-func getFilesForUser(user models.User, includeUploadRequests bool) []models.FileApiOutput {
+func getFilesForUser(user models.User, includeUploadRequests, onlyEndToEndEncryptedFiles bool) []models.FileApiOutput {
 	var validFiles []models.FileApiOutput
 	timeNow := time.Now().Unix()
 	config := configuration.Get()
 	for _, element := range database.GetAllMetadata() {
 		if !includeUploadRequests && element.IsFileRequest() {
+			continue
+		}
+		if onlyEndToEndEncryptedFiles && !element.Encryption.IsEndToEndEncrypted {
 			continue
 		}
 		if element.UserId == user.Id || user.HasPermission(models.UserPermListOtherUploads) {
@@ -640,15 +671,48 @@ func apiDownloadZip(w http.ResponseWriter, r requestParser, user models.User, _ 
 	}
 	requestedFiles := make([]models.File, 0)
 	requestedFileIds := make([]string, 0)
-	for _, fileId := range request.Ids {
-		file, statusCode, errCode, errMessage := checkDownloadAllowed(fileId, user)
-		if statusCode != 0 {
+	if request.IsFileRequestId {
+		fRequest, fRequestFound := database.GetFileRequest(request.Ids[0])
+		if !fRequestFound {
 			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-			sendError(w, statusCode, errCode, errMessage)
+			sendError(w, http.StatusNotFound, errorcodes.NotFound, "Filerequest not found")
 			return
 		}
-		requestedFiles = append(requestedFiles, file)
-		requestedFileIds = append(requestedFileIds, file.Id)
+		if fRequest.UserId != user.Id && !user.HasPermission(models.UserPermListOtherUploads) {
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+			sendError(w, http.StatusUnauthorized, errorcodes.NoPermission, "No permission to download file request")
+			return
+		}
+		for _, file := range filerequest.GetAllFiles(fRequest) {
+			if file.UserId != user.Id && !user.HasPermission(models.UserPermListOtherUploads) {
+				w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+				sendError(w, http.StatusUnauthorized, errorcodes.NoPermission, "No permission to download file request")
+				return
+			}
+			if file.Encryption.IsEndToEndEncrypted {
+				w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+				sendError(w, http.StatusBadRequest, errorcodes.EndToEndNotSupported, "End to end encryption is not supported")
+				return
+			}
+			requestedFiles = append(requestedFiles, file)
+			requestedFileIds = append(requestedFileIds, file.Id)
+		}
+	} else {
+		for _, fileId := range request.Ids {
+			file, statusCode, errCode, errMessage := checkDownloadAllowed(fileId, user)
+			if statusCode != 0 {
+				w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+				sendError(w, statusCode, errCode, errMessage)
+				return
+			}
+			if file.Encryption.IsEndToEndEncrypted {
+				w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+				sendError(w, http.StatusBadRequest, errorcodes.EndToEndNotSupported, "End to end encryption is not supported")
+				return
+			}
+			requestedFiles = append(requestedFiles, file)
+			requestedFileIds = append(requestedFileIds, file.Id)
+		}
 	}
 	if !request.PresignUrl {
 		storage.ServeFilesAsZip(requestedFiles, request.Filename, w, request.WebRequest)
@@ -856,6 +920,10 @@ func apiModifyUser(w http.ResponseWriter, r requestParser, user models.User, _ m
 	}
 	if request.GrantPermission && !user.HasPermission(request.Permission) {
 		sendError(w, http.StatusBadRequest, errorcodes.NoPermission, "Cannot grant rights the user does not have")
+		return
+	}
+	if request.GrantPermission && request.Permission == models.UserPermManageUsers && userEdit.UserLevel == models.UserLevelUser {
+		sendError(w, http.StatusBadRequest, errorcodes.ResourceCanNotBeEdited, "Cannot grant manage user permission to non-admin user")
 		return
 	}
 	logging.LogUserEdit(userEdit, user)
@@ -1098,7 +1166,7 @@ func apiE2eGet(w http.ResponseWriter, _ requestParser, user models.User, _ model
 	}
 	info := database.GetEnd2EndInfo(user.Id)
 	// If e2e is supported for upload requests at some point, this needs to be changed
-	files := getFilesForUser(user, false)
+	files := getFilesForUser(user, false, true)
 	ids := make([]string, len(files))
 	for i, file := range files {
 		ids[i] = file.Id
@@ -1266,18 +1334,20 @@ func apiUploadRequestListSingle(w http.ResponseWriter, r requestParser, user mod
 	_, _ = w.Write(result)
 }
 
-func isAuthorisedForApi(r *http.Request, routing apiRoute) (models.User, models.ApiKey, bool) {
+func isAuthorisedForApi(r *http.Request, routing apiRoute) (error, models.User, models.ApiKey, bool) {
 	keyId := r.Header.Get("apikey")
-	ratelimiter.WaitOnApiAuthentication(logging.GetIpAddress(r))
+	if !ratelimiter.WaitOnApiAuthentication(r.Context(), logging.GetIpAddress(r)) {
+		return errors.New("Too many attempts. Please try again later."), models.User{}, models.ApiKey{}, false
+	}
 	user, apiKey, ok := isValidApiKey(keyId, true, routing.ApiPerm)
 	if !ok {
-		return models.User{}, models.ApiKey{}, false
+		return nil, models.User{}, models.ApiKey{}, false
 	}
 	// Returns false if a public upload key is used for non-public api call or vice versa
 	if routing.IsFileRequestApi != apiKey.IsUploadRequestKey() {
-		return models.User{}, models.ApiKey{}, false
+		return nil, models.User{}, models.ApiKey{}, false
 	}
-	return user, apiKey, true
+	return nil, user, apiKey, true
 }
 
 func sendError(w http.ResponseWriter, statusCode, errorCode int, errorMessage string) {

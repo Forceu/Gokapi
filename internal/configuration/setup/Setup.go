@@ -16,6 +16,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"runtime"
 	"strconv"
 	"strings"
@@ -100,7 +101,10 @@ func basicAuth(next http.HandlerFunc) http.HandlerFunc {
 
 		enteredUser, enteredPw, ok := r.BasicAuth()
 		if ok {
-			ratelimiter.WaitOnSetupLogin()
+			if !ratelimiter.WaitOnSetupLogin(r.Context()) {
+				http.Error(w, "Too many attempts. Please try again later.", http.StatusTooManyRequests)
+				return
+			}
 			usernameMatch := helper.IsEqualStringConstantTime(strings.ToLower(enteredUser), strings.ToLower(credentialUsername))
 			passwordMatch := helper.IsEqualStringConstantTime(enteredPw, credentialPassword)
 			if usernameMatch && passwordMatch {
@@ -717,15 +721,15 @@ type setupView struct {
 
 func (v *setupView) loadFromConfig() {
 	v.IsInitialSetup = isInitialSetup
+	env := environment.New()
 	if environment.IsDockerInstance() {
 		v.IsDocker = true
-		v.IsDataNotMounted = !isVolumeMounted("/app/data")
-		v.IsConfigNotMounted = !isVolumeMounted("/app/config")
+		v.IsDataNotMounted = !isVolumeMounted(env.DataDir)
+		v.IsConfigNotMounted = !isVolumeMounted(env.ConfigDir)
 	}
 	v.HasAwsFeature = aws.IsIncludedInBuild
 	v.ProtectedUrls = protectedUrls
 	if isInitialSetup {
-		env := environment.New()
 		v.MinPasswordLength = env.MinLengthPassword
 		v.CloudSettings, _ = cloudconfig.Load()
 		v.S3EnvProvided = env.IsAwsProvided()
@@ -748,7 +752,6 @@ func (v *setupView) loadFromConfig() {
 	} else {
 		v.Port = environment.DefaultPort
 	}
-	env := environment.New()
 	v.S3EnvProvided = env.IsAwsProvided()
 	v.MinPasswordLength = env.MinLengthPassword
 
@@ -757,19 +760,29 @@ func (v *setupView) loadFromConfig() {
 	v.DatabaseSettings = dbSettings
 }
 
-func isVolumeMounted(path string) bool {
+func isVolumeMounted(dir string) bool {
 	file, err := os.Open("/proc/mounts")
 	if err != nil {
 		fmt.Println(err)
 		return false
 	}
 	defer file.Close()
+	return isPathMounted(file, dir)
+}
 
-	scanner := bufio.NewScanner(file)
+func isPathMounted(mounts io.Reader, dir string) bool {
+	if !path.IsAbs(dir) {
+		dir = path.Join("/app", dir)
+	}
+	dir = path.Clean(dir)
+	scanner := bufio.NewScanner(mounts)
 	for scanner.Scan() {
-		line := scanner.Text()
-		fields := strings.Fields(line)
-		if len(fields) > 1 && fields[1] == path {
+		fields := strings.Fields(scanner.Text())
+		if len(fields) < 2 {
+			continue
+		}
+		mountPath := path.Clean(fields[1])
+		if mountPath != "/" && (dir == mountPath || strings.HasPrefix(dir, mountPath+"/")) {
 			return true
 		}
 	}
@@ -866,7 +879,10 @@ func handleTestAws(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if isInitialSetup {
-		ratelimiter.WaitOnSetupLogin()
+		if !ratelimiter.WaitOnSetupLogin(r.Context()) {
+			http.Error(w, "Too many attempts. Please try again later.", http.StatusTooManyRequests)
+			return
+		}
 		if t.SetupPassword == "" || subtle.ConstantTimeCompare([]byte(t.SetupPassword), []byte(credentialAWSTest)) != 1 {
 			w.WriteHeader(http.StatusUnauthorized)
 			_ = json.NewEncoder(w).Encode(awsTestResponse{

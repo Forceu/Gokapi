@@ -151,6 +151,19 @@ func (p *paramFilesDownloadZip) ParseRequest(r *http.Request) error {
 		}
 	}
 
+	// RequestParser header value "isFileRequestId", required: false
+	exists, err = checkHeaderExists(r, "isFileRequestId", false, false)
+	if err != nil {
+		return err
+	}
+	p.foundHeaders["isFileRequestId"] = exists
+	if exists {
+		p.IsFileRequestId, err = parseHeaderBool(r, "isFileRequestId")
+		if err != nil {
+			return fmt.Errorf("invalid value in header isFileRequestId supplied")
+		}
+	}
+
 	return p.ProcessParameter(r)
 }
 
@@ -933,6 +946,10 @@ func (p *paramChunkComplete) ParseRequest(r *http.Request) error {
 		p.Uuid = r.Header.Get("uuid")
 	}
 
+	if len(p.Uuid) > 100 {
+		return fmt.Errorf("header uuid is too long")
+	}
+
 	// RequestParser header value "filename", required: true, has base64support
 	exists, err = checkHeaderExists(r, "filename", true, true)
 	if err != nil {
@@ -1108,6 +1125,10 @@ func (p *paramChunkUnreserve) ParseRequest(r *http.Request) error {
 		p.Uuid = r.Header.Get("uuid")
 	}
 
+	if len(p.Uuid) > 100 {
+		return fmt.Errorf("header uuid is too long")
+	}
+
 	return p.ProcessParameter(r)
 }
 
@@ -1131,6 +1152,10 @@ func (p *paramChunkUploadRequestComplete) ParseRequest(r *http.Request) error {
 	p.foundHeaders["uuid"] = exists
 	if exists {
 		p.Uuid = r.Header.Get("uuid")
+	}
+
+	if len(p.Uuid) > 100 {
+		return fmt.Errorf("header uuid is too long")
 	}
 
 	// RequestParser header value "filename", required: true, has base64support
