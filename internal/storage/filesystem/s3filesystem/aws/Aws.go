@@ -15,7 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
-	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	smithy "github.com/aws/smithy-go"
 	"github.com/forceu/gokapi/internal/encryption"
@@ -99,9 +99,9 @@ func createClient() *s3.Client {
 
 // Upload uploads a file to AWS
 func Upload(input io.Reader, file models.File) (string, error) {
-	uploader := manager.NewUploader(createClient())
+	client := transfermanager.New(createClient())
 
-	result, err := uploader.Upload(context.Background(), &s3.PutObjectInput{
+	result, err := client.UploadObject(context.Background(), &transfermanager.UploadObjectInput{
 		Bucket: aws.String(file.AwsBucket),
 		Key:    aws.String(file.SHA1),
 		Body:   input,
@@ -109,20 +109,21 @@ func Upload(input io.Reader, file models.File) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return result.Location, nil
+	return aws.ToString(result.Location), nil
 }
 
 // download downloads a file from AWS, used for testing
 func download(writer io.WriterAt, file models.File) (int64, error) {
-	downloader := manager.NewDownloader(createClient())
-	size, err := downloader.Download(context.Background(), writer, &s3.GetObjectInput{
-		Bucket: aws.String(file.AwsBucket),
-		Key:    aws.String(file.SHA1),
+	client := transfermanager.New(createClient())
+	result, err := client.DownloadObject(context.Background(), &transfermanager.DownloadObjectInput{
+		Bucket:   aws.String(file.AwsBucket),
+		Key:      aws.String(file.SHA1),
+		WriterAt: writer,
 	})
 	if err != nil {
 		return 0, err
 	}
-	return size, nil
+	return aws.ToInt64(result.ContentLength), nil
 }
 
 // Stream downloads a file from AWS sequentially, used for saving to a Zip file
