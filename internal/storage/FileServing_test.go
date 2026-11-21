@@ -895,6 +895,44 @@ func TestReplaceFile(t *testing.T) {
 	_, ok = GetFile(newFile.Id)
 	test.IsEqualBool(t, ok, false)
 }
+func TestReplaceFileDeletesPreviousContent(t *testing.T) {
+	dataDir := configuration.Get().DataDir
+	previousSha1 := "replacedoldcontent"
+	newSha1 := "replacednewcontent"
+	test.IsNil(t, os.WriteFile(dataDir+"/"+previousSha1, []byte("old"), 0600))
+	test.IsNil(t, os.WriteFile(dataDir+"/"+newSha1, []byte("new"), 0600))
+
+	original := models.File{
+		Id:                 "replacesourceoriginal",
+		Name:               "old.txt",
+		Size:               "3 B",
+		SHA1:               previousSha1,
+		ContentType:        "text/plain",
+		UnlimitedDownloads: true,
+		UnlimitedTime:      true,
+		SizeBytes:          3,
+	}
+	replacement := models.File{
+		Id:                 "replacesourcenew",
+		Name:               "new.txt",
+		Size:               "3 B",
+		SHA1:               newSha1,
+		ContentType:        "text/plain",
+		UnlimitedDownloads: true,
+		UnlimitedTime:      true,
+		SizeBytes:          3,
+	}
+	database.SaveMetaData(original)
+	database.SaveMetaData(replacement)
+
+	_, err := ReplaceFile(original.Id, replacement.Id, false)
+	test.IsNil(t, err)
+
+	_, err = os.Stat(dataDir + "/" + previousSha1)
+	test.IsEqualBool(t, os.IsNotExist(err), true)
+	test.FileExists(t, dataDir+"/"+newSha1)
+}
+
 func TestParallelDownloads(t *testing.T) {
 	const allowedDownloads = 5
 
