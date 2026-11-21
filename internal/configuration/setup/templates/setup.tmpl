@@ -325,10 +325,15 @@
 								    </div>
 								    
 								     <div><br>
-								     <input type="hidden" name="oauth_only_registered_users.unchecked" value="false">
-								     <input  id="oauth_only_registered_users" name="oauth_only_registered_users" type="checkbox" value="true">
-								     <span>&nbsp;Only allow already existing users to log in</span>
+								         <input type="hidden" name="oauth_only_registered_users.unchecked" value="false">
+								         <input  id="oauth_only_registered_users" name="oauth_only_registered_users" type="checkbox" value="true">
+								         <span>&nbsp;Only allow already existing users to log in</span>
 								     </div>
+								  <div>
+								         <input type="hidden" name="oauth_only_verified_users.unchecked" value="false">
+								         <input  id="oauth_only_verified_users" name="oauth_only_verified_users" type="checkbox" checked value="true">
+								         <span>&nbsp;Require provider verification for email addresses</span>
+								  </div>
 								  </div>
 							</div> 
 							<div class="col-sm-8" style="width:90%">
@@ -845,6 +850,7 @@ function TestAWS(button, isManual) {
 				    document.getElementById("oauth_admin_user").value = "{{ .Auth.Username }}";
 				    document.getElementById("oauth_recheck_interval").value = "{{ .Auth.OAuthRecheckInterval }}";
 				    document.getElementById("oauth_only_registered_users").checked = {{.Auth.OnlyRegisteredUsers}};
+				    document.getElementById("oauth_only_verified_users").checked = {{.Auth.OAuthRequireEmailVerification}};
 	{{ if ne .OAuthGroups "" }}
 				    document.getElementById("oauth_restrict_groups").checked = true;
 				    document.getElementById("oauth_scope_groups").disabled = false;

@@ -245,6 +245,7 @@ type authSettings struct {
 	PasswordInternalAuth      string
 	OnlyRegisteredUsersOAuth  bool
 	OnlyRegisteredUsersHeader bool
+	RequireEmailVerification  bool
 }
 
 func toConfiguration(formObjects *[]jsonFormObject) (models.Configuration, *cloudconfig.CloudConfig, configuration.End2EndReconfigParameters, authSettings, error) {
@@ -312,6 +313,7 @@ func toConfiguration(formObjects *[]jsonFormObject) (models.Configuration, *clou
 	case models.AuthenticationOAuth2:
 		result.Authentication.Username = authInfo.UserOAuth
 		result.Authentication.OnlyRegisteredUsers = authInfo.OnlyRegisteredUsersOAuth
+		result.Authentication.OAuthRequireEmailVerification = authInfo.RequireEmailVerification
 	case models.AuthenticationHeader:
 		result.Authentication.Username = authInfo.UserHeader
 		result.Authentication.OnlyRegisteredUsers = authInfo.OnlyRegisteredUsersHeader
@@ -445,6 +447,10 @@ func parseOAuthSettings(result *models.Configuration, authInfo *authSettings, fo
 	authInfo.UserOAuth = username
 
 	authInfo.OnlyRegisteredUsersOAuth, err = getFormValueBool(formObjects, "oauth_only_registered_users")
+	if err != nil {
+		return err
+	}
+	authInfo.RequireEmailVerification, err = getFormValueBool(formObjects, "oauth_only_verified_users")
 	if err != nil {
 		return err
 	}

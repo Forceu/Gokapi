@@ -10,14 +10,16 @@ import (
 
 var testConfig = Configuration{
 	Authentication: AuthenticationConfig{
-		Method:            0,
-		SaltAdmin:         "saltadmin",
-		SaltFiles:         "saltfiles",
-		Username:          "admin",
-		HeaderKey:         "",
-		OAuthProvider:     "",
-		OAuthClientId:     "",
-		OAuthClientSecret: "",
+		Method:                        0,
+		SaltAdmin:                     "saltadmin",
+		SaltFiles:                     "saltfiles",
+		Username:                      "admin",
+		HeaderKey:                     "",
+		OAuthProvider:                 "",
+		OAuthClientId:                 "",
+		OAuthClientSecret:             "",
+		OAuthRequireEmailVerification: true,
+		OnlyRegisteredUsers:           false,
 	},
 	Port:          ":12345",
 	ServerUrl:     "https://testserver.com/",
@@ -52,4 +54,4 @@ func TestCheck(t *testing.T) {
 	checkError(errors.New("test"))
 }
 
-const expectedUnindentedOutput = `{"Authentication":{"Method":0,"SaltAdmin":"saltadmin","SaltFiles":"saltfiles","Username":"admin","HeaderKey":"","OauthProvider":"","OAuthClientId":"","OAuthClientSecret":"","OauthGroupScope":"","OAuthRecheckInterval":0,"OAuthGroups":null,"OnlyRegisteredUsers":false},"Port":":12345","ServerUrl":"https://testserver.com/","RedirectUrl":"https://test.com","PublicName":"public-name","DataDir":"test","DatabaseUrl":"sqlite://./test/gokapitest.sqlite","ConfigVersion":14,"MaxFileSizeMB":20,"MaxMemory":50,"ChunkSize":0,"MaxParallelUploads":0,"Encryption":{"Level":1,"Cipher":"AA==","Salt":"encsalt","Checksum":"encsum","ChecksumSalt":"encsumsalt"},"UseSsl":true,"PicturesAlwaysLocal":true,"SaveIp":false,"IncludeFilename":false}`
+const expectedUnindentedOutput = `{"Authentication":{"Method":0,"SaltAdmin":"saltadmin","SaltFiles":"saltfiles","Username":"admin","HeaderKey":"","OauthProvider":"","OAuthClientId":"","OAuthClientSecret":"","OauthGroupScope":"","OAuthRecheckInterval":0,"OAuthGroups":null,"OAuthRequireEmailVerification":true,"OnlyRegisteredUsers":false},"Port":":12345","ServerUrl":"https://testserver.com/","RedirectUrl":"https://test.com","PublicName":"public-name","DataDir":"test","DatabaseUrl":"sqlite://./test/gokapitest.sqlite","ConfigVersion":14,"MaxFileSizeMB":20,"MaxMemory":50,"ChunkSize":0,"MaxParallelUploads":0,"Encryption":{"Level":1,"Cipher":"AA==","Salt":"encsalt","Checksum":"encsum","ChecksumSalt":"encsumsalt"},"UseSsl":true,"PicturesAlwaysLocal":true,"SaveIp":false,"IncludeFilename":false}`

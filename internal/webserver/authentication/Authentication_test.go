@@ -240,25 +240,57 @@ func TestGetUserFromRequest(t *testing.T) {
 func TestIsValidOauthUser(t *testing.T) {
 	Init(modelOauth)
 	info := OAuthUserInfo{Email: "", Subject: "randomid"}
-	test.IsEqualBool(t, isValidOauthUser(info, []string{}), false)
+	isValid, err := isValidOauthUser(info, []string{})
+	test.IsEqualBool(t, isValid, false)
+	test.IsNil(t, err)
+
 	info.Email = "newemail"
-	test.IsEqualBool(t, isValidOauthUser(info, []string{}), true)
-	test.IsEqualBool(t, isValidOauthUser(info, []string{"test2"}), true)
-	test.IsEqualBool(t, isValidOauthUser(info, []string{}), true)
+	isValid, err = isValidOauthUser(info, []string{})
+	test.IsNil(t, err)
+	test.IsEqualBool(t, isValid, true)
+
+	isValid, err = isValidOauthUser(info, []string{"test2"})
+	test.IsNil(t, err)
+	test.IsEqualBool(t, isValid, true)
+
+	isValid, err = isValidOauthUser(info, []string{})
+	test.IsNil(t, err)
+	test.IsEqualBool(t, isValid, true)
+
 	authSettings.OAuthGroupScope = "group"
 	authSettings.OAuthGroups = []string{"othergroup"}
 	info.Email = "test1"
-	test.IsEqualBool(t, isValidOauthUser(info, []string{}), false)
+	isValid, err = isValidOauthUser(info, []string{})
+	test.IsNil(t, err)
+	test.IsEqualBool(t, isValid, false)
+
 	info.Email = "otheruser"
-	test.IsEqualBool(t, isValidOauthUser(info, []string{}), false)
+	isValid, err = isValidOauthUser(info, []string{})
+	test.IsNil(t, err)
+	test.IsEqualBool(t, isValid, false)
+
 	info.Email = "test1"
-	test.IsEqualBool(t, isValidOauthUser(info, []string{"testgroup"}), false)
-	test.IsEqualBool(t, isValidOauthUser(info, []string{"testgroup", "othergroup"}), true)
+	isValid, err = isValidOauthUser(info, []string{"testgroup"})
+	test.IsNil(t, err)
+	test.IsEqualBool(t, isValid, false)
+
+	isValid, err = isValidOauthUser(info, []string{"testgroup", "othergroup"})
+	test.IsNil(t, err)
+	test.IsEqualBool(t, isValid, true)
+
 	info.Email = "otheruser"
-	test.IsEqualBool(t, isValidOauthUser(info, []string{"othergroup"}), true)
-	test.IsEqualBool(t, isValidOauthUser(info, []string{"testgroup", "othergroup"}), true)
+	isValid, err = isValidOauthUser(info, []string{"othergroup"})
+	test.IsNil(t, err)
+	test.IsEqualBool(t, isValid, true)
+
+	isValid, err = isValidOauthUser(info, []string{"testgroup", "othergroup"})
+	test.IsNil(t, err)
+	test.IsEqualBool(t, isValid, true)
+
 	info.Subject = ""
-	test.IsEqualBool(t, isValidOauthUser(info, []string{"testgroup", "othergroup"}), false)
+	isValid, err = isValidOauthUser(info, []string{"testgroup", "othergroup"})
+	test.IsNil(t, err)
+	test.IsEqualBool(t, isValid, false)
 }
 
 func TestWildcardMatch(t *testing.T) {

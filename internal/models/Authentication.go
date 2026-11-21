@@ -6,16 +6,17 @@ type AuthenticationConfig struct {
 	// deprecated, only used for migration
 	SaltAdmin string `json:"SaltAdmin"`
 	// deprecated, only used for migration
-	SaltFiles            string   `json:"SaltFiles"`
-	Username             string   `json:"Username"`
-	HeaderKey            string   `json:"HeaderKey"`
-	OAuthProvider        string   `json:"OauthProvider"`
-	OAuthClientId        string   `json:"OAuthClientId"`
-	OAuthClientSecret    string   `json:"OAuthClientSecret"`
-	OAuthGroupScope      string   `json:"OauthGroupScope"`
-	OAuthRecheckInterval int      `json:"OAuthRecheckInterval"`
-	OAuthGroups          []string `json:"OAuthGroups"`
-	OnlyRegisteredUsers  bool     `json:"OnlyRegisteredUsers"`
+	SaltFiles                     string   `json:"SaltFiles"`
+	Username                      string   `json:"Username"`
+	HeaderKey                     string   `json:"HeaderKey"`
+	OAuthProvider                 string   `json:"OauthProvider"`
+	OAuthClientId                 string   `json:"OAuthClientId"`
+	OAuthClientSecret             string   `json:"OAuthClientSecret"`
+	OAuthGroupScope               string   `json:"OauthGroupScope"`
+	OAuthRecheckInterval          int      `json:"OAuthRecheckInterval"`
+	OAuthGroups                   []string `json:"OAuthGroups"`
+	OAuthRequireEmailVerification bool     `json:"OAuthRequireEmailVerification"`
+	OnlyRegisteredUsers           bool     `json:"OnlyRegisteredUsers"`
 }
 
 const (

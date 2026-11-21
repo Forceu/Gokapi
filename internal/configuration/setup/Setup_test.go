@@ -546,6 +546,7 @@ type setupValues struct {
 	OAuthRestrictGroups           setupEntry `form:"oauth_restrict_groups" isBool:"true"`
 	OAuthRecheckInterval          setupEntry `form:"oauth_recheck_interval" isInt:"true"`
 	OAuthOnlyRegisteredUsers      setupEntry `form:"oauth_only_registered_users" isBool:"true"`
+	OAuthRequireEmailVerification setupEntry `form:"oauth_only_verified_users" isBool:"true"`
 	AuthHeaderKey                 setupEntry `form:"auth_headerkey"`
 	AuthHeaderAdmin               setupEntry `form:"auth_header_admin"`
 	AuthHeaderOnlyRegisteredUsers setupEntry `form:"auth_header_only_registered_users" isBool:"true"`
@@ -681,6 +682,7 @@ func createInputInternalAuth() setupValues {
 	values.SaveIp.Value = "0"
 	values.OAuthOnlyRegisteredUsers.Value = "false"
 	values.OAuthRestrictGroups.Value = "false"
+	values.OAuthRequireEmailVerification.Value = "false"
 	values.OAuthRecheckInterval.Value = "12"
 	values.AuthHeaderOnlyRegisteredUsers.Value = "false"
 	values.DatabaseType.Value = "0"
@@ -708,6 +710,7 @@ func createInputHeaderAuth() setupValues {
 	values.EncryptionLevel.Value = "0"
 	values.SaveIp.Value = "1"
 	values.OAuthOnlyRegisteredUsers.Value = "false"
+	values.OAuthRequireEmailVerification.Value = "false"
 	values.OAuthRestrictGroups.Value = "false"
 	values.OAuthRecheckInterval.Value = "12"
 	values.IncludeFilename.Value = "0"
@@ -730,6 +733,7 @@ func createInputOAuth() setupValues {
 	values.OAuthScopeGroup.Value = "groups"
 	values.OAuthAuthorisedGroups.Value = "group1; group2"
 	values.StorageSelection.Value = "local"
+	values.OAuthRequireEmailVerification.Value = "false"
 	values.PicturesAlwaysLocal.Value = "local"
 	values.ProxyDownloads.Value = "default"
 	return values

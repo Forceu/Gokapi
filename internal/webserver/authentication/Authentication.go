@@ -169,6 +169,20 @@ func isGroupInArray(userGroups []string, allowedGroups []string) bool {
 	return false
 }
 
+var errFailedToParseEmailVerification = errors.New("failed to parse email verification claim")
+var errEmailNotVerified = errors.New("your email address has not been verified by the identity provider")
+
+func isEmailVerified(userInfo OAuthUserClaims) (bool, error) {
+	var claims struct {
+		EmailVerified bool `json:"email_verified"`
+	}
+	err := userInfo.Claims(&claims)
+	if err != nil {
+		return false, err
+	}
+	return claims.EmailVerified, nil
+}
+
 func extractOauthGroups(userInfo OAuthUserClaims, groupScope string) ([]string, error) {
 	var claims json.RawMessage
 	var data map[string]interface{}
@@ -230,7 +244,11 @@ func CheckOauthUserAndRedirect(w http.ResponseWriter, r *http.Request, userInfo 
 			return err
 		}
 	}
-	if isValidOauthUser(userInfo, groups) {
+	isValid, errEmailVerification := isValidOauthUser(userInfo, groups)
+	if errEmailVerification != nil {
+		return errEmailVerification
+	}
+	if isValid {
 		user, ok, errCreate := getOrCreateUser(userInfo.Email)
 		if errCreate != nil {
 			return errCreate
@@ -261,18 +279,28 @@ func getOrCreateUser(username string) (models.User, bool, error) {
 	return newUser, true, nil
 }
 
-func isValidOauthUser(userInfo OAuthUserInfo, groups []string) bool {
+func isValidOauthUser(userInfo OAuthUserInfo, groups []string) (bool, error) {
 	if userInfo.Subject == "" {
-		return false
+		return false, nil
 	}
 	if userInfo.Email == "" {
-		return false
+		return false, nil
+	}
+	if authSettings.OAuthRequireEmailVerification {
+		isValid, err := isEmailVerified(userInfo.ClaimsSent)
+		if err != nil {
+			fmt.Println(err)
+			return false, errFailedToParseEmailVerification
+		}
+		if !isValid {
+			return false, errEmailNotVerified
+		}
 	}
 	isValidGroup := true
 	if len(authSettings.OAuthGroups) > 0 {
 		isValidGroup = isGroupInArray(groups, authSettings.OAuthGroups)
 	}
-	return isValidGroup
+	return isValidGroup, nil
 }
 
 // isGrantedSession returns true if the user holds a valid internal session cookie

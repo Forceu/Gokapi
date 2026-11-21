@@ -2,13 +2,14 @@ package configupgrade
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/forceu/gokapi/internal/environment"
 	"github.com/forceu/gokapi/internal/models"
-	"os"
 )
 
 // CurrentConfigVersion is the version of the configuration structure. Used for upgrading
-const CurrentConfigVersion = 22
+const CurrentConfigVersion = 23
 
 const minConfigVersion = 22
 
@@ -30,6 +31,11 @@ func updateConfig(settings *models.Configuration, env *environment.Environment) 
 		fmt.Println("Please update to version 2.0.0 before running this version.")
 		osExit(1)
 		return
+	}
+	// < v2.2.5-dev
+	if settings.ConfigVersion < 23 {
+		// do nothing, placeholder
+		// Authentication.OAuthRequireEmailVerification will automatically be set to false
 	}
 }
 
