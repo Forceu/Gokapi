@@ -51,6 +51,14 @@ func ParseUrl(dbUrl string, mustExist bool) (models.DbConnection, error) {
 	case "redis":
 		result.Type = dbabstraction.TypeRedis
 		result.HostUrl = u.Host
+	case "mariadb":
+		result.Type = dbabstraction.TypeMariaDb
+		result.HostUrl = u.Host
+		result.DatabaseName = strings.TrimPrefix(u.Path, "/")
+	case "postgres":
+		result.Type = dbabstraction.TypePostgres
+		result.HostUrl = u.Host
+		result.DatabaseName = strings.TrimPrefix(u.Path, "/")
 	default:
 		return models.DbConnection{}, fmt.Errorf("unsupported database type: %s\n", dbUrl)
 	}

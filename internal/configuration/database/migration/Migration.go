@@ -32,6 +32,10 @@ func getType(input int) string {
 		return "SQLite"
 	case dbabstraction.TypeRedis:
 		return "Redis"
+	case dbabstraction.TypeMariaDb:
+		return "MariaDB"
+	case dbabstraction.TypePostgres:
+		return "PostgreSQL"
 	}
 	return "Invalid"
 }
