@@ -84,10 +84,13 @@ func IsValidLogin(config models.AwsConfig) (bool, error) {
 
 func createSession() *session.Session {
 	s3Config := &aws.Config{
-		Credentials:      credentials.NewStaticCredentials(awsConfig.KeyId, awsConfig.KeySecret, ""),
 		Endpoint:         aws.String(awsConfig.Endpoint),
 		Region:           aws.String(awsConfig.Region),
 		S3ForcePathStyle: aws.Bool(true),
+	}
+	// Leaving Credentials unset enables the SDK provider chain, including IAM roles.
+	if awsConfig.KeyId != "" || awsConfig.KeySecret != "" {
+		s3Config.Credentials = credentials.NewStaticCredentials(awsConfig.KeyId, awsConfig.KeySecret, "")
 	}
 	return session.Must(session.NewSession(s3Config))
 }

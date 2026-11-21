@@ -17,3 +17,17 @@ func TestIsAwsProvided(t *testing.T) {
 	}
 	test.IsEqualBool(t, config.IsAllProvided(), true)
 }
+
+func TestAwsCredentialModes(t *testing.T) {
+	for _, tc := range []struct {
+		key, secret string
+		valid       bool
+	}{
+		{"", "", true}, {"key", "secret", true}, {"key", "", false}, {"", "secret", false},
+	} {
+		config := AwsConfig{Bucket: "bucket", Region: "region", KeyId: tc.key, KeySecret: tc.secret}
+		test.IsEqualBool(t, config.IsAllProvided(), tc.valid)
+		config.Region = ""
+		test.IsEqualBool(t, config.IsAllProvided(), false)
+	}
+}
