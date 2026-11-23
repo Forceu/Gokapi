@@ -59,7 +59,7 @@ func GetAllFiles(request models.FileRequest) []models.File {
 	var result []models.File
 	files := database.GetAllMetadata()
 	for _, file := range files {
-		if file.UploadRequestId == request.Id {
+		if file.UploadRequestId == request.Id && !file.IsPendingForDeletion() {
 			result = append(result, file)
 		}
 	}

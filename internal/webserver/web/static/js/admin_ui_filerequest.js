@@ -70,11 +70,11 @@ function getFileRequestUploadCount(frId) {
 function updateDownloadButton(frId) {
     const btn = document.getElementById(`download-${frId}`);
     if (!btn) return;
-    
-    const frName = document.getElementById(`rqName-${frId}`).innerText || '';
-    
-    let countCell = document.getElementById("totalFiles-fr-" + frId);
-    let currentCount = Number(countCell.innerText) || 0;
+
+    const countCell = document.getElementById("totalFiles-fr-" + frId);
+    // Ignore reserved files (e.g. +1)
+    const rawText = countCell ? countCell.innerText.split('+')[0].trim() : '';
+    const currentCount = Number(rawText) || 0;
 
     const currentOnclick = btn.getAttribute('onclick') || '';
 
@@ -82,15 +82,13 @@ function updateDownloadButton(frId) {
         // No files left — disable button
         btn.classList.add('disabled');
         btn.removeAttribute('onclick');
-    } else if (currentCount === 1) {
-        // Single file — switch to single download
-        btn.classList.remove('disabled');
-        let fileId = getFileIdsForFilerequest(frId)[0];
-        btn.setAttribute('onclick', `downloadFileWithPresign('${fileId}');`);
     } else {
-        // Multiple files — keep zip download
-        btn.classList.remove('disabled');
-        btn.setAttribute('onclick', `downloadFilesZipWithPresign('${frId}', true, '${frName}');`);
+        if (currentCount === 1) {
+            // Single file — switch to single download
+            let fileId = getFileIdsForFilerequest(frId)[0];
+            btn.setAttribute('onclick', `downloadFileWithPresign('${fileId}');`);
+        }
+        // No change needed if 2+ files are still left
     }
 }
 
