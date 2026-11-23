@@ -170,7 +170,7 @@ Keycloak
 ^^^^^^^^^^^^
 
 .. note::
-   This guide has been written for version 26.5.5
+   This guide has been written for version 26.8.2
 
 .. warning::
    In a previous version of this guide, the client mapping was for the predefined mapper "Group memberships", which in some cases always returned the value "admin". Please make sure that you are using a custom mapper, as described in :ref:`oidcconfig_keycloak_opt`

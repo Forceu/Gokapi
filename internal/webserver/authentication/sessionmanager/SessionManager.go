@@ -21,8 +21,16 @@ const sessionLifetime = 7 * 24 * time.Hour
 
 // After that time the user is forced to log in again, even if the session was active the whole time
 // If the user has not been using the session for at least 4 hours and the expiry would be in the next
-// 48 hours: The session will expire to have a graceful logout experience
+// gracePeriodNonOauth: The session will expire to have a graceful logout experience
 const forceLoginAfter = 32 * 24 * time.Hour
+
+// If within the next 48 hours the session will expire, display a graceful login again.
+// This is only for non-OIDC logins
+const gracePeriodNonOauth = 48 * time.Hour
+
+// If within the next hour the session will expire, display a graceful login again.
+// This is only for OIDC logins to prevent redirect loops
+const gracePeriodOauth = 1 * time.Hour
 
 const lengthSessionId = 60
 
@@ -55,7 +63,7 @@ func IsValidSession(w http.ResponseWriter, r *http.Request, isOauth bool, OAuthR
 // Returns true if session is still valid
 // Returns false if session is invalid (and deletes it)
 func useSession(w http.ResponseWriter, id string, session models.Session, isOauth bool, OAuthRecheckInterval int, user models.User) bool {
-	if hasSessionExpired(session, user) {
+	if hasSessionExpired(session, user, isOauth) {
 		database.DeleteSession(id)
 		return false
 	}
@@ -67,7 +75,7 @@ func useSession(w http.ResponseWriter, id string, session models.Session, isOaut
 	return true
 }
 
-func hasSessionExpired(session models.Session, user models.User) bool {
+func hasSessionExpired(session models.Session, user models.User, isOauth bool) bool {
 	now := time.Now()
 	if session.ValidUntil < now.Unix() {
 		return true
@@ -77,7 +85,8 @@ func hasSessionExpired(session models.Session, user models.User) bool {
 	}
 	// Graceful logout: if the user has been away for a while and the hard limit
 	// is near, end the session now instead of cutting them off mid-work later
-	if session.Expiry < now.Add(48*time.Hour).Unix() &&
+	if (isOauth && session.Expiry < now.Add(gracePeriodOauth).Unix() ||
+		!isOauth && session.Expiry < now.Add(gracePeriodNonOauth).Unix()) &&
 		user.LastOnline < now.Add(-4*time.Hour).Unix() {
 		return true
 	}
