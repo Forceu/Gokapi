@@ -64,6 +64,26 @@ func TestEnvLoad(t *testing.T) {
 	os.Unsetenv("GOKAPI_MAX_FILESIZE")
 }
 
+func TestDefaultUploadEnvironment(t *testing.T) {
+    t.Setenv("GOKAPI_DEFAULT_DOWNLOADS", "10")
+    t.Setenv("GOKAPI_DEFAULT_EXPIRY_DAYS", "30")
+    env := New()
+    test.IsEqualInt(t, env.DefaultDownloads, 10)
+    test.IsEqualInt(t, env.DefaultExpiryDays, 30)
+
+    t.Setenv("GOKAPI_DEFAULT_DOWNLOADS", "0")
+    t.Setenv("GOKAPI_DEFAULT_EXPIRY_DAYS", "0")
+    env = New()
+    test.IsEqualInt(t, env.DefaultDownloads, 0)
+    test.IsEqualInt(t, env.DefaultExpiryDays, 0)
+
+    t.Setenv("GOKAPI_DEFAULT_DOWNLOADS", "-1")
+    t.Setenv("GOKAPI_DEFAULT_EXPIRY_DAYS", "-1")
+    env = New()
+    test.IsEqualInt(t, env.DefaultDownloads, 1)
+    test.IsEqualInt(t, env.DefaultExpiryDays, 14)
+}
+
 func TestIsAwsProvided(t *testing.T) {
 	os.Unsetenv("GOKAPI_AWS_BUCKET")
 	os.Unsetenv("GOKAPI_AWS_REGION")

@@ -157,11 +157,11 @@ func parseConfig(values formOrHeader) (models.UploadParameters, error) {
 	password := values.Get("password")
 	allowedDownloadsInt, err := strconv.Atoi(allowedDownloads)
 	if err != nil {
-		allowedDownloadsInt = 1
+		allowedDownloadsInt = configuration.GetEnvironment().DefaultDownloads
 	}
 	expiryDaysInt, err := strconv.Atoi(expiryDays)
 	if err != nil {
-		expiryDaysInt = 14
+		expiryDaysInt = configuration.GetEnvironment().DefaultExpiryDays
 	}
 
 	unlimitedDownload := values.Get("isUnlimitedDownload") == "true"
