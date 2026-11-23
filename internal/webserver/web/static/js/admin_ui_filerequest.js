@@ -82,14 +82,14 @@ function updateDownloadButton(frId) {
         // No files left — disable button
         btn.classList.add('disabled');
         btn.removeAttribute('onclick');
-    } else {
-        if (currentCount === 1) {
-            // Single file — switch to single download
-            let fileId = getFileIdsForFilerequest(frId)[0];
-            btn.setAttribute('onclick', `downloadFileWithPresign('${fileId}');`);
-        }
-        // No change needed if 2+ files are still left
+        return;
     }
+    if (currentCount === 1) {
+        // Single file — switch to single download
+        let fileId = getFileIdsForFilerequest(frId)[0];
+        btn.setAttribute('onclick', `downloadFileWithPresign('${fileId}');`);
+    }
+    // No change needed if 2+ files are still left
 }
 
 function getFileIdsForFilerequest(fileRequestId) {
