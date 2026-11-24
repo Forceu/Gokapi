@@ -14,6 +14,5 @@ type AwsConfig struct {
 func (c *AwsConfig) IsAllProvided() bool {
 	return c.Bucket != "" &&
 		c.Region != "" &&
-		c.KeyId != "" &&
-		c.KeySecret != ""
+		((c.KeyId == "" && c.KeySecret == "") || (c.KeyId != "" && c.KeySecret != ""))
 }
